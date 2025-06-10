@@ -1,18 +1,18 @@
 generic-service:
-  nameOverride: hmpps-template-kotlin
-  productId: "UNASSIGNED" # productId for the product that this belongs too, i.e. DPS001, see README.md for details
+  nameOverride: hmpps-accredited-programmes-manage-and-deliver-api
+  productId: "HMPPS527" # productId for the product that this belongs too, i.e. DPS001, see README.md for details
 
   replicaCount: 4
 
   image:
-    repository: ghcr.io/ministryofjustice/hmpps-template-kotlin
+    repository: ghcr.io/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api
     tag: app_version # override at deployment time
     port: 8080
 
   ingress:
     enabled: true
     host: app-hostname.local # override per environment
-    tlsSecretName: hmpps-template-kotlin-cert
+    tlsSecretName: hmpps-accredited-programmes-manage-and-deliver-api-cert
 
   # Environment variables to load into the deployment
   env:
@@ -26,7 +26,7 @@ generic-service:
   #     [name of environment variable as seen by app]: [key of kubernetes secret to load]
 
   namespace_secrets:
-    hmpps-template-kotlin-application-insights:
+    hmpps-accredited-programmes-manage-and-deliver-api-application-insights:
       APPLICATIONINSIGHTS_CONNECTION_STRING: "APPLICATIONINSIGHTS_CONNECTION_STRING"
 
   allowlist:
@@ -34,4 +34,4 @@ generic-service:
       - internal
 
 generic-prometheus-alerts:
-  targetApplication: hmpps-template-kotlin
+  targetApplication: hmpps-accredited-programmes-manage-and-deliver-api

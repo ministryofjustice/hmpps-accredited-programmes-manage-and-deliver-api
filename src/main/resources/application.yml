@@ -1,10 +1,10 @@
 info.app:
-  name: HMPPS Template Kotlin
+  name: HMPPS Accredited Programmes Manage And Deliver Api
   version: 1.0
 
 spring:
   application:
-    name: hmpps-template-kotlin
+    name: hmpps-accredited-programmes-manage-and-deliver-api
   codec:
     max-in-memory-size: 10MB
 

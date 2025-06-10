@@ -1,11 +1,11 @@
 version: "3"
 services:
-  hmpps-template-kotlin:
+  hmpps-accredited-programmes-manage-and-deliver-api:
     build:
       context: .
     networks:
       - hmpps
-    container_name: hmpps-template-kotlin
+    container_name: hmpps-accredited-programmes-manage-and-deliver-api
     ports:
       - "8080:8080"
     healthcheck:
