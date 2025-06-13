@@ -5,8 +5,6 @@ info.app:
 spring:
   application:
     name: hmpps-accredited-programmes-manage-and-deliver-api
-  codec:
-    max-in-memory-size: 10MB
 
   jackson:
     date-format: "yyyy-MM-dd HH:mm:ss"
@@ -23,6 +21,21 @@ spring:
         provider:
           hmpps-auth:
             token-uri: ${hmpps-auth.url}/oauth/token
+
+  jpa:
+    open-in-view: false
+    generate-ddl: false
+    hibernate:
+      ddl-auto: none
+
+  datasource:
+    hikari:
+      connectionTimeout: 1000
+      validationTimeout: 500
+
+  http:
+    codec:
+      max-in-memory-size: 10MB
 
 server:
   port: 8080

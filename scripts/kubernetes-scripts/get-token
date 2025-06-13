@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+declare -A AUTH_URLS
+
+AUTH_URLS['dev']=https://sign-in-dev.hmpps.service.justice.gov.uk/auth
+AUTH_URLS['preprod']=https://sign-in-preprod.hmpps.service.justice.gov.uk/auth
+AUTH_URLS['prod']=https://sign-in.hmpps.service.justice.gov.uk/auth
+
+DIR="${BASH_SOURCE%/*}"
+if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+
+. "$DIR/.namespace"
+
+get_auth_string() {
+    case "$NS_KEY" in
+    dev | preprod | prod)
+      API_SECRET=$(kubectl get secret hmpps-manage-and-deliver-accredited-programmes-ui -n "$NAMESPACE" -o json | jq -r ".data.SYSTEM_CLIENT_SECRET | @base64d")
+      API_ID=$(kubectl get secret hmpps-manage-and-deliver-accredited-programmes-ui -n "$NAMESPACE" -o json | jq -r ".data.SYSTEM_CLIENT_ID | @base64d")
+      ;;
+    *)
+      echo "-ns must be 'dev', 'preprod' or 'prod'"
+      exit
+      ;;
+    esac
+    AUTH_STRING=$(echo -n "${API_ID}":"${API_SECRET}" | base64 -b 0)
+}
+
+get_auth_string
+
+# Ask kubernetes for information about the pods in our namespace and extract the name of one of the api pods.
+POD_NAME="$(kubectl get  -n "$NAMESPACE" --output=json pods | jq -r '.items |  map(select(.metadata.labels.app=="hmpps-manage-and-deliver-accredited-programmes-api")) | .[0].metadata.name')"
+
+AUTH_URL=${AUTH_URLS[$NS_KEY]}
+
+# Invoke curl on POD_NAME to request a token from hmpps-auth using the auth string obtained above.
+JWT_JSON=$(kubectl exec "${POD_NAME}"  -n "$NAMESPACE" -- curl -s -X POST "${AUTH_URL}/oauth/token?grant_type=client_credentials" -H 'Content-Type: application/json' -H 'Content-Length: 0' -H "Authorization: Basic ${AUTH_STRING}")
+
+# Extract the access token
+TOKEN=$(echo "$JWT_JSON" | jq -r .access_token)
+echo -n "$TOKEN"
+
