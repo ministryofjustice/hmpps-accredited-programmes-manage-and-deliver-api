@@ -1,0 +1,47 @@
+usage() {
+  echo
+  echo "Usage:"
+  echo
+  echo " command line parameters:"
+  echo
+  echo "   -ns <namespace>            One of 'dev', 'preprod' or 'prod'. Selects the kubernetes namespace. "
+  echo
+  exit
+}
+
+check_namespace() {
+  case "$NS_KEY" in
+  dev | preprod | prod)
+    NAMESPACE=hmpps-manage-and-deliver-accredited-programmes-${NS_KEY}
+    ;;
+  *)
+    echo "-ns must be 'dev', 'preprod' or 'prod'"
+    exit
+    ;;
+  esac
+}
+
+read_command_line() {
+  if [[ ! $1 ]]; then
+    usage
+  fi
+  while [[ $1 ]]; do
+    case $1 in
+    -ns)
+      shift
+      NS_KEY=$1
+      ;;
+
+    *)
+      echo
+      echo "Unknown argument '$1'"
+      echo
+      exit
+      ;;
+    esac
+    shift
+  done
+}
+
+read_command_line "$@"
+check_namespace

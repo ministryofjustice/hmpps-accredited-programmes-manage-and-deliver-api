@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+usage() {
+  echo
+  echo "Usage:"
+  echo
+  echo " command line parameters:"
+  echo
+  echo "   -ns <namespace>            One of 'dev', 'preprod' or 'prod'. Selects the kubernetes namespace. "
+  echo
+  exit
+}
+
+check_namespace() {
+  case "$NS_KEY" in
+  dev | preprod | prod)
+    NAMESPACE=hmpps-manage-and-deliver-accredited-programmes-${NS_KEY}
+    ;;
+  *)
+    echo "-ns must be 'dev', 'preprod' or 'prod'"
+    exit
+    ;;
+  esac
+}
+
+read_command_line() {
+  if [[ ! $1 ]]; then
+    usage
+  fi
+  while [[ $1 ]]; do
+    case $1 in
+    -ns)
+      shift
+      NS_KEY=$1
+      ;;
+
+    *)
+      echo
+      echo "Unknown argument '$1'"
+      echo
+      exit
+      ;;
+    esac
+    shift
+  done
+}
+
+read_command_line "$@"
+check_namespace
+
+DB_ADDRESS=$(kubectl get secret rds-postgresql-instance-output -n "$NAMESPACE" -o json | jq -r ".data.rds_instance_address | @base64d")
+echo Starting port forward pod in namespace \""$NS_KEY"\" for address "$DB_ADDRESS"
+kubectl \
+  -n="${NAMESPACE}" \
+  run db-port-forward-pod \
+  --image=ministryofjustice/port-forward \
+  --port=5432 \
+  --env="REMOTE_HOST=${DB_ADDRESS}" \
+  --env="LOCAL_PORT=5432" \
+  --env="REMOTE_PORT=5432"
