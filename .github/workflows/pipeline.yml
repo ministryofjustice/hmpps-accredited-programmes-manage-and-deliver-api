@@ -37,24 +37,29 @@ jobs:
     secrets: inherit
     with:
       environment: ${{ matrix.environments }}
-  setup-postgres:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17
-        ports:
-          - 5432:5432
-        env:
-          POSTGRES_USER: admin
-          POSTGRES_PASSWORD: admin_password
-          POSTGRES_DB: postgres
+
   kotlin_validate:
     name: Validate the kotlin
     uses: ministryofjustice/hmpps-github-actions/.github/workflows/kotlin_validate.yml@v2 # WORKFLOW_VERSION
     secrets: inherit
-    needs: setup-postgres
+    services:
+      postgres:
+        image: postgres:17.5-alpine
+        env:
+          POSTGRES_PASSWORD: admin_postgres
+          POSTGRES_USER: admin
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 3
+
   build:
     name: Build docker image from hmpps-github-actions
+
     if: github.ref == 'refs/heads/main'
     uses: ministryofjustice/hmpps-github-actions/.github/workflows/docker_build.yml@v2 # WORKFLOW_VERSION
     needs:
