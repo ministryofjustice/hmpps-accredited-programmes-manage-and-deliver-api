@@ -40,8 +40,7 @@ jobs:
 
   kotlin_validate:
     name: Validate the kotlin
-    uses: ministryofjustice/hmpps-github-actions/.github/workflows/kotlin_validate.yml@v2 # WORKFLOW_VERSION
-    secrets: inherit
+    runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:17.5-alpine
@@ -56,6 +55,8 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 3
+    steps:
+      - uses: ministryofjustice/hmpps-github-actions/.github/workflows/kotlin_validate.yml@v2 # WORKFLOW_VERSION
 
   build:
     name: Build docker image from hmpps-github-actions
