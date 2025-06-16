@@ -23,8 +23,8 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-# This will cancel all running build/test/release pipelines that are not on the main branch
-# If this pipeline is on the main branch, it will wait until existing runs complete
+  # This will cancel all running build/test/release pipelines that are not on the main branch
+  # If this pipeline is on the main branch, it will wait until existing runs complete
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
@@ -37,30 +37,14 @@ jobs:
     secrets: inherit
     with:
       environment: ${{ matrix.environments }}
-
   kotlin_validate:
     name: Validate the kotlin
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17.5-alpine
-        env:
-          POSTGRES_PASSWORD: admin_postgres
-          POSTGRES_USER: admin
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 3
-    steps:
-      - uses: ministryofjustice/hmpps-github-actions/.github/workflows/kotlin_validate.yml@v2 # WORKFLOW_VERSION
-
+    uses: ministryofjustice/hmpps-github-actions/.github/workflows/gradle_postgres_verify.yml@v2 # WORKFLOW_VERSION
+    secrets: inherit
+    with:
+      postgres-tag: '17.5-alpine'
   build:
     name: Build docker image from hmpps-github-actions
-
     if: github.ref == 'refs/heads/main'
     uses: ministryofjustice/hmpps-github-actions/.github/workflows/docker_build.yml@v2 # WORKFLOW_VERSION
     needs:
