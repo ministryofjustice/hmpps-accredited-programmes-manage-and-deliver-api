@@ -43,6 +43,8 @@ jobs:
     secrets: inherit
     with:
       postgres-tag: '17.5-alpine'
+      postgres-username: 'admin'
+      postgres-password: 'admin_password'
   build:
     name: Build docker image from hmpps-github-actions
     if: github.ref == 'refs/heads/main'
