@@ -1,4 +1,4 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.security
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -24,13 +24,12 @@ class SecurityConfiguration {
           "/info",
           "/swagger-ui.html",
         ).permitAll()
-        .anyRequest().permitAll() // TODO remove this and replace with .anyRequest().hasRole("SOME_ROLE_TBD")
     }
     .sessionManagement { session ->
       session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
     }
     .oauth2ResourceServer { oauth2 ->
-      oauth2.jwt { }
+      oauth2.jwt { jwt -> jwt.jwtAuthenticationConverter(AuthAwareTokenConverter()) }
     }
     .build()
 }

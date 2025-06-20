@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class HelloWorldController {
 
-  @PreAuthorize("permitAll()")
+  @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
   @GetMapping("/hello-world", produces = ["text/plain"])
   fun helloWorld() = "Hello World"
 }
