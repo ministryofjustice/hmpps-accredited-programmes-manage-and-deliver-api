@@ -11,5 +11,4 @@ class HelloWorldController {
   @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
   @GetMapping("/hello-world", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun helloWorld() = mapOf("message" to "Hello World")
-
 }
