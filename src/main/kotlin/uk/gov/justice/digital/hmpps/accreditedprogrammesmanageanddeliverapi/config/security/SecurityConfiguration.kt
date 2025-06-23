@@ -24,6 +24,7 @@ class SecurityConfiguration {
           "/info",
           "/swagger-ui.html",
         ).permitAll()
+        .anyRequest().authenticated()
     }
     .sessionManagement { session ->
       session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
