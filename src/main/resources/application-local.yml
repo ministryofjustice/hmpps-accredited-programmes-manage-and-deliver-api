@@ -6,3 +6,18 @@ spring:
 
 hmpps-auth:
   url: "http://localhost:8090/auth"
+
+hmpps:
+  sqs:
+    provider: localstack
+    queues:
+      hmppsdomaineventsqueue:
+        queueName: hmpps_domain_events_queue
+        dlqName: hmpps_domain_events_dlq
+        subscribeTopicId: hmppsdomaineventstopic
+        subscribeFilter: '{"eventType":[ "interventions.community-referral.created"] }'
+        asyncQueueClient: true
+
+    topics:
+      hmppsdomaineventstopic:
+        arn: arn:aws:sns:eu-west-2:000000000000:${random.uuid}
