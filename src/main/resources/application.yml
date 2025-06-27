@@ -68,3 +68,10 @@ management:
     info:
       cache:
         time-to-live: 2000ms
+
+hmpps:
+  sqs:
+    reactiveApi: true
+    queues:
+      hmppsdomaineventsqueue:
+        asyncQueueClient: true
