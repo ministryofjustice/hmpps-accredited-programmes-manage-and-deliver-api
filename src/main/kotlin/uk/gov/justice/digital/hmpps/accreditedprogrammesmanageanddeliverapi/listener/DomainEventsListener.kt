@@ -18,6 +18,7 @@ class DomainEventsListener(
     val domainEventMessage = objectMapper.readValue<DomainEventsMessage>(sqsMessage.message)
     when (domainEventMessage.eventType) {
       REFERRAL_CREATED -> referralCreatedHandler.handle(domainEventMessage)
+      else -> throw IllegalStateException("Unexpected event type received: ${domainEventMessage.eventType}")
     }
   }
 
