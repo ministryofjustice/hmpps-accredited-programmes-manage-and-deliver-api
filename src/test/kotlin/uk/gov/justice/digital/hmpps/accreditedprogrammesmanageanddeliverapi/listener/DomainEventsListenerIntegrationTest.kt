@@ -61,7 +61,8 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
       assertThat(it.description).isEqualTo(domainEventsMessage.description)
       assertThat(it.occurredAt).isEqualTo(domainEventsMessage.occurredAt)
-      assertThat(it.message).isEqualTo(objectMapper.writeValueAsString(domainEventsMessage),
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
       )
     }
   }
