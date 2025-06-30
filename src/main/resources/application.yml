@@ -69,6 +69,10 @@ management:
       cache:
         time-to-live: 2000ms
 
+manage-and-deliver-and-delius:
+  locations:
+    find-person: "/person/find/{identifier}"
+
 hmpps:
   sqs:
     reactiveApi: true

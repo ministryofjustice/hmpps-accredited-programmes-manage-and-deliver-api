@@ -1,2 +1,6 @@
 hmpps-auth:
   url: "http://localhost:8090/auth"
+
+manage-and-deliver-and-delius:
+  locations:
+    find-person: "/person/find/{identifier}"
