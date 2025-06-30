@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.list
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.SQSMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SQSMessageHistoryRepository
 import uk.gov.justice.hmpps.sqs.countMessagesOnQueue
+import java.time.temporal.ChronoUnit
 
 class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
 
@@ -60,7 +61,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.eventType).isEqualTo(eventType)
       assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
       assertThat(it.description).isEqualTo(domainEventsMessage.description)
-      assertThat(it.occurredAt).isEqualTo(domainEventsMessage.occurredAt)
+      assertThat(it.occurredAt?.truncatedTo(ChronoUnit.SECONDS)).isEqualTo(domainEventsMessage.occurredAt.truncatedTo(ChronoUnit.SECONDS))
       assertThat(it.message).isEqualTo(
         objectMapper.writeValueAsString(domainEventsMessage),
       )

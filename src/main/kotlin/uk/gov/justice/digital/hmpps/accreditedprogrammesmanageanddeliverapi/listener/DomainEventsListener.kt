@@ -9,7 +9,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.list
 
 @Service
 class DomainEventsListener(
-  private val objectMapper: ObjectMapper,
+  val objectMapper: ObjectMapper,
   val referralCreatedHandler: ReferralCreatedHandler,
 ) {
 
