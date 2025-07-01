@@ -15,14 +15,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.DomainEventsMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.SQSMessage
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SQSMessageHistoryRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.hmpps.sqs.countMessagesOnQueue
 import java.time.temporal.ChronoUnit
 
 class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
-  lateinit var sqsMessageHistoryRepository: SQSMessageHistoryRepository
+  lateinit var messageHistoryRepository: MessageHistoryRepository
 
   @Autowired
   lateinit var testDataCleaner: TestDataCleaner
@@ -56,7 +56,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
 
     // Then
     assertEquals(0, domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get())
-    sqsMessageHistoryRepository.findAll().first().let {
+    messageHistoryRepository.findAll().first().let {
       assertThat(it.id).isNotNull
       assertThat(it.eventType).isEqualTo(eventType)
       assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)

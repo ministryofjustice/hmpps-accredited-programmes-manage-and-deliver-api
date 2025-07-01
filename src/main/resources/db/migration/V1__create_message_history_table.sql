@@ -1,4 +1,4 @@
-CREATE TABLE sqs_message_history (
+CREATE TABLE message_history (
     id UUID NOT NULL PRIMARY KEY,
     event_type TEXT NOT NULL,
     detail_url TEXT NOT NULL,

@@ -1,7 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SQSMessageHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.MessageHistoryEntity
 import java.time.LocalDateTime
 
 data class DomainEventsMessage(
@@ -13,7 +13,7 @@ data class DomainEventsMessage(
   val occurredAt: LocalDateTime,
 ) {
   companion object {
-    fun toEntity(domainEventsMessage: DomainEventsMessage, objectMapper: ObjectMapper): SQSMessageHistoryEntity = SQSMessageHistoryEntity(
+    fun toEntity(domainEventsMessage: DomainEventsMessage, objectMapper: ObjectMapper): MessageHistoryEntity = MessageHistoryEntity(
       id = null,
       eventType = domainEventsMessage.eventType,
       detailUrl = domainEventsMessage.detailUrl,

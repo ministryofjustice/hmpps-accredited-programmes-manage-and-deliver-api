@@ -13,7 +13,7 @@ class TestDataCleaner(
 ) {
   fun cleanAllTables() {
     entityManager.apply {
-      createNativeQuery("TRUNCATE TABLE sqs_message_history CASCADE").executeUpdate()
+      createNativeQuery("TRUNCATE TABLE message_history CASCADE").executeUpdate()
       // Add additional tables here as the data model grows
     }
   }

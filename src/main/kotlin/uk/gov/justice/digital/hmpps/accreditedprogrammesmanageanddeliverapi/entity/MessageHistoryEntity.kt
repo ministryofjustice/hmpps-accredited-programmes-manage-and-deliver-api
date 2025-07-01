@@ -9,8 +9,8 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 @Entity
-@Table(name = "sqs_message_history")
-open class SQSMessageHistoryEntity(
+@Table(name = "message_history")
+open class MessageHistoryEntity(
 
   @Id
   @GeneratedValue
