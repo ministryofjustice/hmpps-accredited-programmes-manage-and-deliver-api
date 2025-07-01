@@ -33,7 +33,7 @@ class ReferralController(
   )
   @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
   @GetMapping("/referral/{id}", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun getReferralByld(@PathVariable("id") id: UUID) : ReferralDto {
+  fun getReferralByld(@PathVariable("id") id: String) : ReferralDto {
     return referralService.getReferralById(id);
   }
 }
