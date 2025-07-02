@@ -12,7 +12,7 @@ class ReferralCreatedHandler(
 
 ) {
   fun handle(domainEventMessage: DomainEventsMessage) {
-    val sqsMessageHistoryEntity = DomainEventsMessage.toEntity(domainEventMessage, objectMapper)
-    messageHistoryRepository.save(sqsMessageHistoryEntity)
+    val messageHistoryEntity = DomainEventsMessage.toEntity(domainEventMessage, objectMapper)
+    messageHistoryRepository.save(messageHistoryEntity)
   }
 }

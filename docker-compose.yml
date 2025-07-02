@@ -53,5 +53,21 @@ services:
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=admin_password
 
+  localstack:
+    image: localstack/localstack:3
+    networks:
+      - hmpps
+    container_name: hmpps-mandd-localstack
+    ports:
+      - "4566:4566"
+      - 8999:8080
+    environment:
+      - SERVICES=sns,sqs
+      - DEBUG=${DEBUG- }
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "${TMPDIR:-/tmp/localstack}:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
 networks:
   hmpps:
