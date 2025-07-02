@@ -8,6 +8,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
+import org.springframework.data.annotation.CreatedDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -21,10 +22,10 @@ open class MessageHistoryEntity(
   var id: UUID? = null,
 
   @Column(name = "event_type")
-  var eventType: String? = null,
+  var eventType: String,
 
   @Column(name = "detail_url")
-  var detailUrl: String? = null,
+  var detailUrl: String,
 
   @Column(name = "description")
   var description: String? = null,
@@ -33,9 +34,10 @@ open class MessageHistoryEntity(
   var occurredAt: LocalDateTime? = null,
 
   @Column(name = "message")
-  var message: String? = null,
+  var message: String,
 
   @Column(name = "created_at")
+  @CreatedDate
   var createdAt: LocalDateTime? = null,
 
   @OneToOne(fetch = FetchType.LAZY, optional = true)

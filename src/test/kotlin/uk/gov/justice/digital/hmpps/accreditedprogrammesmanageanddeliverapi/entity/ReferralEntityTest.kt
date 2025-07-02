@@ -26,9 +26,7 @@ class ReferralEntityTest : IntegrationTestBase() {
     val sentenceEndDate = LocalDate.of(2030, 1, 1)
     val referral = ReferralEntityFactory()
       .withCrn("CRN123")
-      .withCohort("Test Cohort")
       .withPersonName("John Doe")
-      .withSentenceEndDate(sentenceEndDate)
       .produce()
 
     referralRepository.save(referral)
@@ -46,8 +44,6 @@ class ReferralEntityTest : IntegrationTestBase() {
     // Then
     assertThat(retrievedReferral).isNotNull
     assertThat(retrievedReferral.crn).isEqualTo("CRN123")
-    assertThat(retrievedReferral.cohort).isEqualTo("Test Cohort")
-    assertThat(retrievedReferral.sentenceEndDate).isEqualTo(sentenceEndDate)
     assertThat(retrievedReferral.statusHistories).hasSize(1)
     assertThat(retrievedReferral.statusHistories[0].status).isEqualTo("Assessment started")
   }

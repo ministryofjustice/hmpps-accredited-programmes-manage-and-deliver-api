@@ -29,11 +29,11 @@ class MessageHistoryEntityFactory {
 
   fun produce() = MessageHistoryEntity(
     id = this.id,
-    eventType = this.eventType,
-    detailUrl = this.detailUrl,
+    eventType = this.eventType!!,
+    detailUrl = this.detailUrl!!,
     description = this.description,
     occurredAt = this.occurredAt,
-    message = this.message,
+    message = this.message!!,
     createdAt = this.createdAt,
     referral = this.referral,
   )

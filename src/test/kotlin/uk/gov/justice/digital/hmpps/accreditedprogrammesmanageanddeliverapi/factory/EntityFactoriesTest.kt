@@ -61,7 +61,6 @@ class EntityFactoriesTest {
     assertThat(referral.id).isNull()
     assertThat(referral.personName).isNotNull()
     assertThat(referral.crn).isNotNull()
-    assertThat(referral.cohort).isNotNull()
     assertThat(referral.createdAt).isNotNull()
     assertThat(referral.statusHistories).isEmpty()
   }
@@ -84,7 +83,6 @@ class EntityFactoriesTest {
       .withId(id)
       .withPersonName(personName)
       .withCrn(crn)
-      .withCohort(cohort)
       .withCreatedAt(createdAt)
       .addStatusHistory(statusHistory)
       .produce()
@@ -92,7 +90,6 @@ class EntityFactoriesTest {
     assertThat(referral.id).isEqualTo(id)
     assertThat(referral.personName).isEqualTo(personName)
     assertThat(referral.crn).isEqualTo(crn)
-    assertThat(referral.cohort).isEqualTo(cohort)
     assertThat(referral.createdAt).isEqualTo(createdAt)
     assertThat(referral.statusHistories).hasSize(1)
     assertThat(referral.statusHistories[0]).isEqualTo(statusHistory)

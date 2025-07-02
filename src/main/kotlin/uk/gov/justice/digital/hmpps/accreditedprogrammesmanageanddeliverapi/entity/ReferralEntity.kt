@@ -10,7 +10,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.JoinTable
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
-import java.time.LocalDate
+import org.springframework.data.annotation.CreatedDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -23,18 +23,13 @@ class ReferralEntity(
   var id: UUID? = null,
 
   @Column(name = "person_name")
-  var personName: String? = null,
+  var personName: String,
 
   @Column(name = "crn")
-  var crn: String? = null,
-
-  @Column(name = "cohort")
-  var cohort: String? = null,
-
-  @Column(name = "sentence_end_date")
-  var sentenceEndDate: LocalDate? = null,
+  var crn: String,
 
   @Column(name = "created_at")
+  @CreatedDate
   var createdAt: LocalDateTime = LocalDateTime.now(),
 
   @OneToMany(

@@ -2,7 +2,6 @@ CREATE TABLE IF NOT EXISTS referral (
     id UUID NOT NULL PRIMARY KEY,
     person_name TEXT,
     crn TEXT,
-    cohort TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -11,7 +10,6 @@ CREATE TABLE IF NOT EXISTS referral_status_history (
     status TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_by TEXT,
-    sentence_end_date DATE,
     start_date TIMESTAMP,
     end_date TIMESTAMP
 );
