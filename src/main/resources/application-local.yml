@@ -21,3 +21,8 @@ hmpps:
     topics:
       hmppsdomaineventstopic:
         arn: arn:aws:sns:eu-west-2:000000000000:${random.uuid}
+
+
+manage-and-deliver-and-delius:
+  locations:
+    find-person: "/person/find/{identifier}"
