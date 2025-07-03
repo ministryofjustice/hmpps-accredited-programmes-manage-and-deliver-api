@@ -13,6 +13,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.web.reactive.server.WebTestClient
+import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.containers.localstack.LocalStackContainer.Service
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -66,10 +67,17 @@ abstract class IntegrationTestBase {
           withServices(Service.SNS, Service.SQS)
         }
 
+    @JvmStatic
+    private val postgresContainer = PostgreSQLContainer<Nothing>("postgres:17")
+      .apply {
+        withReuse(true)
+      }
+
     @BeforeAll
     @JvmStatic
-    fun startLocalStack() {
+    fun startContainers() {
       localStackContainer.start()
+      postgresContainer.start()
     }
 
     @DynamicPropertySource
@@ -77,6 +85,9 @@ abstract class IntegrationTestBase {
     fun setUpProperties(registry: DynamicPropertyRegistry) {
       registry.add("hmpps.sqs.localstackUrl") { localStackContainer.getEndpointOverride(Service.SNS).toString() }
       registry.add("hmpps.sqs.region") { localStackContainer.region }
+      registry.add("spring.datasource.url") { postgresContainer.jdbcUrl }
+      registry.add("spring.datasource.username") { postgresContainer.username }
+      registry.add("spring.datasource.password") { postgresContainer.password }
     }
   }
 
