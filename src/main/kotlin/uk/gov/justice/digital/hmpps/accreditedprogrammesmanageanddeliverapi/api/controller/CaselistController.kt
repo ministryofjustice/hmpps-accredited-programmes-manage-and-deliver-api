@@ -29,7 +29,7 @@ class CaselistController {
         "personCrn" to "X987",
         "status" to "Another Status",
       ),
-    )
+    ),
   )
 
   @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
@@ -54,6 +54,6 @@ class CaselistController {
         "personCrn" to "X987",
         "status" to "Another Status",
       ),
-    )
+    ),
   )
 }
