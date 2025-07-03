@@ -15,20 +15,20 @@ class CaselistController {
         "id" to "abc-987",
         "personName" to "Bob Buddy",
         "personCrn" to "X456",
-        "status" to "Awaiting Assessment"
+        "status" to "Awaiting Assessment",
       ),
       mapOf(
         "id" to "abc-654",
         "personName" to "Dave David",
         "personCrn" to "X123",
-        "status" to "Another Status"
+        "status" to "Another Status",
       ),
       mapOf(
         "id" to "abc-312",
         "personName" to "Frank Ferdinand",
         "personCrn" to "X987",
-        "status" to "Another Status"
-      )
+        "status" to "Another Status",
+      ),
     )
   )
 
@@ -40,20 +40,20 @@ class CaselistController {
         "id" to "abc-987",
         "personName" to "Tony Trellis",
         "personCrn" to "X456",
-        "status" to "Awaiting Assessment"
+        "status" to "Awaiting Assessment",
       ),
       mapOf(
         "id" to "abc-654",
         "personName" to "Steve Stevio",
         "personCrn" to "X123",
-        "status" to "Another Status"
+        "status" to "Another Status",
       ),
       mapOf(
         "id" to "abc-312",
         "personName" to "Bruce Benjamin",
         "personCrn" to "X987",
-        "status" to "Another Status"
-      )
+        "status" to "Another Status",
+      ),
     )
   )
 }
