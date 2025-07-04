@@ -13,7 +13,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import java.util.*
 
-class FindAndReferApiClientIntegrationTest : IntegrationTestBase() {
+class FindAndReferInterventionApiClientIntegrationTest : IntegrationTestBase() {
   @Autowired
   lateinit var findAndReferInterventionApiClient: FindAndReferInterventionApiClient
 
@@ -40,15 +40,16 @@ class FindAndReferApiClientIntegrationTest : IntegrationTestBase() {
             .withBody(objectMapper.writeValueAsString(referralDetails)),
         ),
     )
-
     // When
     when (val response = findAndReferInterventionApiClient.getReferral(referralId)) {
       // Then
-
       is ClientResult.Success<*> -> {
         assertThat(response.body).isNotNull()
         assertThat(response.status).isEqualTo(HttpStatus.OK)
         val referralDetails = response.body as ReferralDetails
+        assertThat(referralDetails).isNotNull()
+        assertThat(referralDetails.personReference).isEqualTo("X123456")
+        assertThat(referralDetails.personReferenceType).isEqualTo("CRN")
       }
       is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")
       is ClientResult.Failure.StatusCode<*> -> {
@@ -65,7 +66,7 @@ class FindAndReferApiClientIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should return NOT FOUND for unknown  referral id`() {
+  fun `should return NOT FOUND for unknown referral id`() {
     // Given
     stubAuthTokenEndpoint()
     val referralId = UUID.randomUUID()
@@ -77,7 +78,6 @@ class FindAndReferApiClientIntegrationTest : IntegrationTestBase() {
             .withHeader("Content-Type", "application/json"),
         ),
     )
-
     // When
     when (val response = findAndReferInterventionApiClient.getReferral(referralId)) {
       // Then

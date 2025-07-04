@@ -13,6 +13,7 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProviderBuilder
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServletOAuth2AuthorizedClientExchangeFilterFunction
 import org.springframework.web.reactive.function.client.ExchangeStrategies
 import org.springframework.web.reactive.function.client.WebClient
@@ -46,14 +47,15 @@ class WebClientConfiguration(
   }
 
   @Bean(name = ["findAndReferInterventionApiWebClient"])
-  fun findAndReferApiWebClient(
+  fun findAndReferInterventionApiWebClient(
+    clientRegistrations: ClientRegistrationRepository,
+    authorizedClients: OAuth2AuthorizedClientRepository,
     authorizedClientManager: OAuth2AuthorizedClientManager,
-    @Value("\${services.find-and-refer-intervention-api.base-url}") findAndReferApiBaseUrl: String,
+    @Value("\${services.find-and-refer-intervention-api.base-url}") findAndReferInterventionApiBaseUrl: String,
   ): WebClient {
     val oauth2Client = ServletOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager)
-
     oauth2Client.setDefaultClientRegistrationId("find-and-refer-intervention-api")
-    return buildWebClient(findAndReferApiBaseUrl, oauth2Client)
+    return buildWebClient(findAndReferInterventionApiBaseUrl, oauth2Client)
   }
 
   fun buildWebClient(url: String, oauth2Client: ServletOAuth2AuthorizedClientExchangeFilterFunction): WebClient = WebClient.builder()
