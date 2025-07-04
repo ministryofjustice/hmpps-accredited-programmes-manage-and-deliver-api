@@ -4,6 +4,7 @@ plugins {
   id("uk.gov.justice.hmpps.gradle-spring-boot") version "8.3.0"
   kotlin("plugin.spring") version "2.2.0"
   kotlin("plugin.jpa") version "2.2.0"
+  kotlin("plugin.allopen") version "2.2.0"
 }
 
 configurations {
@@ -14,6 +15,9 @@ dependencies {
   implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:1.4.7")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+  implementation("org.springframework.boot:spring-boot-starter-web")
+  implementation("org.springframework.boot:spring-boot-starter-security")
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
 
   // AWS
@@ -46,4 +50,10 @@ tasks {
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.compilerOptions {
   freeCompilerArgs.set(listOf("-Xannotation-default-target=param-property"))
+}
+
+allOpen {
+  annotation("jakarta.persistence.Entity")
+  annotation("jakarta.persistence.MappedSuperclass")
+  annotation("jakarta.persistence.Embeddable")
 }

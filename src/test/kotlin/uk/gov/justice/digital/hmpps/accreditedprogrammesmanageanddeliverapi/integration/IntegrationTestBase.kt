@@ -2,9 +2,12 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.int
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.jupiter.api.extension.RegisterExtension
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
@@ -73,6 +76,13 @@ abstract class IntegrationTestBase {
         withReuse(true)
       }
 
+    @JvmStatic
+    @RegisterExtension
+    var wiremock: WireMockExtension = WireMockExtension.newInstance()
+      .options(wireMockConfig().port(8095))
+      .failOnUnmatchedRequests(true)
+      .build()
+
     @BeforeAll
     @JvmStatic
     fun startContainers() {
@@ -99,5 +109,9 @@ abstract class IntegrationTestBase {
 
   protected fun stubPingWithResponse(status: Int) {
     hmppsAuth.stubHealthPing(status)
+  }
+
+  fun stubAuthTokenEndpoint() {
+    hmppsAuth.stubGrantToken()
   }
 }
