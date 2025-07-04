@@ -1,4 +1,4 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferApi
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi
 
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
@@ -9,13 +9,13 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferApi.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import java.util.*
 
 class FindAndReferApiClientIntegrationTest : IntegrationTestBase() {
   @Autowired
-  lateinit var findAndReferApiClient: FindAndReferApiClient
+  lateinit var findAndReferInterventionApiClient: FindAndReferInterventionApiClient
 
   @Test
   fun `should return referral details for known referral id`() {
@@ -42,7 +42,7 @@ class FindAndReferApiClientIntegrationTest : IntegrationTestBase() {
     )
 
     // When
-    when (val response = findAndReferApiClient.getReferral(referralId)) {
+    when (val response = findAndReferInterventionApiClient.getReferral(referralId)) {
       // Then
 
       is ClientResult.Success<*> -> {
@@ -79,7 +79,7 @@ class FindAndReferApiClientIntegrationTest : IntegrationTestBase() {
     )
 
     // When
-    when (val response = findAndReferApiClient.getReferral(referralId)) {
+    when (val response = findAndReferInterventionApiClient.getReferral(referralId)) {
       // Then
       is ClientResult.Success -> fail("Unexpected client result: ${response::class.simpleName}")
       is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")

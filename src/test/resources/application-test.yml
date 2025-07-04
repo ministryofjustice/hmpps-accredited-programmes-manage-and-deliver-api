@@ -38,7 +38,7 @@ hmpps:
         arn: arn:aws:sns:eu-west-2:000000000000:${random.uuid}
 
 services:
-  find-and-refer-api:
+  find-and-refer-intervention-api:
     base-url: http://localhost:8095
 
 wiremock:

@@ -85,5 +85,5 @@ hmpps:
 max-response-in-memory-size-bytes: 750000
 
 services:
-  find-and-refer-api:
+  find-and-refer-intervention-api:
     base-url: http://localhost:9094

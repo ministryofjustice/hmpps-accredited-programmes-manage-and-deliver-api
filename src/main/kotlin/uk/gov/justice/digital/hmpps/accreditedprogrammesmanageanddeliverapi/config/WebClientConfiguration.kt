@@ -45,16 +45,14 @@ class WebClientConfiguration(
     return manager
   }
 
-  @Bean(name = ["findAndReferApiWebClient"])
+  @Bean(name = ["findAndReferInterventionApiWebClient"])
   fun findAndReferApiWebClient(
-//    clientRegistrationRepository: ClientRegistrationRepository,
-//    authorisedClientRepository: OAuth2AuthorizedClientRepository,
     authorizedClientManager: OAuth2AuthorizedClientManager,
-    @Value("\${services.find-and-refer-api.base-url}") findAndReferApiBaseUrl: String, // TODO!!
+    @Value("\${services.find-and-refer-intervention-api.base-url}") findAndReferApiBaseUrl: String,
   ): WebClient {
     val oauth2Client = ServletOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager)
 
-    oauth2Client.setDefaultClientRegistrationId("find-and-refer-api")
+    oauth2Client.setDefaultClientRegistrationId("find-and-refer-intervention-api")
     return buildWebClient(findAndReferApiBaseUrl, oauth2Client)
   }
 
