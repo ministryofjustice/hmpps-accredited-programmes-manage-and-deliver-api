@@ -23,7 +23,7 @@ class ReferralCaselistItemEntityTest : IntegrationTestBase() {
   @Test
   @Transactional
   fun `should save and retrieve referral case list item`() {
-    //
+    // Given
     val referralCaselistItem = referralCaselistItemFactory.produce(crn = "ABC123")
     referralRepository.save(referralCaselistItem.referral)
     val savedReferral = referralCaselistItemRepository.save(referralCaselistItem)

@@ -5,8 +5,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import java.time.LocalDateTime
 import java.util.UUID
 
-data class ReferralEntityDto(
-  val id: UUID? = UUID.randomUUID(),
+data class ReferralDto(
+  val id: UUID? = null,
   val personName: String,
   val crn: String,
   val createdAt: LocalDateTime = LocalDateTime.now(),
@@ -14,7 +14,7 @@ data class ReferralEntityDto(
 
 )
 
-fun ReferralEntity.toDto() = ReferralEntityDto(
+fun ReferralEntity.toDto() = ReferralDto(
   id = id,
   personName = personName,
   crn = crn,
