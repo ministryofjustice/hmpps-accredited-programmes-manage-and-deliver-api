@@ -20,7 +20,7 @@ class ReferralEntity(
   @Id
   @GeneratedValue
   @Column(name = "id")
-  var id: UUID? = null,
+  var id: UUID,
 
   @Column(name = "person_name")
   var personName: String,
