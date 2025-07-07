@@ -2,21 +2,26 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ent
 
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
-import jakarta.persistence.FetchType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
 import java.time.LocalDateTime
+import java.util.UUID
 
 @Entity
 @Table(name = "referral_caselist_item")
 class ReferralCaselistItemEntity(
+
   @NotNull
   @Id
-  @OneToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "referral_id")
+  @Column("id")
+  val id: UUID,
+
+  @NotNull
+  @OneToOne
+  @JoinColumn(name = "referral_id", referencedColumnName = "id")
   var referral: ReferralEntity,
 
   @NotNull
@@ -37,10 +42,10 @@ class ReferralCaselistItemEntity(
 
   @NotNull
   @Column(name = "sentence_end_date", length = Integer.MAX_VALUE)
-  var sentenceEndDate: String,
+  var sentenceEndDate: LocalDateTime,
 
   @Column(name = "pss_end_date", length = Integer.MAX_VALUE)
-  var pssEndDate: String? = null,
+  var pssEndDate: LocalDateTime? = null,
 
   @NotNull
   @Column(name = "cohort", length = Integer.MAX_VALUE)
