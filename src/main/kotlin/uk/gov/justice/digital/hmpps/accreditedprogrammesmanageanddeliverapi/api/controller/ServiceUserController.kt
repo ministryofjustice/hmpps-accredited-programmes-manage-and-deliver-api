@@ -15,10 +15,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 
 @RestController
 @Tag(
-  name = "Referral",
-  description = """
-    A series of endpoints for managing referrals.
-  """,
+  name = "ServiceUser",
 )
 class ServiceUserController(
   private val service: ServiceUserService
