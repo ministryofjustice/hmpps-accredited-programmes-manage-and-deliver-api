@@ -1,19 +1,36 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener
 
+import org.assertj.core.api.Assertions.assertThat
 import org.awaitility.kotlin.await
 import org.awaitility.kotlin.matches
 import org.awaitility.kotlin.untilCallTo
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.DomainEventsMessageFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.DomainEventsMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.SQSMessage
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.hmpps.sqs.countMessagesOnQueue
+import java.time.temporal.ChronoUnit
 
 class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
+
+  @Autowired
+  lateinit var messageHistoryRepository: MessageHistoryRepository
+
+  @Autowired
+  lateinit var testDataCleaner: TestDataCleaner
+
+  @BeforeEach
+  fun setUp() {
+    testDataCleaner.cleanAllTables()
+  }
 
   fun sendDomainEvent(message: DomainEventsMessage, queueUrl: String = domainEventQueue.queueUrl): SendMessageResponse = domainEventQueueClient.sendMessage(
     SendMessageRequest.builder()
@@ -39,7 +56,16 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
 
     // Then
     assertEquals(0, domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get())
-    // TODO verify a referral has been persisted etc
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(eventType)
+      assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt?.truncatedTo(ChronoUnit.SECONDS)).isEqualTo(domainEventsMessage.occurredAt.truncatedTo(ChronoUnit.SECONDS))
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
   }
 
   @Test
