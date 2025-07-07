@@ -21,6 +21,17 @@ spring:
         provider:
           hmpps-auth:
             token-uri: ${hmpps-auth.url}/oauth/token
+            token-request:
+              connect-timeout-ms: 500
+              read-timeout-ms: 500
+              retries: 3
+              retry-delay-ms: 500
+        registration:
+          manage-and-deliver-client:
+            client-id: hmpps-find-and-refer-an-intervention-api-1
+            client-secret: clientsecret
+            provider: hmpps-auth
+            authorization-grant-type: client_credentials
 
   jpa:
     open-in-view: false

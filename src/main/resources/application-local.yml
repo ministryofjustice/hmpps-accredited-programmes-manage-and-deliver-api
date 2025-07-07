@@ -7,6 +7,11 @@ spring:
 hmpps-auth:
   url: "http://localhost:8090/auth"
 
+manage-and-deliver-and-delius:
+  locations:
+    find-person: "/person/find/{identifier}"
+  baseurl: "http://localhost:9092"
+
 hmpps:
   sqs:
     provider: localstack
@@ -21,8 +26,3 @@ hmpps:
     topics:
       hmppsdomaineventstopic:
         arn: arn:aws:sns:eu-west-2:000000000000:${random.uuid}
-
-
-manage-and-deliver-and-delius:
-  locations:
-    find-person: "/person/find/{identifier}"
