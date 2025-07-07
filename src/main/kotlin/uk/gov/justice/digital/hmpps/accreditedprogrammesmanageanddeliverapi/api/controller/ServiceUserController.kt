@@ -10,7 +10,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.dto.ServiceUserDto
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ServiceUser
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ServiceUserService
 
 @RestController
@@ -37,7 +37,7 @@ class ServiceUserController(
     @Pattern(regexp = "^([A-Z]\\d{6}|[A-Z]\\d{4}[A-Z]{2})$", message = "Invalid code format. Expected format for CRN: X718255 or PrisonNumber: A1234AA")
     identifier: String,
     authentication: JwtAuthenticationToken,
-  ): ServiceUserDto? {
+  ): ServiceUser? {
     val userName = getUserNameFromAuthentication(authentication)
     if (service.checkIfAuthenticatedDeliusUserHasAccessToServiceUser(userName, identifier).not()) {
       throw AccessDeniedException(

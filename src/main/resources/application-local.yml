@@ -7,10 +7,9 @@ spring:
 hmpps-auth:
   url: "http://localhost:8090/auth"
 
-manage-and-deliver-and-delius:
+manage-and-deliver-ndelius:
   locations:
     find-person: "/person/find/{identifier}"
-  baseurl: "http://localhost:9092"
 
 hmpps:
   sqs:

@@ -23,20 +23,14 @@ spring:
             client-id: hmpps-accredited-programmes-manage-and-deliver-ui-client-1
             client-secret: clientsecret
             authorization-grant-type: client_credentials
-        provider:
-          hmpps-auth:
-            token-uri: ${hmpps-auth.url}/oauth/token
-            token-request:
-              connect-timeout-ms: 500
-              read-timeout-ms: 500
-              retries: 3
-              retry-delay-ms: 500
-        registration:
-          manage-and-deliver-client:
-            client-id: hmpps-find-and-refer-an-intervention-api-1
+          ndelius-integration-api:
+            client-id: hmpps-accredited-programmes-manage-and-deliver-ndelius-client-1
             client-secret: clientsecret
             provider: hmpps-auth
             authorization-grant-type: client_credentials
+        provider:
+          hmpps-auth:
+            token-uri: ${hmpps-auth.url}/oauth/token
 
   jpa:
     open-in-view: false
@@ -85,7 +79,7 @@ management:
       cache:
         time-to-live: 2000ms
 
-manage-and-deliver-and-delius:
+manage-and-deliver-ndelius:
   locations:
     find-person: "/person/find/{identifier}"
     limited-access-offender-check: "/users/{username}/access/{identifier}"
@@ -103,3 +97,5 @@ max-response-in-memory-size-bytes: 750000
 services:
   find-and-refer-intervention-api:
     base-url: http://localhost:9094
+  ndelius-integration-api:
+    base-url: "http://localhost:9092"
