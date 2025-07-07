@@ -8,13 +8,13 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 class ReferralEntityFactory {
-  private var id: UUID = UUID.randomUUID()
+  private var id: UUID? = null
   private var personName: String? = randomSentence(wordRange = 1..3)
   private var crn: String? = randomUppercaseString(6)
   private var createdAt: LocalDateTime = LocalDateTime.now()
   private var statusHistories: MutableList<ReferralStatusHistoryEntity> = mutableListOf()
 
-  fun withId(id: UUID) = apply { this.id = id }
+  fun withId(id: UUID?) = apply { this.id = id }
   fun withPersonName(personName: String?) = apply { this.personName = personName }
   fun withCrn(crn: String?) = apply { this.crn = crn }
   fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }

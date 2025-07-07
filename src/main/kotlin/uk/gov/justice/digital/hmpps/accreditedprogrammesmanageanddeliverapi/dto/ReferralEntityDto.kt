@@ -6,7 +6,7 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 data class ReferralEntityDto(
-  val id: UUID,
+  val id: UUID? = UUID.randomUUID(),
   val personName: String,
   val crn: String,
   val createdAt: LocalDateTime = LocalDateTime.now(),
