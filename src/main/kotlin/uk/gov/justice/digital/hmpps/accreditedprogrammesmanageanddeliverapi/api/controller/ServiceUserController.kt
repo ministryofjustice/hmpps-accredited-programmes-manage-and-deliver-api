@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.constraints.Pattern
 import org.springframework.http.MediaType
 import org.springframework.security.access.AccessDeniedException
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -19,6 +20,7 @@ class ServiceUserController(
   private val service: ServiceUserService
 ) {
 
+  @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
   @GetMapping(
     "/service-user/{identifier}",
     produces = [MediaType.APPLICATION_JSON_VALUE],
