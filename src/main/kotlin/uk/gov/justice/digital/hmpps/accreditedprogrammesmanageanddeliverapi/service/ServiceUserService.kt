@@ -1,82 +1,42 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import org.springframework.web.util.UriComponentsBuilder
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ManageAndDeliverRestClient
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.dto.ServiceUserDto
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ServiceUser
 import java.time.LocalDate
-
-data class OffenderIdentifiersResponse(
-  val crn: String,
-  val nomsNumber: String?,
-  val name: OffenderName,
-  val dateOfBirth: String,
-  val ethnicity: String?,
-  val gender: String?,
-  val probationDeliveryUnit: ProbationDeliveryUnit,
-  val setting: String,
-)
-
-data class ProbationDeliveryUnit(
-  val code: String?,
-  val description: String,
-)
-
-data class OffenderName(
-  val forename: String,
-  val surname: String,
-)
-
-data class LimitedAccessOffenderCheckResponse(
-  val crn: String,
-  val userExcluded: Boolean,
-  val userRestricted: Boolean,
-  val exclusionMessage: String? = null,
-  val restrictionMessage: String? = null,
-)
 
 @Service
 class ServiceUserService(
-  @Value("\${manage-and-deliver-and-delius.locations.find-person}") private val findPersonLocation: String,
-  @Value("\${manage-and-deliver-and-delius.locations.limited-access-offender-check}") private val laocLocation: String,
-
-  private val manageAndDeliverApiClient: ManageAndDeliverRestClient
+  private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
 ) {
-  fun getServiceUserByIdentifier(identifier: String) : ServiceUserDto {
-    val offenderIdentifiersPath = UriComponentsBuilder.fromPath(findPersonLocation)
-      .buildAndExpand(identifier)
-      .toString()
-    return manageAndDeliverApiClient.get(offenderIdentifiersPath)
-      .retrieve()
-      .bodyToMono(OffenderIdentifiersResponse::class.java)
-      .block().let { it ->
-        it?.let { it ->
-          ServiceUserDto(
-            name = it.name.forename + " " + it.name.surname,
-            crn = it.crn,
-            dob = LocalDate.parse(it.dateOfBirth),
-            gender = it.gender,
-            ethnicity = it.ethnicity,
-            currentPdu = it.probationDeliveryUnit.code,
-            setting = it.setting,
-          )
-        }
+  fun getServiceUserByIdentifier(identifier: String): ServiceUser {
+    return when (val result = nDeliusIntegrationApiClient.getOffenderIdentifiers(identifier)) {
+      is ClientResult.Success -> {
+        val user = result.body
+        ServiceUser(
+          name = "${user.name.forename} ${user.name.surname}",
+          crn = user.crn,
+          dob = LocalDate.parse(user.dateOfBirth),
+          gender = user.gender,
+          ethnicity = user.ethnicity,
+          currentPdu = user.probationDeliveryUnit?.code,
+          setting = user.setting,
+        )
       }
+
+      is ClientResult.Failure -> result.throwException()
+    }
   }
 
   fun checkIfAuthenticatedDeliusUserHasAccessToServiceUser(username: String, identifier: String): Boolean {
-    val laocPath = UriComponentsBuilder.fromPath(laocLocation)
-      .buildAndExpand(username, identifier)
-      .toString()
+    return when (val result = nDeliusIntegrationApiClient.verifyLaoc(username, identifier)) {
+      is ClientResult.Success -> {
+        val response = result.body
+        !response.userExcluded && !response.userRestricted
+      }
 
-    val limitedAccessOffenderCheckResponse = manageAndDeliverApiClient.get(laocPath)
-      .retrieve()
-      .bodyToMono(LimitedAccessOffenderCheckResponse::class.java)
-      .block()
-
-    return limitedAccessOffenderCheckResponse?.let {
-      !it.userExcluded && !it.userRestricted
-    } ?: false
+      is ClientResult.Failure -> result.throwException()
+    }
   }
 }

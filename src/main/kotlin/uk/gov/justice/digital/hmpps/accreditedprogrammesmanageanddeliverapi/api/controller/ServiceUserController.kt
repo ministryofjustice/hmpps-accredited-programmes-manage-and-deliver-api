@@ -14,9 +14,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ServiceUserService
 
 @RestController
-@Tag(
-  name = "ServiceUser",
-)
+@Tag(name = "ServiceUser")
 class ServiceUserController(
   private val service: ServiceUserService
 ) {
@@ -24,22 +22,22 @@ class ServiceUserController(
   @GetMapping(
     "/service-user/{identifier}",
     produces = [MediaType.APPLICATION_JSON_VALUE],
-    name = "Get Service User for the CRN or the Prison Number.",
+    name = "Get Service User for the CRN or the Prison Number",
   )
   @ApiResponses(
     value = [
       ApiResponse(responseCode = "200", description = "OK"),
       ApiResponse(responseCode = "400", description = "Bad Request"),
-    ],
+    ]
   )
   fun serviceUserByCrnOrPrisonerNumber(
     @PathVariable(name = "identifier")
     @Pattern(regexp = "^([A-Z]\\d{6}|[A-Z]\\d{4}[A-Z]{2})$", message = "Invalid code format. Expected format for CRN: X718255 or PrisonNumber: A1234AA")
     identifier: String,
     authentication: JwtAuthenticationToken,
-  ): ServiceUser? {
+  ): ServiceUser {
     val userName = getUserNameFromAuthentication(authentication)
-    if (service.checkIfAuthenticatedDeliusUserHasAccessToServiceUser(userName, identifier).not()) {
+    if (!service.checkIfAuthenticatedDeliusUserHasAccessToServiceUser(userName, identifier)) {
       throw AccessDeniedException(
         "You are not authorized to view this person's details. Either contact your administrator or enter a different CRN or Prison Number",
       )
@@ -47,6 +45,7 @@ class ServiceUserController(
     return service.getServiceUserByIdentifier(identifier)
   }
 
-  private fun getUserNameFromAuthentication(authentication: JwtAuthenticationToken): String = authentication.token.getClaimAsString("user_name") ?: "Unknown User"
-
+  private fun getUserNameFromAuthentication(authentication: JwtAuthenticationToken): String =
+    authentication.token.getClaimAsString("user_name") ?: "Unknown User"
 }
+
