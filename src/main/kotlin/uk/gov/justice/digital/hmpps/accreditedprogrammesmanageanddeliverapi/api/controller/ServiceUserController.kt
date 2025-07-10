@@ -17,10 +17,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 @RestController
 @Tag(name = "ServiceUser")
 class ServiceUserController(
-  private val service: ServiceUserService
+  private val service: ServiceUserService,
 ) {
 
-  @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
+  @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR', 'PROBATION_API__ACCREDITED_PROGRAMMES__CASE_DETAIL')")
   @GetMapping(
     "/service-user/{identifier}",
     produces = [MediaType.APPLICATION_JSON_VALUE],
@@ -30,11 +30,14 @@ class ServiceUserController(
     value = [
       ApiResponse(responseCode = "200", description = "OK"),
       ApiResponse(responseCode = "400", description = "Bad Request"),
-    ]
+    ],
   )
   fun serviceUserByCrnOrPrisonerNumber(
     @PathVariable(name = "identifier")
-    @Pattern(regexp = "^([A-Z]\\d{6}|[A-Z]\\d{4}[A-Z]{2})$", message = "Invalid code format. Expected format for CRN: X718255 or PrisonNumber: A1234AA")
+    @Pattern(
+      regexp = "^([A-Z]\\d{6}|[A-Z]\\d{4}[A-Z]{2})$",
+      message = "Invalid code format. Expected format for CRN: X718255 or PrisonNumber: A1234AA",
+    )
     identifier: String,
     authentication: JwtAuthenticationToken,
   ): ServiceUser {
