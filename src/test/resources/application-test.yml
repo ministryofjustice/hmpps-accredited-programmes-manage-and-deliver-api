@@ -40,6 +40,8 @@ hmpps:
 services:
   find-and-refer-intervention-api:
     base-url: http://localhost:8095
+  ndelius-integration-api:
+    base-url: http://localhost:8095
 
 wiremock:
   logging:
