@@ -58,6 +58,19 @@ class WebClientConfiguration(
     return buildWebClient(findAndReferInterventionApiBaseUrl, oauth2Client)
   }
 
+  @Bean(name = ["nDeliusIntegrationWebClient"])
+  fun nDeliusIntegrationWebClient(
+    clientRegistrations: ClientRegistrationRepository,
+    authorizedClients: OAuth2AuthorizedClientRepository,
+    authorizedClientManager: OAuth2AuthorizedClientManager,
+    @Value("\${services.ndelius-integration-api.base-url}") nDeliusIntegrationApiBaseUrl: String,
+  ): WebClient {
+    val oauth2Client = ServletOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager)
+    oauth2Client.setDefaultClientRegistrationId("ndelius-integration-api")
+    return buildWebClient(nDeliusIntegrationApiBaseUrl, oauth2Client)
+  }
+
+
   fun buildWebClient(url: String, oauth2Client: ServletOAuth2AuthorizedClientExchangeFilterFunction): WebClient = WebClient.builder()
     .baseUrl(url)
     .clientConnector(
