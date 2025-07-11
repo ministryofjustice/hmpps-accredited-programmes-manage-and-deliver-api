@@ -33,6 +33,7 @@ dependencies {
   testImplementation("org.testcontainers:postgresql:1.21.3")
   testImplementation("org.testcontainers:junit-jupiter:1.21.3")
   testImplementation("org.awaitility:awaitility-kotlin")
+  testImplementation("io.mockk:mockk:1.14.4")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql:42.7.7")
