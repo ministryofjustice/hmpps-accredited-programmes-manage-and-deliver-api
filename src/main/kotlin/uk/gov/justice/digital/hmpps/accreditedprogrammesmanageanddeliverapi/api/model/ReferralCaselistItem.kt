@@ -1,9 +1,9 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.dto
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model
 
 import java.time.LocalDateTime
 
-data class ReferralCaselistItemDto(
-  val referral: ReferralDto,
+data class ReferralCaselistItem(
+  val referral: Referral,
   val lastUpdatedAt: LocalDateTime,
   val crn: String,
   val personName: String,
@@ -14,7 +14,7 @@ data class ReferralCaselistItemDto(
   val referralStatus: String,
 )
 
-fun ReferralCaselistItemDto.toDto() = ReferralCaselistItemDto(
+fun ReferralCaselistItem.toApi() = ReferralCaselistItem(
   referral = referral,
   lastUpdatedAt = lastUpdatedAt,
   crn = crn,
