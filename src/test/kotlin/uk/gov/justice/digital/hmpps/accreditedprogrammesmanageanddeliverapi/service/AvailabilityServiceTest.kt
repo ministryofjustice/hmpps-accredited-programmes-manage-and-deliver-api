@@ -2,18 +2,17 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.SlotModel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
-
 class AvailabilityServiceTest {
 
   private val availabilityRepository = mockk<AvailabilityRepository>()
@@ -43,8 +42,8 @@ class AvailabilityServiceTest {
       DailyAvailabilityModel(
         label = day.toPluralLabel(),
         slots = listOf(
-          SlotModel("daytime", false),
-          SlotModel("evening", false),
+          Slot("daytime", false),
+          Slot("evening", false),
         ),
       )
     }
@@ -56,14 +55,13 @@ class AvailabilityServiceTest {
     val result = availabilityService.getAvailableSlots(referralId)
 
     // Then
-    assertEquals(availabilityEntity.id, result.id)
-    assertEquals(availabilityEntity.referralId, result.referralId)
-    assertEquals(availabilityEntity.startDate.atStartOfDay(), result.startDate)
-    assertEquals(availabilityEntity.endDate?.atStartOfDay(), result.endDate)
-    assertEquals(availabilityEntity.otherDetails, result.otherDetails)
-    assertEquals(availabilityEntity.lastModifiedBy, result.lastModifiedBy)
-    assertEquals(availabilityEntity.lastModifiedAt, result.lastModifiedAt)
-    assertEquals(defaultAvailability, result.availabilities)
+    assertThat(result.referralId).isEqualTo(availabilityEntity.referralId)
+    assertThat(result.startDate).isEqualTo(availabilityEntity.startDate.atStartOfDay())
+    assertThat(result.endDate).isEqualTo(availabilityEntity.endDate?.atStartOfDay())
+    assertThat(result.otherDetails).isEqualTo(availabilityEntity.otherDetails)
+    assertThat(result.lastModifiedBy).isEqualTo(availabilityEntity.lastModifiedBy)
+    assertThat(result.lastModifiedAt).isEqualTo(availabilityEntity.lastModifiedAt)
+    assertThat(result.availabilities).isEqualTo(defaultAvailability)
 
     verify { availabilityRepository.findByReferralId(referralId) }
     verify { defaultAvailabilityConfigService.getDefaultAvailability() }
@@ -78,8 +76,8 @@ class AvailabilityServiceTest {
       DailyAvailabilityModel(
         label = day.toPluralLabel(),
         slots = listOf(
-          SlotModel("daytime", false),
-          SlotModel("evening", false),
+          Slot("daytime", false),
+          Slot("evening", false),
         ),
       )
     }
@@ -91,14 +89,14 @@ class AvailabilityServiceTest {
     val result = availabilityService.getAvailableSlots(referralId)
 
     // Then
-    assertEquals(null, result.id)
-    assertEquals(null, result.referralId)
-    assertEquals(null, result.startDate)
-    assertEquals(null, result.endDate)
-    assertEquals(null, result.otherDetails)
-    assertEquals(null, result.lastModifiedBy)
-    assertEquals(null, result.lastModifiedAt)
-    assertEquals(defaultAvailability, result.availabilities)
+    assertThat(result.id).isNull()
+    assertThat(result.referralId).isNull()
+    assertThat(result.startDate).isNull()
+    assertThat(result.endDate).isNull()
+    assertThat(result.otherDetails).isNull()
+    assertThat(result.lastModifiedBy).isNull()
+    assertThat(result.lastModifiedAt).isNull()
+    assertThat(result.availabilities).isEqualTo(defaultAvailability)
 
     verify { availabilityRepository.findByReferralId(referralId) }
     verify { defaultAvailabilityConfigService.getDefaultAvailability() }

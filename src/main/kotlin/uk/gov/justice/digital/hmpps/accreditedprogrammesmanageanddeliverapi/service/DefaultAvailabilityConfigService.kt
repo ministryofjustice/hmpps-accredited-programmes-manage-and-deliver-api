@@ -3,7 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.SlotModel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
 import java.time.DayOfWeek
 
 @Service
@@ -15,7 +15,7 @@ class DefaultAvailabilityConfigService {
       DailyAvailabilityModel(
         label = day.toPluralLabel(),
         slots = slotLabels.map { slot ->
-          SlotModel(label = slot, value = false)
+          Slot(label = slot, value = false)
         },
       )
     }

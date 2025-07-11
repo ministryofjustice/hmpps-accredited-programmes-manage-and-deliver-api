@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDateTime
 import java.util.UUID
 
-data class AvailabilityModel(
+data class Availability(
 
   @get:JsonProperty("id")
   @Schema(example = "null", description = "Unique ID of the availability", required = false)
@@ -39,7 +39,7 @@ data class AvailabilityModel(
   val availabilities: List<DailyAvailabilityModel>,
 )
 
-data class SlotModel(
+data class Slot(
   @JsonProperty("label")
   val label: String,
 
@@ -52,5 +52,5 @@ data class DailyAvailabilityModel(
   val label: String,
 
   @JsonProperty("slots")
-  val slots: List<SlotModel>,
+  val slots: List<Slot>,
 )

@@ -1,7 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.springframework.stereotype.Service
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.AvailabilityModel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
 import java.util.UUID
 
@@ -11,12 +11,12 @@ class AvailabilityService(
   val defaultAvailabilityConfigService: DefaultAvailabilityConfigService,
 ) {
 
-  fun getAvailableSlots(referralId: UUID): AvailabilityModel {
+  fun getAvailableSlots(referralId: UUID): Availability {
     val availabilityEntity = availabilityRepository.findByReferralId(referralId)
 
     val defaultAvailability = defaultAvailabilityConfigService.getDefaultAvailability()
 
-    return AvailabilityModel(
+    return Availability(
       id = availabilityEntity?.id,
       referralId = availabilityEntity?.referralId,
       startDate = availabilityEntity?.startDate?.atStartOfDay(), // If you need LocalDateTime

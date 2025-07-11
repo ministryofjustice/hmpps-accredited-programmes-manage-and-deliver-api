@@ -32,7 +32,7 @@ class SlotEntity(
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "availability_id", nullable = false)
   @JsonIgnore
-  var availability: AvailabilityEntity? = null,
+  var availability: AvailabilityEntity,
 )
 
 enum class SlotName(val order: Int, val displayName: String) {
