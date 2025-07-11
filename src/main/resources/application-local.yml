@@ -3,6 +3,9 @@ spring:
     url: jdbc:postgresql://localhost:5432/postgres
     username: admin
     password: admin_password
+  flyway:
+    locations: classpath:db/migration,classpath:db/local
+    clean-disabled: false
 
 hmpps-auth:
   url: "http://localhost:8090/auth"
