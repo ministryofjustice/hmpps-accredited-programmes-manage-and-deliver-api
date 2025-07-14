@@ -6,10 +6,10 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-class CaselistController {
+class CaseListController {
   @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
   @GetMapping("/pages/caselist/open", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun getOpenCaselistReferrals() = mapOf(
+  fun getOpenCaseListReferrals() = mapOf(
     "referrals" to listOf(
       mapOf(
         "id" to "abc-987",
@@ -34,7 +34,7 @@ class CaselistController {
 
   @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
   @GetMapping("/pages/caselist/closed", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun getClosedCaselistReferrals() = mapOf(
+  fun getClosedCaseListReferrals() = mapOf(
     "referrals" to listOf(
       mapOf(
         "id" to "abc-987",

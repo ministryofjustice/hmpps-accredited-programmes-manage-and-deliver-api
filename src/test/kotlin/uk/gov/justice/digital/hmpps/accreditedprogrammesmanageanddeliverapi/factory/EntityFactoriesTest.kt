@@ -132,4 +132,42 @@ class EntityFactoriesTest {
     assertThat(statusHistory.startDate).isEqualTo(startDate)
     assertThat(statusHistory.endDate).isEqualTo(endDate)
   }
+
+  @Test
+  fun `ReferralDetailsFactory should create entity with default values`() {
+    val referralDetails = ReferralDetailsFactory().produce()
+
+    assertThat(referralDetails.interventionType).isNotNull()
+    assertThat(referralDetails.interventionName).isNotNull()
+    assertThat(referralDetails.personReference).isNotNull()
+    assertThat(referralDetails.personReferenceType).isNotNull()
+    assertThat(referralDetails.referralId).isNotNull()
+    assertThat(referralDetails.setting).isNotNull()
+  }
+
+  @Test
+  fun `ReferralDetailsFactory should create entity with custom values`() {
+    val interventionType = "Custom Intervention Type"
+    val interventionName = "Custom Intervention Name"
+    val personReference = "CUSTOM123"
+    val personReferenceType = "CUSTOM_TYPE"
+    val referralId = UUID.randomUUID()
+    val setting = "CUSTOM_SETTING"
+
+    val referralDetails = ReferralDetailsFactory()
+      .withInterventionType(interventionType)
+      .withInterventionName(interventionName)
+      .withPersonReference(personReference)
+      .withPersonReferenceType(personReferenceType)
+      .withReferralId(referralId)
+      .withSetting(setting)
+      .produce()
+
+    assertThat(referralDetails.interventionType).isEqualTo(interventionType)
+    assertThat(referralDetails.interventionName).isEqualTo(interventionName)
+    assertThat(referralDetails.personReference).isEqualTo(personReference)
+    assertThat(referralDetails.personReferenceType).isEqualTo(personReferenceType)
+    assertThat(referralDetails.referralId).isEqualTo(referralId)
+    assertThat(referralDetails.setting).isEqualTo(setting)
+  }
 }

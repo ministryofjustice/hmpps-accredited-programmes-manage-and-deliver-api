@@ -28,6 +28,15 @@ class ReferralEntity(
   @Column(name = "crn")
   var crn: String,
 
+  @Column(name = "intervention_type")
+  var interventionType: String? = null,
+
+  @Column(name = "intervention_name")
+  var interventionName: String? = null,
+
+  @Column(name = "setting")
+  var setting: String? = null,
+
   @Column(name = "created_at")
   @CreatedDate
   var createdAt: LocalDateTime = LocalDateTime.now(),

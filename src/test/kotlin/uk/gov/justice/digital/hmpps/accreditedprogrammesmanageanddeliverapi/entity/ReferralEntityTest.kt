@@ -9,7 +9,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
-import java.time.LocalDate
 
 class ReferralEntityTest : IntegrationTestBase() {
 
@@ -23,7 +22,6 @@ class ReferralEntityTest : IntegrationTestBase() {
   @Transactional
   fun `should save and retrieve referral with status`() {
     // Given
-    val sentenceEndDate = LocalDate.of(2030, 1, 1)
     val referral = ReferralEntityFactory()
       .withCrn("CRN123")
       .withPersonName("John Doe")
