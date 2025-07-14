@@ -1,40 +1,59 @@
 services:
-  hmpps-accredited-programmes-manage-and-deliver-api:
-    container_name: hmpps-accredited-programmes-manage-and-deliver-api
-    build:
-      context: .
-    networks:
-      - hmpps
-    ports:
-      - "8080:8080"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ping"]
-    depends_on:
-      postgresql:
-        condition: service_healthy
-      hmpps-auth:
-        condition: service_healthy
-    environment:
-      - SERVER_PORT=8080
-      - HMPPS_AUTH_URL=http://hmpps-auth:8080/auth
-      - SPRING_PROFILES_ACTIVE=dev, local
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgresql:5432/postgres
-      - SPRING_DATASOURCE_USERNAME=admin
-      - SPRING_DATASOURCE_PASSWORD=admin_password
+  #  hmpps-accredited-programmes-manage-and-deliver-api:
+  #    container_name: hmpps-accredited-programmes-manage-and-deliver-api
+  #    build:
+  #      context: .
+  #    networks:
+  #      - hmpps
+  #    ports:
+  #      - "8080:8080"
+  #    healthcheck:
+  #      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ping"]
+  #    depends_on:
+  #      postgresql:
+  #        condition: service_healthy
+  #      hmpps-auth:
+  #        condition: service_healthy
+  #    environment:
+  #      - SERVER_PORT=8080
+  #      - HMPPS_AUTH_URL=http://hmpps-auth:8080/auth
+  #      - SPRING_PROFILES_ACTIVE=dev, local
+  #      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgresql:5432/postgres
+  #      - SPRING_DATASOURCE_USERNAME=admin
+  #      - SPRING_DATASOURCE_PASSWORD=admin_password
 
   hmpps-auth:
     image: quay.io/hmpps/hmpps-auth:latest
     networks:
       - hmpps
+    depends_on:
+      - auth-db
     container_name: hmpps-auth
     ports:
       - "8090:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/auth/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/auth/health" ]
     environment:
       - SERVER_PORT=8080
-      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_PROFILES_ACTIVE=dev,delius,local-postgres
+      - SPRING_JPA_PROPERTIES_HIBERNATE_SHOW_SQL=false
+      - SPRING_H2_CONSOLE_SETTINGS_WEBALLOWOTHERS=true
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://auth-db:5432/auth-db
       - APPLICATION_AUTHENTICATION_UI_ALLOWLIST=0.0.0.0/0
+
+  auth-db:
+    image: postgres:15
+    networks:
+      - hmpps
+    restart: always
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_PASSWORD=admin_password
+      - POSTGRES_USER=admin
+      - POSTGRES_DB=auth-db
+    healthcheck:
+      test: pg_isready -d auth-db
 
   postgresql:
     image: postgres
@@ -45,7 +64,7 @@ services:
     ports:
       - '5432:5432'
     healthcheck:
-      test: [ "CMD", "pg_isready", "--username=admin", "--dbname=postgres"]
+      test: [ "CMD", "pg_isready", "--username=admin", "--dbname=postgres" ]
       interval: 10s
       timeout: 5s
       retries: 5
