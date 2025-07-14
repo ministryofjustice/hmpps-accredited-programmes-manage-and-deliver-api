@@ -33,9 +33,9 @@ class ServiceUserServiceTest {
       probationPractitioner = ProbationPractitioner(
         name = OffenderFullName("Prob", "", "Officer"),
         code = "PRAC01",
-        email = "prob.officer@example.com"
+        email = "prob.officer@example.com",
       ),
-      probationDeliveryUnit = ProbationDeliveryUnit(code = "PDU1", description = "Central PDU")
+      probationDeliveryUnit = ProbationDeliveryUnit(code = "PDU1", description = "Central PDU"),
     )
     every { nDeliusIntegrationApiClient.getOffenderIdentifiers(identifier) } returns
       ClientResult.Success(body = offenderIdentifiers, status = HttpStatusCode.valueOf(200))
@@ -55,10 +55,14 @@ class ServiceUserServiceTest {
   fun `checkIfAuthenticatedDeliusUserHasAccessToServiceUser should return true when user has access`() {
     val username = "jsmith"
     val identifier = "X123456"
-    val accessResponse = LimitedAccessOffenderCheck(
-      crn = identifier,
-      userExcluded = false,
-      userRestricted = false,
+    val accessResponse = LimitedAccessOffenderCheckResponse(
+      access = listOf(
+        LimitedAccessOffenderCheck(
+          crn = identifier,
+          userExcluded = false,
+          userRestricted = false,
+        ),
+      ),
     )
 
     every {
@@ -75,11 +79,55 @@ class ServiceUserServiceTest {
   fun `checkIfAuthenticatedDeliusUserHasAccessToServiceUser should return false when user is restricted or excluded`() {
     val username = "jsmith"
     val identifier = "X123456"
-    val accessResponse = LimitedAccessOffenderCheck(
-      crn = identifier,
-      userExcluded = false,
-      userRestricted = true,
+    val accessResponse = LimitedAccessOffenderCheckResponse(
+      access = listOf(
+        LimitedAccessOffenderCheck(
+          crn = identifier,
+          userExcluded = false,
+          userRestricted = true,
+        ),
+      ),
     )
+
+    every {
+      nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier))
+    } returns ClientResult.Success(body = accessResponse, status = HttpStatusCode.valueOf(200))
+
+    val result = service.checkIfAuthenticatedDeliusUserHasAccessToServiceUser(username, identifier)
+
+    assertFalse(result)
+    verify { nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier)) }
+  }
+
+  @Test
+  fun `checkIfAuthenticatedDeliusUserHasAccessToServiceUser should return false when no matching CRN found`() {
+    val username = "jsmith"
+    val identifier = "X123456"
+    val accessResponse = LimitedAccessOffenderCheckResponse(
+      access = listOf(
+        LimitedAccessOffenderCheck(
+          crn = "Y654321", // Different CRN
+          userExcluded = false,
+          userRestricted = false,
+        ),
+      ),
+    )
+
+    every {
+      nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier))
+    } returns ClientResult.Success(body = accessResponse, status = HttpStatusCode.valueOf(200))
+
+    val result = service.checkIfAuthenticatedDeliusUserHasAccessToServiceUser(username, identifier)
+
+    assertFalse(result)
+    verify { nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier)) }
+  }
+
+  @Test
+  fun `checkIfAuthenticatedDeliusUserHasAccessToServiceUser should return false when access list is empty`() {
+    val username = "jsmith"
+    val identifier = "X123456"
+    val accessResponse = LimitedAccessOffenderCheckResponse(access = emptyList())
 
     every {
       nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier))
@@ -102,7 +150,7 @@ class ServiceUserServiceTest {
       method = org.springframework.http.HttpMethod.POST,
       path = "/users/$username/access",
       status = HttpStatusCode.valueOf(500),
-      body = """{"error":"Access check failed"}"""
+      body = """{"error":"Access check failed"}""",
     )
 
     val exception = assertThrows<RuntimeException> {

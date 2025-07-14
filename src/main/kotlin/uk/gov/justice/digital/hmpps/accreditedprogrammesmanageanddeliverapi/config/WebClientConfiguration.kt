@@ -70,7 +70,6 @@ class WebClientConfiguration(
     return buildWebClient(nDeliusIntegrationApiBaseUrl, oauth2Client)
   }
 
-
   fun buildWebClient(url: String, oauth2Client: ServletOAuth2AuthorizedClientExchangeFilterFunction): WebClient = WebClient.builder()
     .baseUrl(url)
     .clientConnector(

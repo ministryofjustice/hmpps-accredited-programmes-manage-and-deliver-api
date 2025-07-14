@@ -5,22 +5,21 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.BaseHMPPSClient
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.OffenderIdentifiers
 
 @Component
 class NDeliusIntegrationApiClient(
   @Qualifier("nDeliusIntegrationWebClient") webClient: WebClient,
-  objectMapper: ObjectMapper
+  objectMapper: ObjectMapper,
 ) : BaseHMPPSClient(webClient, objectMapper) {
 
   fun getOffenderIdentifiers(identifier: String) = getRequest<OffenderIdentifiers>("NDelius Integration API") {
-      path = "/case/$identifier/personal-details"
-    }
+    path = "/case/$identifier/personal-details"
+  }
 
-  fun verifyLaoc(username: String, identifiers: List<String>) =
-    postRequest<LimitedAccessOffenderCheck>("NDelius Integration API") {
-      path = "/users/$username/access"
-      body = identifiers
-    }
+  fun verifyLaoc(username: String, identifiers: List<String>) = postRequest<LimitedAccessOffenderCheckResponse>("NDelius Integration API") {
+    path = "/users/$username/access"
+    body = identifiers
+  }
 }

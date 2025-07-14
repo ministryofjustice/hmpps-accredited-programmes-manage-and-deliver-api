@@ -7,3 +7,7 @@ data class LimitedAccessOffenderCheck(
   val exclusionMessage: String? = null,
   val restrictionMessage: String? = null,
 )
+
+data class LimitedAccessOffenderCheckResponse(
+  val access: List<LimitedAccessOffenderCheck>,
+)

@@ -50,7 +50,5 @@ class ServiceUserController(
     return service.getServiceUserByIdentifier(identifier)
   }
 
-  private fun getUserNameFromAuthentication(authentication: JwtAuthenticationToken): String =
-    authentication.token.getClaimAsString("user_name") ?: "Unknown User"
+  private fun getUserNameFromAuthentication(authentication: JwtAuthenticationToken): String = authentication.token.getClaimAsString("user_name") ?: "Unknown User"
 }
-

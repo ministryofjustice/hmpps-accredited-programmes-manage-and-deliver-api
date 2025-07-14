@@ -29,9 +29,9 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
       probationPractitioner = ProbationPractitioner(
         name = OffenderFullName("Sam", "A", "Smith"),
         code = "X321",
-        email = "sam.smith@probation.gov.uk"
+        email = "sam.smith@probation.gov.uk",
       ),
-      probationDeliveryUnit = ProbationDeliveryUnit(code = "PDU123", description = "North London")
+      probationDeliveryUnit = ProbationDeliveryUnit(code = "PDU123", description = "North London"),
     )
 
     wiremock.stubFor(
@@ -40,8 +40,8 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
           aResponse()
             .withStatus(200)
             .withHeader("Content-Type", "application/json")
-            .withBody(objectMapper.writeValueAsString(identifiers))
-        )
+            .withBody(objectMapper.writeValueAsString(identifiers)),
+        ),
     )
 
     when (val response = nDeliusIntegrationApiClient.getOffenderIdentifiers(crn)) {
@@ -69,7 +69,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
 
     wiremock.stubFor(
       get(urlEqualTo("/case/$crn/personal-details"))
-        .willReturn(aResponse().withStatus(404))
+        .willReturn(aResponse().withStatus(404)),
     )
 
     when (val response = nDeliusIntegrationApiClient.getOffenderIdentifiers(crn)) {
@@ -98,8 +98,8 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
           aResponse()
             .withStatus(200)
             .withHeader("Content-Type", "application/json")
-            .withBody(objectMapper.writeValueAsString(accessCheck))
-        )
+            .withBody(objectMapper.writeValueAsString(accessCheck)),
+        ),
     )
 
     when (val response = nDeliusIntegrationApiClient.verifyLaoc(username, listOf(crn))) {
@@ -125,7 +125,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
     wiremock.stubFor(
       post(urlEqualTo("/users/$username/access"))
         .withRequestBody(equalToJson(objectMapper.writeValueAsString(listOf(crn))))
-        .willReturn(aResponse().withStatus(403))
+        .willReturn(aResponse().withStatus(403)),
     )
 
     when (val response = nDeliusIntegrationApiClient.verifyLaoc(username, listOf(crn))) {
