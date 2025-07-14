@@ -11,7 +11,11 @@ import org.junit.jupiter.api.extension.RegisterExtension
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
+import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
@@ -73,6 +77,8 @@ abstract class IntegrationTestBase {
     @JvmStatic
     private val postgresContainer = PostgreSQLContainer<Nothing>("postgres:17")
       .apply {
+        withUsername("admin")
+        withPassword("admin_password")
         withReuse(true)
       }
 
@@ -103,7 +109,7 @@ abstract class IntegrationTestBase {
 
   internal fun setAuthorisation(
     username: String? = "AUTH_ADM",
-    roles: List<String> = listOf(),
+    roles: List<String> = listOf("ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR"),
     scopes: List<String> = listOf("read"),
   ): (HttpHeaders) -> Unit = jwtAuthHelper.setAuthorisationHeader(username = username, scope = scopes, roles = roles)
 
@@ -114,4 +120,26 @@ abstract class IntegrationTestBase {
   fun stubAuthTokenEndpoint() {
     hmppsAuth.stubGrantToken()
   }
+
+  fun <T> performRequestAndExpectOk(
+    httpMethod: HttpMethod,
+    uri: String,
+    returnType: ParameterizedTypeReference<T>,
+  ): T = performRequestAndExpectStatus(httpMethod, uri, returnType, HttpStatus.OK.value())
+
+  fun <T> performRequestAndExpectStatus(
+    httpMethod: HttpMethod,
+    uri: String,
+    returnType: ParameterizedTypeReference<T>,
+    expectedResponseStatus: Int,
+  ): T = webTestClient
+    .method(httpMethod)
+    .uri(uri)
+    .contentType(MediaType.APPLICATION_JSON)
+    .headers(setAuthorisation())
+    .accept(MediaType.APPLICATION_JSON)
+    .exchange()
+    .expectStatus().isEqualTo(expectedResponseStatus)
+    .expectBody(returnType)
+    .returnResult().responseBody!!
 }
