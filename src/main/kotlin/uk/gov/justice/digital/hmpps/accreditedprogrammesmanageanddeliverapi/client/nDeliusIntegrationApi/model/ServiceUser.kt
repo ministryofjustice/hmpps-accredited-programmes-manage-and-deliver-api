@@ -9,5 +9,4 @@ data class ServiceUser(
     var gender: String? = null,
     var ethnicity: String? = null,
     var currentPdu: String? = null,
-    var setting: String? = null,
 )

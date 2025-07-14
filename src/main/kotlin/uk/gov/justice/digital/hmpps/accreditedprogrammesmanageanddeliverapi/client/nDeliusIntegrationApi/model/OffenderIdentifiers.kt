@@ -2,21 +2,33 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 
 data class OffenderIdentifiers(
   val crn: String,
-  val nomsNumber: String?,
-  val name: OffenderName,
+  val name: OffenderFullName,
   val dateOfBirth: String,
-  val ethnicity: String?,
-  val gender: String?,
+  val age: String,
+  val sex: CodeDescription,
+  val ethnicity: CodeDescription,
+  val probationPractitioner: ProbationPractitioner,
   val probationDeliveryUnit: ProbationDeliveryUnit,
-  val setting: String,
 )
 
-data class ProbationDeliveryUnit(
-  val code: String?,
+data class OffenderFullName(
+  val forename: String,
+  val middleNames: String,
+  val surname: String,
+)
+
+data class CodeDescription(
+  val code: String,
   val description: String,
 )
 
-data class OffenderName(
-  val forename: String,
-  val surname: String,
+data class ProbationPractitioner(
+  val name: OffenderFullName,
+  val code: String,
+  val email: String,
+)
+
+data class ProbationDeliveryUnit(
+  val code: String,
+  val description: String,
 )

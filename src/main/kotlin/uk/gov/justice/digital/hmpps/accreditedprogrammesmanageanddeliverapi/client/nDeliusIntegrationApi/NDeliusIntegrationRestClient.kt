@@ -15,10 +15,12 @@ class NDeliusIntegrationApiClient(
 ) : BaseHMPPSClient(webClient, objectMapper) {
 
   fun getOffenderIdentifiers(identifier: String) = getRequest<OffenderIdentifiers>("NDelius Integration API") {
-      path = "/person/find/$identifier"
+      path = "/case/$identifier/personal-details"
     }
 
-  fun verifyLaoc(username: String, identifier: String) = getRequest<LimitedAccessOffenderCheck>("NDelius Integration API") {
-    path = "/users/$username/access/$identifier"
-  }
+  fun verifyLaoc(username: String, identifiers: List<String>) =
+    postRequest<LimitedAccessOffenderCheck>("NDelius Integration API") {
+      path = "/users/$username/access"
+      body = identifiers
+    }
 }

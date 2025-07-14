@@ -15,13 +15,14 @@ class ServiceUserService(
       is ClientResult.Success -> {
         val user = result.body
         ServiceUser(
-          name = "${user.name.forename} ${user.name.surname}",
+          name = listOfNotNull(user.name.forename, user.name.middleNames, user.name.surname)
+            .filter { it.isNotBlank() }
+            .joinToString(" "),
           crn = user.crn,
           dob = LocalDate.parse(user.dateOfBirth),
-          gender = user.gender,
-          ethnicity = user.ethnicity,
-          currentPdu = user.probationDeliveryUnit?.code,
-          setting = user.setting,
+          gender = user.sex.description,
+          ethnicity = user.ethnicity.description,
+          currentPdu = user.probationDeliveryUnit.code,
         )
       }
 
@@ -30,7 +31,7 @@ class ServiceUserService(
   }
 
   fun checkIfAuthenticatedDeliusUserHasAccessToServiceUser(username: String, identifier: String): Boolean {
-    return when (val result = nDeliusIntegrationApiClient.verifyLaoc(username, identifier)) {
+    return when (val result = nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier))) {
       is ClientResult.Success -> {
         val response = result.body
         !response.userExcluded && !response.userRestricted
