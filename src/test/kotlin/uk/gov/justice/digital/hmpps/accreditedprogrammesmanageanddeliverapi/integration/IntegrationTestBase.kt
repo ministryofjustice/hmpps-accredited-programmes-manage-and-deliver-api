@@ -77,6 +77,8 @@ abstract class IntegrationTestBase {
     @JvmStatic
     private val postgresContainer = PostgreSQLContainer<Nothing>("postgres:17")
       .apply {
+        withUsername("admin")
+        withPassword("admin_password")
         withReuse(true)
       }
 
