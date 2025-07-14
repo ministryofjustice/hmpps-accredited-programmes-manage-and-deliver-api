@@ -2,7 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import java.time.LocalDateTime
 
-data class ReferralCaselistItem(
+data class ReferralCaseListItem(
   val referral: Referral,
   val lastUpdatedAt: LocalDateTime,
   val crn: String,
@@ -14,7 +14,7 @@ data class ReferralCaselistItem(
   val referralStatus: String,
 )
 
-fun ReferralCaselistItem.toApi() = ReferralCaselistItem(
+fun ReferralCaseListItem.toApi() = ReferralCaseListItem(
   referral = referral,
   lastUpdatedAt = lastUpdatedAt,
   crn = crn,

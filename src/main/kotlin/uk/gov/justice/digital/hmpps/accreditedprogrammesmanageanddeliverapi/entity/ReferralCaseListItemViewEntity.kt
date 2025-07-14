@@ -10,17 +10,17 @@ import org.hibernate.annotations.Immutable
 @Entity
 @Immutable
 @Table(name = "referral_caselist_item_view")
-class ReferralCaselistItemViewEntity(
+class ReferralCaseListItemViewEntity(
   @NotNull
   @Id
-  @Column(name = "crn", length = Integer.MAX_VALUE)
+  @Column(name = "crn")
   var crn: String,
 
   @NotNull
-  @Column(name = "person_name", length = Integer.MAX_VALUE)
+  @Column(name = "person_name")
   var personName: String,
 
   @NotNull
-  @Column(name = "status", length = Integer.MAX_VALUE)
+  @Column(name = "status")
   var status: String,
 )
