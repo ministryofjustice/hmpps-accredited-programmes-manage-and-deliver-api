@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.OffenderFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.OffenderIdentifiers
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationDeliveryUnit
@@ -107,14 +108,16 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
           aResponse()
             .withStatus(200)
             .withHeader("Content-Type", "application/json")
-            .withBody(objectMapper.writeValueAsString(accessCheck)),
+            .withBody(objectMapper.writeValueAsString(
+              LimitedAccessOffenderCheckResponse(listOf(accessCheck))
+            )),
         ),
     )
 
     when (val response = nDeliusIntegrationApiClient.verifyLaoc(username, listOf(crn))) {
       is ClientResult.Success<*> -> {
         assertThat(response.status).isEqualTo(HttpStatus.OK)
-        val body = response.body as LimitedAccessOffenderCheck
+        val body = (response.body as LimitedAccessOffenderCheckResponse).access.first()
         assertThat(body.crn).isEqualTo(crn)
         assertThat(body.userExcluded).isFalse()
         assertThat(body.userRestricted).isFalse()
