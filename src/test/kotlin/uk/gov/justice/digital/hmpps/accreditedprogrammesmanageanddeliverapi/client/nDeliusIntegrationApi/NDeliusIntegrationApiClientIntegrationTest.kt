@@ -68,6 +68,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
         assertThat(body.probationDeliveryUnit.code).isEqualTo("PDU123")
         assertThat(body.probationDeliveryUnit.description).isEqualTo("North London")
       }
+
       else -> fail("Unexpected result: ${response::class.simpleName}")
     }
   }
@@ -108,9 +109,11 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
           aResponse()
             .withStatus(200)
             .withHeader("Content-Type", "application/json")
-            .withBody(objectMapper.writeValueAsString(
-              LimitedAccessOffenderCheckResponse(listOf(accessCheck))
-            )),
+            .withBody(
+              objectMapper.writeValueAsString(
+                LimitedAccessOffenderCheckResponse(listOf(accessCheck)),
+              ),
+            ),
         ),
     )
 
@@ -124,6 +127,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
         assertThat(body.exclusionMessage).isNull()
         assertThat(body.restrictionMessage).isNull()
       }
+
       else -> fail("Unexpected result: ${response::class.simpleName}")
     }
   }
