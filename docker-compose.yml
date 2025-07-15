@@ -1,26 +1,4 @@
 services:
-  #  hmpps-accredited-programmes-manage-and-deliver-api:
-  #    container_name: hmpps-accredited-programmes-manage-and-deliver-api
-  #    build:
-  #      context: .
-  #    networks:
-  #      - hmpps
-  #    ports:
-  #      - "8080:8080"
-  #    healthcheck:
-  #      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ping"]
-  #    depends_on:
-  #      postgresql:
-  #        condition: service_healthy
-  #      hmpps-auth:
-  #        condition: service_healthy
-  #    environment:
-  #      - SERVER_PORT=8080
-  #      - HMPPS_AUTH_URL=http://hmpps-auth:8080/auth
-  #      - SPRING_PROFILES_ACTIVE=dev, local
-  #      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgresql:5432/postgres
-  #      - SPRING_DATASOURCE_USERNAME=admin
-  #      - SPRING_DATASOURCE_PASSWORD=admin_password
 
   hmpps-auth:
     image: quay.io/hmpps/hmpps-auth:latest

@@ -2,12 +2,15 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus.BAD_REQUEST
+import org.springframework.http.HttpStatus.BAD_REQUEST
 import org.springframework.http.HttpStatus.FORBIDDEN
 import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.bind.annotation.ExceptionHandler
+import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import org.springframework.web.method.annotation.HandlerMethodValidationException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -32,6 +35,17 @@ class ApiExceptionHandler {
         ),
       )
   }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException::class)
+  @ResponseStatus(BAD_REQUEST)
+  fun handleEnumMismatchException(e: MethodArgumentTypeMismatchException): ResponseEntity<ErrorResponse> = ResponseEntity.status(BAD_REQUEST)
+    .body(
+      ErrorResponse(
+        status = BAD_REQUEST.value(),
+        userMessage = "Invalid value for parameter ${e.parameter.parameterName}",
+        developerMessage = e.message,
+      ),
+    )
 
   @ExceptionHandler(AccessDeniedException::class)
   fun handleAccessDeniedException(exception: AccessDeniedException): ResponseEntity<ErrorResponse> {
