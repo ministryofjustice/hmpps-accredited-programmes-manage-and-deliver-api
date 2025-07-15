@@ -33,7 +33,6 @@ dependencies {
   implementation("org.springframework.security:spring-security-crypto:6.5.1")
   implementation("com.nimbusds:oauth2-oidc-sdk:11.26")
 
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:1.4.7")
   testImplementation("org.wiremock:wiremock-standalone:3.13.1")
   testImplementation("io.swagger.parser.v3:swagger-parser:2.1.31") {
     exclude(group = "io.swagger.core.v3")

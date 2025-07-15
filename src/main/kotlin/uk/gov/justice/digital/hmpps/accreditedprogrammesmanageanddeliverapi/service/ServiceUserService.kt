@@ -28,7 +28,7 @@ class ServiceUserService(
     is ClientResult.Failure -> result.throwException()
   }
 
-  fun checkIfAuthenticatedDeliusUserHasAccessToServiceUser(username: String, identifier: String): Boolean = when (val result = nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier))) {
+  fun hasAccessToLimitedAccessOffender(username: String, identifier: String): Boolean = when (val result = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier))) {
     is ClientResult.Success -> {
       val response = result.body
       val accessCheck = response.access.firstOrNull { it.crn == identifier }

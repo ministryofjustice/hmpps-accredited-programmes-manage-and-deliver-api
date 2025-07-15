@@ -18,7 +18,7 @@ class NDeliusIntegrationApiClient(
     path = "/case/$identifier/personal-details"
   }
 
-  fun verifyLaoc(username: String, identifiers: List<String>) = postRequest<LimitedAccessOffenderCheckResponse>("NDelius Integration API") {
+  fun verifyLimitedAccessOffenderCheck(username: String, identifiers: List<String>) = postRequest<LimitedAccessOffenderCheckResponse>("NDelius Integration API") {
     path = "/users/$username/access"
     body = identifiers
   }

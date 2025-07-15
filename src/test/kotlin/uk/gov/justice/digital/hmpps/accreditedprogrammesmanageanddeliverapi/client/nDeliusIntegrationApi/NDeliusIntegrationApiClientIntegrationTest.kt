@@ -117,7 +117,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
         ),
     )
 
-    when (val response = nDeliusIntegrationApiClient.verifyLaoc(username, listOf(crn))) {
+    when (val response = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(crn))) {
       is ClientResult.Success<*> -> {
         assertThat(response.status).isEqualTo(HttpStatus.OK)
         val body = (response.body as LimitedAccessOffenderCheckResponse).access.first()
@@ -144,7 +144,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
         .willReturn(aResponse().withStatus(403)),
     )
 
-    when (val response = nDeliusIntegrationApiClient.verifyLaoc(username, listOf(crn))) {
+    when (val response = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(crn))) {
       is ClientResult.Failure.StatusCode<*> -> assertThat(response.status).isEqualTo(HttpStatus.FORBIDDEN)
       else -> fail("Unexpected result: ${response::class.simpleName}")
     }

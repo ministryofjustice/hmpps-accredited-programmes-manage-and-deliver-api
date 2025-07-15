@@ -74,13 +74,13 @@ class ServiceUserServiceTest {
     )
 
     every {
-      nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier))
+      nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier))
     } returns ClientResult.Success(body = accessResponse, status = HttpStatusCode.valueOf(200))
 
-    val result = service.checkIfAuthenticatedDeliusUserHasAccessToServiceUser(username, identifier)
+    val result = service.hasAccessToLimitedAccessOffender(username, identifier)
 
     assertTrue(result)
-    verify { nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier)) }
+    verify { nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier)) }
   }
 
   @Test
@@ -98,13 +98,13 @@ class ServiceUserServiceTest {
     )
 
     every {
-      nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier))
+      nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier))
     } returns ClientResult.Success(body = accessResponse, status = HttpStatusCode.valueOf(200))
 
-    val result = service.checkIfAuthenticatedDeliusUserHasAccessToServiceUser(username, identifier)
+    val result = service.hasAccessToLimitedAccessOffender(username, identifier)
 
     assertFalse(result)
-    verify { nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier)) }
+    verify { nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier)) }
   }
 
   @Test
@@ -122,13 +122,13 @@ class ServiceUserServiceTest {
     )
 
     every {
-      nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier))
+      nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier))
     } returns ClientResult.Success(body = accessResponse, status = HttpStatusCode.valueOf(200))
 
-    val result = service.checkIfAuthenticatedDeliusUserHasAccessToServiceUser(username, identifier)
+    val result = service.hasAccessToLimitedAccessOffender(username, identifier)
 
     assertFalse(result)
-    verify { nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier)) }
+    verify { nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier)) }
   }
 
   @Test
@@ -138,13 +138,13 @@ class ServiceUserServiceTest {
     val accessResponse = LimitedAccessOffenderCheckResponse(access = emptyList())
 
     every {
-      nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier))
+      nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier))
     } returns ClientResult.Success(body = accessResponse, status = HttpStatusCode.valueOf(200))
 
-    val result = service.checkIfAuthenticatedDeliusUserHasAccessToServiceUser(username, identifier)
+    val result = service.hasAccessToLimitedAccessOffender(username, identifier)
 
     assertFalse(result)
-    verify { nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier)) }
+    verify { nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier)) }
   }
 
   @Test
@@ -153,7 +153,7 @@ class ServiceUserServiceTest {
     val identifier = "X123456"
 
     every {
-      nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier))
+      nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier))
     } returns ClientResult.Failure.StatusCode(
       method = org.springframework.http.HttpMethod.POST,
       path = "/users/$username/access",
@@ -162,10 +162,10 @@ class ServiceUserServiceTest {
     )
 
     val exception = assertThrows<RuntimeException> {
-      service.checkIfAuthenticatedDeliusUserHasAccessToServiceUser(username, identifier)
+      service.hasAccessToLimitedAccessOffender(username, identifier)
     }
 
     assertTrue(exception.message!!.contains("Unable to complete POST request"))
-    verify { nDeliusIntegrationApiClient.verifyLaoc(username, listOf(identifier)) }
+    verify { nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier)) }
   }
 }

@@ -79,11 +79,6 @@ management:
       cache:
         time-to-live: 2000ms
 
-manage-and-deliver-ndelius:
-  locations:
-    find-person: "/person/find/{identifier}"
-    limited-access-offender-check: "/users/{username}/access/{identifier}"
-
 hmpps:
   sqs:
     reactiveApi: true

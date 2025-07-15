@@ -17,7 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 @RestController
 @Tag(name = "ServiceUser")
 class ServiceUserController(
-  private val service: ServiceUserService,
+  private val serviceUserService: ServiceUserService,
 ) {
 
   @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR', 'PROBATION_API__ACCREDITED_PROGRAMMES__CASE_DETAIL')")
@@ -32,7 +32,7 @@ class ServiceUserController(
       ApiResponse(responseCode = "400", description = "Bad Request"),
     ],
   )
-  fun serviceUserByCrnOrPrisonerNumber(
+  fun getServiceUserByCrnOrPrisonerNumber(
     @PathVariable(name = "identifier")
     @Pattern(
       regexp = "^([A-Z]\\d{6}|[A-Z]\\d{4}[A-Z]{2})$",
@@ -42,12 +42,12 @@ class ServiceUserController(
     authentication: JwtAuthenticationToken,
   ): ServiceUser {
     val userName = getUserNameFromAuthentication(authentication)
-    if (!service.checkIfAuthenticatedDeliusUserHasAccessToServiceUser(userName, identifier)) {
+    if (!serviceUserService.hasAccessToLimitedAccessOffender(userName, identifier)) {
       throw AccessDeniedException(
         "You are not authorized to view this person's details. Either contact your administrator or enter a different CRN or Prison Number",
       )
     }
-    return service.getServiceUserByIdentifier(identifier)
+    return serviceUserService.getServiceUserByIdentifier(identifier)
   }
 
   private fun getUserNameFromAuthentication(authentication: JwtAuthenticationToken): String = authentication.token.getClaimAsString("user_name") ?: "Unknown User"
