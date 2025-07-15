@@ -18,12 +18,7 @@ spring:
           jwk-set-uri: ${hmpps-auth.url}/.well-known/jwks.json
       client:
         registration:
-          find-and-refer-intervention-api:
-            provider: hmpps-auth
-            client-id: hmpps-accredited-programmes-manage-and-deliver-ui-client-1
-            client-secret: clientsecret
-            authorization-grant-type: client_credentials
-          ndelius-integration-api:
+          manage-and-deliver-api-client:
             provider: hmpps-auth
             client-id: hmpps-accredited-programmes-manage-and-deliver-api-client-1
             client-secret: clientsecret
