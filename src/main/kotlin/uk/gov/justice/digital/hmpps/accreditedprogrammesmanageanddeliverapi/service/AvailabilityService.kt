@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
@@ -11,15 +12,21 @@ class AvailabilityService(
   val defaultAvailabilityConfigService: DefaultAvailabilityConfigService,
 ) {
 
+  private val log = LoggerFactory.getLogger(this::class.java)
+
   fun getAvailableSlots(referralId: UUID): Availability {
     val availabilityEntity = availabilityRepository.findByReferralId(referralId)
+
+    if (availabilityEntity == null) {
+      log.info("No availability found with referralId $referralId using default availability config")
+    }
 
     val defaultAvailability = defaultAvailabilityConfigService.getDefaultAvailability()
 
     return Availability(
       id = availabilityEntity?.id,
       referralId = availabilityEntity?.referralId,
-      startDate = availabilityEntity?.startDate?.atStartOfDay(), // If you need LocalDateTime
+      startDate = availabilityEntity?.startDate?.atStartOfDay(),
       endDate = availabilityEntity?.endDate?.atStartOfDay(),
       otherDetails = availabilityEntity?.otherDetails,
       lastModifiedBy = availabilityEntity?.lastModifiedBy,

@@ -24,7 +24,7 @@ class SecurityConfiguration {
           "/info",
           "/swagger-ui.html",
         ).permitAll()
-        .anyRequest().authenticated()
+        .anyRequest().hasRole("ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR")
     }
     .sessionManagement { session ->
       session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
