@@ -7,12 +7,13 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.core.io.ResourceLoader
+import org.springframework.data.domain.Page
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.jdbc.datasource.init.ScriptUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PagedReferralCaseListItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralCaseListItem
 import javax.sql.DataSource
 
 class GetCaseListItemsTest : IntegrationTestBase() {
@@ -45,9 +46,9 @@ class GetCaseListItemsTest : IntegrationTestBase() {
     val response = performRequestAndExpectOk(
       HttpMethod.GET,
       "/pages/caselist/open",
-      object : ParameterizedTypeReference<PagedReferralCaseListItem>() {},
+      object : ParameterizedTypeReference<Page<ReferralCaseListItem>>() {},
     )
-    val referralCaseListItems = response.content!!
+    val referralCaseListItems = response.content
 
     assertThat(response).isNotNull
     assertThat(response.totalElements).isEqualTo(5)
@@ -65,9 +66,9 @@ class GetCaseListItemsTest : IntegrationTestBase() {
     val response = performRequestAndExpectOk(
       HttpMethod.GET,
       "/pages/caselist/open",
-      object : ParameterizedTypeReference<PagedReferralCaseListItem>() {},
+      object : ParameterizedTypeReference<Page<ReferralCaseListItem>>() {},
     )
-    val referralCaseListItems = response.content!!
+    val referralCaseListItems = response.content
 
     assertThat(response).isNotNull
     assertThat(response.totalElements).isEqualTo(5)
