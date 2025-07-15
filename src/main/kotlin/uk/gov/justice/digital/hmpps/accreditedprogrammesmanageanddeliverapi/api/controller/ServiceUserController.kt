@@ -30,6 +30,7 @@ class ServiceUserController(
     value = [
       ApiResponse(responseCode = "200", description = "OK"),
       ApiResponse(responseCode = "400", description = "Bad Request"),
+      ApiResponse(responseCode = "403", description = "Forbidden"),
     ],
   )
   fun getServiceUserByCrnOrPrisonerNumber(

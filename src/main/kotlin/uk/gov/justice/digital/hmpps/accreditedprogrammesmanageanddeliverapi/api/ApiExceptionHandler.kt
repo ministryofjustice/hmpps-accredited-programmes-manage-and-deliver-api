@@ -1,10 +1,14 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus.BAD_REQUEST
+import org.springframework.http.HttpStatus.FORBIDDEN
 import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.HandlerMethodValidationException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 
@@ -24,6 +28,34 @@ class ApiExceptionHandler {
         ErrorResponse(
           status = NOT_FOUND.value(),
           userMessage = "Not Found: ${exception.message}",
+          developerMessage = exception.message,
+        ),
+      )
+  }
+
+  @ExceptionHandler(AccessDeniedException::class)
+  fun handleAccessDeniedException(exception: AccessDeniedException): ResponseEntity<ErrorResponse> {
+    log.warn("Access denied", exception)
+    return ResponseEntity
+      .status(FORBIDDEN)
+      .body(
+        ErrorResponse(
+          status = FORBIDDEN.value(),
+          userMessage = "Access denied: ${exception.message}",
+          developerMessage = exception.message,
+        ),
+      )
+  }
+
+  @ExceptionHandler(HandlerMethodValidationException::class)
+  fun handleHandlerMethodValidationException(exception: HandlerMethodValidationException): ResponseEntity<ErrorResponse> {
+    log.warn("Bad request", exception)
+    return ResponseEntity
+      .status(BAD_REQUEST)
+      .body(
+        ErrorResponse(
+          status = BAD_REQUEST.value(),
+          userMessage = "Bad request: ${exception.message}",
           developerMessage = exception.message,
         ),
       )
