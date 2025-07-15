@@ -22,7 +22,7 @@ import java.util.UUID
 @Tag(
   name = "Availability",
   description = """
-    This endpoint will refresh all of the prisoners within ACP - BE GENTLE.
+    The endpoints fetches the availability details
   """,
 )
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
