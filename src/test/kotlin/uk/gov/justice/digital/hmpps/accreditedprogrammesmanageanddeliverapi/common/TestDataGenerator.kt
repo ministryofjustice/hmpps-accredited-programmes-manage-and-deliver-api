@@ -30,5 +30,7 @@ class TestDataGenerator {
     entityManager.persist(referralStatusHistoryEntity)
     referralEntity.statusHistories.add(referralStatusHistoryEntity)
     entityManager.merge(referralEntity)
+    entityManager.flush()
+    entityManager.clear()
   }
 }
