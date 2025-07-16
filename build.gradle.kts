@@ -53,7 +53,7 @@ kotlin {
 }
 
 tasks {
-  withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+  withType<KotlinCompile> {
     compilerOptions.jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
   }
 }
@@ -66,4 +66,8 @@ allOpen {
   annotation("jakarta.persistence.Entity")
   annotation("jakarta.persistence.MappedSuperclass")
   annotation("jakarta.persistence.Embeddable")
+}
+val compileTestKotlin: KotlinCompile by tasks
+compileTestKotlin.compilerOptions {
+  freeCompilerArgs.set(listOf("-Xannotation-default-target=param-property"))
 }
