@@ -54,7 +54,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
     assertThat(response).isNotNull
     Assertions.assertThat(response.totalElements).isEqualTo(5)
-    Assertions.assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-123456")
+    Assertions.assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-999999")
 
     referralCaseListItems.forEach { item ->
       assertThat(item).hasFieldOrProperty("crn")
@@ -74,7 +74,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
     assertThat(response).isNotNull
     Assertions.assertThat(response.totalElements).isEqualTo(5)
-    Assertions.assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-123456")
+    Assertions.assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-999999")
 
     referralCaseListItems.forEach { item ->
       assertThat(item).hasFieldOrProperty("crn")
