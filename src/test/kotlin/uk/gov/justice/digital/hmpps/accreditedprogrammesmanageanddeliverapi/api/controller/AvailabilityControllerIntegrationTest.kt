@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
@@ -14,10 +15,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.AvailabilityCreate
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AvailabilityService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.DefaultAvailabilityConfigService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.toPluralLabel
 import java.time.DayOfWeek
+import java.time.LocalDateTime
 import java.util.UUID
 
 class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
@@ -68,6 +71,50 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
     assertThat(availability.id).isNull()
   }
 
+  @Test
+  fun `Create availability is successful`() {
+    val referralEntity = ReferralEntityFactory().produce()
+    testDataGenerator.createReferral(referralEntity)
+
+    val availability = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.POST,
+      uri = "/availability",
+      returnType = object : ParameterizedTypeReference<Availability>() {},
+      body = buildAvailabilityCreateModel(referralId = referralEntity.id!!),
+      expectedResponseStatus = HttpStatus.CREATED.value(),
+    )
+
+    assertThat(availability.id.toString()).isNotNull
+    assertThat(availability.referralId.toString()).isEqualTo(referralEntity.id.toString())
+    assertThat(availability.startDate).isNotNull
+    assertThat(availability.endDate).isNotNull
+    assertThat(availability.otherDetails).isEqualTo("Available remotely")
+    assertThat(availability.lastModifiedBy).isEqualTo("AUTH_ADM")
+    assertThat(availability.lastModifiedAt).isNotNull
+
+    assertThat(availability.availabilities).hasSize(7)
+
+    val monday = availability.availabilities.find { it.label == "Mondays" }
+    assertThat(monday).isNotNull
+    assertThat(monday!!.slots).containsExactly(
+      Slot("daytime", true),
+      Slot("evening", true),
+    )
+
+    val tuesday = availability.availabilities.find { it.label == "Tuesdays" }
+    assertThat(tuesday).isNotNull
+    assertThat(tuesday!!.slots).allSatisfy { slot ->
+      assertThat(slot.value).isFalse()
+    }
+
+    val wednesday = availability.availabilities.find { it.label == "Wednesdays" }
+    assertThat(wednesday).isNotNull
+    assertThat(wednesday!!.slots).containsExactly(
+      Slot("daytime", false),
+      Slot("evening", true),
+    )
+  }
+
   fun getDefaultAvailability(): List<DailyAvailabilityModel> {
     val slotLabels = SlotName.entries.map { it -> it.displayName }
     return DayOfWeek.entries.map { day ->
@@ -78,5 +125,41 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
         },
       )
     }
+  }
+
+  fun buildAvailabilityCreateModel(
+    referralId: UUID = UUID.randomUUID(),
+    startDate: LocalDateTime? = LocalDateTime.now().minusDays(1),
+    endDate: LocalDateTime? = LocalDateTime.now().plusDays(10),
+    otherDetails: String? = "Available remotely",
+    selectedSlots: Map<String, Set<String>> = mapOf(
+      "Mondays" to setOf("daytime", "evening"),
+      "Wednesdays" to setOf("evening"),
+    ),
+  ): AvailabilityCreate {
+    val allSlotLabels = SlotName.entries.map { it.displayName }
+
+    val availabilities = DayOfWeek.entries.map { day ->
+      val label = day.toPluralLabel()
+      val selectedForDay = selectedSlots[label] ?: emptySet()
+
+      DailyAvailabilityModel(
+        label = label,
+        slots = allSlotLabels.map { slotLabel ->
+          Slot(
+            label = slotLabel,
+            value = slotLabel in selectedForDay,
+          )
+        },
+      )
+    }
+
+    return AvailabilityCreate(
+      referralId = referralId,
+      startDate = startDate,
+      endDate = endDate,
+      otherDetails = otherDetails,
+      availabilities = availabilities,
+    )
   }
 }

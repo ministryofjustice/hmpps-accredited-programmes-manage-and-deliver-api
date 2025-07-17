@@ -2,7 +2,9 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.AvailabilityCreate
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
 import java.util.UUID
 
@@ -21,8 +23,6 @@ class AvailabilityService(
       log.info("No availability found with referralId $referralId using default availability config")
     }
 
-    val defaultAvailability = defaultAvailabilityConfigService.getDefaultAvailability()
-
     return Availability(
       id = availabilityEntity?.id,
       referralId = availabilityEntity?.referralId,
@@ -31,7 +31,12 @@ class AvailabilityService(
       otherDetails = availabilityEntity?.otherDetails,
       lastModifiedBy = availabilityEntity?.lastModifiedBy,
       lastModifiedAt = availabilityEntity?.lastModifiedAt,
-      availabilities = defaultAvailability,
+      availabilities = defaultAvailabilityConfigService.getDefaultAvailability(),
     )
+  }
+
+  fun createAvailability(availability: AvailabilityCreate): AvailabilityEntity {
+    val availabilityEntity = availability.toEntity()
+    return availabilityRepository.save(availabilityEntity)
   }
 }
