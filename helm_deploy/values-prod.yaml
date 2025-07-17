@@ -8,6 +8,7 @@ generic-service:
   env:
     HMPPS_AUTH_URL: "https://sign-in.hmpps.service.justice.gov.uk/auth"
     SERVICES_FIND-AND-REFER-INTERVENTION-API_BASE-URL: "https://find-and-refer-intervention-api.hmpps.service.justice.gov.uk"
+    SERVICES_NDELIUS-INTEGRATION-API_BASE-URL: "https://accredited-programmes-and-delius.hmpps.service.justice.gov.uk"
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
 # See https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html#creating-your-own-custom-alerts
