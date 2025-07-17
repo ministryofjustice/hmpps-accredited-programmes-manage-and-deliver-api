@@ -7,12 +7,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.AvailabilityCreate
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-fun AvailabilityCreate.toEntity(): AvailabilityEntity {
+fun CreateAvailability.toEntity(): AvailabilityEntity {
   val availabilityEntity = AvailabilityEntity(
     referralId = this.referralId,
     startDate = this.startDate?.toLocalDate() ?: LocalDate.now(),

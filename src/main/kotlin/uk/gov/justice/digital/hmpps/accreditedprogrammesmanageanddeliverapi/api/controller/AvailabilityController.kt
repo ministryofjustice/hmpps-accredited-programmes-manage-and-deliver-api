@@ -17,10 +17,10 @@ import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AvailabilityService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.toModel
 import java.util.UUID
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.AvailabilityCreate as AvailablityCreateModel
 
 @RestController
 @Tag(
@@ -42,6 +42,16 @@ class AvailabilityController(private val availabilityService: AvailabilityServic
         responseCode = "200",
         description = "Information about the availability for a given referral",
         content = [Content(schema = Schema(implementation = Availability::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Bad input",
+        content = [Content(schema = Schema(implementation = Availability::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorised. The request was unauthorised.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
       ),
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
@@ -95,9 +105,9 @@ class AvailabilityController(private val availabilityService: AvailabilityServic
     @Parameter(
       description = "",
       required = true,
-    ) @RequestBody availabilityCreateModel: AvailablityCreateModel,
+    ) @RequestBody createAvailability: CreateAvailability,
   ): ResponseEntity<Availability> {
-    val availability = availabilityService.createAvailability(availabilityCreateModel)
+    val availability = availabilityService.createAvailability(createAvailability)
     return ResponseEntity.status(HttpStatus.CREATED).body(availability.toModel())
   }
 }

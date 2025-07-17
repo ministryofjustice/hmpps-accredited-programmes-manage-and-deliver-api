@@ -11,7 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.AvailabilityCreate
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
 import java.time.LocalDateTime
 import java.util.*
 
@@ -23,7 +23,7 @@ class AvailabilityTransformerTest {
     val now = LocalDateTime.now()
     val end = LocalDateTime.now().plusWeeks(10)
 
-    val availabilityCreate = AvailabilityCreate(
+    val createAvailability = CreateAvailability(
       referralId = referralId,
       startDate = now,
       endDate = end,
@@ -54,7 +54,7 @@ class AvailabilityTransformerTest {
     every { mockContext.authentication } returns mockAuth
     every { SecurityContextHolder.getContext() } returns mockContext
 
-    val entity = availabilityCreate.toEntity()
+    val entity = createAvailability.toEntity()
 
     assertThat(entity.referralId).isEqualTo(referralId)
     assertThat(entity.startDate).isEqualTo(now.toLocalDate())

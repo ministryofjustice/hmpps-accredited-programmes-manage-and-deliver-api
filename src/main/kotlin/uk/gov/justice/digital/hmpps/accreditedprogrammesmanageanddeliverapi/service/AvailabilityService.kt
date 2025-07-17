@@ -4,7 +4,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.AvailabilityCreate
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
 import java.util.UUID
 
@@ -35,7 +35,7 @@ class AvailabilityService(
     )
   }
 
-  fun createAvailability(availability: AvailabilityCreate): AvailabilityEntity {
+  fun createAvailability(availability: CreateAvailability): AvailabilityEntity {
     val availabilityEntity = availability.toEntity()
     return availabilityRepository.save(availabilityEntity)
   }
