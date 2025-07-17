@@ -10,6 +10,7 @@ import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import org.hibernate.annotations.Fetch
 import org.hibernate.annotations.FetchMode.SUBSELECT
+import org.springframework.security.core.context.SecurityContextHolder
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -35,7 +36,7 @@ class AvailabilityEntity(
   val otherDetails: String? = null,
 
   @Column(name = "last_modified_by", nullable = false)
-  var lastModifiedBy: String,
+  var lastModifiedBy: String = SecurityContextHolder.getContext().authentication?.name!!,
 
   @Column(name = "last_modified_at", nullable = false)
   var lastModifiedAt: LocalDateTime = LocalDateTime.now(),

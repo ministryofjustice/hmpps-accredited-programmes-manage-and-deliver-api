@@ -142,4 +142,22 @@ abstract class IntegrationTestBase {
     .expectStatus().isEqualTo(expectedResponseStatus)
     .expectBody(returnType)
     .returnResult().responseBody!!
+
+  fun <T> performRequestAndExpectStatusWithBody(
+    httpMethod: HttpMethod,
+    uri: String,
+    returnType: ParameterizedTypeReference<T>,
+    body: Any,
+    expectedResponseStatus: Int,
+  ): T = webTestClient
+    .method(httpMethod)
+    .uri(uri)
+    .contentType(MediaType.APPLICATION_JSON)
+    .headers(setAuthorisation())
+    .accept(MediaType.APPLICATION_JSON)
+    .bodyValue(body)
+    .exchange()
+    .expectStatus().isEqualTo(expectedResponseStatus)
+    .expectBody(returnType)
+    .returnResult().responseBody!!
 }

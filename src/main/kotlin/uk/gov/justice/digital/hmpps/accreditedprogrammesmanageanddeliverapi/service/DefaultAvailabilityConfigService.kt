@@ -31,3 +31,16 @@ fun DayOfWeek.toPluralLabel(): String = when (this) {
   DayOfWeek.SATURDAY -> "Saturdays"
   DayOfWeek.SUNDAY -> "Sundays"
 }
+
+fun String.toDayOfWeek(): DayOfWeek = when (this) {
+  "Mondays" -> DayOfWeek.MONDAY
+  "Tuesdays" -> DayOfWeek.TUESDAY
+  "Wednesdays" -> DayOfWeek.WEDNESDAY
+  "Thursdays" -> DayOfWeek.THURSDAY
+  "Fridays" -> DayOfWeek.FRIDAY
+  "Saturdays" -> DayOfWeek.SATURDAY
+  "Sundays" -> DayOfWeek.SUNDAY
+  else -> {
+    throw IllegalArgumentException("Invalid DayOfWeek: $this")
+  }
+}
