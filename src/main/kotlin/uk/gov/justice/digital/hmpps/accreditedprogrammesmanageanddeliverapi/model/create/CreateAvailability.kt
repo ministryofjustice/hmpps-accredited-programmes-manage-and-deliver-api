@@ -6,7 +6,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import java.time.LocalDateTime
 import java.util.UUID
 
-data class AvailabilityCreate(
+data class CreateAvailability(
 
   @get:JsonProperty("referralId", required = true)
   @Schema(example = "d3f55f38-7c7b-4b6e-9aa1-e7d7f9e3e785", description = "The ID of the referral", required = true)

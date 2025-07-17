@@ -15,7 +15,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.AvailabilityCreate
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AvailabilityService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.DefaultAvailabilityConfigService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.toPluralLabel
@@ -136,7 +136,7 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
       "Mondays" to setOf("daytime", "evening"),
       "Wednesdays" to setOf("evening"),
     ),
-  ): AvailabilityCreate {
+  ): CreateAvailability {
     val allSlotLabels = SlotName.entries.map { it.displayName }
 
     val availabilities = DayOfWeek.entries.map { day ->
@@ -154,7 +154,7 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
       )
     }
 
-    return AvailabilityCreate(
+    return CreateAvailability(
       referralId = referralId,
       startDate = startDate,
       endDate = endDate,
