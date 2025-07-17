@@ -6,6 +6,7 @@ generic-service:
     host: accredited-programmes-manage-and-deliver-api.hmpps.service.justice.gov.uk
 
   env:
+    SPRING_PROFILES_ACTIVE: "prod"
     HMPPS_AUTH_URL: "https://sign-in.hmpps.service.justice.gov.uk/auth"
     SERVICES_FIND-AND-REFER-INTERVENTION-API_BASE-URL: "https://find-and-refer-intervention-api.hmpps.service.justice.gov.uk"
     SERVICES_NDELIUS-INTEGRATION-API_BASE-URL: "https://accredited-programmes-and-delius.hmpps.service.justice.gov.uk"

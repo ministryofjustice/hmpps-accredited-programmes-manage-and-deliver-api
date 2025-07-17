@@ -8,6 +8,7 @@ generic-service:
     host: accredited-programmes-manage-and-deliver-api-preprod.hmpps.service.justice.gov.uk
 
   env:
+    SPRING_PROFILES_ACTIVE: "preprod"
     APPLICATIONINSIGHTS_CONFIGURATION_FILE: "applicationinsights.dev.json"
     HMPPS_AUTH_URL: "https://sign-in-preprod.hmpps.service.justice.gov.uk/auth"
     SERVICES_FIND-AND-REFER-INTERVENTION-API_BASE-URL: "https://find-and-refer-intervention-api-preprod.hmpps.service.justice.gov.uk"
