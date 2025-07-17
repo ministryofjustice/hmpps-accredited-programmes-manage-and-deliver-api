@@ -12,7 +12,7 @@ generic-service:
   ingress:
     enabled: true
     host: app-hostname.local # override per environment
-    tlsSecretName: hmpps-accredited-programmes-manage-and-deliver-api-cert
+    tlsSecretName: hmpps-manage-and-deliver-accredited-programmes-api-cert
 
   # Used to access AWS resources like S3 buckets, SQS queues and SNS topics
   serviceAccountName: hmpps-manage-and-deliver-accredited-programmes

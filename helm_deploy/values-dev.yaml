@@ -6,7 +6,6 @@ generic-service:
 
   ingress:
     host: accredited-programmes-manage-and-deliver-api-dev.hmpps.service.justice.gov.uk
-    tlsSecretName: hmpps-manage-and-deliver-accredited-programmes-api-cert
 
   env:
     SPRING_PROFILES_ACTIVE: "dev"
