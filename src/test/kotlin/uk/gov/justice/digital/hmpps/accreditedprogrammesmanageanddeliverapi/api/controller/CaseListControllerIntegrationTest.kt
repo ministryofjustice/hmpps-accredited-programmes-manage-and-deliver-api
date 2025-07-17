@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
 import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -51,14 +52,14 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     )
     val referralCaseListItems = response.content
 
-    Assertions.assertThat(response).isNotNull
+    assertThat(response).isNotNull
     Assertions.assertThat(response.totalElements).isEqualTo(5)
-    Assertions.assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-123456")
+    Assertions.assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-999999")
 
     referralCaseListItems.forEach { item ->
-      Assertions.assertThat(item).hasFieldOrProperty("crn")
-      Assertions.assertThat(item).hasFieldOrProperty("personName")
-      Assertions.assertThat(item).hasFieldOrProperty("referralStatus")
+      assertThat(item).hasFieldOrProperty("crn")
+      assertThat(item).hasFieldOrProperty("personName")
+      assertThat(item).hasFieldOrProperty("referralStatus")
     }
   }
 
@@ -71,14 +72,14 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     )
     val referralCaseListItems = response.content
 
-    Assertions.assertThat(response).isNotNull
+    assertThat(response).isNotNull
     Assertions.assertThat(response.totalElements).isEqualTo(5)
-    Assertions.assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-123456")
+    Assertions.assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-999999")
 
     referralCaseListItems.forEach { item ->
-      Assertions.assertThat(item).hasFieldOrProperty("crn")
-      Assertions.assertThat(item).hasFieldOrProperty("personName")
-      Assertions.assertThat(item).hasFieldOrProperty("referralStatus")
+      assertThat(item).hasFieldOrProperty("crn")
+      assertThat(item).hasFieldOrProperty("personName")
+      assertThat(item).hasFieldOrProperty("referralStatus")
     }
   }
 
@@ -106,5 +107,45 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
       .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
       .returnResult().responseBody!!
+  }
+
+  @Test
+  fun `getCaseListItems for OPEN and search by crn referrals return 200 and paged list of referral case list items `() {
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "/pages/caselist/open?crnOrPersonName=CRN-888888",
+      object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+    )
+    val referralCaseListItems = response.content
+
+    assertThat(response).isNotNull
+    assertThat(response.totalElements).isEqualTo(1)
+    assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-888888")
+
+    referralCaseListItems.forEach { item ->
+      assertThat(item).hasFieldOrProperty("crn")
+      assertThat(item).hasFieldOrProperty("personName")
+      assertThat(item).hasFieldOrProperty("referralStatus")
+    }
+  }
+
+  @Test
+  fun `getCaseListItems for OPEN and search by personName referrals return 200 and paged list of referral case list items `() {
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "/pages/caselist/open?crnOrPersonName=Alex River",
+      object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+    )
+    val referralCaseListItems = response.content
+
+    assertThat(response).isNotNull
+    assertThat(response.totalElements).isEqualTo(1)
+    assertThat(referralCaseListItems.first().personName).isEqualTo("Alex River")
+
+    referralCaseListItems.forEach { item ->
+      assertThat(item).hasFieldOrProperty("crn")
+      assertThat(item).hasFieldOrProperty("personName")
+      assertThat(item).hasFieldOrProperty("referralStatus")
+    }
   }
 }
