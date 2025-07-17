@@ -28,16 +28,16 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
   @BeforeEach
   override fun beforeEach() {
     dataSource.connection.use {
-      val r = resourceLoader.getResource("classpath:db/testData/setup.sql")
-      ScriptUtils.executeSqlScript(it, r)
+      val resource = resourceLoader.getResource("classpath:db/testData/setup.sql")
+      ScriptUtils.executeSqlScript(it, resource)
     }
   }
 
   @AfterEach
   fun afterEach() {
     dataSource.connection.use {
-      val r = resourceLoader.getResource("classpath:db/testData/teardown.sql")
-      ScriptUtils.executeSqlScript(it, r)
+      val resource = resourceLoader.getResource("classpath:db/testData/teardown.sql")
+      ScriptUtils.executeSqlScript(it, resource)
     }
   }
 
