@@ -10,6 +10,10 @@ spring:
 hmpps-auth:
   url: "http://localhost:8090/auth"
 
+manage-and-deliver-ndelius:
+  locations:
+    find-person: "/person/find/{identifier}"
+
 hmpps:
   sqs:
     provider: localstack

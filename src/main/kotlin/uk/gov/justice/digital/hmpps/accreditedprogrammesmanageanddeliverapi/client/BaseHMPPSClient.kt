@@ -84,6 +84,7 @@ abstract class BaseHMPPSClient(
         throw exception
       }
     } catch (exception: Exception) {
+      log.error("Exception occurred whilst processing request: ${exception.message}.")
       return ClientResult.Failure.Other(method, requestBuilder.path ?: "", exception, serviceName)
     }
   }

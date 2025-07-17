@@ -18,9 +18,9 @@ spring:
           jwk-set-uri: ${hmpps-auth.url}/.well-known/jwks.json
       client:
         registration:
-          find-and-refer-intervention-api:
+          manage-and-deliver-api-client:
             provider: hmpps-auth
-            client-id: hmpps-accredited-programmes-manage-and-deliver-ui-client-1
+            client-id: hmpps-accredited-programmes-manage-and-deliver-api-client-1
             client-secret: clientsecret
             authorization-grant-type: client_credentials
         provider:
@@ -87,3 +87,5 @@ max-response-in-memory-size-bytes: 750000
 services:
   find-and-refer-intervention-api:
     base-url: http://localhost:9094
+  ndelius-integration-api:
+    base-url: http://localhost:9095
