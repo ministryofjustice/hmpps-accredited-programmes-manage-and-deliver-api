@@ -6,6 +6,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
 import org.hibernate.annotations.Immutable
+import java.util.UUID
 
 @Entity
 @Immutable
@@ -13,6 +14,10 @@ import org.hibernate.annotations.Immutable
 class ReferralCaseListItemViewEntity(
   @NotNull
   @Id
+  @Column(name = "id")
+  val referralId: UUID,
+
+  @NotNull
   @Column(name = "crn")
   var crn: String,
 

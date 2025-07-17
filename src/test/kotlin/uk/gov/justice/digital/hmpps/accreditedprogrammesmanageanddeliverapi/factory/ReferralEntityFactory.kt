@@ -13,6 +13,7 @@ class ReferralEntityFactory {
   private var crn: String? = randomUppercaseString(6)
   private var createdAt: LocalDateTime = LocalDateTime.now()
   private var statusHistories: MutableList<ReferralStatusHistoryEntity> = mutableListOf()
+  private var setting: String = "COMMUNITY"
 
   fun withId(id: UUID?) = apply { this.id = id }
   fun withPersonName(personName: String?) = apply { this.personName = personName }
@@ -28,5 +29,6 @@ class ReferralEntityFactory {
     crn = this.crn!!,
     createdAt = this.createdAt,
     statusHistories = this.statusHistories,
+    setting = setting,
   )
 }

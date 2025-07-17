@@ -1,59 +1,53 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
+import org.springframework.data.web.PageableDefault
 import org.springframework.http.MediaType
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralCaseListItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralCaseListItemService
 
+@PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
 @RestController
-class CaseListController {
-  @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
-  @GetMapping("/pages/caselist/open", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun getOpenCaseListReferrals() = mapOf(
-    "referrals" to listOf(
-      mapOf(
-        "id" to "abc-987",
-        "personName" to "Bob Buddy",
-        "personCrn" to "X456",
-        "status" to "Awaiting Assessment",
+@Tag(
+  name = "Caselist",
+  description = "The endpoint fetches the referrals details for the case list view",
+)
+class CaseListController(private val referralCaseListItemService: ReferralCaseListItemService) {
+  @Operation(
+    tags = ["Caselist"],
+    summary = "Get all referrals for the case list view",
+    operationId = "getCaseListReferrals",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Paged list of all open/closed referrals for a PDU",
+        content = [Content(schema = Schema(implementation = ReferralCaseListItem::class))],
       ),
-      mapOf(
-        "id" to "abc-654",
-        "personName" to "Dave David",
-        "personCrn" to "X123",
-        "status" to "Another Status",
-      ),
-      mapOf(
-        "id" to "abc-312",
-        "personName" to "Frank Ferdinand",
-        "personCrn" to "X987",
-        "status" to "Another Status",
-      ),
-    ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
   )
+  @GetMapping("/pages/caselist/{openOrClosed}", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getCaseListReferrals(
+    @PageableDefault(page = 0, size = 10) pageable: Pageable,
+    @PathVariable(
+      name = "openOrClosed",
+      required = true,
+    ) openOrClosed: OpenOrClosed,
+  ): Page<ReferralCaseListItem> = referralCaseListItemService.getReferralCaseListItemServiceByCriteria(pageable, openOrClosed)
+}
 
-  @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
-  @GetMapping("/pages/caselist/closed", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun getClosedCaseListReferrals() = mapOf(
-    "referrals" to listOf(
-      mapOf(
-        "id" to "abc-987",
-        "personName" to "Tony Trellis",
-        "personCrn" to "X456",
-        "status" to "Awaiting Assessment",
-      ),
-      mapOf(
-        "id" to "abc-654",
-        "personName" to "Steve Stevio",
-        "personCrn" to "X123",
-        "status" to "Another Status",
-      ),
-      mapOf(
-        "id" to "abc-312",
-        "personName" to "Bruce Benjamin",
-        "personCrn" to "X987",
-        "status" to "Another Status",
-      ),
-    ),
-  )
+enum class OpenOrClosed {
+  OPEN,
+  CLOSED,
 }
