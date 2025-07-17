@@ -1,6 +1,6 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
-import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -14,9 +14,10 @@ import org.springframework.jdbc.datasource.init.ScriptUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralCaseListItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.RestResponsePage
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import javax.sql.DataSource
 
-class GetCaseListItemsTest : IntegrationTestBase() {
+class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var dataSource: DataSource
@@ -50,14 +51,14 @@ class GetCaseListItemsTest : IntegrationTestBase() {
     )
     val referralCaseListItems = response.content
 
-    assertThat(response).isNotNull
-    assertThat(response.totalElements).isEqualTo(5)
-    assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-123456")
+    Assertions.assertThat(response).isNotNull
+    Assertions.assertThat(response.totalElements).isEqualTo(5)
+    Assertions.assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-123456")
 
     referralCaseListItems.forEach { item ->
-      assertThat(item).hasFieldOrProperty("crn")
-      assertThat(item).hasFieldOrProperty("personName")
-      assertThat(item).hasFieldOrProperty("referralStatus")
+      Assertions.assertThat(item).hasFieldOrProperty("crn")
+      Assertions.assertThat(item).hasFieldOrProperty("personName")
+      Assertions.assertThat(item).hasFieldOrProperty("referralStatus")
     }
   }
 
@@ -70,14 +71,14 @@ class GetCaseListItemsTest : IntegrationTestBase() {
     )
     val referralCaseListItems = response.content
 
-    assertThat(response).isNotNull
-    assertThat(response.totalElements).isEqualTo(5)
-    assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-123456")
+    Assertions.assertThat(response).isNotNull
+    Assertions.assertThat(response.totalElements).isEqualTo(5)
+    Assertions.assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-123456")
 
     referralCaseListItems.forEach { item ->
-      assertThat(item).hasFieldOrProperty("crn")
-      assertThat(item).hasFieldOrProperty("personName")
-      assertThat(item).hasFieldOrProperty("referralStatus")
+      Assertions.assertThat(item).hasFieldOrProperty("crn")
+      Assertions.assertThat(item).hasFieldOrProperty("personName")
+      Assertions.assertThat(item).hasFieldOrProperty("referralStatus")
     }
   }
 
@@ -90,7 +91,7 @@ class GetCaseListItemsTest : IntegrationTestBase() {
       HttpStatus.BAD_REQUEST.value(),
     )
 
-    assertThat(response.userMessage).isEqualTo("Invalid value for parameter openOrClosed")
+    Assertions.assertThat(response.userMessage).isEqualTo("Invalid value for parameter openOrClosed")
   }
 
   @Test

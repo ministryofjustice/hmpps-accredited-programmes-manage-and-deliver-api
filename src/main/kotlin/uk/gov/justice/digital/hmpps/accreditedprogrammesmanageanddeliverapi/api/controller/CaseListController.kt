@@ -27,7 +27,7 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
   @Operation(
     tags = ["Caselist"],
     summary = "Get all referrals for the case list view",
-    operationId = "getOpenCaseListReferrals",
+    operationId = "getCaseListReferrals",
     responses = [
       ApiResponse(
         responseCode = "200",
@@ -38,7 +38,7 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @GetMapping("/pages/caselist/{openOrClosed}", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun getOpenCaseListReferrals(
+  fun getCaseListReferrals(
     @PageableDefault(page = 0, size = 10) pageable: Pageable,
     @PathVariable(
       name = "openOrClosed",
