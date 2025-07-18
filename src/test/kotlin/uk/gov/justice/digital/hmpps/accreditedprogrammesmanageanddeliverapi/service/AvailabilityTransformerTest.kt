@@ -1,13 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkStatic
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.springframework.security.core.Authentication
-import org.springframework.security.core.context.SecurityContext
-import org.springframework.security.core.context.SecurityContextHolder
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
@@ -23,6 +17,7 @@ class AvailabilityTransformerTest {
     val now = LocalDateTime.now()
     val end = LocalDateTime.now().plusWeeks(10)
 
+    val lastModifiedUsername = "test_user"
     val createAvailability = CreateAvailability(
       referralId = referralId,
       startDate = now,
@@ -46,21 +41,13 @@ class AvailabilityTransformerTest {
       ),
     )
 
-    mockkStatic(SecurityContextHolder::class)
-    val mockAuth = mockk<Authentication>()
-    val mockContext = mockk<SecurityContext>()
-
-    every { mockAuth.name } returns "test_user"
-    every { mockContext.authentication } returns mockAuth
-    every { SecurityContextHolder.getContext() } returns mockContext
-
-    val entity = createAvailability.toEntity()
+    val entity = createAvailability.toEntity(lastModifiedBy = lastModifiedUsername)
 
     assertThat(entity.referralId).isEqualTo(referralId)
     assertThat(entity.startDate).isEqualTo(now.toLocalDate())
     assertThat(entity.endDate).isEqualTo(end.toLocalDate())
     assertThat(entity.otherDetails).isEqualTo("Available remotely")
-    assertThat(entity.lastModifiedBy).isEqualTo("test_user")
+    assertThat(entity.lastModifiedBy).isEqualTo(lastModifiedUsername)
     assertThat(entity.lastModifiedAt).isNotNull()
 
     // Only 2 active slots: Monday daytime, Wednesday evening

@@ -35,7 +35,7 @@ data class Availability(
   @Schema(example = "2025-07-10T12:00:00", description = "Timestamp when last modified")
   var lastModifiedAt: LocalDateTime? = null,
 
-  @JsonProperty("availability")
+  @JsonProperty("availabilities")
   val availabilities: List<DailyAvailabilityModel>,
 )
 

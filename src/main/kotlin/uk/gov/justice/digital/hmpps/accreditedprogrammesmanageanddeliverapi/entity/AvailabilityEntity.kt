@@ -35,6 +35,9 @@ class AvailabilityEntity(
   @Column(name = "other_details")
   val otherDetails: String? = null,
 
+  /**
+   * lastModifiedBy could be UNKNOWN, if we are not able to get the username from the bearer token
+   */
   @Column(name = "last_modified_by", nullable = false)
   @LastModifiedBy
   var lastModifiedBy: String,
