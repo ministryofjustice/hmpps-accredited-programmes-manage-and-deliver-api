@@ -13,7 +13,7 @@ data class CreateAvailability(
   val referralId: UUID,
 
   @get:JsonProperty("startDate")
-  @Schema(example = "2025-07-10", description = "Start date of the availability")
+  @Schema(example = "2025-07-10", description = "Start date of the availability, Start date of the availability, will default to current date if no value is passed in")
   val startDate: LocalDateTime? = null,
 
   @get:JsonProperty("endDate")
@@ -24,6 +24,6 @@ data class CreateAvailability(
   @Schema(example = "Available for remote sessions", description = "Additional details", nullable = true)
   val otherDetails: String? = null,
 
-  @JsonProperty("availability")
+  @JsonProperty("availabilities")
   val availabilities: List<DailyAvailabilityModel>,
 )

@@ -76,20 +76,25 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
     val referralEntity = ReferralEntityFactory().produce()
     testDataGenerator.createReferral(referralEntity)
 
+    val otherDetails = "Available remotely"
+    val lastModifiedBy = "AUTH_ADM"
+
+    val startDate: LocalDateTime? = LocalDateTime.now()
+    val endDate: LocalDateTime? = LocalDateTime.now().plusDays(10)
     val availability = performRequestAndExpectStatusWithBody(
       httpMethod = HttpMethod.POST,
       uri = "/availability",
       returnType = object : ParameterizedTypeReference<Availability>() {},
-      body = buildAvailabilityCreateModel(referralId = referralEntity.id!!),
+      body = buildAvailabilityCreateModel(referralId = referralEntity.id!!, startDate = startDate, endDate = endDate, otherDetails = otherDetails),
       expectedResponseStatus = HttpStatus.CREATED.value(),
     )
 
     assertThat(availability.id.toString()).isNotNull
     assertThat(availability.referralId.toString()).isEqualTo(referralEntity.id.toString())
-    assertThat(availability.startDate).isNotNull
-    assertThat(availability.endDate).isNotNull
-    assertThat(availability.otherDetails).isEqualTo("Available remotely")
-    assertThat(availability.lastModifiedBy).isEqualTo("AUTH_ADM")
+    assertThat(availability.startDate?.toLocalDate()).isEqualTo(startDate?.toLocalDate())
+    assertThat(availability.endDate?.toLocalDate()).isEqualTo(endDate?.toLocalDate())
+    assertThat(availability.otherDetails).isEqualTo(otherDetails)
+    assertThat(availability.lastModifiedBy).isEqualTo(lastModifiedBy)
     assertThat(availability.lastModifiedAt).isNotNull
 
     assertThat(availability.availabilities).hasSize(7)

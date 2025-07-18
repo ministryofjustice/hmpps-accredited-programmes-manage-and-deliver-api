@@ -12,13 +12,13 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-fun CreateAvailability.toEntity(): AvailabilityEntity {
+fun CreateAvailability.toEntity(lastModifiedBy: String = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN"): AvailabilityEntity {
   val availabilityEntity = AvailabilityEntity(
     referralId = this.referralId,
     startDate = this.startDate?.toLocalDate() ?: LocalDate.now(),
     endDate = this.endDate?.toLocalDate(),
     otherDetails = this.otherDetails,
-    lastModifiedBy = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN",
+    lastModifiedBy = lastModifiedBy,
     lastModifiedAt = LocalDateTime.now(),
   )
 

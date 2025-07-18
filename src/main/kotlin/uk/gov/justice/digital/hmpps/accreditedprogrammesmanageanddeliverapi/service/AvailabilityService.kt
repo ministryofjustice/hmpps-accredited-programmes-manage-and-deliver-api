@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.slf4j.LoggerFactory
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
@@ -36,7 +37,10 @@ class AvailabilityService(
   }
 
   fun createAvailability(availability: CreateAvailability): AvailabilityEntity {
-    val availabilityEntity = availability.toEntity()
+    val availabilityEntity = availability.toEntity(getAuthenticatedReferrerUser())
     return availabilityRepository.save(availabilityEntity)
   }
+
+  private fun getAuthenticatedReferrerUser() = SecurityContextHolder.getContext().authentication?.name
+    ?: throw SecurityException("Authentication information not found")
 }
