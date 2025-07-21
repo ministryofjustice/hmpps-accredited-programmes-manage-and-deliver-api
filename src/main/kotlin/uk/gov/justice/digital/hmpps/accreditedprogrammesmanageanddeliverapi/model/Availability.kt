@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.JsonValue
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.DayOfWeek
 import java.time.LocalDateTime
@@ -65,6 +66,10 @@ enum class AvailabilityOption(val displayName: String) {
   FRIDAY("Fridays"),
   SATURDAY("Saturdays"),
   SUNDAY("Sundays"),
+  ;
+
+  @JsonValue
+  override fun toString(): String = displayName
 }
 
 fun AvailabilityOption.toDayOfWeek(): DayOfWeek = when (this) {
