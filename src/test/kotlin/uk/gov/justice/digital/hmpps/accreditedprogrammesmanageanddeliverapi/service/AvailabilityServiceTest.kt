@@ -24,7 +24,7 @@ class AvailabilityServiceTest {
   }
 
   @Test
-  fun `getAvailableSlots should return AvailabilityModel with entity and default availability`() {
+  fun `getAvailability should return default availability when availability does not exist for a referral`() {
     // Given
     val referralId = UUID.randomUUID()
     val availabilityEntity = AvailabilityEntity(
@@ -51,7 +51,7 @@ class AvailabilityServiceTest {
     every { defaultAvailabilityConfigService.getDefaultAvailability() } returns defaultAvailability
 
     // When
-    val result = availabilityService.getAvailableSlots(referralId)
+    val result = availabilityService.getAvailability(referralId)
 
     // Then
     assertThat(result.referralId).isEqualTo(availabilityEntity.referralId)
@@ -63,7 +63,6 @@ class AvailabilityServiceTest {
     assertThat(result.availabilities).isEqualTo(defaultAvailability)
 
     verify { availabilityRepository.findByReferralId(referralId) }
-    verify { defaultAvailabilityConfigService.getDefaultAvailability() }
   }
 
   @Test
@@ -85,7 +84,7 @@ class AvailabilityServiceTest {
     every { defaultAvailabilityConfigService.getDefaultAvailability() } returns defaultAvailability
 
     // When
-    val result = availabilityService.getAvailableSlots(referralId)
+    val result = availabilityService.getAvailability(referralId)
 
     // Then
     assertThat(result.id).isNull()
