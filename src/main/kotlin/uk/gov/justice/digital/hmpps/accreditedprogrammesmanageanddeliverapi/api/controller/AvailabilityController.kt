@@ -108,6 +108,7 @@ class AvailabilityController(private val availabilityService: AvailabilityServic
     ) @RequestBody createAvailability: CreateAvailability,
   ): ResponseEntity<Availability> {
     val availability = availabilityService.createAvailability(createAvailability)
+
     return ResponseEntity.status(HttpStatus.CREATED).body(availability.toModel())
   }
 }

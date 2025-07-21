@@ -13,12 +13,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.AvailabilityOption
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AvailabilityService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.DefaultAvailabilityConfigService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.toPluralLabel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.toAvailabilityOptions
 import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.util.UUID
@@ -99,20 +100,20 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
 
     assertThat(availability.availabilities).hasSize(7)
 
-    val monday = availability.availabilities.find { it.label == "Mondays" }
+    val monday = availability.availabilities.find { it.label.displayName == "Mondays" }
     assertThat(monday).isNotNull
     assertThat(monday!!.slots).containsExactly(
       Slot("daytime", true),
       Slot("evening", true),
     )
 
-    val tuesday = availability.availabilities.find { it.label == "Tuesdays" }
+    val tuesday = availability.availabilities.find { it.label.displayName == "Tuesdays" }
     assertThat(tuesday).isNotNull
     assertThat(tuesday!!.slots).allSatisfy { slot ->
       assertThat(slot.value).isFalse()
     }
 
-    val wednesday = availability.availabilities.find { it.label == "Wednesdays" }
+    val wednesday = availability.availabilities.find { it.label.displayName == "Wednesdays" }
     assertThat(wednesday).isNotNull
     assertThat(wednesday!!.slots).containsExactly(
       Slot("daytime", false),
@@ -124,7 +125,7 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
     val slotLabels = SlotName.entries.map { it -> it.displayName }
     return DayOfWeek.entries.map { day ->
       DailyAvailabilityModel(
-        label = day.toPluralLabel(),
+        label = day.toAvailabilityOptions(),
         slots = slotLabels.map { slot ->
           Slot(label = slot, value = false)
         },
@@ -138,15 +139,15 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
     endDate: LocalDateTime? = LocalDateTime.now().plusDays(10),
     otherDetails: String? = "Available remotely",
     selectedSlots: Map<String, Set<String>> = mapOf(
-      "Mondays" to setOf("daytime", "evening"),
-      "Wednesdays" to setOf("evening"),
+      AvailabilityOption.MONDAY.displayName to setOf("daytime", "evening"),
+      AvailabilityOption.WEDNESDAY.displayName to setOf("evening"),
     ),
   ): CreateAvailability {
     val allSlotLabels = SlotName.entries.map { it.displayName }
 
     val availabilities = DayOfWeek.entries.map { day ->
-      val label = day.toPluralLabel()
-      val selectedForDay = selectedSlots[label] ?: emptySet()
+      val label = day.toAvailabilityOptions()
+      val selectedForDay = selectedSlots[label.displayName] ?: emptySet()
 
       DailyAvailabilityModel(
         label = label,

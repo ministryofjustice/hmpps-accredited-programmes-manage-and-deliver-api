@@ -39,7 +39,7 @@ class AvailabilityServiceTest {
 
     val defaultAvailability = DayOfWeek.entries.map { day ->
       DailyAvailabilityModel(
-        label = day.toPluralLabel(),
+        label = day.toAvailabilityOptions(),
         slots = listOf(
           Slot("daytime", false),
           Slot("evening", false),
@@ -73,7 +73,7 @@ class AvailabilityServiceTest {
 
     val defaultAvailability = DayOfWeek.entries.map { day ->
       DailyAvailabilityModel(
-        label = day.toPluralLabel(),
+        label = day.toAvailabilityOptions(),
         slots = listOf(
           Slot("daytime", false),
           Slot("evening", false),

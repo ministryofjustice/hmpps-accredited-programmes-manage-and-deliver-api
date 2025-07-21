@@ -8,6 +8,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.toDayOfWeek
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -51,7 +52,7 @@ fun AvailabilityEntity.toModel(): Availability {
     val slotsForDay = groupedByDay[dayOfWeek] ?: emptyList()
 
     DailyAvailabilityModel(
-      label = dayOfWeek.toPluralLabel(),
+      label = dayOfWeek.toAvailabilityOptions(),
       slots = SlotName.entries.map { slotName ->
         val selected = slotsForDay.any { it.slotName == slotName }
         Slot(

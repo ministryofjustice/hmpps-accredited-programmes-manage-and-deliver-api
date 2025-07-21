@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.AvailabilityOption
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
 import java.time.DayOfWeek
@@ -13,7 +14,7 @@ class DefaultAvailabilityConfigService {
     val slotLabels = SlotName.entries.map { it -> it.displayName }
     return DayOfWeek.entries.map { day ->
       DailyAvailabilityModel(
-        label = day.toPluralLabel(),
+        label = day.toAvailabilityOptions(),
         slots = slotLabels.map { slot ->
           Slot(label = slot, value = false)
         },
@@ -22,14 +23,14 @@ class DefaultAvailabilityConfigService {
   }
 }
 
-fun DayOfWeek.toPluralLabel(): String = when (this) {
-  DayOfWeek.MONDAY -> "Mondays"
-  DayOfWeek.TUESDAY -> "Tuesdays"
-  DayOfWeek.WEDNESDAY -> "Wednesdays"
-  DayOfWeek.THURSDAY -> "Thursdays"
-  DayOfWeek.FRIDAY -> "Fridays"
-  DayOfWeek.SATURDAY -> "Saturdays"
-  DayOfWeek.SUNDAY -> "Sundays"
+fun DayOfWeek.toAvailabilityOptions(): AvailabilityOption = when (this) {
+  DayOfWeek.MONDAY -> AvailabilityOption.MONDAY
+  DayOfWeek.TUESDAY -> AvailabilityOption.TUESDAY
+  DayOfWeek.WEDNESDAY -> AvailabilityOption.WEDNESDAY
+  DayOfWeek.THURSDAY -> AvailabilityOption.THURSDAY
+  DayOfWeek.FRIDAY -> AvailabilityOption.FRIDAY
+  DayOfWeek.SATURDAY -> AvailabilityOption.SATURDAY
+  DayOfWeek.SUNDAY -> AvailabilityOption.SUNDAY
 }
 
 fun String.toDayOfWeek(): DayOfWeek = when (this) {

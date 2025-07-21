@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mod
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
+import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -49,8 +50,29 @@ data class Slot(
 
 data class DailyAvailabilityModel(
   @JsonProperty("label")
-  val label: String,
+  val label: AvailabilityOption,
 
   @JsonProperty("slots")
   val slots: List<Slot>,
 )
+
+enum class AvailabilityOption(val displayName: String) {
+
+  MONDAY("Mondays"),
+  TUESDAY("Tuesdays"),
+  WEDNESDAY("Wednesdays"),
+  THURSDAY("Thursdays"),
+  FRIDAY("Fridays"),
+  SATURDAY("Saturday"),
+  SUNDAY("Sunday"),
+}
+
+fun AvailabilityOption.toDayOfWeek(): DayOfWeek = when (this) {
+  AvailabilityOption.MONDAY -> DayOfWeek.MONDAY
+  AvailabilityOption.TUESDAY -> DayOfWeek.TUESDAY
+  AvailabilityOption.WEDNESDAY -> DayOfWeek.WEDNESDAY
+  AvailabilityOption.THURSDAY -> DayOfWeek.THURSDAY
+  AvailabilityOption.FRIDAY -> DayOfWeek.FRIDAY
+  AvailabilityOption.SATURDAY -> DayOfWeek.SATURDAY
+  AvailabilityOption.SUNDAY -> DayOfWeek.SUNDAY
+}

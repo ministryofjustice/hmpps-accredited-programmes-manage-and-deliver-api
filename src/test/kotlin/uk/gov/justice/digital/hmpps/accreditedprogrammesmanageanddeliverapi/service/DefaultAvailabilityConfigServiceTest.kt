@@ -15,7 +15,7 @@ class DefaultAvailabilityConfigServiceTest {
 
     assertThat(result).hasSize(7)
 
-    val expectedDayLabels = DayOfWeek.entries.map { it.toPluralLabel() }
+    val expectedDayLabels = DayOfWeek.entries.map { it.toAvailabilityOptions() }
     val actualDayLabels = result.map { it.label }
     assertThat(actualDayLabels).containsExactlyElementsOf(expectedDayLabels)
 

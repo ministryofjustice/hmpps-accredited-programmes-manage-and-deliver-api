@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.AvailabilityOption
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
@@ -25,14 +26,14 @@ class AvailabilityTransformerTest {
       otherDetails = "Available remotely",
       availabilities = listOf(
         DailyAvailabilityModel(
-          label = "Mondays",
+          label = AvailabilityOption.MONDAY,
           slots = listOf(
             Slot(label = "daytime", value = true),
             Slot(label = "evening", value = false),
           ),
         ),
         DailyAvailabilityModel(
-          label = "Wednesdays",
+          label = AvailabilityOption.WEDNESDAY,
           slots = listOf(
             Slot(label = "daytime", value = false),
             Slot(label = "evening", value = true),
