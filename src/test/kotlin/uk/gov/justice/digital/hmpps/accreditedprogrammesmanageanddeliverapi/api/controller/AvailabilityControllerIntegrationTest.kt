@@ -1,8 +1,12 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.Assert.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
@@ -68,8 +72,40 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
       "/availability/referral/${referralEntity.id}",
       object : ParameterizedTypeReference<Availability>() {},
     )
-    assertThat(availability).isNotNull
-    assertThat(availability.id).isNull()
+
+    with(availability) {
+      assertNull(id)
+      assertNull(referralId)
+      assertNull(startDate)
+      assertNull(endDate)
+      assertNull(otherDetails)
+      assertNull(lastModifiedBy)
+      assertNull(lastModifiedAt)
+      assertThat(availabilities.size).isEqualTo(7)
+
+      val expectedLabels = listOf(
+        "Mondays",
+        "Tuesdays",
+        "Wednesdays",
+        "Thursdays",
+        "Fridays",
+        "Saturdays",
+        "Sundays",
+      )
+
+      availabilities.forEachIndexed { index, dailyAvailability ->
+        assertEquals(expectedLabels[index], dailyAvailability.label.toString())
+        assertEquals(2, dailyAvailability.slots.size)
+
+        val slotLabels = dailyAvailability.slots.map { it.label }
+        assertTrue("daytime" in slotLabels)
+        assertTrue("evening" in slotLabels)
+
+        dailyAvailability.slots.forEach { slot ->
+          assertFalse(slot.value)
+        }
+      }
+    }
   }
 
   @Test
