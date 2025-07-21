@@ -63,8 +63,8 @@ enum class AvailabilityOption(val displayName: String) {
   WEDNESDAY("Wednesdays"),
   THURSDAY("Thursdays"),
   FRIDAY("Fridays"),
-  SATURDAY("Saturday"),
-  SUNDAY("Sunday"),
+  SATURDAY("Saturdays"),
+  SUNDAY("Sundays"),
 }
 
 fun AvailabilityOption.toDayOfWeek(): DayOfWeek = when (this) {
