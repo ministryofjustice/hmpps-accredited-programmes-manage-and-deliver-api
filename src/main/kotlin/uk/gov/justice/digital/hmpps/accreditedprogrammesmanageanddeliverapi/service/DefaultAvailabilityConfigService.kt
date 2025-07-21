@@ -7,6 +7,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
 import java.time.DayOfWeek
 
+/**
+ *
+ * This is a config class, when there is a requirement to display Weekdays or Weekends,
+ * the config can be moved into the database
+ *
+ */
+
 @Service
 class DefaultAvailabilityConfigService {
 
@@ -31,17 +38,4 @@ fun DayOfWeek.toAvailabilityOptions(): AvailabilityOption = when (this) {
   DayOfWeek.FRIDAY -> AvailabilityOption.FRIDAY
   DayOfWeek.SATURDAY -> AvailabilityOption.SATURDAY
   DayOfWeek.SUNDAY -> AvailabilityOption.SUNDAY
-}
-
-fun String.toDayOfWeek(): DayOfWeek = when (this) {
-  "Mondays" -> DayOfWeek.MONDAY
-  "Tuesdays" -> DayOfWeek.TUESDAY
-  "Wednesdays" -> DayOfWeek.WEDNESDAY
-  "Thursdays" -> DayOfWeek.THURSDAY
-  "Fridays" -> DayOfWeek.FRIDAY
-  "Saturdays" -> DayOfWeek.SATURDAY
-  "Sundays" -> DayOfWeek.SUNDAY
-  else -> {
-    throw IllegalArgumentException("Invalid DayOfWeek: $this")
-  }
 }
