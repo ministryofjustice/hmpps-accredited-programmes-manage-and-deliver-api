@@ -10,7 +10,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
 import java.time.DayOfWeek
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.*
 class AvailabilityServiceTest {
@@ -31,8 +30,8 @@ class AvailabilityServiceTest {
     val availabilityEntity = AvailabilityEntity(
       id = UUID.randomUUID(),
       referralId = referralId,
-      startDate = LocalDate.of(2025, 7, 10),
-      endDate = LocalDate.of(2025, 7, 20),
+      startDate = LocalDateTime.now().toLocalDate(),
+      endDate = LocalDateTime.now().plusDays(20).toLocalDate(),
       otherDetails = "Details here",
       lastModifiedBy = "admin",
       lastModifiedAt = LocalDateTime.of(2025, 7, 9, 10, 0),
@@ -40,7 +39,7 @@ class AvailabilityServiceTest {
 
     val defaultAvailability = DayOfWeek.entries.map { day ->
       DailyAvailabilityModel(
-        label = day.toPluralLabel(),
+        label = day.toAvailabilityOptions(),
         slots = listOf(
           Slot("daytime", false),
           Slot("evening", false),
@@ -74,7 +73,7 @@ class AvailabilityServiceTest {
 
     val defaultAvailability = DayOfWeek.entries.map { day ->
       DailyAvailabilityModel(
-        label = day.toPluralLabel(),
+        label = day.toAvailabilityOptions(),
         slots = listOf(
           Slot("daytime", false),
           Slot("evening", false),

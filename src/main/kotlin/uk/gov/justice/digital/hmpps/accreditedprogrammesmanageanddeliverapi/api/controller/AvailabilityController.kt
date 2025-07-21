@@ -7,18 +7,22 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AvailabilityService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.toModel
 import java.util.UUID
 
 @RestController
-@RequestMapping("availability")
 @Tag(
   name = "Availability",
   description = """
@@ -39,12 +43,22 @@ class AvailabilityController(private val availabilityService: AvailabilityServic
         description = "Information about the availability for a given referral",
         content = [Content(schema = Schema(implementation = Availability::class))],
       ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Bad input",
+        content = [Content(schema = Schema(implementation = Availability::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorised. The request was unauthorised.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @RequestMapping(
     method = [RequestMethod.GET],
-    value = ["/referral/{referralId}"],
+    value = ["/availability/referral/{referralId}"],
     produces = ["application/json"],
   )
   fun getAvailabilityByReferralId(
@@ -56,4 +70,45 @@ class AvailabilityController(private val availabilityService: AvailabilityServic
     .ok(
       availabilityService.getAvailableSlots(referralId),
     )
+
+  @Operation(
+    tags = ["Referrals"],
+    summary = "Create a new availability",
+    operationId = "createAvailability",
+    description = """""",
+    responses = [
+      ApiResponse(
+        responseCode = "201",
+        description = "Availability created",
+        content = [Content(schema = Schema(implementation = Availability::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Bad input",
+        content = [Content(schema = Schema(implementation = Availability::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorised. The request was unauthorised.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @RequestMapping(
+    method = [RequestMethod.POST],
+    value = ["/availability"],
+    produces = ["application/json"],
+    consumes = ["application/json"],
+  )
+  fun createAvailability(
+    @Parameter(
+      description = "",
+      required = true,
+    ) @RequestBody createAvailability: CreateAvailability,
+  ): ResponseEntity<Availability> {
+    val availability = availabilityService.createAvailability(createAvailability)
+
+    return ResponseEntity.status(HttpStatus.CREATED).body(availability.toModel())
+  }
 }

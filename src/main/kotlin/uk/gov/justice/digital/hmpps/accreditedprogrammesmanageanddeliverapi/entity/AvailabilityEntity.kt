@@ -10,6 +10,7 @@ import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import org.hibernate.annotations.Fetch
 import org.hibernate.annotations.FetchMode.SUBSELECT
+import org.springframework.data.annotation.LastModifiedBy
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -34,7 +35,11 @@ class AvailabilityEntity(
   @Column(name = "other_details")
   val otherDetails: String? = null,
 
+  /**
+   * lastModifiedBy could be UNKNOWN, if we are not able to get the username from the bearer token
+   */
   @Column(name = "last_modified_by", nullable = false)
+  @LastModifiedBy
   var lastModifiedBy: String,
 
   @Column(name = "last_modified_at", nullable = false)
