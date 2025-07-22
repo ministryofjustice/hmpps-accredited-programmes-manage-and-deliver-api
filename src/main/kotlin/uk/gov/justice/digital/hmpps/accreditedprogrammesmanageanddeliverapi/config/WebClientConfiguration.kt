@@ -70,6 +70,19 @@ class WebClientConfiguration(
     return buildWebClient(nDeliusIntegrationApiBaseUrl, oauth2Client)
   }
 
+  @Bean(name = ["oasysApiWebClient"])
+  fun oasysApiWebClient(
+    clientRegistrations: ClientRegistrationRepository,
+    authorizedClients: OAuth2AuthorizedClientRepository,
+    authorizedClientManager: OAuth2AuthorizedClientManager,
+    @Value("\${services.oasys-api.base-url}") oasysApiBaseUrl: String,
+  ): WebClient {
+    val oauth2Client = ServletOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager)
+
+    oauth2Client.setDefaultClientRegistrationId("manage-and-deliver-api-client")
+    return buildWebClient(oasysApiBaseUrl, oauth2Client)
+  }
+
   fun buildWebClient(url: String, oauth2Client: ServletOAuth2AuthorizedClientExchangeFilterFunction): WebClient = WebClient.builder()
     .baseUrl(url)
     .clientConnector(
