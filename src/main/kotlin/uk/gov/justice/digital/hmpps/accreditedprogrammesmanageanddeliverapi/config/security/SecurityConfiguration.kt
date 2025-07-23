@@ -6,6 +6,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
+import uk.gov.justice.hmpps.kotlin.auth.AuthAwareTokenConverter
 
 @Configuration
 @EnableMethodSecurity

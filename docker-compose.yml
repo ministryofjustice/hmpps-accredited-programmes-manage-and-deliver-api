@@ -66,5 +66,17 @@ services:
       - "${TMPDIR:-/tmp/localstack}:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
 
+  wiremock:
+    image: wiremock/wiremock:3.13.0
+    networks:
+      - hmpps
+    restart: always
+    ports:
+      - "9092:8080"
+    volumes:
+      - ./wiremock_mappings:/home/wiremock/mappings
+    command: >
+      --verbose
+
 networks:
   hmpps:

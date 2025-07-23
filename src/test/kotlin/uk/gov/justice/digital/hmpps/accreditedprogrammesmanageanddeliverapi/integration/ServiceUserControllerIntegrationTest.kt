@@ -81,7 +81,7 @@ class ServiceUserControllerIntegrationTest : IntegrationTestBase() {
     """.trimIndent()
 
     wiremock.stubFor(
-      post(urlEqualTo("/users/$username/access"))
+      post(urlEqualTo("/user/$username/access"))
         .willReturn(okJson(body)),
     )
   }
