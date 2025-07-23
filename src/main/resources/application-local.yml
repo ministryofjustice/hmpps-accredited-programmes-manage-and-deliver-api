@@ -6,6 +6,15 @@ spring:
   flyway:
     locations: classpath:db/migration,classpath:db/local
     clean-disabled: false
+  security:
+    oauth2:
+      client:
+        registration:
+          manage-and-deliver-api-client:
+            provider: hmpps-auth
+            client-id: hmpps-accredited-programmes-manage-and-deliver-ui-client-1
+            client-secret: clientsecret
+            authorization-grant-type: client_credentials
 
 hmpps-auth:
   url: "http://localhost:8090/auth"

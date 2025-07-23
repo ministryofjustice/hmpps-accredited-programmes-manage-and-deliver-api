@@ -103,7 +103,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
     )
 
     wiremock.stubFor(
-      post(urlEqualTo("/users/$username/access"))
+      post(urlEqualTo("/user/$username/access"))
         .withRequestBody(equalToJson(objectMapper.writeValueAsString(listOf(crn))))
         .willReturn(
           aResponse()
@@ -139,7 +139,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
     val crn = "X987654"
 
     wiremock.stubFor(
-      post(urlEqualTo("/users/$username/access"))
+      post(urlEqualTo("/user/$username/access"))
         .withRequestBody(equalToJson(objectMapper.writeValueAsString(listOf(crn))))
         .willReturn(aResponse().withStatus(403)),
     )

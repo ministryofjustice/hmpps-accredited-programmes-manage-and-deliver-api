@@ -19,7 +19,7 @@ class NDeliusIntegrationApiClient(
   }
 
   fun verifyLimitedAccessOffenderCheck(username: String, identifiers: List<String>) = postRequest<LimitedAccessOffenderCheckResponse>("NDelius Integration API") {
-    path = "/users/$username/access"
+    path = "/user/$username/access"
     body = identifiers
   }
 }

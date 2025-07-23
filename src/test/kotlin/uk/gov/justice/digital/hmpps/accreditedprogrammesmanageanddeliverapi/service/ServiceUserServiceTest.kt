@@ -156,7 +156,7 @@ class ServiceUserServiceTest {
       nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier))
     } returns ClientResult.Failure.StatusCode(
       method = org.springframework.http.HttpMethod.POST,
-      path = "/users/$username/access",
+      path = "/user/$username/access",
       status = HttpStatusCode.valueOf(500),
       body = """{"error":"Access check failed"}""",
     )
