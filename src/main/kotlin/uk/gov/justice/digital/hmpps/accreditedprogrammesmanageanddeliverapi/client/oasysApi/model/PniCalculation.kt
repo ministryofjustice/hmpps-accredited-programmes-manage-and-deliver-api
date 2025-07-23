@@ -29,9 +29,9 @@ data class SaraRiskLevel(val toPartner: Int, val toOther: Int) {
   }
 }
 
-enum class ProgrammePathway {
-  HIGH_INTENSITY_BC,
-  MODERATE_INTENSITY_BC,
+enum class OverallIntensity {
+  HIGH,
+  MODERATE,
   ALTERNATIVE_PATHWAY,
   MISSING_INFORMATION,
 }
@@ -44,12 +44,12 @@ enum class Type {
   ;
 
   companion object {
-    fun toPathway(type: Type?): ProgrammePathway = when (type) {
-      H -> ProgrammePathway.HIGH_INTENSITY_BC
-      M -> ProgrammePathway.MODERATE_INTENSITY_BC
-      A -> ProgrammePathway.ALTERNATIVE_PATHWAY
-      O -> ProgrammePathway.MISSING_INFORMATION
-      else -> throw IllegalArgumentException("Unknown Programme Pathway type: $type")
+    fun toIntensity(type: Type?): OverallIntensity = when (type) {
+      H -> OverallIntensity.HIGH
+      M -> OverallIntensity.MODERATE
+      A -> OverallIntensity.ALTERNATIVE_PATHWAY
+      O -> OverallIntensity.MISSING_INFORMATION
+      else -> throw IllegalArgumentException("Unknown overall intensity type: $type")
     }
   }
 }
