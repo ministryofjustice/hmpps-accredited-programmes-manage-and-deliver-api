@@ -10,7 +10,7 @@ import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.OffenderFullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.OffenderIdentifiers
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
@@ -90,13 +90,13 @@ class ServiceUserControllerIntegrationTest : IntegrationTestBase() {
     val body = objectMapper.writeValueAsString(
       OffenderIdentifiers(
         crn = identifier,
-        name = OffenderFullName(forename = "John", middleNames = "H", surname = "Doe"),
+        name = FullName(forename = "John", middleNames = "H", surname = "Doe"),
         dateOfBirth = LocalDate.of(1990, 1, 1).toString(),
         age = "33",
         sex = CodeDescription("M", "Male"),
         ethnicity = CodeDescription("W1", "White"),
         probationPractitioner = ProbationPractitioner(
-          name = OffenderFullName("Prob", "", "Officer"),
+          name = FullName("Prob", "", "Officer"),
           code = "PRAC01",
           email = "prob.officer@example.com",
         ),
