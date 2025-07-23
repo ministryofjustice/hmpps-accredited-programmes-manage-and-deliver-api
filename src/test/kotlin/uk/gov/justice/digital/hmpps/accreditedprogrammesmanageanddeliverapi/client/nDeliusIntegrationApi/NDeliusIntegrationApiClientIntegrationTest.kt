@@ -12,9 +12,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.OffenderFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.OffenderIdentifiers
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
@@ -31,13 +31,13 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
     val crn = "X123456"
     val identifiers = OffenderIdentifiers(
       crn = crn,
-      name = OffenderFullName(forename = "John", middleNames = "William", surname = "Doe"),
+      name = FullName(forename = "John", middleNames = "William", surname = "Doe"),
       dateOfBirth = "1980-01-01",
       age = "45",
       sex = CodeDescription(code = "M", description = "Male"),
       ethnicity = CodeDescription(code = "W1", description = "White"),
       probationPractitioner = ProbationPractitioner(
-        name = OffenderFullName("Sam", "A", "Smith"),
+        name = FullName("Sam", "A", "Smith"),
         code = "X321",
         email = "sam.smith@probation.gov.uk",
       ),

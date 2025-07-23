@@ -72,7 +72,7 @@ services:
       - hmpps
     restart: always
     ports:
-      - "9092:8080"
+      - "9095:8080"
     volumes:
       - ./wiremock_mappings:/home/wiremock/mappings
     command: >

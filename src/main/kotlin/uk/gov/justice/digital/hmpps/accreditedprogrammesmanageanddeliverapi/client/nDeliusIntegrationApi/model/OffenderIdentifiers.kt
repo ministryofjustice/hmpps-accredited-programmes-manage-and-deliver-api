@@ -1,8 +1,10 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+
 data class OffenderIdentifiers(
   val crn: String,
-  val name: OffenderFullName,
+  val name: FullName,
   val dateOfBirth: String,
   val age: String,
   val sex: CodeDescription,
@@ -11,7 +13,7 @@ data class OffenderIdentifiers(
   val probationDeliveryUnit: ProbationDeliveryUnit,
 )
 
-data class OffenderFullName(
+data class FullName(
   val forename: String,
   val middleNames: String,
   val surname: String,
@@ -22,8 +24,9 @@ data class CodeDescription(
   val description: String,
 )
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class ProbationPractitioner(
-  val name: OffenderFullName,
+  val name: FullName,
   val code: String,
   val email: String,
 )

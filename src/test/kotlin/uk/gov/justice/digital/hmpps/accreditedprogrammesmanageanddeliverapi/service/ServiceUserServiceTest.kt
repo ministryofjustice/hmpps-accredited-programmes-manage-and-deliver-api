@@ -14,9 +14,9 @@ import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.OffenderFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.OffenderIdentifiers
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
@@ -33,13 +33,13 @@ class ServiceUserServiceTest {
     val identifier = "X123456"
     val offenderIdentifiers = OffenderIdentifiers(
       crn = "X123456",
-      name = OffenderFullName(forename = "John", middleNames = "H", surname = "Doe"),
+      name = FullName(forename = "John", middleNames = "H", surname = "Doe"),
       dateOfBirth = "1990-01-01",
       age = "33",
       sex = CodeDescription(code = "M", description = "Male"),
       ethnicity = CodeDescription(code = "W1", description = "White"),
       probationPractitioner = ProbationPractitioner(
-        name = OffenderFullName("Prob", "", "Officer"),
+        name = FullName("Prob", "", "Officer"),
         code = "PRAC01",
         email = "prob.officer@example.com",
       ),
