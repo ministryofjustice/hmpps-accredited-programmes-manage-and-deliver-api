@@ -18,8 +18,8 @@ import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateAvailability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AvailabilityService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.toModel
 import java.util.UUID
 
 @RestController
@@ -68,7 +68,7 @@ class AvailabilityController(private val availabilityService: AvailabilityServic
     ) @PathVariable("referralId") referralId: UUID,
   ): ResponseEntity<Availability> = ResponseEntity
     .ok(
-      availabilityService.getAvailableSlots(referralId),
+      availabilityService.getAvailability(referralId),
     )
 
   @Operation(
@@ -109,6 +109,47 @@ class AvailabilityController(private val availabilityService: AvailabilityServic
   ): ResponseEntity<Availability> {
     val availability = availabilityService.createAvailability(createAvailability)
 
-    return ResponseEntity.status(HttpStatus.CREATED).body(availability.toModel())
+    return ResponseEntity.status(HttpStatus.CREATED).body(availability)
+  }
+
+  @Operation(
+    tags = ["Referrals"],
+    summary = "Update availability",
+    operationId = "updateAvailability",
+    description = """""",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Availability updated",
+        content = [Content(schema = Schema(implementation = Availability::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Bad input",
+        content = [Content(schema = Schema(implementation = Availability::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorised. The request was unauthorised.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @RequestMapping(
+    method = [RequestMethod.PUT],
+    value = ["/availability"],
+    produces = ["application/json"],
+    consumes = ["application/json"],
+  )
+  fun updateAvailability(
+    @Parameter(
+      description = "",
+      required = true,
+    ) @RequestBody updateAvailability: UpdateAvailability,
+  ): ResponseEntity<Availability> {
+    val availability = availabilityService.updateAvailability(updateAvailability)
+
+    return ResponseEntity.status(HttpStatus.OK).body(availability)
   }
 }
