@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# GET a JWT access token from hmpps-auth at localhost:9090 (See docker-compose.yml)
+# GET a JWT access token from hmpps-auth at localhost:8090 (See docker-compose.yml)
 
 curl --location --request POST "http://localhost:8090/auth/oauth/token?grant_type=client_credentials" \
      --header 'Content-Type: application/json' \

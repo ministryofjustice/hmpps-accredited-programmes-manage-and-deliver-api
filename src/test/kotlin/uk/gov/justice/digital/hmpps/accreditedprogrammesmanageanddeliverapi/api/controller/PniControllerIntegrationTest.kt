@@ -1,9 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
-import com.github.tomakehurst.wiremock.client.WireMock.aResponse
-import com.github.tomakehurst.wiremock.client.WireMock.get
-import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
@@ -13,17 +11,24 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.NeedLevel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.OverallIntensity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 
 class PniControllerIntegrationTest : IntegrationTestBase() {
+
+  private lateinit var oasysApiStubs: OasysApiStubs
+
+  @BeforeEach
+  fun setup() {
+    oasysApiStubs = OasysApiStubs(wiremock, objectMapper)
+  }
 
   @Test
   fun `should successfully retrieve PNI score for a known CRN`() {
     // Given
     stubAuthTokenEndpoint()
     val crn = "X123456"
-    stubSuccessfulPniResponse(crn)
+    oasysApiStubs.stubSuccessfulPniResponse(crn)
 
     // When
     val response = performRequestAndExpectOk(
@@ -68,7 +73,7 @@ class PniControllerIntegrationTest : IntegrationTestBase() {
     // Given
     stubAuthTokenEndpoint()
     val crn = "UNKNOWN_CRN"
-    stubNotFoundPniResponse(crn)
+    oasysApiStubs.stubNotFoundPniResponse(crn)
 
     // When & Then
     performRequestAndExpectStatus(
@@ -95,29 +100,5 @@ class PniControllerIntegrationTest : IntegrationTestBase() {
       .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
       .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
       .returnResult().responseBody!!
-  }
-
-  private fun stubSuccessfulPniResponse(crn: String) {
-    val pniResponse = PniResponseFactory().produce()
-    wiremock.stubFor(
-      get(urlEqualTo("/assessments/pni/$crn?community=true"))
-        .willReturn(
-          aResponse()
-            .withStatus(200)
-            .withHeader("Content-Type", "application/json")
-            .withBody(objectMapper.writeValueAsString(pniResponse)),
-        ),
-    )
-  }
-
-  private fun stubNotFoundPniResponse(crn: String) {
-    wiremock.stubFor(
-      get(urlEqualTo("/assessments/pni/$crn?community=true"))
-        .willReturn(
-          aResponse()
-            .withStatus(404)
-            .withHeader("Content-Type", "application/json"),
-        ),
-    )
   }
 }

@@ -80,11 +80,11 @@ abstract class BaseHMPPSClient(
           exception.responseBodyAsString,
         )
       } else {
-        log.error("Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.")
+        log.error("Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.", exception)
         throw exception
       }
     } catch (exception: Exception) {
-      log.error("Exception occurred whilst processing request: ${exception.message}.")
+      log.error("Exception occurred whilst processing request: ${exception.message}.", exception)
       return ClientResult.Failure.Other(method, requestBuilder.path ?: "", exception, serviceName)
     }
   }

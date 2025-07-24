@@ -1,10 +1,8 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi
 
-import com.github.tomakehurst.wiremock.client.WireMock.aResponse
-import com.github.tomakehurst.wiremock.client.WireMock.get
-import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.fail
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
@@ -13,20 +11,27 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.ScoredAnswer
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Type
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 
 class OasysApiClientIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var oasysApiClient: OasysApiClient
 
+  private lateinit var oasysApiStubs: OasysApiStubs
+
+  @BeforeEach
+  fun setup() {
+    oasysApiStubs = OasysApiStubs(wiremock, objectMapper)
+  }
+
   @Test
   fun `should return a pni calculation for known crn`() {
     // Given
     stubAuthTokenEndpoint()
     val crn = "X123456"
-    stubSuccessfulPniResponse(crn)
+    oasysApiStubs.stubSuccessfulPniResponse(crn)
 
     // When
     when (val response = oasysApiClient.getPniCalculation(crn)) {
@@ -56,32 +61,12 @@ class OasysApiClientIntegrationTest : IntegrationTestBase() {
     }
   }
 
-  private fun stubSuccessfulPniResponse(crn: String) {
-    val pniResponse = PniResponseFactory().produce()
-    wiremock.stubFor(
-      get(urlEqualTo("/assessments/pni/$crn?community=true"))
-        .willReturn(
-          aResponse()
-            .withStatus(200)
-            .withHeader("Content-Type", "application/json")
-            .withBody(objectMapper.writeValueAsString(pniResponse)),
-        ),
-    )
-  }
-
   @Test
   fun `should return NOT FOUND for unknown crn`() {
     // Given
     stubAuthTokenEndpoint()
     val crn = randomAlphanumericString()
-    wiremock.stubFor(
-      get(urlEqualTo("/assessments/pni/$crn?community=true"))
-        .willReturn(
-          aResponse()
-            .withStatus(404)
-            .withHeader("Content-Type", "application/json"),
-        ),
-    )
+    oasysApiStubs.stubNotFoundPniResponse(crn)
 
     // When
     when (val response = oasysApiClient.getPniCalculation(crn)) {
