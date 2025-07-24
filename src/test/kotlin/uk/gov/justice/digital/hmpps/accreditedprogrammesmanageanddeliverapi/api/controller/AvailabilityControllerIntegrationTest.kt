@@ -13,6 +13,7 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -21,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateAvailability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AvailabilityService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.DefaultAvailabilityConfigService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.toAvailabilityOptions
@@ -122,7 +124,12 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
       httpMethod = HttpMethod.POST,
       uri = "/availability",
       returnType = object : ParameterizedTypeReference<Availability>() {},
-      body = buildAvailabilityCreateModel(referralId = referralEntity.id!!, startDate = startDate, endDate = endDate, otherDetails = otherDetails),
+      body = buildCreateAvailabilityModel(
+        referralId = referralEntity.id!!,
+        startDate = startDate,
+        endDate = endDate,
+        otherDetails = otherDetails,
+      ),
       expectedResponseStatus = HttpStatus.CREATED.value(),
     )
 
@@ -139,8 +146,8 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
     val monday = availability.availabilities.find { it.label.displayName == "Mondays" }
     assertThat(monday).isNotNull
     assertThat(monday!!.slots).containsExactly(
-      Slot("daytime", true),
-      Slot("evening", true),
+      Slot(SlotName.DAYTIME.displayName, true),
+      Slot(SlotName.EVENING.displayName, true),
     )
 
     val tuesday = availability.availabilities.find { it.label.displayName == "Tuesdays" }
@@ -152,8 +159,69 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
     val wednesday = availability.availabilities.find { it.label.displayName == "Wednesdays" }
     assertThat(wednesday).isNotNull
     assertThat(wednesday!!.slots).containsExactly(
-      Slot("daytime", false),
-      Slot("evening", true),
+      Slot(SlotName.DAYTIME.displayName, false),
+      Slot(SlotName.EVENING.displayName, true),
+    )
+  }
+
+  @Test
+  fun `Update availability is successful`() {
+    val otherDetails = "Available remotely"
+    val lastModifiedBy = "AUTH_ADM"
+    val startDate: LocalDateTime = LocalDateTime.now()
+    val endDate: LocalDateTime = LocalDateTime.now().plusDays(10)
+
+    val referralEntity = ReferralEntityFactory().produce()
+    testDataGenerator.createReferral(referralEntity)
+
+    val createAvailability = createAndGetAvailability(referralEntity, startDate, endDate, otherDetails)
+
+    val availability = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.PUT,
+      uri = "/availability",
+      returnType = object : ParameterizedTypeReference<Availability>() {},
+      body = buildUpdateAvailabilityModel(
+        availabilityId = createAvailability.id!!,
+        referralId = referralEntity.id!!,
+        startDate = startDate,
+        endDate = endDate,
+        otherDetails = otherDetails,
+        selectedSlots = mapOf(
+          AvailabilityOption.MONDAY.displayName to setOf(SlotName.DAYTIME.displayName, SlotName.EVENING.displayName),
+          AvailabilityOption.WEDNESDAY.displayName to setOf(SlotName.EVENING.displayName),
+        ),
+      ),
+      expectedResponseStatus = HttpStatus.OK.value(),
+    )
+
+    assertThat(availability.id.toString()).isNotNull
+    assertThat(availability.referralId.toString()).isEqualTo(referralEntity.id.toString())
+    assertThat(availability.startDate?.toLocalDate()).isEqualTo(startDate.toLocalDate())
+    assertThat(availability.endDate?.toLocalDate()).isEqualTo(endDate.toLocalDate())
+    assertThat(availability.otherDetails).isEqualTo(otherDetails)
+    assertThat(availability.lastModifiedBy).isEqualTo(lastModifiedBy)
+    assertThat(availability.lastModifiedAt).isNotNull
+
+    assertThat(availability.availabilities).hasSize(7)
+
+    val monday = availability.availabilities.find { it.label.displayName == "Mondays" }
+    assertThat(monday).isNotNull
+    assertThat(monday?.slots).containsExactly(
+      Slot(SlotName.DAYTIME.displayName, true),
+      Slot(SlotName.EVENING.displayName, true),
+    )
+
+    val tuesday = availability.availabilities.find { it.label.displayName == "Tuesdays" }
+    assertThat(tuesday).isNotNull
+    assertThat(tuesday?.slots).allSatisfy { slot ->
+      assertThat(slot.value).isFalse()
+    }
+
+    val wednesday = availability.availabilities.find { it.label.displayName == "Wednesdays" }
+    assertThat(wednesday).isNotNull
+    assertThat(wednesday!!.slots).containsExactly(
+      Slot(SlotName.DAYTIME.displayName, false),
+      Slot(SlotName.EVENING.displayName, true),
     )
   }
 
@@ -169,39 +237,87 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
     }
   }
 
-  fun buildAvailabilityCreateModel(
-    referralId: UUID = UUID.randomUUID(),
-    startDate: LocalDateTime? = LocalDateTime.now().minusDays(1),
-    endDate: LocalDateTime? = LocalDateTime.now().plusDays(10),
-    otherDetails: String? = "Available remotely",
-    selectedSlots: Map<String, Set<String>> = mapOf(
-      AvailabilityOption.MONDAY.displayName to setOf("daytime", "evening"),
-      AvailabilityOption.WEDNESDAY.displayName to setOf("evening"),
-    ),
-  ): CreateAvailability {
-    val allSlotLabels = SlotName.entries.map { it.displayName }
-
-    val availabilities = DayOfWeek.entries.map { day ->
-      val label = day.toAvailabilityOptions()
-      val selectedForDay = selectedSlots[label.displayName] ?: emptySet()
-
+  fun buildUpdateAvailabilityModel(
+    availabilityId: UUID,
+    referralId: UUID,
+    startDate: LocalDateTime,
+    endDate: LocalDateTime,
+    otherDetails: String?,
+    selectedSlots: Map<String, Set<String>>,
+  ): UpdateAvailability = UpdateAvailability(
+    availabilityId = availabilityId,
+    referralId = referralId,
+    startDate = startDate,
+    endDate = endDate,
+    otherDetails = otherDetails,
+    availabilities = AvailabilityOption.values().map { option ->
       DailyAvailabilityModel(
-        label = label,
-        slots = allSlotLabels.map { slotLabel ->
+        label = option,
+        slots = SlotName.values().map { slot ->
           Slot(
-            label = slotLabel,
-            value = slotLabel in selectedForDay,
+            label = slot.displayName,
+            value = selectedSlots[option.displayName]?.contains(slot.displayName) ?: false,
           )
         },
       )
-    }
+    },
+  )
+}
 
-    return CreateAvailability(
-      referralId = referralId,
-      startDate = startDate,
-      endDate = endDate,
-      otherDetails = otherDetails,
-      availabilities = availabilities,
+private fun AvailabilityControllerIntegrationTest.createAndGetAvailability(
+  referralEntity: ReferralEntity,
+  startDate: LocalDateTime,
+  endDate: LocalDateTime,
+  otherDetails: String,
+): Availability = performRequestAndExpectStatusWithBody(
+  httpMethod = HttpMethod.POST,
+  uri = "/availability",
+  returnType = object : ParameterizedTypeReference<Availability>() {},
+  body = buildCreateAvailabilityModel(
+    referralId = referralEntity.id!!,
+    startDate = startDate,
+    endDate = endDate,
+    otherDetails = otherDetails,
+    selectedSlots = mapOf(
+      AvailabilityOption.MONDAY.displayName to setOf(SlotName.DAYTIME.displayName, SlotName.EVENING.displayName),
+      AvailabilityOption.WEDNESDAY.displayName to setOf(SlotName.EVENING.displayName),
+    ),
+  ),
+  expectedResponseStatus = HttpStatus.CREATED.value(),
+)
+
+fun buildCreateAvailabilityModel(
+  referralId: UUID = UUID.randomUUID(),
+  startDate: LocalDateTime? = LocalDateTime.now().minusDays(1),
+  endDate: LocalDateTime? = LocalDateTime.now().plusDays(10),
+  otherDetails: String? = "Available remotely",
+  selectedSlots: Map<String, Set<String>> = mapOf(
+    AvailabilityOption.MONDAY.displayName to setOf(SlotName.DAYTIME.displayName, SlotName.EVENING.displayName),
+    AvailabilityOption.WEDNESDAY.displayName to setOf(SlotName.EVENING.displayName),
+  ),
+): CreateAvailability {
+  val allSlotLabels = SlotName.entries.map { it.displayName }
+
+  val availabilities = DayOfWeek.entries.map { day ->
+    val label = day.toAvailabilityOptions()
+    val selectedForDay = selectedSlots[label.displayName] ?: emptySet()
+
+    DailyAvailabilityModel(
+      label = label,
+      slots = allSlotLabels.map { slotLabel ->
+        Slot(
+          label = slotLabel,
+          value = slotLabel in selectedForDay,
+        )
+      },
     )
   }
+
+  return CreateAvailability(
+    referralId = referralId,
+    startDate = startDate,
+    endDate = endDate,
+    otherDetails = otherDetails,
+    availabilities = availabilities,
+  )
 }

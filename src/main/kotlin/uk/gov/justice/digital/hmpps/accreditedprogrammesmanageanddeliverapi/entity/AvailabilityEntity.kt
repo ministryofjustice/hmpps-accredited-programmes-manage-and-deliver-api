@@ -24,16 +24,16 @@ class AvailabilityEntity(
   var id: UUID? = null,
 
   @Column(name = "referral_id", nullable = false)
-  val referralId: UUID,
+  var referralId: UUID,
 
   @Column(name = "start_date")
-  val startDate: LocalDate,
+  var startDate: LocalDate,
 
   @Column(name = "end_date")
-  val endDate: LocalDate? = null,
+  var endDate: LocalDate? = null,
 
   @Column(name = "other_details")
-  val otherDetails: String? = null,
+  var otherDetails: String? = null,
 
   /**
    * lastModifiedBy could be UNKNOWN, if we are not able to get the username from the bearer token
@@ -47,5 +47,5 @@ class AvailabilityEntity(
 
   @OneToMany(mappedBy = "availability", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.EAGER)
   @Fetch(SUBSELECT)
-  val slots: MutableSet<SlotEntity> = mutableSetOf(),
+  var slots: MutableSet<SlotEntity> = mutableSetOf(),
 )
