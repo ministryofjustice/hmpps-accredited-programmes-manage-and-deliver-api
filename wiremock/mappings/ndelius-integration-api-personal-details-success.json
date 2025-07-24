@@ -27,12 +27,12 @@
       },
       "probationPractitioner": {
         "name": {
-          "forename": "Sam",
+          "forename": "Jane",
           "middleNames": "A",
-          "surname": "Smith"
+          "surname": "Doe"
         },
         "code": "X321",
-        "email": "sam.smith@probation.gov.uk"
+        "email": "jane.doe@probation.gov.uk"
       },
       "probationDeliveryUnit": {
         "code": "PDU123",
