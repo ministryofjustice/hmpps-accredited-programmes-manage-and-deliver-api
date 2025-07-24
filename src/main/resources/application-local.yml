@@ -10,6 +10,22 @@ spring:
 hmpps-auth:
   url: "http://localhost:8090/auth"
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${hmpps-auth.url}/.well-known/jwks.json
+      client:
+        registration:
+          manage-and-deliver-api-client:
+            provider: hmpps-auth
+            client-id: hmpps-accredited-programmes-manage-and-deliver-api-client-1
+            client-secret: clientsecret
+            authorization-grant-type: client_credentials
+        provider:
+          hmpps-auth:
+            token-uri: ${hmpps-auth.url}/oauth/token
+
 manage-and-deliver-ndelius:
   locations:
     find-person: "/person/find/{identifier}"
@@ -28,3 +44,11 @@ hmpps:
     topics:
       hmppsdomaineventstopic:
         arn: arn:aws:sns:eu-west-2:000000000000:${random.uuid}
+
+services:
+  find-and-refer-intervention-api:
+    base-url: http://localhost:8097
+  ndelius-integration-api:
+    base-url: http://localhost:8097
+  oasys-api:
+    base-url: http://localhost:8097

@@ -1,0 +1,35 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/assessments/pni/X123456"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "pniCalculation": {
+        "pni": "H",
+        "calculatedAt": "{{now}}"
+      },
+      "assessment": {
+        "offenderAge": 32,
+        "questions": {
+          "impulsivity": {
+            "score": 0,
+            "problem": "NONE"
+          },
+          "hostileOrientation": {
+            "score": 1,
+            "problem": "SOME"
+          },
+          "sexualPreOccupation": {
+            "score": 2,
+            "problem": "SIGNIFICANT"
+          }
+        }
+      }
+    }
+  }
+}

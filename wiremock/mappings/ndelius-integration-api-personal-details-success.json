@@ -1,0 +1,43 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/case/[A-Z0-9]+/personal-details"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "crn": "{{request.pathSegments.[1]}}",
+      "name": {
+        "forename": "John",
+        "middleNames": "William",
+        "surname": "Doe"
+      },
+      "dateOfBirth": "1980-01-01",
+      "age": "45",
+      "sex": {
+        "code": "M",
+        "description": "Male"
+      },
+      "ethnicity": {
+        "code": "W1",
+        "description": "White"
+      },
+      "probationPractitioner": {
+        "name": {
+          "forename": "Sam",
+          "middleNames": "A",
+          "surname": "Smith"
+        },
+        "code": "X321",
+        "email": "sam.smith@probation.gov.uk"
+      },
+      "probationDeliveryUnit": {
+        "code": "PDU123",
+        "description": "North London"
+      }
+    }
+  }
+}
