@@ -8,11 +8,13 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 class ReferralEntityFactory {
+  private val referralStatusHistoryEntityFactory = ReferralStatusHistoryEntityFactory()
   private var id: UUID? = null
   private var personName: String? = randomSentence(wordRange = 1..3)
   private var crn: String? = randomUppercaseString(6)
   private var createdAt: LocalDateTime = LocalDateTime.now()
-  private var statusHistories: MutableList<ReferralStatusHistoryEntity> = mutableListOf()
+  private var statusHistories: MutableList<ReferralStatusHistoryEntity> =
+    mutableListOf(referralStatusHistoryEntityFactory.withStatus("Assessment started").produce())
   private var setting: String = "COMMUNITY"
 
   fun withId(id: UUID?) = apply { this.id = id }

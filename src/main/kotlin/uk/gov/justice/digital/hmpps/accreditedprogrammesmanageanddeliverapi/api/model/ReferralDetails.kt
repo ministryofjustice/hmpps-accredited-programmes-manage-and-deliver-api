@@ -18,6 +18,13 @@ data class ReferralDetails(
   val id: UUID,
 
   @Schema(
+    example = "52",
+    required = true,
+    description = "The age of the person asscociated with this referral.",
+  )
+  val age: String,
+
+  @Schema(
     example = "X12345",
     required = true,
     description = "The CRN identifier of the person associated with this referral.",
@@ -26,27 +33,12 @@ data class ReferralDetails(
   val crn: String,
 
   @Schema(
-    example = "John Doe",
-    required = true,
-    description = "The name of the person associated with this referral.",
-  )
-  @get:JsonProperty("personName", required = true)
-  val personName: String,
-
-  @Schema(
     example = "1981-04-15",
     required = true,
     description = "The date of birth of the person associated with this referral.",
   )
   @JsonFormat(pattern = "yyyy-MM-dd")
   val dateOfBirth: LocalDate,
-
-  @Schema(
-    example = "52",
-    required = true,
-    description = "The age of the person asscociated with this referral.",
-  )
-  val age: String,
 
   @Schema(
     example = "White",
@@ -63,11 +55,12 @@ data class ReferralDetails(
   val gender: String,
 
   @Schema(
-    example = "COMMUNITY",
+    example = "John Doe",
     required = true,
-    description = "The setting the referral is associated with.",
+    description = "The name of the person associated with this referral.",
   )
-  val setting: String,
+  @get:JsonProperty("personName", required = true)
+  val personName: String,
 
   @Schema(
     example = "Brighton and East Sussex",
@@ -75,6 +68,14 @@ data class ReferralDetails(
     description = "The Probation Delivery Unit of the person associated with this referral.",
   )
   val probationDeliveryUnit: String,
+
+  @Schema(
+    example = "COMMUNITY",
+    required = true,
+    description = "The setting the referral is associated with.",
+  )
+  val setting: String,
+
 ) {
   companion object {
     fun toModel(referral: ReferralEntity, personalDetails: ServiceUser): ReferralDetails = ReferralDetails(

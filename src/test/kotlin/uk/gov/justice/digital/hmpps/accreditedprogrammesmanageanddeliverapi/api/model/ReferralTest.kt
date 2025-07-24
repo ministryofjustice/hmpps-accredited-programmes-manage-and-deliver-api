@@ -17,6 +17,7 @@ internal class ReferralTest {
     val crn = "X12345"
     val createdAt = LocalDateTime.now()
     val activeStatus = "Created"
+    val setting = "COMMUNITY"
 
     val statusHistory = ReferralStatusHistoryEntity(status = activeStatus, endDate = null)
     val referralEntity = ReferralEntity(
@@ -25,6 +26,7 @@ internal class ReferralTest {
       crn = crn,
       createdAt = createdAt,
       statusHistories = mutableListOf(statusHistory),
+      setting = setting,
     )
 
     // Act
@@ -45,6 +47,7 @@ internal class ReferralTest {
     val personName = "Jane Doe"
     val crn = "Y67890"
     val createdAt = LocalDateTime.now()
+    val setting = "COMMUNITY"
 
     val statusHistory = ReferralStatusHistoryEntity(status = "Withdrawn", endDate = LocalDateTime.now())
     val referralEntity = ReferralEntity(
@@ -53,6 +56,7 @@ internal class ReferralTest {
       crn = crn,
       createdAt = createdAt,
       statusHistories = mutableListOf(statusHistory),
+      setting = setting,
     )
 
     // Act
@@ -73,6 +77,7 @@ internal class ReferralTest {
     val personName = "Mark Smith"
     val crn = "Z12345"
     val createdAt = LocalDateTime.now()
+    val setting = "COMMUNITY"
 
     val referralEntity = ReferralEntity(
       id = id,
@@ -80,6 +85,7 @@ internal class ReferralTest {
       crn = crn,
       createdAt = createdAt,
       statusHistories = mutableListOf(),
+      setting = setting,
     )
 
     // Act
