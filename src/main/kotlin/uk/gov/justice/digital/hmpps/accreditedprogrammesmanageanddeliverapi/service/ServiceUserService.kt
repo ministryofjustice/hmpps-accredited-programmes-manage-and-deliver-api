@@ -15,7 +15,6 @@ class ServiceUserService(
 ) {
   fun getServiceUserByIdentifier(identifier: String): ServiceUser {
     val userName = authenticationHolder.username ?: "UNKNOWN_USER"
-    hasAccessToLimitedAccessOffender(userName, identifier)
     if (!hasAccessToLimitedAccessOffender(userName, identifier)) {
       throw AccessDeniedException(
         "You are not authorized to view this person's details. Either contact your administrator or enter a different CRN or Prison Number",
@@ -42,7 +41,7 @@ class ServiceUserService(
     }
   }
 
-  private fun hasAccessToLimitedAccessOffender(username: String, identifier: String): Boolean = when (val result = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier))) {
+  fun hasAccessToLimitedAccessOffender(username: String, identifier: String): Boolean = when (val result = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier))) {
     is ClientResult.Success -> {
       val response = result.body
       val accessCheck = response.access.firstOrNull { it.crn == identifier }

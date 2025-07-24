@@ -1,22 +1,26 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
-import org.assertj.core.api.Assertions.assertThat
+import com.github.tomakehurst.wiremock.client.WireMock
+import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
-import org.springframework.http.HttpStatus
-import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.OffenderIdentifiers
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationDeliveryUnit
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
-import java.util.*
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 class ReferralControllerIntegrationTest : IntegrationTestBase() {
 
@@ -34,64 +38,94 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
     testDataCleaner.cleanAllTables()
   }
 
+  private val identifier = "X123456"
+  private val username = "AUTH_ADM"
+
   @Test
-  fun `should successfully retrieve a referral for a known referral id`() {
-    // Given
+  fun `should return service user when access granted`() {
     val referralEntity = ReferralEntityFactory().produce()
-
-    val referralStatusHistoryEntity = ReferralStatusHistoryEntityFactory()
-      .withStatus("Created")
-      .withEndDate(null)
-      .produce()
-
-    testDataGenerator.createReferralWithStatusHistory(referralEntity, referralStatusHistoryEntity)
-
+    testDataGenerator.createReferral(referralEntity)
     val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
-    // When
+    stubAuthTokenEndpoint()
+    stubAccessCheck(granted = true, savedReferral.crn)
+    stubPersonalDetailsResponse(savedReferral.crn)
     val response = performRequestAndExpectOk(
-      HttpMethod.GET,
-      "/referral/${savedReferral.id}",
-      object : ParameterizedTypeReference<Referral>() {},
+      httpMethod = HttpMethod.GET,
+      uri = "/referral-details/${savedReferral.id}",
+      returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
     )
 
-    // Then
-    assertThat(response).isNotNull
-    assertThat(response.crn).isEqualTo(referralEntity.crn)
-    assertThat(response.id).isEqualTo(referralEntity.id)
-    assertThat(response.personName).isEqualTo(referralEntity.personName)
-    assertThat(response.status).isEqualTo("Created")
+    Assertions.assertThat(response.id).isEqualTo(savedReferral.id)
+    Assertions.assertThat(response.age).isEqualTo("33")
+    Assertions.assertThat(response.crn).isEqualTo(savedReferral.crn)
+    Assertions.assertThat(response.dateOfBirth)
+      .isEqualTo(LocalDate.parse("1990-1-1", DateTimeFormatter.ofPattern("yyyy-M-d")))
+    Assertions.assertThat(response.ethnicity).isEqualTo("White")
+    Assertions.assertThat(response.gender).isEqualTo("Male")
+    Assertions.assertThat(response.personName).isEqualTo("John H Doe")
+    Assertions.assertThat(response.probationDeliveryUnit).isEqualTo("PDU1")
+    Assertions.assertThat(response.setting).isEqualTo(savedReferral.setting)
   }
 
   @Test
-  fun `should return HTTP 404 not found when retrieving a referral for an unknown referral id`() {
-    // Given
-    val referralId = UUID.randomUUID()
+  fun `should return forbidden when access denied`() {
+    stubAuthTokenEndpoint()
+    stubAccessCheck(granted = false, null)
+    val referralEntity = ReferralEntityFactory().produce()
+    testDataGenerator.createReferral(referralEntity)
+    val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
-    // When & Then
     performRequestAndExpectStatus(
-      HttpMethod.GET,
-      "/referral/$referralId",
-      object : ParameterizedTypeReference<ErrorResponse>() {},
-      HttpStatus.NOT_FOUND.value(),
+      httpMethod = HttpMethod.GET,
+      uri = "/referral-details/${savedReferral.id}",
+      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+      expectedResponseStatus = 403,
     )
   }
 
-  @Test
-  fun `should return HTTP 403 Forbidden when retrieving a referral without the appropriate role`() {
-    // Given
-    val referralId = UUID.randomUUID()
+  private fun stubAccessCheck(granted: Boolean, crn: String?) {
+    val id = crn ?: identifier
+    val body = """
+    {
+      "access": [
+        {
+          "crn": "$id",
+          "userExcluded": ${!granted},
+          "userRestricted": false
+        }
+      ]
+    }
+    """.trimIndent()
 
-    // When & Then
-    webTestClient
-      .method(HttpMethod.GET)
-      .uri("/referral/$referralId")
-      .contentType(MediaType.APPLICATION_JSON)
-      .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
-      .accept(MediaType.APPLICATION_JSON)
-      .exchange()
-      .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
-      .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
-      .returnResult().responseBody!!
+    wiremock.stubFor(
+      WireMock.post(WireMock.urlEqualTo("/user/$username/access"))
+        .willReturn(WireMock.okJson(body)),
+    )
+  }
+
+  private fun stubPersonalDetailsResponse(crn: String?) {
+    val id = crn ?: identifier
+    val body = objectMapper.writeValueAsString(
+      OffenderIdentifiers(
+        crn = id,
+        name = FullName(forename = "John", middleNames = "H", surname = "Doe"),
+        dateOfBirth = LocalDate.of(1990, 1, 1).toString(),
+        age = "33",
+        sex = CodeDescription("M", "Male"),
+        ethnicity = CodeDescription("W1", "White"),
+        probationPractitioner = ProbationPractitioner(
+          name = FullName("Prob", "", "Officer"),
+          code = "PRAC01",
+          email = "prob.officer@example.com",
+        ),
+        probationDeliveryUnit = ProbationDeliveryUnit(code = "PDU1", description = "Central PDU"),
+      ),
+    )
+
+    wiremock.stubFor(
+      WireMock.get(WireMock.urlEqualTo("/case/$id/personal-details"))
+        .willReturn(WireMock.okJson(body)),
+    )
   }
 }

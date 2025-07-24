@@ -11,13 +11,15 @@ import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.argThat
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.FindAndReferInterventionApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.toReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
@@ -35,6 +37,9 @@ class ReferralServiceTest {
   @Mock
   private lateinit var referralStatusHistoryRepository: ReferralStatusHistoryRepository
 
+  @Mock
+  private lateinit var serviceUserService: ServiceUserService
+
   @InjectMocks
   private lateinit var referralService: ReferralService
 
@@ -42,7 +47,7 @@ class ReferralServiceTest {
   fun `getFindAndReferReferralDetails should return referral details when present`() {
     // Given
     val referralId = UUID.randomUUID()
-    val referralDetails = ReferralDetailsFactory().withReferralId(referralId).produce()
+    val referralDetails = FindAndReferReferralDetailsFactory().withReferralId(referralId).produce()
 
     `when`(findAndReferInterventionApiClient.getReferral(referralId)).thenReturn(
       ClientResult.Success(
@@ -75,7 +80,7 @@ class ReferralServiceTest {
   @Test
   fun `createReferral should save referral and add status history`() {
     // Given
-    val referralDetails = ReferralDetailsFactory().produce()
+    val referralDetails = FindAndReferReferralDetailsFactory().produce()
     val referralEntity = referralDetails.toReferralEntity() // Use actual transformation
     val statusHistoryEntity = ReferralStatusHistoryEntityFactory().withStatus("Created").produce()
 
@@ -84,6 +89,29 @@ class ReferralServiceTest {
 
     // When
     referralService.createReferral(referralDetails)
+
+    // Then
+    verify(referralRepository).save(
+      argThat { saved ->
+        saved.crn == referralEntity.crn &&
+          saved.interventionType == referralEntity.interventionType &&
+          saved.interventionName == referralEntity.interventionName
+      },
+    )
+    verify(referralStatusHistoryRepository).save(any())
+  }
+
+  @Test
+  fun `getReferralDetails should retrieve details and return API model`() {
+    // Given
+    val referralEntity = ReferralEntityFactory().produce()
+    ReferralStatusHistoryEntityFactory().withStatus("Created").produce()
+
+    `when`(referralRepository.findByIdOrNull(any())).thenReturn(referralEntity)
+    `when`(serviceUserService.getServiceUserByIdentifier(any())).thenReturn()
+
+    // When
+    referralService.getReferralDetails(referral.id)
 
     // Then
     verify(referralRepository).save(

@@ -7,6 +7,7 @@ import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
@@ -20,13 +21,20 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.OffenderIdentifiers
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
+import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.time.LocalDate
 
 @ExtendWith(MockKExtension::class)
 class ServiceUserServiceTest {
 
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient = mockk()
-  private val service = ServiceUserService(nDeliusIntegrationApiClient)
+  private val hmppsAuthenticationHolder: HmppsAuthenticationHolder = mockk()
+  private val service = ServiceUserService(nDeliusIntegrationApiClient, hmppsAuthenticationHolder)
+
+  @BeforeEach
+  fun setUp() {
+    every { hmppsAuthenticationHolder.username } returns null
+  }
 
   @Test
   fun `getServiceUserByIdentifier should return service user when client call is successful`() {
@@ -45,6 +53,18 @@ class ServiceUserServiceTest {
       ),
       probationDeliveryUnit = ProbationDeliveryUnit(code = "PDU1", description = "Central PDU"),
     )
+    val accessResponse = LimitedAccessOffenderCheckResponse(
+      access = listOf(
+        LimitedAccessOffenderCheck(
+          crn = identifier,
+          userExcluded = false,
+          userRestricted = false,
+        ),
+      ),
+    )
+    every {
+      nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(any(), listOf(identifier))
+    } returns ClientResult.Success(body = accessResponse, status = HttpStatusCode.valueOf(200))
     every { nDeliusIntegrationApiClient.getOffenderIdentifiers(identifier) } returns
       ClientResult.Success(body = offenderIdentifiers, status = HttpStatusCode.valueOf(200))
     val result = service.getServiceUserByIdentifier(identifier)

@@ -1,5 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common
 
+import java.time.LocalDate
+
 private val upperCase = ('A'..'Z').toList()
 private val lowerCase = ('a'..'z').toList()
 private val digits = ('0'..'9').toList()
@@ -19,5 +21,21 @@ fun randomSentence(wordRange: IntRange = 1..20, wordLength: IntRange = 3..10): S
   .reduce { left, right -> left + space() + right }
   .asString()
 
+fun randomNumber(length: Int = 2) = digits(length)
 fun randomEmailAddress() = (lowerCase(5) + ".".asSequence() + lowerCase(8) + "@".asSequence() + lowerCase(6) + ".com".asSequence()).asString()
+
+fun randomDateOfBirth(
+  minAge: Int = 18,
+  maxAge: Int = 80,
+): LocalDate {
+  val today = LocalDate.now()
+  val minDate = today.minusYears(maxAge.toLong())
+  val maxDate = today.minusYears(minAge.toLong())
+
+  val daysBetween = minDate.toEpochDay() until maxDate.toEpochDay()
+  val randomDays = daysBetween.random()
+
+  return LocalDate.ofEpochDay(randomDays)
+}
+
 fun randomPrisonNumber(): String = (upperCase(1) + digits(4) + upperCase(2)).asString()

@@ -5,18 +5,13 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 
 class ReferralEntityTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
-
-  @Autowired
-  private lateinit var referralStatusHistoryRepository: ReferralStatusHistoryRepository
 
   @Test
   @Transactional
@@ -28,14 +23,6 @@ class ReferralEntityTest : IntegrationTestBase() {
       .produce()
 
     referralRepository.save(referral)
-
-    val referralStatusHistory = ReferralStatusHistoryEntityFactory()
-      .withStatus("Assessment started").produce()
-
-    referralStatusHistoryRepository.save(referralStatusHistory)
-
-    referral.statusHistories.add(referralStatusHistory)
-
     // When
     val retrievedReferral = referralRepository.findById(referral.id!!).get()
 
