@@ -3,10 +3,11 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 import java.time.LocalDate
 
 data class ServiceUser(
-  var name: String? = null,
+  var name: String,
   var crn: String,
-  var dob: LocalDate,
-  var gender: String? = null,
-  var ethnicity: String? = null,
-  var currentPdu: String? = null,
+  var dateOfBirth: LocalDate,
+  var age: String,
+  var gender: String,
+  var ethnicity: String,
+  var currentPdu: String,
 )

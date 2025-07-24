@@ -1,6 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
 
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.FindAndReferReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomSentence
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import java.util.UUID
@@ -20,7 +20,7 @@ class ReferralDetailsFactory {
   fun withReferralId(referralId: UUID) = apply { this.referralId = referralId }
   fun withSetting(setting: String) = apply { this.setting = setting }
 
-  fun produce() = ReferralDetails(
+  fun produce() = FindAndReferReferralDetails(
     interventionType = this.interventionType,
     interventionName = this.interventionName,
     personReference = this.personReference,

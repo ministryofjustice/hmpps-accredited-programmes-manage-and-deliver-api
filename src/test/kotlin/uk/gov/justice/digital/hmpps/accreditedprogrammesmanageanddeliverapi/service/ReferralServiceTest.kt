@@ -21,7 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
-import java.util.*
+import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
 class ReferralServiceTest {
@@ -39,7 +39,7 @@ class ReferralServiceTest {
   private lateinit var referralService: ReferralService
 
   @Test
-  fun `getReferralDetails should return referral details when present`() {
+  fun `getFindAndReferReferralDetails should return referral details when present`() {
     // Given
     val referralId = UUID.randomUUID()
     val referralDetails = ReferralDetailsFactory().withReferralId(referralId).produce()
@@ -52,7 +52,7 @@ class ReferralServiceTest {
     )
 
     // When
-    val result = referralService.getReferralDetails(referralId)
+    val result = referralService.getFindAndReferReferralDetails(referralId)
 
     // Then
     assertThat(referralDetails).isEqualTo(result)
@@ -60,7 +60,7 @@ class ReferralServiceTest {
   }
 
   @Test
-  fun `getReferralDetails should throw NotFoundException when referral is not found`() {
+  fun `getFindAndReferReferralDetails should throw NotFoundException when referral is not found`() {
     // Given
     val referralId = UUID.randomUUID()
     `when`(findAndReferInterventionApiClient.getReferral(referralId)).thenReturn(
@@ -68,7 +68,7 @@ class ReferralServiceTest {
     )
 
     // When & Then
-    assertThrows<NotFoundException> { referralService.getReferralDetails(referralId) }
+    assertThrows<NotFoundException> { referralService.getFindAndReferReferralDetails(referralId) }
     verify(findAndReferInterventionApiClient).getReferral(referralId)
   }
 

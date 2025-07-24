@@ -51,7 +51,7 @@ class ServiceUserServiceTest {
 
     assertEquals("John H Doe", result.name)
     assertEquals("X123456", result.crn)
-    assertEquals(LocalDate.of(1990, 1, 1), result.dob)
+    assertEquals(LocalDate.of(1990, 1, 1), result.dateOfBirth)
     assertEquals("Male", result.gender)
     assertEquals("White", result.ethnicity)
     assertEquals("PDU1", result.currentPdu)

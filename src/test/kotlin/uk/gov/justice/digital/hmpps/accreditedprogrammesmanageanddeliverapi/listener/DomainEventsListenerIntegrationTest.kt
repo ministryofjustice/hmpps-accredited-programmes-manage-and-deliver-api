@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest
 import software.amazon.awssdk.services.sqs.model.SendMessageResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.FindAndReferReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.DomainEventsMessageFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -54,7 +54,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     stubAuthTokenEndpoint()
     log.info("Setting up ReferralDetails with id: $sourceReferralId")
 
-    val referralDetails = ReferralDetails(
+    val findAndReferReferralDetails = FindAndReferReferralDetails(
       interventionName = "Test Intervention",
       interventionType = "ACP",
       referralId = sourceReferralId,
@@ -69,7 +69,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
           aResponse()
             .withStatus(200)
             .withHeader("Content-Type", "application/json")
-            .withBody(objectMapper.writeValueAsString(referralDetails)),
+            .withBody(objectMapper.writeValueAsString(findAndReferReferralDetails)),
         ),
     )
   }
@@ -104,7 +104,11 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.eventType).isEqualTo(eventType)
       assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
       assertThat(it.description).isEqualTo(domainEventsMessage.description)
-      assertThat(it.occurredAt?.truncatedTo(ChronoUnit.SECONDS)).isEqualTo(domainEventsMessage.occurredAt.truncatedTo(ChronoUnit.SECONDS))
+      assertThat(it.occurredAt?.truncatedTo(ChronoUnit.SECONDS)).isEqualTo(
+        domainEventsMessage.occurredAt.truncatedTo(
+          ChronoUnit.SECONDS,
+        ),
+      )
       assertThat(it.message).isEqualTo(
         objectMapper.writeValueAsString(domainEventsMessage),
       )
@@ -144,7 +148,11 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.eventType).isEqualTo(domainEventsMessage.eventType)
       assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
       assertThat(it.description).isEqualTo(domainEventsMessage.description)
-      assertThat(it.occurredAt?.truncatedTo(ChronoUnit.SECONDS)).isEqualTo(domainEventsMessage.occurredAt.truncatedTo(ChronoUnit.SECONDS))
+      assertThat(it.occurredAt?.truncatedTo(ChronoUnit.SECONDS)).isEqualTo(
+        domainEventsMessage.occurredAt.truncatedTo(
+          ChronoUnit.SECONDS,
+        ),
+      )
       assertThat(it.message).isEqualTo(
         objectMapper.writeValueAsString(domainEventsMessage),
       )

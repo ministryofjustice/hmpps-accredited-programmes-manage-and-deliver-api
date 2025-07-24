@@ -36,7 +36,7 @@ class ServiceUserControllerIntegrationTest : IntegrationTestBase() {
 
     assertThat(response.crn).isEqualTo("X123456")
     assertThat(response.name).isEqualTo("John H Doe")
-    assertThat(response.dob).isEqualTo(LocalDate.of(1990, 1, 1))
+    assertThat(response.dateOfBirth).isEqualTo(LocalDate.of(1990, 1, 1))
     assertThat(response.gender).isEqualTo("Male")
     assertThat(response.ethnicity).isEqualTo("White")
     assertThat(response.currentPdu).isEqualTo("PDU1")
