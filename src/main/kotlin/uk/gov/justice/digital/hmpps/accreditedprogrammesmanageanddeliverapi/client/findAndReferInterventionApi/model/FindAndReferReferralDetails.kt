@@ -3,7 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import java.util.UUID
 
-data class ReferralDetails(
+data class FindAndReferReferralDetails(
   val interventionType: String,
   val interventionName: String,
   val personReference: String,
@@ -12,7 +12,7 @@ data class ReferralDetails(
   val setting: String,
 )
 
-fun ReferralDetails.toReferralEntity() = ReferralEntity(
+fun FindAndReferReferralDetails.toReferralEntity() = ReferralEntity(
   crn = if (personReferenceType == "CRN") personReference else "UNKNOWN",
   interventionType = interventionType,
   interventionName = interventionName,

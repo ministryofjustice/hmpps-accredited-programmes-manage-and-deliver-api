@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.JoinTable
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
+import org.jetbrains.annotations.NotNull
 import org.springframework.data.annotation.CreatedDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -34,8 +35,9 @@ class ReferralEntity(
   @Column(name = "intervention_name")
   var interventionName: String? = null,
 
+  @NotNull
   @Column(name = "setting")
-  var setting: String? = null,
+  var setting: String,
 
   @Column(name = "created_at")
   @CreatedDate

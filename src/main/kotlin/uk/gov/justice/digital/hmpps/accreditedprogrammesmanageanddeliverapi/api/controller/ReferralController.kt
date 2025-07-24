@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import java.util.UUID
@@ -53,11 +54,11 @@ class ReferralController(
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
-  @GetMapping("/referral/{id}", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun getReferralById(
+  @GetMapping("/referral-details/{id}", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getReferralDetailsById(
     @Parameter(description = "The id (UUID) of a referral", required = true)
     @PathVariable("id") id: UUID,
-  ): ResponseEntity<Referral> = referralService.getReferralById(id)?.let {
+  ): ResponseEntity<ReferralDetails> = referralService.getReferralDetails(id)?.let {
     ResponseEntity.ok(it)
   } ?: throw NotFoundException("Referral with id $id not found")
 }
