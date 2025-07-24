@@ -19,7 +19,7 @@ class FindAndReferInterventionApiClient(
     private val log = LoggerFactory.getLogger(this::class.java)
   }
 
-  fun getReferral(referralId: UUID) = getRequest<FindAndReferReferralDetails>("Find And Refer Intervention API") {
+  fun getFindAndReferReferral(referralId: UUID) = getRequest<FindAndReferReferralDetails>("Find And Refer Intervention API") {
     path = "/referral/$referralId"
   }
 }

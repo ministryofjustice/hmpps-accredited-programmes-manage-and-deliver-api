@@ -49,7 +49,7 @@ class ReferralServiceTest {
     val referralId = UUID.randomUUID()
     val referralDetails = FindAndReferReferralDetailsFactory().withReferralId(referralId).produce()
 
-    `when`(findAndReferInterventionApiClient.getReferral(referralId)).thenReturn(
+    `when`(findAndReferInterventionApiClient.getFindAndReferReferral(referralId)).thenReturn(
       ClientResult.Success(
         status = HttpStatusCode.valueOf(200),
         body = referralDetails,
@@ -61,20 +61,20 @@ class ReferralServiceTest {
 
     // Then
     assertThat(referralDetails).isEqualTo(result)
-    verify(findAndReferInterventionApiClient).getReferral(referralId)
+    verify(findAndReferInterventionApiClient).getFindAndReferReferral(referralId)
   }
 
   @Test
   fun `getFindAndReferReferralDetails should throw NotFoundException when referral is not found`() {
     // Given
     val referralId = UUID.randomUUID()
-    `when`(findAndReferInterventionApiClient.getReferral(referralId)).thenReturn(
+    `when`(findAndReferInterventionApiClient.getFindAndReferReferral(referralId)).thenReturn(
       ClientResult.Failure.StatusCode(HttpMethod.GET, "/referral/$referralId", HttpStatusCode.valueOf(404), ""),
     )
 
     // When & Then
     assertThrows<NotFoundException> { referralService.getFindAndReferReferralDetails(referralId) }
-    verify(findAndReferInterventionApiClient).getReferral(referralId)
+    verify(findAndReferInterventionApiClient).getFindAndReferReferral(referralId)
   }
 
   @Test

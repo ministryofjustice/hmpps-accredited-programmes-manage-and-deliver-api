@@ -41,7 +41,7 @@ class FindAndReferInterventionApiClientIntegrationTest : IntegrationTestBase() {
         ),
     )
     // When
-    when (val response = findAndReferInterventionApiClient.getReferral(referralId)) {
+    when (val response = findAndReferInterventionApiClient.getFindAndReferReferral(referralId)) {
       // Then
       is ClientResult.Success<*> -> {
         assertThat(response.body).isNotNull()
@@ -80,7 +80,7 @@ class FindAndReferInterventionApiClientIntegrationTest : IntegrationTestBase() {
         ),
     )
     // When
-    when (val response = findAndReferInterventionApiClient.getReferral(referralId)) {
+    when (val response = findAndReferInterventionApiClient.getFindAndReferReferral(referralId)) {
       // Then
       is ClientResult.Success -> fail("Unexpected client result: ${response::class.simpleName}")
       is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")
