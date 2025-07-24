@@ -20,7 +20,7 @@ class ServiceUserController(
   private val serviceUserService: ServiceUserService,
 ) {
 
-  @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR', 'PROBATION_API__ACCREDITED_PROGRAMMES__CASE_DETAIL')")
+  @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
   @GetMapping(
     "/service-user/{identifier}",
     produces = [MediaType.APPLICATION_JSON_VALUE],

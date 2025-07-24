@@ -22,16 +22,15 @@ permissions:
   packages: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  # This will cancel all running build/test/release pipelines that are not on the main branch
-  # If this pipeline is on the main branch, it will wait until existing runs complete
+  # only cancel in progress when on a branch - use SHA on main to ensure uniqueness
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   helm_lint:
     strategy:
       matrix:
-        environments: ['dev', 'preprod', 'prod']
+        environments: [ 'dev', 'preprod', 'prod' ]
     name: helm lint
     uses: ministryofjustice/hmpps-github-actions/.github/workflows/test_helm_lint.yml@v2 # WORKFLOW_VERSION
     secrets: inherit
@@ -68,22 +67,22 @@ jobs:
       environment: 'dev'
       app_version: '${{ needs.build.outputs.app_version }}'
   deploy_preprod:
-   name: Deploy to pre-production environment
-   needs:
-     - build
-     - deploy_dev
-   uses: ministryofjustice/hmpps-github-actions/.github/workflows/deploy_env.yml@v2 # WORKFLOW_VERSION
-   secrets: inherit
-   with:
-     environment: 'preprod'
-     app_version: '${{ needs.build.outputs.app_version }}'
+    name: Deploy to pre-production environment
+    needs:
+      - build
+      - deploy_dev
+    uses: ministryofjustice/hmpps-github-actions/.github/workflows/deploy_env.yml@v2 # WORKFLOW_VERSION
+    secrets: inherit
+    with:
+      environment: 'preprod'
+      app_version: '${{ needs.build.outputs.app_version }}'
   deploy_prod:
-   name: Deploy to production environment
-   needs:
-     - build
-     - deploy_preprod
-   uses: ministryofjustice/hmpps-github-actions/.github/workflows/deploy_env.yml@v2 # WORKFLOW_VERSION
-   secrets: inherit
-   with:
-     environment: 'prod'
-     app_version: '${{ needs.build.outputs.app_version }}'
+    name: Deploy to production environment
+    needs:
+      - build
+      - deploy_preprod
+    uses: ministryofjustice/hmpps-github-actions/.github/workflows/deploy_env.yml@v2 # WORKFLOW_VERSION
+    secrets: inherit
+    with:
+      environment: 'prod'
+      app_version: '${{ needs.build.outputs.app_version }}'
