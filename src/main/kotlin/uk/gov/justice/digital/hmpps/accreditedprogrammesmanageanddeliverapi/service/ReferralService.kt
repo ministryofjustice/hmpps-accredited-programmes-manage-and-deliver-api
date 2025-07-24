@@ -38,7 +38,7 @@ class ReferralService(
 
   fun getFindAndReferReferralDetails(referralId: UUID): FindAndReferReferralDetails {
     val referralDetails =
-      when (val result = findAndReferInterventionApiClient.getReferral(referralId = referralId)) {
+      when (val result = findAndReferInterventionApiClient.getFindAndReferReferral(referralId = referralId)) {
         is ClientResult.Failure -> {
           log.warn("Failure to retrieve referral details for uuid : $referralId")
           throw NotFoundException("No referral details found for id: $referralId")
