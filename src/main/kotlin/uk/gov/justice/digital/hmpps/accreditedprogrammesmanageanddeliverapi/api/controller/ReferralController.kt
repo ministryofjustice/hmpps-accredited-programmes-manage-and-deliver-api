@@ -65,6 +65,35 @@ class ReferralController(
     ResponseEntity.ok(it)
   } ?: throw NotFoundException("Referral with id $id not found")
 
+  @Operation(
+    tags = ["Referrals"],
+    summary = "Retrieve personal details for a referral",
+    operationId = "getPersonalDetailsByIdentifier",
+    description = """""",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Information about the referral",
+        content = [Content(schema = Schema(implementation = PersonalDetails::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden.  The client is not authorised to access this referral.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The referral does not exist",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
   @GetMapping("/referral-details/{id}/personal-details", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getPersonalDetailsByReferralId(
     @Parameter(description = "The id (UUID) of a referral", required = true)
