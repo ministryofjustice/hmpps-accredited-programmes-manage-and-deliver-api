@@ -13,7 +13,7 @@ data class PersonalDetails(
     required = true,
     description = "The crn associated with this referral.",
   )
-  @get:JsonProperty("id", required = true)
+  @get:JsonProperty("crn", required = true)
   val crn: String,
 
   @Schema(
