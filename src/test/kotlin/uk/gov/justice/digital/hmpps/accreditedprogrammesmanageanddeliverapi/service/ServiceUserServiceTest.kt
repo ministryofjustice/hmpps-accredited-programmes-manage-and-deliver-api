@@ -16,7 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PersonalDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
 @ExtendWith(MockKExtension::class)
@@ -34,7 +34,7 @@ class ServiceUserServiceTest {
   @Test
   fun `getServiceUserByIdentifier should return service user when client call is successful`() {
     val identifier = "X123456"
-    val personalDetails = PersonalDetailsFactory().produce()
+    val personalDetails = NDeliusPersonalDetailsFactory().produce()
     val accessResponse = LimitedAccessOffenderCheckResponse(
       access = listOf(
         LimitedAccessOffenderCheck(

@@ -3,7 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.PersonalDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import java.time.LocalDateTime
@@ -26,22 +26,48 @@ data class ReferralDetails(
   @get:JsonProperty("personName", required = true)
   val personName: String,
 
+  @Schema(
+    example = "Building Choices",
+    required = true,
+    description = "The name of the Intervention for this referral.",
+  )
+  @get:JsonProperty("interventionName", required = true)
   val interventionName: String,
 
+  @Schema(
+    example = "2025-06-14 12:56:23",
+    required = true,
+    description = "Timestamp of when this referral was created.",
+  )
   @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+  @get:JsonProperty("createdAt", required = true)
   val createdAt: LocalDateTime,
+
+  @Schema(
+    example = "Tom Saunders",
+    required = true,
+    description = "The name of the probation practitioner associated with this referral.",
+  )
+  @get:JsonProperty("probationPractitionerName", required = true)
   val probationPractitionerName: String,
+
+  @Schema(
+    example = "tom.saunders@justice.gov.uk",
+    required = true,
+    description = "The email of the probation practitioner associated with this referral.",
+  )
+  @get:JsonProperty("probationPractitionerEmail", required = true)
   val probationPractitionerEmail: String,
 
 ) {
   companion object {
-    fun toModel(referral: ReferralEntity, personalDetails: PersonalDetails): ReferralDetails = ReferralDetails(
+    fun toModel(referral: ReferralEntity, NDeliusPersonalDetails: NDeliusPersonalDetails): ReferralDetails = ReferralDetails(
       id = referral.id!!,
-      personName = personalDetails.name.getNameAsString(),
+      personName = NDeliusPersonalDetails.name.getNameAsString(),
       interventionName = referral.interventionName ?: "UNKNOWN_INTERVENTION",
       createdAt = referral.createdAt,
-      probationPractitionerName = personalDetails.probationPractitioner.name.getNameAsString(),
-      probationPractitionerEmail = personalDetails.probationPractitioner.email,
+      probationPractitionerName = NDeliusPersonalDetails.probationPractitioner.name.getNameAsString(),
+      probationPractitionerEmail = NDeliusPersonalDetails.probationPractitioner.email,
     )
   }
 }

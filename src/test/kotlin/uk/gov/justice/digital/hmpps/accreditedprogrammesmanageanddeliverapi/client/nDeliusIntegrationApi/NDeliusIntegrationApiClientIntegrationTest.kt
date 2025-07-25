@@ -15,7 +15,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.PersonalDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 
@@ -28,7 +28,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
   fun `should return offender identifiers for known CRN`() {
     stubAuthTokenEndpoint()
     val crn = "X123456"
-    val identifiers = PersonalDetails(
+    val identifiers = NDeliusPersonalDetails(
       crn = crn,
       name = FullName(forename = "John", middleNames = "William", surname = "Doe"),
       dateOfBirth = "1980-01-01",
@@ -56,7 +56,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
     when (val response = nDeliusIntegrationApiClient.getPersonalDetails(crn)) {
       is ClientResult.Success<*> -> {
         assertThat(response.status).isEqualTo(HttpStatus.OK)
-        val body = response.body as PersonalDetails
+        val body = response.body as NDeliusPersonalDetails
         assertThat(body.crn).isEqualTo("X123456")
         assertThat(body.name.forename).isEqualTo("John")
         assertThat(body.name.middleNames).isEqualTo("William")
