@@ -1,31 +1,29 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ServiceUser
-import java.time.LocalDate
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
+import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
 @Service
 class ServiceUserService(
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
+  private val authenticationHolder: HmppsAuthenticationHolder,
 ) {
-  fun getServiceUserByIdentifier(identifier: String): ServiceUser = when (val result = nDeliusIntegrationApiClient.getOffenderIdentifiers(identifier)) {
-    is ClientResult.Success -> {
-      val user = result.body
-      ServiceUser(
-        name = listOfNotNull(user.name.forename, user.name.middleNames, user.name.surname)
-          .filter { it.isNotBlank() }
-          .joinToString(" "),
-        crn = user.crn,
-        dob = LocalDate.parse(user.dateOfBirth),
-        gender = user.sex.description,
-        ethnicity = user.ethnicity.description,
-        currentPdu = user.probationDeliveryUnit.code,
+  fun getPersonalDetailsByIdentifier(identifier: String): NDeliusPersonalDetails {
+    val userName = authenticationHolder.username ?: "UNKNOWN_USER"
+    if (!hasAccessToLimitedAccessOffender(userName, identifier)) {
+      throw AccessDeniedException(
+        "You are not authorized to view this person's details. Either contact your administrator or enter a different CRN or Prison Number",
       )
     }
 
-    is ClientResult.Failure -> result.throwException()
+    return when (val result = nDeliusIntegrationApiClient.getPersonalDetails(identifier)) {
+      is ClientResult.Success -> result.body
+      is ClientResult.Failure -> result.throwException()
+    }
   }
 
   fun hasAccessToLimitedAccessOffender(username: String, identifier: String): Boolean = when (val result = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier))) {

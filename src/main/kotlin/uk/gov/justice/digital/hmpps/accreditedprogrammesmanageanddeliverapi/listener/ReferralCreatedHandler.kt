@@ -27,7 +27,7 @@ class ReferralCreatedHandler(
     log.info("Received referral created event for referral id: $referralId")
     messageHistoryRepository.save(domainEventMessage.toEntity(objectMapper.writeValueAsString(domainEventMessage)))
 
-    val referralDetails = referralService.getReferralDetails(referralId)
+    val referralDetails = referralService.getFindAndReferReferralDetails(referralId)
     referralService.createReferral(referralDetails)
   }
 

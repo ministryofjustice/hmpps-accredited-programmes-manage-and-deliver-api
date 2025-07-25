@@ -1,5 +1,5 @@
 INSERT INTO referral (id, person_name, crn, created_at, intervention_type, intervention_name, setting)
-VALUES ('6885d1f6-5958-40e0-9448-1ff8cc37e643', 'Joe Bloggs', 'CRN-123456', now(), 'ACP', 'Horizon', 'COMMUNITY'),
+VALUES ('6885d1f6-5958-40e0-9448-1ff8cc37e643', 'Joe Bloggs', 'X718255', now(), 'ACP', 'Horizon', 'COMMUNITY'),
        ('81229aaa-bb3a-4705-8015-99052bafab58', 'Alex River', 'CRN-999999', now(), 'ACP', 'Building Choices',
         'COMMUNITY'),
        ('39fde7e8-d2e3-472b-8364-5848bf673aa6', 'Jane Adams', 'CRN-888888', now(), 'ACP', 'Building Choices',
