@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -17,6 +18,14 @@ data class ReferralDetails(
   )
   @get:JsonProperty("id", required = true)
   val id: UUID,
+
+  @Schema(
+    example = "X933590",
+    required = true,
+    description = "The crn associated with this referral.",
+  )
+  @get:JsonProperty("crn", required = true)
+  val crn: String,
 
   @Schema(
     example = "John Doe",
@@ -44,6 +53,15 @@ data class ReferralDetails(
   val createdAt: LocalDateTime,
 
   @Schema(
+    example = "15 March 1985",
+    required = true,
+    description = "The date of birth of the person being referred.",
+  )
+  @get:JsonProperty("dateOfBirth", required = true)
+  @JsonFormat(pattern = "d MMMM yyyy")
+  val dateOfBirth: LocalDate,
+
+  @Schema(
     example = "Tom Saunders",
     required = true,
     description = "The name of the probation practitioner associated with this referral.",
@@ -61,13 +79,15 @@ data class ReferralDetails(
 
 ) {
   companion object {
-    fun toModel(referral: ReferralEntity, NDeliusPersonalDetails: NDeliusPersonalDetails): ReferralDetails = ReferralDetails(
+    fun toModel(referral: ReferralEntity, nDeliusPersonalDetails: NDeliusPersonalDetails): ReferralDetails = ReferralDetails(
       id = referral.id!!,
-      personName = NDeliusPersonalDetails.name.getNameAsString(),
+      crn = referral.crn,
+      personName = nDeliusPersonalDetails.name.getNameAsString(),
       interventionName = referral.interventionName ?: "UNKNOWN_INTERVENTION",
       createdAt = referral.createdAt,
-      probationPractitionerName = NDeliusPersonalDetails.probationPractitioner.name.getNameAsString(),
-      probationPractitionerEmail = NDeliusPersonalDetails.probationPractitioner.email,
+      dateOfBirth = LocalDate.parse(nDeliusPersonalDetails.dateOfBirth),
+      probationPractitionerName = nDeliusPersonalDetails.probationPractitioner.name.getNameAsString(),
+      probationPractitionerEmail = nDeliusPersonalDetails.probationPractitioner.email,
     )
   }
 }
