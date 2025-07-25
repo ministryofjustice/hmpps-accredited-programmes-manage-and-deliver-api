@@ -27,7 +27,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.DefaultAvailabilityConfigService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.toAvailabilityOptions
 import java.time.DayOfWeek
-import java.time.LocalDateTime
+import java.time.LocalDate
 import java.util.UUID
 
 class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
@@ -118,8 +118,8 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
     val otherDetails = "Available remotely"
     val lastModifiedBy = "AUTH_ADM"
 
-    val startDate: LocalDateTime? = LocalDateTime.now()
-    val endDate: LocalDateTime? = LocalDateTime.now().plusDays(10)
+    val startDate: LocalDate? = LocalDate.now()
+    val endDate: LocalDate? = LocalDate.now().plusDays(10)
     val availability = performRequestAndExpectStatusWithBody(
       httpMethod = HttpMethod.POST,
       uri = "/availability",
@@ -135,8 +135,8 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
 
     assertThat(availability.id.toString()).isNotNull
     assertThat(availability.referralId.toString()).isEqualTo(referralEntity.id.toString())
-    assertThat(availability.startDate?.toLocalDate()).isEqualTo(startDate?.toLocalDate())
-    assertThat(availability.endDate?.toLocalDate()).isEqualTo(endDate?.toLocalDate())
+    assertThat(availability.startDate?.toLocalDate()).isEqualTo(startDate)
+    assertThat(availability.endDate?.toLocalDate()).isEqualTo(endDate)
     assertThat(availability.otherDetails).isEqualTo(otherDetails)
     assertThat(availability.lastModifiedBy).isEqualTo(lastModifiedBy)
     assertThat(availability.lastModifiedAt).isNotNull
@@ -165,16 +165,35 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `Update availability is successful`() {
+  fun `create availability returns conflict if availability already exists`() {
     val otherDetails = "Available remotely"
     val lastModifiedBy = "AUTH_ADM"
-    val startDate: LocalDateTime = LocalDateTime.now()
-    val endDate: LocalDateTime = LocalDateTime.now().plusDays(10)
+    val startDate: LocalDate = LocalDate.now()
+    val endDate: LocalDate = LocalDate.now().plusDays(10)
 
     val referralEntity = ReferralEntityFactory().produce()
     testDataGenerator.createReferral(referralEntity)
 
-    val createAvailability = createAndGetAvailability(referralEntity, startDate, endDate, otherDetails)
+    val createdAvailability = createAvailability(referralEntity, startDate, endDate, otherDetails)
+
+    // assert that its a conflict
+    val duplicateAvailability =
+      createAvailability(referralEntity, startDate, endDate, otherDetails, HttpStatus.CONFLICT.value())
+
+    assertThat(createdAvailability.id).isEqualTo(duplicateAvailability.id)
+  }
+
+  @Test
+  fun `Update availability is successful`() {
+    val otherDetails = "Available remotely"
+    val lastModifiedBy = "AUTH_ADM"
+    val startDate: LocalDate = LocalDate.now()
+    val endDate: LocalDate = LocalDate.now().plusDays(10)
+
+    val referralEntity = ReferralEntityFactory().produce()
+    testDataGenerator.createReferral(referralEntity)
+
+    val createAvailability = createAvailability(referralEntity, startDate, endDate, otherDetails)
 
     val availability = performRequestAndExpectStatusWithBody(
       httpMethod = HttpMethod.PUT,
@@ -196,8 +215,8 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
 
     assertThat(availability.id.toString()).isNotNull
     assertThat(availability.referralId.toString()).isEqualTo(referralEntity.id.toString())
-    assertThat(availability.startDate?.toLocalDate()).isEqualTo(startDate.toLocalDate())
-    assertThat(availability.endDate?.toLocalDate()).isEqualTo(endDate.toLocalDate())
+    assertThat(availability.startDate?.toLocalDate()).isEqualTo(startDate)
+    assertThat(availability.endDate?.toLocalDate()).isEqualTo(endDate)
     assertThat(availability.otherDetails).isEqualTo(otherDetails)
     assertThat(availability.lastModifiedBy).isEqualTo(lastModifiedBy)
     assertThat(availability.lastModifiedAt).isNotNull
@@ -240,8 +259,8 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
   fun buildUpdateAvailabilityModel(
     availabilityId: UUID,
     referralId: UUID,
-    startDate: LocalDateTime,
-    endDate: LocalDateTime,
+    startDate: LocalDate,
+    endDate: LocalDate,
     otherDetails: String?,
     selectedSlots: Map<String, Set<String>>,
   ): UpdateAvailability = UpdateAvailability(
@@ -250,10 +269,10 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
     startDate = startDate,
     endDate = endDate,
     otherDetails = otherDetails,
-    availabilities = AvailabilityOption.values().map { option ->
+    availabilities = AvailabilityOption.entries.map { option ->
       DailyAvailabilityModel(
         label = option,
-        slots = SlotName.values().map { slot ->
+        slots = SlotName.entries.map { slot ->
           Slot(
             label = slot.displayName,
             value = selectedSlots[option.displayName]?.contains(slot.displayName) ?: false,
@@ -264,11 +283,12 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
   )
 }
 
-private fun AvailabilityControllerIntegrationTest.createAndGetAvailability(
+private fun AvailabilityControllerIntegrationTest.createAvailability(
   referralEntity: ReferralEntity,
-  startDate: LocalDateTime,
-  endDate: LocalDateTime,
+  startDate: LocalDate,
+  endDate: LocalDate,
   otherDetails: String,
+  responseCode: Int = HttpStatus.CREATED.value(),
 ): Availability = performRequestAndExpectStatusWithBody(
   httpMethod = HttpMethod.POST,
   uri = "/availability",
@@ -283,13 +303,13 @@ private fun AvailabilityControllerIntegrationTest.createAndGetAvailability(
       AvailabilityOption.WEDNESDAY.displayName to setOf(SlotName.EVENING.displayName),
     ),
   ),
-  expectedResponseStatus = HttpStatus.CREATED.value(),
+  expectedResponseStatus = responseCode,
 )
 
 fun buildCreateAvailabilityModel(
   referralId: UUID = UUID.randomUUID(),
-  startDate: LocalDateTime? = LocalDateTime.now().minusDays(1),
-  endDate: LocalDateTime? = LocalDateTime.now().plusDays(10),
+  startDate: LocalDate? = LocalDate.now().minusDays(1),
+  endDate: LocalDate? = LocalDate.now().plusDays(10),
   otherDetails: String? = "Available remotely",
   selectedSlots: Map<String, Set<String>> = mapOf(
     AvailabilityOption.MONDAY.displayName to setOf(SlotName.DAYTIME.displayName, SlotName.EVENING.displayName),

@@ -38,10 +38,16 @@ class AvailabilityService(
     return availabilityEntity.toModel()
   }
 
-  fun createAvailability(availability: CreateAvailability): Availability {
-    val availabilityEntity = availability.toEntity(getAuthenticatedReferrerUser())
+  fun createAvailability(createAvailability: CreateAvailability): Pair<Availability, Boolean> {
+    val existingAvailability = availabilityRepository.findByReferralId(createAvailability.referralId)
+    if (existingAvailability != null) {
+      log.info("Availability already exists for referralId ${createAvailability.referralId}")
+      return Pair(existingAvailability.toModel(), true)
+    }
+
+    val availabilityEntity = createAvailability.toEntity(getAuthenticatedReferrerUser())
     val savedAvailabilityEntity = availabilityRepository.save(availabilityEntity)
-    return savedAvailabilityEntity.toModel()
+    return Pair(savedAvailabilityEntity.toModel(), false)
   }
 
   private fun getAuthenticatedReferrerUser() = SecurityContextHolder.getContext().authentication?.name
@@ -53,8 +59,8 @@ class AvailabilityService(
       ?: throw NotFoundException("No availability with id ${updateAvailability.availabilityId}")
 
     availabilityEntity.referralId = updateAvailability.referralId
-    availabilityEntity.startDate = updateAvailability.startDate?.toLocalDate() ?: LocalDate.now()
-    availabilityEntity.endDate = updateAvailability.endDate?.toLocalDate()
+    availabilityEntity.startDate = updateAvailability.startDate ?: LocalDate.now()
+    availabilityEntity.endDate = updateAvailability.endDate
     availabilityEntity.otherDetails = updateAvailability.otherDetails
     availabilityEntity.lastModifiedAt = LocalDateTime.now()
     availabilityEntity.lastModifiedBy = getAuthenticatedReferrerUser()
