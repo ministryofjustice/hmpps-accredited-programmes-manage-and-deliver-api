@@ -7,7 +7,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
-import java.time.LocalDateTime
+import java.time.LocalDate
 import java.util.*
 
 class AvailabilityTransformerTest {
@@ -15,8 +15,8 @@ class AvailabilityTransformerTest {
   @Test
   fun `toEntity should map AvailabilityCreate to AvailabilityEntity correctly`() {
     val referralId = UUID.randomUUID()
-    val now = LocalDateTime.now()
-    val end = LocalDateTime.now().plusWeeks(10)
+    val now = LocalDate.now()
+    val end = LocalDate.now().plusWeeks(10)
 
     val lastModifiedUsername = "test_user"
     val createAvailability = CreateAvailability(
@@ -45,8 +45,8 @@ class AvailabilityTransformerTest {
     val entity = createAvailability.toEntity(lastModifiedBy = lastModifiedUsername)
 
     assertThat(entity.referralId).isEqualTo(referralId)
-    assertThat(entity.startDate).isEqualTo(now.toLocalDate())
-    assertThat(entity.endDate).isEqualTo(end.toLocalDate())
+    assertThat(entity.startDate).isEqualTo(now)
+    assertThat(entity.endDate).isEqualTo(end)
     assertThat(entity.otherDetails).isEqualTo("Available remotely")
     assertThat(entity.lastModifiedBy).isEqualTo(lastModifiedUsername)
     assertThat(entity.lastModifiedAt).isNotNull()

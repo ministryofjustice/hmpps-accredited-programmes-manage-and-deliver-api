@@ -16,8 +16,8 @@ import java.time.LocalDateTime
 fun CreateAvailability.toEntity(lastModifiedBy: String = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN"): AvailabilityEntity {
   val availabilityEntity = AvailabilityEntity(
     referralId = this.referralId,
-    startDate = this.startDate?.toLocalDate() ?: LocalDate.now(),
-    endDate = this.endDate?.toLocalDate(),
+    startDate = this.startDate ?: LocalDate.now(),
+    endDate = this.endDate,
     otherDetails = this.otherDetails,
     lastModifiedBy = lastModifiedBy,
     lastModifiedAt = LocalDateTime.now(),
