@@ -62,7 +62,7 @@ class EntityFactoriesTest {
     assertThat(referral.personName).isNotNull()
     assertThat(referral.crn).isNotNull()
     assertThat(referral.createdAt).isNotNull()
-    assertThat(referral.statusHistories).isEmpty()
+    assertThat(referral.statusHistories).isNotEmpty
   }
 
   @Test
