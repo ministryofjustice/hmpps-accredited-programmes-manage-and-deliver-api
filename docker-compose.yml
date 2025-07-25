@@ -1,5 +1,16 @@
 services:
 
+  wiremock:
+    image: wiremock/wiremock:3.3.1
+    networks:
+      - hmpps
+    container_name: hmpps-mandd-wiremock
+    ports:
+      - "8097:8080"
+    volumes:
+      - ./wiremock:/home/wiremock
+    command: --global-response-templating --verbose
+
   hmpps-auth:
     image: quay.io/hmpps/hmpps-auth:latest
     networks:
