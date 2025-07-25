@@ -66,8 +66,10 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       )
 
       Assertions.assertThat(response.id).isEqualTo(savedReferral.id)
+      Assertions.assertThat(response.crn).isEqualTo(savedReferral.crn)
       Assertions.assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
       Assertions.assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      Assertions.assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       Assertions.assertThat(response.createdAt).isEqualToIgnoringNanos(createdAt)
       Assertions.assertThat(response.probationPractitionerName)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner.name.getNameAsString())
