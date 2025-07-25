@@ -1,6 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model
 
-data class PersonalDetails(
+data class NDeliusPersonalDetails(
   val crn: String,
   val name: FullName,
   val dateOfBirth: String,

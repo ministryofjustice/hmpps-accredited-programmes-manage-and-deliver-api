@@ -20,7 +20,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PersonalDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -109,11 +109,11 @@ class ReferralServiceTest {
     // Given
     val referralId = UUID.randomUUID()
     val referralEntity: ReferralEntity = ReferralEntityFactory().withId(referralId).produce()
-    val optionalEntity: Optional<ReferralEntity?> =
-      Optional.of<ReferralEntity>(referralEntity) as Optional<ReferralEntity?>
-    `when`(referralRepository.findById(referralId)).thenReturn(optionalEntity)
+    val optionalEntity: Optional<ReferralEntity> =
+      Optional.of<ReferralEntity>(referralEntity)
+    `when`(referralRepository.findById(referralId)).thenReturn(optionalEntity as Optional<ReferralEntity?>?)
 
-    val personalDetails = PersonalDetailsFactory().produce()
+    val personalDetails = NDeliusPersonalDetailsFactory().produce()
     // Use Mockito's when instead of MockK's every
     `when`(serviceUserService.getPersonalDetailsByIdentifier(referralEntity.crn)).thenReturn(personalDetails)
 

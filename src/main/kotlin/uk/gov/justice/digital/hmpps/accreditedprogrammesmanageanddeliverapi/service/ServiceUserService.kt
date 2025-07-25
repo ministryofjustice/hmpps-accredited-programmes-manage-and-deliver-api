@@ -4,7 +4,7 @@ import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.PersonalDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
 @Service
@@ -12,7 +12,7 @@ class ServiceUserService(
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val authenticationHolder: HmppsAuthenticationHolder,
 ) {
-  fun getPersonalDetailsByIdentifier(identifier: String): PersonalDetails {
+  fun getPersonalDetailsByIdentifier(identifier: String): NDeliusPersonalDetails {
     val userName = authenticationHolder.username ?: "UNKNOWN_USER"
     if (!hasAccessToLimitedAccessOffender(userName, identifier)) {
       throw AccessDeniedException(

@@ -1,27 +1,33 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
-import com.github.tomakehurst.wiremock.client.WireMock
 import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.PersonalDetails
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.util.UUID
 
 class ReferralControllerIntegrationTest : IntegrationTestBase() {
+
+  private lateinit var nDeliusApiStubs: NDeliusApiStubs
 
   @Autowired
   private lateinit var testDataGenerator: TestDataGenerator
@@ -35,93 +41,128 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
   @BeforeEach
   fun setup() {
     testDataCleaner.cleanAllTables()
-  }
-
-  private val identifier = "X123456"
-  private val username = "AUTH_ADM"
-
-  @Test
-  fun `should return service user when access granted`() {
-    val createdAt = LocalDateTime.now()
-    val referralEntity = ReferralEntityFactory().withCreatedAt(createdAt).produce()
-    testDataGenerator.createReferral(referralEntity)
-    val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
-
+    nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
     stubAuthTokenEndpoint()
-    stubAccessCheck(granted = true, savedReferral.crn)
-    stubPersonalDetailsResponse(savedReferral.crn)
-    val response = performRequestAndExpectOk(
-      httpMethod = HttpMethod.GET,
-      uri = "/referral-details/${savedReferral.id}",
-      returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
-    )
-
-    Assertions.assertThat(response.id).isEqualTo(savedReferral.id)
-    Assertions.assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
-    Assertions.assertThat(response.personName).isEqualTo("John H Doe")
-    Assertions.assertThat(response.createdAt).isEqualToIgnoringNanos(createdAt)
-    Assertions.assertThat(response.probationPractitionerName).isEqualTo("Prob Officer")
-    Assertions.assertThat(response.probationPractitionerEmail).isEqualTo("prob.officer@example.com")
   }
 
-  @Test
-  fun `should return forbidden when access denied`() {
-    stubAuthTokenEndpoint()
-    stubAccessCheck(granted = false, null)
-    val referralEntity = ReferralEntityFactory().produce()
-    testDataGenerator.createReferral(referralEntity)
-    val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+  @Nested
+  @DisplayName("Get referral-details endpoint")
+  inner class GetReferralDetails {
+    @Test
+    fun `should return referral details object with personal details when access granted is true`() {
+      val createdAt = LocalDateTime.now()
+      val referralEntity = ReferralEntityFactory().withCreatedAt(createdAt).produce()
+      testDataGenerator.createReferral(referralEntity)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
-    performRequestAndExpectStatus(
-      httpMethod = HttpMethod.GET,
-      uri = "/referral-details/${savedReferral.id}",
-      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-      expectedResponseStatus = 403,
-    )
-  }
+      val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
 
-  private fun stubAccessCheck(granted: Boolean, crn: String?) {
-    val id = crn ?: identifier
-    val body = """
-    {
-      "access": [
-        {
-          "crn": "$id",
-          "userExcluded": ${!granted},
-          "userRestricted": false
-        }
-      ]
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
+      )
+
+      Assertions.assertThat(response.id).isEqualTo(savedReferral.id)
+      Assertions.assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
+      Assertions.assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      Assertions.assertThat(response.createdAt).isEqualToIgnoringNanos(createdAt)
+      Assertions.assertThat(response.probationPractitionerName)
+        .isEqualTo(nDeliusPersonalDetails.probationPractitioner.name.getNameAsString())
+      Assertions.assertThat(response.probationPractitionerEmail)
+        .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
     }
-    """.trimIndent()
 
-    wiremock.stubFor(
-      WireMock.post(WireMock.urlEqualTo("/user/$username/access"))
-        .willReturn(WireMock.okJson(body)),
-    )
+    @Test
+    fun `should return forbidden when access denied`() {
+      nDeliusApiStubs.stubAccessCheck(granted = false)
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = 403,
+      )
+    }
+
+    @Test
+    fun `should return 404 when referral is not found`() {
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${UUID.randomUUID()}",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+    }
   }
 
-  private fun stubPersonalDetailsResponse(crn: String?) {
-    val id = crn ?: identifier
-    val body = objectMapper.writeValueAsString(
-      PersonalDetails(
-        crn = id,
-        name = FullName(forename = "John", middleNames = "H", surname = "Doe"),
-        dateOfBirth = LocalDate.of(1990, 1, 1).toString(),
-        age = "33",
-        sex = CodeDescription("M", "Male"),
-        ethnicity = CodeDescription("W1", "White"),
-        probationPractitioner = ProbationPractitioner(
-          name = FullName("Prob", "", "Officer"),
-          code = "PRAC01",
-          email = "prob.officer@example.com",
-        ),
-        probationDeliveryUnit = CodeDescription(code = "PDU1", description = "Central PDU"),
-      ),
-    )
+  @Nested
+  @DisplayName("Get personal details endpoint")
+  inner class GetPersonalDetails {
+    @Test
+    fun `should return personal details when access granted is true`() {
+      val nDeliusPersonalDetails =
+        NDeliusPersonalDetailsFactory().withDateOfBirth(LocalDate.of(1990, 1, 1)).produce()
+      val referralEntity = ReferralEntityFactory().withCrn(nDeliusPersonalDetails.crn).produce()
+      testDataGenerator.createReferral(referralEntity)
+      referralRepository.findByCrn(referralEntity.crn)[0]
 
-    wiremock.stubFor(
-      WireMock.get(WireMock.urlPathTemplate("/case/$id/personal-details"))
-        .willReturn(WireMock.okJson(body)),
-    )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${referralEntity.id}/personal-details",
+        returnType = object : ParameterizedTypeReference<PersonalDetails>() {},
+      )
+
+      assertThat(response).hasFieldOrProperty("crn")
+      assertThat(response).hasFieldOrProperty("name")
+      assertThat(response).hasFieldOrProperty("dateOfBirth")
+      assertThat(response).hasFieldOrProperty("ethnicity")
+      assertThat(response).hasFieldOrProperty("age")
+      assertThat(response).hasFieldOrProperty("gender")
+      assertThat(response).hasFieldOrProperty("setting")
+      assertThat(response).hasFieldOrProperty("probationDeliveryUnit")
+
+      Assertions.assertThat(response.crn).isEqualTo(nDeliusPersonalDetails.crn)
+      Assertions.assertThat(response.name).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      Assertions.assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
+      Assertions.assertThat(response.ethnicity).isEqualTo(nDeliusPersonalDetails.ethnicity.description)
+      Assertions.assertThat(response.age).isEqualTo(nDeliusPersonalDetails.age)
+      Assertions.assertThat(response.gender).isEqualTo(nDeliusPersonalDetails.sex.description)
+      Assertions.assertThat(response.setting).isEqualTo(referralEntity.setting)
+      Assertions.assertThat(response.probationDeliveryUnit)
+        .isEqualTo(nDeliusPersonalDetails.probationDeliveryUnit.description)
+    }
+
+    @Test
+    fun `should return forbidden when access denied`() {
+      nDeliusApiStubs.stubAccessCheck(granted = false)
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}/personal-details",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = 403,
+      )
+    }
+
+    @Test
+    fun `should return 404 when referral is not found`() {
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${UUID.randomUUID()}/personal-details",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+    }
   }
 }
