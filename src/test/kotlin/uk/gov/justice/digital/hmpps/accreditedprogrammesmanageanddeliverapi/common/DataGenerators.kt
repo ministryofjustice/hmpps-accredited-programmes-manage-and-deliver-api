@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common
 
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import java.time.LocalDate
 
 private val upperCase = ('A'..'Z').toList()
@@ -37,5 +38,11 @@ fun randomDateOfBirth(
 
   return LocalDate.ofEpochDay(randomDays)
 }
+
+fun randomFullName(): FullName = FullName(
+  forename = randomCapitalisedWord(4..12).asString(),
+  middleNames = randomCapitalisedWord(4..10).asString(),
+  surname = randomCapitalisedWord(5..15).asString(),
+)
 
 fun randomPrisonNumber(): String = (upperCase(1) + digits(4) + upperCase(2)).asString()

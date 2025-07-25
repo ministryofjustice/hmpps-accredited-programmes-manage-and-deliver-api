@@ -20,9 +20,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ServiceUserFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import java.util.Optional
@@ -113,17 +113,17 @@ class ReferralServiceTest {
       Optional.of<ReferralEntity>(referralEntity) as Optional<ReferralEntity?>
     `when`(referralRepository.findById(referralId)).thenReturn(optionalEntity)
 
-    val serviceUser = ServiceUserFactory().produce()
+    val personalDetails = PersonalDetailsFactory().produce()
     // Use Mockito's when instead of MockK's every
-    `when`(serviceUserService.getServiceUserByIdentifier(referralEntity.crn)).thenReturn(serviceUser)
+    `when`(serviceUserService.getPersonalDetailsByIdentifier(referralEntity.crn)).thenReturn(personalDetails)
 
     // When
     val referralDetails = referralService.getReferralDetails(referralId)
 
     // Then
     verify(referralRepository).findById(referralId)
-    verify(serviceUserService).getServiceUserByIdentifier(referralEntity.crn)
-    val expectedReferral = ReferralDetails.toModel(referralEntity, serviceUser)
+    verify(serviceUserService).getPersonalDetailsByIdentifier(referralEntity.crn)
+    val expectedReferral = ReferralDetails.toModel(referralEntity, personalDetails)
 
     assertThat(referralDetails).isEqualTo(expectedReferral)
   }

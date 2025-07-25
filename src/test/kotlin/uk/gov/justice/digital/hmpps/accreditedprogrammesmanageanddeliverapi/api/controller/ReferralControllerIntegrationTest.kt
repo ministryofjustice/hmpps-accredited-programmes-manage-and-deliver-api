@@ -11,8 +11,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.OffenderIdentifiers
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationDeliveryUnit
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.PersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
@@ -20,7 +19,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import java.time.LocalDateTime
 
 class ReferralControllerIntegrationTest : IntegrationTestBase() {
 
@@ -43,7 +42,8 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `should return service user when access granted`() {
-    val referralEntity = ReferralEntityFactory().produce()
+    val createdAt = LocalDateTime.now()
+    val referralEntity = ReferralEntityFactory().withCreatedAt(createdAt).produce()
     testDataGenerator.createReferral(referralEntity)
     val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
@@ -57,15 +57,11 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
     )
 
     Assertions.assertThat(response.id).isEqualTo(savedReferral.id)
-    Assertions.assertThat(response.age).isEqualTo("33")
-    Assertions.assertThat(response.crn).isEqualTo(savedReferral.crn)
-    Assertions.assertThat(response.dateOfBirth)
-      .isEqualTo(LocalDate.parse("1990-1-1", DateTimeFormatter.ofPattern("yyyy-M-d")))
-    Assertions.assertThat(response.ethnicity).isEqualTo("White")
-    Assertions.assertThat(response.gender).isEqualTo("Male")
+    Assertions.assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
     Assertions.assertThat(response.personName).isEqualTo("John H Doe")
-    Assertions.assertThat(response.probationDeliveryUnit).isEqualTo("PDU1")
-    Assertions.assertThat(response.setting).isEqualTo(savedReferral.setting)
+    Assertions.assertThat(response.createdAt).isEqualToIgnoringNanos(createdAt)
+    Assertions.assertThat(response.probationPractitionerName).isEqualTo("Prob Officer")
+    Assertions.assertThat(response.probationPractitionerEmail).isEqualTo("prob.officer@example.com")
   }
 
   @Test
@@ -107,7 +103,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
   private fun stubPersonalDetailsResponse(crn: String?) {
     val id = crn ?: identifier
     val body = objectMapper.writeValueAsString(
-      OffenderIdentifiers(
+      PersonalDetails(
         crn = id,
         name = FullName(forename = "John", middleNames = "H", surname = "Doe"),
         dateOfBirth = LocalDate.of(1990, 1, 1).toString(),
@@ -119,12 +115,12 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
           code = "PRAC01",
           email = "prob.officer@example.com",
         ),
-        probationDeliveryUnit = ProbationDeliveryUnit(code = "PDU1", description = "Central PDU"),
+        probationDeliveryUnit = CodeDescription(code = "PDU1", description = "Central PDU"),
       ),
     )
 
     wiremock.stubFor(
-      WireMock.get(WireMock.urlEqualTo("/case/$id/personal-details"))
+      WireMock.get(WireMock.urlPathTemplate("/case/$id/personal-details"))
         .willReturn(WireMock.okJson(body)),
     )
   }
