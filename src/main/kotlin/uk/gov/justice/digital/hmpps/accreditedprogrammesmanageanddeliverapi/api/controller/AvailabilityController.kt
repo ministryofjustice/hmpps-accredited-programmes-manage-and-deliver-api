@@ -107,9 +107,13 @@ class AvailabilityController(private val availabilityService: AvailabilityServic
       required = true,
     ) @RequestBody createAvailability: CreateAvailability,
   ): ResponseEntity<Availability> {
-    val availability = availabilityService.createAvailability(createAvailability)
+    val availabilityResponse = availabilityService.createAvailability(createAvailability)
 
-    return ResponseEntity.status(HttpStatus.CREATED).body(availability)
+    if (availabilityResponse.second) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).body(availabilityResponse.first)
+    }
+
+    return ResponseEntity.status(HttpStatus.CREATED).body(availabilityResponse.first)
   }
 
   @Operation(
