@@ -6,7 +6,7 @@ services:
       - hmpps
     depends_on:
       - auth-db
-    container_name: hmpps-auth
+    container_name: hmpps-auth-api
     ports:
       - "8090:8080"
     healthcheck:
@@ -54,7 +54,7 @@ services:
     image: localstack/localstack:3
     networks:
       - hmpps
-    container_name: hmpps-mandd-localstack
+    container_name: hmpps-mandd-localstack-api
     ports:
       - "4566:4566"
       - 8999:8080

@@ -11,6 +11,7 @@ class ReferralEntityFactory {
   private val referralStatusHistoryEntityFactory = ReferralStatusHistoryEntityFactory()
   private var id: UUID? = null
   private var personName: String? = randomSentence(wordRange = 1..3)
+  private var interventionName: String? = "Building Choices"
   private var crn: String? = randomUppercaseString(6)
   private var createdAt: LocalDateTime = LocalDateTime.now()
   private var statusHistories: MutableList<ReferralStatusHistoryEntity> =
@@ -30,6 +31,7 @@ class ReferralEntityFactory {
     personName = this.personName!!,
     crn = this.crn!!,
     createdAt = this.createdAt,
+    interventionName = this.interventionName,
     statusHistories = this.statusHistories,
     setting = setting,
   )

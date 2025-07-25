@@ -4,9 +4,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.FindAndReferInterventionApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.FindAndReferReferralDetails
@@ -32,7 +30,7 @@ class ReferralService(
 
   fun getReferralDetails(referralId: UUID): ReferralDetails? {
     val referral = referralRepository.findByIdOrNull(referralId) ?: return null
-    val personalDetails = serviceUserService.getServiceUserByIdentifier(referral.crn)
+    val personalDetails = serviceUserService.getPersonalDetailsByIdentifier(referral.crn)
     return ReferralDetails.toModel(referral, personalDetails)
   }
 
@@ -60,6 +58,4 @@ class ReferralService(
     )
     referralEntity.statusHistories.add(statusHistoryEntity)
   }
-
-  fun getReferralById(id: UUID): Referral? = referralRepository.findByIdOrNull(id)?.toApi()
 }

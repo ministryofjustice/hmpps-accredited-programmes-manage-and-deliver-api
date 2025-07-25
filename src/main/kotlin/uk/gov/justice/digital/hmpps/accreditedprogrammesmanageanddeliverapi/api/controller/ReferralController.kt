@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
@@ -27,13 +26,13 @@ class ReferralController(
   @Operation(
     tags = ["Referrals"],
     summary = "Retrieve a referral",
-    operationId = "getReferralById",
+    operationId = "getReferralDetailsById",
     description = """""",
     responses = [
       ApiResponse(
         responseCode = "200",
         description = "Information about the referral",
-        content = [Content(schema = Schema(implementation = Referral::class))],
+        content = [Content(schema = Schema(implementation = ReferralDetails::class))],
       ),
       ApiResponse(
         responseCode = "401",
