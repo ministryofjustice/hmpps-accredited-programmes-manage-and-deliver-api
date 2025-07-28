@@ -47,5 +47,5 @@ class AvailabilityEntity(
 
   @OneToMany(mappedBy = "availability", cascade = [CascadeType.ALL], orphanRemoval = true, fetch = FetchType.EAGER)
   @Fetch(SUBSELECT)
-  var slots: MutableSet<SlotEntity> = mutableSetOf(),
+  var slots: MutableSet<AvailabilitySlotEntity> = mutableSetOf(),
 )

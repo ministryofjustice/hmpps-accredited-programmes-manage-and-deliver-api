@@ -6,7 +6,7 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilitySlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
@@ -38,10 +38,21 @@ class AvailabilityService(
     return availabilityEntity.toModel()
   }
 
-  fun createAvailability(availability: CreateAvailability): Availability {
-    val availabilityEntity = availability.toEntity(getAuthenticatedReferrerUser())
+  /**
+   *  This method returns a pair, so that the controller can display if there is a duplicate availability.
+   *  true - would mean that there is a duplicate and the controller would send a 409 (conflict)
+   *  false - availability created
+   */
+  fun createAvailability(createAvailability: CreateAvailability): Pair<Availability, Boolean> {
+    val existingAvailability = availabilityRepository.findByReferralId(createAvailability.referralId)
+    if (existingAvailability != null) {
+      log.info("Availability already exists for referralId ${createAvailability.referralId}")
+      return Pair(existingAvailability.toModel(), true)
+    }
+
+    val availabilityEntity = createAvailability.toEntity(getAuthenticatedReferrerUser())
     val savedAvailabilityEntity = availabilityRepository.save(availabilityEntity)
-    return savedAvailabilityEntity.toModel()
+    return Pair(savedAvailabilityEntity.toModel(), false)
   }
 
   private fun getAuthenticatedReferrerUser() = SecurityContextHolder.getContext().authentication?.name
@@ -53,8 +64,8 @@ class AvailabilityService(
       ?: throw NotFoundException("No availability with id ${updateAvailability.availabilityId}")
 
     availabilityEntity.referralId = updateAvailability.referralId
-    availabilityEntity.startDate = updateAvailability.startDate?.toLocalDate() ?: LocalDate.now()
-    availabilityEntity.endDate = updateAvailability.endDate?.toLocalDate()
+    availabilityEntity.startDate = updateAvailability.startDate ?: LocalDate.now()
+    availabilityEntity.endDate = updateAvailability.endDate
     availabilityEntity.otherDetails = updateAvailability.otherDetails
     availabilityEntity.lastModifiedAt = LocalDateTime.now()
     availabilityEntity.lastModifiedBy = getAuthenticatedReferrerUser()
@@ -66,12 +77,12 @@ class AvailabilityService(
       .forEach { daily ->
         val dayOfWeek = daily.label.toDayOfWeek()
         daily.slots.filter { it.value }.forEach { slot ->
-          val slotEntity = SlotEntity(
+          val availabilitySlotEntity = AvailabilitySlotEntity(
             dayOfWeek = dayOfWeek,
             slotName = SlotName.valueOf(slot.label.uppercase()),
             availability = availabilityEntity,
           )
-          availabilityEntity.slots.add(slotEntity)
+          availabilityEntity.slots.add(availabilitySlotEntity)
         }
       }
 

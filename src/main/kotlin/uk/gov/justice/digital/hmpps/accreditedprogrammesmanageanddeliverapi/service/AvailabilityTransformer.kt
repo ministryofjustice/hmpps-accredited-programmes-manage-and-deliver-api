@@ -2,7 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.springframework.security.core.context.SecurityContextHolder
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilitySlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
@@ -16,8 +16,8 @@ import java.time.LocalDateTime
 fun CreateAvailability.toEntity(lastModifiedBy: String = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN"): AvailabilityEntity {
   val availabilityEntity = AvailabilityEntity(
     referralId = this.referralId,
-    startDate = this.startDate?.toLocalDate() ?: LocalDate.now(),
-    endDate = this.endDate?.toLocalDate(),
+    startDate = this.startDate ?: LocalDate.now(),
+    endDate = this.endDate,
     otherDetails = this.otherDetails,
     lastModifiedBy = lastModifiedBy,
     lastModifiedAt = LocalDateTime.now(),
@@ -33,7 +33,7 @@ fun CreateAvailability.toEntity(lastModifiedBy: String = SecurityContextHolder.g
           it.displayName.equals(slot.label, ignoreCase = true)
         } ?: throw IllegalArgumentException("Invalid slot label: ${slot.label}")
 
-        SlotEntity(
+        AvailabilitySlotEntity(
           dayOfWeek = dayOfWeek,
           slotName = slotName,
           availability = availabilityEntity,
@@ -46,7 +46,7 @@ fun CreateAvailability.toEntity(lastModifiedBy: String = SecurityContextHolder.g
 }
 
 fun AvailabilityEntity.toModel(): Availability {
-  val groupedByDay: Map<DayOfWeek, List<SlotEntity>> = this.slots.groupBy { it.dayOfWeek }
+  val groupedByDay: Map<DayOfWeek, List<AvailabilitySlotEntity>> = this.slots.groupBy { it.dayOfWeek }
 
   val dailyAvailabilities = DayOfWeek.entries.map { dayOfWeek ->
     val slotsForDay = groupedByDay[dayOfWeek] ?: emptyList()
