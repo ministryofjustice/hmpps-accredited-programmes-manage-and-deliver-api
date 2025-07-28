@@ -15,8 +15,8 @@ import java.time.DayOfWeek
 import java.util.UUID
 
 @Entity
-@Table(name = "slot")
-class SlotEntity(
+@Table(name = "availability_slot")
+class AvailabilitySlotEntity(
   @Id
   @GeneratedValue
   var id: UUID? = null,

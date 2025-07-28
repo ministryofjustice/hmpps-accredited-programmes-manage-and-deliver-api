@@ -18,7 +18,7 @@ class TestDataCleaner(
       createNativeQuery("TRUNCATE TABLE referral_status_history CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE referral CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE availability CASCADE").executeUpdate()
-      createNativeQuery("TRUNCATE TABLE slot CASCADE").executeUpdate()
+      createNativeQuery("TRUNCATE TABLE availability_slot CASCADE").executeUpdate()
       // Add additional tables here as the data model grows
     }
   }

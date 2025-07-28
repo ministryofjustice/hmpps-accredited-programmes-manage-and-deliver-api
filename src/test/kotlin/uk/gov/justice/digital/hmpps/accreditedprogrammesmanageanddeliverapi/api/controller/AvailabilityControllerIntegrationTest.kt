@@ -127,7 +127,7 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
       body = buildCreateAvailabilityModel(
         referralId = referralEntity.id!!,
         startDate = startDate,
-        endDate = endDate,
+        endDate = null,
         otherDetails = otherDetails,
       ),
       expectedResponseStatus = HttpStatus.CREATED.value(),
@@ -136,7 +136,7 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
     assertThat(availability.id.toString()).isNotNull
     assertThat(availability.referralId.toString()).isEqualTo(referralEntity.id.toString())
     assertThat(availability.startDate?.toLocalDate()).isEqualTo(startDate)
-    assertThat(availability.endDate?.toLocalDate()).isEqualTo(endDate)
+    assertNull(availability.endDate)
     assertThat(availability.otherDetails).isEqualTo(otherDetails)
     assertThat(availability.lastModifiedBy).isEqualTo(lastModifiedBy)
     assertThat(availability.lastModifiedAt).isNotNull
@@ -193,7 +193,7 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
     val referralEntity = ReferralEntityFactory().produce()
     testDataGenerator.createReferral(referralEntity)
 
-    val createAvailability = createAvailability(referralEntity, startDate, endDate, otherDetails)
+    val createAvailability = createAvailability(referralEntity, startDate, endDate, otherDetails, HttpStatus.CREATED.value())
 
     val availability = performRequestAndExpectStatusWithBody(
       httpMethod = HttpMethod.PUT,
@@ -260,7 +260,7 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
     availabilityId: UUID,
     referralId: UUID,
     startDate: LocalDate,
-    endDate: LocalDate,
+    endDate: LocalDate? = null,
     otherDetails: String?,
     selectedSlots: Map<String, Set<String>>,
   ): UpdateAvailability = UpdateAvailability(
@@ -309,7 +309,7 @@ private fun AvailabilityControllerIntegrationTest.createAvailability(
 fun buildCreateAvailabilityModel(
   referralId: UUID = UUID.randomUUID(),
   startDate: LocalDate? = LocalDate.now().minusDays(1),
-  endDate: LocalDate? = LocalDate.now().plusDays(10),
+  endDate: LocalDate?,
   otherDetails: String? = "Available remotely",
   selectedSlots: Map<String, Set<String>> = mapOf(
     AvailabilityOption.MONDAY.displayName to setOf(SlotName.DAYTIME.displayName, SlotName.EVENING.displayName),

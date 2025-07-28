@@ -1,7 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.factory
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilitySlotEntity
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -14,7 +14,7 @@ class AvailabilityEntityFactory {
   private var otherDetails: String? = "Some availability notes"
   private var lastModifiedBy: String = "system_user"
   private var lastModifiedAt: LocalDateTime = LocalDateTime.now()
-  private var slots: MutableSet<SlotEntity> = mutableSetOf()
+  private var slots: MutableSet<AvailabilitySlotEntity> = mutableSetOf()
 
   fun withId(id: UUID?) = apply { this.id = id }
 
@@ -30,7 +30,7 @@ class AvailabilityEntityFactory {
 
   fun withLastModifiedAt(timestamp: LocalDateTime) = apply { this.lastModifiedAt = timestamp }
 
-  fun withSlots(slots: MutableSet<SlotEntity>) = apply { this.slots = slots }
+  fun withSlots(slots: MutableSet<AvailabilitySlotEntity>) = apply { this.slots = slots }
 
   fun produce(): AvailabilityEntity {
     val availability = AvailabilityEntity(

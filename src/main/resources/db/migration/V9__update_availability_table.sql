@@ -15,7 +15,7 @@ CREATE TABLE availability
 );
 
 
-CREATE TABLE slot
+CREATE TABLE availability_slot
 (
     id              UUID NOT NULL PRIMARY KEY,
     day_of_week     VARCHAR(20) NOT NULL,

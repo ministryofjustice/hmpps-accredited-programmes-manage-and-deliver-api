@@ -6,7 +6,7 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilitySlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
@@ -38,6 +38,11 @@ class AvailabilityService(
     return availabilityEntity.toModel()
   }
 
+  /**
+   *  This method returns a pair, so that the controller can display if there is a duplicate availability.
+   *  true - would mean that there is a duplicate and the controller would send a 409 (conflict)
+   *  false - availability created
+   */
   fun createAvailability(createAvailability: CreateAvailability): Pair<Availability, Boolean> {
     val existingAvailability = availabilityRepository.findByReferralId(createAvailability.referralId)
     if (existingAvailability != null) {
@@ -72,12 +77,12 @@ class AvailabilityService(
       .forEach { daily ->
         val dayOfWeek = daily.label.toDayOfWeek()
         daily.slots.filter { it.value }.forEach { slot ->
-          val slotEntity = SlotEntity(
+          val availabilitySlotEntity = AvailabilitySlotEntity(
             dayOfWeek = dayOfWeek,
             slotName = SlotName.valueOf(slot.label.uppercase()),
             availability = availabilityEntity,
           )
-          availabilityEntity.slots.add(slotEntity)
+          availabilityEntity.slots.add(availabilitySlotEntity)
         }
       }
 
