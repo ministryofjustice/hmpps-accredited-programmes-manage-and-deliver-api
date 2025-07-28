@@ -70,7 +70,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       Assertions.assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
       Assertions.assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
       Assertions.assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
-      Assertions.assertThat(response.createdAt).isEqualToIgnoringNanos(createdAt)
+      Assertions.assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
       Assertions.assertThat(response.probationPractitionerName)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner.name.getNameAsString())
       Assertions.assertThat(response.probationPractitionerEmail)

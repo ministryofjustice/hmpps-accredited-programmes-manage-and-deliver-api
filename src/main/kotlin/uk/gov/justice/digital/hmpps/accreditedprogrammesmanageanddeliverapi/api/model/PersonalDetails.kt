@@ -72,6 +72,15 @@ data class PersonalDetails(
   )
   @get:JsonProperty("probationDeliveryUnit", required = true)
   val probationDeliveryUnit: String,
+
+  @Schema(
+    example = "1 August 2025",
+    required = true,
+    description = "The date this data was fetched from nDelius.",
+  )
+  @get:JsonProperty("dateRetrieved", required = true)
+  @JsonFormat(pattern = "d MMMM yyyy")
+  val dateRetrieved: LocalDate,
 )
 
 fun NDeliusPersonalDetails.toModel(setting: String) = PersonalDetails(
@@ -83,4 +92,5 @@ fun NDeliusPersonalDetails.toModel(setting: String) = PersonalDetails(
   gender = sex.description,
   setting = setting,
   probationDeliveryUnit = probationDeliveryUnit.description,
+  dateRetrieved = LocalDate.now(),
 )

@@ -53,15 +53,10 @@
         "headers": {
           "Content-Type": "application/json"
         },
-        "jsonBody": {
-          "access": [
-            {
-              "crn": "X718255",
-              "userExcluded": false,
-              "userRestricted": false
-            }
-          ]
-        }
+        "body": "{\"access\": [{{#each (jsonPath request.body '$[*]') as |crn|}}{{#unless @first}},{{/unless}}{\"crn\": \"{{crn}}\", \"userExcluded\": false, \"userRestricted\": false}{{/each}}]}",
+        "transformers": [
+          "response-template"
+        ]
       }
     }
   ]

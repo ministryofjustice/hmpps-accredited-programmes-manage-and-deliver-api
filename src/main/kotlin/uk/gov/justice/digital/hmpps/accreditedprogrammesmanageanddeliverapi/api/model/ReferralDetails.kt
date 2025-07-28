@@ -7,7 +7,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.util.UUID
 
 data class ReferralDetails(
@@ -44,13 +43,13 @@ data class ReferralDetails(
   val interventionName: String,
 
   @Schema(
-    example = "2025-06-14 12:56:23",
+    example = "11 June 2023",
     required = true,
     description = "Timestamp of when this referral was created.",
   )
-  @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+  @JsonFormat(pattern = "d MMMM yyyy")
   @get:JsonProperty("createdAt", required = true)
-  val createdAt: LocalDateTime,
+  val createdAt: LocalDate,
 
   @Schema(
     example = "15 March 1985",
@@ -84,7 +83,7 @@ data class ReferralDetails(
       crn = referral.crn,
       personName = nDeliusPersonalDetails.name.getNameAsString(),
       interventionName = referral.interventionName ?: "UNKNOWN_INTERVENTION",
-      createdAt = referral.createdAt,
+      createdAt = referral.createdAt.toLocalDate(),
       dateOfBirth = LocalDate.parse(nDeliusPersonalDetails.dateOfBirth),
       probationPractitionerName = nDeliusPersonalDetails.probationPractitioner.name.getNameAsString(),
       probationPractitionerEmail = nDeliusPersonalDetails.probationPractitioner.email,
