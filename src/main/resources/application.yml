@@ -20,7 +20,7 @@ spring:
         registration:
           manage-and-deliver-api-client:
             provider: hmpps-auth
-            client-id: hmpps-accredited-programmes-manage-and-deliver-api-client-1
+            client-id: hmpps-accredited-programmes-manage-and-deliver-ui-client-1
             client-secret: clientsecret
             authorization-grant-type: client_credentials
         provider:

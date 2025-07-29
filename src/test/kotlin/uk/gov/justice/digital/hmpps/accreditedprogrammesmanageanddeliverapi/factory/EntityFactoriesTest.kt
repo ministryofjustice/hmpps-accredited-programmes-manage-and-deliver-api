@@ -62,7 +62,7 @@ class EntityFactoriesTest {
     assertThat(referral.personName).isNotNull()
     assertThat(referral.crn).isNotNull()
     assertThat(referral.createdAt).isNotNull()
-    assertThat(referral.statusHistories).isEmpty()
+    assertThat(referral.statusHistories).isNotEmpty
   }
 
   @Test
@@ -70,7 +70,6 @@ class EntityFactoriesTest {
     val id = UUID.randomUUID()
     val personName = "Custom Person"
     val crn = "CUSTOM123"
-    val cohort = "CUSTOM-COHORT"
     val createdAt = LocalDateTime.of(2023, 1, 1, 12, 0)
     val statusHistory = ReferralStatusHistoryEntity(
       status = "Custom Status",
@@ -84,7 +83,7 @@ class EntityFactoriesTest {
       .withPersonName(personName)
       .withCrn(crn)
       .withCreatedAt(createdAt)
-      .addStatusHistory(statusHistory)
+      .withStatusHistories(mutableListOf(statusHistory))
       .produce()
 
     assertThat(referral.id).isEqualTo(id)
@@ -135,7 +134,7 @@ class EntityFactoriesTest {
 
   @Test
   fun `ReferralDetailsFactory should create entity with default values`() {
-    val referralDetails = ReferralDetailsFactory().produce()
+    val referralDetails = FindAndReferReferralDetailsFactory().produce()
 
     assertThat(referralDetails.interventionType).isNotNull()
     assertThat(referralDetails.interventionName).isNotNull()
@@ -154,7 +153,7 @@ class EntityFactoriesTest {
     val referralId = UUID.randomUUID()
     val setting = "CUSTOM_SETTING"
 
-    val referralDetails = ReferralDetailsFactory()
+    val referralDetails = FindAndReferReferralDetailsFactory()
       .withInterventionType(interventionType)
       .withInterventionName(interventionName)
       .withPersonReference(personReference)

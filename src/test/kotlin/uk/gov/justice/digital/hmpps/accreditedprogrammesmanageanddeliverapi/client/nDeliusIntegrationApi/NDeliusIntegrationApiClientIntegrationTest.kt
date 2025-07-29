@@ -12,11 +12,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.OffenderFullName
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.OffenderIdentifiers
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationDeliveryUnit
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 
@@ -29,19 +28,19 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
   fun `should return offender identifiers for known CRN`() {
     stubAuthTokenEndpoint()
     val crn = "X123456"
-    val identifiers = OffenderIdentifiers(
+    val identifiers = NDeliusPersonalDetails(
       crn = crn,
-      name = OffenderFullName(forename = "John", middleNames = "William", surname = "Doe"),
+      name = FullName(forename = "John", middleNames = "William", surname = "Doe"),
       dateOfBirth = "1980-01-01",
       age = "45",
       sex = CodeDescription(code = "M", description = "Male"),
       ethnicity = CodeDescription(code = "W1", description = "White"),
       probationPractitioner = ProbationPractitioner(
-        name = OffenderFullName("Sam", "A", "Smith"),
+        name = FullName("Sam", "A", "Smith"),
         code = "X321",
         email = "sam.smith@probation.gov.uk",
       ),
-      probationDeliveryUnit = ProbationDeliveryUnit(code = "PDU123", description = "North London"),
+      probationDeliveryUnit = CodeDescription(code = "PDU123", description = "North London"),
     )
 
     wiremock.stubFor(
@@ -54,10 +53,10 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
         ),
     )
 
-    when (val response = nDeliusIntegrationApiClient.getOffenderIdentifiers(crn)) {
+    when (val response = nDeliusIntegrationApiClient.getPersonalDetails(crn)) {
       is ClientResult.Success<*> -> {
         assertThat(response.status).isEqualTo(HttpStatus.OK)
-        val body = response.body as OffenderIdentifiers
+        val body = response.body as NDeliusPersonalDetails
         assertThat(body.crn).isEqualTo("X123456")
         assertThat(body.name.forename).isEqualTo("John")
         assertThat(body.name.middleNames).isEqualTo("William")
@@ -83,7 +82,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
         .willReturn(aResponse().withStatus(404)),
     )
 
-    when (val response = nDeliusIntegrationApiClient.getOffenderIdentifiers(crn)) {
+    when (val response = nDeliusIntegrationApiClient.getPersonalDetails(crn)) {
       is ClientResult.Failure.StatusCode<*> -> assertThat(response.status).isEqualTo(HttpStatus.NOT_FOUND)
       else -> fail("Unexpected result: ${response::class.simpleName}")
     }
@@ -103,7 +102,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
     )
 
     wiremock.stubFor(
-      post(urlEqualTo("/users/$username/access"))
+      post(urlEqualTo("/user/$username/access"))
         .withRequestBody(equalToJson(objectMapper.writeValueAsString(listOf(crn))))
         .willReturn(
           aResponse()
@@ -139,7 +138,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
     val crn = "X987654"
 
     wiremock.stubFor(
-      post(urlEqualTo("/users/$username/access"))
+      post(urlEqualTo("/user/$username/access"))
         .withRequestBody(equalToJson(objectMapper.writeValueAsString(listOf(crn))))
         .willReturn(aResponse().withStatus(403)),
     )
