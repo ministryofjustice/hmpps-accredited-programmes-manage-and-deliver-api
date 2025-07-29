@@ -86,7 +86,6 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
       val fullName = FullName(
         forename = "Jim",
-        middleNames = null,
         surname = "Halbert",
       )
 

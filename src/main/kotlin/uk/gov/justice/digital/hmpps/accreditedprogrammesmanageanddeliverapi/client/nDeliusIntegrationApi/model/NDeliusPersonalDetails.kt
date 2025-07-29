@@ -1,5 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+
 data class NDeliusPersonalDetails(
   val crn: String,
   val name: FullName,
@@ -11,9 +13,10 @@ data class NDeliusPersonalDetails(
   val probationDeliveryUnit: CodeDescription,
 )
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class FullName(
   val forename: String,
-  val middleNames: String?,
+  val middleNames: String? = null,
   val surname: String,
 )
 

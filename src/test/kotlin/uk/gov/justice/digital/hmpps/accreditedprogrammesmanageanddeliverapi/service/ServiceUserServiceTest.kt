@@ -69,7 +69,6 @@ class ServiceUserServiceTest {
   fun `getServiceUserByIdentifier should return service user when client call is successful and missing middle name`() {
     val fullName = FullName(
       forename = "Jim",
-      middleNames = null,
       surname = "Halbert",
     )
     val identifier = "X123456"
