@@ -26,10 +26,16 @@ import org.testcontainers.containers.localstack.LocalStackContainer.Service
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
 import software.amazon.awssdk.services.sqs.model.PurgeQueueRequest
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.DomainEventsMessage
+import uk.gov.justice.hmpps.sqs.HmppsQueue
 import uk.gov.justice.hmpps.sqs.HmppsQueueService
 import uk.gov.justice.hmpps.sqs.MissingQueueException
+import uk.gov.justice.hmpps.sqs.MissingTopicException
+import uk.gov.justice.hmpps.sqs.countAllMessagesOnQueue
+import uk.gov.justice.hmpps.sqs.publish
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 
 @Testcontainers
@@ -57,6 +63,19 @@ abstract class IntegrationTestBase {
   }
   val domainEventQueueDlqClient by lazy { domainEventQueue.sqsDlqClient }
   val domainEventQueueClient by lazy { domainEventQueue.sqsClient }
+
+  val domainEventsTopic by lazy {
+    hmppsQueueService.findByTopicId("hmppsdomaineventstopic")
+      ?: throw MissingTopicException("hmppsdomaineventstopic not found")
+  }
+
+  internal fun sendDomainEvent(event: DomainEventsMessage) {
+    domainEventsTopic.publish(event.eventType, objectMapper.writeValueAsString(event))
+  }
+
+  internal fun HmppsQueue.countAllMessagesOnQueue() = sqsClient.countAllMessagesOnQueue(queueUrl).get()
+
+  internal fun HmppsQueue.receiveMessageOnQueue() = sqsClient.receiveMessage(ReceiveMessageRequest.builder().queueUrl(queueUrl).build()).get().messages().single()
 
   @BeforeEach
   fun beforeEach() {

@@ -14,7 +14,7 @@ import java.util.UUID
 
 @Entity
 @Table(name = "message_history")
-open class MessageHistoryEntity(
+class MessageHistoryEntity(
 
   @Id
   @GeneratedValue
@@ -25,7 +25,7 @@ open class MessageHistoryEntity(
   var eventType: String,
 
   @Column(name = "detail_url")
-  var detailUrl: String,
+  var detailUrl: String?,
 
   @Column(name = "description")
   var description: String? = null,
