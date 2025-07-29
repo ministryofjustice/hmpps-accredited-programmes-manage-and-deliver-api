@@ -81,8 +81,6 @@ jobs:
     # needs: 
     #   - deploy_preprod
     runs-on: ubuntu-latest
-    with: 
-      environment: 'prod'
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -103,7 +101,7 @@ jobs:
           PR_TITLE=$(echo "$PR_INFO" | jq -r '.title')
 
           # The author is the author of the commit 
-          PR_AUTHOR={{ github.actor}}
+          PR_AUTHOR="${{ github.actor}}"
 
           echo "pr_author=$PR_AUTHOR" >> $GITHUB_OUTPUT
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
@@ -114,7 +112,7 @@ jobs:
         id: slack-mapping
         run: |
           # Parse the GitHub to Slack mapping (expecting JSON format)
-          GITHUB_USERNAME="${{ steps.pr-info.outputs.pr_author }}"
+          GITHUB_USERNAME="${{ github.actor }}"
           USER_MAPPING='${{ vars.GH_TO_SLACK_MAPPING }}'
           
           if [[ "$USER_MAPPING" == "" ]]; then
@@ -125,8 +123,8 @@ jobs:
           fi
           
           echo "slack_user_id=$SLACK_USER_ID" >> $GITHUB_OUTPUT
-          echo "github_username=$GITHUB_USERNAME" >> $GITHUB_OUTPUT
       - name: Generate the Approval link 
+        id: approval-link
         run: |
           # Create link to the workflow that needs approval 
           REPO_URL="https://github.com/${{ github.repository }}"
@@ -139,11 +137,11 @@ jobs:
         run: |
           # Prepare the JSON payload
           PAYLOAD=$(jq -n \
-            --arg link "${{ steps.approval-link.outputs.approval_url }}" \
+            --arg link "${{ steps.approval-link.outputs.approval_link }}" \
             --arg slack_user "${{ steps.slack-mapping.outputs.slack_user_id }}" \
             --arg pr_name "${{ steps.pr-info.outputs.pr_title }}" \
             --arg pr_number "${{ steps.pr-info.outputs.pr_number }}" \
-            --arg github_user "${{ steps.slack-mapping.outputs.github_username }}" \
+            --arg github_user "${{ github.actor }}" \
             --arg repo "${{ github.repository }}" \
             '{
               link_to_approval_step: $link,
