@@ -6,19 +6,20 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
+import org.springframework.web.server.ResponseStatusException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toModel
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ServiceUserService
+import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.util.UUID
 
 @RestController
@@ -63,7 +64,7 @@ class ReferralController(
     @PathVariable("id") id: UUID,
   ): ResponseEntity<ReferralDetails> = referralService.getReferralDetails(id)?.let {
     ResponseEntity.ok(it)
-  } ?: throw NotFoundException("Referral with id $id not found")
+  } ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Referral with id $id not found")
 
   @Operation(
     tags = ["Referrals"],
@@ -99,9 +100,15 @@ class ReferralController(
     @Parameter(description = "The id (UUID) of a referral", required = true)
     @PathVariable("id") id: UUID,
   ): ResponseEntity<PersonalDetails> {
-    val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
+    val referral = referralService.getReferralById(id) ?: throw ResponseStatusException(
+      HttpStatus.NOT_FOUND,
+      "Referral with id $id not found",
+    )
     return serviceUserService.getPersonalDetailsByIdentifier(referral.crn).let {
       ResponseEntity.ok(it.toModel(referral.setting))
-    } ?: throw NotFoundException("Personal details not found for crn ${referral.crn} not found")
+    } ?: throw ResponseStatusException(
+      HttpStatus.NOT_FOUND,
+      "Personal details not found for crn ${referral.crn} not found",
+    )
   }
 }

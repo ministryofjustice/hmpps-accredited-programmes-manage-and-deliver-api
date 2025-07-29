@@ -7,23 +7,21 @@ import org.assertj.core.api.Assertions.assertThat
 import org.awaitility.kotlin.await
 import org.awaitility.kotlin.matches
 import org.awaitility.kotlin.untilCallTo
+import org.awaitility.kotlin.withPollDelay
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import software.amazon.awssdk.services.sqs.model.SendMessageRequest
-import software.amazon.awssdk.services.sqs.model.SendMessageResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.FindAndReferReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.DomainEventsMessageFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.DomainEventsMessage
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.SQSMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.hmpps.sqs.countMessagesOnQueue
-import java.time.temporal.ChronoUnit
+import java.time.Duration.ofSeconds
+import java.time.ZoneOffset
 import java.util.UUID
 
 class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
@@ -74,20 +72,12 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     )
   }
 
-  fun sendDomainEvent(message: DomainEventsMessage, queueUrl: String = domainEventQueue.queueUrl): SendMessageResponse = domainEventQueueClient.sendMessage(
-    SendMessageRequest.builder()
-      .queueUrl(queueUrl)
-      .messageBody(
-        objectMapper.writeValueAsString(SQSMessage(objectMapper.writeValueAsString(message))),
-      ).build(),
-  ).get()
-
   @Test
   fun `should create message history on receipt of community-referral created message`() {
     // Given
     val eventType = "interventions.community-referral.created"
     val domainEventsMessage = DomainEventsMessageFactory()
-      .withDetailUrl("http://find-and-refer/referral/$sourceReferralId")
+      .withDetailUrl("/referral/$sourceReferralId")
       .withEventType(eventType)
       .produce()
 
@@ -95,6 +85,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     sendDomainEvent(domainEventsMessage)
 
     // Then
+    await withPollDelay ofSeconds(1) untilCallTo { domainEventQueue.countAllMessagesOnQueue() } matches { it == 0 }
     await untilCallTo {
       messageHistoryRepository.findAll().firstOrNull()
     } matches { it != null }
@@ -104,10 +95,8 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.eventType).isEqualTo(eventType)
       assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
       assertThat(it.description).isEqualTo(domainEventsMessage.description)
-      assertThat(it.occurredAt?.truncatedTo(ChronoUnit.SECONDS)).isEqualTo(
-        domainEventsMessage.occurredAt.truncatedTo(
-          ChronoUnit.SECONDS,
-        ),
+      assertThat(it.occurredAt).isEqualTo(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
       )
       assertThat(it.message).isEqualTo(
         objectMapper.writeValueAsString(domainEventsMessage),
@@ -126,7 +115,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     sendDomainEvent(domainEventsMessage)
 
     // Then
-    await untilCallTo {
+    await withPollDelay ofSeconds(1) untilCallTo {
       domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
     } matches { it == 0 }
 
@@ -148,10 +137,8 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.eventType).isEqualTo(domainEventsMessage.eventType)
       assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
       assertThat(it.description).isEqualTo(domainEventsMessage.description)
-      assertThat(it.occurredAt?.truncatedTo(ChronoUnit.SECONDS)).isEqualTo(
-        domainEventsMessage.occurredAt.truncatedTo(
-          ChronoUnit.SECONDS,
-        ),
+      assertThat(it.occurredAt).isEqualTo(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
       )
       assertThat(it.message).isEqualTo(
         objectMapper.writeValueAsString(domainEventsMessage),
@@ -169,7 +156,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     sendDomainEvent(domainEventsMessage)
 
     // Then
-    await untilCallTo {
+    await withPollDelay ofSeconds(1) untilCallTo {
       try {
         throw IllegalStateException("Unexpected event type received: unknown.event.type.created")
       } catch (e: IllegalStateException) {

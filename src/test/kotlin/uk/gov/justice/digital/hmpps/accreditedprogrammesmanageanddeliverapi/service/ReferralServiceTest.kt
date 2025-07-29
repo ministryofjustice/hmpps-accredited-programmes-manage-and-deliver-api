@@ -13,11 +13,11 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.argThat
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
+import org.springframework.web.server.ResponseStatusException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.FindAndReferInterventionApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.toReferralEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
@@ -76,7 +76,7 @@ class ReferralServiceTest {
     )
 
     // When & Then
-    assertThrows<NotFoundException> { referralService.getFindAndReferReferralDetails(referralId) }
+    assertThrows<ResponseStatusException> { referralService.getFindAndReferReferralDetails(referralId) }
     verify(findAndReferInterventionApiClient).getFindAndReferReferral(referralId)
   }
 

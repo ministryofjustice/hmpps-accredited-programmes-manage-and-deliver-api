@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.method.annotation.HandlerMethodValidationException
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import org.springframework.web.server.ResponseStatusException
+import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 @RestControllerAdvice
 class ApiExceptionHandler {
@@ -21,19 +21,14 @@ class ApiExceptionHandler {
     private val log = LoggerFactory.getLogger(this::class.java)
   }
 
-  @ExceptionHandler(NotFoundException::class)
-  fun handleNotFoundException(exception: NotFoundException): ResponseEntity<ErrorResponse> {
-    log.warn("Not found", exception)
-    return ResponseEntity
-      .status(NOT_FOUND)
-      .body(
-        ErrorResponse(
-          status = NOT_FOUND.value(),
-          userMessage = "Not Found: ${exception.message}",
-          developerMessage = exception.message,
-        ),
-      )
-  }
+  @ExceptionHandler(ResponseStatusException::class)
+  @ResponseStatus(NOT_FOUND)
+  fun handleResponseException(e: ResponseStatusException): ResponseEntity<ErrorResponse> = ResponseEntity.status(NOT_FOUND)
+    .body(
+      ErrorResponse(status = NOT_FOUND, userMessage = e.reason, developerMessage = e.message),
+    ).also {
+      log.error("Response Status exception: {}", e.message)
+    }
 
   @ExceptionHandler(MethodArgumentTypeMismatchException::class)
   @ResponseStatus(BAD_REQUEST)

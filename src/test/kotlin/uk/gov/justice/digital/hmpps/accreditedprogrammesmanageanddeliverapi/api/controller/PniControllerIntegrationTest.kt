@@ -7,12 +7,12 @@ import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.NeedLevel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.OverallIntensity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
+import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 class PniControllerIntegrationTest : IntegrationTestBase() {
 
@@ -56,15 +56,21 @@ class PniControllerIntegrationTest : IntegrationTestBase() {
     // Relationship Domain assertions
     assertThat(response.domainScores.relationshipDomainScore.overallRelationshipDomainLevel).isEqualTo(NeedLevel.HIGH_NEED)
     assertThat(response.domainScores.relationshipDomainScore.individualRelationshipScores.curRelCloseFamily).isEqualTo(0)
-    assertThat(response.domainScores.relationshipDomainScore.individualRelationshipScores.prevCloseRelationships).isEqualTo(0)
+    assertThat(response.domainScores.relationshipDomainScore.individualRelationshipScores.prevCloseRelationships).isEqualTo(
+      0,
+    )
     assertThat(response.domainScores.relationshipDomainScore.individualRelationshipScores.easilyInfluenced).isEqualTo(0)
-    assertThat(response.domainScores.relationshipDomainScore.individualRelationshipScores.aggressiveControllingBehaviour).isEqualTo(0)
+    assertThat(response.domainScores.relationshipDomainScore.individualRelationshipScores.aggressiveControllingBehaviour).isEqualTo(
+      0,
+    )
 
     // Self-Management Domain assertions
     assertThat(response.domainScores.selfManagementDomainScore.overallSelfManagementDomainLevel).isEqualTo(NeedLevel.HIGH_NEED)
     assertThat(response.domainScores.selfManagementDomainScore.individualSelfManagementScores.impulsivity).isEqualTo(0)
     assertThat(response.domainScores.selfManagementDomainScore.individualSelfManagementScores.temperControl).isEqualTo(0)
-    assertThat(response.domainScores.selfManagementDomainScore.individualSelfManagementScores.problemSolvingSkills).isEqualTo(0)
+    assertThat(response.domainScores.selfManagementDomainScore.individualSelfManagementScores.problemSolvingSkills).isEqualTo(
+      0,
+    )
     assertThat(response.domainScores.selfManagementDomainScore.individualSelfManagementScores.difficultiesCoping).isNull()
   }
 

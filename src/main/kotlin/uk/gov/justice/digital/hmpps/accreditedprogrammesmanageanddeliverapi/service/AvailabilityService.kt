@@ -3,9 +3,10 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.http.HttpStatus
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import org.springframework.web.server.ResponseStatusException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilitySlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
@@ -62,7 +63,10 @@ class AvailabilityService(
   @Transactional
   fun updateAvailability(updateAvailability: UpdateAvailability): Availability {
     val availabilityEntity = availabilityRepository.findByIdOrNull(updateAvailability.availabilityId)
-      ?: throw NotFoundException("No availability with id ${updateAvailability.availabilityId}")
+      ?: throw ResponseStatusException(
+        HttpStatus.NOT_FOUND,
+        "No availability with id ${updateAvailability.availabilityId}",
+      )
 
     availabilityEntity.referralId = updateAvailability.referralId
     availabilityEntity.startDate = updateAvailability.startDate?.toLocalDate() ?: LocalDate.now()

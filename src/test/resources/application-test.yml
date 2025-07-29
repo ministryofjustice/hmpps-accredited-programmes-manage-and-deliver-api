@@ -33,7 +33,6 @@ hmpps:
         subscribeTopicId: hmppsdomaineventstopic
         subscribeFilter: '{"eventType":[ "interventions.community-referral.created"] }'
         asyncQueueClient: true
-
     topics:
       hmppsdomaineventstopic:
         arn: arn:aws:sns:eu-west-2:000000000000:${random.uuid}
