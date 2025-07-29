@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.DayOfWeek
-import java.time.LocalDateTime
 import java.util.UUID
 
 data class Availability(
@@ -35,7 +34,7 @@ data class Availability(
 
   @get:JsonProperty("lastModifiedAt")
   @Schema(example = "2025-07-10T12:00:00", description = "Timestamp when last modified")
-  var lastModifiedAt: LocalDateTime? = null,
+  var lastModifiedAt: String? = null,
 
   @JsonProperty("availabilities")
   val availabilities: List<DailyAvailabilityModel>,

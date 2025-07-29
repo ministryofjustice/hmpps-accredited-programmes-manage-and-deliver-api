@@ -70,7 +70,7 @@ fun AvailabilityEntity.toModel(): Availability {
     endDate = this.endDate?.toString(),
     otherDetails = this.otherDetails,
     lastModifiedBy = this.lastModifiedBy,
-    lastModifiedAt = this.lastModifiedAt,
+    lastModifiedAt = this.lastModifiedAt.toString(),
     availabilities = dailyAvailabilities,
   )
 }

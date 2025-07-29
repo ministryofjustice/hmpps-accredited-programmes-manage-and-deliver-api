@@ -59,7 +59,7 @@ class AvailabilityServiceTest {
     assertThat(result.endDate).isEqualTo(availabilityEntity.endDate?.toString())
     assertThat(result.otherDetails).isEqualTo(availabilityEntity.otherDetails)
     assertThat(result.lastModifiedBy).isEqualTo(availabilityEntity.lastModifiedBy)
-    assertThat(result.lastModifiedAt).isEqualTo(availabilityEntity.lastModifiedAt)
+    assertThat(result.lastModifiedAt).isEqualTo(availabilityEntity.lastModifiedAt.toString())
     assertThat(result.availabilities).isEqualTo(defaultAvailability)
 
     verify { availabilityRepository.findByReferralId(referralId) }
