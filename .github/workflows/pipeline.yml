@@ -77,9 +77,9 @@ jobs:
       environment: 'preprod'
       app_version: '${{ needs.build.outputs.app_version }}'
   notify_for_prod_approval:
-    # TODO: Comment this out once the workflow has been manually tests
-    # needs: 
-    #   - deploy_preprod
+    needs: 
+      - build
+      - deploy_preprod
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
