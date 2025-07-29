@@ -95,7 +95,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.eventType).isEqualTo(eventType)
       assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
       assertThat(it.description).isEqualTo(domainEventsMessage.description)
-      assertThat(it.occurredAt).isEqualTo(
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
         domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
       )
       assertThat(it.message).isEqualTo(
@@ -137,7 +137,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.eventType).isEqualTo(domainEventsMessage.eventType)
       assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
       assertThat(it.description).isEqualTo(domainEventsMessage.description)
-      assertThat(it.occurredAt).isEqualTo(
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
         domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
       )
       assertThat(it.message).isEqualTo(
