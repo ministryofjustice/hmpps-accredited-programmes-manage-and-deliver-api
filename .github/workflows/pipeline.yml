@@ -127,9 +127,7 @@ jobs:
         id: approval-link
         run: |
           # Create link to the workflow that needs approval 
-          REPO_URL="https://github.com/${{ github.repository }}"
-          RUN_ID="${{ github.run_id }}"
-          APPROVAL_LINK="${REPO_URL}/actions/runs/${RUN_ID}"
+          APPROVAL_LINK="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
           echo "Approval Link: $APPROVAL_LINK"
           echo "approval_link=$APPROVAL_LINK" >> $GITHUB_OUTPUT
