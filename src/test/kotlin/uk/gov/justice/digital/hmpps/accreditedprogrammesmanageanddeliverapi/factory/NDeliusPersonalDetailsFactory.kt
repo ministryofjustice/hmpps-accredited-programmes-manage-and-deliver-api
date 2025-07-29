@@ -25,6 +25,7 @@ class NDeliusPersonalDetailsFactory {
 
   fun createCodeDescription(): CodeDescription = CodeDescription(randomUppercaseString(2), randomSentence())
   fun withDateOfBirth(dateOfBirth: LocalDate?) = apply { this.dateOfBirth = dateOfBirth.toString() }
+  fun withName(fullName: FullName) = apply { this.name = fullName }
 
   fun produce() = NDeliusPersonalDetails(
     name = this.name,

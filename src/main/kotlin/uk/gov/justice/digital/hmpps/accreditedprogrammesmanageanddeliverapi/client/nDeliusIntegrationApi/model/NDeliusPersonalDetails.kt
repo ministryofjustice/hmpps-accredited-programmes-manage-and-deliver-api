@@ -13,7 +13,7 @@ data class NDeliusPersonalDetails(
 
 data class FullName(
   val forename: String,
-  val middleNames: String,
+  val middleNames: String?,
   val surname: String,
 )
 
