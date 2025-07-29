@@ -15,6 +15,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.format.DateTimeParseException
 import java.util.UUID
 
 @Service
@@ -64,8 +65,8 @@ class AvailabilityService(
       ?: throw NotFoundException("No availability with id ${updateAvailability.availabilityId}")
 
     availabilityEntity.referralId = updateAvailability.referralId
-    availabilityEntity.startDate = updateAvailability.startDate ?: LocalDate.now()
-    availabilityEntity.endDate = updateAvailability.endDate
+    availabilityEntity.startDate = updateAvailability.startDate?.toLocalDate() ?: LocalDate.now()
+    availabilityEntity.endDate = updateAvailability.endDate?.toLocalDate()
     availabilityEntity.otherDetails = updateAvailability.otherDetails
     availabilityEntity.lastModifiedAt = LocalDateTime.now()
     availabilityEntity.lastModifiedBy = getAuthenticatedReferrerUser()
@@ -88,5 +89,13 @@ class AvailabilityService(
 
     val updateAvailability = availabilityRepository.save(availabilityEntity)
     return updateAvailability.toModel()
+  }
+}
+
+fun String.toLocalDate(): LocalDate {
+  try {
+    return LocalDate.parse(this)
+  } catch (e: DateTimeParseException) {
+    throw IllegalArgumentException("Invalid date: $this")
   }
 }

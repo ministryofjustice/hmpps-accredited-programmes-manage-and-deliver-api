@@ -1,17 +1,17 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model
 
-data class OffenderIdentifiers(
+data class NDeliusPersonalDetails(
   val crn: String,
-  val name: OffenderFullName,
+  val name: FullName,
   val dateOfBirth: String,
   val age: String,
   val sex: CodeDescription,
   val ethnicity: CodeDescription,
   val probationPractitioner: ProbationPractitioner,
-  val probationDeliveryUnit: ProbationDeliveryUnit,
+  val probationDeliveryUnit: CodeDescription,
 )
 
-data class OffenderFullName(
+data class FullName(
   val forename: String,
   val middleNames: String,
   val surname: String,
@@ -23,12 +23,9 @@ data class CodeDescription(
 )
 
 data class ProbationPractitioner(
-  val name: OffenderFullName,
+  val name: FullName,
   val code: String,
   val email: String,
 )
 
-data class ProbationDeliveryUnit(
-  val code: String,
-  val description: String,
-)
+fun FullName.getNameAsString(): String = listOfNotNull(forename, middleNames, surname).filter { it.isNotBlank() }.joinToString(" ")

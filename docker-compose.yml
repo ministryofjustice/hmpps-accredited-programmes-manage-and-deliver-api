@@ -6,7 +6,7 @@ services:
       - hmpps
     depends_on:
       - auth-db
-    container_name: hmpps-auth
+    container_name: hmpps-auth-api
     ports:
       - "8090:8080"
     healthcheck:
@@ -54,7 +54,7 @@ services:
     image: localstack/localstack:3
     networks:
       - hmpps
-    container_name: hmpps-mandd-localstack
+    container_name: hmpps-mandd-localstack-api
     ports:
       - "4566:4566"
       - 8999:8080
@@ -65,6 +65,18 @@ services:
     volumes:
       - "${TMPDIR:-/tmp/localstack}:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
+
+  wiremock:
+    image: wiremock/wiremock:3.13.0
+    networks:
+      - hmpps
+    restart: always
+    ports:
+      - "9095:8080"
+    volumes:
+      - ./wiremock_mappings:/home/wiremock/mappings
+    command: >
+      --verbose
 
 networks:
   hmpps:

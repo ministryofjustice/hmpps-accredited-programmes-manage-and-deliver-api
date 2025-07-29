@@ -15,8 +15,8 @@ class AvailabilityTransformerTest {
   @Test
   fun `toEntity should map AvailabilityCreate to AvailabilityEntity correctly`() {
     val referralId = UUID.randomUUID()
-    val now = LocalDate.now()
-    val end = LocalDate.now().plusWeeks(10)
+    val now = LocalDate.now().toString()
+    val end = LocalDate.now().plusWeeks(10).toString()
 
     val lastModifiedUsername = "test_user"
     val createAvailability = CreateAvailability(

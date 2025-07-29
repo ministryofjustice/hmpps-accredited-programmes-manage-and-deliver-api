@@ -9,9 +9,9 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.FindAndReferReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import java.util.*
+import java.util.UUID
 
 class FindAndReferInterventionApiClientIntegrationTest : IntegrationTestBase() {
   @Autowired
@@ -22,7 +22,7 @@ class FindAndReferInterventionApiClientIntegrationTest : IntegrationTestBase() {
     // Given
     stubAuthTokenEndpoint()
     val referralId = UUID.randomUUID()
-    val referralDetails = ReferralDetails(
+    val findAndReferReferralDetails = FindAndReferReferralDetails(
       interventionName = "Test Intervention",
       interventionType = "ACP",
       referralId = referralId,
@@ -37,20 +37,21 @@ class FindAndReferInterventionApiClientIntegrationTest : IntegrationTestBase() {
           aResponse()
             .withStatus(200)
             .withHeader("Content-Type", "application/json")
-            .withBody(objectMapper.writeValueAsString(referralDetails)),
+            .withBody(objectMapper.writeValueAsString(findAndReferReferralDetails)),
         ),
     )
     // When
-    when (val response = findAndReferInterventionApiClient.getReferral(referralId)) {
+    when (val response = findAndReferInterventionApiClient.getFindAndReferReferral(referralId)) {
       // Then
       is ClientResult.Success<*> -> {
         assertThat(response.body).isNotNull()
         assertThat(response.status).isEqualTo(HttpStatus.OK)
-        val referralDetails = response.body as ReferralDetails
-        assertThat(referralDetails).isNotNull()
-        assertThat(referralDetails.personReference).isEqualTo("X123456")
-        assertThat(referralDetails.personReferenceType).isEqualTo("CRN")
+        val findAndReferReferralDetails = response.body as FindAndReferReferralDetails
+        assertThat(findAndReferReferralDetails).isNotNull()
+        assertThat(findAndReferReferralDetails.personReference).isEqualTo("X123456")
+        assertThat(findAndReferReferralDetails.personReferenceType).isEqualTo("CRN")
       }
+
       is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")
       is ClientResult.Failure.StatusCode<*> -> {
         val message = """
@@ -79,7 +80,7 @@ class FindAndReferInterventionApiClientIntegrationTest : IntegrationTestBase() {
         ),
     )
     // When
-    when (val response = findAndReferInterventionApiClient.getReferral(referralId)) {
+    when (val response = findAndReferInterventionApiClient.getFindAndReferReferral(referralId)) {
       // Then
       is ClientResult.Success -> fail("Unexpected client result: ${response::class.simpleName}")
       is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")

@@ -1,0 +1,63 @@
+{
+  "mappings": [
+    {
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/case/.*/personal-details"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "crn": "X718255",
+          "name": {
+            "forename": "David",
+            "middleNames": "Alex",
+            "surname": "Clarke"
+          },
+          "dateOfBirth": "1981-04-15",
+          "age": 48,
+          "ethnicity": {
+            "code": "W1",
+            "description": "White"
+          },
+          "sex": {
+            "code": "M",
+            "description": "Male"
+          },
+          "probationPractitioner": {
+            "name": {
+              "forename": "John",
+              "middleNames": "Alex",
+              "surname": "Dobbs"
+            },
+            "code": "PRAC01",
+            "email": "prob.officer@example.com"
+          },
+          "probationDeliveryUnit": {
+            "code": "LON",
+            "description": "London"
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/user/.*/access"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": "{\"access\": [{{#each (jsonPath request.body '$[*]') as |crn|}}{{#unless @first}},{{/unless}}{\"crn\": \"{{crn}}\", \"userExcluded\": false, \"userRestricted\": false}{{/each}}]}",
+        "transformers": [
+          "response-template"
+        ]
+      }
+    }
+  ]
+}

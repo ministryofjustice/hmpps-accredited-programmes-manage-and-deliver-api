@@ -164,6 +164,7 @@ jobs:
             echo "✅ Slack notification sent successfully"
           else
             echo "❌ Failed to send Slack notification"
+            echo "Please check the GH_TO_SLACK_MAPPING variable for user "${{ github.actor }}" and SLACK_WEBHOOK_URL secret."
             exit 1
           fi
   deploy_prod:
