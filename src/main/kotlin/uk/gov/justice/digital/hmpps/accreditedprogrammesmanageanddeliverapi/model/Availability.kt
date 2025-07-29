@@ -19,11 +19,11 @@ data class Availability(
 
   @get:JsonProperty("startDate")
   @Schema(example = "2025-07-10", description = "Start date of the availability")
-  val startDate: LocalDateTime? = null,
+  val startDate: String? = null,
 
   @get:JsonProperty("endDate")
   @Schema(example = "2025-07-20", description = "End date of the availability", nullable = true)
-  val endDate: LocalDateTime? = null,
+  val endDate: String? = null,
 
   @get:JsonProperty("otherDetails")
   @Schema(example = "Available for remote sessions", description = "Additional details", nullable = true)
