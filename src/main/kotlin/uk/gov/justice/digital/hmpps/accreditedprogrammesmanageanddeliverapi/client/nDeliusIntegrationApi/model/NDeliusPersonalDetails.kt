@@ -8,9 +8,9 @@ data class NDeliusPersonalDetails(
   val dateOfBirth: String,
   val age: String,
   val sex: CodeDescription,
-  val ethnicity: CodeDescription,
-  val probationPractitioner: ProbationPractitioner,
-  val probationDeliveryUnit: CodeDescription,
+  val ethnicity: CodeDescription?,
+  val probationPractitioner: ProbationPractitioner?,
+  val probationDeliveryUnit: CodeDescription?,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
