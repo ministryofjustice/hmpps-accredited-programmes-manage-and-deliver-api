@@ -11,11 +11,13 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
@@ -35,6 +37,39 @@ class ServiceUserServiceTest {
   fun `getServiceUserByIdentifier should return service user when client call is successful`() {
     val identifier = "X123456"
     val personalDetails = NDeliusPersonalDetailsFactory().produce()
+    val accessResponse = LimitedAccessOffenderCheckResponse(
+      access = listOf(
+        LimitedAccessOffenderCheck(
+          crn = identifier,
+          userExcluded = false,
+          userRestricted = false,
+        ),
+      ),
+    )
+    every {
+      nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(any(), listOf(identifier))
+    } returns ClientResult.Success(body = accessResponse, status = HttpStatusCode.valueOf(200))
+    every { nDeliusIntegrationApiClient.getPersonalDetails(identifier) } returns
+      ClientResult.Success(body = personalDetails, status = HttpStatusCode.valueOf(200))
+    val result = service.getPersonalDetailsByIdentifier(identifier)
+
+    assertEquals(personalDetails.name, result.name)
+    assertEquals(personalDetails.crn, result.crn)
+    assertEquals(personalDetails.dateOfBirth, result.dateOfBirth)
+    assertEquals(personalDetails.sex, result.sex)
+    assertEquals(personalDetails.ethnicity, result.ethnicity)
+    assertEquals(personalDetails.age, result.age)
+    assertEquals(personalDetails.probationPractitioner, result.probationPractitioner)
+    assertEquals(personalDetails.probationDeliveryUnit, result.probationDeliveryUnit)
+
+    verify { nDeliusIntegrationApiClient.getPersonalDetails(identifier) }
+  }
+
+  @Test
+  fun `getServiceUserByIdentifier should return service user when client call is successful and missing middle name`() {
+    val fullName = randomFullName(middleName = null)
+    val identifier = "X123456"
+    val personalDetails = NDeliusPersonalDetailsFactory().withName(fullName).produce()
     val accessResponse = LimitedAccessOffenderCheckResponse(
       access = listOf(
         LimitedAccessOffenderCheck(
@@ -159,7 +194,7 @@ class ServiceUserServiceTest {
     every {
       nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier))
     } returns ClientResult.Failure.StatusCode(
-      method = org.springframework.http.HttpMethod.POST,
+      method = HttpMethod.POST,
       path = "/user/$username/access",
       status = HttpStatusCode.valueOf(500),
       body = """{"error":"Access check failed"}""",

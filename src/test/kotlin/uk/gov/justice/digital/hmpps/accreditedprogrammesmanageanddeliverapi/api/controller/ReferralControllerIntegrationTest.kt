@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -56,6 +57,36 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
+      )
+
+      Assertions.assertThat(response.id).isEqualTo(savedReferral.id)
+      Assertions.assertThat(response.crn).isEqualTo(savedReferral.crn)
+      Assertions.assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
+      Assertions.assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      Assertions.assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
+      Assertions.assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
+      Assertions.assertThat(response.probationPractitionerName)
+        .isEqualTo(nDeliusPersonalDetails.probationPractitioner.name.getNameAsString())
+      Assertions.assertThat(response.probationPractitionerEmail)
+        .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
+    }
+
+    @Test
+    fun `should return referral details object with personal details when access granted is true and no middle name`() {
+      val createdAt = LocalDateTime.now()
+      val referralEntity = ReferralEntityFactory().withCreatedAt(createdAt).produce()
+      testDataGenerator.createReferral(referralEntity)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+      val fullName = randomFullName(middleName = null)
+
+      val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().withName(fullName).produce()
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
       nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
