@@ -20,10 +20,10 @@ class DomainEventsMessageFactory {
       ),
     ),
   )
-  private var detailUrl: String = "https://api.example.com/referral/c8e93888-8d54-406c-82e7-889e84d7cc7e"
+  private var detailUrl: String? = "https://api.example.com/referral/c8e93888-8d54-406c-82e7-889e84d7cc7e"
 
   fun withEventType(eventType: String) = apply { this.eventType = eventType }
-  fun withDetailUrl(detailUrl: String) = apply { this.detailUrl = detailUrl }
+  fun withDetailUrl(detailUrl: String? = null) = apply { this.detailUrl = detailUrl }
   fun withDescription(description: String?) = apply { this.description = description }
   fun withAdditionalInformation(additionalInformation: Map<String, Any>?) = apply { this.additionalInformation = additionalInformation }
 

@@ -105,6 +105,27 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `should create message history on receipt of community-referral created message but not insert referral when detail url is null`() {
+    // Given
+    val eventType = "interventions.community-referral.created"
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withDetailUrl(null)
+      .withEventType(eventType)
+      .produce()
+
+    // When
+    sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofSeconds(1) untilCallTo {
+      domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
+    } matches { it == 0 }
+
+    assertThat(referralRepository.count()).isEqualTo(0)
+    assertThat(referralStatusHistoryRepository.count()).isEqualTo(0)
+  }
+
+  @Test
   fun `should create referral with status history on receipt of community referral creation message`() {
     // Given
     val domainEventsMessage = DomainEventsMessageFactory()

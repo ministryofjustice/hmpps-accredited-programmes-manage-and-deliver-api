@@ -25,8 +25,9 @@ class ReferralCreatedHandler(
   }
 
   fun handle(sqsMessage: SQSMessage) {
-    val domainEventMessage: DomainEventsMessage = objectMapper.readValue(sqsMessage.message)
-    val referralId = extractReferralId(domainEventMessage.detailUrl!!)
+    val domainEventMessage: DomainEventsMessage = objectMapper.readValue<DomainEventsMessage>(sqsMessage.message)
+    if (domainEventMessage.detailUrl == null) return log.info("Detail url is null for event with messageId: ${sqsMessage.messageId}")
+    val referralId = extractReferralId(domainEventMessage.detailUrl)
     log.info("Received referral created event for referral id: $referralId")
     messageHistoryRepository.save(domainEventMessage.toEntity(objectMapper.writeValueAsString(domainEventMessage)))
 

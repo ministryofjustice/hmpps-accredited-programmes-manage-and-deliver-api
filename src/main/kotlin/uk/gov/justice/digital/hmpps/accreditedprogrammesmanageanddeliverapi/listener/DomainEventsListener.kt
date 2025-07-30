@@ -18,7 +18,7 @@ class DomainEventsListener(
     logger.info("Received Event of type: ${sqsMessage.eventType}")
     when (sqsMessage.eventType) {
       REFERRAL_CREATED -> referralCreatedHandler.handle(sqsMessage)
-      else -> throw IllegalStateException("Unexpected event type received: ${sqsMessage.eventType}")
+      else -> logger.info("Unknown event type ${sqsMessage.eventType}")
     }
   }
 

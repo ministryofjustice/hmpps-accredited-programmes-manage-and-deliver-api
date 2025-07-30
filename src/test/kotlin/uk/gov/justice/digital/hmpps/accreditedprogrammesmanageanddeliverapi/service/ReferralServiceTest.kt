@@ -84,8 +84,9 @@ class ReferralServiceTest {
   fun `createReferral should save referral and add status history`() {
     // Given
     val referralDetails = FindAndReferReferralDetailsFactory().produce()
-    val referralEntity = referralDetails.toReferralEntity() // Use actual transformation
     val statusHistoryEntity = ReferralStatusHistoryEntityFactory().withStatus("Created").produce()
+    val referralEntity =
+      referralDetails.toReferralEntity(mutableListOf(statusHistoryEntity)) // Use actual transformation
 
     `when`(referralRepository.save(any())).thenReturn(referralEntity)
     `when`(referralStatusHistoryRepository.save(any())).thenReturn(statusHistoryEntity)

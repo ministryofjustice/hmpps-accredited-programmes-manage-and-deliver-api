@@ -49,15 +49,14 @@ class ReferralService(
   }
 
   fun createReferral(findAndReferReferralDetails: FindAndReferReferralDetails) {
-    val referralEntity = referralRepository.save(findAndReferReferralDetails.toReferralEntity())
-    val statusHistoryEntity = referralStatusHistoryRepository.save(
-      ReferralStatusHistoryEntity(
-        status = "Created",
-        startDate = LocalDateTime.now(),
-        endDate = null,
-      ),
+    val statusHistoryEntity = ReferralStatusHistoryEntity(
+      status = "Created",
+      startDate = LocalDateTime.now(),
+      endDate = null,
     )
-    referralEntity.statusHistories.add(statusHistoryEntity)
+    val referralEntity = findAndReferReferralDetails.toReferralEntity(mutableListOf(statusHistoryEntity))
+    log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}'")
+    referralRepository.save(referralEntity)
   }
 
   fun getReferralById(id: UUID): ReferralEntity? = referralRepository.findByIdOrNull(id)
