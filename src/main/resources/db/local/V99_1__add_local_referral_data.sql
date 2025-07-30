@@ -1,14 +1,16 @@
-INSERT INTO referral (id, person_name, crn, created_at, intervention_type, intervention_name, setting)
-VALUES ('6885d1f6-5958-40e0-9448-1ff8cc37e643', 'Joe Bloggs', 'X718255', now(), 'ACP', 'Horizon', 'COMMUNITY'),
-       ('81229aaa-bb3a-4705-8015-99052bafab58', 'Alex River', 'CRN-999999', now(), 'ACP', 'Building Choices',
-        'COMMUNITY'),
-       ('39fde7e8-d2e3-472b-8364-5848bf673aa6', 'Jane Adams', 'CRN-888888', now(), 'ACP', 'Building Choices',
-        'COMMUNITY'),
-       ('54b1a0ac-ab67-4dde-871f-b59b675cbc8c', 'Pete Grims', 'CRN-777777', now(), 'ACP', 'New Me', 'COMMUNITY'),
-       ('a8a83c3e-d779-47d5-849f-bb2635666344', 'James Hayden', 'CRN-66666', now(), 'ACP', 'Building Choices',
-        'COMMUNITY'),
-       ('aabbadf7-a427-436e-b1a4-f27dd5893c24', 'Andrew Crosforth', 'CRN-555555', now(), 'ACP', 'Building Choices',
-        'COMMUNITY');
+insert into referral (id, person_name, crn, created_at, intervention_type, intervention_name, setting)
+values ('39fde7e8-d2e3-472b-8364-5848bf673aa6', 'Edgar Schiller', 'X718250', '2025-07-30 14:51:22.086567', 'ACP',
+        'Building Choices', 'COMMUNITY'),
+       ('54b1a0ac-ab67-4dde-871f-b59b675cbc8c', 'Omar Pfeffer', 'X718252', '2025-07-30 14:51:22.086567', 'ACP',
+        'New Me', 'COMMUNITY'),
+       ('6885d1f6-5958-40e0-9448-1ff8cc37e643', 'Karen Puckett', 'D002399', '2025-07-30 14:51:22.086567', 'ACP',
+        'Horizon', 'COMMUNITY'),
+       ('81229aaa-bb3a-4705-8015-99052bafab58', 'Valerie Wyman', 'X718255', '2025-07-30 14:51:22.086567', 'ACP',
+        'Building Choices', 'COMMUNITY'),
+       ('a8a83c3e-d779-47d5-849f-bb2635666344', 'Sadie Borer', 'X718253', '2025-07-30 14:51:22.086567', 'ACP',
+        'Building Choices', 'COMMUNITY'),
+       ('aabbadf7-a427-436e-b1a4-f27dd5893c24', 'Mr Joye Hatto', 'D007523', '2025-07-30 14:51:22.086567', 'ACP',
+        'Building Choices', 'COMMUNITY');
 
 INSERT INTO referral_status_history(id, status, created_at, created_by, start_date, end_date)
 VALUES ('85b59ec2-bd8f-43c4-90f5-3d55b39331b2', 'CREATED', now(), 'USER_ID_12345', now(), null),

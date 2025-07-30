@@ -73,8 +73,8 @@ data class ReferralDetails(
     required = true,
     description = "The email of the probation practitioner associated with this referral.",
   )
-  @get:JsonProperty("probationPractitionerEmail", required = true)
-  val probationPractitionerEmail: String?,
+  @get:JsonProperty("probationPractitionerEmail", required = false)
+  val probationPractitionerEmail: String? = null,
 
 ) {
   companion object {
