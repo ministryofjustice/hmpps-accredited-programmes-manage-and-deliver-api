@@ -1,10 +1,12 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.DomainEventsMessage
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.SQSMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
@@ -22,7 +24,9 @@ class ReferralCreatedHandler(
     private val log = LoggerFactory.getLogger(this::class.java)
   }
 
-  fun handle(domainEventMessage: DomainEventsMessage) {
+  fun handle(sqsMessage: SQSMessage) {
+    val domainEventMessage: DomainEventsMessage = objectMapper.readValue<DomainEventsMessage>(sqsMessage.message)
+    if (domainEventMessage.detailUrl == null) return log.info("Detail url is null for event with messageId: ${sqsMessage.messageId}")
     val referralId = extractReferralId(domainEventMessage.detailUrl)
     log.info("Received referral created event for referral id: $referralId")
     messageHistoryRepository.save(domainEventMessage.toEntity(objectMapper.writeValueAsString(domainEventMessage)))

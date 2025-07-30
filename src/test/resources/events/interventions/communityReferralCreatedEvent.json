@@ -1,0 +1,18 @@
+{
+  "Type": "Notification",
+  "MessageId": "ba0cd0f0-887b-4a97-b502-41bdf32aa27c",
+  "Token": null,
+  "TopicArn": "arn:aws:sns:eu-west-2:000000000000:hmpps-domain",
+  "Message": "{\"eventType\":\"interventions.community-referral.created\",\"version\":1,\"detailUrl\":\"http://localhost:8080/referral/773888f1-d658-49cb-8d73-1d79862aaae8\",\"occurredAt\":\"2025-07-02T14:14:17.51815+01:00\",\"description\":\"An Interventions referral in community has been created.\",\"additionalInformation\":{},\"personReference\":{\"identifiers\":[{\"type\":\"CRN\",\"value\":\"X928972\"}]}}",
+  "SubscribeURL": null,
+  "Timestamp": "2021-10-21T06:27:57.028Z",
+  "SignatureVersion": "1",
+  "Signature": "EXAMPLEpH+..",
+  "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-0000000000000000000000.pem",
+  "MessageAttributes": {
+    "eventType": {
+      "Type": "String",
+      "Value": "interventions.community-referral.created"
+    }
+  }
+}

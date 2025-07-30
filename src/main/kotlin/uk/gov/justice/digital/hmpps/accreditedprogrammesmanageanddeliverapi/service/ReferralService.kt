@@ -13,7 +13,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -22,7 +21,6 @@ import java.util.UUID
 class ReferralService(
   private val findAndReferInterventionApiClient: FindAndReferInterventionApiClient,
   private val referralRepository: ReferralRepository,
-  private val referralStatusHistoryRepository: ReferralStatusHistoryRepository,
   private val serviceUserService: ServiceUserService,
 ) {
   companion object {
@@ -49,15 +47,14 @@ class ReferralService(
   }
 
   fun createReferral(findAndReferReferralDetails: FindAndReferReferralDetails) {
-    val referralEntity = referralRepository.save(findAndReferReferralDetails.toReferralEntity())
-    val statusHistoryEntity = referralStatusHistoryRepository.save(
-      ReferralStatusHistoryEntity(
-        status = "Created",
-        startDate = LocalDateTime.now(),
-        endDate = null,
-      ),
+    val statusHistoryEntity = ReferralStatusHistoryEntity(
+      status = "Created",
+      startDate = LocalDateTime.now(),
+      endDate = null,
     )
-    referralEntity.statusHistories.add(statusHistoryEntity)
+    val referralEntity = findAndReferReferralDetails.toReferralEntity(mutableListOf(statusHistoryEntity))
+    log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}'")
+    referralRepository.save(referralEntity)
   }
 
   fun getReferralById(id: UUID): ReferralEntity? = referralRepository.findByIdOrNull(id)

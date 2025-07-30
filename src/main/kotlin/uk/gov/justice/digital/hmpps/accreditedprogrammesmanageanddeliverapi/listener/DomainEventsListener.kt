@@ -1,10 +1,9 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.awspring.cloud.sqs.annotation.SqsListener
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.DomainEventsMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.SQSMessage
 
 @Service
@@ -12,13 +11,14 @@ class DomainEventsListener(
   val objectMapper: ObjectMapper,
   val referralCreatedHandler: ReferralCreatedHandler,
 ) {
+  private val logger = LoggerFactory.getLogger(this::class.java)
 
   @SqsListener("hmppsdomaineventsqueue", factory = "hmppsQueueContainerFactoryProxy")
   fun receive(sqsMessage: SQSMessage) {
-    val domainEventMessage = objectMapper.readValue<DomainEventsMessage>(sqsMessage.message)
-    when (domainEventMessage.eventType) {
-      REFERRAL_CREATED -> referralCreatedHandler.handle(domainEventMessage)
-      else -> throw IllegalStateException("Unexpected event type received: ${domainEventMessage.eventType}")
+    logger.info("Received Event of type: ${sqsMessage.eventType}")
+    when (sqsMessage.eventType) {
+      REFERRAL_CREATED -> referralCreatedHandler.handle(sqsMessage)
+      else -> logger.info("Unknown event type ${sqsMessage.eventType}")
     }
   }
 

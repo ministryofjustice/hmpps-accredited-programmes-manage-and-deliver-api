@@ -1,0 +1,27 @@
+{
+  "mappings": [
+    {
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/referral/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "interventionName": "Building Choices",
+          "interventionType": "ACP",
+          "referralId": "{{request.pathSegments.[1]}}",
+          "personReference": "X123456",
+          "personReferenceType": "CRN",
+          "setting": "Community"
+        },
+        "transformers": [
+          "response-template"
+        ]
+      }
+    }
+  ]
+}

@@ -28,3 +28,12 @@ hmpps:
     topics:
       hmppsdomaineventstopic:
         arn: arn:aws:sns:eu-west-2:000000000000:${random.uuid}
+
+
+services:
+  find-and-refer-intervention-api:
+    base-url: http://localhost:9095
+  ndelius-integration-api:
+    base-url: http://localhost:9095
+  oasys-api:
+    base-url: http://localhost:9095
