@@ -25,10 +25,11 @@ data class CodeDescription(
   val description: String,
 )
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class ProbationPractitioner(
   val name: FullName,
   val code: String,
-  val email: String,
+  val email: String? = null,
 )
 
 fun FullName.getNameAsString(): String = listOfNotNull(forename, middleNames, surname).filter { it.isNotBlank() }.joinToString(" ")
