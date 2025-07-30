@@ -39,10 +39,10 @@ fun randomDateOfBirth(
   return LocalDate.ofEpochDay(randomDays)
 }
 
-fun randomFullName(): FullName = FullName(
-  forename = randomCapitalisedWord(4..12).asString(),
-  middleNames = randomCapitalisedWord(4..10).asString(),
-  surname = randomCapitalisedWord(5..15).asString(),
+fun randomFullName(forename: String? = null, middleName: String? = null, surname: String? = null): FullName = FullName(
+  forename = forename ?: randomCapitalisedWord(4..12).asString(),
+  middleNames = middleName ?: randomCapitalisedWord(4..10).asString(),
+  surname = surname ?: randomCapitalisedWord(5..15).asString(),
 )
 
 fun randomPrisonNumber(): String = (upperCase(1) + digits(4) + upperCase(2)).asString()

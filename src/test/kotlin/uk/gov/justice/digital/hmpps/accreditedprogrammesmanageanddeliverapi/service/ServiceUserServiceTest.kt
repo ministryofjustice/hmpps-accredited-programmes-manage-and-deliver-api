@@ -15,9 +15,9 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
@@ -67,10 +67,7 @@ class ServiceUserServiceTest {
 
   @Test
   fun `getServiceUserByIdentifier should return service user when client call is successful and missing middle name`() {
-    val fullName = FullName(
-      forename = "Jim",
-      surname = "Halbert",
-    )
+    val fullName = randomFullName(middleName = null)
     val identifier = "X123456"
     val personalDetails = NDeliusPersonalDetailsFactory().withName(fullName).produce()
     val accessResponse = LimitedAccessOffenderCheckResponse(

@@ -13,10 +13,10 @@ import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -84,10 +84,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       val referralEntity = ReferralEntityFactory().withCreatedAt(createdAt).produce()
       testDataGenerator.createReferral(referralEntity)
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
-      val fullName = FullName(
-        forename = "Jim",
-        surname = "Halbert",
-      )
+      val fullName = randomFullName(middleName = null)
 
       val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().withName(fullName).produce()
 
