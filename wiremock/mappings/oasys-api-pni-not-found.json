@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/assessments/pni/UNKNOWN[A-Z0-9]*",
+    "queryParameters": {
+      "community": {
+        "equalTo": "true"
+      }
+    }
+  },
+  "response": {
+    "status": 404,
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }
+}
