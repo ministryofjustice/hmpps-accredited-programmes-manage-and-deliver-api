@@ -5,6 +5,12 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
+/**
+ * This class represent the HmppsDomainEventSchema
+ *
+ * @see <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_MessageAttributeValue.html">AWS SQS MessageAttributeValue</a>
+ *
+ */
 data class DomainEventsMessage(
   val eventType: String,
   val version: Int,

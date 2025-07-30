@@ -18,7 +18,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.hmpps.sqs.countMessagesOnQueue
 import java.time.Duration.ofSeconds
 import java.time.ZoneOffset
@@ -35,9 +34,6 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   lateinit var referralRepository: ReferralRepository
-
-  @Autowired
-  lateinit var referralStatusHistoryRepository: ReferralStatusHistoryRepository
 
   @Autowired
   lateinit var testDataCleaner: TestDataCleaner
@@ -122,7 +118,6 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     } matches { it == 0 }
 
     assertThat(referralRepository.count()).isEqualTo(0)
-    assertThat(referralStatusHistoryRepository.count()).isEqualTo(0)
   }
 
   @Test
@@ -147,11 +142,8 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it?.crn == "X123456"
       it?.interventionName == "Test Intervention"
       it?.interventionType == "ACP"
+      it?.statusHistories!!.first().status == "Created"
     }
-
-    val statusHistories = referralStatusHistoryRepository.findAll()
-    assertThat(statusHistories.size).isEqualTo(1)
-    assertThat(statusHistories[0].status).isEqualTo("Created")
 
     messageHistoryRepository.findAll().first().let {
       assertThat(it.id).isNotNull

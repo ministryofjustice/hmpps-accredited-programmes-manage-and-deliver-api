@@ -13,7 +13,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -22,7 +21,6 @@ import java.util.UUID
 class ReferralService(
   private val findAndReferInterventionApiClient: FindAndReferInterventionApiClient,
   private val referralRepository: ReferralRepository,
-  private val referralStatusHistoryRepository: ReferralStatusHistoryRepository,
   private val serviceUserService: ServiceUserService,
 ) {
   companion object {

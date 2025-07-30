@@ -89,7 +89,6 @@ class ReferralServiceTest {
       referralDetails.toReferralEntity(mutableListOf(statusHistoryEntity)) // Use actual transformation
 
     `when`(referralRepository.save(any())).thenReturn(referralEntity)
-    `when`(referralStatusHistoryRepository.save(any())).thenReturn(statusHistoryEntity)
 
     // When
     referralService.createReferral(referralDetails)
@@ -99,10 +98,10 @@ class ReferralServiceTest {
       argThat { saved ->
         saved.crn == referralEntity.crn &&
           saved.interventionType == referralEntity.interventionType &&
-          saved.interventionName == referralEntity.interventionName
+          saved.interventionName == referralEntity.interventionName &&
+          saved.statusHistories.first().status == referralEntity.statusHistories.first().status
       },
     )
-    verify(referralStatusHistoryRepository).save(any())
   }
 
   @Test
