@@ -35,11 +35,11 @@ data class PersonalDetails(
 
   @Schema(
     example = "White",
-    required = true,
+    required = false,
     description = "The ethnicity of the person being referred.",
   )
   @get:JsonProperty("ethnicity", required = true)
-  val ethnicity: String?,
+  val ethnicity: String? = null,
 
   @Schema(
     example = "38",
@@ -67,11 +67,11 @@ data class PersonalDetails(
 
   @Schema(
     example = "North London PDU",
-    required = true,
+    required = false,
     description = "The probation delivery unit responsible for this referral.",
   )
   @get:JsonProperty("probationDeliveryUnit", required = true)
-  val probationDeliveryUnit: String?,
+  val probationDeliveryUnit: String? = null,
 
   @Schema(
     example = "1 August 2025",
