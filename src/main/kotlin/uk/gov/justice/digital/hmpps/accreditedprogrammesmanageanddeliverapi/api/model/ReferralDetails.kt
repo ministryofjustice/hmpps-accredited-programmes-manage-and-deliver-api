@@ -66,7 +66,7 @@ data class ReferralDetails(
     description = "The name of the probation practitioner associated with this referral.",
   )
   @get:JsonProperty("probationPractitionerName", required = true)
-  val probationPractitionerName: String,
+  val probationPractitionerName: String?,
 
   @Schema(
     example = "tom.saunders@justice.gov.uk",
@@ -74,7 +74,7 @@ data class ReferralDetails(
     description = "The email of the probation practitioner associated with this referral.",
   )
   @get:JsonProperty("probationPractitionerEmail", required = true)
-  val probationPractitionerEmail: String,
+  val probationPractitionerEmail: String?,
 
 ) {
   companion object {
@@ -85,8 +85,8 @@ data class ReferralDetails(
       interventionName = referral.interventionName ?: "UNKNOWN_INTERVENTION",
       createdAt = referral.createdAt.toLocalDate(),
       dateOfBirth = LocalDate.parse(nDeliusPersonalDetails.dateOfBirth),
-      probationPractitionerName = nDeliusPersonalDetails.probationPractitioner.name.getNameAsString(),
-      probationPractitionerEmail = nDeliusPersonalDetails.probationPractitioner.email,
+      probationPractitionerName = nDeliusPersonalDetails.probationPractitioner?.name?.getNameAsString(),
+      probationPractitionerEmail = nDeliusPersonalDetails.probationPractitioner?.email,
     )
   }
 }

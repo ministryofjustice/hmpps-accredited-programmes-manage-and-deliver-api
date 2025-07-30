@@ -17,12 +17,13 @@ class NDeliusPersonalDetailsFactory {
   private var dateOfBirth: String = randomDateOfBirth().toString()
   private var age: String = randomNumber().toString()
   private var sex: CodeDescription = createCodeDescription()
-  private var ethnicity: CodeDescription = createCodeDescription()
+  private var ethnicity: CodeDescription? = createCodeDescription()
   private var probationPractitioner: ProbationPractitioner = createProbationPractitioner()
   private var probationDeliveryUnit: CodeDescription = createCodeDescription()
 
   fun createProbationPractitioner(): ProbationPractitioner = ProbationPractitioner(randomFullName(), randomUppercaseString(2), randomSentence())
 
+  fun withEthnicity(ethnicity: CodeDescription?) = apply { this.ethnicity = ethnicity }
   fun createCodeDescription(): CodeDescription = CodeDescription(randomUppercaseString(2), randomSentence())
   fun withDateOfBirth(dateOfBirth: LocalDate?) = apply { this.dateOfBirth = dateOfBirth.toString() }
   fun withName(fullName: FullName) = apply { this.name = fullName }

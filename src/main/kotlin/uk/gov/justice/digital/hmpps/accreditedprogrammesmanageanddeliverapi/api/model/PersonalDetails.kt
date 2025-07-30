@@ -39,7 +39,7 @@ data class PersonalDetails(
     description = "The ethnicity of the person being referred.",
   )
   @get:JsonProperty("ethnicity", required = true)
-  val ethnicity: String,
+  val ethnicity: String?,
 
   @Schema(
     example = "38",
@@ -71,7 +71,7 @@ data class PersonalDetails(
     description = "The probation delivery unit responsible for this referral.",
   )
   @get:JsonProperty("probationDeliveryUnit", required = true)
-  val probationDeliveryUnit: String,
+  val probationDeliveryUnit: String?,
 
   @Schema(
     example = "1 August 2025",
@@ -87,10 +87,10 @@ fun NDeliusPersonalDetails.toModel(setting: String) = PersonalDetails(
   crn = crn,
   name = name.getNameAsString(),
   dateOfBirth = LocalDate.parse(dateOfBirth),
-  ethnicity = ethnicity.description,
+  ethnicity = ethnicity?.description,
   age = age,
   gender = sex.description,
   setting = setting,
-  probationDeliveryUnit = probationDeliveryUnit.description,
+  probationDeliveryUnit = probationDeliveryUnit?.description,
   dateRetrieved = LocalDate.now(),
 )

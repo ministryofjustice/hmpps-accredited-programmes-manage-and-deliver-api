@@ -73,7 +73,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       Assertions.assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       Assertions.assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
       Assertions.assertThat(response.probationPractitionerName)
-        .isEqualTo(nDeliusPersonalDetails.probationPractitioner.name.getNameAsString())
+        .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       Assertions.assertThat(response.probationPractitionerEmail)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
     }
@@ -103,7 +103,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       Assertions.assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       Assertions.assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
       Assertions.assertThat(response.probationPractitionerName)
-        .isEqualTo(nDeliusPersonalDetails.probationPractitioner.name.getNameAsString())
+        .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       Assertions.assertThat(response.probationPractitionerEmail)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
     }
@@ -165,12 +165,48 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       Assertions.assertThat(response.crn).isEqualTo(nDeliusPersonalDetails.crn)
       Assertions.assertThat(response.name).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
       Assertions.assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
-      Assertions.assertThat(response.ethnicity).isEqualTo(nDeliusPersonalDetails.ethnicity.description)
+      Assertions.assertThat(response.ethnicity).isEqualTo(nDeliusPersonalDetails.ethnicity!!.description)
       Assertions.assertThat(response.age).isEqualTo(nDeliusPersonalDetails.age)
       Assertions.assertThat(response.gender).isEqualTo(nDeliusPersonalDetails.sex.description)
       Assertions.assertThat(response.setting).isEqualTo(referralEntity.setting)
       Assertions.assertThat(response.probationDeliveryUnit)
-        .isEqualTo(nDeliusPersonalDetails.probationDeliveryUnit.description)
+        .isEqualTo(nDeliusPersonalDetails.probationDeliveryUnit!!.description)
+    }
+
+    @Test
+    fun `should return personal details when access granted is true when ethnicity is null`() {
+      val nDeliusPersonalDetails =
+        NDeliusPersonalDetailsFactory().withEthnicity(null).withDateOfBirth(LocalDate.of(1990, 1, 1)).produce()
+      val referralEntity = ReferralEntityFactory().withCrn(nDeliusPersonalDetails.crn).produce()
+      testDataGenerator.createReferral(referralEntity)
+      referralRepository.findByCrn(referralEntity.crn)[0]
+
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${referralEntity.id}/personal-details",
+        returnType = object : ParameterizedTypeReference<PersonalDetails>() {},
+      )
+
+      assertThat(response).hasFieldOrProperty("crn")
+      assertThat(response).hasFieldOrProperty("name")
+      assertThat(response).hasFieldOrProperty("dateOfBirth")
+      assertThat(response).hasFieldOrProperty("ethnicity")
+      assertThat(response).hasFieldOrProperty("age")
+      assertThat(response).hasFieldOrProperty("gender")
+      assertThat(response).hasFieldOrProperty("setting")
+      assertThat(response).hasFieldOrProperty("probationDeliveryUnit")
+
+      Assertions.assertThat(response.crn).isEqualTo(nDeliusPersonalDetails.crn)
+      Assertions.assertThat(response.name).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      Assertions.assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
+      Assertions.assertThat(response.ethnicity).isNull()
+      Assertions.assertThat(response.age).isEqualTo(nDeliusPersonalDetails.age)
+      Assertions.assertThat(response.gender).isEqualTo(nDeliusPersonalDetails.sex.description)
+      Assertions.assertThat(response.setting).isEqualTo(referralEntity.setting)
+      Assertions.assertThat(response.probationDeliveryUnit)
+        .isEqualTo(nDeliusPersonalDetails.probationDeliveryUnit!!.description)
     }
 
     @Test
