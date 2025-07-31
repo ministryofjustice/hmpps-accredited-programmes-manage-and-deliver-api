@@ -41,7 +41,7 @@ dependencies {
   testImplementation("org.testcontainers:junit-jupiter:1.21.3")
   testImplementation("org.awaitility:awaitility-kotlin")
   testImplementation("com.ninja-squad:springmockk:4.0.2")
-  testImplementation("io.kotest:kotest-assertions-core:6.0.0.M8")
+  testImplementation("io.kotest:kotest-assertions-core:6.0.0.M9")
   testImplementation("io.mockk:mockk:1.14.5")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
