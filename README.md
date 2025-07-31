@@ -1,137 +1,318 @@
-# hmpps-accredited-programmes-manage-and-deliver-api
+# HMPPS Accredited Programmes Manage and Deliver API
 
 [![repo standards badge](https://img.shields.io/badge/endpoint.svg?&style=flat&logo=github&url=https%3A%2F%2Foperations-engineering-reports.cloud-platform.service.justice.gov.uk%2Fapi%2Fv1%2Fcompliant_public_repositories%2Fhmpps-accredited-programmes-manage-and-deliver-api)](https://operations-engineering-reports.cloud-platform.service.justice.gov.uk/public-report/hmpps-accredited-programmes-manage-and-deliver-api "Link to report")
 [![Docker Repository on ghcr](https://img.shields.io/badge/ghcr.io-repository-2496ED.svg?logo=docker)](https://ghcr.io/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api)
-[![API docs](https://img.shields.io/badge/API_docs_-view-85EA2D.svg?logo=swagger)](https://hmpps-accredited-programmes-manage-and-deliver-api-dev.hmpps.service.justice.gov.uk/webjars/swagger-ui/index.html?configUrl=/v3/api-docs)
+[![API docs](https://img.shields.io/badge/API_docs_-view-85EA2D.svg?logo=swagger)](https://accredited-programmes-manage-and-deliver-api-dev.hmpps.service.justice.gov.uk/swagger-ui/index.html)
 
-Template github repo used for new Kotlin based projects.
+This repository contains the service code for the `HMPPS Accredited Programmes Manage and Deliver API`.
 
-# Instructions
+## Architecture
 
-If this is a HMPPS project then the project will be created as part of bootstrapping -
-see [dps-project-bootstrap](https://github.com/ministryofjustice/dps-project-bootstrap). You are able to specify a
-template application using the `github_template_repo` attribute to clone without the need to manually do this yourself
-within GitHub.
+This is a Spring Boot service, written in Kotlin, which provides an API for managing and delivering accredited
+programmes within HMPPS.
 
-This project is community managed by the mojdt `#kotlin-dev` slack channel.
-Please raise any questions or queries there. Contributions welcome!
+## Required software
 
-Our security policy is located [here](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/security/policy).
+Most software can be installed using [homebrew](https://brew.sh/).
 
-Documentation to create new service is located [here](https://tech-docs.hmpps.service.justice.gov.uk/applicationplatform/newservice-GHA/).
+* Docker
+* Java SDK (OpenJDK 21)
+* Kotlin
 
-## Creating a Cloud Platform namespace
+## Tech stack
 
-When deploying to a new namespace, you may wish to use the
-[templates project namespace](https://github.com/ministryofjustice/cloud-platform-environments/tree/main/namespaces/live.cloud-platform.service.justice.gov.uk/hmpps-templates-dev)
-as the basis for your new namespace. This namespace contains both the kotlin and typescript template projects, 
-which is the usual way that projects are setup.
-
-Copy this folder and update all the existing namespace references to correspond to the environment to which you're deploying.
-
-If you only need the kotlin configuration then remove all typescript references and remove the elasticache configuration. 
-
-To ensure the correct github teams can approve releases, you will need to make changes to the configuration in `resources/service-account-github` where the appropriate team names will need to be added (based on [lines 98-100](https://github.com/ministryofjustice/cloud-platform-environments/blob/main/namespaces/live.cloud-platform.service.justice.gov.uk/hmpps-templates-dev/resources/serviceaccount-github.tf#L98) and the reference appended to the teams list below [line 112](https://github.com/ministryofjustice/cloud-platform-environments/blob/main/namespaces/live.cloud-platform.service.justice.gov.uk/hmpps-templates-dev/resources/serviceaccount-github.tf#L112)). Note: hmpps-sre is in this list to assist with deployment issues.
-
-Submit a PR to the Cloud Platform team in
-#ask-cloud-platform. Further instructions from the Cloud Platform team can be found in
-the [Cloud Platform User Guide](https://user-guide.cloud-platform.service.justice.gov.uk/#cloud-platform-user-guide)
-
-## Renaming from HMPPS Accredited Programmes Manage And Deliver Api - github Actions
-
-Once the new repository is deployed. Navigate to the repository in github, and select the `Actions` tab.
-Click the link to `Enable Actions on this repository`.
-
-Find the Action workflow named: `rename-project-create-pr` and click `Run workflow`. This workflow will
-execute the `rename-project.bash` and create Pull Request for you to review. Review the PR and merge.
-
-Note: ideally this workflow would run automatically however due to a recent change github Actions are not
-enabled by default on newly created repos. There is no way to enable Actions other then to click the button in the UI.
-If this situation changes we will update this project so that the workflow is triggered during the bootstrap project.
-Further reading: <https://github.community/t/workflow-isnt-enabled-in-repos-generated-from-template/136421>
-
-The script takes six arguments:
-
-### New project name
-
-This should start with `hmpps-` e.g. `hmpps-prison-visits` so that it can be easily distinguished in github from
-other departments projects. Try to avoid using abbreviations so that others can understand easily what your project is.
-
-### Slack channel for release notifications
-
-By default, release notifications are only enabled for production. The circleci configuration can be amended to send
-release notifications for deployments to other environments if required. Note that if the configuration is amended,
-the slack channel should then be amended to your own team's channel as `dps-releases` is strictly for production release
-notifications. If the slack channel is set to something other than `dps-releases`, production release notifications
-will still automatically go to `dps-releases` as well. This is configured by `releases-slack-channel` in
-`.circleci/config.yml`.
-
-### Slack channel for pipeline security notifications
-
-Ths channel should be specific to your team and is for daily / weekly security scanning job results. It is your team's
-responsibility to keep up-to-date with security issues and update your application so that these jobs pass. You will
-only be notified if the jobs fail. The scan results can always be found in circleci for your project. This is
-configured by `alerts-slack-channel` in `.circleci/config.yml`.
-
-### Non production kubernetes alerts
-
-By default Prometheus alerts are created in the application namespaces to monitor your application e.g. if your
-application is crash looping, there are a significant number of errors from the ingress. Since Prometheus runs in
-cloud platform AlertManager needs to be setup first with your channel. Please see
-[Create your own custom alerts](https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html)
-in the Cloud Platform user guide. Once that is setup then the `custom severity label` can be used for
-`alertSeverity` in the `helm_deploy/values-*.yaml` configuration.
-
-Normally it is worth setting up two separate labels and therefore two separate slack channels - one for your production
-alerts and one for your non-production alerts. Using the same channel can mean that production alerts are sometimes
-lost within non-production issues.
-
-### Production kubernetes alerts
-
-This is the severity label for production, determined by the `custom severity label`. See the above
-#non-production-kubernetes-alerts for more information. This is configured in `helm_deploy/values-prod.yaml`.
-
-### Product ID
-
-This is so that we can link a component to a product and thus provide team and product information in the Developer
-Portal. Refer to the developer portal at https://developer-portal.hmpps.service.justice.gov.uk/products to find your
-product id. This is configured in `helm_deploy/<project_name>/values.yaml`.
-
-## Manually branding from template app
-
-Run the `rename-project.bash` without any arguments. This will prompt for the six required parameters and create a PR.
-The script requires a recent version of `bash` to be installed, as well as GNU `sed` in the path.
-
-## Common Kotlin patterns
-
-Many patterns have evolved for HMPPS Kotlin applications. Using these patterns provides consistency across our suite of 
-Kotlin microservices and allows you to concentrate on building  your business needs rather than reinventing the 
-technical approach.
-
-Documentation for these patterns can be found in the [HMPPS tech docs](https://tech-docs.hmpps.service.justice.gov.uk/common-kotlin-patterns/). 
-If this documentation is incorrect or needs improving please report to [#ask-prisons-digital-sre](https://moj.enterprise.slack.com/archives/C06MWP0UKDE)
-or [raise a PR](https://github.com/ministryofjustice/hmpps-tech-docs). 
+- **Language**: Kotlin
+- **Framework**: Spring Boot
+- **Database**: PostgreSQL with Flyway migrations
+- **Message Queue**: AWS SQS via Spring Cloud AWS
+- **Authentication**: OAuth 2.0 via HMPPS Auth
+- **API Documentation**: OpenAPI 3 (Swagger)
+- **Testing**: JUnit 5, Testcontainers, WireMock
+- **Build**: Gradle
+- **Containerization**: Docker
 
 ## Running the application locally
 
-The application comes with a `dev` spring profile that includes default settings for running locally. This is not
+The application comes with a `local` spring profile that includes default settings for running locally. This is not
 necessary when deploying to kubernetes as these values are included in the helm configuration templates -
-e.g. `values-dev.yaml`.
+e.g. `values-dev.yaml`. This run configuration is included in the
+project [local run configuration](./.run/Local%20-%20Run.run.xml)
+and can be accessed using the run options in the top right of the window in IntelliJ.
 
-There is also a `docker-compose.yml` that can be used to run a local instance of the template in docker and also an
-instance of HMPPS Auth (required if your service calls out to other services using a token).
+There is also a `docker-compose.yml` that can be used to run a local instance of the application in docker and also an
+instance of HMPPS Auth.
 
-```bash
-docker compose pull && docker compose up
-```
-
-will build the application and run it and HMPPS Auth within a local docker instance.
-
-### Running the application in Intellij
+Run the following command to pull the relevant dependencies for the project.
 
 ```bash
-docker compose pull && docker compose up --scale hmpps-accredited-programmes-manage-and-deliver-api=0
+docker-compose pull
 ```
 
-will just start a docker instance of HMPPS Auth. The application should then be started with a `dev` active profile
-in Intellij.
+and then the following command to run the containers.
+
+```bash
+docker-compose up
+```
+
+can optionally be run in detached mode in order to retain terminal use
+
+```bash
+docker-compose up -d
+```
+
+### Connecting to local database
+
+The service uses a postgres database alongside flyway migrations to create and populate the database. To connect to the
+database locally in your preferred database
+client ([IntelliJ Ultimate](https://www.jetbrains.com/help/idea/database-tool-window.html), [Dbeaver](https://dbeaver.io/),
+[Pgadmin](https://www.pgadmin.org/), etc).
+
+Create new connection using local database credentials;
+
+| Variable | Value          |
+|----------|----------------|
+| Port     | 5432           |
+| Username | admin          |
+| Password | admin_password |
+
+### Events
+
+The application listens to events that are published on the `HMPPS_DOMAIN_EVENTS_QUEUE`. This functionality is
+replicated locally using localstack. If you wish to view and create messages/queues/etc then it is recommended to use
+the `awslocal` wrapper which can be installed using
+
+```zsh
+brew install awscli-local
+```
+
+You can view the created queue by running:
+
+```zsh
+awslocal sqs list-queues
+```
+
+To send test events to our queues we can run the following command:
+
+```zsh
+awslocal sqs send-message --queue-url http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/hmppsdomainevent --message-body file://src/test/resources/events/interventions/communityReferralCreatedEvent.json
+```
+
+### Authorization
+
+The service uses an OAuth 2.0 setup managed through the HMPPS Auth project. To call any endpoints locally a bearer token
+must be generated. This can be done through calling the auth endpoint in the HMPPS-auth service.
+
+| Variable         | Value                                                     |
+|------------------|-----------------------------------------------------------|
+| Grant type       | Client credentials                                        |
+| Access token URL | http://hmpps-auth:9090/auth/oauth/token                   |
+| Client ID        | hmpps-accredited-programmes-manage-and-deliver-api-client |
+| Client Secret    | clientsecret                                              |
+| Scope            | Read                                                      |
+
+The values for `ClientId` and `Client Secret` are the local values. These are the same credentials that the UI uses to
+call this service.
+
+## Health
+
+- `/health/ping`: will respond `pong` to all requests. This should be used by dependent systems to check connectivity to
+  the service.
+- `/health`: provides information about the application health and its dependencies. This should only be used by
+  hmpps-accredited-programmes-manage-and-deliver-api health monitoring (e.g. pager duty) and not other systems who wish
+  to find out the state of the service.
+- `/info`: provides information about the version of the deployed application.
+
+## Testing
+
+Run the tests with:
+
+```bash
+./gradlew test
+```
+
+### Integration tests
+
+Integration tests use Testcontainers to spin up test versions of dependent services (PostgreSQL, localstack for SQS).
+
+### Test coverage
+
+Test coverage reports are enabled by default and after running the tests the report will be written to
+`build/reports/jacoco/test/html`.
+
+## Branch naming validator
+
+This project has a branch naming validator in place in the GitHub action pipeline.
+
+To ensure these pipelines pass the branch name must conform one of the following patterns:
+
+* APG-[0-9]/*branch-name-here*
+* FRI-[0-9]/*branch-name-here*
+* no-ticket/*branch-name-here*
+* renovate/*branch-name-here*
+* hotfix/*branch-name-here*
+
+## Tracing
+
+This application is configured to send tracing data to Application Insights. When running locally, tracing data will be
+sent to the `local` Application Insights instance if the `APPLICATIONINSIGHTS_CONNECTION_STRING` environment variable is
+set.
+
+## Alerting
+
+Custom alerts are configured
+via [hmpps-helm-charts](https://github.com/ministryofjustice/hmpps-helm-charts/tree/main/charts/generic-service). Alerts
+are configured to be sent to the `#accredited-programmes-alerts` Slack channel.
+
+## Monitoring
+
+Application performance monitoring is provided by Application Insights. Logs are shipped to Azure Log Analytics.
+
+## Database
+
+This application uses PostgreSQL for data persistence. Database migrations are managed using Flyway.
+
+### Database migrations
+
+Database migrations are automatically applied on application startup via Flyway. Migration files are located in
+`src/main/resources/db/migration/`.
+
+## Formatting
+
+This project is formatted using ktlint.
+
+Run the following command to add a pre-commit hook to ensure your code is formatted correctly before pushing.
+
+```bash
+./gradlew addKtlintFormatGitPreCommitHook
+```
+
+## Configuration
+
+Configuration is provided via environment variables and spring configuration files. Key configuration areas include:
+
+- **Database**: Connection details for PostgreSQL
+- **SQS**: Queue configuration for domain events
+- **OAuth**: Client credentials for HMPPS Auth integration
+- **API clients**: Configuration for downstream API calls
+
+## API Documentation
+
+Interactive API documentation is available via Swagger UI:
+
+- **Dev
+  **: [API Documentation](https://accredited-programmes-manage-and-deliver-api-dev.hmpps.service.justice.gov.uk/swagger-ui/index.html)
+- **Preprod
+  **: [API Documentation](https://accredited-programmes-manage-and-deliver-api-preprod.hmpps.service.justice.gov.uk/swagger-ui/index.html)
+
+## Dependencies
+
+This service integrates with several other HMPPS services:
+
+- **HMPPS Auth**: For authentication and authorization
+- **Probation Integration - nDelius**: For person information in the community
+- **Probation Integration - OaSys**: For prison and prisoner data in custody
+- **Domain Events**: For publishing and consuming business events
+
+## Common Kotlin patterns
+
+Many patterns have evolved for HMPPS Kotlin applications. Using these patterns provides consistency across our suite of
+Kotlin microservices and allows you to concentrate on building your business needs rather than reinventing the
+technical approach.
+
+Documentation for these patterns can be found in
+the [HMPPS tech docs](https://tech-docs.hmpps.service.justice.gov.uk/common-kotlin-patterns/).
+If this documentation is incorrect or needs improving please report
+to [#ask-prisons-digital-sre](https://moj.enterprise.slack.com/archives/C06MWP0UKDE)
+or [raise a PR](https://github.com/ministryofjustice/hmpps-tech-docs).
+
+## Deployments
+
+Deployments are part of our CI process, on the `main` branch using GitHub Actions workflows.
+
+Deployments require a manual approval step for production environments.
+
+### Kubernetes
+
+All deployments and environments are managed through Kubernetes.
+
+For information on how to connect to the Cloud Platform's Kubernetes cluster follow the setup
+guide [here](https://user-guide.cloud-platform.service.justice.gov.uk/documentation/getting-started/kubectl-config.html#connecting-to-the-cloud-platform-39-s-kubernetes-cluster).
+
+For further Kubernetes commands a useful cheat sheet is
+provided [here](https://kubernetes.io/docs/reference/kubectl/quick-reference/). Similarly, the `--help` flag on any
+`kubectl` command will give you more information.
+
+### Testing a Deployment
+
+#### tl;dr
+
+```zsh
+kubectl get deployments -n $NAMESPACE
+```
+
+```zsh
+kubectl get pods -n $NAMESPACE
+```
+
+```zsh
+kubectl logs $POD_NAME -n $NAMESPACE
+```
+
+#### 1. Find the deployments in the namespace:
+
+```zsh
+$ kubectl get deployments -n hmpps-accredited-programmes-manage-and-deliver-dev
+
+NAME                                                    READY   UP-TO-DATE   AVAILABLE   AGE
+hmpps-accredited-programmes-manage-and-deliver-api      2/2     2            2           41d
+```
+
+#### 2. Double-check the Pod(s) associated with the Deployment:
+
+Per [Kubernetes' docs](https://kubernetes.io/docs/concepts/workloads/pods/):
+
+> A Pod is similar to a set of containers with shared namespaces and shared filesystem volumes.
+
+View the Pods in the namespace, these are what the `READY` column in the `get deployments` refer to:
+
+```zsh
+$ kubectl get pods -n hmpps-accredited-programmes-manage-and-deliver-prod
+
+NAME                                                                     READY   STATUS    RESTARTS   AGE
+hmpps-accredited-programmes-manage-and-deliver-api-58bb6f56b4-7q566      1/1     Running   0          35m
+hmpps-accredited-programmes-manage-and-deliver-api-58bb6f56b4-kzqsn      1/1     Running   0          35m
+```
+
+#### 3. Check the logs of a Pod
+
+It is possible to read the logs of a given Pod to check that the build and spin-up process for the Pod has been
+successful.
+
+To view the logs from any of the Pods whose name is given in the previous responses:
+
+```zsh
+$ kubectl logs $POD_NAME --$NAMESPACE hmpps-accredited-programmes-manage-and-deliver-dev
+```
+
+Where `$POD_NAME` is the full string Pod name given in the `get pods` response.
+AND `$NAMESPACE` is the namespace which you are running the command against
+
+## Connecting Postman to Test Environments
+
+There is a guide on how to configure your postman client to be able to call endpoints in the Test environments (
+Dev) [here](https://dsdmoj.atlassian.net/wiki/spaces/IC/pages/5784142235/Connecting+Postman+to+test+environments).
+
+## Security
+
+Our security policy is
+located [here](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/security/policy).
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For project-specific questions, please reach out to the Accredited Programmes team in `#accredited-programmes-dev`.
+Please raise any questions or queries there. Contributions welcome!
+
