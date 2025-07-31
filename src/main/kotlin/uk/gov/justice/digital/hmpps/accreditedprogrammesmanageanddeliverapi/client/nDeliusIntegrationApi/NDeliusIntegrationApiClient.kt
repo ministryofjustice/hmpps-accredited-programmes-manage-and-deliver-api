@@ -18,6 +18,10 @@ class NDeliusIntegrationApiClient(
     path = "/case/$identifier/personal-details"
   }
 
+  fun getSentenceInformation(crn: String,  eventNumber: String) = getRequest<NDeliusPersonalDetails>("NDelius Integration API") {
+    path = "/case/$crn/sentence/$eventNumber"
+  }
+
   fun verifyLimitedAccessOffenderCheck(username: String, identifiers: List<String>) = postRequest<LimitedAccessOffenderCheckResponse>("NDelius Integration API") {
     path = "/user/$username/access"
     body = identifiers

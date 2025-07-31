@@ -12,10 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toModel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.*
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ServiceUserService
@@ -104,4 +101,16 @@ class ReferralController(
       ResponseEntity.ok(it.toModel(referral.setting))
     } ?: throw NotFoundException("Personal details not found for crn ${referral.crn} not found")
   }
+
+  @GetMapping("/referral-details/{id}/sentence-information", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getSentenceInformationByReferralId(
+    @Parameter(description = "The id (UUID) of a referral", required = true)
+    @PathVariable("id") id: UUID,
+  ): ResponseEntity<SentenceInformation> {
+    val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
+    return serviceUserService.getSentenceInformationByIdentifier(referral.crn).let {
+      ResponseEntity.ok(it.toModel(referral.setting))
+    } ?: throw NotFoundException("Personal details not found for crn ${referral.crn} not found")
+  }
+
 }
