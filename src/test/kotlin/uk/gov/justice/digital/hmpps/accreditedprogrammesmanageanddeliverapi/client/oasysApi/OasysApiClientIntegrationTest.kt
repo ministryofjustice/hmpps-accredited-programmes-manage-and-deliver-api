@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.RiskResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.ScoredAnswer
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Type
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
@@ -76,6 +77,38 @@ class OasysApiClientIntegrationTest : IntegrationTestBase() {
       is ClientResult.Failure.StatusCode<*> -> {
         assertThat(response.status).isEqualTo(HttpStatus.NOT_FOUND)
       }
+    }
+  }
+
+  @Test
+  fun `should return risk predictors for known crn`() {
+    // Given
+    stubAuthTokenEndpoint()
+    val crn = "X123456"
+    oasysApiStubs.stubSuccessfulRiskPredictorsResponse(crn)
+
+    // When
+    when (val response = oasysApiClient.getRiskPredictors(crn)) {
+      is ClientResult.Success<*> -> {
+        val risk = response.body as RiskResponse
+        assertThat(risk.sexualPredictorScore?.ospIndecentPercentageScore).isEqualTo(12)
+        assertThat(risk.sexualPredictorScore?.ospContactPercentageScore).isEqualTo(23)
+        assertThat(risk.sexualPredictorScore?.ospIndirectImagePercentageScore).isEqualTo(7)
+        assertThat(risk.sexualPredictorScore?.ospDirectContactPercentageScore).isEqualTo(18)
+      }
+      else -> fail("Unexpected client result: ${response::class.simpleName}")
+    }
+  }
+
+  @Test
+  fun `should return NOT FOUND for risk predictors of unknown crn`() {
+    stubAuthTokenEndpoint()
+    val crn = randomAlphanumericString()
+    oasysApiStubs.stubNotFoundRiskPredictorsResponse(crn)
+
+    when (val response = oasysApiClient.getRiskPredictors(crn)) {
+      is ClientResult.Failure.StatusCode<*> -> assertThat(response.status).isEqualTo(HttpStatus.NOT_FOUND)
+      else -> fail("Expected 404, got: ${response::class.simpleName}")
     }
   }
 }
