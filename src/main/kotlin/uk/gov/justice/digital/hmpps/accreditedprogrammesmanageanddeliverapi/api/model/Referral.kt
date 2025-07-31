@@ -46,6 +46,14 @@ data class Referral(
   )
   @get:JsonProperty("status", required = true)
   val status: String,
+
+  @Schema(
+    example = "Birmingham",
+    required = true,
+    description = "The current office associated with this referral.",
+  )
+  @get:JsonProperty("status", required = true)
+  val office: String,
 )
 
 fun ReferralEntity.toApi() = Referral(
@@ -54,4 +62,5 @@ fun ReferralEntity.toApi() = Referral(
   crn = crn,
   createdAt = createdAt,
   status = statusHistories.find { it.endDate == null }?.status ?: "Unknown",
+  office = officeHistories.find { it.deletedAt == null }?.officeName?: "Unknown"
 )

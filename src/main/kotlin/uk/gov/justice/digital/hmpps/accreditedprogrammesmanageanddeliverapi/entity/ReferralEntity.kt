@@ -54,4 +54,15 @@ class ReferralEntity(
     inverseJoinColumns = [JoinColumn(name = "referral_status_history_id")],
   )
   var statusHistories: MutableList<ReferralStatusHistoryEntity> = mutableListOf(),
+
+  @OneToMany(
+    fetch = FetchType.LAZY,
+    cascade = [CascadeType.ALL],
+    orphanRemoval = true,
+  )
+  @JoinTable(
+    name = "office_history",
+    joinColumns = [JoinColumn(name = "referral_id")]
+  )
+  var officeHistories: MutableList<OfficeHistoryEntity> = mutableListOf(),
 )
