@@ -111,7 +111,7 @@ class ReferralServiceTest {
     val referralEntity: ReferralEntity = ReferralEntityFactory().withId(referralId).produce()
     val optionalEntity: Optional<ReferralEntity> =
       Optional.of<ReferralEntity>(referralEntity)
-    `when`(referralRepository.findById(referralId)).thenReturn(optionalEntity as Optional<ReferralEntity?>?)
+    `when`(referralRepository.findById(referralId)).thenReturn(optionalEntity as Optional<ReferralEntity?>)
 
     val personalDetails = NDeliusPersonalDetailsFactory().produce()
     // Use Mockito's when instead of MockK's every

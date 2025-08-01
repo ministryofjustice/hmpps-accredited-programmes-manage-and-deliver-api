@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.OverallIntensity
 
@@ -10,4 +11,18 @@ data class PniScore(
   val overallIntensity: OverallIntensity,
   @Schema(description = "Detailed scores across different assessment domains")
   val domainScores: DomainScores,
+
+  @Schema(
+    example = "  \"riskScores\": {\n" +
+      "    \"ogrs3\": 15.0,\n" +
+      "    \"ovp\": 15.0,\n" +
+      "    \"ospDc\": 1.07,\n" +
+      "    \"ospIic\": 0.11,\n" +
+      "    \"rsr\": 1.46,\n" +
+      "    \"sara\": \"High\"\n" +
+      "  }\n",
+  )
+  @get:JsonProperty("RiskScore") val riskScore: RiskScore,
+  @Schema(example = "['impulsivity is missing ']", required = true)
+  @get:JsonProperty("validationErrors") val validationErrors: List<String>,
 )
