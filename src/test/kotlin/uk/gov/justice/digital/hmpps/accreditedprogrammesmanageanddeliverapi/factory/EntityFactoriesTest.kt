@@ -2,7 +2,10 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.InterventionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SettingType
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -146,12 +149,12 @@ class EntityFactoriesTest {
 
   @Test
   fun `ReferralDetailsFactory should create entity with custom values`() {
-    val interventionType = "Custom Intervention Type"
+    val interventionType = InterventionType.CRS
     val interventionName = "Custom Intervention Name"
     val personReference = "CUSTOM123"
-    val personReferenceType = "CUSTOM_TYPE"
+    val personReferenceType = PersonReferenceType.NOMS
     val referralId = UUID.randomUUID()
-    val setting = "CUSTOM_SETTING"
+    val setting = SettingType.CUSTODY
 
     val referralDetails = FindAndReferReferralDetailsFactory()
       .withInterventionType(interventionType)

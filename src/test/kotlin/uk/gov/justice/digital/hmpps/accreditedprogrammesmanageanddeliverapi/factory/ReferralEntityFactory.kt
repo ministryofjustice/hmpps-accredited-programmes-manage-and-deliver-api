@@ -2,8 +2,10 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomSentence
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SettingType
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -12,11 +14,13 @@ class ReferralEntityFactory {
   private var id: UUID? = null
   private var personName: String? = randomSentence(wordRange = 1..3)
   private var interventionName: String? = "Building Choices"
+  private var interventionType: InterventionType = InterventionType.ACP
   private var crn: String? = randomUppercaseString(6)
   private var createdAt: LocalDateTime = LocalDateTime.now()
   private var statusHistories: MutableList<ReferralStatusHistoryEntity> =
     mutableListOf(referralStatusHistoryEntityFactory.withStatus("Assessment started").produce())
-  private var setting: String = "COMMUNITY"
+  private var setting: SettingType = SettingType.COMMUNITY
+  private var eventNumber: String = randomUppercaseString(6)
 
   fun withId(id: UUID?) = apply { this.id = id }
   fun withPersonName(personName: String?) = apply { this.personName = personName }
@@ -24,6 +28,8 @@ class ReferralEntityFactory {
   fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
   fun withStatusHistories(statusHistories: MutableList<ReferralStatusHistoryEntity>) = apply { this.statusHistories = statusHistories }
 
+  fun withInterventionType(interventionType: InterventionType) = apply { this.interventionType = interventionType }
+  fun withEventNumber(eventNumber: String) = apply { this.eventNumber = eventNumber }
   fun addStatusHistory(statusHistory: ReferralStatusHistoryEntity) = apply { this.statusHistories.add(statusHistory) }
 
   fun produce() = ReferralEntity(
@@ -33,6 +39,8 @@ class ReferralEntityFactory {
     createdAt = this.createdAt,
     interventionName = this.interventionName,
     statusHistories = this.statusHistories,
-    setting = setting,
+    setting = this.setting,
+    interventionType = this.interventionType,
+    eventNumber = this.eventNumber,
   )
 }
