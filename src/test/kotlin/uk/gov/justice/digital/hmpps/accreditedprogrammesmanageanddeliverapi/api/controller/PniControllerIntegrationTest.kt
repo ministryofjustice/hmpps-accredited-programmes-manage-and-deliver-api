@@ -11,6 +11,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.NeedLevel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.OverallIntensity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniRiskLevel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.SaraRisk
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 
@@ -43,29 +45,50 @@ class PniControllerIntegrationTest : IntegrationTestBase() {
     assertThat(response.domainScores).isNotNull
 
     // Sex Domain assertions
-    assertThat(response.domainScores.sexDomainScore.overallSexDomainLevel).isEqualTo(NeedLevel.HIGH_NEED)
-    assertThat(response.domainScores.sexDomainScore.individualSexScores.sexualPreOccupation).isEqualTo(2)
-    assertThat(response.domainScores.sexDomainScore.individualSexScores.offenceRelatedSexualInterests).isEqualTo(1)
-    assertThat(response.domainScores.sexDomainScore.individualSexScores.emotionalCongruence).isEqualTo(1)
+    val sexDomainScore = response.domainScores.sexDomainScore
+    assertThat(sexDomainScore.overallSexDomainLevel).isEqualTo(NeedLevel.HIGH_NEED)
+    assertThat(sexDomainScore.individualSexScores.sexualPreOccupation).isEqualTo(2)
+    assertThat(sexDomainScore.individualSexScores.offenceRelatedSexualInterests).isEqualTo(1)
+    assertThat(sexDomainScore.individualSexScores.emotionalCongruence).isEqualTo(1)
 
     // Thinking Domain assertions
-    assertThat(response.domainScores.thinkingDomainScore.overallThinkingDomainLevel).isEqualTo(NeedLevel.HIGH_NEED)
-    assertThat(response.domainScores.thinkingDomainScore.individualThinkingScores.proCriminalAttitudes).isEqualTo(1)
-    assertThat(response.domainScores.thinkingDomainScore.individualThinkingScores.hostileOrientation).isEqualTo(1)
+    val thinkingDomainScore = response.domainScores.thinkingDomainScore
+    assertThat(thinkingDomainScore.overallThinkingDomainLevel).isEqualTo(NeedLevel.HIGH_NEED)
+    assertThat(thinkingDomainScore.individualThinkingScores.proCriminalAttitudes).isEqualTo(1)
+    assertThat(thinkingDomainScore.individualThinkingScores.hostileOrientation).isEqualTo(1)
 
     // Relationship Domain assertions
-    assertThat(response.domainScores.relationshipDomainScore.overallRelationshipDomainLevel).isEqualTo(NeedLevel.HIGH_NEED)
-    assertThat(response.domainScores.relationshipDomainScore.individualRelationshipScores.curRelCloseFamily).isEqualTo(0)
-    assertThat(response.domainScores.relationshipDomainScore.individualRelationshipScores.prevCloseRelationships).isEqualTo(0)
-    assertThat(response.domainScores.relationshipDomainScore.individualRelationshipScores.easilyInfluenced).isEqualTo(0)
-    assertThat(response.domainScores.relationshipDomainScore.individualRelationshipScores.aggressiveControllingBehaviour).isEqualTo(0)
+    val relationshipDomainScore = response.domainScores.relationshipDomainScore
+    assertThat(relationshipDomainScore.overallRelationshipDomainLevel).isEqualTo(NeedLevel.HIGH_NEED)
+    assertThat(relationshipDomainScore.individualRelationshipScores.curRelCloseFamily).isEqualTo(0)
+    assertThat(relationshipDomainScore.individualRelationshipScores.prevCloseRelationships).isEqualTo(0)
+    assertThat(relationshipDomainScore.individualRelationshipScores.easilyInfluenced).isEqualTo(0)
+    assertThat(relationshipDomainScore.individualRelationshipScores.aggressiveControllingBehaviour).isEqualTo(0)
 
     // Self-Management Domain assertions
-    assertThat(response.domainScores.selfManagementDomainScore.overallSelfManagementDomainLevel).isEqualTo(NeedLevel.HIGH_NEED)
-    assertThat(response.domainScores.selfManagementDomainScore.individualSelfManagementScores.impulsivity).isEqualTo(0)
-    assertThat(response.domainScores.selfManagementDomainScore.individualSelfManagementScores.temperControl).isEqualTo(0)
-    assertThat(response.domainScores.selfManagementDomainScore.individualSelfManagementScores.problemSolvingSkills).isEqualTo(0)
-    assertThat(response.domainScores.selfManagementDomainScore.individualSelfManagementScores.difficultiesCoping).isNull()
+    val selfManagementDomainScore = response.domainScores.selfManagementDomainScore
+    assertThat(selfManagementDomainScore.overallSelfManagementDomainLevel).isEqualTo(NeedLevel.HIGH_NEED)
+    assertThat(selfManagementDomainScore.individualSelfManagementScores.impulsivity).isEqualTo(0)
+    assertThat(selfManagementDomainScore.individualSelfManagementScores.temperControl).isEqualTo(0)
+    assertThat(selfManagementDomainScore.individualSelfManagementScores.problemSolvingSkills).isEqualTo(0)
+    assertThat(selfManagementDomainScore.individualSelfManagementScores.difficultiesCoping).isNull()
+
+    // Risk score assertions
+
+    assertThat(response.riskScore.classification).isEqualTo(PniRiskLevel.HIGH_RISK.name)
+
+    val individualRiskScores = response.riskScore.individualRiskScores
+    assertThat(individualRiskScores.ogrs3Risk).isNull()
+    assertThat(individualRiskScores.ovpRisk).isNull()
+    assertThat(individualRiskScores.ospDc).isNull()
+    assertThat(individualRiskScores.ospIic).isNull()
+    assertThat(individualRiskScores.rsr).isEqualTo("null")
+
+    val sara = individualRiskScores.sara
+    assertThat(sara?.highestRisk).isEqualTo(SaraRisk.MEDIUM)
+    assertThat(sara?.saraRiskOfViolenceTowardsOthers).isEqualTo("Medium")
+    assertThat(sara?.saraRiskOfViolenceTowardsOthers).isEqualTo("Medium")
+    assertThat(sara?.assessmentId).isEqualTo("10082385")
   }
 
   @Test

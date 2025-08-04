@@ -75,3 +75,19 @@ enum class Level {
   M,
   L,
 }
+
+enum class PniRiskLevel {
+  HIGH_RISK,
+  MEDIUM_RISK,
+  LOW_RISK,
+  ;
+
+  companion object {
+    fun fromLevel(level: Level?): PniRiskLevel = when (level) {
+      Level.H -> HIGH_RISK
+      Level.M -> MEDIUM_RISK
+      Level.L -> LOW_RISK
+      else -> throw IllegalArgumentException("Unknown Risk Level: $level")
+    }
+  }
+}

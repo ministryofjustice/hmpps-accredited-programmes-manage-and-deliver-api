@@ -8,9 +8,6 @@ class PniResponseFactory {
   private var pniCalculation: PniCalculation? = PniCalculationFactory().produce()
   private var assessment: PniAssessment? = PniAssessmentFactory().produce()
 
-  fun withPniCalculation(pniCalculation: PniCalculation?) = apply { this.pniCalculation = pniCalculation }
-  fun withAssessment(assessment: PniAssessment?) = apply { this.assessment = assessment }
-
   fun produce() = PniResponse(
     pniCalculation = this.pniCalculation,
     assessment = this.assessment,
