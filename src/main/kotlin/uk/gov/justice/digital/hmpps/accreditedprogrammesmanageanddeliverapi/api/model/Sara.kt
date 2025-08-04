@@ -7,8 +7,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.SaraRiskLevel
 
 data class Sara(
-  @Schema(example = "LOW", description = "The overall SARA risk score")
-  @get:JsonProperty("sara") val overallResult: SaraRisk? = null,
+  @Schema(example = "LOW", description = "The highest of what is being returned based on saraRiskOfViolenceTowardsPartner and saraRiskOfViolenceTowardsOthers")
+  @get:JsonProperty("highestRisk") val highestRisk: SaraRisk? = null,
 
   @Schema(example = "LOW", description = "Risk of violence towards partner")
   @get:JsonProperty("saraRiskOfViolenceTowardsPartner") val saraRiskOfViolenceTowardsPartner: String? = null,
@@ -17,17 +17,17 @@ data class Sara(
   @get:JsonProperty("saraRiskOfViolenceTowardsOthers") val saraRiskOfViolenceTowardsOthers: String? = null,
 
   @Schema(example = "2512235167", description = "Assessment ID relevant to the SARA version of the assessment")
-  @get:JsonProperty("saraAssessmentId") val saraAssessmentId: Long? = null,
+  @get:JsonProperty("assessmentId") val assessmentId: String? = null,
 ) {
   companion object {
     fun from(pniResponse: PniResponse): Sara {
       val saraRiskOfViolenceTowardsPartner = SaraRiskLevel.getRiskForPartner(pniResponse.pniCalculation?.saraRiskLevel?.toPartner)
       val saraRiskOfViolenceTowardsOthers = SaraRiskLevel.getRiskToOthers(pniResponse.pniCalculation?.saraRiskLevel?.toOther)
       return Sara(
-        overallResult = SaraRisk.highestRisk(saraRiskOfViolenceTowardsPartner, saraRiskOfViolenceTowardsOthers),
+        highestRisk = SaraRisk.highestRisk(saraRiskOfViolenceTowardsPartner, saraRiskOfViolenceTowardsOthers),
         saraRiskOfViolenceTowardsPartner = saraRiskOfViolenceTowardsPartner.description,
         saraRiskOfViolenceTowardsOthers = saraRiskOfViolenceTowardsOthers.description,
-        saraAssessmentId = pniResponse.assessment?.id,
+        assessmentId = pniResponse.assessment?.id.toString(),
       )
     }
   }

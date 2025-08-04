@@ -76,14 +76,14 @@ enum class Level {
   L,
 }
 
-enum class RiskLevel {
+enum class PniRiskLevel {
   HIGH_RISK,
   MEDIUM_RISK,
   LOW_RISK,
   ;
 
   companion object {
-    fun fromLevel(level: Level?): RiskLevel = when (level) {
+    fun fromLevel(level: Level?): PniRiskLevel = when (level) {
       Level.H -> HIGH_RISK
       Level.M -> MEDIUM_RISK
       Level.L -> LOW_RISK

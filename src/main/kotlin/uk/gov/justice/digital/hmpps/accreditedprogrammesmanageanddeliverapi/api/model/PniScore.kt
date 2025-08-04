@@ -13,14 +13,16 @@ data class PniScore(
   val domainScores: DomainScores,
 
   @Schema(
-    example = "  \"riskScores\": {\n" +
-      "    \"ogrs3\": 15.0,\n" +
-      "    \"ovp\": 15.0,\n" +
-      "    \"ospDc\": 1.07,\n" +
-      "    \"ospIic\": 0.11,\n" +
-      "    \"rsr\": 1.46,\n" +
-      "    \"sara\": \"High\"\n" +
-      "  }\n",
+    example = """
+      "riskScores": {
+        "ogrs3": 15.0,
+        "ovp": 15.0,
+        "ospDc": 1.07,
+        "ospIic": 0.11,
+        "rsr": 1.46,
+        "sara": "High"
+      }
+     """,
   )
   @get:JsonProperty("RiskScore") val riskScore: RiskScore,
   @Schema(example = "['impulsivity is missing ']", required = true)

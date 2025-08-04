@@ -11,7 +11,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.NeedLevel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.OverallIntensity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.RiskLevel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniRiskLevel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.SaraRisk
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
@@ -75,7 +75,7 @@ class PniControllerIntegrationTest : IntegrationTestBase() {
 
     // Risk score assertions
 
-    assertThat(response.riskScore.classification).isEqualTo(RiskLevel.HIGH_RISK.name)
+    assertThat(response.riskScore.classification).isEqualTo(PniRiskLevel.HIGH_RISK.name)
 
     val individualRiskScores = response.riskScore.individualRiskScores
     assertThat(individualRiskScores.ogrs3Risk).isNull()
@@ -85,10 +85,10 @@ class PniControllerIntegrationTest : IntegrationTestBase() {
     assertThat(individualRiskScores.rsr).isNull()
 
     val sara = individualRiskScores.sara
-    assertThat(sara?.overallResult).isEqualTo(SaraRisk.MEDIUM)
+    assertThat(sara?.highestRisk).isEqualTo(SaraRisk.MEDIUM)
     assertThat(sara?.saraRiskOfViolenceTowardsOthers).isEqualTo("Medium")
     assertThat(sara?.saraRiskOfViolenceTowardsOthers).isEqualTo("Medium")
-    assertThat(sara?.saraAssessmentId).isEqualTo(10082385)
+    assertThat(sara?.assessmentId).isEqualTo("10082385")
   }
 
   @Test

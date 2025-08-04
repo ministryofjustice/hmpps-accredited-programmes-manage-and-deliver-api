@@ -11,7 +11,7 @@ fun PniResponse.toPniScore() = PniScore(
   overallIntensity = Type.toIntensity(pniCalculation?.pni),
   domainScores = DomainScores.from(this),
   riskScore = RiskScore(
-    classification = RiskLevel.fromLevel(pniCalculation?.riskLevel).name,
+    classification = PniRiskLevel.fromLevel(pniCalculation?.riskLevel).name,
     individualRiskScores = IndividualRiskScores.from(this),
   ),
   validationErrors = emptyList(),

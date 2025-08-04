@@ -6,33 +6,24 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import java.math.BigDecimal
 import kotlin.let
 
-/**
- *
- * @param ogrs3
- * @param ovp
- * @param ospDc
- * @param ospIic
- * @param rsr
- * @param sara
- */
 data class IndividualRiskScores(
 
-  @Schema(example = "Medium", description = "The OGRS risk level")
+  @Schema(example = "Medium", description = "The Offender Group Reconviction Scale 3 (OGRS3) risk level")
   @get:JsonProperty("ogrs3Risk") val ogrs3Risk: String? = null,
 
-  @Schema(example = "High", description = "The OVP Risk level")
+  @Schema(example = "High", description = "The OVP(OASys Violence Predictor) Risk level")
   @get:JsonProperty("ovpRisk") val ovpRisk: String? = null,
 
-  @Schema(example = "0", description = "")
+  @Schema(example = "0", description = "ospDc - OASys Sexual Reconviction Predictor Direct Contact")
   @get:JsonProperty("ospDc") val ospDc: String? = null,
 
-  @Schema(example = "1", description = "")
+  @Schema(example = "1", description = "OASys Sexual Reconviction Predictor Indecent Images of Children")
   @get:JsonProperty("ospIic") val ospIic: String? = null,
 
-  @Schema(example = "5", description = "")
+  @Schema(example = "5", description = "rsr - Risk of Serious Recidivism")
   @get:JsonProperty("rsr") val rsr: BigDecimal? = null,
 
-  @Schema(description = "SARA related risk score")
+  @Schema(description = "SARA (Spousal Assault Risk Assessment) related risk score")
   @get:JsonProperty("sara") val sara: Sara? = null,
 ) {
   companion object {
