@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.OasysApiClient
@@ -29,8 +30,12 @@ class PniService(
     return pniResponse.toPniScore()
   }
 
-  fun isSexualOffenceCohort(crn: String): Boolean {
+  fun determineOffenceCohort(crn: String): OffenceCohort {
     val pniScore = getPniScore(crn)
-    return pniScore.domainScores.sexDomainScore.overallSexDomainLevel == NeedLevel.HIGH_NEED
+    return if (pniScore.domainScores.sexDomainScore.overallSexDomainLevel == NeedLevel.HIGH_NEED) {
+      OffenceCohort.SEXUAL_OFFENCE
+    } else {
+      OffenceCohort.GENERAL_OFFENCE
+    }
   }
 }
