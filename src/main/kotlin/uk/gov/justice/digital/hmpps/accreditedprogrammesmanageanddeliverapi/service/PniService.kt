@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.OasysApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.NeedLevel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.toPniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 
@@ -26,5 +27,10 @@ class PniService(
         is ClientResult.Success -> result.body
       }
     return pniResponse.toPniScore()
+  }
+
+  fun isSexualOffenceCohort(crn: String): Boolean {
+    val pniScore = getPniScore(crn)
+    return pniScore.domainScores.sexDomainScore.overallSexDomainLevel == NeedLevel.HIGH_NEED
   }
 }
