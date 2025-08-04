@@ -21,7 +21,7 @@ data class IndividualRiskScores(
   @get:JsonProperty("ospIic") val ospIic: String? = null,
 
   @Schema(example = "5", description = "rsr - Risk of Serious Recidivism")
-  @get:JsonProperty("rsr") val rsr: BigDecimal? = null,
+  @get:JsonProperty("rsr") val rsr: String? = null,
 
   @Schema(description = "SARA (Spousal Assault Risk Assessment) related risk score")
   @get:JsonProperty("sara") val sara: Sara? = null,
@@ -32,7 +32,7 @@ data class IndividualRiskScores(
       ovpRisk = pniResponse.assessment?.ovpRisk?.type,
       ospDc = pniResponse.assessment?.osp?.cdc?.type,
       ospIic = pniResponse.assessment?.osp?.iiic?.type,
-      rsr = pniResponse.assessment?.rsrPercentage?.let { BigDecimal.valueOf(it) },
+      rsr = pniResponse.assessment?.rsrPercentage?.let { BigDecimal.valueOf(it) }.toString(),
       sara = Sara.from(pniResponse),
     )
   }

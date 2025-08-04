@@ -82,7 +82,7 @@ class PniControllerIntegrationTest : IntegrationTestBase() {
     assertThat(individualRiskScores.ovpRisk).isNull()
     assertThat(individualRiskScores.ospDc).isNull()
     assertThat(individualRiskScores.ospIic).isNull()
-    assertThat(individualRiskScores.rsr).isNull()
+    assertThat(individualRiskScores.rsr).isEqualTo("null")
 
     val sara = individualRiskScores.sara
     assertThat(sara?.highestRisk).isEqualTo(SaraRisk.MEDIUM)
