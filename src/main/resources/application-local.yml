@@ -17,7 +17,7 @@ spring:
           manage-and-deliver-api-client:
             provider: hmpps-auth
             client-id: hmpps-accredited-programmes-manage-and-deliver-api-client-1
-            client-secret: ${API_CLIENT_SECRET:clientsecret}
+            client-secret: clientsecret
             authorization-grant-type: client_credentials
         provider:
           hmpps-auth:
