@@ -3,6 +3,8 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ent
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
@@ -10,7 +12,9 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.JoinTable
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
-import org.jetbrains.annotations.NotNull
+import jakarta.validation.constraints.NotNull
+import org.hibernate.annotations.JdbcType
+import org.hibernate.dialect.PostgreSQLEnumJdbcType
 import org.springframework.data.annotation.CreatedDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -26,18 +30,24 @@ class ReferralEntity(
   @Column(name = "person_name")
   var personName: String,
 
+  @NotNull
   @Column(name = "crn")
   var crn: String,
 
+  @NotNull
   @Column(name = "intervention_type")
-  var interventionType: String? = null,
+  @Enumerated(EnumType.STRING)
+  @JdbcType(PostgreSQLEnumJdbcType::class)
+  var interventionType: InterventionType,
 
   @Column(name = "intervention_name")
   var interventionName: String? = null,
 
   @NotNull
   @Column(name = "setting")
-  var setting: String,
+  @Enumerated(EnumType.STRING)
+  @JdbcType(PostgreSQLEnumJdbcType::class)
+  var setting: SettingType,
 
   @Column(name = "created_at")
   @CreatedDate
@@ -54,4 +64,32 @@ class ReferralEntity(
     inverseJoinColumns = [JoinColumn(name = "referral_status_history_id")],
   )
   var statusHistories: MutableList<ReferralStatusHistoryEntity> = mutableListOf(),
+
+  @NotNull
+  @Column("eventNumber")
+  val eventNumber: String,
 )
+
+enum class PersonReferenceType {
+  CRN,
+  NOMS,
+}
+
+enum class SourcedFromReferenceType {
+  LICENCE_CONDITION,
+  REQUIREMENT,
+}
+
+enum class SettingType {
+  COMMUNITY,
+  CUSTODY,
+  REMAND,
+  PRE_RELEASE,
+}
+
+enum class InterventionType {
+  SI,
+  ACP,
+  CRS,
+  TOOLKITS,
+}

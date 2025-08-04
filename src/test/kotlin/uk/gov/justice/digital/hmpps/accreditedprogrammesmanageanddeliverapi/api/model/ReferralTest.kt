@@ -2,8 +2,10 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SettingType
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -17,7 +19,7 @@ internal class ReferralTest {
     val crn = "X12345"
     val createdAt = LocalDateTime.now()
     val activeStatus = "Created"
-    val setting = "COMMUNITY"
+    val setting = SettingType.COMMUNITY
 
     val statusHistory = ReferralStatusHistoryEntity(status = activeStatus, endDate = null)
     val referralEntity = ReferralEntity(
@@ -27,6 +29,9 @@ internal class ReferralTest {
       createdAt = createdAt,
       statusHistories = mutableListOf(statusHistory),
       setting = setting,
+      interventionType = InterventionType.ACP,
+      interventionName = "Building Choices",
+      eventNumber = "2500828798",
     )
 
     // Act
@@ -47,7 +52,7 @@ internal class ReferralTest {
     val personName = "Jane Doe"
     val crn = "Y67890"
     val createdAt = LocalDateTime.now()
-    val setting = "COMMUNITY"
+    val setting = SettingType.COMMUNITY
 
     val statusHistory = ReferralStatusHistoryEntity(status = "Withdrawn", endDate = LocalDateTime.now())
     val referralEntity = ReferralEntity(
@@ -57,6 +62,9 @@ internal class ReferralTest {
       createdAt = createdAt,
       statusHistories = mutableListOf(statusHistory),
       setting = setting,
+      interventionType = InterventionType.ACP,
+      interventionName = "Building Choices",
+      eventNumber = "2500828798",
     )
 
     // Act
@@ -77,7 +85,7 @@ internal class ReferralTest {
     val personName = "Mark Smith"
     val crn = "Z12345"
     val createdAt = LocalDateTime.now()
-    val setting = "COMMUNITY"
+    val setting = SettingType.COMMUNITY
 
     val referralEntity = ReferralEntity(
       id = id,
@@ -86,6 +94,9 @@ internal class ReferralTest {
       createdAt = createdAt,
       statusHistories = mutableListOf(),
       setting = setting,
+      interventionType = InterventionType.ACP,
+      interventionName = "Building Choices",
+      eventNumber = "2500828798",
     )
 
     // Act

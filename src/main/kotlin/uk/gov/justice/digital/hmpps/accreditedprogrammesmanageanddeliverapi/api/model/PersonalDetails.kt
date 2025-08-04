@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SettingType
 import java.time.LocalDate
 
 data class PersonalDetails(
@@ -63,7 +64,7 @@ data class PersonalDetails(
     description = "The setting where the referral will be delivered.",
   )
   @get:JsonProperty("setting", required = true)
-  val setting: String,
+  val setting: SettingType,
 
   @Schema(
     example = "North London PDU",
@@ -83,7 +84,7 @@ data class PersonalDetails(
   val dateRetrieved: LocalDate,
 )
 
-fun NDeliusPersonalDetails.toModel(setting: String) = PersonalDetails(
+fun NDeliusPersonalDetails.toModel(setting: SettingType) = PersonalDetails(
   crn = crn,
   name = name.getNameAsString(),
   dateOfBirth = LocalDate.parse(dateOfBirth),
