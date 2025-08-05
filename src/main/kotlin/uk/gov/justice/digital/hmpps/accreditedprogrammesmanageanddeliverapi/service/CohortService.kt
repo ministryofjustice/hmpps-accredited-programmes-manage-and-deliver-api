@@ -36,10 +36,8 @@ class CohortService(
       .any { it > OSP_SEXUAL_OFFENCE_MINIMUM_THRESHOLD }
   }
 
-  private fun hasSignificantSexDomainScore(pniScore: PniScore): Boolean {
-    return with(pniScore.domainScores.sexDomainScore.individualSexScores) {
-      listOfNotNull(sexualPreOccupation, offenceRelatedSexualInterests, emotionalCongruence)
-        .any { it > SEX_DOMAIN_MINIMUM_THRESHOLD }
-    }
+  private fun hasSignificantSexDomainScore(pniScore: PniScore): Boolean = with(pniScore.domainScores.sexDomainScore.individualSexScores) {
+    listOfNotNull(sexualPreOccupation, offenceRelatedSexualInterests, emotionalCongruence)
+      .any { it > SEX_DOMAIN_MINIMUM_THRESHOLD }
   }
 }
