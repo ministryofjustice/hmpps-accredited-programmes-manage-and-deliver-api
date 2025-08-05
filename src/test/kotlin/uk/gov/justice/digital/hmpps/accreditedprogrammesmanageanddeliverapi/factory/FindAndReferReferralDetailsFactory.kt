@@ -1,7 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.FindAndReferReferralDetails
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomNumber
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomNumberAsInt
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomSentence
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
@@ -19,7 +19,7 @@ class FindAndReferReferralDetailsFactory {
   private var setting: SettingType = SettingType.COMMUNITY
   private var sourcedFromReferenceType: SourcedFromReferenceType = SourcedFromReferenceType.REQUIREMENT
   private var sourcedFromReference = randomUppercaseString(6)
-  private var eventNumber = randomNumber(1).toString()
+  private var eventNumber: Int = randomNumberAsInt(1)
 
   fun withInterventionType(interventionType: InterventionType) = apply { this.interventionType = interventionType }
   fun withInterventionName(interventionName: String) = apply { this.interventionName = interventionName }
@@ -30,7 +30,7 @@ class FindAndReferReferralDetailsFactory {
   fun withSetting(setting: SettingType) = apply { this.setting = setting }
   fun withSourceFromReferenceType(sourcedFromReferenceType: SourcedFromReferenceType) = apply { this.sourcedFromReferenceType = sourcedFromReferenceType }
 
-  fun withEventNumber(eventNumber: String) = apply { this.eventNumber = eventNumber }
+  fun withEventNumber(eventNumber: Int) = apply { this.eventNumber = eventNumber }
 
   fun produce() = FindAndReferReferralDetails(
     interventionType = this.interventionType,

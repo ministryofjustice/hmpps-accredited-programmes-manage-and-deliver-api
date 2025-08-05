@@ -17,7 +17,7 @@ data class FindAndReferReferralDetails(
   val setting: SettingType,
   val sourcedFromReference: String,
   val sourcedFromReferenceType: SourcedFromReferenceType,
-  val eventNumber: String,
+  val eventNumber: Int,
 )
 
 fun FindAndReferReferralDetails.toReferralEntity(statusHistories: MutableList<ReferralStatusHistoryEntity>) = ReferralEntity(
@@ -27,6 +27,6 @@ fun FindAndReferReferralDetails.toReferralEntity(statusHistories: MutableList<Re
   setting = setting,
   personName = "UNKNOWN",
   statusHistories = statusHistories,
-  eventNumber = sourcedFromReference,
-  eventId = eventNumber,
+  eventId = sourcedFromReference,
+  eventNumber = eventNumber,
 )

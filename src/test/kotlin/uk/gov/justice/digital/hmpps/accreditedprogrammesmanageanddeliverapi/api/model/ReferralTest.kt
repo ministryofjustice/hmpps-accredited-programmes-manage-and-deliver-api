@@ -31,7 +31,7 @@ internal class ReferralTest {
       setting = setting,
       interventionType = InterventionType.ACP,
       interventionName = "Building Choices",
-      eventNumber = "2",
+      eventNumber = 1,
       eventId = "2500828798",
     )
 
@@ -66,7 +66,7 @@ internal class ReferralTest {
       interventionType = InterventionType.ACP,
       interventionName = "Building Choices",
       eventId = "2500828798",
-      eventNumber = "1",
+      eventNumber = 1,
     )
 
     // Act
@@ -99,7 +99,7 @@ internal class ReferralTest {
       interventionType = InterventionType.ACP,
       interventionName = "Building Choices",
       eventId = "2500828798",
-      eventNumber = "1",
+      eventNumber = 1,
     )
 
     // Act

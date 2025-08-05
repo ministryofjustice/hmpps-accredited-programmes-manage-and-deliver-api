@@ -35,7 +35,7 @@ class FindAndReferInterventionApiClientIntegrationTest : IntegrationTestBase() {
       setting = SettingType.COMMUNITY,
       sourcedFromReferenceType = SourcedFromReferenceType.REQUIREMENT,
       sourcedFromReference = "2500828798",
-      eventNumber = "1",
+      eventNumber = 1,
     )
 
     wiremock.stubFor(

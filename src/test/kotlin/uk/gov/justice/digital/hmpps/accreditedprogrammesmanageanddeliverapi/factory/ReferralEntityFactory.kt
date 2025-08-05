@@ -1,6 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
 
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomNumber
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomNumberAsInt
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomSentence
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
@@ -22,7 +22,7 @@ class ReferralEntityFactory {
     mutableListOf(referralStatusHistoryEntityFactory.withStatus("Assessment started").produce())
   private var setting: SettingType = SettingType.COMMUNITY
   private var eventId: String = randomUppercaseString(6)
-  private var eventNumber: String = randomNumber(1).toString()
+  private var eventNumber: Int = randomNumberAsInt(1)
 
   fun withId(id: UUID?) = apply { this.id = id }
   fun withPersonName(personName: String?) = apply { this.personName = personName }
@@ -31,7 +31,7 @@ class ReferralEntityFactory {
   fun withStatusHistories(statusHistories: MutableList<ReferralStatusHistoryEntity>) = apply { this.statusHistories = statusHistories }
 
   fun withInterventionType(interventionType: InterventionType) = apply { this.interventionType = interventionType }
-  fun withEventNumber(eventNumber: String) = apply { this.eventNumber = eventNumber }
+  fun withEventNumber(eventNumber: Int) = apply { this.eventNumber = eventNumber }
   fun withEventId(eventId: String) = apply { this.eventId = eventId }
   fun addStatusHistory(statusHistory: ReferralStatusHistoryEntity) = apply { this.statusHistories.add(statusHistory) }
 
@@ -44,7 +44,7 @@ class ReferralEntityFactory {
     statusHistories = this.statusHistories,
     setting = this.setting,
     interventionType = this.interventionType,
-    eventNumber = this.eventNumber,
     eventId = this.eventId,
+    eventNumber = this.eventNumber,
   )
 }

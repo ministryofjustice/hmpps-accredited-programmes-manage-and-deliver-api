@@ -69,5 +69,5 @@ class ReferralEntity(
 
   @NotNull
   @Column("event_number")
-  val eventNumber: String,
+  val eventNumber: Int,
 )
