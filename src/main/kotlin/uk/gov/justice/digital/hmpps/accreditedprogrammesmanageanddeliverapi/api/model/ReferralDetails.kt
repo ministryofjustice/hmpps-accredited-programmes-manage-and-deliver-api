@@ -84,7 +84,7 @@ data class ReferralDetails(
   @get:JsonProperty("cohort", required = true)
   val cohort: OffenceCohort,
 
-  ) {
+) {
   companion object {
     fun toModel(referral: ReferralEntity, nDeliusPersonalDetails: NDeliusPersonalDetails): ReferralDetails = ReferralDetails(
       id = referral.id!!,
@@ -96,6 +96,6 @@ data class ReferralDetails(
       probationPractitionerName = nDeliusPersonalDetails.probationPractitioner?.name?.getNameAsString(),
       probationPractitionerEmail = nDeliusPersonalDetails.probationPractitioner?.email,
       cohort = referral.cohort ?: OffenceCohort.GENERAL_OFFENCE,
-      )
+    )
   }
 }

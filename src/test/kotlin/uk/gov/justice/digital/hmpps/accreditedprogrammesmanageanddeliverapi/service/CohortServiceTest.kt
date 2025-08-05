@@ -7,21 +7,21 @@ import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DomainScores
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.IndividualRiskScores
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.IndividualSexScores
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RiskScore
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SexDomainScore
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ThinkingDomainScore
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RelationshipDomainScore
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SelfManagementDomainScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.IndividualCognitiveScores
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.IndividualRelationshipScores
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.IndividualRiskScores
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.IndividualSelfManagementScores
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.OverallIntensity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.IndividualSexScores
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RelationshipDomainScore
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RiskScore
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SelfManagementDomainScore
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SexDomainScore
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ThinkingDomainScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.NeedLevel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.OverallIntensity
 
 @ExtendWith(MockitoExtension::class)
 class CohortServiceTest {
@@ -41,7 +41,7 @@ class CohortServiceTest {
       ospIic = "0.0",
       sexualPreOccupation = 0,
       offenceRelatedSexualInterests = 0,
-      emotionalCongruence = 0
+      emotionalCongruence = 0,
     )
     `when`(pniService.getPniScore(crn)).thenReturn(pniScore)
 
@@ -61,7 +61,7 @@ class CohortServiceTest {
       ospIic = "0.3",
       sexualPreOccupation = 0,
       offenceRelatedSexualInterests = 0,
-      emotionalCongruence = 0
+      emotionalCongruence = 0,
     )
     `when`(pniService.getPniScore(crn)).thenReturn(pniScore)
 
@@ -81,7 +81,7 @@ class CohortServiceTest {
       ospIic = "0.6",
       sexualPreOccupation = 0,
       offenceRelatedSexualInterests = 0,
-      emotionalCongruence = 0
+      emotionalCongruence = 0,
     )
     `when`(pniService.getPniScore(crn)).thenReturn(pniScore)
 
@@ -101,7 +101,7 @@ class CohortServiceTest {
       ospIic = "0.0",
       sexualPreOccupation = 1,
       offenceRelatedSexualInterests = 0,
-      emotionalCongruence = 0
+      emotionalCongruence = 0,
     )
     `when`(pniService.getPniScore(crn)).thenReturn(pniScore)
 
@@ -121,7 +121,7 @@ class CohortServiceTest {
       ospIic = "0.0",
       sexualPreOccupation = 0,
       offenceRelatedSexualInterests = 2,
-      emotionalCongruence = 0
+      emotionalCongruence = 0,
     )
     `when`(pniService.getPniScore(crn)).thenReturn(pniScore)
 
@@ -141,7 +141,7 @@ class CohortServiceTest {
       ospIic = "0.0",
       sexualPreOccupation = 0,
       offenceRelatedSexualInterests = 0,
-      emotionalCongruence = 1
+      emotionalCongruence = 1,
     )
     `when`(pniService.getPniScore(crn)).thenReturn(pniScore)
 
@@ -161,7 +161,7 @@ class CohortServiceTest {
       ospIic = "0.0",
       sexualPreOccupation = 1,
       offenceRelatedSexualInterests = 2,
-      emotionalCongruence = 1
+      emotionalCongruence = 1,
     )
     `when`(pniService.getPniScore(crn)).thenReturn(pniScore)
 
@@ -181,7 +181,7 @@ class CohortServiceTest {
       ospIic = "0.3",
       sexualPreOccupation = 1,
       offenceRelatedSexualInterests = 2,
-      emotionalCongruence = 1
+      emotionalCongruence = 1,
     )
     `when`(pniService.getPniScore(crn)).thenReturn(pniScore)
 
@@ -201,7 +201,7 @@ class CohortServiceTest {
       ospIic = "0.0",
       sexualPreOccupation = 0,
       offenceRelatedSexualInterests = 0,
-      emotionalCongruence = 0
+      emotionalCongruence = 0,
     )
     `when`(pniService.getPniScore(crn)).thenReturn(pniScore)
 
@@ -221,7 +221,7 @@ class CohortServiceTest {
       ospIic = null,
       sexualPreOccupation = 0,
       offenceRelatedSexualInterests = 0,
-      emotionalCongruence = 0
+      emotionalCongruence = 0,
     )
     `when`(pniService.getPniScore(crn)).thenReturn(pniScore)
 
@@ -241,7 +241,7 @@ class CohortServiceTest {
       ospIic = "not_a_number",
       sexualPreOccupation = 0,
       offenceRelatedSexualInterests = 0,
-      emotionalCongruence = 0
+      emotionalCongruence = 0,
     )
     `when`(pniService.getPniScore(crn)).thenReturn(pniScore)
 
@@ -261,7 +261,7 @@ class CohortServiceTest {
       ospIic = "0.0",
       sexualPreOccupation = null,
       offenceRelatedSexualInterests = null,
-      emotionalCongruence = null
+      emotionalCongruence = null,
     )
     `when`(pniService.getPniScore(crn)).thenReturn(pniScore)
 
@@ -281,7 +281,7 @@ class CohortServiceTest {
       ospIic = "0.0",
       sexualPreOccupation = 0,
       offenceRelatedSexualInterests = 0,
-      emotionalCongruence = 0
+      emotionalCongruence = 0,
     )
     `when`(pniService.getPniScore(crn)).thenReturn(pniScore)
 
@@ -297,57 +297,55 @@ class CohortServiceTest {
     ospIic: String?,
     sexualPreOccupation: Int?,
     offenceRelatedSexualInterests: Int?,
-    emotionalCongruence: Int?
-  ): PniScore {
-    return PniScore(
-      overallIntensity = OverallIntensity.MODERATE,
-      domainScores = DomainScores(
-        sexDomainScore = SexDomainScore(
-          overallSexDomainLevel = NeedLevel.MEDIUM_NEED,
-          individualSexScores = IndividualSexScores(
-            sexualPreOccupation = sexualPreOccupation,
-            offenceRelatedSexualInterests = offenceRelatedSexualInterests,
-            emotionalCongruence = emotionalCongruence
-          )
+    emotionalCongruence: Int?,
+  ): PniScore = PniScore(
+    overallIntensity = OverallIntensity.MODERATE,
+    domainScores = DomainScores(
+      sexDomainScore = SexDomainScore(
+        overallSexDomainLevel = NeedLevel.MEDIUM_NEED,
+        individualSexScores = IndividualSexScores(
+          sexualPreOccupation = sexualPreOccupation,
+          offenceRelatedSexualInterests = offenceRelatedSexualInterests,
+          emotionalCongruence = emotionalCongruence,
         ),
-        thinkingDomainScore = ThinkingDomainScore(
-          overallThinkingDomainLevel = NeedLevel.MEDIUM_NEED,
-          individualThinkingScores = IndividualCognitiveScores(
-            proCriminalAttitudes = 0,
-            hostileOrientation = 0
-          )
-        ),
-        relationshipDomainScore = RelationshipDomainScore(
-          overallRelationshipDomainLevel = NeedLevel.MEDIUM_NEED,
-          individualRelationshipScores = IndividualRelationshipScores(
-            curRelCloseFamily = 0,
-            prevCloseRelationships = 0,
-            easilyInfluenced = 0,
-            aggressiveControllingBehaviour = 0
-          )
-        ),
-        selfManagementDomainScore = SelfManagementDomainScore(
-          overallSelfManagementDomainLevel = NeedLevel.MEDIUM_NEED,
-          individualSelfManagementScores = IndividualSelfManagementScores(
-            impulsivity = 0,
-            temperControl = 0,
-            problemSolvingSkills = 0,
-            difficultiesCoping = 0
-          )
-        )
       ),
-      riskScore = RiskScore(
-        classification = "LOW_RISK",
-        individualRiskScores = IndividualRiskScores(
-          ospDc = ospDc,
-          ospIic = ospIic,
-          ogrs3Risk = null,
-          ovpRisk = null,
-          rsr = null,
-          sara = null
-        )
+      thinkingDomainScore = ThinkingDomainScore(
+        overallThinkingDomainLevel = NeedLevel.MEDIUM_NEED,
+        individualThinkingScores = IndividualCognitiveScores(
+          proCriminalAttitudes = 0,
+          hostileOrientation = 0,
+        ),
       ),
-      validationErrors = emptyList()
-    )
-  }
+      relationshipDomainScore = RelationshipDomainScore(
+        overallRelationshipDomainLevel = NeedLevel.MEDIUM_NEED,
+        individualRelationshipScores = IndividualRelationshipScores(
+          curRelCloseFamily = 0,
+          prevCloseRelationships = 0,
+          easilyInfluenced = 0,
+          aggressiveControllingBehaviour = 0,
+        ),
+      ),
+      selfManagementDomainScore = SelfManagementDomainScore(
+        overallSelfManagementDomainLevel = NeedLevel.MEDIUM_NEED,
+        individualSelfManagementScores = IndividualSelfManagementScores(
+          impulsivity = 0,
+          temperControl = 0,
+          problemSolvingSkills = 0,
+          difficultiesCoping = 0,
+        ),
+      ),
+    ),
+    riskScore = RiskScore(
+      classification = "LOW_RISK",
+      individualRiskScores = IndividualRiskScores(
+        ospDc = ospDc,
+        ospIic = ospIic,
+        ogrs3Risk = null,
+        ovpRisk = null,
+        rsr = null,
+        sara = null,
+      ),
+    ),
+    validationErrors = emptyList(),
+  )
 }

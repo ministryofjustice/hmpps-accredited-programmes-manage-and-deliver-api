@@ -26,4 +26,3 @@ fun FindAndReferReferralDetails.toReferralEntity(
   statusHistories = statusHistories,
   cohort = cohort,
 )
-
