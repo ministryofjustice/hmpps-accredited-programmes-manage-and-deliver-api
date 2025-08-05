@@ -10,6 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.FindAndReferReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SourcedFromReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import java.util.UUID
 
@@ -24,11 +28,14 @@ class FindAndReferInterventionApiClientIntegrationTest : IntegrationTestBase() {
     val referralId = UUID.randomUUID()
     val findAndReferReferralDetails = FindAndReferReferralDetails(
       interventionName = "Test Intervention",
-      interventionType = "ACP",
+      interventionType = InterventionType.ACP,
       referralId = referralId,
       personReference = "X123456",
-      personReferenceType = "CRN",
-      setting = "Community",
+      personReferenceType = PersonReferenceType.CRN,
+      setting = SettingType.COMMUNITY,
+      sourcedFromReferenceType = SourcedFromReferenceType.REQUIREMENT,
+      sourcedFromReference = "2500828798",
+      eventNumber = 1,
     )
 
     wiremock.stubFor(
@@ -49,7 +56,8 @@ class FindAndReferInterventionApiClientIntegrationTest : IntegrationTestBase() {
         val findAndReferReferralDetails = response.body as FindAndReferReferralDetails
         assertThat(findAndReferReferralDetails).isNotNull()
         assertThat(findAndReferReferralDetails.personReference).isEqualTo("X123456")
-        assertThat(findAndReferReferralDetails.personReferenceType).isEqualTo("CRN")
+        assertThat(findAndReferReferralDetails.personReferenceType).isEqualTo(PersonReferenceType.CRN)
+        assertThat(findAndReferReferralDetails.sourcedFromReference).isEqualTo("2500828798")
       }
 
       is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")

@@ -2,6 +2,9 @@
   <configuration default="false" name="Local - Run" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
     <option name="ACTIVE_PROFILES" value="LOCAL" />
     <module name="hmpps-accredited-programmes-manage-and-deliver-api.main" />
+    <selectedOptions>
+      <option name="environmentVariables" />
+    </selectedOptions>
     <option name="SPRING_BOOT_MAIN_CLASS" value="uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.AccreditedProgrammesManageAndDeliverApi" />
     <method v="2">
       <option name="Make" enabled="true" />

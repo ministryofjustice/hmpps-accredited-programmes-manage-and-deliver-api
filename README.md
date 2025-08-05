@@ -94,8 +94,21 @@ awslocal sqs list-queues
 To send test events to our queues we can run the following command:
 
 ```zsh
-awslocal sqs send-message --queue-url http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/hmppsdomainevent --message-body file://src/test/resources/events/interventions/communityReferralCreatedEvent.json
+awslocal sqs send-message --queue-url http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/hmpps_domain_events_queue --message-body file://src/test/resources/events/interventions/communityReferralCreatedEvent.json
 ```
+
+## Connecting to dev instances of External Services
+
+For local development purposes the service currently calls out to the dev instances of the `Find and Refer Service` and
+the `nDelius service`. This is done by using our api client credentials to get a token from `HMPPS Auth` and then
+calling the dev instances of those services.
+
+The `$API_CLIENT_SECRET` defined in the [application-local.yml](./src/main/resources/application-local.yml) corresponds
+to the API_CLIENT_SECRET that is stored in kubernetes in the dev environment. Follow the guide below to get the details
+required for this secret.
+
+There is a guide on how to configure your postman client to be able to call endpoints in the Test environments
+(Dev) [here](https://dsdmoj.atlassian.net/wiki/spaces/IC/pages/5784142235/Connecting+Postman+to+test+environments).
 
 ### Authorization
 
@@ -296,11 +309,6 @@ $ kubectl logs $POD_NAME --$NAMESPACE hmpps-accredited-programmes-manage-and-del
 
 Where `$POD_NAME` is the full string Pod name given in the `get pods` response.
 AND `$NAMESPACE` is the namespace which you are running the command against
-
-## Connecting Postman to Test Environments
-
-There is a guide on how to configure your postman client to be able to call endpoints in the Test environments (
-Dev) [here](https://dsdmoj.atlassian.net/wiki/spaces/IC/pages/5784142235/Connecting+Postman+to+test+environments).
 
 ## Security
 

@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity
 
+import jakarta.annotation.Nullable
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -12,8 +13,10 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.JoinTable
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
-import org.jetbrains.annotations.NotNull
+import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedDate
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import java.time.LocalDateTime
 import java.util.UUID
@@ -29,19 +32,24 @@ class ReferralEntity(
   @Column(name = "person_name")
   var personName: String,
 
+  @NotNull
   @Column(name = "crn")
   var crn: String,
 
+  @NotNull
   @Column(name = "intervention_type")
-  var interventionType: String? = null,
+  @Enumerated(EnumType.STRING)
+  var interventionType: InterventionType,
 
   @Column(name = "intervention_name")
   var interventionName: String? = null,
 
   @NotNull
   @Column(name = "setting")
-  var setting: String,
+  @Enumerated(EnumType.STRING)
+  var setting: SettingType,
 
+  @NotNull
   @Column(name = "cohort")
   @Enumerated(EnumType.STRING)
   var cohort: OffenceCohort? = null,
@@ -61,4 +69,12 @@ class ReferralEntity(
     inverseJoinColumns = [JoinColumn(name = "referral_status_history_id")],
   )
   var statusHistories: MutableList<ReferralStatusHistoryEntity> = mutableListOf(),
+
+  @Nullable
+  @Column("event_id")
+  val eventId: String? = null,
+
+  @Nullable
+  @Column("event_number")
+  val eventNumber: Int? = null,
 )
