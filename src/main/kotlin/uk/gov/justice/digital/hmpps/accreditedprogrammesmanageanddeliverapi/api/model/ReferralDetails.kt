@@ -76,7 +76,15 @@ data class ReferralDetails(
   @get:JsonProperty("probationPractitionerEmail", required = false)
   val probationPractitionerEmail: String? = null,
 
-) {
+  @Schema(
+    example = "SEXUAL_OFFENCE",
+    required = true,
+    description = "The offence cohort this referral is classified as.",
+  )
+  @get:JsonProperty("cohort", required = true)
+  val cohort: OffenceCohort,
+
+  ) {
   companion object {
     fun toModel(referral: ReferralEntity, nDeliusPersonalDetails: NDeliusPersonalDetails): ReferralDetails = ReferralDetails(
       id = referral.id!!,
@@ -87,6 +95,7 @@ data class ReferralDetails(
       dateOfBirth = LocalDate.parse(nDeliusPersonalDetails.dateOfBirth),
       probationPractitionerName = nDeliusPersonalDetails.probationPractitioner?.name?.getNameAsString(),
       probationPractitionerEmail = nDeliusPersonalDetails.probationPractitioner?.email,
-    )
+      cohort = referral.cohort ?: OffenceCohort.GENERAL_OFFENCE,
+      )
   }
 }

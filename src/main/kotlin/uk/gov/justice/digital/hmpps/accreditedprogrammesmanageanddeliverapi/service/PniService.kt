@@ -29,13 +29,4 @@ class PniService(
       }
     return pniResponse.toPniScore()
   }
-
-  fun determineOffenceCohort(crn: String): OffenceCohort {
-    val pniScore = getPniScore(crn)
-    return if (pniScore.domainScores.sexDomainScore.overallSexDomainLevel == NeedLevel.HIGH_NEED) {
-      OffenceCohort.SEXUAL_OFFENCE
-    } else {
-      OffenceCohort.GENERAL_OFFENCE
-    }
-  }
 }

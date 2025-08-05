@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SexualOffenceCohortStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.PniService
 
 @RestController

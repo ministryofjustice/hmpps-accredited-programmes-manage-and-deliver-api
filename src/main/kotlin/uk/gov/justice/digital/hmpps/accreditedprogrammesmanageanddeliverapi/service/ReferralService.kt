@@ -22,6 +22,7 @@ class ReferralService(
   private val findAndReferInterventionApiClient: FindAndReferInterventionApiClient,
   private val referralRepository: ReferralRepository,
   private val serviceUserService: ServiceUserService,
+  private val cohortService: CohortService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -47,13 +48,23 @@ class ReferralService(
   }
 
   fun createReferral(findAndReferReferralDetails: FindAndReferReferralDetails) {
+    val crn = if (findAndReferReferralDetails.personReferenceType == "CRN") {
+      findAndReferReferralDetails.personReference
+    } else {
+      throw IllegalArgumentException("Only CRN personReferenceType is supported")
+    }
+
+    val cohort = cohortService.determineOffenceCohort(crn)
+
     val statusHistoryEntity = ReferralStatusHistoryEntity(
       status = "Created",
       startDate = LocalDateTime.now(),
       endDate = null,
     )
-    val referralEntity = findAndReferReferralDetails.toReferralEntity(mutableListOf(statusHistoryEntity))
-    log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}'")
+
+    val referralEntity = findAndReferReferralDetails.toReferralEntity(mutableListOf(statusHistoryEntity), cohort)
+
+    log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort")
     referralRepository.save(referralEntity)
   }
 
