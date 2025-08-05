@@ -1,0 +1,5 @@
+ALTER TABLE referral
+    ADD COLUMN cohort VARCHAR(50) NULL;
+
+UPDATE referral
+SET cohort = 'GENERAL_OFFENCE';

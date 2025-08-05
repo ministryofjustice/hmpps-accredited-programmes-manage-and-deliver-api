@@ -11,6 +11,7 @@ import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
@@ -24,7 +25,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.UUID
+import java.util.*
 
 class ReferralControllerIntegrationTest : IntegrationTestBase() {
 
@@ -52,7 +53,10 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return referral details object with personal details when access granted is true`() {
       val createdAt = LocalDateTime.now()
-      val referralEntity = ReferralEntityFactory().withCreatedAt(createdAt).produce()
+      val referralEntity = ReferralEntityFactory()
+        .withCreatedAt(createdAt)
+        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
+        .produce()
       testDataGenerator.createReferral(referralEntity)
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
@@ -72,6 +76,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       Assertions.assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
       Assertions.assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       Assertions.assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
+      Assertions.assertThat(response.cohort).isEqualTo(savedReferral.cohort)
       Assertions.assertThat(response.probationPractitionerName)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       Assertions.assertThat(response.probationPractitionerEmail)
@@ -81,7 +86,10 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return referral details object with personal details when access granted is true and no middle name`() {
       val createdAt = LocalDateTime.now()
-      val referralEntity = ReferralEntityFactory().withCreatedAt(createdAt).produce()
+      val referralEntity = ReferralEntityFactory()
+        .withCreatedAt(createdAt)
+        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
+        .produce()
       testDataGenerator.createReferral(referralEntity)
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
       val fullName = randomFullName(middleName = null)
@@ -102,6 +110,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       Assertions.assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
       Assertions.assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       Assertions.assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
+      Assertions.assertThat(response.cohort).isEqualTo(savedReferral.cohort)
       Assertions.assertThat(response.probationPractitionerName)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       Assertions.assertThat(response.probationPractitionerEmail)
@@ -111,7 +120,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return forbidden when access denied`() {
       nDeliusApiStubs.stubAccessCheck(granted = false)
-      val referralEntity = ReferralEntityFactory().produce()
+      val referralEntity = ReferralEntityFactory().withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
       testDataGenerator.createReferral(referralEntity)
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
@@ -141,7 +150,10 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
     fun `should return personal details when access granted is true`() {
       val nDeliusPersonalDetails =
         NDeliusPersonalDetailsFactory().withDateOfBirth(LocalDate.of(1990, 1, 1)).produce()
-      val referralEntity = ReferralEntityFactory().withCrn(nDeliusPersonalDetails.crn).produce()
+      val referralEntity = ReferralEntityFactory()
+        .withCrn(nDeliusPersonalDetails.crn)
+        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
+        .produce()
       testDataGenerator.createReferral(referralEntity)
       referralRepository.findByCrn(referralEntity.crn)[0]
 
@@ -165,7 +177,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       Assertions.assertThat(response.crn).isEqualTo(nDeliusPersonalDetails.crn)
       Assertions.assertThat(response.name).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
       Assertions.assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
-      Assertions.assertThat(response.ethnicity).isEqualTo(nDeliusPersonalDetails.ethnicity!!.description)
+      Assertions.assertThat(response.ethnicity).isEqualTo(nDeliusPersonalDetails.ethnicity?.description)
       Assertions.assertThat(response.age).isEqualTo(nDeliusPersonalDetails.age)
       Assertions.assertThat(response.gender).isEqualTo(nDeliusPersonalDetails.sex.description)
       Assertions.assertThat(response.setting).isEqualTo(referralEntity.setting)
@@ -177,7 +189,10 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
     fun `should return personal details when access granted is true when ethnicity is null`() {
       val nDeliusPersonalDetails =
         NDeliusPersonalDetailsFactory().withEthnicity(null).withDateOfBirth(LocalDate.of(1990, 1, 1)).produce()
-      val referralEntity = ReferralEntityFactory().withCrn(nDeliusPersonalDetails.crn).produce()
+      val referralEntity = ReferralEntityFactory()
+        .withCrn(nDeliusPersonalDetails.crn)
+        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
+        .produce()
       testDataGenerator.createReferral(referralEntity)
       referralRepository.findByCrn(referralEntity.crn)[0]
 
@@ -212,7 +227,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return forbidden when access denied`() {
       nDeliusApiStubs.stubAccessCheck(granted = false)
-      val referralEntity = ReferralEntityFactory().produce()
+      val referralEntity = ReferralEntityFactory().withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
       testDataGenerator.createReferral(referralEntity)
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 

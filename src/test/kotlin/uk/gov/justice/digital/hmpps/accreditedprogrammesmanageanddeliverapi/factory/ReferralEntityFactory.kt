@@ -4,6 +4,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -17,12 +18,14 @@ class ReferralEntityFactory {
   private var statusHistories: MutableList<ReferralStatusHistoryEntity> =
     mutableListOf(referralStatusHistoryEntityFactory.withStatus("Assessment started").produce())
   private var setting: String = "COMMUNITY"
+  private var cohort: OffenceCohort? = OffenceCohort.GENERAL_OFFENCE
 
   fun withId(id: UUID?) = apply { this.id = id }
   fun withPersonName(personName: String?) = apply { this.personName = personName }
   fun withCrn(crn: String?) = apply { this.crn = crn }
   fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
   fun withStatusHistories(statusHistories: MutableList<ReferralStatusHistoryEntity>) = apply { this.statusHistories = statusHistories }
+  fun withCohort(cohort: OffenceCohort?) = apply { this.cohort = cohort }
 
   fun addStatusHistory(statusHistory: ReferralStatusHistoryEntity) = apply { this.statusHistories.add(statusHistory) }
 
@@ -33,6 +36,7 @@ class ReferralEntityFactory {
     createdAt = this.createdAt,
     interventionName = this.interventionName,
     statusHistories = this.statusHistories,
-    setting = setting,
+    setting = this.setting,
+    cohort = this.cohort,
   )
 }
