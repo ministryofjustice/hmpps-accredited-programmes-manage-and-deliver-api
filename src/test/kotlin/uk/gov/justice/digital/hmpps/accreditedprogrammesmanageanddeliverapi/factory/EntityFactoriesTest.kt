@@ -2,10 +2,10 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.InterventionType
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SettingType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import java.time.LocalDateTime
 import java.util.UUID
 

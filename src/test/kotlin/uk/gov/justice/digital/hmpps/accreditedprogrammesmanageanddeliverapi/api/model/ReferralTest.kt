@@ -2,10 +2,10 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SettingType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -31,7 +31,8 @@ internal class ReferralTest {
       setting = setting,
       interventionType = InterventionType.ACP,
       interventionName = "Building Choices",
-      eventNumber = "2500828798",
+      eventNumber = "2",
+      eventId = "2500828798",
     )
 
     // Act
@@ -64,7 +65,8 @@ internal class ReferralTest {
       setting = setting,
       interventionType = InterventionType.ACP,
       interventionName = "Building Choices",
-      eventNumber = "2500828798",
+      eventId = "2500828798",
+      eventNumber = "1",
     )
 
     // Act
@@ -96,7 +98,8 @@ internal class ReferralTest {
       setting = setting,
       interventionType = InterventionType.ACP,
       interventionName = "Building Choices",
-      eventNumber = "2500828798",
+      eventId = "2500828798",
+      eventNumber = "1",
     )
 
     // Act

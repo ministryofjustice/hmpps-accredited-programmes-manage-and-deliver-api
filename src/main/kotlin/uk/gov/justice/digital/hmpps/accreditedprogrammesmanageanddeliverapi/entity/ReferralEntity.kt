@@ -13,9 +13,9 @@ import jakarta.persistence.JoinTable
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
-import org.hibernate.annotations.JdbcType
-import org.hibernate.dialect.PostgreSQLEnumJdbcType
 import org.springframework.data.annotation.CreatedDate
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -37,7 +37,6 @@ class ReferralEntity(
   @NotNull
   @Column(name = "intervention_type")
   @Enumerated(EnumType.STRING)
-  @JdbcType(PostgreSQLEnumJdbcType::class)
   var interventionType: InterventionType,
 
   @Column(name = "intervention_name")
@@ -46,7 +45,6 @@ class ReferralEntity(
   @NotNull
   @Column(name = "setting")
   @Enumerated(EnumType.STRING)
-  @JdbcType(PostgreSQLEnumJdbcType::class)
   var setting: SettingType,
 
   @Column(name = "created_at")
@@ -66,30 +64,10 @@ class ReferralEntity(
   var statusHistories: MutableList<ReferralStatusHistoryEntity> = mutableListOf(),
 
   @NotNull
-  @Column("eventNumber")
+  @Column("event_id")
+  val eventId: String,
+
+  @NotNull
+  @Column("event_number")
   val eventNumber: String,
 )
-
-enum class PersonReferenceType {
-  CRN,
-  NOMS,
-}
-
-enum class SourcedFromReferenceType {
-  LICENCE_CONDITION,
-  REQUIREMENT,
-}
-
-enum class SettingType {
-  COMMUNITY,
-  CUSTODY,
-  REMAND,
-  PRE_RELEASE,
-}
-
-enum class InterventionType {
-  SI,
-  ACP,
-  CRS,
-  TOOLKITS,
-}

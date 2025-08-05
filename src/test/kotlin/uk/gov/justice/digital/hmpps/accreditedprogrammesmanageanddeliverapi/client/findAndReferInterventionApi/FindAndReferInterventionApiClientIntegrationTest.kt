@@ -10,10 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.FindAndReferReferralDetails
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.InterventionType
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PersonReferenceType
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SettingType
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SourcedFromReferenceType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SourcedFromReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import java.util.UUID
 
@@ -35,6 +35,7 @@ class FindAndReferInterventionApiClientIntegrationTest : IntegrationTestBase() {
       setting = SettingType.COMMUNITY,
       sourcedFromReferenceType = SourcedFromReferenceType.REQUIREMENT,
       sourcedFromReference = "2500828798",
+      eventNumber = "1",
     )
 
     wiremock.stubFor(
