@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity
 
+import jakarta.annotation.Nullable
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -63,11 +64,11 @@ class ReferralEntity(
   )
   var statusHistories: MutableList<ReferralStatusHistoryEntity> = mutableListOf(),
 
-  @NotNull
+  @Nullable
   @Column("event_id")
-  val eventId: String,
+  val eventId: String? = null,
 
-  @NotNull
+  @Nullable
   @Column("event_number")
-  val eventNumber: Int,
+  val eventNumber: Int? = null,
 )
