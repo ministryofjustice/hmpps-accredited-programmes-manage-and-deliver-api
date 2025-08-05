@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.com
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import java.time.LocalDate
+import kotlin.random.Random
 
 private val upperCase = ('A'..'Z').toList()
 private val lowerCase = ('a'..'z').toList()
@@ -23,6 +24,7 @@ fun randomSentence(wordRange: IntRange = 1..20, wordLength: IntRange = 3..10): S
   .asString()
 
 fun randomNumber(length: Int = 2) = digits(length)
+fun randomNumberAsInt(length: Int = 2) = Random.nextInt()
 fun randomEmailAddress() = (lowerCase(5) + ".".asSequence() + lowerCase(8) + "@".asSequence() + lowerCase(6) + ".com".asSequence()).asString()
 
 fun randomDateOfBirth(

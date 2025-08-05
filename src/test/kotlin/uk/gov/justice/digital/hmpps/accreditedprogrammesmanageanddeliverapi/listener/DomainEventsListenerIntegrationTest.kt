@@ -12,9 +12,12 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.FindAndReferReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.DomainEventsMessageFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -48,14 +51,13 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     stubAuthTokenEndpoint()
     log.info("Setting up ReferralDetails with id: $sourceReferralId")
 
-    val findAndReferReferralDetails = FindAndReferReferralDetails(
-      interventionName = "Test Intervention",
-      interventionType = "ACP",
-      referralId = sourceReferralId,
-      personReference = "X123456",
-      personReferenceType = "CRN",
-      setting = "Community",
-    )
+    val findAndReferReferralDetails = FindAndReferReferralDetailsFactory()
+      .withInterventionName("Test Intervention")
+      .withInterventionType(InterventionType.ACP)
+      .withReferralId(sourceReferralId)
+      .withPersonReference("X123456")
+      .withPersonReferenceType(PersonReferenceType.CRN)
+      .produce()
 
     wiremock.stubFor(
       get(urlEqualTo("/referral/$sourceReferralId"))
@@ -138,10 +140,10 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     await untilCallTo {
       referralRepository.findAll().firstOrNull()
     } matches {
-      it?.setting == "Community"
+      it?.setting == SettingType.COMMUNITY
       it?.crn == "X123456"
       it?.interventionName == "Test Intervention"
-      it?.interventionType == "ACP"
+      it?.interventionType == InterventionType.ACP
       it?.statusHistories!!.first().status == "Created"
     }
 
