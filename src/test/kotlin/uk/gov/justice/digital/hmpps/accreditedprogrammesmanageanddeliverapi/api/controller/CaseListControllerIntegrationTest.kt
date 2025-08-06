@@ -148,4 +148,45 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(item).hasFieldOrProperty("referralStatus")
     }
   }
+
+  @Test
+  fun `getCaseListItems for OPEN and search by personName and cohort returns matching referrals`() {
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "/pages/caselist/open?crnOrPersonName=Alex River&cohort=SEXUAL_OFFENCE",
+      object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+    )
+    val referralCaseListItems = response.content
+
+    assertThat(response).isNotNull
+    assertThat(response.totalElements).isEqualTo(1)
+    assertThat(referralCaseListItems.first().personName).isEqualTo("Alex River")
+
+    referralCaseListItems.forEach { item ->
+      assertThat(item).hasFieldOrProperty("crn")
+      assertThat(item).hasFieldOrProperty("personName")
+      assertThat(item).hasFieldOrProperty("referralStatus")
+      assertThat(item).hasFieldOrProperty("cohort")
+    }
+  }
+
+  @Test
+  fun `getCaseListItems returns matching referrals when only cohort is used as part of request`() {
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "/pages/caselist/open?cohort=GENERAL_OFFENCE",
+      object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+    )
+    val referralCaseListItems = response.content
+
+    assertThat(response).isNotNull
+    assertThat(response.totalElements).isEqualTo(4)
+
+    referralCaseListItems.forEach { item ->
+      assertThat(item).hasFieldOrProperty("crn")
+      assertThat(item).hasFieldOrProperty("personName")
+      assertThat(item).hasFieldOrProperty("referralStatus")
+      assertThat(item).hasFieldOrProperty("cohort")
+    }
+  }
 }

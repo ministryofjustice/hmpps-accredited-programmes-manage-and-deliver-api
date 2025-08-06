@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralCaseListItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralCaseListItemService
 
@@ -45,8 +47,18 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
       name = "openOrClosed",
       required = true,
     ) openOrClosed: OpenOrClosed,
+    @Parameter(description = "CRN or persons name")
     @RequestParam(name = "crnOrPersonName", required = false) crnOrPersonName: String?,
-  ): Page<ReferralCaseListItem> = referralCaseListItemService.getReferralCaseListItemServiceByCriteria(pageable, openOrClosed, crnOrPersonName)
+    @Parameter(description = "Filter by the cohort of the referral Eg: SEXUAL_OFFENCE or GENERAL_OFFENCE") @RequestParam(
+      value = "cohort",
+      required = false,
+    ) cohort: OffenceCohort?,
+  ): Page<ReferralCaseListItem> = referralCaseListItemService.getReferralCaseListItemServiceByCriteria(
+    pageable = pageable,
+    openOrClosed = openOrClosed,
+    crnOrPersonName = crnOrPersonName,
+    cohort = cohort?.name,
+  )
 }
 
 enum class OpenOrClosed {

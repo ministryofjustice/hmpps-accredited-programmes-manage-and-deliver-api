@@ -28,4 +28,8 @@ class ReferralCaseListItemViewEntity(
   @NotNull
   @Column(name = "status")
   var status: String,
+
+  @NotNull
+  @Column(name = "cohort")
+  var cohort: String,
 )
