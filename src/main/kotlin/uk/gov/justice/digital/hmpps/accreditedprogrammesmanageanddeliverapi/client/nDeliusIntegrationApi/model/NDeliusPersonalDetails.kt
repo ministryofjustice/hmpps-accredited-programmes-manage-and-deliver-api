@@ -20,11 +20,6 @@ data class FullName(
   val surname: String,
 )
 
-data class CodeDescription(
-  val code: String,
-  val description: String,
-)
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ProbationPractitioner(
   val name: FullName,

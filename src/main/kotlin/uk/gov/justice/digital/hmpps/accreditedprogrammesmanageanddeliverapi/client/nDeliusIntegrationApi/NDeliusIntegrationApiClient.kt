@@ -7,6 +7,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.BaseHMPPSClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
 
 private const val N_DELIUS_INTEGRATION_API = "NDelius Integration API"
@@ -21,7 +22,7 @@ class NDeliusIntegrationApiClient(
     path = "/case/$identifier/personal-details"
   }
 
-  fun getSentenceInformation(crn: String,  eventNumber: String) = getRequest<NDeliusPersonalDetails>("NDelius Integration API") {
+  fun getSentenceInformation(crn: String, eventNumber: Int?) = getRequest<NDeliusSentenceResponse>("NDelius Integration API") {
     path = "/case/$crn/sentence/$eventNumber"
   }
 
