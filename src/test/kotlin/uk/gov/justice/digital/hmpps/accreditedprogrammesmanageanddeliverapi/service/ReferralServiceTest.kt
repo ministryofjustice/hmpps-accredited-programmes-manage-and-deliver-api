@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.argThat
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.FindAndReferInterventionApiClient
@@ -42,6 +43,9 @@ class ReferralServiceTest {
 
   @Mock
   private lateinit var serviceUserService: ServiceUserService
+
+  @Mock
+  private lateinit var cohortService: CohortService
 
   @InjectMocks
   private lateinit var referralService: ReferralService
@@ -84,22 +88,26 @@ class ReferralServiceTest {
   fun `createReferral should save referral and add status history`() {
     // Given
     val referralDetails = FindAndReferReferralDetailsFactory().produce()
+    val cohort = OffenceCohort.SEXUAL_OFFENCE
     val statusHistoryEntity = ReferralStatusHistoryEntityFactory().withStatus("Created").produce()
     val referralEntity =
-      referralDetails.toReferralEntity(mutableListOf(statusHistoryEntity)) // Use actual transformation
+      referralDetails.toReferralEntity(mutableListOf(statusHistoryEntity), cohort) // Use actual transformation with cohort
 
+    `when`(cohortService.determineOffenceCohort(referralDetails.personReference)).thenReturn(cohort)
     `when`(referralRepository.save(any())).thenReturn(referralEntity)
 
     // When
     referralService.createReferral(referralDetails)
 
     // Then
+    verify(cohortService).determineOffenceCohort(referralDetails.personReference)
     verify(referralRepository).save(
       argThat { saved ->
         saved.crn == referralEntity.crn &&
           saved.interventionType == referralEntity.interventionType &&
           saved.interventionName == referralEntity.interventionName &&
-          saved.statusHistories.first().status == referralEntity.statusHistories.first().status
+          saved.cohort == cohort &&
+          saved.statusHistories.first().status == "Created"
       },
     )
   }

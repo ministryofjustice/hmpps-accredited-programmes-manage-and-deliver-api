@@ -15,10 +15,11 @@ import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedDate
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import java.time.LocalDateTime
-import java.util.UUID
+import java.util.*
 
 @Entity
 @Table(name = "referral")
@@ -47,6 +48,11 @@ class ReferralEntity(
   @Column(name = "setting")
   @Enumerated(EnumType.STRING)
   var setting: SettingType,
+
+  @NotNull
+  @Column(name = "cohort")
+  @Enumerated(EnumType.STRING)
+  var cohort: OffenceCohort,
 
   @Column(name = "created_at")
   @CreatedDate
