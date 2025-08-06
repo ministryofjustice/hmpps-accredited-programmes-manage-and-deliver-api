@@ -152,6 +152,36 @@ class ReferralController(
       ?: throw NotFoundException("Offence history not found for crn ${referral.crn} and referral with id $id")
   }
 
+
+  @Operation(
+    tags = ["Referrals"],
+    summary = "Retrieve sentence information for a referral",
+    operationId = "getSentenceInformationByReferralId",
+    description = """""",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Information about the sentence",
+        content = [Content(schema = Schema(implementation = SentenceInformation::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden.  The client is not authorised to access this referral.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The referral does not exist",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
   @GetMapping("/referral-details/{id}/sentence-information", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getSentenceInformationByReferralId(
     @Parameter(description = "The id (UUID) of a referral", required = true)
