@@ -19,6 +19,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.DomainEventsMessageFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.hmpps.sqs.countMessagesOnQueue
@@ -42,6 +43,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   lateinit var testDataCleaner: TestDataCleaner
 
   lateinit var sourceReferralId: UUID
+  lateinit var oasysApiStubs: OasysApiStubs
 
   @BeforeEach
   fun setUp() {
@@ -68,6 +70,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
             .withBody(objectMapper.writeValueAsString(findAndReferReferralDetails)),
         ),
     )
+
+    oasysApiStubs = OasysApiStubs(wiremock, objectMapper)
+    oasysApiStubs.stubSuccessfulPniResponse("X123456")
   }
 
   @Test
