@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.RiskScoreLevel
 
 @Service
 class CohortService(
@@ -29,7 +30,7 @@ class CohortService(
     return listOfNotNull(ospDc, ospIic).any { isSignificantRisk(it) }
   }
 
-  private fun isSignificantRisk(riskLevel: String): Boolean = riskLevel == "MEDIUM" || riskLevel == "HIGH"
+  private fun isSignificantRisk(riskLevel: String): Boolean = riskLevel != RiskScoreLevel.NOT_APPLICABLE.toString()
 
   private fun hasSignificantSexDomainScore(pniScore: PniScore): Boolean = with(pniScore.domainScores.sexDomainScore.individualSexScores) {
     listOfNotNull(sexualPreOccupation, offenceRelatedSexualInterests, emotionalCongruence)
