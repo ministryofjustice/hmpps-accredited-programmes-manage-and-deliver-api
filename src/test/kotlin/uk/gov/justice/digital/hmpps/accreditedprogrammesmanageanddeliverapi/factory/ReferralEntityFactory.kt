@@ -24,14 +24,14 @@ class ReferralEntityFactory {
   private var setting: SettingType = SettingType.COMMUNITY
   private var eventId: String = randomUppercaseString(6)
   private var eventNumber: Int = randomNumberAsInt(1)
-  private var cohort: OffenceCohort? = OffenceCohort.GENERAL_OFFENCE
+  private var cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE
 
   fun withId(id: UUID?) = apply { this.id = id }
   fun withPersonName(personName: String?) = apply { this.personName = personName }
   fun withCrn(crn: String?) = apply { this.crn = crn }
   fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
   fun withStatusHistories(statusHistories: MutableList<ReferralStatusHistoryEntity>) = apply { this.statusHistories = statusHistories }
-  fun withCohort(cohort: OffenceCohort?) = apply { this.cohort = cohort }
+  fun withCohort(cohort: OffenceCohort) = apply { this.cohort = cohort }
 
   fun withInterventionType(interventionType: InterventionType) = apply { this.interventionType = interventionType }
   fun withEventNumber(eventNumber: Int) = apply { this.eventNumber = eventNumber }

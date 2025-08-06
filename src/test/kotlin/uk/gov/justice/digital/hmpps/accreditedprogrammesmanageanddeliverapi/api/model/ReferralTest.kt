@@ -33,6 +33,7 @@ internal class ReferralTest {
       interventionName = "Building Choices",
       eventNumber = 1,
       eventId = "2500828798",
+      cohort = OffenceCohort.SEXUAL_OFFENCE
     )
 
     // Act
@@ -67,6 +68,7 @@ internal class ReferralTest {
       interventionName = "Building Choices",
       eventId = "2500828798",
       eventNumber = 1,
+      cohort = OffenceCohort.SEXUAL_OFFENCE
     )
 
     // Act
@@ -100,6 +102,7 @@ internal class ReferralTest {
       interventionName = "Building Choices",
       eventId = "2500828798",
       eventNumber = 1,
+      cohort = OffenceCohort.SEXUAL_OFFENCE
     )
 
     // Act
