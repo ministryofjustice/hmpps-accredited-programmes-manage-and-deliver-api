@@ -10,19 +10,12 @@ class CohortService(
 ) {
   companion object {
     private const val SEX_DOMAIN_MINIMUM_THRESHOLD = 0.0
-    private const val OSP_SEXUAL_OFFENCE_MINIMUM_THRESHOLD = 0.0
   }
 
   fun determineOffenceCohort(crn: String): OffenceCohort {
     val pniScore = pniService.getPniScore(crn)
 
-    // Business rule 1: OSP score indicates a sexual offence risk
-    val hasSexualOffenceByOsp = hasSignificantOspScore(pniScore)
-
-    // Business rule 2: PNI sex domain score indicates a sexual offence risk
-    val hasSexualOffenceByPni = hasSignificantSexDomainScore(pniScore)
-
-    return if (hasSexualOffenceByOsp || hasSexualOffenceByPni) {
+    return if (hasSignificantOspScore(pniScore) || hasSignificantSexDomainScore(pniScore)) {
       OffenceCohort.SEXUAL_OFFENCE
     } else {
       OffenceCohort.GENERAL_OFFENCE
@@ -30,11 +23,13 @@ class CohortService(
   }
 
   private fun hasSignificantOspScore(pniScore: PniScore): Boolean {
-    val ospDcScore = pniScore.riskScore.individualRiskScores.ospDc?.toDoubleOrNull()
-    val ospIicScore = pniScore.riskScore.individualRiskScores.ospIic?.toDoubleOrNull()
-    return listOfNotNull(ospDcScore, ospIicScore)
-      .any { it > OSP_SEXUAL_OFFENCE_MINIMUM_THRESHOLD }
+    val ospDc = pniScore.riskScore.individualRiskScores.ospDc
+    val ospIic = pniScore.riskScore.individualRiskScores.ospIic
+
+    return listOfNotNull(ospDc, ospIic).any { isSignificantRisk(it) }
   }
+
+  private fun isSignificantRisk(riskLevel: String): Boolean = riskLevel == "MEDIUM" || riskLevel == "HIGH"
 
   private fun hasSignificantSexDomainScore(pniScore: PniScore): Boolean = with(pniScore.domainScores.sexDomainScore.individualSexScores) {
     listOfNotNull(sexualPreOccupation, offenceRelatedSexualInterests, emotionalCongruence)

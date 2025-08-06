@@ -19,7 +19,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import java.time.LocalDateTime
-import java.util.UUID
+import java.util.*
 
 @Entity
 @Table(name = "referral")
@@ -52,7 +52,7 @@ class ReferralEntity(
   @NotNull
   @Column(name = "cohort")
   @Enumerated(EnumType.STRING)
-  var cohort: OffenceCohort? = null,
+  var cohort: OffenceCohort,
 
   @Column(name = "created_at")
   @CreatedDate

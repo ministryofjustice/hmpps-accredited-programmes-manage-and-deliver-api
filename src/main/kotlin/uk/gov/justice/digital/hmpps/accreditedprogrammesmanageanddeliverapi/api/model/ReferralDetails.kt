@@ -7,7 +7,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import java.time.LocalDate
-import java.util.UUID
+import java.util.*
 
 data class ReferralDetails(
   @Schema(
@@ -95,7 +95,7 @@ data class ReferralDetails(
       dateOfBirth = LocalDate.parse(nDeliusPersonalDetails.dateOfBirth),
       probationPractitionerName = nDeliusPersonalDetails.probationPractitioner?.name?.getNameAsString(),
       probationPractitionerEmail = nDeliusPersonalDetails.probationPractitioner?.email,
-      cohort = referral.cohort ?: OffenceCohort.GENERAL_OFFENCE,
+      cohort = referral.cohort,
     )
   }
 }
