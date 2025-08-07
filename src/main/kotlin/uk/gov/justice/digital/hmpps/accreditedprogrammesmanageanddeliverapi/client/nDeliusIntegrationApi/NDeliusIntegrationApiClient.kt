@@ -28,7 +28,7 @@ class NDeliusIntegrationApiClient(
     body = identifiers
   }
 
-  fun getOffences(crn: String, eventNumber: String) = getRequest<Offences>(N_DELIUS_INTEGRATION_API) {
+  fun getOffences(crn: String, eventNumber: Int) = getRequest<Offences>(N_DELIUS_INTEGRATION_API) {
     path = "/case/$crn/sentence/$eventNumber/offences"
   }
 }

@@ -1,11 +1,13 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model
 
+import com.fasterxml.jackson.annotation.JsonFormat
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 
 @Schema(description = "Details of an offence committed by an offender")
 data class Offence(
-  @Schema(description = "The date when the offence was committed", example = "2024-01-15")
+  @Schema(description = "The date when the offence was committed", example = "11 June 2020")
+  @JsonFormat(pattern = "d MMMM yyyy")
   val offenceDate: LocalDate,
   @Schema(description = "The description of the offence", example = "Theft")
   val offence: String,

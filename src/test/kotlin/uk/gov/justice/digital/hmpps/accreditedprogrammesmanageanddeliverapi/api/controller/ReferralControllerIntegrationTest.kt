@@ -270,6 +270,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
             .withSubCategoryCode("01")
             .withMainCategoryDescription("Stealing from shops and stalls")
             .withSubCategoryDescription("Not eating enough vegetables")
+            .withDate(LocalDate.of(2023, 1, 1))
             .produce(),
         )
         .withAdditionalOffences(
@@ -279,6 +280,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
               .withSubCategoryCode("13")
               .withMainCategoryDescription("Jaywalking")
               .withSubCategoryDescription("Steeple chase")
+              .withDate(LocalDate.of(2020, 6, 13))
               .produce(),
           ),
         ).produce()
@@ -298,6 +300,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.mainOffence.offenceCode).isEqualTo("56")
       assertThat(response.mainOffence.categoryCode).isEqualTo("01")
       assertThat(response.mainOffence.category).isEqualTo("Not eating enough vegetables")
+      assertThat(response.mainOffence.offenceDate).isEqualTo(LocalDate.of(2023, 1, 1))
 
       assertThat(response.additionalOffences).hasSize(1)
       val additionalOffence = response.additionalOffences[0]
@@ -305,6 +308,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(additionalOffence.offenceCode).isEqualTo("23")
       assertThat(additionalOffence.categoryCode).isEqualTo("13")
       assertThat(additionalOffence.category).isEqualTo("Steeple chase")
+      assertThat(additionalOffence.offenceDate).isEqualTo(LocalDate.of(2020, 6, 13))
     }
 
     @Test

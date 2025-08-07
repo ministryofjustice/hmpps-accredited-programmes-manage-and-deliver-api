@@ -18,9 +18,9 @@ class OffenceService(
     private val log = LoggerFactory.getLogger(this::class.java)
   }
 
-  fun getOffenceHistory(referral: ReferralEntity): OffenceHistory = getOffences(referral.crn, referral.eventNumber.toString()).toApi()
+  fun getOffenceHistory(referral: ReferralEntity): OffenceHistory = getOffences(referral.crn, referral.eventNumber!!).toApi()
 
-  fun getOffences(crn: String, eventNumber: String): Offences = when (val result = nDeliusIntegrationApiClient.getOffences(crn, eventNumber)) {
+  fun getOffences(crn: String, eventNumber: Int): Offences = when (val result = nDeliusIntegrationApiClient.getOffences(crn, eventNumber)) {
     is ClientResult.Failure -> {
       log.warn("Failure to retrieve offence details for crn : $crn and event number: $eventNumber")
       throw NotFoundException("No Offences found for crn: $crn and event number: $eventNumber")

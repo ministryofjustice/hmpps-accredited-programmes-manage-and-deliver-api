@@ -157,7 +157,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
   fun `should return offences for known CRN and event number`() {
     stubAuthTokenEndpoint()
     val crn = "X123456"
-    val eventNumber = "1"
+    val eventNumber = 1
 
     val mainOffenceDate = LocalDate.of(2022, 5, 15)
 
@@ -239,7 +239,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
   fun `should return NOT FOUND for unknown CRN or event number when getting offences`() {
     stubAuthTokenEndpoint()
     val crn = "X123456"
-    val eventNumber = "999"
+    val eventNumber = 999
 
     wiremock.stubFor(
       get(urlEqualTo("/case/$crn/sentence/$eventNumber/offences"))
