@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.OffenceService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SentenceService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ServiceUserService
 import java.util.UUID
 
@@ -30,6 +31,7 @@ class ReferralController(
   private val referralService: ReferralService,
   private val serviceUserService: ServiceUserService,
   private val offenceService: OffenceService,
+  private val sentenceService: SentenceService,
 ) {
 
   @Operation(
@@ -187,7 +189,7 @@ class ReferralController(
     @PathVariable("id") id: UUID,
   ): ResponseEntity<SentenceInformation> {
     val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
-    return serviceUserService.getSentenceInformationByIdentifier(referral.crn, referral.eventNumber).let {
+    return sentenceService.getSentenceInformationByIdentifier(referral.crn, referral.eventNumber).let {
       ResponseEntity.ok(it.toModel())
     } ?: throw NotFoundException("Sentence information not found for crn ${referral.crn} not found")
   }

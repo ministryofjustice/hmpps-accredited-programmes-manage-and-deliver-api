@@ -10,8 +10,10 @@ import com.github.tomakehurst.wiremock.junit5.WireMockExtension
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
 
 class NDeliusApiStubs(
@@ -56,7 +58,11 @@ class NDeliusApiStubs(
     )
   }
 
-  fun stubSuccessfulOffencesResponse(crn: String, eventNumber: String, offences: Offences = OffencesFactory().produce()) {
+  fun stubSuccessfulOffencesResponse(
+    crn: String,
+    eventNumber: String,
+    offences: Offences = OffencesFactory().produce(),
+  ) {
     wiremock.stubFor(
       get(urlPathTemplate("/case/$crn/sentence/$eventNumber/offences"))
         .willReturn(
@@ -71,6 +77,36 @@ class NDeliusApiStubs(
   fun stubNotFoundOffencesResponse(crn: String, eventNumber: String) {
     wiremock.stubFor(
       get(urlEqualTo("/case/$crn/sentence/$eventNumber/offences"))
+        .willReturn(
+          aResponse()
+            .withStatus(404)
+            .withHeader("Content-Type", "application/json"),
+        ),
+    )
+  }
+
+  fun stubSuccessfulSentenceInformationResponse(
+    crn: String,
+    eventNumber: Int?,
+    nDeliusSentenceResponse: NDeliusSentenceResponse = NDeliusSentenceResponseFactory().produce(),
+  ) {
+    wiremock.stubFor(
+      get(urlPathTemplate("/case/$crn/sentence/$eventNumber"))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(objectMapper.writeValueAsString(nDeliusSentenceResponse)),
+        ),
+    )
+  }
+
+  fun stubNotFoundSentenceInformationResponse(
+    crn: String,
+    eventNumber: String,
+  ) {
+    wiremock.stubFor(
+      get(urlPathTemplate("/case/$crn/sentence/$eventNumber"))
         .willReturn(
           aResponse()
             .withStatus(404)
