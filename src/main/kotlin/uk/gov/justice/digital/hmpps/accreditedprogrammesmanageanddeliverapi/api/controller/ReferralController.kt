@@ -112,7 +112,6 @@ class ReferralController(
     tags = ["Referrals"],
     summary = "Retrieve offence history for a referral",
     operationId = "getOffenceHistoryByReferralId",
-    description = """""",
     responses = [
       ApiResponse(
         responseCode = "200",

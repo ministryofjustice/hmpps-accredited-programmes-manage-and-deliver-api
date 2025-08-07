@@ -74,6 +74,7 @@ class ReferralEntity(
   @Column("event_id")
   val eventId: String? = null,
 
+  //  The Delius event number representing a specific court case event
   @Nullable
   @Column("event_number")
   val eventNumber: Int? = null,
