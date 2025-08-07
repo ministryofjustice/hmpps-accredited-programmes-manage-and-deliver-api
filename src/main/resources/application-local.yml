@@ -16,15 +16,15 @@ spring:
         registration:
           manage-and-deliver-api-client:
             provider: hmpps-auth
-            client-id: hmpps-accredited-programmes-manage-and-deliver-api-client-1
-            client-secret: ${API_CLIENT_SECRET:clientsecret}
-            authorization-grant-type: client_credentials
+            client-id: ${API_CLIENT:hmpps-accredited-programmes-manage-and-deliver-ui-client-1}
+            client-secret: clientsecret
+            authorization-grant-type: ${API_CLIENT_ID:client_credentials}
         provider:
           hmpps-auth:
             token-uri: ${hmpps-auth.url}/oauth/token
 
 hmpps-auth:
-  url: "https://sign-in-dev.hmpps.service.justice.gov.uk/auth"
+  url: ${hmpps-auth.url:http://localhost:8090}/oauth/token
 
 manage-and-deliver-ndelius:
   locations:
@@ -48,8 +48,8 @@ hmpps:
 
 services:
   find-and-refer-intervention-api:
-    base-url: https://find-and-refer-intervention-api-dev.hmpps.service.justice.gov.uk
+    base-url: ${FIND_AND_REFER_BASE_URL:http://localhost:9095}
   ndelius-integration-api:
-    base-url: https://accredited-programmes-and-delius-dev.hmpps.service.justice.gov.uk
+    base-url: ${NDELIUS_BASE_URL:http://localhost:9095}
   oasys-api:
-    base-url: http://localhost:9095
+    base-url: ${OASYS_BASE_URL:http://localhost:9095}
