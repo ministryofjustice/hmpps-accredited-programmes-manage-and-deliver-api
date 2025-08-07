@@ -5,17 +5,17 @@ FROM referral_status_history;
 DELETE
 FROM referral;
 
-INSERT INTO referral (id, person_name, crn, created_at, intervention_type, intervention_name, setting)
-VALUES ('6885d1f6-5958-40e0-9448-1ff8cc37e643', 'Joe Bloggs', 'X7182552', now(), 'ACP', 'Horizon', 'COMMUNITY'),
+INSERT INTO referral (id, person_name, crn, created_at, intervention_type, intervention_name, setting, cohort)
+VALUES ('6885d1f6-5958-40e0-9448-1ff8cc37e643', 'Joe Bloggs', 'X7182552', now(), 'ACP', 'Horizon', 'COMMUNITY', 'GENERAL_OFFENCE'),
        ('81229aaa-bb3a-4705-8015-99052bafab58', 'Alex River', 'CRN-999999', now(), 'ACP', 'Building Choices',
-        'COMMUNITY'),
+        'COMMUNITY', 'SEXUAL_OFFENCE'),
        ('39fde7e8-d2e3-472b-8364-5848bf673aa6', 'Jane Adams', 'CRN-888888', now(), 'ACP', 'Building Choices',
-        'COMMUNITY'),
-       ('54b1a0ac-ab67-4dde-871f-b59b675cbc8c', 'Pete Grims', 'CRN-777777', now(), 'ACP', 'New Me', 'COMMUNITY'),
+        'COMMUNITY', 'GENERAL_OFFENCE'),
+       ('54b1a0ac-ab67-4dde-871f-b59b675cbc8c', 'Pete Grims', 'CRN-777777', now(), 'ACP', 'New Me', 'COMMUNITY', 'GENERAL_OFFENCE'),
        ('a8a83c3e-d779-47d5-849f-bb2635666344', 'James Hayden', 'CRN-66666', now(), 'ACP', 'Building Choices',
-        'COMMUNITY'),
+        'COMMUNITY', 'GENERAL_OFFENCE'),
        ('aabbadf7-a427-436e-b1a4-f27dd5893c24', 'Andrew Crosforth', 'CRN-555555', now(), 'ACP', 'Building Choices',
-        'COMMUNITY');
+        'COMMUNITY', 'GENERAL_OFFENCE');
 
 INSERT INTO referral_status_history(id, status, created_at, created_by, start_date, end_date)
 VALUES ('85b59ec2-bd8f-43c4-90f5-3d55b39331b2', 'CREATED', now(), 'USER_ID_12345', now(), null),
