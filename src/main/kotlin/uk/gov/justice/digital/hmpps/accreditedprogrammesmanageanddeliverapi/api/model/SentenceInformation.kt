@@ -85,6 +85,15 @@ data class SentenceInformation(
   @get:JsonProperty("orderEndDate", required = false)
   @JsonFormat(pattern = "d MMMM yyyy")
   val orderEndDate: LocalDate? = null,
+
+  @Schema(
+    example = "1 August 2025",
+    required = true,
+    description = "The date this data was fetched from nDelius.",
+  )
+  @get:JsonProperty("dateRetrieved", required = true)
+  @JsonFormat(pattern = "d MMMM yyyy")
+  val dateRetrieved: LocalDate,
 )
 
 fun NDeliusSentenceResponse.toModel() = SentenceInformation(
@@ -99,4 +108,5 @@ fun NDeliusSentenceResponse.toModel() = SentenceInformation(
   orderRequirements = requirements,
   // TODO check this value
   orderEndDate = LocalDate.now(),
+  dateRetrieved = LocalDate.now(),
 )

@@ -22,7 +22,7 @@ class NDeliusIntegrationApiClient(
     path = "/case/$identifier/personal-details"
   }
 
-  fun getSentenceInformation(crn: String, eventNumber: Int?) = getRequest<NDeliusSentenceResponse>("NDelius Integration API") {
+  fun getSentenceInformation(crn: String, eventNumber: Int?) = getRequest<NDeliusSentenceResponse>(N_DELIUS_INTEGRATION_API) {
     path = "/case/$crn/sentence/$eventNumber"
   }
 
