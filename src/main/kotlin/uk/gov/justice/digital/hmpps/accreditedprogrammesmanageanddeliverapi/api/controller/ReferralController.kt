@@ -13,10 +13,12 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.OffenceService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ServiceUserService
 import java.util.UUID
@@ -26,6 +28,7 @@ import java.util.UUID
 class ReferralController(
   private val referralService: ReferralService,
   private val serviceUserService: ServiceUserService,
+  private val offenceService: OffenceService,
 ) {
 
   @Operation(
@@ -103,5 +106,48 @@ class ReferralController(
     return serviceUserService.getPersonalDetailsByIdentifier(referral.crn).let {
       ResponseEntity.ok(it.toModel(referral.setting))
     } ?: throw NotFoundException("Personal details not found for crn ${referral.crn} not found")
+  }
+
+  @Operation(
+    tags = ["Referrals"],
+    summary = "Retrieve offence history for a referral",
+    operationId = "getOffenceHistoryByReferralId",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Information about the offence history",
+        content = [Content(schema = Schema(implementation = OffenceHistory::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden.  The client is not authorised to access this referral.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The referral does not exist",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The offence history for the referral does not exist",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/referral-details/{id}/offence-history", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getOffenceHistoryByReferralId(
+    @Parameter(description = "The id (UUID) of a referral", required = true)
+    @PathVariable("id") id: UUID,
+  ): ResponseEntity<OffenceHistory> {
+    val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
+    return offenceService.getOffenceHistory(referral).let { ResponseEntity.ok(it) }
+      ?: throw NotFoundException("Offence history not found for crn ${referral.crn} and referral with id $id")
   }
 }

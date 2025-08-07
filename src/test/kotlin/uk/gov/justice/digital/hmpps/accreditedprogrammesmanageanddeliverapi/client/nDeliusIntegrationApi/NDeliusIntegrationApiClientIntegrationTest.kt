@@ -16,8 +16,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffenceFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import java.time.LocalDate
 
 class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
 
@@ -36,9 +40,9 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
       sex = CodeDescription(code = "M", description = "Male"),
       ethnicity = CodeDescription(code = "W1", description = "White"),
       probationPractitioner = ProbationPractitioner(
-        name = FullName("Sam", "A", "Smith"),
+        name = FullName("Jane", "A", "Doe"),
         code = "X321",
-        email = "sam.smith@probation.gov.uk",
+        email = "jane.doe@probation.gov.uk",
       ),
       probationDeliveryUnit = CodeDescription(code = "PDU123", description = "North London"),
     )
@@ -145,6 +149,105 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
 
     when (val response = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(crn))) {
       is ClientResult.Failure.StatusCode<*> -> assertThat(response.status).isEqualTo(HttpStatus.FORBIDDEN)
+      else -> fail("Unexpected result: ${response::class.simpleName}")
+    }
+  }
+
+  @Test
+  fun `should return offences for known CRN and event number`() {
+    stubAuthTokenEndpoint()
+    val crn = "X123456"
+    val eventNumber = 1
+
+    val mainOffenceDate = LocalDate.of(2022, 5, 15)
+
+    val mainOffence = OffenceFactory()
+      .withDate(mainOffenceDate)
+      .withMainCategoryCode("63")
+      .withMainCategoryDescription("Theft from the person of another")
+      .withSubCategoryCode("01")
+      .withSubCategoryDescription("Theft from the person of another")
+      .produce()
+
+    val additionalOffenceDate1 = LocalDate.of(2021, 7, 23)
+    val additionalOffence1 = OffenceFactory()
+      .withDate(additionalOffenceDate1)
+      .withMainCategoryCode("05")
+      .withMainCategoryDescription("Criminal damage")
+      .withSubCategoryCode("10")
+      .withSubCategoryDescription("Criminal damage - value under £5000")
+      .produce()
+
+    val additionalOffenceDate2 = LocalDate.of(2021, 9, 5)
+    val additionalOffence2 = OffenceFactory()
+      .withDate(additionalOffenceDate2)
+      .withMainCategoryCode("04")
+      .withMainCategoryDescription("Assault")
+      .withSubCategoryCode("01")
+      .withSubCategoryDescription("Common assault and battery")
+      .produce()
+
+    val offences = OffencesFactory()
+      .withMainOffence(mainOffence)
+      .withAdditionalOffences(listOf(additionalOffence1, additionalOffence2))
+      .produce()
+
+    wiremock.stubFor(
+      get(urlEqualTo("/case/$crn/sentence/$eventNumber/offences"))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(objectMapper.writeValueAsString(offences)),
+        ),
+    )
+
+    when (val response = nDeliusIntegrationApiClient.getOffences(crn, eventNumber)) {
+      is ClientResult.Success<*> -> {
+        assertThat(response.status).isEqualTo(HttpStatus.OK)
+        val body = response.body as Offences
+
+        // Verify main offence
+        assertThat(body.mainOffence.date).isEqualTo(mainOffenceDate)
+        assertThat(body.mainOffence.mainCategoryCode).isEqualTo("63")
+        assertThat(body.mainOffence.mainCategoryDescription).isEqualTo("Theft from the person of another")
+        assertThat(body.mainOffence.subCategoryCode).isEqualTo("01")
+        assertThat(body.mainOffence.subCategoryDescription).isEqualTo("Theft from the person of another")
+
+        // Verify additional offences
+        assertThat(body.additionalOffences).hasSize(2)
+
+        // First additional offence
+        assertThat(body.additionalOffences[0].date).isEqualTo(additionalOffenceDate1)
+        assertThat(body.additionalOffences[0].mainCategoryCode).isEqualTo("05")
+        assertThat(body.additionalOffences[0].mainCategoryDescription).isEqualTo("Criminal damage")
+        assertThat(body.additionalOffences[0].subCategoryCode).isEqualTo("10")
+        assertThat(body.additionalOffences[0].subCategoryDescription).isEqualTo("Criminal damage - value under £5000")
+
+        // Second additional offence
+        assertThat(body.additionalOffences[1].date).isEqualTo(additionalOffenceDate2)
+        assertThat(body.additionalOffences[1].mainCategoryCode).isEqualTo("04")
+        assertThat(body.additionalOffences[1].mainCategoryDescription).isEqualTo("Assault")
+        assertThat(body.additionalOffences[1].subCategoryCode).isEqualTo("01")
+        assertThat(body.additionalOffences[1].subCategoryDescription).isEqualTo("Common assault and battery")
+      }
+      else -> fail("Unexpected result: ${response::class.simpleName}")
+    }
+  }
+
+  @Test
+  fun `should return NOT FOUND for unknown CRN or event number when getting offences`() {
+    stubAuthTokenEndpoint()
+    val crn = "X123456"
+    val eventNumber = 999
+
+    wiremock.stubFor(
+      get(urlEqualTo("/case/$crn/sentence/$eventNumber/offences"))
+        .willReturn(aResponse().withStatus(404)),
+    )
+
+    when (val response = nDeliusIntegrationApiClient.getOffences(crn, eventNumber)) {
+      is ClientResult.Failure.StatusCode<*> -> assertThat(response.status).isEqualTo(HttpStatus.NOT_FOUND)
       else -> fail("Unexpected result: ${response::class.simpleName}")
     }
   }

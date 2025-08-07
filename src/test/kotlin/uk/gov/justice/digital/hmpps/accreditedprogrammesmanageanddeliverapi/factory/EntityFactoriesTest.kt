@@ -172,4 +172,26 @@ class EntityFactoriesTest {
     assertThat(referralDetails.referralId).isEqualTo(referralId)
     assertThat(referralDetails.setting).isEqualTo(setting)
   }
+
+  @Test
+  fun `OffencesFactory should create entity with default values`() {
+    val offences = OffencesFactory().produce()
+
+    assertThat(offences.mainOffence).isNotNull
+    assertThat(offences.mainOffence.date).isNotNull
+    assertThat(offences.mainOffence.mainCategoryCode).isNotNull
+    assertThat(offences.mainOffence.mainCategoryDescription).isNotNull
+    assertThat(offences.mainOffence.subCategoryCode).isNotNull
+    assertThat(offences.mainOffence.subCategoryDescription).isNotNull
+    assertThat(offences.additionalOffences).isNotEmpty
+  }
+
+  @Test
+  fun `OffencesFactory should create entity with no additional offences`() {
+    val offences = OffencesFactory()
+      .withNoAdditionalOffences()
+      .produce()
+
+    assertThat(offences.additionalOffences).isEmpty()
+  }
 }

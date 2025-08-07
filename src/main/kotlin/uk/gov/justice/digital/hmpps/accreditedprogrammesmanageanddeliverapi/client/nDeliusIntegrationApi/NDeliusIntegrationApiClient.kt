@@ -7,6 +7,9 @@ import org.springframework.web.reactive.function.client.WebClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.BaseHMPPSClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
+
+private const val N_DELIUS_INTEGRATION_API = "NDelius Integration API"
 
 @Component
 class NDeliusIntegrationApiClient(
@@ -14,12 +17,18 @@ class NDeliusIntegrationApiClient(
   objectMapper: ObjectMapper,
 ) : BaseHMPPSClient(webClient, objectMapper) {
 
-  fun getPersonalDetails(identifier: String) = getRequest<NDeliusPersonalDetails>("NDelius Integration API") {
+  fun getPersonalDetails(identifier: String) = getRequest<NDeliusPersonalDetails>(N_DELIUS_INTEGRATION_API) {
     path = "/case/$identifier/personal-details"
   }
 
-  fun verifyLimitedAccessOffenderCheck(username: String, identifiers: List<String>) = postRequest<LimitedAccessOffenderCheckResponse>("NDelius Integration API") {
+  fun verifyLimitedAccessOffenderCheck(username: String, identifiers: List<String>) = postRequest<LimitedAccessOffenderCheckResponse>(
+    N_DELIUS_INTEGRATION_API,
+  ) {
     path = "/user/$username/access"
     body = identifiers
+  }
+
+  fun getOffences(crn: String, eventNumber: Int) = getRequest<Offences>(N_DELIUS_INTEGRATION_API) {
+    path = "/case/$crn/sentence/$eventNumber/offences"
   }
 }
