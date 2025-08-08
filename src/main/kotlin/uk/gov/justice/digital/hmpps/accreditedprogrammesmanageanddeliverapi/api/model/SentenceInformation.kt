@@ -101,12 +101,11 @@ fun NDeliusSentenceResponse.toModel() = SentenceInformation(
   releaseType = releaseType,
   licenceConditions = licenceConditions,
   licenceEndDate = licenceExpiryDate,
-  // TODO check this value
-  postSentenceSupervisionStartDate = LocalDate.now(),
+  // This is an inferred date that will be the day after the licence expires
+  postSentenceSupervisionStartDate = licenceExpiryDate?.plusDays(1),
   postSentenceSupervisionEndDate = postSentenceSupervisionEndDate,
   twoThirdsPoint = twoThirdsSupervisionDate,
   orderRequirements = requirements,
-  // TODO check this value
-  orderEndDate = LocalDate.now(),
+  orderEndDate = expectedEndDate,
   dateRetrieved = LocalDate.now(),
 )

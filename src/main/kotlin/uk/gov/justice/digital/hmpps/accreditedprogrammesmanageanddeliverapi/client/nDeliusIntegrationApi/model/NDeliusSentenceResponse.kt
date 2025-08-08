@@ -7,16 +7,14 @@ import java.time.LocalDate
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class NDeliusSentenceResponse(
-//  @Schema(
-//    example = "X933590",
-//    required = true,
-//    description = "The crn associated with this referral.",
-//  )
   @get:JsonProperty("description", required = false)
   val description: String? = null,
 
   @get:JsonProperty("startDate", required = true)
   val startDate: LocalDate,
+
+  @get:JsonProperty("expectedEndDate", required = false)
+  val expectedEndDate: LocalDate,
 
   @get:JsonProperty("licenceExpiryDate", required = false)
   @JsonFormat(pattern = "d MMMM yyyy")

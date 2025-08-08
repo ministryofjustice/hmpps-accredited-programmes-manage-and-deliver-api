@@ -30,6 +30,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.Utils.createCodeDescriptionList
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -374,10 +375,13 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
   @DisplayName("Get sentence information endpoint")
   inner class GetSentenceInformation {
     @Test
-    fun `should return sentence information for a referral`() {
+    fun `should return sentence information for a referral on a licence condition`() {
       val referralEntity = ReferralEntityFactory().produce()
       testDataGenerator.createReferral(referralEntity)
-      val nDeliusSentenceResponse: NDeliusSentenceResponse = NDeliusSentenceResponseFactory().produce()
+      val nDeliusSentenceResponse: NDeliusSentenceResponse = NDeliusSentenceResponseFactory()
+        .withLicenceConditions(createCodeDescriptionList(2))
+        .withLicenceExpiryDate(LocalDate.now().plusYears(1))
+        .produce()
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referralEntity.crn,
         referralEntity.eventNumber,
@@ -403,6 +407,8 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
 
       Assertions.assertThat(response.sentenceType).isEqualTo(nDeliusSentenceResponse.description)
       Assertions.assertThat(response.releaseType).isEqualTo(nDeliusSentenceResponse.releaseType)
+      Assertions.assertThat(response.postSentenceSupervisionStartDate)
+        .isEqualTo(nDeliusSentenceResponse.licenceExpiryDate!!.plusDays(1))
     }
 
     @Test

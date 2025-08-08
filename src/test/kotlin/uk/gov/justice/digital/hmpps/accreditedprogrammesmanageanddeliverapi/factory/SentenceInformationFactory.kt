@@ -3,28 +3,21 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomSentence
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.Utils.createCodeDescriptionList
 import java.time.LocalDate
 
 class SentenceInformationFactory {
   private var sentenceType: String? = randomSentence(wordRange = 2..4)
   private var releaseType: String? = "Released on licence"
-  private var licenceConditions: List<CodeDescription>? = listOf(
-    createCodeDescription(),
-    createCodeDescription(),
-  )
+  private var licenceConditions: List<CodeDescription>? = createCodeDescriptionList(2)
   private var licenceEndDate: LocalDate? = LocalDate.now().plusYears(2)
-  private var postSentenceSupervisionStartDate: LocalDate? = LocalDate.now().plusMonths(18)
+  private var postSentenceSupervisionStartDate: LocalDate? = licenceEndDate?.plusDays(1)
   private var postSentenceSupervisionEndDate: LocalDate? = LocalDate.now().plusYears(3)
   private var twoThirdsPoint: LocalDate? = LocalDate.now().plusMonths(20)
-  private var orderRequirements: List<CodeDescription>? = listOf(
-    createCodeDescription(),
-    createCodeDescription(),
-  )
+  private var orderRequirements: List<CodeDescription>? = createCodeDescriptionList(2)
   private var orderEndDate: LocalDate? = LocalDate.now().plusYears(1)
   private var dateRetrieved: LocalDate = LocalDate.now()
 
-  fun createCodeDescription(): CodeDescription = CodeDescription(randomUppercaseString(2), randomSentence())
   fun withSentenceType(sentenceType: String?) = apply { this.sentenceType = sentenceType }
   fun withReleaseType(releaseType: String?) = apply { this.releaseType = releaseType }
   fun withLicenceConditions(licenceConditions: List<CodeDescription>?) = apply { this.licenceConditions = licenceConditions }
