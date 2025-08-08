@@ -15,8 +15,9 @@ class ReferralCaseListItemService(private val referralCaseListItemRepository: Re
     pageable: Pageable,
     openOrClosed: OpenOrClosed,
     crnOrPersonName: String?,
+    cohort: String?,
   ): Page<ReferralCaseListItem> {
-    val specification = getReferralCaseListItemSpecification(openOrClosed, crnOrPersonName)
+    val specification = getReferralCaseListItemSpecification(openOrClosed, crnOrPersonName, cohort)
     return referralCaseListItemRepository.findAll(specification, pageable).map { it.toApi() }
   }
 }
