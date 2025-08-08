@@ -35,7 +35,7 @@ services:
 
   postgresql:
     image: postgres
-    container_name: postgres
+    container_name: postgres-api
     networks:
       - hmpps
     restart: always
