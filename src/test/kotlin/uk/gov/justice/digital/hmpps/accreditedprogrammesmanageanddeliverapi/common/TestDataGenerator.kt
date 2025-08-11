@@ -36,4 +36,8 @@ class TestDataGenerator {
     referralEntity.statusHistories.add(referralStatusHistoryEntity)
     entityManager.merge(referralEntity)
   }
+
+  fun refreshReferralCaseListItemView() {
+    entityManager.createNativeQuery("REFRESH MATERIALIZED VIEW referral_caselist_item_view").executeUpdate()
+  }
 }

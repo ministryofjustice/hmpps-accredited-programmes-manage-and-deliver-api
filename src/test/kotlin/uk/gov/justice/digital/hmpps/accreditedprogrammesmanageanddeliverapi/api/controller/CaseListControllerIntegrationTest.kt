@@ -1,45 +1,125 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
-import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
-import org.springframework.core.io.ResourceLoader
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.jdbc.datasource.init.ScriptUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralCaseListItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.RestResponsePage
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import javax.sql.DataSource
+import java.time.LocalDateTime
 
 class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
-  private lateinit var dataSource: DataSource
+  private lateinit var testDataGenerator: TestDataGenerator
 
   @Autowired
-  private lateinit var resourceLoader: ResourceLoader
+  private lateinit var testDataCleaner: TestDataCleaner
 
   @BeforeEach
   override fun beforeEach() {
-    dataSource.connection.use {
-      val resource = resourceLoader.getResource("classpath:db/testData/setup.sql")
-      ScriptUtils.executeSqlScript(it, resource)
-    }
+    testDataCleaner.cleanAllTables()
+    createReferralsWithStatusHistory()
+    testDataGenerator.refreshReferralCaseListItemView()
   }
 
-  @AfterEach
-  fun afterEach() {
-    dataSource.connection.use {
-      val resource = resourceLoader.getResource("classpath:db/testData/teardown.sql")
-      ScriptUtils.executeSqlScript(it, resource)
-    }
+  private fun createReferralsWithStatusHistory() {
+    // Create referrals with associated status history
+    val referral1 = ReferralEntityFactory()
+      .withPersonName("Joe Bloggs")
+      .withCrn("X7182552")
+      .withInterventionName("Horizon")
+      .withCohort(OffenceCohort.GENERAL_OFFENCE)
+      .produce()
+    val statusHistory1 = ReferralStatusHistoryEntityFactory()
+      .withStatus("CREATED")
+      .withCreatedAt(LocalDateTime.now())
+      .withCreatedBy("USER_ID_12345")
+      .withStartDate(LocalDateTime.now())
+      .produce()
+    testDataGenerator.createReferralWithStatusHistory(referral1, statusHistory1)
+
+    val referral2 = ReferralEntityFactory()
+      .withPersonName("Alex River")
+      .withCrn("CRN-999999")
+      .withInterventionName("Building Choices")
+      .withCohort(OffenceCohort.SEXUAL_OFFENCE)
+      .produce()
+    val statusHistory2 = ReferralStatusHistoryEntityFactory()
+      .withStatus("CREATED")
+      .withCreatedAt(LocalDateTime.now())
+      .withCreatedBy("USER_ID_12345")
+      .withStartDate(LocalDateTime.now())
+      .produce()
+    testDataGenerator.createReferralWithStatusHistory(referral2, statusHistory2)
+
+    val referral3 = ReferralEntityFactory()
+      .withPersonName("Jane Adams")
+      .withCrn("CRN-888888")
+      .withInterventionName("Building Choices")
+      .withCohort(OffenceCohort.GENERAL_OFFENCE)
+      .produce()
+    val statusHistory3 = ReferralStatusHistoryEntityFactory()
+      .withStatus("CREATED")
+      .withCreatedAt(LocalDateTime.now())
+      .withCreatedBy("USER_ID_12345")
+      .withStartDate(LocalDateTime.now())
+      .produce()
+    testDataGenerator.createReferralWithStatusHistory(referral3, statusHistory3)
+
+    val referral4 = ReferralEntityFactory()
+      .withPersonName("Pete Grims")
+      .withCrn("CRN-777777")
+      .withInterventionName("New Me")
+      .withCohort(OffenceCohort.GENERAL_OFFENCE)
+      .produce()
+    val statusHistory4 = ReferralStatusHistoryEntityFactory()
+      .withStatus("CREATED")
+      .withCreatedAt(LocalDateTime.now())
+      .withCreatedBy("USER_ID_12345")
+      .withStartDate(LocalDateTime.now())
+      .produce()
+    testDataGenerator.createReferralWithStatusHistory(referral4, statusHistory4)
+
+    val referral5 = ReferralEntityFactory()
+      .withPersonName("James Hayden")
+      .withCrn("CRN-66666")
+      .withInterventionName("Building Choices")
+      .withCohort(OffenceCohort.GENERAL_OFFENCE)
+      .produce()
+    val statusHistory5 = ReferralStatusHistoryEntityFactory()
+      .withStatus("STARTED")
+      .withCreatedAt(LocalDateTime.parse("2025-07-10T00:00:00"))
+      .withCreatedBy("USER_ID_12345")
+      .withStartDate(LocalDateTime.parse("2025-07-10T00:00:00"))
+      .withEndDate(LocalDateTime.parse("2025-07-10T00:00:00"))
+      .produce()
+    testDataGenerator.createReferralWithStatusHistory(referral5, statusHistory5)
+
+    val referral6 = ReferralEntityFactory()
+      .withPersonName("Andrew Crosforth")
+      .withCrn("CRN-555555")
+      .withInterventionName("Building Choices")
+      .withCohort(OffenceCohort.GENERAL_OFFENCE)
+      .produce()
+    val statusHistory6 = ReferralStatusHistoryEntityFactory()
+      .withStatus("CREATED")
+      .withCreatedAt(LocalDateTime.now())
+      .withCreatedBy("USER_ID_12345")
+      .withStartDate(LocalDateTime.now())
+      .produce()
+    testDataGenerator.createReferralWithStatusHistory(referral6, statusHistory6)
   }
 
   // The OPEN and CLOSED referrals tests currently return the same values as we don't yet know the statuses which will map to OPEN/CLOSED
@@ -53,8 +133,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     val referralCaseListItems = response.content
 
     assertThat(response).isNotNull
-    Assertions.assertThat(response.totalElements).isEqualTo(5)
-    Assertions.assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-999999")
+    assertThat(response.totalElements).isEqualTo(6)
+    assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-999999")
 
     referralCaseListItems.forEach { item ->
       assertThat(item).hasFieldOrProperty("crn")
@@ -73,8 +153,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     val referralCaseListItems = response.content
 
     assertThat(response).isNotNull
-    Assertions.assertThat(response.totalElements).isEqualTo(5)
-    Assertions.assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-999999")
+    assertThat(response.totalElements).isEqualTo(6)
+    assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-999999")
 
     referralCaseListItems.forEach { item ->
       assertThat(item).hasFieldOrProperty("crn")
@@ -92,7 +172,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       HttpStatus.BAD_REQUEST.value(),
     )
 
-    Assertions.assertThat(response.userMessage).isEqualTo("Invalid value for parameter openOrClosed")
+    assertThat(response.userMessage).isEqualTo("Invalid value for parameter openOrClosed")
   }
 
   @Test
@@ -160,14 +240,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
     assertThat(response).isNotNull
     assertThat(response.totalElements).isEqualTo(1)
-    assertThat(referralCaseListItems.first().personName).isEqualTo("Alex River")
 
-    referralCaseListItems.forEach { item ->
-      assertThat(item).hasFieldOrProperty("crn")
-      assertThat(item).hasFieldOrProperty("personName")
-      assertThat(item).hasFieldOrProperty("referralStatus")
-      assertThat(item).hasFieldOrProperty("cohort")
-    }
+    val referral = referralCaseListItems[0]
+    assertThat(referral.personName).isEqualTo("Alex River")
+    assertThat(referral.crn).isEqualTo("CRN-999999")
+    assertThat(referral.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE.name)
+    assertThat(referral.referralStatus).isEqualTo("CREATED")
   }
 
   @Test
@@ -180,7 +258,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     val referralCaseListItems = response.content
 
     assertThat(response).isNotNull
-    assertThat(response.totalElements).isEqualTo(4)
+    assertThat(response.totalElements).isEqualTo(5)
+
+    assertThat(referralCaseListItems)
+      .allSatisfy { item ->
+        assertThat(item.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE.name)
+      }
 
     referralCaseListItems.forEach { item ->
       assertThat(item).hasFieldOrProperty("crn")
@@ -188,5 +271,25 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(item).hasFieldOrProperty("referralStatus")
       assertThat(item).hasFieldOrProperty("cohort")
     }
+  }
+
+  @Test
+  fun `getCaseListItems should only return referrals with a matching status when supplied`() {
+    // When
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "/pages/caselist/open?status=CREATED",
+      object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+    )
+    val referralCaseListItems = response.content
+
+    // Then
+    assertThat(response).isNotNull
+    assertThat(referralCaseListItems).hasSize(5)
+
+    assertThat(referralCaseListItems)
+      .allSatisfy { item ->
+        assertThat(item.referralStatus).isEqualTo("CREATED")
+      }
   }
 }
