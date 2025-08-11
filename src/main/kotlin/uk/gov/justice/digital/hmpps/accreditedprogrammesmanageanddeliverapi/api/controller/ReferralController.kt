@@ -119,6 +119,11 @@ class ReferralController(
         content = [Content(schema = Schema(implementation = OffenceHistory::class))],
       ),
       ApiResponse(
+        responseCode = "400",
+        description = "The offence history could not be retrieved due to missing data on the referral",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
         responseCode = "401",
         description = "The request was unauthorised",
         content = [Content(schema = Schema(implementation = ErrorResponse::class))],

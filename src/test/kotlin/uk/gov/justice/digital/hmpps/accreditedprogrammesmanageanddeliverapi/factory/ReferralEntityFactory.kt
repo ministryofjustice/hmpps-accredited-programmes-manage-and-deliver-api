@@ -23,7 +23,7 @@ class ReferralEntityFactory {
     mutableListOf(referralStatusHistoryEntityFactory.withStatus("Assessment started").produce())
   private var setting: SettingType = SettingType.COMMUNITY
   private var eventId: String = randomUppercaseString(6)
-  private var eventNumber: Int = randomNumberAsInt(1)
+  private var eventNumber: Int? = randomNumberAsInt(1)
   private var cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE
 
   fun withId(id: UUID?) = apply { this.id = id }
@@ -35,7 +35,7 @@ class ReferralEntityFactory {
   fun withInterventionName(interventionName: String?) = apply { this.interventionName = interventionName }
 
   fun withInterventionType(interventionType: InterventionType) = apply { this.interventionType = interventionType }
-  fun withEventNumber(eventNumber: Int) = apply { this.eventNumber = eventNumber }
+  fun withEventNumber(eventNumber: Int?) = apply { this.eventNumber = eventNumber }
   fun withEventId(eventId: String) = apply { this.eventId = eventId }
   fun addStatusHistory(statusHistory: ReferralStatusHistoryEntity) = apply { this.statusHistories.add(statusHistory) }
 
