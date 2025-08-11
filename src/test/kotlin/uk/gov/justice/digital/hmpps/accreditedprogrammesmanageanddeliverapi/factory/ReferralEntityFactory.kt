@@ -32,6 +32,7 @@ class ReferralEntityFactory {
   fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
   fun withStatusHistories(statusHistories: MutableList<ReferralStatusHistoryEntity>) = apply { this.statusHistories = statusHistories }
   fun withCohort(cohort: OffenceCohort) = apply { this.cohort = cohort }
+  fun withInterventionName(interventionName: String?) = apply { this.interventionName = interventionName }
 
   fun withInterventionType(interventionType: InterventionType) = apply { this.interventionType = interventionType }
   fun withEventNumber(eventNumber: Int) = apply { this.eventNumber = eventNumber }

@@ -53,11 +53,16 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
       value = "cohort",
       required = false,
     ) cohort: OffenceCohort?,
+    @Parameter(description = "Filter by the status of the referral") @RequestParam(
+      value = "status",
+      required = false,
+    ) status: String?,
   ): Page<ReferralCaseListItem> = referralCaseListItemService.getReferralCaseListItemServiceByCriteria(
     pageable = pageable,
     openOrClosed = openOrClosed,
     crnOrPersonName = crnOrPersonName,
     cohort = cohort?.name,
+    status = status,
   )
 }
 
