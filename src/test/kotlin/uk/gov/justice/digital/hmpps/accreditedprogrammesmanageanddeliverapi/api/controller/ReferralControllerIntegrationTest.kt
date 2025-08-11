@@ -301,6 +301,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.mainOffence.categoryCode).isEqualTo("01")
       assertThat(response.mainOffence.category).isEqualTo("Not eating enough vegetables")
       assertThat(response.mainOffence.offenceDate).isEqualTo(LocalDate.of(2023, 1, 1))
+      assertThat(response.importedDate).isEqualTo(LocalDate.now())
 
       assertThat(response.additionalOffences).hasSize(1)
       val additionalOffence = response.additionalOffences[0]
@@ -346,7 +347,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should return 404 when referral exists by not offence history exists for referral`() {
+    fun `should return 404 when referral exists but no offence history exists for referral`() {
       // Given
       val referralEntity = ReferralEntityFactory().produce()
       testDataGenerator.createReferral(referralEntity)
@@ -359,6 +360,24 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
         uri = "/referral-details/${savedReferral.id}/offence-history",
         returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
         expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+    }
+
+    @Test
+    fun `should return BAD REQUEST 400 when attempting to find offence history for a referral without an event number`() {
+      // Given
+      val referralEntity = ReferralEntityFactory()
+        .withEventNumber(null)
+        .produce()
+      testDataGenerator.createReferral(referralEntity)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+
+      // When & Then
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}/offence-history",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
       )
     }
   }

@@ -13,6 +13,7 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.hmppsaccreditedprogrammesapi.common.exception.BusinessException
 
 @RestControllerAdvice
 class ApiExceptionHandler {
@@ -62,6 +63,20 @@ class ApiExceptionHandler {
 
   @ExceptionHandler(HandlerMethodValidationException::class)
   fun handleHandlerMethodValidationException(exception: HandlerMethodValidationException): ResponseEntity<ErrorResponse> {
+    log.warn("Bad request", exception)
+    return ResponseEntity
+      .status(BAD_REQUEST)
+      .body(
+        ErrorResponse(
+          status = BAD_REQUEST.value(),
+          userMessage = "Bad request: ${exception.message}",
+          developerMessage = exception.message,
+        ),
+      )
+  }
+
+  @ExceptionHandler(BusinessException::class)
+  fun handleBusinessExceptionException(exception: BusinessException): ResponseEntity<ErrorResponse> {
     log.warn("Bad request", exception)
     return ResponseEntity
       .status(BAD_REQUEST)
