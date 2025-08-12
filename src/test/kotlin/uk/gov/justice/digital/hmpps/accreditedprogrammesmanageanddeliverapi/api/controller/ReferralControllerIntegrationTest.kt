@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
-import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -78,16 +77,16 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
         returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
       )
 
-      Assertions.assertThat(response.id).isEqualTo(savedReferral.id)
-      Assertions.assertThat(response.crn).isEqualTo(savedReferral.crn)
-      Assertions.assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
-      Assertions.assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
-      Assertions.assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
-      Assertions.assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
-      Assertions.assertThat(response.cohort).isEqualTo(savedReferral.cohort)
-      Assertions.assertThat(response.probationPractitionerName)
+      assertThat(response.id).isEqualTo(savedReferral.id)
+      assertThat(response.crn).isEqualTo(savedReferral.crn)
+      assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
+      assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
+      assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
+      assertThat(response.cohort).isEqualTo(savedReferral.cohort)
+      assertThat(response.probationPractitionerName)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
-      Assertions.assertThat(response.probationPractitionerEmail)
+      assertThat(response.probationPractitionerEmail)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
     }
 
@@ -112,16 +111,16 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
         returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
       )
 
-      Assertions.assertThat(response.id).isEqualTo(savedReferral.id)
-      Assertions.assertThat(response.crn).isEqualTo(savedReferral.crn)
-      Assertions.assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
-      Assertions.assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
-      Assertions.assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
-      Assertions.assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
-      Assertions.assertThat(response.cohort).isEqualTo(savedReferral.cohort)
-      Assertions.assertThat(response.probationPractitionerName)
+      assertThat(response.id).isEqualTo(savedReferral.id)
+      assertThat(response.crn).isEqualTo(savedReferral.crn)
+      assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
+      assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
+      assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
+      assertThat(response.cohort).isEqualTo(savedReferral.cohort)
+      assertThat(response.probationPractitionerName)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
-      Assertions.assertThat(response.probationPractitionerEmail)
+      assertThat(response.probationPractitionerEmail)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
     }
 
@@ -182,14 +181,14 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).hasFieldOrProperty("setting")
       assertThat(response).hasFieldOrProperty("probationDeliveryUnit")
 
-      Assertions.assertThat(response.crn).isEqualTo(nDeliusPersonalDetails.crn)
-      Assertions.assertThat(response.name).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
-      Assertions.assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
-      Assertions.assertThat(response.ethnicity).isEqualTo(nDeliusPersonalDetails.ethnicity?.description)
-      Assertions.assertThat(response.age).isEqualTo(nDeliusPersonalDetails.age)
-      Assertions.assertThat(response.gender).isEqualTo(nDeliusPersonalDetails.sex.description)
-      Assertions.assertThat(response.setting).isEqualTo(referralEntity.setting)
-      Assertions.assertThat(response.probationDeliveryUnit)
+      assertThat(response.crn).isEqualTo(nDeliusPersonalDetails.crn)
+      assertThat(response.name).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
+      assertThat(response.ethnicity).isEqualTo(nDeliusPersonalDetails.ethnicity?.description)
+      assertThat(response.age).isEqualTo(nDeliusPersonalDetails.age)
+      assertThat(response.gender).isEqualTo(nDeliusPersonalDetails.sex.description)
+      assertThat(response.setting).isEqualTo(referralEntity.setting)
+      assertThat(response.probationDeliveryUnit)
         .isEqualTo(nDeliusPersonalDetails.probationDeliveryUnit!!.description)
     }
 
@@ -221,14 +220,14 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).hasFieldOrProperty("setting")
       assertThat(response).hasFieldOrProperty("probationDeliveryUnit")
 
-      Assertions.assertThat(response.crn).isEqualTo(nDeliusPersonalDetails.crn)
-      Assertions.assertThat(response.name).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
-      Assertions.assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
-      Assertions.assertThat(response.ethnicity).isNull()
-      Assertions.assertThat(response.age).isEqualTo(nDeliusPersonalDetails.age)
-      Assertions.assertThat(response.gender).isEqualTo(nDeliusPersonalDetails.sex.description)
-      Assertions.assertThat(response.setting).isEqualTo(referralEntity.setting)
-      Assertions.assertThat(response.probationDeliveryUnit)
+      assertThat(response.crn).isEqualTo(nDeliusPersonalDetails.crn)
+      assertThat(response.name).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
+      assertThat(response.ethnicity).isNull()
+      assertThat(response.age).isEqualTo(nDeliusPersonalDetails.age)
+      assertThat(response.gender).isEqualTo(nDeliusPersonalDetails.sex.description)
+      assertThat(response.setting).isEqualTo(referralEntity.setting)
+      assertThat(response.probationDeliveryUnit)
         .isEqualTo(nDeliusPersonalDetails.probationDeliveryUnit!!.description)
     }
 
@@ -424,10 +423,23 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).hasFieldOrProperty("orderEndDate")
       assertThat(response).hasFieldOrProperty("dateRetrieved")
 
-      Assertions.assertThat(response.sentenceType).isEqualTo(nDeliusSentenceResponse.description)
-      Assertions.assertThat(response.releaseType).isEqualTo(nDeliusSentenceResponse.releaseType)
-      Assertions.assertThat(response.postSentenceSupervisionStartDate)
+      assertThat(response.sentenceType).isEqualTo(nDeliusSentenceResponse.description)
+      assertThat(response.releaseType).isEqualTo(nDeliusSentenceResponse.releaseType)
+      assertThat(response.postSentenceSupervisionStartDate)
         .isEqualTo(nDeliusSentenceResponse.licenceExpiryDate!!.plusDays(1))
+    }
+
+    @Test
+    fun `should throw error when event number is null`() {
+      val referralEntity = ReferralEntityFactory().withEventNumber(null).produce()
+      testDataGenerator.createReferral(referralEntity)
+
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${referralEntity.id}/sentence-information",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.BAD_REQUEST.value(),
+      )
     }
 
     @Test

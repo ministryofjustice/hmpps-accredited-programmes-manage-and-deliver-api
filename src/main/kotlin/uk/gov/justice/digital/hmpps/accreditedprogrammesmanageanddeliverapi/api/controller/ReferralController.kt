@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -18,6 +19,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toModel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.OffenceService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
@@ -33,6 +35,8 @@ class ReferralController(
   private val offenceService: OffenceService,
   private val sentenceService: SentenceService,
 ) {
+
+  private val log = LoggerFactory.getLogger(this::class.java)
 
   @Operation(
     tags = ["Referrals"],
@@ -194,6 +198,10 @@ class ReferralController(
     @PathVariable("id") id: UUID,
   ): ResponseEntity<SentenceInformation> {
     val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
+    if (referral.eventNumber == null) {
+      log.error("Referral with id $id has null eventNumber")
+      throw BusinessException("Referral with id $id has null eventNumber")
+    }
     return sentenceService.getSentenceInformationByIdentifier(referral.crn, referral.eventNumber).let {
       ResponseEntity.ok(it.toModel())
     } ?: throw NotFoundException("Sentence information not found for crn ${referral.crn} not found")
