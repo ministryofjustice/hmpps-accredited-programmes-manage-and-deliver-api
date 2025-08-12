@@ -1,4 +1,4 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model
 
 enum class SaraRisk(private val score: Int, val description: String? = null) {
   NOT_APPLICABLE(0, "Not Applicable"),
