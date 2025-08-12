@@ -94,6 +94,36 @@
           "response-template"
         ]
       }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/case/.*/sentence/.*/offences"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "mainOffence": {
+            "date": "2021-05-01",
+            "mainCategoryCode": "056",
+            "mainCategoryDescription": "Arson",
+            "subCategoryCode": "23",
+            "subCategoryDescription": "Arson"
+          },
+          "additionalOffences": [
+            {
+              "date": "2021-07-01",
+              "mainCategoryCode": "012",
+              "mainCategoryDescription": "Abandoning children under two years",
+              "subCategoryCode": "00",
+              "subCategoryDescription": "Abandoning children under two years - contrary to section 27 of the Offences against the person Act 1861"
+            }
+          ]
+        }
+      }
     }
   ]
 }
