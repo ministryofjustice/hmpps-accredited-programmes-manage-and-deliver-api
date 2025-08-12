@@ -1,8 +1,4 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model
-
-import kotlin.collections.find
-import kotlin.text.equals
-import kotlin.text.replace
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds
 
 enum class SaraRisk(private val score: Int, val description: String? = null) {
   NOT_APPLICABLE(0, "Not Applicable"),
@@ -13,7 +9,7 @@ enum class SaraRisk(private val score: Int, val description: String? = null) {
   ;
 
   companion object {
-    fun fromString(value: String?): SaraRisk = SaraRisk.entries.find { it.description.equals(value?.replace('_', ' '), ignoreCase = true) }
+    fun fromString(value: String?): SaraRisk = entries.find { it.description.equals(value?.replace('_', ' '), ignoreCase = true) }
       ?: NOT_APPLICABLE
 
     fun highestRisk(risk1: SaraRisk, risk2: SaraRisk): SaraRisk = if (risk1.score > risk2.score) risk1 else risk2
