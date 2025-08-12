@@ -1,4 +1,4 @@
-package uk.gov.justice.digital.hmpps.hmppsaccreditedprogrammesapi.common.exception
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception
 
 /**
  * Thrown from domain logic to indicate that a business rule has been violated in a way that prevents
