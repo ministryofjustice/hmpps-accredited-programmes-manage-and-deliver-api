@@ -57,6 +57,43 @@
           "response-template"
         ]
       }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/case/.*/sentence/.*"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "description": "ORA Community Order (6 Months)",
+          "startDate": "2024-09-24",
+          "expectedEndDate": "2025-03-23",
+          "custodial": false,
+          "licenceConditions": [],
+          "requirements": [
+            {
+              "code": "RARREQ",
+              "description": "Rehabilitation Activity Requirement (RAR)"
+            },
+            {
+              "code": "724",
+              "description": "Building Skills for Recovery (BSR)"
+            },
+            {
+              "code": "CSPE06",
+              "description": "Curfew"
+            }
+          ],
+          "postSentenceSupervisionRequirements": []
+        },
+        "transformers": [
+          "response-template"
+        ]
+      }
     }
   ]
 }

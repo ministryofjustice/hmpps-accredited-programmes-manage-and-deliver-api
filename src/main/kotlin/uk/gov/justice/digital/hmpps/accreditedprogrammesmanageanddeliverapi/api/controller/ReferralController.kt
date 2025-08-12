@@ -16,10 +16,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.OffenceService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SentenceService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ServiceUserService
 import java.util.UUID
 
@@ -29,6 +31,7 @@ class ReferralController(
   private val referralService: ReferralService,
   private val serviceUserService: ServiceUserService,
   private val offenceService: OffenceService,
+  private val sentenceService: SentenceService,
 ) {
 
   @Operation(
@@ -154,5 +157,45 @@ class ReferralController(
     val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
     return offenceService.getOffenceHistory(referral).let { ResponseEntity.ok(it) }
       ?: throw NotFoundException("Offence history not found for crn ${referral.crn} and referral with id $id")
+  }
+
+  @Operation(
+    tags = ["Referrals"],
+    summary = "Retrieve sentence information for a referral",
+    operationId = "getSentenceInformationByReferralId",
+    description = """""",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Information about the sentence",
+        content = [Content(schema = Schema(implementation = SentenceInformation::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden.  The client is not authorised to access this referral.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The referral does not exist",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/referral-details/{id}/sentence-information", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getSentenceInformationByReferralId(
+    @Parameter(description = "The id (UUID) of a referral", required = true)
+    @PathVariable("id") id: UUID,
+  ): ResponseEntity<SentenceInformation> {
+    val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
+    return sentenceService.getSentenceInformationByIdentifier(referral.crn, referral.eventNumber).let {
+      ResponseEntity.ok(it.toModel())
+    } ?: throw NotFoundException("Sentence information not found for crn ${referral.crn} not found")
   }
 }

@@ -16,20 +16,24 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffenceFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.Utils.createCodeDescriptionList
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 class ReferralControllerIntegrationTest : IntegrationTestBase() {
 
@@ -132,7 +136,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
         httpMethod = HttpMethod.GET,
         uri = "/referral-details/${savedReferral.id}",
         returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-        expectedResponseStatus = 403,
+        expectedResponseStatus = HttpStatus.FORBIDDEN.value(),
       )
     }
 
@@ -239,7 +243,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
         httpMethod = HttpMethod.GET,
         uri = "/referral-details/${savedReferral.id}/personal-details",
         returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-        expectedResponseStatus = 403,
+        expectedResponseStatus = HttpStatus.FORBIDDEN.value(),
       )
     }
 
@@ -285,7 +289,11 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
           ),
         ).produce()
 
-      nDeliusApiStubs.stubSuccessfulOffencesResponse(referralEntity.crn, referralEntity.eventNumber.toString(), offences)
+      nDeliusApiStubs.stubSuccessfulOffencesResponse(
+        referralEntity.crn,
+        referralEntity.eventNumber.toString(),
+        offences,
+      )
 
       // When
       val response = performRequestAndExpectOk(
@@ -380,5 +388,78 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
         expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
       )
     }
+  }
+
+  @Nested
+  @DisplayName("Get sentence information endpoint")
+  inner class GetSentenceInformation {
+    @Test
+    fun `should return sentence information for a referral on a licence condition`() {
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val nDeliusSentenceResponse: NDeliusSentenceResponse = NDeliusSentenceResponseFactory()
+        .withLicenceConditions(createCodeDescriptionList(2))
+        .withLicenceExpiryDate(LocalDate.now().plusYears(1))
+        .produce()
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referralEntity.crn,
+        referralEntity.eventNumber,
+        nDeliusSentenceResponse,
+      )
+
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${referralEntity.id}/sentence-information",
+        returnType = object : ParameterizedTypeReference<SentenceInformation>() {},
+      )
+
+      assertThat(response).hasFieldOrProperty("sentenceType")
+      assertThat(response).hasFieldOrProperty("releaseType")
+      assertThat(response).hasFieldOrProperty("licenceConditions")
+      assertThat(response).hasFieldOrProperty("licenceEndDate")
+      assertThat(response).hasFieldOrProperty("postSentenceSupervisionStartDate")
+      assertThat(response).hasFieldOrProperty("postSentenceSupervisionEndDate")
+      assertThat(response).hasFieldOrProperty("twoThirdsPoint")
+      assertThat(response).hasFieldOrProperty("orderRequirements")
+      assertThat(response).hasFieldOrProperty("orderEndDate")
+      assertThat(response).hasFieldOrProperty("dateRetrieved")
+
+      Assertions.assertThat(response.sentenceType).isEqualTo(nDeliusSentenceResponse.description)
+      Assertions.assertThat(response.releaseType).isEqualTo(nDeliusSentenceResponse.releaseType)
+      Assertions.assertThat(response.postSentenceSupervisionStartDate)
+        .isEqualTo(nDeliusSentenceResponse.licenceExpiryDate!!.plusDays(1))
+    }
+
+    @Test
+    fun `should return forbidden when access denied`() {
+      nDeliusApiStubs.stubAccessCheck(granted = false)
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referralEntity.crn,
+        referralEntity.eventNumber,
+      )
+
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/referral-details/${referralEntity.id}/sentence-information")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+  }
+
+  @Test
+  fun `should return 404 when referral is not found`() {
+    performRequestAndExpectStatus(
+      httpMethod = HttpMethod.GET,
+      uri = "/referral-details/${UUID.randomUUID()}/sentence-information",
+      object : ParameterizedTypeReference<ErrorResponse>() {},
+      HttpStatus.NOT_FOUND.value(),
+    )
   }
 }

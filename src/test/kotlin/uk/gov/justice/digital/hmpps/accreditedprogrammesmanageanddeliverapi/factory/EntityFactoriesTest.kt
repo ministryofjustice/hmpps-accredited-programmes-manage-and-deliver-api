@@ -2,10 +2,12 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -193,5 +195,145 @@ class EntityFactoriesTest {
       .produce()
 
     assertThat(offences.additionalOffences).isEmpty()
+  }
+
+  @Test
+  fun `NDeliusSentenceResponseFactory should create entity with default values`() {
+    val sentenceResponse = NDeliusSentenceResponseFactory().produce()
+
+    assertThat(sentenceResponse.description).isNotNull()
+    assertThat(sentenceResponse.startDate).isNotNull()
+    assertThat(sentenceResponse.licenceExpiryDate).isNotNull()
+    assertThat(sentenceResponse.postSentenceSupervisionEndDate).isNotNull()
+    assertThat(sentenceResponse.twoThirdsSupervisionDate).isNotNull()
+    assertThat(sentenceResponse.custodial).isNotNull()
+    assertThat(sentenceResponse.releaseType).isNotNull()
+    assertThat(sentenceResponse.licenceConditions).isNotEmpty
+    assertThat(sentenceResponse.requirements).isNotEmpty
+    assertThat(sentenceResponse.postSentenceSupervisionRequirements).isNotEmpty
+  }
+
+  @Test
+  fun `NDeliusSentenceResponseFactory should create entity with custom values`() {
+    val description = "Custom sentence description"
+    val startDate = LocalDate.of(2023, 6, 1)
+    val licenceExpiryDate = LocalDate.of(2025, 6, 1)
+    val postSentenceSupervisionEndDate = LocalDate.of(2026, 6, 1)
+    val twoThirdsSupervisionDate = LocalDate.of(2024, 12, 1)
+    val custodial = false
+    val releaseType = "Early Release"
+    val licenceConditions = listOf(CodeDescription("LC", "Custom licence condition"))
+    val requirements = listOf(
+      CodeDescription("REQ1", "Custom requirement 1"),
+      CodeDescription("REQ2", "Custom requirement 2"),
+    )
+    val postSentenceSupervisionRequirements = emptyList<CodeDescription>()
+
+    val sentenceResponse = NDeliusSentenceResponseFactory()
+      .withDescription(description)
+      .withStartDate(startDate)
+      .withLicenceExpiryDate(licenceExpiryDate)
+      .withPostSentenceSupervisionEndDate(postSentenceSupervisionEndDate)
+      .withTwoThirdsSupervisionDate(twoThirdsSupervisionDate)
+      .withCustodial(custodial)
+      .withReleaseType(releaseType)
+      .withLicenceConditions(licenceConditions)
+      .withRequirements(requirements)
+      .withPostSentenceSupervisionRequirements(postSentenceSupervisionRequirements)
+      .produce()
+
+    assertThat(sentenceResponse.description).isEqualTo(description)
+    assertThat(sentenceResponse.startDate).isEqualTo(startDate)
+    assertThat(sentenceResponse.licenceExpiryDate).isEqualTo(licenceExpiryDate)
+    assertThat(sentenceResponse.postSentenceSupervisionEndDate).isEqualTo(postSentenceSupervisionEndDate)
+    assertThat(sentenceResponse.twoThirdsSupervisionDate).isEqualTo(twoThirdsSupervisionDate)
+    assertThat(sentenceResponse.custodial).isEqualTo(custodial)
+    assertThat(sentenceResponse.releaseType).isEqualTo(releaseType)
+    assertThat(sentenceResponse.licenceConditions).isEqualTo(licenceConditions)
+    assertThat(sentenceResponse.requirements).isEqualTo(requirements)
+    assertThat(sentenceResponse.postSentenceSupervisionRequirements).isEqualTo(postSentenceSupervisionRequirements)
+  }
+
+  @Test
+  fun `SentenceInformationFactory should create entity with default values`() {
+    val sentenceInformation = SentenceInformationFactory().produce()
+
+    assertThat(sentenceInformation.sentenceType).isNotNull()
+    assertThat(sentenceInformation.releaseType).isNotNull()
+    assertThat(sentenceInformation.licenceConditions).isNotNull()
+    assertThat(sentenceInformation.licenceEndDate).isNotNull()
+    assertThat(sentenceInformation.postSentenceSupervisionStartDate).isNotNull()
+    assertThat(sentenceInformation.postSentenceSupervisionEndDate).isNotNull()
+    assertThat(sentenceInformation.twoThirdsPoint).isNotNull()
+    assertThat(sentenceInformation.orderRequirements).isNotNull()
+    assertThat(sentenceInformation.orderEndDate).isNotNull()
+    assertThat(sentenceInformation.dateRetrieved).isNotNull()
+  }
+
+  @Test
+  fun `SentenceInformationFactory should create entity with custom values`() {
+    val sentenceType = "ORA community order"
+    val releaseType = "Standard Release"
+    val licenceConditions = listOf(CodeDescription("OR1", "Custom order requirement 1"))
+    val licenceEndDate = LocalDate.of(2025, 6, 1)
+    val postSentenceSupervisionStartDate = LocalDate.of(2024, 6, 1)
+    val postSentenceSupervisionEndDate = LocalDate.of(2026, 6, 1)
+    val twoThirdsPoint = LocalDate.of(2024, 12, 1)
+    val orderRequirements = listOf(
+      CodeDescription("OR1", "Custom order requirement 1"),
+      CodeDescription("OR2", "Custom order requirement 2"),
+    )
+    val orderEndDate = LocalDate.of(2024, 12, 31)
+    val dateRetrieved = LocalDate.of(2024, 8, 1)
+
+    val sentenceInformation = SentenceInformationFactory()
+      .withSentenceType(sentenceType)
+      .withReleaseType(releaseType)
+      .withLicenceConditions(licenceConditions)
+      .withLicenceEndDate(licenceEndDate)
+      .withPostSentenceSupervisionStartDate(postSentenceSupervisionStartDate)
+      .withPostSentenceSupervisionEndDate(postSentenceSupervisionEndDate)
+      .withTwoThirdsPoint(twoThirdsPoint)
+      .withOrderRequirements(orderRequirements)
+      .withOrderEndDate(orderEndDate)
+      .withDateRetrieved(dateRetrieved)
+      .produce()
+
+    assertThat(sentenceInformation.sentenceType).isEqualTo(sentenceType)
+    assertThat(sentenceInformation.releaseType).isEqualTo(releaseType)
+    assertThat(sentenceInformation.licenceConditions).isEqualTo(licenceConditions)
+    assertThat(sentenceInformation.licenceEndDate).isEqualTo(licenceEndDate)
+    assertThat(sentenceInformation.postSentenceSupervisionStartDate).isEqualTo(postSentenceSupervisionStartDate)
+    assertThat(sentenceInformation.postSentenceSupervisionEndDate).isEqualTo(postSentenceSupervisionEndDate)
+    assertThat(sentenceInformation.twoThirdsPoint).isEqualTo(twoThirdsPoint)
+    assertThat(sentenceInformation.orderRequirements).isEqualTo(orderRequirements)
+    assertThat(sentenceInformation.orderEndDate).isEqualTo(orderEndDate)
+    assertThat(sentenceInformation.dateRetrieved).isEqualTo(dateRetrieved)
+  }
+
+  @Test
+  fun `SentenceInformationFactory should create entity with null optional values`() {
+    val sentenceInformation = SentenceInformationFactory()
+      .withSentenceType(null)
+      .withReleaseType(null)
+      .withLicenceConditions(null)
+      .withLicenceEndDate(null)
+      .withPostSentenceSupervisionStartDate(null)
+      .withPostSentenceSupervisionEndDate(null)
+      .withTwoThirdsPoint(null)
+      .withOrderRequirements(null)
+      .withOrderEndDate(null)
+      .produce()
+
+    assertThat(sentenceInformation.sentenceType).isNull()
+    assertThat(sentenceInformation.releaseType).isNull()
+    assertThat(sentenceInformation.licenceConditions).isNull()
+    assertThat(sentenceInformation.licenceEndDate).isNull()
+    assertThat(sentenceInformation.postSentenceSupervisionStartDate).isNull()
+    assertThat(sentenceInformation.postSentenceSupervisionEndDate).isNull()
+    assertThat(sentenceInformation.twoThirdsPoint).isNull()
+    assertThat(sentenceInformation.orderRequirements).isNull()
+    assertThat(sentenceInformation.orderEndDate).isNull()
+    assertThat(sentenceInformation.dateRetrieved).isNotNull() // This is required
   }
 }
