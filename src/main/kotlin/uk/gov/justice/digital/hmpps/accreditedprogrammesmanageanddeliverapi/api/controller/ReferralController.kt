@@ -199,7 +199,7 @@ class ReferralController(
   ): ResponseEntity<SentenceInformation> {
     val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
     if (referral.eventNumber == null) {
-      log.info("Referral with id $id has null eventNumber")
+      log.error("Referral with id $id has null eventNumber")
       throw BusinessException("Referral with id $id has null eventNumber")
     }
     return sentenceService.getSentenceInformationByIdentifier(referral.crn, referral.eventNumber).let {
