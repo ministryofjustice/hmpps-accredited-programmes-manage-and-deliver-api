@@ -61,7 +61,7 @@
     {
       "request": {
         "method": "GET",
-        "urlPathPattern": "/case/.*/sentence/.*"
+        "urlPathPattern": "/case/[^/]+/sentence/[^/]+$"
       },
       "response": {
         "status": 200,
@@ -98,7 +98,7 @@
     {
       "request": {
         "method": "GET",
-        "urlPathPattern": "/case/.*/sentence/.*/offences"
+        "urlPathPattern": "/case/[^/]+/sentence/[^/]+/offences$"
       },
       "response": {
         "status": 200,
