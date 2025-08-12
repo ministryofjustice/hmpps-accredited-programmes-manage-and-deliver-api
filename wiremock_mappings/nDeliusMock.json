@@ -63,6 +63,7 @@
         "method": "GET",
         "urlPathPattern": "/case/[^/]+/sentence/[^/]+$"
       },
+      "priority": 2,
       "response": {
         "status": 200,
         "headers": {
@@ -100,6 +101,7 @@
         "method": "GET",
         "urlPathPattern": "/case/[^/]+/sentence/[^/]+/offences$"
       },
+      "priority": 1,
       "response": {
         "status": 200,
         "headers": {
