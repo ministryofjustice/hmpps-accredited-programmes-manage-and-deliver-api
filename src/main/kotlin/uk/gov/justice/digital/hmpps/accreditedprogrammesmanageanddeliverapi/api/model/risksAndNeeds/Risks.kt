@@ -43,73 +43,77 @@ import java.time.LocalDate
  */
 data class Risks(
 
-  @Schema(example = "45", description = "Offender Group Reconviction score year 1")
+  @get:JsonProperty("assessmentCompleted", required = true)
+  @JsonFormat(pattern = "d MMMM yyyy")
+  val assessmentCompleted: LocalDate? = null,
+
+  @Schema(example = "45", description = "Offender Group Reconviction score year 1", required = false)
   @get:JsonProperty("ogrsYear1") val ogrsYear1: BigDecimal? = null,
 
-  @Schema(example = "65", description = "Offender Group Reconviction score year 1")
+  @Schema(example = "65", description = "Offender Group Reconviction score year 1", required = false)
   @get:JsonProperty("ogrsYear2") val ogrsYear2: BigDecimal? = null,
 
-  @Schema(example = "High", description = "Offender Group Reconviction risk level")
+  @Schema(example = "High", description = "Offender Group Reconviction risk level", required = false)
   @get:JsonProperty("ogrsRisk") val ogrsRisk: String? = null,
 
-  @Schema(example = "23", description = "Offender Violence Predictor year 1")
+  @Schema(example = "23", description = "Offender Violence Predictor year 1", required = false)
   @get:JsonProperty("ovpYear1") val ovpYear1: BigDecimal? = null,
 
-  @Schema(example = "32", description = "Offender Violence Predictor year 2")
+  @Schema(example = "32", description = "Offender Violence Predictor year 2", required = false)
   @get:JsonProperty("ovpYear2") val ovpYear2: BigDecimal? = null,
 
-  @Schema(example = "Medium", description = "Offender Violence Predictor risk level")
+  @Schema(example = "Medium", description = "Offender Violence Predictor risk level", required = false)
   @get:JsonProperty("ovpRisk") val ovpRisk: String? = null,
 
-  @Schema(example = "Low", description = "Risk of violence towards partner")
+  @Schema(example = "Low", description = "Risk of violence towards partner", required = false)
   @get:JsonProperty("saraScorePartner") val saraScorePartner: String? = null,
 
-  @Schema(example = "Low", description = "Risk of violence towards others")
+  @Schema(example = "Low", description = "Risk of violence towards others", required = false)
   @get:JsonProperty("saraScoreOthers") val saraScoreOthers: String? = null,
 
-  @Schema(example = "3.45", description = "Risk of Serious Recidivism score")
+  @Schema(example = "3.45", description = "Risk of Serious Recidivism score", required = false)
   @get:JsonProperty("rsrScore") val rsrScore: BigDecimal? = null,
 
-  @Schema(example = "Medium", description = "Risk of Serious Recidivism level")
+  @Schema(example = "Medium", description = "Risk of Serious Recidivism level", required = false)
   @get:JsonProperty("rsrRisk") val rsrRisk: String? = null,
 
-  @Schema(example = "Low", description = "Other person(s) at risk - Children")
+  @Schema(example = "Low", description = "Other person(s) at risk - Children", required = false)
   @get:JsonProperty("ospcScore") val ospcScore: String? = null,
 
-  @Schema(example = "High", description = "Other person(s) at risk - Intimate")
+  @Schema(example = "High", description = "Other person(s) at risk - Intimate", required = false)
   @get:JsonProperty("ospiScore") val ospiScore: String? = null,
 
-  @Schema(example = "Low", description = "Risk of Serious Harm level")
+  @Schema(example = "Low", description = "Risk of Serious Harm level", required = false)
   @get:JsonProperty("overallRoshLevel") val overallRoshLevel: String? = null,
 
-  @Schema(example = "Medium", description = "Risk towards prisoners in Custody")
+  @Schema(example = "Medium", description = "Risk towards prisoners in Custody", required = false)
   @get:JsonProperty("riskPrisonersCustody") val riskPrisonersCustody: String? = null,
 
-  @Schema(example = "Medium", description = "Risk towards staff in Custody")
+  @Schema(example = "Medium", description = "Risk towards staff in Custody", required = false)
   @get:JsonProperty("riskStaffCustody") val riskStaffCustody: String? = null,
 
-  @Schema(example = "Medium", description = "Risk towards known adult in Custody")
+  @Schema(example = "Medium", description = "Risk towards known adult in Custody", required = false)
   @get:JsonProperty("riskKnownAdultCustody") val riskKnownAdultCustody: String? = null,
 
-  @Schema(example = "Medium", description = "Risk towards public in Custody")
+  @Schema(example = "Medium", description = "Risk towards public in Custody", required = false)
   @get:JsonProperty("riskPublicCustody") val riskPublicCustody: String? = null,
 
-  @Schema(example = "Medium", description = "Risk towards children in Custody")
+  @Schema(example = "Medium", description = "Risk towards children in Custody", required = false)
   @get:JsonProperty("riskChildrenCustody") val riskChildrenCustody: String? = null,
 
-  @Schema(example = "Medium", description = "Risk towards staff in Community")
+  @Schema(example = "Medium", description = "Risk towards staff in Community", required = false)
   @get:JsonProperty("riskStaffCommunity") val riskStaffCommunity: String? = null,
 
-  @Schema(example = "Medium", description = "Risk towards known adults in Community")
+  @Schema(example = "Medium", description = "Risk towards known adults in Community", required = false)
   @get:JsonProperty("riskKnownAdultCommunity") val riskKnownAdultCommunity: String? = null,
 
-  @Schema(example = "Medium", description = "Risk towards the public in Community")
+  @Schema(example = "Medium", description = "Risk towards the public in Community", required = false)
   @get:JsonProperty("riskPublicCommunity") val riskPublicCommunity: String? = null,
 
-  @Schema(example = "Medium", description = "Risk towards children in Community")
+  @Schema(example = "Medium", description = "Risk towards children in Community", required = false)
   @get:JsonProperty("riskChildrenCommunity") val riskChildrenCommunity: String? = null,
 
-  @Schema(example = "null", description = "Active alerts for a person")
+  @Schema(example = "null", description = "Active alerts for a person", required = false)
   @get:JsonProperty("alerts") val alerts: List<String>? = null,
 
   @Schema(
@@ -138,6 +142,7 @@ fun buildRiskModel(
   oasysRiskPredictorScores: OasysRiskPredictorScores?,
   alerts: NDeliusRegistrations?,
 ) = Risks(
+  assessmentCompleted = oasysOffendingInfo?.latestCompleteDate?.toLocalDate(),
   ogrsYear1 = oasysRiskPredictorScores?.groupReconvictionScore?.oneYear,
   ogrsYear2 = oasysRiskPredictorScores?.groupReconvictionScore?.twoYears,
   ogrsRisk = oasysRiskPredictorScores?.groupReconvictionScore?.scoreLevel,
