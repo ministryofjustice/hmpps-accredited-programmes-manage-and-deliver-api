@@ -73,10 +73,10 @@ data class Risks(
   @Schema(example = "Medium", description = "Risk of Serious Recidivism level")
   @get:JsonProperty("rsrRisk") val rsrRisk: String? = null,
 
-  @Schema(example = "Low", description = "")
+  @Schema(example = "Low", description = "Other person(s) at risk - Children")
   @get:JsonProperty("ospcScore") val ospcScore: String? = null,
 
-  @Schema(example = "High", description = "")
+  @Schema(example = "High", description = "Other person(s) at risk - Intimate")
   @get:JsonProperty("ospiScore") val ospiScore: String? = null,
 
   @Schema(example = "Low", description = "Risk of Serious Harm level")
