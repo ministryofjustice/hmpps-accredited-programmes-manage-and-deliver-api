@@ -39,6 +39,7 @@ import java.time.LocalDate
  * @param saraScoreOthers
  * @param alerts
  * @param dateRetrieved
+ * @param lastUpdated
  */
 data class Risks(
 

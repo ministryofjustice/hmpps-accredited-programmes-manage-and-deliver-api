@@ -33,63 +33,9 @@ class OasysApiClient(
     path = "/assessments/$assessmentPk/section/section1"
   }
 
-// TODO implement
-//  fun getOffenceDetail(assessmentPk: Long) = getRequest<OasysOffenceDetail>(OASYS_API) {
-//    path = "/assessments/$assessmentPk/section/section2"
-//  }
-
-// TODO implement
-//  fun getAccommodation(assessmentPk: Long) = getRequest<OasysAccommodation>(OASYS_API) {
-//    path = "/assessments/$assessmentPk/section/section3"
-//  }
-
-// TODO implement
-//  fun getLearning(assessmentPk: Long) = getRequest<OasysLearning>(OASYS_API) {
-//    path = "/assessments/$assessmentPk/section/section4"
-//  }
-
   fun getRelationships(assessmentPk: Long) = getRequest<OasysRelationships>(OASYS_API) {
     path = "/assessments/$assessmentPk/section/section6"
   }
-
-// TODO implement
-//  fun getLifestyle(assessmentPk: Long) = getRequest<OasysLifestyle>(OASYS_API) {
-//    path = "/assessments/$assessmentPk/section/section7"
-//  }
-
-// TODO implement
-//  fun getDrugDetail(assessmentPk: Long) = getRequest<OasysDrugDetail>(OASYS_API) {
-//    path = "/assessments/$assessmentPk/section/section8"
-//  }
-
-// TODO implement
-//  fun getAlcoholDetail(assessmentPk: Long) = getRequest<OasysAlcoholDetail>(OASYS_API) {
-//    path = "/assessments/$assessmentPk/section/section9"
-//  }
-
-// TODO implement
-//  fun getPsychiatric(assessmentPk: Long) = getRequest<OasysPsychiatric>(OASYS_API) {
-//    path = "/assessments/$assessmentPk/section/section10"
-//  }
-
-// TODO implement
-//  fun getBehaviour(assessmentPk: Long) = getRequest<OasysBehaviour>(OASYS_API) {
-//    path = "/assessments/$assessmentPk/section/section11"
-//  }
-
-// TODO implement
-//  fun getAttitude(assessmentPk: Long) = getRequest<OasysAttitude>(OASYS_API) {
-//    path = "/assessments/$assessmentPk/section/section12"
-//  }
-
-// TODO implement
-//  fun getHealth(assessmentPk: Long) = getRequest<OasysHealth>(OASYS_API) {
-//    path = "/assessments/$assessmentPk/section/section13"
-//  }
-// TODO implement
-//  fun getRoshFull(assessmentPk: Long) = getRequest<OasysRoshFull>(OASYS_API) {
-//    path = "/assessments/$assessmentPk/section/sectionroshfull"
-//  }
 
   fun getRoshSummary(assessmentPk: Long) = getRequest<OasysRoshSummary>(OASYS_API) {
     path = "/assessments/$assessmentPk/section/sectionroshsumm"

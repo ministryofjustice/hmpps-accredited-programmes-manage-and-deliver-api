@@ -34,35 +34,13 @@ class RisksAndNeedsService(
     is ClientResult.Success -> result.body
   }
 
-//  fun getOffenceDetail(nomisIdOrCrn: String): OasysOffenceDetail? = getDetails(nomisIdOrCrn, oasysApiClient::getOffenceDetail, "OffendingInfo")
-
-//  fun getAccommodation(nomisIdOrCrn: String): OasysAccommodation? = getDetails(nomisIdOrCrn, oasysApiClient::getAccommodation, "Accommodation")
-
   fun getOffendingInfo(nomisIdOrCrn: String): OasysOffendingInfo? = getDetails(nomisIdOrCrn, oasysApiClient::getOffendingInfo, "OffendingInfo")
 
-//  fun getRoshFull(nomisIdOrCrn: String): OasysRoshFull? = getDetails(nomisIdOrCrn, oasysApiClient::getRoshFull, "RoshFull")
-
   fun getRelationships(nomisIdOrCrn: String): OasysRelationships? = getDetails(nomisIdOrCrn, oasysApiClient::getRelationships, "Relationships")
-
-//  fun getLifestyle(nomisIdOrCrn: String): OasysLifestyle? = getDetails(nomisIdOrCrn, oasysApiClient::getLifestyle, "Lifestyle")
-
-//  fun getPsychiatric(nomisIdOrCrn: String): OasysPsychiatric? = getDetails(nomisIdOrCrn, oasysApiClient::getPsychiatric, "Psychiatric")
-
-//  fun getBehaviour(nomisIdOrCrn: String): OasysBehaviour? = getDetails(nomisIdOrCrn, oasysApiClient::getBehaviour, "Behaviour")
-
-//  fun getHealth(nomisIdOrCrn: String): OasysHealth? = getDetails(nomisIdOrCrn, oasysApiClient::getHealth, "Health")
-
-//  fun getAttitude(nomisIdOrCrn: String): OasysAttitude? = getDetails(nomisIdOrCrn, oasysApiClient::getAttitude, "Attitude")
-
-//  fun getLearning(nomisIdOrCrn: String): OasysLearning? = getDetails(nomisIdOrCrn, oasysApiClient::getLearning, "Learning")
 
   fun getRoshSummary(nomisIdOrCrn: String): OasysRoshSummary? = getDetails(nomisIdOrCrn, oasysApiClient::getRoshSummary, "RoshSummary")
 
   fun getRiskPredictors(nomisIdOrCrn: String): OasysRiskPredictorScores? = getDetails(nomisIdOrCrn, oasysApiClient::getRiskPredictors, "RiskPredictors")
-
-//  fun getDrugDetail(nomisIdOrCrn: String): OasysDrugDetail? = getDetails(nomisIdOrCrn, oasysApiClient::getDrugDetail, "DrugDetail")
-
-//  fun getAlcoholDetail(nomisIdOrCrn: String): OasysAlcoholDetail? = getDetails(nomisIdOrCrn, oasysApiClient::getAlcoholDetail, "AlcoholDetail")
 
   fun getRisksByNomisIdOrCrn(nomisIdOrCrn: String): Risks {
     val oasysOffendingInfo: OasysOffendingInfo? = getOffendingInfo(nomisIdOrCrn)
