@@ -14,7 +14,7 @@ data class NDeliusSentenceResponse(
   val startDate: LocalDate,
 
   @get:JsonProperty("expectedEndDate", required = false)
-  val expectedEndDate: LocalDate,
+  val expectedEndDate: LocalDate? = null,
 
   @get:JsonProperty("licenceExpiryDate", required = false)
   @JsonFormat(pattern = "d MMMM yyyy")

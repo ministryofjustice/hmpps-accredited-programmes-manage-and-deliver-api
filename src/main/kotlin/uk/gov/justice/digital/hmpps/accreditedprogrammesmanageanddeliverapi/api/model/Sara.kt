@@ -7,7 +7,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.SaraRiskLevel
 
 data class Sara(
-  @Schema(example = "LOW", description = "The highest of what is being returned based on saraRiskOfViolenceTowardsPartner and saraRiskOfViolenceTowardsOthers")
+  @Schema(
+    example = "LOW",
+    description = "The highest of what is being returned based on saraRiskOfViolenceTowardsPartner and saraRiskOfViolenceTowardsOthers",
+  )
   @get:JsonProperty("highestRisk") val highestRisk: SaraRisk? = null,
 
   @Schema(example = "LOW", description = "Risk of violence towards partner")
@@ -21,8 +24,10 @@ data class Sara(
 ) {
   companion object {
     fun from(pniResponse: PniResponse): Sara {
-      val saraRiskOfViolenceTowardsPartner = SaraRiskLevel.getRiskForPartner(pniResponse.pniCalculation?.saraRiskLevel?.toPartner)
-      val saraRiskOfViolenceTowardsOthers = SaraRiskLevel.getRiskToOthers(pniResponse.pniCalculation?.saraRiskLevel?.toOther)
+      val saraRiskOfViolenceTowardsPartner =
+        SaraRiskLevel.getRiskForPartner(pniResponse.pniCalculation?.saraRiskLevel?.toPartner)
+      val saraRiskOfViolenceTowardsOthers =
+        SaraRiskLevel.getRiskToOthers(pniResponse.pniCalculation?.saraRiskLevel?.toOther)
       return Sara(
         highestRisk = SaraRisk.highestRisk(saraRiskOfViolenceTowardsPartner, saraRiskOfViolenceTowardsOthers),
         saraRiskOfViolenceTowardsPartner = saraRiskOfViolenceTowardsPartner.description,

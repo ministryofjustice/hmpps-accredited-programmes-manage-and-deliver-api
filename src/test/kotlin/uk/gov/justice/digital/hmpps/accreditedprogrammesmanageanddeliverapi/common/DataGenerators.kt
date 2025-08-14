@@ -4,6 +4,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import java.time.LocalDate
 import kotlin.random.Random
 
+private val letters: CharRange = 'A'..'Z'
 private val upperCase = ('A'..'Z').toList()
 private val lowerCase = ('a'..'z').toList()
 private val digits = ('0'..'9').toList()
@@ -48,3 +49,4 @@ fun randomFullName(forename: String? = null, middleName: String? = null, surname
 )
 
 fun randomPrisonNumber(): String = (upperCase(1) + digits(4) + upperCase(2)).asString()
+fun randomCrn(): String = (upperCase(1) + digits(6)).asString()

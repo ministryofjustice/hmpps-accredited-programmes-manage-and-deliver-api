@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomNumberAsInt
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomSentence
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
@@ -17,7 +18,7 @@ class ReferralEntityFactory {
   private var personName: String? = randomSentence(wordRange = 1..3)
   private var interventionName: String? = "Building Choices"
   private var interventionType: InterventionType = InterventionType.ACP
-  private var crn: String? = randomUppercaseString(6)
+  private var crn: String? = randomCrn()
   private var createdAt: LocalDateTime = LocalDateTime.now()
   private var statusHistories: MutableList<ReferralStatusHistoryEntity> =
     mutableListOf(referralStatusHistoryEntityFactory.withStatus("Assessment started").produce())
@@ -31,6 +32,7 @@ class ReferralEntityFactory {
   fun withCrn(crn: String?) = apply { this.crn = crn }
   fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
   fun withStatusHistories(statusHistories: MutableList<ReferralStatusHistoryEntity>) = apply { this.statusHistories = statusHistories }
+
   fun withCohort(cohort: OffenceCohort) = apply { this.cohort = cohort }
   fun withInterventionName(interventionName: String?) = apply { this.interventionName = interventionName }
 
