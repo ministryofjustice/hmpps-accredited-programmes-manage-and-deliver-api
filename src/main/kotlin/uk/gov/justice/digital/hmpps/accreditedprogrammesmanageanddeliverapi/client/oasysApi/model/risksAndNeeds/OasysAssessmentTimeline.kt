@@ -8,7 +8,13 @@ data class OasysAssessmentTimeline(
   val crn: String?,
   val nomsId: String?,
   val timeline: List<Timeline>,
-)
+) {
+  init {
+    require((crn != null) xor (nomsId != null)) {
+      "Exactly one of crn or nomsId must be provided"
+    }
+  }
+}
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class Timeline(

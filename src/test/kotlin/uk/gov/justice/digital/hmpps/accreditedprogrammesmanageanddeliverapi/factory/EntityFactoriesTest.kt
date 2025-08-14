@@ -3,10 +3,14 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomPrisonNumber
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAssessmentTimelineFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.TimelineFactory
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -335,5 +339,43 @@ class EntityFactoriesTest {
     assertThat(sentenceInformation.orderRequirements).isNull()
     assertThat(sentenceInformation.orderEndDate).isNull()
     assertThat(sentenceInformation.dateRetrieved).isNotNull() // This is required
+  }
+
+  @Test
+  fun `OasysAssessmentTimelineFactory should create entity with default values`() {
+    val oasysAssessmentTimeline = OasysAssessmentTimelineFactory().produce()
+
+    assertThat(oasysAssessmentTimeline.crn).isNotNull()
+    assertThat(oasysAssessmentTimeline.timeline).isNotNull()
+    assertThat(oasysAssessmentTimeline.nomsId).isNull()
+  }
+
+  @Test
+  fun `OasysAssessmentTimelineFactory should create entity with custom values`() {
+    val crn = randomCrn()
+    val prisonNumber = randomPrisonNumber()
+    val timeline = listOf(TimelineFactory().produce())
+    val oasysAssessmentTimeline = OasysAssessmentTimelineFactory()
+      .withCrn(crn)
+      .withNomisId(prisonNumber)
+      .withTimeline(timeline)
+      .produce()
+
+    assertThat(oasysAssessmentTimeline.crn).isEqualTo(crn)
+    assertThat(oasysAssessmentTimeline.timeline).isEqualTo(timeline)
+    assertThat(oasysAssessmentTimeline.nomsId).isEqualTo(prisonNumber)
+  }
+
+  @Test
+  fun `OasysAssessmentTimelineFactory should create entity with custom values fail`() {
+    try {
+      OasysAssessmentTimelineFactory()
+        .withCrn(null)
+        .withNomisId(null)
+        .withTimeline(listOf(TimelineFactory().produce()))
+        .produce()
+    } catch (e: IllegalArgumentException) {
+      assertThat(e.message).isEqualTo("Exactly one of crn or nomsId must be provided")
+    }
   }
 }
