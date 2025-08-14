@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 
 import com.fasterxml.jackson.annotation.JsonAlias
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Relationships
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.YesValue.YES
 
@@ -24,7 +25,17 @@ data class OasysRelationships(
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class Sara(
+  @Schema(
+    description = "Risk of violence towards a partner",
+    example = "Low",
+    allowableValues = ["Low", "Medium", "High"],
+  )
   val imminentRiskOfViolenceTowardsPartner: String?,
+  @Schema(
+    description = "Risk of violence towards others",
+    example = "Medium",
+    allowableValues = ["Low", "Medium", "High"],
+  )
   val imminentRiskOfViolenceTowardsOthers: String?,
 )
 
