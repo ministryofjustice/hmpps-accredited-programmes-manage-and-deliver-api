@@ -18,7 +18,7 @@ spring:
             provider: hmpps-auth
             client-id: ${API_CLIENT_ID:hmpps-accredited-programmes-manage-and-deliver-ui-client-1}
             client-secret: ${API_CLIENT_SECRET:clientsecret}
-            authorization-grant-type: ${API_CLIENT_ID:client_credentials}
+            authorization-grant-type: client_credentials
         provider:
           hmpps-auth:
             token-uri: ${hmpps-auth.url}/oauth/token
