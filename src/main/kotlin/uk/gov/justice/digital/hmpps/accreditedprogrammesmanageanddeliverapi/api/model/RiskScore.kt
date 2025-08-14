@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 data class RiskScore(
 
   @Schema(
-    example = "High Risk",
+    example = "HIGH_RISK",
     description = "classification associated with PNI Eg. HIGH_RISK, MEDIUM_RISK, LOW_RISK",
   )
   @get:JsonProperty("classification") val classification: String,
