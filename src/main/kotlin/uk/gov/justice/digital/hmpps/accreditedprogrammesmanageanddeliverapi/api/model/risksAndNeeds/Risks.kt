@@ -108,7 +108,7 @@ data class Risks(
   )
   @get:JsonProperty("lastUpdated", required = true)
   @JsonFormat(pattern = "d MMMM yyyy")
-  val lastUpdated: LocalDate? = null,
+  val lastUpdated: LocalDate? = LocalDate.now(),
 )
 
 fun buildRiskModel(
@@ -117,7 +117,7 @@ fun buildRiskModel(
   oasysRoshSummary: OasysRoshSummary?,
   oasysRiskPredictorScores: OasysRiskPredictorScores?,
   alerts: NDeliusRegistrations?,
-  now: LocalDate? = null,
+  now: LocalDate? = LocalDate.now(),
 ) = Risks(
   assessmentCompleted = oasysOffendingInfo?.latestCompleteDate?.toLocalDate(),
   ogrsYear1 = oasysRiskPredictorScores?.groupReconvictionScore?.oneYear,
