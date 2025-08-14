@@ -12,6 +12,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.LdcNeedsRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.time.LocalDateTime
 import java.util.*
@@ -22,6 +23,8 @@ open class ReferralService(
   private val findAndReferInterventionApiClient: FindAndReferInterventionApiClient,
   private val referralRepository: ReferralRepository,
   private val serviceUserService: ServiceUserService,
+  private val ldcNeedsService: LdcNeedsService,
+  private val ldcNeedsRepository: LdcNeedsRepository,
   private val cohortService: CohortService,
 ) {
   companion object {
@@ -31,7 +34,10 @@ open class ReferralService(
   fun getReferralDetails(referralId: UUID): ReferralDetails? {
     val referral = referralRepository.findByIdOrNull(referralId) ?: return null
     val personalDetails = serviceUserService.getPersonalDetailsByIdentifier(referral.crn)
-    return ReferralDetails.toModel(referral, personalDetails)
+
+    val ldcNeeds = ldcNeedsService.resolveLdcNeeds(referral)
+
+    return ReferralDetails.toModel(referral, personalDetails, ldcNeeds)
   }
 
   fun getFindAndReferReferralDetails(referralId: UUID): FindAndReferReferralDetails {
@@ -60,6 +66,9 @@ open class ReferralService(
 
     log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort")
     referralRepository.save(referralEntity)
+
+    // Determine LDC needs and save if needed
+    ldcNeedsService.resolveLdcNeeds(referralEntity)
   }
 
   fun getReferralById(id: UUID): ReferralEntity? = referralRepository.findByIdOrNull(id)
