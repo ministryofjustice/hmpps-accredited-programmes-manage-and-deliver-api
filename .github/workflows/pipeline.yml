@@ -55,7 +55,7 @@ jobs:
       registry_org: 'ministryofjustice'
       additional_docker_tag: ${{ inputs.additional_docker_tag }}
       push: ${{ inputs.push || true }}
-      docker_multiplatform: false
+      docker_multiplatform: true
   deploy_dev:
     name: Deploy to the development environment
     needs:
@@ -77,15 +77,15 @@ jobs:
       environment: 'preprod'
       app_version: '${{ needs.build.outputs.app_version }}'
   notify_for_prod_approval:
-    needs: 
+    needs:
       - build
       - deploy_preprod
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-      - name: Get PR information 
-        id: pr-info 
+      - name: Get PR information
+        id: pr-info
         run: |
           # Get the commit SHA from the last commit
           # See https://docs.github.com/en/webhooks/webhook-events-and-payloads#workflow_run
@@ -106,9 +106,9 @@ jobs:
           echo "pr_author=$PR_AUTHOR" >> $GITHUB_OUTPUT
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
           echo "pr_title=$PR_TITLE" >> $GITHUB_OUTPUT
-        env: 
+        env:
           GH_TOKEN: ${{ github.token }}
-      - name: Map GitHub user to Slack ID 
+      - name: Map GitHub user to Slack ID
         id: slack-mapping
         run: |
           # Parse the GitHub to Slack mapping (expecting JSON format)
@@ -123,7 +123,7 @@ jobs:
           fi
           
           echo "slack_user_id=$SLACK_USER_ID" >> $GITHUB_OUTPUT
-      - name: Generate the Approval link 
+      - name: Generate the Approval link
         id: approval-link
         run: |
           # Create link to the workflow that needs approval 
@@ -131,7 +131,7 @@ jobs:
 
           echo "Approval Link: $APPROVAL_LINK"
           echo "approval_link=$APPROVAL_LINK" >> $GITHUB_OUTPUT
-      - name: Send Slack notification 
+      - name: Send Slack notification
         run: |
           # Prepare the JSON payload
           PAYLOAD=$(jq -n \
@@ -159,7 +159,7 @@ jobs:
             --fail \
             --show-error \
             --silent
-            
+          
           if [[ $? -eq 0 ]]; then
             echo "✅ Slack notification sent successfully"
           else
