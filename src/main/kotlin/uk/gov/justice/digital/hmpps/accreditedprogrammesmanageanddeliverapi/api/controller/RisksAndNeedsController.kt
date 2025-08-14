@@ -7,15 +7,16 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.constraints.Pattern
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.NomisIdOrCrnRegex.NOMIS_ID_CRN_REGEX
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RisksAndNeedsService
 
 @Tag(
@@ -49,7 +50,7 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
       ),
       ApiResponse(
         responseCode = "404",
-        description = "The referral does not exist",
+        description = "The risks and needs information does not exist for the nomisId or CRN",
         content = [Content(schema = Schema(implementation = ErrorResponse::class))],
       ),
     ],
@@ -61,10 +62,14 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     produces = ["application/json"],
   )
   fun getRisksByNomisIdOrCrn(
+    @Pattern(
+      regexp = NOMIS_ID_CRN_REGEX,
+      message = "Invalid code format. Expected format for CRN: X718255 or PrisonNumber: A1234AA",
+    )
     @Parameter(
       description = "Prison nomis identifier or CRN",
       required = true,
-    ) @PathVariable("nomisIdOrCrn") nomisIdOrCrn: String,
+    )
+    @PathVariable("nomisIdOrCrn") nomisIdOrCrn: String,
   ): ResponseEntity<Risks> = ResponseEntity.ok(risksAndNeedsService.getRisksByNomisIdOrCrn(nomisIdOrCrn))
-    ?: throw NotFoundException("Risks and Alerts Information not found for crn $nomisIdOrCrn")
 }

@@ -128,7 +128,6 @@ class NDeliusApiStubs(
             .withStatus(200)
             .withHeader("Content-Type", "application/json")
             .withBody(objectMapper.writeValueAsString(nDeliusRegistrations)),
-
         ),
     )
   }

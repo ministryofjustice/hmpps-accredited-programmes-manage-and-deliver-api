@@ -13,34 +13,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import java.math.BigDecimal
 import java.time.LocalDate
 
-/**
- *
- * @param ogrsYear1
- * @param ogrsYear2
- * @param ogrsRisk
- * @param ovpYear1
- * @param ovpYear2
- * @param ovpRisk
- * @param rsrScore
- * @param rsrRisk
- * @param ospcScore
- * @param ospiScore
- * @param overallRoshLevel
- * @param riskPrisonersCustody
- * @param riskStaffCustody
- * @param riskKnownAdultCustody
- * @param riskPublicCustody
- * @param riskChildrenCustody
- * @param riskStaffCommunity
- * @param riskKnownAdultCommunity
- * @param riskPublicCommunity
- * @param riskChildrenCommunity
- * @param saraScorePartner
- * @param saraScoreOthers
- * @param alerts
- * @param dateRetrieved
- * @param lastUpdated
- */
 data class Risks(
 
   @get:JsonProperty("assessmentCompleted", required = true)

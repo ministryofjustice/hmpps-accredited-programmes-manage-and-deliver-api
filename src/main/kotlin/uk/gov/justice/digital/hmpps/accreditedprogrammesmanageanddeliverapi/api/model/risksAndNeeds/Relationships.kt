@@ -3,18 +3,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 
-/**
- *
- * @param dvEvidence
- * @param victimFormerPartner
- * @param victimFamilyMember
- * @param victimOfPartnerFamily
- * @param perpOfPartnerOrFamily
- * @param relIssuesDetails
- * @param emotionalCongruence
- * @param relCurrRelationshipStatus
- * @param prevCloseRelationships
- */
 data class Relationships(
 
   @Schema(example = "null")
