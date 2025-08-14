@@ -99,7 +99,7 @@ data class Risks(
   )
   @get:JsonProperty("dateRetrieved", required = true)
   @JsonFormat(pattern = "d MMMM yyyy")
-  val dateRetrieved: LocalDate,
+  val dateRetrieved: LocalDate? = LocalDate.now(),
 
   @Schema(
     example = "1 August 2025",
@@ -117,6 +117,7 @@ fun buildRiskModel(
   oasysRoshSummary: OasysRoshSummary?,
   oasysRiskPredictorScores: OasysRiskPredictorScores?,
   alerts: NDeliusRegistrations?,
+  now: LocalDate? = null,
 ) = Risks(
   assessmentCompleted = oasysOffendingInfo?.latestCompleteDate?.toLocalDate(),
   ogrsYear1 = oasysRiskPredictorScores?.groupReconvictionScore?.oneYear,
@@ -148,6 +149,6 @@ fun buildRiskModel(
 
   overallRoshLevel = oasysRoshSummary?.getHighestPriorityScore()?.type,
   alerts = alerts?.listOfActiveRegistrations(),
-  dateRetrieved = LocalDate.now(),
+  dateRetrieved = now,
   lastUpdated = oasysOffendingInfo?.latestCompleteDate?.toLocalDate(),
 )
