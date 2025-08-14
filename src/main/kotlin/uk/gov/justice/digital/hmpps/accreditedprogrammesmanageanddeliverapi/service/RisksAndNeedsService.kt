@@ -25,29 +25,29 @@ class RisksAndNeedsService(
 
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  fun getAssessments(nomisIdOrCrn: String): OasysAssessmentTimeline = when (val result = oasysApiClient.getAssessments(nomisIdOrCrn)) {
+  fun getAssessments(crn: String): OasysAssessmentTimeline = when (val result = oasysApiClient.getAssessments(crn)) {
     is ClientResult.Failure -> {
-      log.warn("Failure to retrieve Assessment for $nomisIdOrCrn reason ${result.toException().cause}")
-      throw NotFoundException("No assessment found for nomisIdOrCrn: $nomisIdOrCrn")
+      log.warn("Failure to retrieve Assessment for $crn reason ${result.toException().cause}")
+      throw NotFoundException("No assessment found for crn: $crn")
     }
 
     is ClientResult.Success -> result.body
   }
 
-  fun getOffendingInfo(nomisIdOrCrn: String): OasysOffendingInfo? = getDetails(nomisIdOrCrn, oasysApiClient::getOffendingInfo, "OffendingInfo")
+  fun getOffendingInfo(crn: String): OasysOffendingInfo? = getDetails(crn, oasysApiClient::getOffendingInfo, "OffendingInfo")
 
-  fun getRelationships(nomisIdOrCrn: String): OasysRelationships? = getDetails(nomisIdOrCrn, oasysApiClient::getRelationships, "Relationships")
+  fun getRelationships(crn: String): OasysRelationships? = getDetails(crn, oasysApiClient::getRelationships, "Relationships")
 
-  fun getRoshSummary(nomisIdOrCrn: String): OasysRoshSummary? = getDetails(nomisIdOrCrn, oasysApiClient::getRoshSummary, "RoshSummary")
+  fun getRoshSummary(crn: String): OasysRoshSummary? = getDetails(crn, oasysApiClient::getRoshSummary, "RoshSummary")
 
-  fun getRiskPredictors(nomisIdOrCrn: String): OasysRiskPredictorScores? = getDetails(nomisIdOrCrn, oasysApiClient::getRiskPredictors, "RiskPredictors")
+  fun getRiskPredictors(crn: String): OasysRiskPredictorScores? = getDetails(crn, oasysApiClient::getRiskPredictors, "RiskPredictors")
 
-  fun getRisksByNomisIdOrCrn(nomisIdOrCrn: String): Risks {
-    val oasysOffendingInfo: OasysOffendingInfo? = getOffendingInfo(nomisIdOrCrn)
-    val oasysRelationships: OasysRelationships? = getRelationships(nomisIdOrCrn)
-    val oasysRoshSummary: OasysRoshSummary? = getRoshSummary(nomisIdOrCrn)
-    val oasysRiskPredictorScores: OasysRiskPredictorScores? = getRiskPredictors(nomisIdOrCrn)
-    val activeAlerts: NDeliusRegistrations? = getActiveAlerts(nomisIdOrCrn)
+  fun getRisksByCrn(crn: String): Risks {
+    val oasysOffendingInfo: OasysOffendingInfo? = getOffendingInfo(crn)
+    val oasysRelationships: OasysRelationships? = getRelationships(crn)
+    val oasysRoshSummary: OasysRoshSummary? = getRoshSummary(crn)
+    val oasysRiskPredictorScores: OasysRiskPredictorScores? = getRiskPredictors(crn)
+    val activeAlerts: NDeliusRegistrations? = getActiveAlerts(crn)
 
     return buildRiskModel(
       oasysOffendingInfo,
@@ -58,10 +58,10 @@ class RisksAndNeedsService(
     )
   }
 
-  fun getActiveAlerts(nomisIdOrCrn: String): NDeliusRegistrations? = when (val response = nDeliusIntegrationApiClient.getRegistrations(nomisIdOrCrn)) {
+  fun getActiveAlerts(crn: String): NDeliusRegistrations? = when (val response = nDeliusIntegrationApiClient.getRegistrations(crn)) {
     is ClientResult.Failure -> {
-      log.warn("Failure to retrieve ActiveAlerts for crn: $nomisIdOrCrn reason ${response.toException().message}")
-      throw NotFoundException("Failure to retrieve ActiveAlerts for crn: $nomisIdOrCrn, reason: '${response.toException().message}'")
+      log.warn("Failure to retrieve ActiveAlerts for crn: $crn reason ${response.toException().message}")
+      throw NotFoundException("Failure to retrieve ActiveAlerts for crn: $crn, reason: '${response.toException().message}'")
     }
 
     is ClientResult.Success -> {
@@ -70,12 +70,12 @@ class RisksAndNeedsService(
   }
 
   private inline fun <T> getDetails(
-    nomisIdOrCrn: String,
+    crn: String,
     fetchFunction: (Long) -> ClientResult<T>,
     entityName: String,
   ): T {
-    val assessmentId = getAssessmentIdAndDate(nomisIdOrCrn)?.first
-      ?: throw NotFoundException("No assessment found for prison number or crn: $nomisIdOrCrn")
+    val assessmentId = getAssessmentIdAndDate(crn)?.first
+      ?: throw NotFoundException("No assessment found for crn: $crn")
     return when (val response = fetchFunction(assessmentId)) {
       is ClientResult.Failure -> {
         log.warn("Failure to retrieve $entityName data for assessmentId $assessmentId reason ${response.toException().cause}")
@@ -86,13 +86,13 @@ class RisksAndNeedsService(
     }
   }
 
-  private fun getAssessmentIdAndDate(nomisIdOrCrn: String): Pair<Long, LocalDateTime?>? {
-    val assessmentTimeline = getAssessments(nomisIdOrCrn)
+  private fun getAssessmentIdAndDate(crn: String): Pair<Long, LocalDateTime?>? {
+    val assessmentTimeline = getAssessments(crn)
 
     val assessment = assessmentTimeline.getLatestCompletedLayerThreeAssessment()
 
     return if (assessment == null) {
-      log.warn("No completed assessment found for prison number $nomisIdOrCrn")
+      log.warn("No completed assessment found for crn $crn")
       null
     } else {
       Pair(assessment.id, assessment.completedAt)

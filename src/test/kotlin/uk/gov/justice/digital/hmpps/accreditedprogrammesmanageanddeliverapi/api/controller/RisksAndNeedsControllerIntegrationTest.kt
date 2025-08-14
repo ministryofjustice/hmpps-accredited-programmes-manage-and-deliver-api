@@ -95,16 +95,16 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `should return 404 when random crn and no assessment found`() {
-    val nomisIdOrCrn = randomCrn()
-    oasysApiStubs.stubNotFoundAssessmentsResponse(nomisIdOrCrn)
+    val crn = randomCrn()
+    oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
     val response = performRequestAndExpectStatus(
       httpMethod = HttpMethod.GET,
-      uri = "/risks-and-needs/$nomisIdOrCrn/risks-and-alerts",
+      uri = "/risks-and-needs/$crn/risks-and-alerts",
       object : ParameterizedTypeReference<ErrorResponse>() {},
       HttpStatus.NOT_FOUND.value(),
     )
 
-    assertThat(response.developerMessage).isEqualTo("No assessment found for nomisIdOrCrn: $nomisIdOrCrn")
+    assertThat(response.developerMessage).isEqualTo("No assessment found for crn: $crn")
   }
 
   @Test
@@ -190,7 +190,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should return 404 when no Alerts found for a nomisIdOrCrn`() {
+  fun `should return 404 when no Alerts found for a crn`() {
     val referralEntity = ReferralEntityFactory().produce()
     testDataGenerator.createReferral(referralEntity)
     val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
@@ -213,7 +213,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should return 400 when nomisIdOrCrn is not in the correct format`() {
+  fun `should return 400 when crn is not in the correct format`() {
     val response = performRequestAndExpectStatus(
       httpMethod = HttpMethod.GET,
       uri = "/risks-and-needs/${randomAlphanumericString(6)}/risks-and-alerts",

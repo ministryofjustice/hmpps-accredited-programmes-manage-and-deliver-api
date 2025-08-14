@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.method.annotation.HandlerMethodValidationException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.NomisIdOrCrnRegex.NOMIS_ID_CRN_REGEX
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.CrnRegex.CRN_REGEX
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RisksAndNeedsService
@@ -31,7 +31,7 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
   @Operation(
     tags = ["Oasys Integration"],
     summary = "Risks details as held by Oasys",
-    operationId = "getRisksByNomisIdOrCrn",
+    operationId = "getRisksByCrn",
     description = """""",
     responses = [
       ApiResponse(
@@ -41,7 +41,7 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
       ),
       ApiResponse(
         responseCode = "400",
-        description = "Invalid code format. Expected format for CRN: X718255 or PrisonNumber: A1234AA",
+        description = "Invalid code format. Expected format for CRN: X718255.",
         content = [Content(schema = Schema(implementation = HandlerMethodValidationException::class))],
       ),
       ApiResponse(
@@ -56,7 +56,7 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
       ),
       ApiResponse(
         responseCode = "404",
-        description = "The risks and needs information does not exist for the nomisId or CRN",
+        description = "The risks and needs information does not exist for the CRN provided.",
         content = [Content(schema = Schema(implementation = ErrorResponse::class))],
       ),
     ],
@@ -64,18 +64,18 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
   )
   @RequestMapping(
     method = [RequestMethod.GET],
-    value = ["/risks-and-needs/{nomisIdOrCrn}/risks-and-alerts"],
+    value = ["/risks-and-needs/{crn}/risks-and-alerts"],
     produces = ["application/json"],
   )
-  fun getRisksByNomisIdOrCrn(
+  fun getRisksByCrn(
     @Pattern(
-      regexp = NOMIS_ID_CRN_REGEX,
-      message = "Invalid code format. Expected format for CRN: X718255 or PrisonNumber: A1234AA",
+      regexp = CRN_REGEX,
+      message = "Invalid code format. Expected format for CRN: X718255",
     )
     @Parameter(
-      description = "Prison nomis identifier or CRN",
+      description = "CRN",
       required = true,
     )
-    @PathVariable("nomisIdOrCrn") nomisIdOrCrn: String,
-  ): ResponseEntity<Risks> = ResponseEntity.ok(risksAndNeedsService.getRisksByNomisIdOrCrn(nomisIdOrCrn))
+    @PathVariable("crn") crn: String,
+  ): ResponseEntity<Risks> = ResponseEntity.ok(risksAndNeedsService.getRisksByCrn(crn))
 }

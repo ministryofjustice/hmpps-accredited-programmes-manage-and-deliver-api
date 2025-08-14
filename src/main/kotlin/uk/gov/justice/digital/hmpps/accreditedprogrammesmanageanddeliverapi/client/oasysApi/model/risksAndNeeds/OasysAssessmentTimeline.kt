@@ -10,7 +10,7 @@ data class OasysAssessmentTimeline(
   val timeline: List<Timeline>,
 ) {
   init {
-    require((crn != null) xor (nomsId != null)) {
+    require((crn != null) or (nomsId != null)) {
       "Exactly one of crn or nomsId must be provided"
     }
   }

@@ -367,7 +367,7 @@ class EntityFactoriesTest {
   }
 
   @Test
-  fun `OasysAssessmentTimelineFactory should create entity with custom values fail`() {
+  fun `OasysAssessmentTimelineFactory should throw exception when creating entity without crn or nomisId`() {
     try {
       OasysAssessmentTimelineFactory()
         .withCrn(null)
