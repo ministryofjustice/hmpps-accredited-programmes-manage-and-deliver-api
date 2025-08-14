@@ -2,9 +2,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   id("uk.gov.justice.hmpps.gradle-spring-boot") version "8.3.5"
-  kotlin("plugin.spring") version "2.2.0"
-  kotlin("plugin.jpa") version "2.2.0"
-  kotlin("plugin.allopen") version "2.2.0"
+  kotlin("plugin.spring") version "2.2.10"
+  kotlin("plugin.jpa") version "2.2.10"
+  kotlin("plugin.allopen") version "2.2.10"
 }
 
 configurations {
@@ -29,7 +29,7 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.4")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client:3.5.4")
   implementation("org.springframework.security:spring-security-crypto:6.5.2")
-  implementation("com.nimbusds:oauth2-oidc-sdk:11.27")
+  implementation("com.nimbusds:oauth2-oidc-sdk:11.27.1")
 
   testImplementation("org.wiremock:wiremock-standalone:3.13.1")
   testImplementation("io.swagger.parser.v3:swagger-parser:2.1.31") {
