@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class NDeliusPersonalDetails(
   val crn: String,
   val name: FullName,
