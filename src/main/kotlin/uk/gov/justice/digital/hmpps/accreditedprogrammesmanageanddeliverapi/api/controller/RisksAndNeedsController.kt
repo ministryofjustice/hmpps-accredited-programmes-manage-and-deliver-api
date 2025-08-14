@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.method.annotation.HandlerMethodValidationException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.NomisIdOrCrnRegex.NOMIS_ID_CRN_REGEX
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
@@ -37,6 +38,11 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
         responseCode = "200",
         description = "Risk details held by Oasys",
         content = [Content(schema = Schema(implementation = Risks::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid code format. Expected format for CRN: X718255 or PrisonNumber: A1234AA",
+        content = [Content(schema = Schema(implementation = HandlerMethodValidationException::class))],
       ),
       ApiResponse(
         responseCode = "401",

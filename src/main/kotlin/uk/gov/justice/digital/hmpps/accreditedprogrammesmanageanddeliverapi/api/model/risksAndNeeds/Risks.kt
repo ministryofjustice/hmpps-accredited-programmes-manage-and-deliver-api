@@ -85,7 +85,11 @@ data class Risks(
   @Schema(example = "Medium", description = "Risk towards children in Community", required = false)
   @get:JsonProperty("riskChildrenCommunity") val riskChildrenCommunity: String? = null,
 
-  @Schema(example = "null", description = "Active alerts for a person", required = false)
+  @Schema(
+    example = "[\"Domestic Abuse History\",\"MAPPA\",\"Domestic Abuse Victim\",]",
+    description = "Active alerts for a person",
+    required = false,
+  )
   @get:JsonProperty("alerts") val alerts: List<String>? = null,
 
   @Schema(

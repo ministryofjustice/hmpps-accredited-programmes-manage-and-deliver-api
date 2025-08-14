@@ -15,6 +15,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAssessmentTimelineFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -94,7 +95,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `should return 404 when random crn and no assessment found`() {
-    val nomisIdOrCrn = randomAlphanumericString(6)
+    val nomisIdOrCrn = randomCrn()
     oasysApiStubs.stubNotFoundAssessmentsResponse(nomisIdOrCrn)
     val response = performRequestAndExpectStatus(
       httpMethod = HttpMethod.GET,
@@ -209,5 +210,17 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     )
 
     assertThat(response.developerMessage).isEqualTo("Failure to retrieve ActiveAlerts for crn: ${referralEntity.crn}, reason: 'Unable to complete GET request to /case/${referralEntity.crn}/registrations: 404 NOT_FOUND'")
+  }
+
+  @Test
+  fun `should return 400 when nomisIdOrCrn is not in the correct format`() {
+    val response = performRequestAndExpectStatus(
+      httpMethod = HttpMethod.GET,
+      uri = "/risks-and-needs/${randomAlphanumericString(6)}/risks-and-alerts",
+      object : ParameterizedTypeReference<ErrorResponse>() {},
+      HttpStatus.BAD_REQUEST.value(),
+    )
+
+    assertThat(response.developerMessage).isEqualTo("400 BAD_REQUEST \"Validation failure\"")
   }
 }

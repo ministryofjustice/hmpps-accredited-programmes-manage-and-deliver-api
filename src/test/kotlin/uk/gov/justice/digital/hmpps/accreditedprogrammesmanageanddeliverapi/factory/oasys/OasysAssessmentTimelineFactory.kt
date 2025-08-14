@@ -2,12 +2,12 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAssessmentTimeline
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.Timeline
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import java.time.LocalDateTime
 import kotlin.random.Random
 
 class OasysAssessmentTimelineFactory {
-  private var crn: String? = randomAlphanumericString(6)
+  private var crn: String? = randomCrn()
   private var nomsId: String? = null
   private var timeline: List<Timeline> = listOf(TimelineFactory().produce())
 
