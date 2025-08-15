@@ -18,7 +18,9 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.CrnRegex.CRN_REGEX
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LearningNeeds
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Health
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysHealth
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RisksAndNeedsService
 
 @Tag(
@@ -130,4 +132,44 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     )
     @PathVariable("crn") crn: String,
   ): ResponseEntity<LearningNeeds> = ResponseEntity.ok(risksAndNeedsService.getLearningNeedsForCrn(crn))
+
+
+
+  @Operation(
+    tags = ["Oasys Integration"],
+    summary = "Health details as held by Oasys",
+    operationId = "getHealth",
+    description = """""",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "successful operation",
+        content = [Content(schema = Schema(implementation = Health::class))],
+      ),
+      ApiResponse(responseCode = "401", description = "Unauthorised. The request was unauthorised.", content = [Content(schema = Schema(implementation = ErrorResponse::class))]),
+      ApiResponse(responseCode = "403", description = "Forbidden.  The client is not authorised to access person.", content = [Content(schema = Schema(implementation = ErrorResponse::class))]),
+      ApiResponse(
+        responseCode = "404",
+        description = "Invalid prison number",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @RequestMapping(
+    method = [RequestMethod.GET],
+    value = ["/oasys/{prisonNumber}/health"],
+    produces = ["application/json"],
+  )
+  fun getHealth(
+    @Parameter(
+      description = "Prison nomis identifier",
+      required = true,
+    ) @PathVariable("prisonNumber") prisonNumber: String,
+  ): ResponseEntity<OasysHealth?> = ResponseEntity
+    .ok(
+      risksAndNeedsService
+        .getHealth(prisonNumber),
+    )
+
 }
