@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.method.annotation.HandlerMethodValidationException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.CrnRegex.CRN_REGEX
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LearningNeeds
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RisksAndNeedsService
 
@@ -78,4 +79,55 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     )
     @PathVariable("crn") crn: String,
   ): ResponseEntity<Risks> = ResponseEntity.ok(risksAndNeedsService.getRisksByCrn(crn))
+
+  @Operation(
+    tags = ["Oasys Integration"],
+    summary = "Retrieve a person's Learning needs as held in Oasys",
+    operationId = "getLearningNeeds",
+    description = "",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Learning needs held by Oasys",
+        content = [Content(schema = Schema(implementation = LearningNeeds::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid code format. Expected format for CRN: X718255.",
+        content = [Content(schema = Schema(implementation = HandlerMethodValidationException::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden.  The client is not authorised to access this referral.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The learning needs information does not exist for the CRN provided.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @RequestMapping(
+    method = [RequestMethod.GET],
+    value = ["/risks-and-needs/{crn}/learning-needs"],
+    produces = ["application/json"],
+  )
+  fun getLearningNeeds(
+    @Pattern(
+      regexp = CRN_REGEX,
+      message = "Invalid code format. Expected format for CRN: X718255",
+    )
+    @Parameter(
+      description = "CRN",
+      required = true,
+    )
+    @PathVariable("crn") crn: String,
+  ): ResponseEntity<LearningNeeds> = ResponseEntity.ok(risksAndNeedsService.getLearningNeedsForCrn(crn))
 }
