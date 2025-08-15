@@ -2,7 +2,9 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LearningNeeds
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.buildLearningNeeds
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.buildRiskModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
@@ -34,19 +36,20 @@ class RisksAndNeedsService(
     is ClientResult.Success -> result.body
   }
 
-  fun getOffendingInfo(crn: String): OasysOffendingInfo? = getDetails(crn, oasysApiClient::getOffendingInfo, "OffendingInfo")
-
-  fun getRelationships(crn: String): OasysRelationships? = getDetails(crn, oasysApiClient::getRelationships, "Relationships")
-
-  fun getRoshSummary(crn: String): OasysRoshSummary? = getDetails(crn, oasysApiClient::getRoshSummary, "RoshSummary")
-
-  fun getRiskPredictors(crn: String): OasysRiskPredictorScores? = getDetails(crn, oasysApiClient::getRiskPredictors, "RiskPredictors")
+  fun getLearningNeedsForCrn(crn: String): LearningNeeds {
+    val assessmentId = getAssessmentIdAndDate(crn)?.first
+      ?: throw NotFoundException("No assessment found for crn: $crn")
+    return buildLearningNeeds(getDetails(assessmentId, oasysApiClient::getLearning, "LearningNeeds"))
+  }
 
   fun getRisksByCrn(crn: String): Risks {
-    val oasysOffendingInfo: OasysOffendingInfo? = getOffendingInfo(crn)
-    val oasysRelationships: OasysRelationships? = getRelationships(crn)
-    val oasysRoshSummary: OasysRoshSummary? = getRoshSummary(crn)
-    val oasysRiskPredictorScores: OasysRiskPredictorScores? = getRiskPredictors(crn)
+    val assessmentId = getAssessmentIdAndDate(crn)?.first
+      ?: throw NotFoundException("No assessment found for crn: $crn")
+
+    val oasysOffendingInfo: OasysOffendingInfo? = getDetails(assessmentId, oasysApiClient::getOffendingInfo, "OffendingInfo")
+    val oasysRelationships: OasysRelationships? = getDetails(assessmentId, oasysApiClient::getRelationships, "Relationships")
+    val oasysRoshSummary: OasysRoshSummary? = getDetails(assessmentId, oasysApiClient::getRoshSummary, "RoshSummary")
+    val oasysRiskPredictorScores: OasysRiskPredictorScores? = getDetails(assessmentId, oasysApiClient::getRiskPredictors, "RiskPredictors")
     val activeAlerts: NDeliusRegistrations? = getActiveAlerts(crn)
 
     return buildRiskModel(
@@ -70,25 +73,20 @@ class RisksAndNeedsService(
   }
 
   private inline fun <T> getDetails(
-    crn: String,
+    assessmentId: Long,
     fetchFunction: (Long) -> ClientResult<T>,
     entityName: String,
-  ): T {
-    val assessmentId = getAssessmentIdAndDate(crn)?.first
-      ?: throw NotFoundException("No assessment found for crn: $crn")
-    return when (val response = fetchFunction(assessmentId)) {
-      is ClientResult.Failure -> {
-        log.warn("Failure to retrieve $entityName data for assessmentId $assessmentId reason ${response.toException().cause}")
-        throw NotFoundException("Failure to retrieve $entityName data for assessmentId: $assessmentId, reason: '${response.toException().message}'")
-      }
-
-      is ClientResult.Success -> response.body
+  ): T = when (val response = fetchFunction(assessmentId)) {
+    is ClientResult.Failure -> {
+      log.warn("Failure to retrieve $entityName data for assessmentId $assessmentId reason ${response.toException().cause}")
+      throw NotFoundException("Failure to retrieve $entityName data for assessmentId: $assessmentId, reason: '${response.toException().message}'")
     }
+
+    is ClientResult.Success -> response.body
   }
 
   private fun getAssessmentIdAndDate(crn: String): Pair<Long, LocalDateTime?>? {
     val assessmentTimeline = getAssessments(crn)
-
     val assessment = assessmentTimeline.getLatestCompletedLayerThreeAssessment()
 
     return if (assessment == null) {
