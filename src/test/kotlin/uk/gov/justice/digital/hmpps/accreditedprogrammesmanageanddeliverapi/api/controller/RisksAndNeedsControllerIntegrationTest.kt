@@ -295,7 +295,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       // Given & When
       val response = performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
-        uri = "/risks-and-needs/$(randomAlphanumericString(6)}/learning-needs",
+        uri = "/risks-and-needs/${randomAlphanumericString(6)}/learning-needs",
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.BAD_REQUEST.value(),
       )
@@ -354,7 +354,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
-      oasysApiStubs.stubSuccessfulOasysHealthResponse(assessmentId)
+      oasysApiStubs.stubNotFoundOasysHealthResponse(assessmentId)
 
       // When
       val response = performRequestAndExpectStatus(
@@ -369,15 +369,14 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should return 400 when crn is not in the correct format for health`() {
-      // Given & When
+    fun `should return 400 when crn is not in the correct format`() {
       val response = performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
-        uri = "/risks-and-needs/$(randomAlphanumericString(6)}/health",
+        uri = "/risks-and-needs/${randomAlphanumericString(6)}/health",
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.BAD_REQUEST.value(),
       )
-      // Then
+
       assertThat(response.developerMessage).isEqualTo("400 BAD_REQUEST \"Validation failure\"")
     }
   }

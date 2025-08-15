@@ -143,11 +143,24 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
         description = "successful operation",
         content = [Content(schema = Schema(implementation = Health::class))],
       ),
-      ApiResponse(responseCode = "401", description = "Unauthorised. The request was unauthorised.", content = [Content(schema = Schema(implementation = ErrorResponse::class))]),
-      ApiResponse(responseCode = "403", description = "Forbidden.  The client is not authorised to access person.", content = [Content(schema = Schema(implementation = ErrorResponse::class))]),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid code format. Expected format for CRN: X718255.",
+        content = [Content(schema = Schema(implementation = HandlerMethodValidationException::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden.  The client is not authorised to access this referral.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
       ApiResponse(
         responseCode = "404",
-        description = "Invalid crn number",
+        description = "The learning needs information does not exist for the CRN provided.",
         content = [Content(schema = Schema(implementation = ErrorResponse::class))],
       ),
     ],
@@ -155,17 +168,22 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
   )
   @RequestMapping(
     method = [RequestMethod.GET],
-    value = ["/oasys/{crn}/health"],
+    value = ["/risks-and-needs/{crn}/health"],
     produces = ["application/json"],
   )
   fun getHealth(
+    @Pattern(
+      regexp = CRN_REGEX,
+      message = "Invalid code format. Expected format for CRN: X718255",
+    )
     @Parameter(
-      description = "Prison nomis identifier",
+      description = "CRN",
       required = true,
-    ) @PathVariable("prisonNumber") prisonNumber: String,
+    )
+    @PathVariable("crn") crn: String,
   ): ResponseEntity<Health?> = ResponseEntity
     .ok(
       risksAndNeedsService
-        .getHealth(prisonNumber),
+        .getHealth(crn),
     )
 }
