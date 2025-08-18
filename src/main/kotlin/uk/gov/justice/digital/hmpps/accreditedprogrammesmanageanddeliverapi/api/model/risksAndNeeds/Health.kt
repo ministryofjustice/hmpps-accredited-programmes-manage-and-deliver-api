@@ -10,9 +10,9 @@ import io.swagger.v3.oas.annotations.media.Schema
  */
 data class Health(
 
-  @Schema(example = "null", description = "")
+  @Schema(example = "Yes", description = "Does the person have any health condition. Can be Yes, empty or null")
   @get:JsonProperty("anyHealthConditions") val anyHealthConditions: Boolean? = false,
 
-  @Schema(example = "Blind in one eye", description = "")
+  @Schema(example = "Blind in one eye", description = "Description of the health condition")
   @get:JsonProperty("description") val description: String? = null,
 )
