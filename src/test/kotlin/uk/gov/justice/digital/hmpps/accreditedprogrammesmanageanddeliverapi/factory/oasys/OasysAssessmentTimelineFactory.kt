@@ -26,8 +26,7 @@ class TimelineFactory {
   private var id: Long = Random.nextLong(1, 100000)
   private var status: String = "COMPLETE"
   private var type: String = "LAYER3"
-  private var completedAt: LocalDateTime? =
-    if (Random.nextBoolean()) LocalDateTime.now().minusDays(Random.nextLong(1, 365)) else null
+  private var completedAt: LocalDateTime? = LocalDateTime.now().minusDays(Random.nextLong(1, 365))
 
   fun withId(id: Long) = apply { this.id = id }
   fun withStatus(status: String) = apply { this.status = status }

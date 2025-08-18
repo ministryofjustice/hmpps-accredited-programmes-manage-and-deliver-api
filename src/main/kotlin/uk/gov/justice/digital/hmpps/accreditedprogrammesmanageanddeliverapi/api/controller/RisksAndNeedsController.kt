@@ -20,6 +20,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Health
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LearningNeeds
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.RoshAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RisksAndNeedsService
 
 @Tag(
@@ -186,4 +187,55 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
       risksAndNeedsService
         .getHealth(crn),
     )
+
+  @Operation(
+    tags = ["Oasys Integration"],
+    summary = "ROSH details as held by Oasys",
+    operationId = "getRoshAnalysisByCrn",
+    description = """""",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "ROSH details held by Oasys",
+        content = [Content(schema = Schema(implementation = RoshAnalysis::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid code format. Expected format for CRN: X718255.",
+        content = [Content(schema = Schema(implementation = HandlerMethodValidationException::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden.  The client is not authorised to access this referral.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The ROSH information does not exist for the CRN provided.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @RequestMapping(
+    method = [RequestMethod.GET],
+    value = ["/risks-and-needs/{crn}/rosh-analysis"],
+    produces = ["application/json"],
+  )
+  fun getRoshAnalysisByCrn(
+    @Pattern(
+      regexp = CRN_REGEX,
+      message = "Invalid code format. Expected format for CRN: X718255",
+    )
+    @Parameter(
+      description = "CRN",
+      required = true,
+    )
+    @PathVariable("crn") crn: String,
+  ): ResponseEntity<RoshAnalysis> = ResponseEntity.ok(risksAndNeedsService.getRoshFullForCrn(crn))
 }

@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Health
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LearningNeeds
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.RoshAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.buildLearningNeeds
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.buildRiskModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
@@ -55,10 +56,13 @@ class RisksAndNeedsService(
     val assessmentId = getAssessmentIdAndDate(crn)?.first
       ?: throw NotFoundException("No assessment found for crn: $crn")
 
-    val oasysOffendingInfo: OasysOffendingInfo? = getDetails(assessmentId, oasysApiClient::getOffendingInfo, "OffendingInfo")
-    val oasysRelationships: OasysRelationships? = getDetails(assessmentId, oasysApiClient::getRelationships, "Relationships")
-    val oasysRoshSummary: OasysRoshSummary? = getDetails(assessmentId, oasysApiClient::getRoshSummary, "RoshSummary")
-    val oasysRiskPredictorScores: OasysRiskPredictorScores? = getDetails(assessmentId, oasysApiClient::getRiskPredictors, "RiskPredictors")
+    val oasysOffendingInfo: OasysOffendingInfo =
+      getDetails(assessmentId, oasysApiClient::getOffendingInfo, "OffendingInfo")
+    val oasysRelationships: OasysRelationships =
+      getDetails(assessmentId, oasysApiClient::getRelationships, "Relationships")
+    val oasysRoshSummary: OasysRoshSummary = getDetails(assessmentId, oasysApiClient::getRoshSummary, "RoshSummary")
+    val oasysRiskPredictorScores: OasysRiskPredictorScores =
+      getDetails(assessmentId, oasysApiClient::getRiskPredictors, "RiskPredictors")
     val activeAlerts: NDeliusRegistrations? = getActiveAlerts(crn)
 
     return buildRiskModel(
@@ -68,6 +72,12 @@ class RisksAndNeedsService(
       oasysRiskPredictorScores,
       activeAlerts,
     )
+  }
+
+  fun getRoshFullForCrn(crn: String): RoshAnalysis {
+    val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
+      ?: throw NotFoundException("No assessment found for crn: $crn")
+    return getDetails(assessmentId, oasysApiClient::getRoshFull, "RoshFull").toModel(assessmentCompletedDate)
   }
 
   fun getActiveAlerts(crn: String): NDeliusRegistrations? = when (val response = nDeliusIntegrationApiClient.getRegistrations(crn)) {
