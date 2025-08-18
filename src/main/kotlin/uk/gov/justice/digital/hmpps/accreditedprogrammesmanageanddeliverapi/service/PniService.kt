@@ -17,16 +17,13 @@ class PniService(
     private val log = LoggerFactory.getLogger(this::class.java)
   }
 
-  fun getPniScore(crn: String): PniScore =
-    getRawPniResponse(crn).toPniScore()
+  fun getPniScore(crn: String): PniScore = getRawPniResponse(crn).toPniScore()
 
-  fun getRawPniResponse(crn: String): PniResponse {
-    return when (val result = oasysApiClient.getPniCalculation(crn)) {
-      is ClientResult.Failure -> {
-        log.warn("Failure to retrieve PNI score for crn : $crn")
-        throw NotFoundException("No PNI score found for crn: $crn")
-      }
-      is ClientResult.Success -> result.body
+  fun getRawPniResponse(crn: String): PniResponse = when (val result = oasysApiClient.getPniCalculation(crn)) {
+    is ClientResult.Failure -> {
+      log.warn("Failure to retrieve PNI score for crn : $crn")
+      throw NotFoundException("No PNI score found for crn: $crn")
     }
+    is ClientResult.Success -> result.body
   }
 }
