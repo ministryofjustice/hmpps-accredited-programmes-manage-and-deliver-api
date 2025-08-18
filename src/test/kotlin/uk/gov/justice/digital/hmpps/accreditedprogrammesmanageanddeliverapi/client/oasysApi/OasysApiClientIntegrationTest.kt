@@ -10,8 +10,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.ScoredAnswer
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Type
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysHealth
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysLearning
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysHealthFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysLearningFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
@@ -133,6 +135,64 @@ class OasysApiClientIntegrationTest : IntegrationTestBase() {
 
     // When
     when (val response = oasysApiClient.getLearning(assessmentId)) {
+      // Then
+      is ClientResult.Success -> fail("Unexpected client result: ${response::class.simpleName}")
+      is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")
+      is ClientResult.Failure.StatusCode<*> -> {
+        assertThat(response.status).isEqualTo(HttpStatus.NOT_FOUND)
+      }
+    }
+  }
+
+  @Test
+  fun `should return oasys health section for known assessment id`() {
+    // Given
+    stubAuthTokenEndpoint()
+    val assessmentId = 12345L
+    oasysApiStubs.stubSuccessfulOasysHealthResponse(
+      assessmentId,
+      OasysHealthFactory()
+        .withCrn("X123456")
+        .withGeneralHealth("Yes")
+        .withGeneralHeathSpecify("All is well")
+        .produce(),
+    )
+
+    // When
+    when (val response = oasysApiClient.getHealth(assessmentId)) {
+      // Then
+      is ClientResult.Success<*> -> {
+        assertThat(response.status).isEqualTo(HttpStatus.OK)
+        println("Response body: ${response.body}")
+        println("Response body class: ${response.body?.javaClass}")
+        val oasysHealth = response.body as OasysHealth
+        assertThat(oasysHealth.generalHealth).isEqualTo("Yes")
+        assertThat(oasysHealth.crn).isEqualTo("X123456")
+        assertThat(oasysHealth.generalHeathSpecify).isEqualTo("All is well")
+      }
+      is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")
+      is ClientResult.Failure.StatusCode<*> -> {
+        val message = """
+                   Unexpected status code result:
+                   Method: ${response.method}
+                   Path: ${response.path}
+                   Status: ${response.status}
+                   Body: ${response.body}
+        """.trimIndent()
+        fail(message)
+      }
+    }
+  }
+
+  @Test
+  fun `should return NOT FOUND for unknown health assessment id`() {
+    // Given
+    stubAuthTokenEndpoint()
+    val assessmentId = 9999999L
+    oasysApiStubs.stubNotFoundOasysHealthResponse(assessmentId)
+
+    // When
+    when (val response = oasysApiClient.getHealth(assessmentId)) {
       // Then
       is ClientResult.Success -> fail("Unexpected client result: ${response::class.simpleName}")
       is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")
