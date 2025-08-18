@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Health
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LearningNeeds
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.RoshAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.getLatestCompletedLayerThreeAssessment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
@@ -22,6 +23,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAssessmentTimelineFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysHealthFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysLearningFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRoshFullFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
@@ -315,7 +317,8 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
-      val oasysHealth = OasysHealthFactory().withCrn(referralEntity.crn).withGeneralHealth("Yes").withGeneralHeathSpecify("In good health").produce()
+      val oasysHealth = OasysHealthFactory().withCrn(referralEntity.crn).withGeneralHealth("Yes")
+        .withGeneralHeathSpecify("In good health").produce()
       oasysApiStubs.stubSuccessfulOasysHealthResponse(assessmentId, oasysHealth)
 
       // When
@@ -377,6 +380,104 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
         HttpStatus.BAD_REQUEST.value(),
       )
 
+      assertThat(response.developerMessage).isEqualTo("400 BAD_REQUEST \"Validation failure\"")
+    }
+  }
+
+  @Nested
+  @DisplayName("Get ROSH Analysis section")
+  inner class GetRoshAnalysis {
+    @Test
+    fun `should return Rosh analysis section`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
+      val timeline = assessment.getLatestCompletedLayerThreeAssessment()
+      oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
+      val oasysRoshFull = OasysRoshFullFactory().produce()
+      oasysApiStubs.stubSuccessfulOasysRoshFullResponse(timeline!!.id, oasysRoshFull)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${referralEntity.crn}/rosh-analysis",
+        returnType = object : ParameterizedTypeReference<RoshAnalysis>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response).hasFieldOrProperty("assessmentCompleted")
+      assertThat(response).hasFieldOrProperty("offenceDetails")
+      assertThat(response).hasFieldOrProperty("whereAndWhen")
+      assertThat(response).hasFieldOrProperty("howDone")
+      assertThat(response).hasFieldOrProperty("whoVictims")
+      assertThat(response).hasFieldOrProperty("anyoneElsePresent")
+      assertThat(response).hasFieldOrProperty("whyDone")
+      assertThat(response).hasFieldOrProperty("sources")
+      assertThat(response).hasFieldOrProperty("identifyBehavioursIncidents")
+      assertThat(response).hasFieldOrProperty("analysisBehaviourIncidents")
+
+      assertThat(response.assessmentCompleted).isEqualTo(timeline.completedAt!!.toLocalDate())
+      assertThat(response.offenceDetails).isEqualTo("Ms Puckett admits he went to Mr X's address on 23rd march 2010. She went there in order to buy cannabis.")
+      assertThat(response.whereAndWhen).isEqualTo("At the victim's home address, in the evening")
+      assertThat(response.howDone).isEqualTo("Appears to have been unprovoked violence - although basis of plea indicates otherwise. In any event this was impulsive, excessive violence using a weapon (metal pole)")
+      assertThat(response.whoVictims).contains("Male-outnumbered by Mr Manette and his associate (not charged)")
+      assertThat(response.anyoneElsePresent).isEqualTo("See above - Mr Manette was in the company of another, although he was not apprehended or charged for this offence.")
+      assertThat(response.sources).isEqualTo("Interview, CPS documentation, basis of plea.")
+      assertThat(response.identifyBehavioursIncidents).isEqualTo("Physical assault on cellmate requiring medical attention on 22nd March 2024. Weapon possession (improvised blade) discovered during cell search on 8th February 2024.")
+      assertThat(response.analysisBehaviourIncidents).isEqualTo("Escalating violence in evenings when challenged, targeting vulnerable individuals, causing injuries requiring medical attention.")
+    }
+
+    @Test
+    fun `should return 404 when providing an unknown crn for Rosh Analysis and no assessment exists`() {
+      // Given
+      val crn = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$crn/rosh-analysis",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+      // Then
+      assertThat(response.developerMessage).isEqualTo("No assessment found for crn: $crn")
+    }
+
+    @Test
+    fun `should return 404 when no Rosh Analysis found for sectionroshfull of assessment`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
+      val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
+      oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
+      oasysApiStubs.stubNotFoundOasysRoshFullResponse(assessmentId)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${referralEntity.crn}/rosh-analysis",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      // Then
+      assertThat(response.developerMessage).isEqualTo("Failure to retrieve RoshFull data for assessmentId: $assessmentId, reason: 'Unable to complete GET request to /assessments/$assessmentId/section/sectionroshfull: 404 NOT_FOUND'")
+    }
+
+    @Test
+    fun `should return 400 when crn is not in the correct format for rosh analysis`() {
+      // Given & When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${randomAlphanumericString(6)}/rosh-analysis",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.BAD_REQUEST.value(),
+      )
+      // Then
       assertThat(response.developerMessage).isEqualTo("400 BAD_REQUEST \"Validation failure\"")
     }
   }

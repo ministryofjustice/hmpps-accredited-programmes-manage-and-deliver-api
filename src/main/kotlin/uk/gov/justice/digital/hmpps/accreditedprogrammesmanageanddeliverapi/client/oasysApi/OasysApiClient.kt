@@ -12,6 +12,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysOffendingInfo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRelationships
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRiskPredictorScores
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRoshFull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRoshSummary
 
 private const val OASYS_API = "Oasys API"
@@ -49,6 +50,10 @@ class OasysApiClient(
 
   fun getRoshSummary(assessmentPk: Long) = getRequest<OasysRoshSummary>(OASYS_API) {
     path = "/assessments/$assessmentPk/section/sectionroshsumm"
+  }
+
+  fun getRoshFull(assessmentPk: Long) = getRequest<OasysRoshFull>(OASYS_API) {
+    path = "/assessments/$assessmentPk/section/sectionroshfull"
   }
 
   fun getRiskPredictors(assessmentPk: Long) = getRequest<OasysRiskPredictorScores>(OASYS_API) {

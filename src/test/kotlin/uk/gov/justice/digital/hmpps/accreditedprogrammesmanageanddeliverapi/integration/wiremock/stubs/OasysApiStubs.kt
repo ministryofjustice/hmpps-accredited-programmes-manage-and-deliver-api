@@ -12,6 +12,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysOffendingInfo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRelationships
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRiskPredictorScores
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRoshFull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRoshSummary
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAssessmentTimelineFactory
@@ -20,6 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysOffendingInfoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRelationshipsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRiskPredictorScoresFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRoshFullFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRoshSummaryFactory
 
 class OasysApiStubs(
@@ -239,6 +241,34 @@ class OasysApiStubs(
   ) {
     wiremock.stubFor(
       get(urlEqualTo("/assessments/$assessmentId/section/section13"))
+        .willReturn(
+          aResponse()
+            .withStatus(404)
+            .withHeader("Content-Type", "application/json"),
+        ),
+    )
+  }
+
+  fun stubSuccessfulOasysRoshFullResponse(
+    assessmentId: Long,
+    oasysRoshFull: OasysRoshFull = OasysRoshFullFactory().produce(),
+  ) {
+    wiremock.stubFor(
+      get(urlEqualTo("/assessments/$assessmentId/section/sectionroshfull"))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(objectMapper.writeValueAsString(oasysRoshFull)),
+        ),
+    )
+  }
+
+  fun stubNotFoundOasysRoshFullResponse(
+    assessmentId: Long,
+  ) {
+    wiremock.stubFor(
+      get(urlEqualTo("/assessments/$assessmentId/section/sectionroshfull"))
         .willReturn(
           aResponse()
             .withStatus(404)
