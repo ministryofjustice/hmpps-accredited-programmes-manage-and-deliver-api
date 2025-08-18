@@ -32,7 +32,7 @@ dependencies {
   implementation("com.nimbusds:oauth2-oidc-sdk:11.27.1")
 
   testImplementation("org.wiremock:wiremock-standalone:3.13.1")
-  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.31") {
+  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.32") {
     exclude(group = "io.swagger.core.v3")
   }
   testImplementation("org.testcontainers:testcontainers:1.21.3")
@@ -41,7 +41,7 @@ dependencies {
   testImplementation("org.testcontainers:junit-jupiter:1.21.3")
   testImplementation("org.awaitility:awaitility-kotlin")
   testImplementation("com.ninja-squad:springmockk:4.0.2")
-  testImplementation("io.kotest:kotest-assertions-core:6.0.0.M17")
+  testImplementation("io.kotest:kotest-assertions-core:6.0.0")
   testImplementation("io.mockk:mockk:1.14.5")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
