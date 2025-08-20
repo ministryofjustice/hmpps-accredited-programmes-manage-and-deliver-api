@@ -12,10 +12,4 @@ import java.util.UUID
 @Repository
 interface ReferralCaseListItemRepository :
   JpaRepository<ReferralCaseListItemViewEntity, UUID>,
-  JpaSpecificationExecutor<ReferralCaseListItemViewEntity> {
-
-  override fun findAll(
-    spec: Specification<ReferralCaseListItemViewEntity>?,
-    pageable: Pageable,
-  ): Page<ReferralCaseListItemViewEntity>
-}
+  JpaSpecificationExecutor<ReferralCaseListItemViewEntity>
