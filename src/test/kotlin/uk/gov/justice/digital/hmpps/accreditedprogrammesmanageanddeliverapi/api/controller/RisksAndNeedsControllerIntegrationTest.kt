@@ -222,10 +222,12 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       val referralEntity = ReferralEntityFactory().produce()
       testDataGenerator.createReferral(referralEntity)
       val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
+
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
       val oasysLearning = OasysLearningFactory().withCrn(referralEntity.crn).produce()
       oasysApiStubs.stubSuccessfulOasysLearningResponse(assessmentId, oasysLearning)
+      oasysApiStubs.stubSuccessfulOasysAccommodationResponse(assessmentId)
 
       // When
       val response = performRequestAndExpectOk(
@@ -236,21 +238,25 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response).isNotNull
+      assertThat(response).hasFieldOrProperty("assessmentCompleted")
+      assertThat(response).hasFieldOrProperty("noFixedAbodeOrTransient")
       assertThat(response).hasFieldOrProperty("workRelatedSkills")
       assertThat(response).hasFieldOrProperty("problemsReadWriteNum")
       assertThat(response).hasFieldOrProperty("learningDifficulties")
       assertThat(response).hasFieldOrProperty("problemAreas")
       assertThat(response).hasFieldOrProperty("qualifications")
       assertThat(response).hasFieldOrProperty("basicSkillsScore")
-      assertThat(response).hasFieldOrProperty("eTEIssuesDetails")
+      assertThat(response).hasFieldOrProperty("basicSkillsScoreDescription")
 
+      assertThat(response.assessmentCompleted).isEqualTo(assessment.getLatestCompletedLayerThreeAssessment()?.completedAt?.toLocalDate())
+      assertThat(response.noFixedAbodeOrTransient).isTrue
       assertThat(response.workRelatedSkills).isEqualTo("Limited recent work history")
       assertThat(response.problemsReadWriteNum).isEqualTo("Difficulty with numeracy")
       assertThat(response.learningDifficulties).isEqualTo("ADHD")
       assertThat(response.problemAreas).contains("Difficulty with concentration")
       assertThat(response.qualifications).isEqualTo("NVQ Level 2")
       assertThat(response.basicSkillsScore).isEqualTo("3")
-      assertThat(response.eTEIssuesDetails).isEqualTo("ete issues")
+      assertThat(response.basicSkillsScoreDescription).isEqualTo("ete issues")
     }
 
     @Test
