@@ -50,10 +50,10 @@ class RisksAndNeedsService(
   }
 
   fun getHealth(crn: String): Health? {
-    val assessmentId = getAssessmentIdAndDate(crn)?.first
+    val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
 
-    return getDetails(assessmentId, oasysApiClient::getHealth, "Health").toModel()
+    return getDetails(assessmentId, oasysApiClient::getHealth, "Health").toModel(assessmentCompletedDate?.toLocalDate())
   }
 
   fun getRisksByCrn(crn: String): Risks {

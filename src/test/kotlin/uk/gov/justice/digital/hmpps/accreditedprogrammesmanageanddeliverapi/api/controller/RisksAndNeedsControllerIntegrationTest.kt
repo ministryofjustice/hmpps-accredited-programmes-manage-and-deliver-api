@@ -336,6 +336,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
 
       assertThat(response.anyHealthConditions).isTrue
       assertThat(response.description).isEqualTo("In good health")
+      assertThat(response.assessmentCompleted).isEqualTo(assessment.getLatestCompletedLayerThreeAssessment()?.completedAt?.toLocalDate())
     }
 
     @Test

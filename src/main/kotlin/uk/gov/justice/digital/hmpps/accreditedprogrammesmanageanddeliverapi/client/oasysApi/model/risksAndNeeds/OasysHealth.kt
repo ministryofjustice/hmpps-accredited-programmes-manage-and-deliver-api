@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Health
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.YesValue.YES
+import java.time.LocalDate
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class OasysHealth(
@@ -11,7 +12,8 @@ data class OasysHealth(
   val crn: String?,
 )
 
-fun OasysHealth.toModel() = Health(
+fun OasysHealth.toModel(assessmentCompletedDate: LocalDate?) = Health(
   anyHealthConditions = generalHealth == YES,
   description = generalHeathSpecify,
+  assessmentCompleted = assessmentCompletedDate,
 )
