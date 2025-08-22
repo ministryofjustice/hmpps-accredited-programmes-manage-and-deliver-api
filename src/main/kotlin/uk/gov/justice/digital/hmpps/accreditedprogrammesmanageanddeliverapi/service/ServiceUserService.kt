@@ -26,9 +26,9 @@ class ServiceUserService(
     }
   }
 
-  fun hasAccessToLimitedAccessOffender(username: String, identifier: String): Boolean = hasAccessToLimitedAccessOffenders(username, listOf(identifier)).contains(identifier)
+  fun hasAccessToLimitedAccessOffender(username: String, identifier: String): Boolean = getAccessibleOffenders(username, listOf(identifier)).contains(identifier)
 
-  fun hasAccessToLimitedAccessOffenders(username: String, identifiers: List<String>): Set<String> = when (val result = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, identifiers)) {
+  fun getAccessibleOffenders(username: String, identifiers: List<String>): Set<String> = when (val result = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, identifiers)) {
     is ClientResult.Success -> {
       result.body.access
         .filter { !it.userExcluded && !it.userRestricted }

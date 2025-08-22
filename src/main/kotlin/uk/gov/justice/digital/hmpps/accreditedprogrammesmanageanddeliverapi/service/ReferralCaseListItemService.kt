@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller.OpenOrClosed
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralCaseListItem
@@ -27,9 +28,12 @@ class ReferralCaseListItemService(
     val specification = getReferralCaseListItemSpecification(openOrClosed, crnOrPersonName, cohort, status)
     val allItems = referralCaseListItemRepository.findAll(specification) // List<Entity>
 
-    val username = authenticationHolder.username ?: "UNKNOWN_USER"
+    val username = authenticationHolder.username
+    if (username == null) {
+      throw AuthenticationCredentialsNotFoundException("No authenticated user found")
+    }
     val crns = allItems.map { it.crn }
-    val allowedCrns = serviceUserService.hasAccessToLimitedAccessOffenders(username, crns)
+    val allowedCrns = serviceUserService.getAccessibleOffenders(username, crns)
 
     val filtered = allItems
       .filter { it.crn in allowedCrns }
