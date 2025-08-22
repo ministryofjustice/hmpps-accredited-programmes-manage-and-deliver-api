@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Health
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LearningNeeds
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Relationships
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.RoshAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.getLatestCompletedLayerThreeAssessment
@@ -23,6 +24,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAssessmentTimelineFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysHealthFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysLearningFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRelationshipsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRoshFullFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
@@ -387,6 +389,125 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
         HttpStatus.BAD_REQUEST.value(),
       )
 
+      assertThat(response.developerMessage).isEqualTo("400 BAD_REQUEST \"Validation failure\"")
+    }
+  }
+
+  @Nested
+  @DisplayName("Get oasys relationships data")
+  inner class GetRelationships {
+    @Test
+    fun `should return relationships section for known CRN`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
+      val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
+      oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
+      val oasysRelationships = OasysRelationshipsFactory()
+        .withPrevOrCurrentDomesticAbuse("Yes")
+        .withPrevCloseRelationships("2-Significant problems")
+        .withEmotionalCongruence("0-No problems")
+        .withVictimOfPartner("No")
+        .withVictimOfFamily("Yes")
+        .withPerpAgainstFamily("No")
+        .withPerpAgainstPartner("No")
+        .withRelIssuesDetails("This person has a history of domestic violence")
+        .withRelCloseFamily("0-No problems")
+        .withRelCurrRelationshipStatus("Not in a relationship")
+        .withRelationshipWithPartner("0-No problems")
+        .produce()
+      oasysApiStubs.stubSuccessfulOasysRelationshipsResponse(assessmentId, oasysRelationships)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${referralEntity.crn}/relationships",
+        returnType = object : ParameterizedTypeReference<Relationships>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response).hasFieldOrProperty("assessmentCompleted")
+      assertThat(response).hasFieldOrProperty("dvEvidence")
+      assertThat(response).hasFieldOrProperty("victimFormerPartner")
+      assertThat(response).hasFieldOrProperty("victimFamilyMember")
+      assertThat(response).hasFieldOrProperty("victimOfPartnerFamily")
+      assertThat(response).hasFieldOrProperty("perpOfPartnerOrFamily")
+      assertThat(response).hasFieldOrProperty("relIssuesDetails")
+      assertThat(response).hasFieldOrProperty("relCloseFamily")
+      assertThat(response).hasFieldOrProperty("relCurrRelationshipStatus")
+      assertThat(response).hasFieldOrProperty("prevCloseRelationships")
+      assertThat(response).hasFieldOrProperty("emotionalCongruence")
+      assertThat(response).hasFieldOrProperty("relationshipWithPartner")
+      assertThat(response).hasFieldOrProperty("prevOrCurrentDomesticAbuse")
+
+      assertThat(response.assessmentCompleted).isEqualTo(assessment.getLatestCompletedLayerThreeAssessment()?.completedAt?.toLocalDate())
+      assertThat(response.dvEvidence).isTrue
+      assertThat(response.victimFormerPartner).isFalse
+      assertThat(response.victimFamilyMember).isTrue
+      assertThat(response.relIssuesDetails).isEqualTo("This person has a history of domestic violence")
+      assertThat(response.prevOrCurrentDomesticAbuse).isEqualTo("Yes")
+      assertThat(response.victimOfPartnerFamily).isFalse
+      assertThat(response.perpOfPartnerOrFamily).isFalse
+      assertThat(response.relCloseFamily).isEqualTo("0-No problems")
+      assertThat(response.relCurrRelationshipStatus).isEqualTo("Not in a relationship")
+      assertThat(response.prevCloseRelationships).isEqualTo("2-Significant problems")
+      assertThat(response.emotionalCongruence).isEqualTo("0-No problems")
+      assertThat(response.relationshipWithPartner).isEqualTo("0-No problems")
+    }
+
+    @Test
+    fun `should return 404 when providing an unknown crn for relationships and no assessment exists`() {
+      // Given
+      val crn = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$crn/relationships",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      // Then
+      assertThat(response.developerMessage).isEqualTo("No assessment found for crn: $crn")
+    }
+
+    @Test
+    fun `should return 404 when no relationships found for section6 of assessment`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
+      val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
+      oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
+      oasysApiStubs.stubNotFoundOasysRelationshipsResponse(assessmentId)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${referralEntity.crn}/relationships",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      // Then
+      assertThat(response.developerMessage).isEqualTo("Failure to retrieve Relationships data for assessmentId: $assessmentId, reason: 'Unable to complete GET request to /assessments/$assessmentId/section/section6: 404 NOT_FOUND'")
+    }
+
+    @Test
+    fun `should return 400 when crn is not in the correct format for relationships`() {
+      // Given & When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${randomAlphanumericString(6)}/relationships",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.BAD_REQUEST.value(),
+      )
+
+      // Then
       assertThat(response.developerMessage).isEqualTo("400 BAD_REQUEST \"Validation failure\"")
     }
   }

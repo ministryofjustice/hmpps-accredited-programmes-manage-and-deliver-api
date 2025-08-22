@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Relationships
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.YesValue.YES
+import java.time.LocalDate
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class OasysRelationships(
@@ -39,12 +40,13 @@ data class Sara(
   val imminentRiskOfViolenceTowardsOthers: String?,
 )
 
-fun OasysRelationships.toModel() = Relationships(
-  dvEvidence = prevOrCurrentDomesticAbuse == YES,
-  victimFormerPartner = victimOfPartner == YES,
-  victimFamilyMember = victimOfFamily == YES,
-  victimOfPartnerFamily = perpAgainstFamily == YES,
-  perpOfPartnerOrFamily = perpAgainstPartner == YES,
+fun OasysRelationships.toModel(assessmentCompletedDate: LocalDate?) = Relationships(
+  assessmentCompleted = assessmentCompletedDate,
+  dvEvidence = prevOrCurrentDomesticAbuse?.let { it == YES },
+  victimFormerPartner = victimOfPartner?.let { it == YES },
+  victimFamilyMember = victimOfFamily?.let { it == YES },
+  victimOfPartnerFamily = perpAgainstFamily?.let { it == YES },
+  perpOfPartnerOrFamily = perpAgainstPartner?.let { it == YES },
   relIssuesDetails = relIssuesDetails,
   relCloseFamily = relCloseFamily,
   relCurrRelationshipStatus = relCurrRelationshipStatus,
