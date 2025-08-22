@@ -2,7 +2,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.OffenceAnalysis
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.YesValue.YES
 import java.time.LocalDateTime
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -28,27 +27,31 @@ data class OasysOffenceAnalysis(
     STALKING("Stalking"),
   }
 
-  fun createVictimsAndPartners(whatOccurred: List<String>?) = OffenceAnalysis.Companion.VictimsAndPartners(
-    contactTargeting = whatOccurred?.contains(WhatOccurred.TARGETING.description),
-    raciallyMotivated = whatOccurred?.contains(WhatOccurred.RACIAL_MOTIVATED.description),
-    revenge = whatOccurred?.contains(WhatOccurred.REVENGE.description),
-    physicalViolenceTowardsPartner = whatOccurred?.contains(WhatOccurred.PHYSICAL_VIOLENCE_TOWARDS_PARTNER.description),
-    repeatVictimisation = whatOccurred?.contains(WhatOccurred.REPEAT_VICTIMISATION.description),
-    victimWasStranger = whatOccurred?.contains(WhatOccurred.VICTIM_WAS_STRANGER.description),
-    stalking = whatOccurred?.contains(WhatOccurred.STALKING.description),
-  )
+  fun createVictimsAndPartners(whatOccurred: List<String>?): OffenceAnalysis.Companion.VictimsAndPartners {
+    fun hasOccurred(type: WhatOccurred) = if (whatOccurred?.contains(type.description) == true) "Yes" else "No"
+
+    return OffenceAnalysis.Companion.VictimsAndPartners(
+      contactTargeting = hasOccurred(WhatOccurred.TARGETING),
+      raciallyMotivated = hasOccurred(WhatOccurred.RACIAL_MOTIVATED),
+      revenge = hasOccurred(WhatOccurred.REVENGE),
+      physicalViolenceTowardsPartner = hasOccurred(WhatOccurred.PHYSICAL_VIOLENCE_TOWARDS_PARTNER),
+      repeatVictimisation = hasOccurred(WhatOccurred.REPEAT_VICTIMISATION),
+      victimWasStranger = hasOccurred(WhatOccurred.VICTIM_WAS_STRANGER),
+      stalking = hasOccurred(WhatOccurred.STALKING),
+    )
+  }
 
   fun createOtherOffendersAndInfluences() = OffenceAnalysis.Companion.OtherOffendersAndInfluences(
-    wereOtherOffendersInvolved = othersInvolved == YES,
-    numberOfOthersInvolved = numberOfOthersInvolved,
+    wereOtherOffendersInvolved = othersInvolved ?: "No information available",
+    numberOfOthersInvolved = numberOfOthersInvolved ?: "No information available",
     // TODO find where this field comes from
-    wasTheOffenderLeader = null,
-    peerGroupInfluences = peerGroupInfluences,
+    wasTheOffenderLeader = null ?: "No information available",
+    peerGroupInfluences = peerGroupInfluences ?: "No information available",
   )
 
   fun createResponsibility() = OffenceAnalysis.Companion.Responsibility(
-    acceptsResponsibility = acceptsResponsibilityYesNo == YES,
-    acceptsResponsibilityDetail = acceptsResponsibility,
+    acceptsResponsibility = acceptsResponsibilityYesNo ?: "No information available",
+    acceptsResponsibilityDetail = acceptsResponsibility ?: "No information available",
   )
 }
 
@@ -56,7 +59,7 @@ fun OasysOffenceAnalysis.toModel(assessmentComplete: LocalDateTime?): OffenceAna
   assessmentCompleted = assessmentComplete?.toLocalDate(),
   briefOffenceDetails = offenceAnalysis,
   victimsAndPartners = createVictimsAndPartners(whatOccurred),
-  recognisesImpact = recognisesImpact == YES,
+  recognisesImpact = recognisesImpact,
   otherOffendersAndInfluences = createOtherOffendersAndInfluences(),
   motivationAndTriggers = offenceMotivation,
   responsibility = createResponsibility(),

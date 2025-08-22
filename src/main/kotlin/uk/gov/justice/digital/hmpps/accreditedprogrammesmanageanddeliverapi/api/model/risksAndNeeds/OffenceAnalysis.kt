@@ -16,8 +16,8 @@ data class OffenceAnalysis(
   )
   @get:JsonProperty("briefOffenceDetails") val briefOffenceDetails: String?,
   @get:JsonProperty("victimsAndPartners") val victimsAndPartners: VictimsAndPartners?,
-  @Schema(example = "true", description = "Whether the individual recognises the impact of their offending behaviour.")
-  @get:JsonProperty("recognisesImpact") val recognisesImpact: Boolean?,
+  @Schema(example = "Yes", description = "Whether the individual recognises the impact of their offending behaviour.")
+  @get:JsonProperty("recognisesImpact") val recognisesImpact: String?,
   @get:JsonProperty("otherOffendersAndInfluences") val otherOffendersAndInfluences: OtherOffendersAndInfluences?,
   @Schema(
     example = "Anger and frustration when challenged by authority",
@@ -33,43 +33,43 @@ data class OffenceAnalysis(
 ) {
   companion object {
     data class VictimsAndPartners(
-      @Schema(example = "true", description = "Whether there was direct contact targeting of victims.")
-      @get:JsonProperty("contactTargeting") val contactTargeting: Boolean?,
+      @Schema(example = "Yes", description = "Whether there was direct contact targeting of victims.")
+      @get:JsonProperty("contactTargeting") val contactTargeting: String?,
 
       @Schema(
-        example = "false",
+        example = "Yes",
         description = "Whether the offence was racially motivated or targeted an identifiable group.",
       )
-      @get:JsonProperty("raciallyMotivated") val raciallyMotivated: Boolean?,
+      @get:JsonProperty("raciallyMotivated") val raciallyMotivated: String?,
 
       @Schema(
-        example = "true",
+        example = "No",
         description = "Whether the offence was in response to a specific victim (e.g. revenge, settling grudges).",
       )
-      @get:JsonProperty("revenge") val revenge: Boolean?,
+      @get:JsonProperty("revenge") val revenge: String?,
 
-      @Schema(example = "false", description = "Whether there was physical violence towards a partner.")
-      @get:JsonProperty("physicalViolenceTowardsPartner") val physicalViolenceTowardsPartner: Boolean?,
+      @Schema(example = "No", description = "Whether there was physical violence towards a partner.")
+      @get:JsonProperty("physicalViolenceTowardsPartner") val physicalViolenceTowardsPartner: String?,
 
-      @Schema(example = "true", description = "Whether there was repeat victimisation of the same person.")
-      @get:JsonProperty("repeatVictimisation") val repeatVictimisation: Boolean?,
+      @Schema(example = "Yes", description = "Whether there was repeat victimisation of the same person.")
+      @get:JsonProperty("repeatVictimisation") val repeatVictimisation: String?,
 
-      @Schema(example = "false", description = "Whether the victim(s) were strangers to the offender.")
-      @get:JsonProperty("victimWasStranger") val victimWasStranger: Boolean?,
+      @Schema(example = "No", description = "Whether the victim(s) were strangers to the offender.")
+      @get:JsonProperty("victimWasStranger") val victimWasStranger: String?,
 
-      @Schema(example = "false", description = "Whether stalking behaviour was involved.")
-      @get:JsonProperty("stalking") val stalking: Boolean?,
+      @Schema(example = "No", description = "Whether stalking behaviour was involved.")
+      @get:JsonProperty("stalking") val stalking: String?,
     )
 
     data class OtherOffendersAndInfluences(
-      @Schema(example = "true", description = "Whether other offenders were involved in the offence.")
-      @get:JsonProperty("wereOtherOffendersInvolved") val wereOtherOffendersInvolved: Boolean?,
+      @Schema(example = "Yes", description = "Whether other offenders were involved in the offence.")
+      @get:JsonProperty("wereOtherOffendersInvolved") val wereOtherOffendersInvolved: String?,
 
       @Schema(example = "2", description = "The number of other offenders involved.")
       @get:JsonProperty("numberOfOthersInvolved") val numberOfOthersInvolved: String?,
 
-      @Schema(example = "true", description = "Whether the offender was the leader among other offenders.")
-      @get:JsonProperty("wasTheOffenderLeader") val wasTheOffenderLeader: Boolean?,
+      @Schema(example = "No", description = "Whether the offender was the leader among other offenders.")
+      @get:JsonProperty("wasTheOffenderLeader") val wasTheOffenderLeader: String?,
 
       @Schema(
         example = "Gang pressure and peer approval seeking",
@@ -80,7 +80,7 @@ data class OffenceAnalysis(
 
     data class Responsibility(
       @Schema(example = "false", description = "Whether the individual accepts responsibility for their offending.")
-      @get:JsonProperty("acceptsResponsibility") val acceptsResponsibility: Boolean?,
+      @get:JsonProperty("acceptsResponsibility") val acceptsResponsibility: String?,
 
       @Schema(
         example = "Blames victims and circumstances",
