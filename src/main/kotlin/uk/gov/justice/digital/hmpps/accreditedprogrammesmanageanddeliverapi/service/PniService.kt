@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.OasysApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.toPniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 
@@ -16,15 +17,13 @@ class PniService(
     private val log = LoggerFactory.getLogger(this::class.java)
   }
 
-  fun getPniScore(crn: String): PniScore {
-    val pniResponse =
-      when (val result = oasysApiClient.getPniCalculation(crn)) {
-        is ClientResult.Failure -> {
-          log.warn("Failure to retrieve PNI score for crn : $crn")
-          throw NotFoundException("No PNI score found for crn: $crn")
-        }
-        is ClientResult.Success -> result.body
-      }
-    return pniResponse.toPniScore()
+  fun getPniScore(crn: String): PniScore = getRawPniResponse(crn).toPniScore()
+
+  fun getRawPniResponse(crn: String): PniResponse = when (val result = oasysApiClient.getPniCalculation(crn)) {
+    is ClientResult.Failure -> {
+      log.warn("Failure to retrieve PNI score for crn : $crn")
+      throw NotFoundException("No PNI score found for crn: $crn")
+    }
+    is ClientResult.Success -> result.body
   }
 }
