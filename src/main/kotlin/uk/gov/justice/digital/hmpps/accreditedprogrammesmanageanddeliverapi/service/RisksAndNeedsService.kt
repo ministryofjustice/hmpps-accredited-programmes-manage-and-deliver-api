@@ -4,6 +4,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Health
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LearningNeeds
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Relationships
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.RoshAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.buildLearningNeeds
@@ -50,10 +51,17 @@ class RisksAndNeedsService(
   }
 
   fun getHealth(crn: String): Health? {
-    val assessmentId = getAssessmentIdAndDate(crn)?.first
+    val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
 
-    return getDetails(assessmentId, oasysApiClient::getHealth, "Health").toModel()
+    return getDetails(assessmentId, oasysApiClient::getHealth, "Health").toModel(assessmentCompletedDate?.toLocalDate())
+  }
+
+  fun getRelationshipsForCrn(crn: String): Relationships {
+    val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
+      ?: throw NotFoundException("No assessment found for crn: $crn")
+
+    return getDetails(assessmentId, oasysApiClient::getRelationships, "Relationships").toModel(assessmentCompletedDate?.toLocalDate())
   }
 
   fun getRisksByCrn(crn: String): Risks {
