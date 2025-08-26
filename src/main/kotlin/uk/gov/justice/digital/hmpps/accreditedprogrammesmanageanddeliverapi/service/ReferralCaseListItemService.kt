@@ -10,6 +10,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getReferralCaseListItemSpecification
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withAllowedCrns
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
 @Service
@@ -25,25 +26,20 @@ class ReferralCaseListItemService(
     cohort: String?,
     status: String?,
   ): Page<ReferralCaseListItem> {
-    val specification = getReferralCaseListItemSpecification(openOrClosed, crnOrPersonName, cohort, status)
-    val allItems = referralCaseListItemRepository.findAll(specification) // List<Entity>
-
     val username = authenticationHolder.username
-    if (username == null) {
-      throw AuthenticationCredentialsNotFoundException("No authenticated user found")
-    }
-    val crns = allItems.map { it.crn }
+      ?: throw AuthenticationCredentialsNotFoundException("No authenticated user found")
+
+    val baseSpec = getReferralCaseListItemSpecification(openOrClosed, crnOrPersonName, cohort, status)
+    val crns = referralCaseListItemRepository.findAllCrns(baseSpec)
     val allowedCrns = serviceUserService.getAccessibleOffenders(username, crns)
 
-    val filtered = allItems
-      .filter { it.crn in allowedCrns }
-      .map { it.toApi() }
+    if (allowedCrns.isEmpty()) {
+      return PageImpl(emptyList(), pageable, 0)
+    }
 
-    // apply paging AFTER filtering
-    val start = pageable.offset.toInt()
-    val end = (start + pageable.pageSize).coerceAtMost(filtered.size)
-    val pageContent = if (start <= end) filtered.subList(start, end) else emptyList()
+    val restrictedSpec = withAllowedCrns(baseSpec, allowedCrns)
+    val pagedEntities = referralCaseListItemRepository.findAll(restrictedSpec, pageable)
 
-    return PageImpl(pageContent, pageable, filtered.size.toLong())
+    return pagedEntities.map { it.toApi() }
   }
 }
