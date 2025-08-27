@@ -403,7 +403,6 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
         .getLifestyleAndAssociates(crn),
     )
 
-
   @Operation(
     tags = ["Oasys Integration"],
     summary = "Get alcohol misuse details as held by Oasys",
