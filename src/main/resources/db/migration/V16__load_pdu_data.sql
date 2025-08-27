@@ -1,5 +1,5 @@
 -- For more information see /docs/schema-docs/2025-08-26-geographic-reference-data.md
-INSERT INTO pdu (pdu_id, pdu_name, probation_region_id, ndelius_pdu_code) VALUES
+INSERT INTO pdu (id, pdu_name, region_id, ndelius_pdu_code) VALUES
     (1, 'East Kent', 'K', ''),
     (2, 'West Kent', 'K', ''),
     (3, 'Surrey', 'K', ''),

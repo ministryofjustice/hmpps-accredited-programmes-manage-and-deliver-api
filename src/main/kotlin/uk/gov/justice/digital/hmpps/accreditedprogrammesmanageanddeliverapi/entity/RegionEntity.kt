@@ -27,7 +27,7 @@ import java.time.LocalDateTime
 @Table(name = "region")
 class RegionEntity(
   @Id
-  @Column(name = "probation_region_id", length = 10)
+  @Column(name = "id", length = 10)
   @NotNull
   val probationRegionId: String,
 

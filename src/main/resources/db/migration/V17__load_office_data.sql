@@ -1,6 +1,6 @@
 -- For more information see /docs/schema-docs/2025-08-26-geographic-reference-data.md
 
-INSERT INTO office (probation_office_id, name,office_name,office_address,pdu_id,probation_region_id,delius_crs_location_id,is_delivery_office,is_reporting_office) VALUES
+INSERT INTO office (id, name, office_name, office_address, pdu_id, region_id, delius_crs_location_id, is_delivery_office, is_reporting_office) VALUES
     (1, $$Derby: Derwent Centre$$, $$Derwent Centre$$, $$Derwent Centre, 1 Stuart Street, Derby, DE1 2EQ$$, '81', 'F', '', true, true),
     (2, $$Derbyshire: Buxton Probation Office$$, $$Buxton Probation Office$$, $$Probation Office, Chesterfield House, 25 Hardwick Street, Buxton, Derbyshire, SK17 6DH$$, '82', 'F', 'CRS0032', false, true),
     (4, $$Derbyshire: Ilkeston Probation Office$$, $$Ilkeston Probation Office$$, $$Probation Office, 34 South Street, Ilkeston, Derbyshire, DE7 5QJ$$, '82', 'F', '', false, true),

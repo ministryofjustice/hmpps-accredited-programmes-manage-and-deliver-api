@@ -18,9 +18,9 @@ import java.time.LocalDateTime
  * A Probation Delivery Unit (PDU) is something smaller than a Region, useful for the management of Probation across the UK.
  * e.g. "Bristol PDU", "East Kent"
  *
- * @property pduId This is the business key and primary identifier, initially specified in the data created by BAs.
+ * @property id This is the business key and primary identifier, initially specified in the data created by BAs.
  * @property pduName The human-readable name of the PDU (e.g., "East Kent")
- * @property probationRegionId The foreign key reference to the parent region
+ * @property regionId The foreign key reference to the parent region
  * @property ndeliusPduCode The (possibly empty) code used to identify this PDU by nDelius
  * @property createdAt Timestamp when this record was created (default to now)
  * @property updatedAt Timestamp when this record was last updated (default to now)
@@ -32,17 +32,17 @@ import java.time.LocalDateTime
 @Table(name = "pdu")
 class PduEntity(
   @Id
-  @Column(name = "pdu_id")
+  @Column(name = "id")
   @NotNull
-  val pduId: Int,
+  val id: Int,
 
   @Column(name = "pdu_name", length = 255)
   @NotNull
   val pduName: String,
 
-  @Column(name = "probation_region_id", length = 10)
+  @Column(name = "region_id", length = 10)
   @NotNull
-  val probationRegionId: String,
+  val regionId: String,
 
   @Column(name = "ndelius_pdu_code", length = 50)
   val ndeliusPduCode: String? = null,
@@ -59,7 +59,7 @@ class PduEntity(
   var deletedAt: LocalDateTime? = null,
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "probation_region_id", insertable = false, updatable = false)
+  @JoinColumn(name = "region_id", insertable = false, updatable = false)
   val region: RegionEntity? = null,
 
   @OneToMany(

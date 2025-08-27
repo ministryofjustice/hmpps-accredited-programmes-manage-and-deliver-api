@@ -1,6 +1,6 @@
 -- For more information see /docs/schema-docs/2025-08-26-geographic-reference-data.md
 
-INSERT INTO region (probation_region_id, region_name) VALUES
+INSERT INTO region (id, region_name) VALUES
     ('A', 'North East'),
     ('B', 'North West'),
     ('C', 'Yorkshire & Humber'),
