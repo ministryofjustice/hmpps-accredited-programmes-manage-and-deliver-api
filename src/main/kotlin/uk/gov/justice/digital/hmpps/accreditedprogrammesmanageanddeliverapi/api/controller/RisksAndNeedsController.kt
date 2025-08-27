@@ -349,6 +349,62 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
 
   @Operation(
     tags = ["Oasys Integration"],
+    summary = "Lifestyle and Associate details as held by Oasys",
+    operationId = "getLifestyleAndAssociates",
+    description = """""",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "successful operation",
+        content = [Content(schema = Schema(implementation = Health::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid code format. Expected format for CRN: X718255.",
+        content = [Content(schema = Schema(implementation = HandlerMethodValidationException::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden.  The client is not authorised to access this referral.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The health information does not exist for the CRN provided.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @RequestMapping(
+    method = [RequestMethod.GET],
+    value = ["/risks-and-needs/{crn}/lifestyle-and-associates"],
+    produces = ["application/json"],
+  )
+  fun getLifestyleAndAssociates(
+    @Pattern(
+      regexp = CRN_REGEX,
+      message = "Invalid code format. Expected format for CRN: X718255",
+    )
+    @Parameter(
+      description = "CRN",
+      required = true,
+    )
+    @PathVariable("crn") crn: String,
+  ): ResponseEntity<LifestyleAndAssociates?> = ResponseEntity
+    .ok(
+      risksAndNeedsService
+        .getLifestyleAndAssociates(crn),
+    )
+
+
+  @Operation(
+    tags = ["Oasys Integration"],
     summary = "Get alcohol misuse details as held by Oasys",
     operationId = "getAlcoholMisuseDetails",
     responses = [

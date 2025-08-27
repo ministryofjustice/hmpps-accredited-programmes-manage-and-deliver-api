@@ -5,6 +5,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller.RisksAndNeedsControllerIntegrationTest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAccommodation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAlcoholMisuseDetails
@@ -325,11 +326,39 @@ class OasysApiStubs(
     )
   }
 
+  fun stubSuccessfulOasysLifestyleAndAssociatesResponse(
+    assessmentId: Long,
+    oasysLifestyleAndAssociates: OasysLifestyleAndAssociates = OasysLifestyleAndAssociatesFactory().produce(),
+  ) {
+    wiremock.stubFor(
+      get(urlEqualTo("/assessments/$assessmentId/section/section7"))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(objectMapper.writeValueAsString(oasysLifestyleAndAssociates)),
+        ),
+    )
+  }
+
   fun stubNotFoundOasysDrugDetailResponse(
     assessmentId: Long,
   ) {
     wiremock.stubFor(
       get(urlEqualTo("/assessments/$assessmentId/section/section8"))
+        .willReturn(
+          aResponse()
+            .withStatus(404)
+            .withHeader("Content-Type", "application/json"),
+        ),
+    )
+  }
+
+  fun stubNotFoundOasysLifestyleAndAssociatesResponse(
+    assessmentId: Long,
+  ) {
+    wiremock.stubFor(
+      get(urlEqualTo("/assessments/$assessmentId/section/section7"))
         .willReturn(
           aResponse()
             .withStatus(404)

@@ -63,6 +63,10 @@ class OasysApiClient(
     path = "/assessments/$assessmentPk/section/section13"
   }
 
+  fun getLifestyleAndAssociates(assessmentPk: Long) = getRequest<OasysLifestyleAndAssociates>(OASYS_API) {
+    path = "/assessments/$assessmentPk/section/section7"
+  }
+
   fun getRoshSummary(assessmentPk: Long) = getRequest<OasysRoshSummary>(OASYS_API) {
     path = "/assessments/$assessmentPk/section/sectionroshsumm"
   }

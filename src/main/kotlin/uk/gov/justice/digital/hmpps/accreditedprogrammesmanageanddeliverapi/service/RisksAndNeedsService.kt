@@ -59,6 +59,13 @@ class RisksAndNeedsService(
     return getDetails(assessmentId, oasysApiClient::getHealth, "Health").toModel(assessmentCompletedDate?.toLocalDate())
   }
 
+  fun getLifestyleAndAssociates(crn: String): LifestyleAndAssociates? {
+    val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
+      ?: throw NotFoundException("No assessment found for crn: $crn")
+
+    return getDetails(assessmentId, oasysApiClient::getLifestyleAndAssociates, "LifestyleAndAssociates").toModel(assessmentCompletedDate?.toLocalDate())
+  }
+
   fun getRelationshipsForCrn(crn: String): Relationships {
     val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
