@@ -10,8 +10,15 @@ data class AlcoholMisuseDetails(
   @JsonFormat(pattern = "d MMMM yyyy")
   @get:JsonProperty("assessmentCompleted") val assessmentCompleted: LocalDate? = null,
 
-  val currentUse: String?,
-  val bingeDrinking: String?,
-  val frequencyAndLevel: String?,
-  val alcoholIssuesDetails: String?,
+  @Schema(example = "1-Some problems")
+  @get:JsonProperty("currentUse") val currentUse: String?,
+
+  @Schema(example = "1-Some problems")
+  @get:JsonProperty("bingeDrinking") val bingeDrinking: String?,
+
+  @Schema(example = "2-Significant problems")
+  @get:JsonProperty("frequencyAndLevel") val frequencyAndLevel: String?,
+
+  @Schema(example = "Alcohol dependency affecting employment and relationships")
+  @get:JsonProperty("alcoholIssuesDetails") val alcoholIssuesDetails: String?,
 )
