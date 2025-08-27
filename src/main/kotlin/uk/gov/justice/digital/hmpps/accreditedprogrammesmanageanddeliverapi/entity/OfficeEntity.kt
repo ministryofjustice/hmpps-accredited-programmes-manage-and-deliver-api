@@ -15,7 +15,7 @@ import java.time.LocalDateTime
 /**
  * Entity representing a probation office, out of which an Accredited Programme might be delivered.
  * e.g. "Derby: Derwent Centre", "Bristol Central Office", is an Office.
- * 
+ *
  * @property probationOfficeId The unique identifier for the office. This is the business key and primary identifier.
  * @property name The full name of the office (e.g., "Derby: Derwent Centre")
  * @property officeName The short name of the office (e.g., "Derwent Centre")

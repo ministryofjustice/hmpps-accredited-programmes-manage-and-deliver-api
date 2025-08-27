@@ -10,7 +10,7 @@ interface PduRepository : JpaRepository<PduEntity, Int> {
 
   /**
    * Find all active (non-deleted) PDUs.
-   * 
+   *
    * @return List of active PDUs
    */
   @Query("SELECT p FROM PduEntity p WHERE p.deletedAt IS NULL")

@@ -15,7 +15,7 @@ import java.time.LocalDateTime
 /**
  * Entity representing a probation region, a large area of the UK.
  * e.g. "North East", "South West"
- * 
+ *
  * @property probationRegionId The unique identifier for the region (e.g., "A", "K"). This is the business key and primary identifier.
  * @property regionName The human-readable name of the region (e.g., "North East")
  * @property createdAt Timestamp when this record was created (defaults to now)
