@@ -320,4 +320,4 @@ INSERT INTO office (probation_office_id, name,office_name,office_address,pdu_id,
     (333, $$Byron House$$, $$Byron House$$, $$Central Police Station, Byron House, Maid Marian Way, Nottingham, NG16HS$$, '79', 'F', '', False, True),
     (334, $$Market Harborough$$, $$Market Harborough$$, $$The Symington Building, Adam And Eve Street, Market Harborough LE16 7LT$$, '83', 'F', '', False, True),
     (335, $$Gainsborough$$, $$Gainsborough$$, $$Police Station, Morton Road, Gainsborough DN21 2SY�$$, '84', 'F', '', False, True),
-    (336, $$Mablethorpe$$, $$Mablethorpe$$, $$Mablethorpe Inter-Agency Centre, Stanley Avenue, Mablethorpe, LN12 1DP$$, '84', 'F', '', False, True),                                                                                                                                               (336, "", "Mablethorpe", "Mablethorpe Inter-Agency Centre, Stanley Avenue, Mablethorpe, LN12 1DP", '84', 'F', '', False, True)
+    (336, $$Mablethorpe$$, $$Mablethorpe$$, $$Mablethorpe Inter-Agency Centre, Stanley Avenue, Mablethorpe, LN12 1DP$$, '84', 'F', '', False, True)
