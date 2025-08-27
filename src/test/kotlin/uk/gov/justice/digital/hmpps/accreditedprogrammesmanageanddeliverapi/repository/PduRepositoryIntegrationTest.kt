@@ -13,6 +13,7 @@ open class PduRepositoryIntegrationTest : IntegrationTestBase() {
   @Test
   @Transactional
   open fun `should retrieve a known PDU`() {
+    println("Number of PDUs: ${repository.count()}")
     var suffolk = repository.findById(8).orElseThrow()
     assertThat(suffolk.pduName).isEqualTo("Suffolk")
     assertThat(suffolk.region?.regionName).isEqualTo("East of England")

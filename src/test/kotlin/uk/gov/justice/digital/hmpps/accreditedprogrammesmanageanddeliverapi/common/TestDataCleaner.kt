@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component
 
 @Transactional
 @Component
-class TestDataCleaner(
+open class TestDataCleaner(
   @Autowired
   private val entityManager: EntityManager,
 ) {
@@ -19,10 +19,6 @@ class TestDataCleaner(
       createNativeQuery("TRUNCATE TABLE referral CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE availability CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE availability_slot CASCADE").executeUpdate()
-      // Geographic reference data tables
-      createNativeQuery("TRUNCATE TABLE office CASCADE").executeUpdate()
-      createNativeQuery("TRUNCATE TABLE pdu CASCADE").executeUpdate()
-      createNativeQuery("TRUNCATE TABLE region CASCADE").executeUpdate()
       // Add additional tables here as the data model grows
     }
   }
