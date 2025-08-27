@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.int
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathTemplate
@@ -22,21 +23,24 @@ class NDeliusApiStubs(
   val wiremock: WireMockExtension,
   val objectMapper: ObjectMapper,
 ) {
-  fun stubAccessCheck(granted: Boolean, crn: String = "X933590") {
+  fun stubAccessCheck(granted: Boolean, vararg crns: String) {
     val response = LimitedAccessOffenderCheckResponse(
-      listOf(
+      crns.map { crn ->
         LimitedAccessOffenderCheck(
           crn = crn,
           userExcluded = !granted,
           userRestricted = false,
           exclusionMessage = null,
           restrictionMessage = null,
-        ),
-      ),
+        )
+      },
     )
 
     wiremock.stubFor(
       post(urlPathTemplate("/user/{username}/access"))
+        .withRequestBody(
+          matchingJsonPath("$"), // accept array or object body
+        )
         .willReturn(
           aResponse()
             .withStatus(200)
