@@ -3,19 +3,20 @@
 -- For more information see /docs/schema-docs/2025-08-26-geographic-reference-data.md
 
 CREATE TABLE IF NOT EXISTS region (
-    probation_region_id VARCHAR(10) NOT NULL PRIMARY KEY,
-    region_name VARCHAR(255) NOT NULL,
+    probation_region_id VARCHAR NOT NULL PRIMARY KEY,
+    region_name VARCHAR NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
 );
 
+
 -- PDU: Probation Delivery Unit
 CREATE TABLE IF NOT EXISTS pdu (
     pdu_id INTEGER NOT NULL PRIMARY KEY,
-    pdu_name VARCHAR(255) NOT NULL,
-    probation_region_id VARCHAR(10) NOT NULL,
-    ndelius_pdu_code VARCHAR(50),
+    pdu_name VARCHAR NOT NULL,
+    probation_region_id VARCHAR NOT NULL,
+    ndelius_pdu_code VARCHAR,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP,
@@ -23,13 +24,13 @@ CREATE TABLE IF NOT EXISTS pdu (
 );
 
 CREATE TABLE IF NOT EXISTS office (
-    probation_office_id VARCHAR(20) NOT NULL PRIMARY KEY,
-    name VARCHAR(500) NOT NULL,
-    office_name VARCHAR(255) NOT NULL,
-    office_address VARCHAR(1000),
+    probation_office_id VARCHAR NOT NULL PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    office_name VARCHAR NOT NULL,
+    office_address VARCHAR,
     pdu_id INTEGER NOT NULL,
-    probation_region_id VARCHAR(10) NOT NULL,
-    delius_crs_location_id VARCHAR(50),
+    probation_region_id VARCHAR NOT NULL,
+    delius_crs_location_id VARCHAR,
     is_delivery_office BOOLEAN NOT NULL DEFAULT FALSE,
     is_reporting_office BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
