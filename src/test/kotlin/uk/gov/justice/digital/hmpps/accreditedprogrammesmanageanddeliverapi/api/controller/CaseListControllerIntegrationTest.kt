@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import java.time.LocalDateTime
 
 class CaseListControllerIntegrationTest : IntegrationTestBase() {
@@ -27,11 +28,24 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
   @Autowired
   private lateinit var testDataCleaner: TestDataCleaner
 
+  private lateinit var nDeliusApiStubs: NDeliusApiStubs
+
   @BeforeEach
   override fun beforeEach() {
     testDataCleaner.cleanAllTables()
     createReferralsWithStatusHistory()
     testDataGenerator.refreshReferralCaseListItemView()
+    stubAuthTokenEndpoint()
+    nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
+    nDeliusApiStubs.stubAccessCheck(
+      true,
+      "X7182552",
+      "CRN-999999",
+      "CRN-888888",
+      "CRN-777777",
+      "CRN-66666",
+      "CRN-555555",
+    )
   }
 
   private fun createReferralsWithStatusHistory() {
@@ -134,7 +148,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
     assertThat(response).isNotNull
     assertThat(response.totalElements).isEqualTo(6)
-    assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-999999")
+    assertThat(referralCaseListItems.map { it.crn })
+      .containsExactlyInAnyOrder("X7182552", "CRN-999999", "CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555")
 
     referralCaseListItems.forEach { item ->
       assertThat(item).hasFieldOrProperty("crn")
@@ -154,7 +169,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
     assertThat(response).isNotNull
     assertThat(response.totalElements).isEqualTo(6)
-    assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-999999")
+    assertThat(referralCaseListItems.map { it.crn })
+      .containsExactlyInAnyOrder("X7182552", "CRN-999999", "CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555")
 
     referralCaseListItems.forEach { item ->
       assertThat(item).hasFieldOrProperty("crn")

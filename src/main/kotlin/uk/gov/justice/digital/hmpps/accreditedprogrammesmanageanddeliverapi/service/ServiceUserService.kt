@@ -26,13 +26,15 @@ class ServiceUserService(
     }
   }
 
-  fun hasAccessToLimitedAccessOffender(username: String, identifier: String): Boolean = when (val result = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier))) {
-    is ClientResult.Success -> {
-      val response = result.body
-      val accessCheck = response.access.firstOrNull { it.crn == identifier }
-      accessCheck?.let { !it.userExcluded && !it.userRestricted } ?: false
-    }
+  fun hasAccessToLimitedAccessOffender(username: String, identifier: String): Boolean = getAccessibleOffenders(username, listOf(identifier)).contains(identifier)
 
+  fun getAccessibleOffenders(username: String, identifiers: List<String>): Set<String> = when (val result = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, identifiers)) {
+    is ClientResult.Success -> {
+      result.body.access
+        .filter { !it.userExcluded && !it.userRestricted }
+        .map { it.crn }
+        .toSet()
+    }
     is ClientResult.Failure -> result.throwException()
   }
 }

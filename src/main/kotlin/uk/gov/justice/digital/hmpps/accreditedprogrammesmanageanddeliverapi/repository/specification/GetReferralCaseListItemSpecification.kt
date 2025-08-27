@@ -52,3 +52,12 @@ fun getReferralCaseListItemSpecification(
   query?.distinct(true)
   criteriaBuilder.and(*predicates.toTypedArray())
 }
+
+fun withAllowedCrns(
+  baseSpec: Specification<ReferralCaseListItemViewEntity>,
+  allowedCrns: Collection<String>,
+): Specification<ReferralCaseListItemViewEntity> = Specification { root, query, builder ->
+  val basePredicate = baseSpec.toPredicate(root, query, builder)
+  val crnPredicate = root.get<String>("crn").`in`(allowedCrns)
+  builder.and(basePredicate, crnPredicate)
+}

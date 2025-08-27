@@ -99,6 +99,28 @@ class ServiceUserServiceTest {
   }
 
   @Test
+  fun `getAccessibleOffenders should return only CRNs the user has access to`() {
+    val username = "jsmith"
+    val identifiers = listOf("X123456", "Y654321", "Z111111")
+    val accessResponse = LimitedAccessOffenderCheckResponse(
+      access = listOf(
+        LimitedAccessOffenderCheck(crn = "X123456", userExcluded = false, userRestricted = false), // allowed
+        LimitedAccessOffenderCheck(crn = "Y654321", userExcluded = true, userRestricted = false), // excluded
+        LimitedAccessOffenderCheck(crn = "Z111111", userExcluded = false, userRestricted = true), // restricted
+      ),
+    )
+
+    every {
+      nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, identifiers)
+    } returns ClientResult.Success(body = accessResponse, status = HttpStatusCode.valueOf(200))
+
+    val result = service.getAccessibleOffenders(username, identifiers)
+
+    assertEquals(setOf("X123456"), result)
+    verify { nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, identifiers) }
+  }
+
+  @Test
   fun `checkIfAuthenticatedDeliusUserHasAccessToServiceUser should return true when user has access`() {
     val username = "jsmith"
     val identifier = "X123456"
