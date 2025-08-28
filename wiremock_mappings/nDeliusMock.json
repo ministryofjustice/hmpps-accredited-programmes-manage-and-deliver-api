@@ -99,6 +99,48 @@
     {
       "request": {
         "method": "GET",
+        "urlPathPattern": "/case/[^/]+/requirement/[^/]+$"
+      },
+      "priority": 1,
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "manager": {
+            "staff": {
+              "code": "STAFF001",
+              "name": {
+                "forename": "Wiremocked-Sarah",
+                "surname": "Johnson"
+              }
+            },
+            "team": {
+              "code": "TEAM001",
+              "description": "(Wiremocked) Community Offender Management Team"
+            },
+            "probationDeliveryUnit": {
+              "code": "PDU001",
+              "description": "(Wiremocked) London PDU"
+            },
+            "officeLocations": [
+              {
+                "code": "OFF001",
+                "description": "(Wiremocked) Waterloo Office"
+              },
+              {
+                "code": "OFF002", 
+                "description": "(Wiremocked) Victoria Office"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
         "urlPathPattern": "/case/[^/]+/sentence/[^/]+/offences$"
       },
       "priority": 1,

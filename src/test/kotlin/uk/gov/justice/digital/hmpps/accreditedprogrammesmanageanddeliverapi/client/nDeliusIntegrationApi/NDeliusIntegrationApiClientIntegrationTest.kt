@@ -16,8 +16,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRequirementResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementManager
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementProbationDeliveryUnit
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffenceFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -248,6 +252,99 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
 
     when (val response = nDeliusIntegrationApiClient.getOffences(crn, eventNumber)) {
       is ClientResult.Failure.StatusCode<*> -> assertThat(response.status).isEqualTo(HttpStatus.NOT_FOUND)
+      else -> fail("Unexpected result: ${response::class.simpleName}")
+    }
+  }
+
+  @Test
+  fun `should return requirement manager details for valid CRN and requirement ID`() {
+    //    Given
+    stubAuthTokenEndpoint()
+    val crn = "X123456"
+    val requirementId = "REQ001"
+
+    val requirementResponse = NDeliusRequirementResponse(
+      manager = RequirementManager(
+        staff = RequirementStaff(
+          code = "STAFF001",
+          name = FullName(forename = "StaffForename", surname = "StaffSurname"),
+        ),
+        team = CodeDescription(code = "TEAM001", description = "TeamDescription"),
+        probationDeliveryUnit = RequirementProbationDeliveryUnit(code = "PDU001", description = "North London PDU"),
+        officeLocations = listOf(
+          CodeDescription(code = "OFF001", description = "OfficeOne"),
+          CodeDescription(code = "OFF002", description = "OfficeTwo"),
+        ),
+      ),
+    )
+
+    wiremock.stubFor(
+      get(urlEqualTo("/case/$crn/requirement/$requirementId"))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(objectMapper.writeValueAsString(requirementResponse)),
+        ),
+    )
+
+    //  When
+    when (val response = nDeliusIntegrationApiClient.getRequirementManagerDetails(crn, requirementId)) {
+      is ClientResult.Success<*> -> {
+        assertThat(response.status).isEqualTo(HttpStatus.OK)
+        val body = response.body as NDeliusRequirementResponse
+
+        // Then
+        assertThat(body.manager.staff.code).isEqualTo("STAFF001")
+        assertThat(body.manager.staff.name.forename).isEqualTo("StaffForename")
+        assertThat(body.manager.staff.name.surname).isEqualTo("StaffSurname")
+
+        assertThat(body.manager.team.code).isEqualTo("TEAM001")
+        assertThat(body.manager.team.description).isEqualTo("TeamDescription")
+
+        assertThat(body.manager.probationDeliveryUnit.code).isEqualTo("PDU001")
+        assertThat(body.manager.probationDeliveryUnit.description).isEqualTo("North London PDU")
+
+        assertThat(body.manager.officeLocations).hasSize(2)
+        assertThat(body.manager.officeLocations[0].code).isEqualTo("OFF001")
+        assertThat(body.manager.officeLocations[0].description).isEqualTo("OfficeOne")
+        assertThat(body.manager.officeLocations[1].code).isEqualTo("OFF002")
+        assertThat(body.manager.officeLocations[1].description).isEqualTo("OfficeTwo")
+      }
+      else -> fail("Unexpected result: ${response::class.simpleName}")
+    }
+  }
+
+  @Test
+  fun `should return NOT FOUND for unknown CRN or requirement ID when getting requirement manager details`() {
+    stubAuthTokenEndpoint()
+    val crn = "UNKNOWN123"
+    val requirementId = "UNKNOWN_REQ"
+
+    wiremock.stubFor(
+      get(urlEqualTo("/case/$crn/requirement/$requirementId"))
+        .willReturn(aResponse().withStatus(404)),
+    )
+
+    when (val response = nDeliusIntegrationApiClient.getRequirementManagerDetails(crn, requirementId)) {
+      is ClientResult.Failure.StatusCode<*> -> assertThat(response.status).isEqualTo(HttpStatus.NOT_FOUND)
+      else -> fail("Unexpected result: ${response::class.simpleName}")
+    }
+  }
+
+  @Test
+  fun `should return INTERNAL SERVER ERROR when nDelius API fails for requirement manager details`() {
+    stubAuthTokenEndpoint()
+    val crn = "X123456"
+    val requirementId = "REQ001"
+
+    wiremock.stubFor(
+      get(urlEqualTo("/case/$crn/requirement/$requirementId"))
+        .willReturn(aResponse().withStatus(500)),
+    )
+
+    when (val response = nDeliusIntegrationApiClient.getRequirementManagerDetails(crn, requirementId)) {
+      is ClientResult.Failure.StatusCode<*> -> assertThat(response.status).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
       else -> fail("Unexpected result: ${response::class.simpleName}")
     }
   }
