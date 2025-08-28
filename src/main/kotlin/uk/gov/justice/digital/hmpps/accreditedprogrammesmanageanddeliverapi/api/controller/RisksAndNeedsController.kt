@@ -357,7 +357,7 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
       ApiResponse(
         responseCode = "200",
         description = "successful operation",
-        content = [Content(schema = Schema(implementation = Health::class))],
+        content = [Content(schema = Schema(implementation = LifestyleAndAssociates::class))],
       ),
       ApiResponse(
         responseCode = "400",
