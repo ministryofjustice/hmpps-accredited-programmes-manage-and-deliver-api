@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component
 
 @Transactional
 @Component
-class TestDataCleaner(
+open class TestDataCleaner(
   @Autowired
   private val entityManager: EntityManager,
 ) {
