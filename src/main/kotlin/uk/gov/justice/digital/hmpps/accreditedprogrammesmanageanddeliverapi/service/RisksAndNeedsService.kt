@@ -2,9 +2,11 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.AlcoholMisuseDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.DrugDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Health
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LearningNeeds
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LifestyleAndAssociates
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Relationships
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.RoshAnalysis
@@ -58,6 +60,13 @@ class RisksAndNeedsService(
     return getDetails(assessmentId, oasysApiClient::getHealth, "Health").toModel(assessmentCompletedDate?.toLocalDate())
   }
 
+  fun getLifestyleAndAssociates(crn: String): LifestyleAndAssociates? {
+    val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
+      ?: throw NotFoundException("No assessment found for crn: $crn")
+
+    return getDetails(assessmentId, oasysApiClient::getLifestyleAndAssociates, "LifestyleAndAssociates").toModel(assessmentCompletedDate?.toLocalDate())
+  }
+
   fun getRelationshipsForCrn(crn: String): Relationships {
     val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
@@ -77,6 +86,17 @@ class RisksAndNeedsService(
       assessmentId,
       oasysApiClient::getDrugDetail,
       "DrugDetail",
+    ).toModel(assessmentCompletedDate?.toLocalDate())
+  }
+
+  fun getAlcoholMisuseDetails(crn: String): AlcoholMisuseDetails? {
+    val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
+      ?: throw NotFoundException("No assessment found for crn: $crn")
+
+    return getDetails(
+      assessmentId,
+      oasysApiClient::getAlcoholMisuseDetails,
+      "AlcoholMisuseDetails",
     ).toModel(assessmentCompletedDate?.toLocalDate())
   }
 
