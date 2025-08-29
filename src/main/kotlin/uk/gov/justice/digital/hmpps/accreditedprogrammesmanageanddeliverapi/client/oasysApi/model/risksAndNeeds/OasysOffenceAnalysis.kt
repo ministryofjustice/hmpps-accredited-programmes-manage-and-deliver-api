@@ -2,6 +2,9 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.OffenceAnalysis
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.OtherOffendersAndInfluences
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Responsibility
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.VictimsAndPartners
 import java.time.LocalDateTime
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -27,10 +30,10 @@ data class OasysOffenceAnalysis(
     STALKING("Stalking"),
   }
 
-  fun createVictimsAndPartners(whatOccurred: List<String>?): OffenceAnalysis.Companion.VictimsAndPartners {
+  fun createVictimsAndPartners(whatOccurred: List<String>?): VictimsAndPartners {
     fun hasOccurred(type: WhatOccurred) = if (whatOccurred?.contains(type.description) == true) "Yes" else "No"
 
-    return OffenceAnalysis.Companion.VictimsAndPartners(
+    return VictimsAndPartners(
       contactTargeting = hasOccurred(WhatOccurred.TARGETING),
       raciallyMotivated = hasOccurred(WhatOccurred.RACIAL_MOTIVATED),
       revenge = hasOccurred(WhatOccurred.REVENGE),
@@ -41,15 +44,15 @@ data class OasysOffenceAnalysis(
     )
   }
 
-  fun createOtherOffendersAndInfluences() = OffenceAnalysis.Companion.OtherOffendersAndInfluences(
+  fun createOtherOffendersAndInfluences() = OtherOffendersAndInfluences(
     wereOtherOffendersInvolved = othersInvolved ?: "No information available",
     numberOfOthersInvolved = numberOfOthersInvolved ?: "No information available",
     // TODO find where this field comes from
-    wasTheOffenderLeader = null ?: "No information available",
+    wasTheOffenderLeader = "No information available",
     peerGroupInfluences = peerGroupInfluences ?: "No information available",
   )
 
-  fun createResponsibility() = OffenceAnalysis.Companion.Responsibility(
+  fun createResponsibility() = Responsibility(
     acceptsResponsibility = acceptsResponsibilityYesNo ?: "No information available",
     acceptsResponsibilityDetail = acceptsResponsibility ?: "No information available",
   )

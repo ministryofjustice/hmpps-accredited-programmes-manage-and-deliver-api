@@ -14,13 +14,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.DrugDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Health
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LearningNeeds
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.OffenceAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LifestyleAndAssociates
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.OffenceAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Relationships
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.RoshAnalysis
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysOffenceAnalysis.WhatOccurred
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.YesValue.YES
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysOffenceAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.Timeline
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.getLatestCompletedLayerThreeAssessment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
@@ -881,7 +880,19 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
       val timeline = assessment.getLatestCompletedLayerThreeAssessment()
       oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
-      val oasysOffenceAnalysis = OasysOffenceAnalysisFactory().produce()
+      val oasysOffenceAnalysis = OasysOffenceAnalysisFactory()
+        .withWhatOccurred(
+          listOf(
+            OasysOffenceAnalysis.WhatOccurred.TARGETING.description,
+            OasysOffenceAnalysis.WhatOccurred.RACIAL_MOTIVATED.description,
+            OasysOffenceAnalysis.WhatOccurred.REVENGE.description,
+            OasysOffenceAnalysis.WhatOccurred.PHYSICAL_VIOLENCE_TOWARDS_PARTNER.description,
+            OasysOffenceAnalysis.WhatOccurred.REPEAT_VICTIMISATION.description,
+            OasysOffenceAnalysis.WhatOccurred.VICTIM_WAS_STRANGER.description,
+            OasysOffenceAnalysis.WhatOccurred.STALKING.description,
+          ),
+        )
+        .produce()
       oasysApiStubs.stubSuccessfulOasysOffenceAnalysisResponse(timeline!!.id, oasysOffenceAnalysis)
 
       // When
@@ -904,14 +915,21 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
 
       assertThat(response.assessmentCompleted).isEqualTo(timeline.completedAt!!.toLocalDate())
       assertThat(response.briefOffenceDetails).isEqualTo(oasysOffenceAnalysis.offenceAnalysis)
-      assertThat(response.victimsAndPartners?.contactTargeting).isEqualTo(
-        oasysOffenceAnalysis.whatOccurred?.contains(
-          WhatOccurred.TARGETING.description,
-        ),
-      )
-      assertThat(response.recognisesImpact).isEqualTo(oasysOffenceAnalysis.recognisesImpact == YES)
-      assertThat(response.motivationAndTriggers).isEqualTo(oasysOffenceAnalysis.offenceMotivation)
-      assertThat(response.responsibility?.acceptsResponsibility).isEqualTo(oasysOffenceAnalysis.acceptsResponsibilityYesNo == YES)
+      assertThat(response.victimsAndPartners?.contactTargeting).isEqualTo("Yes")
+      assertThat(response.victimsAndPartners?.raciallyMotivated).isEqualTo("Yes")
+      assertThat(response.victimsAndPartners?.revenge).isEqualTo("Yes")
+      assertThat(response.victimsAndPartners?.physicalViolenceTowardsPartner).isEqualTo("Yes")
+      assertThat(response.victimsAndPartners?.repeatVictimisation).isEqualTo("Yes")
+      assertThat(response.victimsAndPartners?.victimWasStranger).isEqualTo("Yes")
+      assertThat(response.victimsAndPartners?.stalking).isEqualTo("Yes")
+      assertThat(response.recognisesImpact).isEqualTo("No")
+      assertThat(response.otherOffendersAndInfluences?.wereOtherOffendersInvolved).isEqualTo("Yes")
+      assertThat(response.otherOffendersAndInfluences?.wasTheOffenderLeader).isEqualTo("No information available")
+      assertThat(response.otherOffendersAndInfluences?.peerGroupInfluences).isEqualTo("No")
+      assertThat(response.otherOffendersAndInfluences?.numberOfOthersInvolved).isEqualTo("2")
+      assertThat(response.motivationAndTriggers).isEqualTo("Ms Puckett stated that as she had been attempting to address his long standing addiction to heroin, with the support of a Drug Rehabilitation Requirement as part of a community order, he had been using cannabis as a substitute in order to assuage symptoms of withdrawal or stress.")
+      assertThat(response.responsibility?.acceptsResponsibility).isEqualTo("Yes")
+      assertThat(response.responsibility?.acceptsResponsibilityDetail).isEqualTo("OPD Automatic screen in as first test")
       assertThat(response.patternOfOffending).isEqualTo("Escalating violence in evenings when challenged, targeting vulnerable individuals, causing injuries requiring medical attention.")
     }
 
