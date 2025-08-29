@@ -4,6 +4,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.AlcoholMisuseDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.DrugDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.EducationTrainingAndEmployment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.EmotionalWellbeing
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Health
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LearningNeeds
@@ -100,6 +101,17 @@ class RisksAndNeedsService(
       assessmentId,
       oasysApiClient::getAlcoholMisuseDetails,
       "AlcoholMisuseDetails",
+    ).toModel(assessmentCompletedDate?.toLocalDate())
+  }
+
+  fun getEducationTrainingAndEmploymentDetails(crn: String): EducationTrainingAndEmployment? {
+    val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
+      ?: throw NotFoundException("No assessment found for crn: $crn")
+
+    return getDetails(
+      assessmentId,
+      oasysApiClient::getEducationTrainingAndEmploymentDetails,
+      "EducationTrainingAndEmployment",
     ).toModel(assessmentCompletedDate?.toLocalDate())
   }
 
