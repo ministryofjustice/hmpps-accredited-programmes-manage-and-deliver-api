@@ -13,7 +13,7 @@ data class OasysEmotionalWellbeing(
 
 fun OasysEmotionalWellbeing.toModel(assessmentCompletedDate: LocalDate?) = EmotionalWellbeing(
   assessmentCompleted = assessmentCompletedDate,
-  currPsychologicalProblems = currPsychologicalProblems,
+  currentPsychologicalProblems = currPsychologicalProblems,
   selfHarmSuicidal = selfHarmSuicidal,
-  currPsychiatricProblems = currPsychiatricProblems,
+  currentPsychiatricProblems = currPsychiatricProblems,
 )

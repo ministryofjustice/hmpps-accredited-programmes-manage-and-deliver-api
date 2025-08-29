@@ -460,7 +460,7 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     tags = ["Oasys Integration"],
     summary = "Get emotional wellbeing details as held by Oasys",
     operationId = "getEmotionalWellbeing",
-    description = """""",
+    description = """Fetch emotional needs of the person based on crn""",
     responses = [
       ApiResponse(
         responseCode = "200",
@@ -515,7 +515,7 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     tags = ["Oasys Integration"],
     summary = "Get thinking and behaviour details as held by Oasys",
     operationId = "getThinkingAndBehaviourDetails",
-    description = """""",
+    description = """Fetch thinking and behaviour data """,
     responses = [
       ApiResponse(
         responseCode = "200",

@@ -11,11 +11,11 @@ data class EmotionalWellbeing(
   @get:JsonProperty("assessmentCompleted") val assessmentCompleted: LocalDate? = null,
 
   @Schema(example = "1-Some problems")
-  @get:JsonProperty("currPsychologicalProblems") val currPsychologicalProblems: String? = null,
+  @get:JsonProperty("currentPsychologicalProblems") val currentPsychologicalProblems: String? = null,
 
   @Schema(example = "0 - No")
   @get:JsonProperty("selfHarmSuicidal") val selfHarmSuicidal: String? = null,
 
   @Schema(example = "0-No problems")
-  @get:JsonProperty("currPsychiatricProblems") val currPsychiatricProblems: String? = null,
+  @get:JsonProperty("currentPsychiatricProblems") val currentPsychiatricProblems: String? = null,
 )

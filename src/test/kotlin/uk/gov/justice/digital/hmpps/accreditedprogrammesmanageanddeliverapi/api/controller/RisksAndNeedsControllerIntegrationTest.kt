@@ -814,9 +814,9 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
         returnType = object : ParameterizedTypeReference<EmotionalWellbeing>() {},
       )
 
-      assertThat(response.currPsychiatricProblems).isEqualTo("1 - Some problems")
+      assertThat(response.currentPsychiatricProblems).isEqualTo("1 - Some problems")
       assertThat(response.selfHarmSuicidal).isEqualTo("0 - No")
-      assertThat(response.currPsychologicalProblems).isEqualTo("0- No problems")
+      assertThat(response.currentPsychologicalProblems).isEqualTo("0- No problems")
       assertThat(response.assessmentCompleted).isEqualTo(assessment.getLatestCompletedLayerThreeAssessment()?.completedAt?.toLocalDate())
     }
 
