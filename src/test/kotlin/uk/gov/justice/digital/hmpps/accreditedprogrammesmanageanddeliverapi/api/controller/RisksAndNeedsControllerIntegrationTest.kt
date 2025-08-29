@@ -1006,7 +1006,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should return 404 when no thinking and behaviour details found for section9 of assessment`() {
+    fun `should return 404 when no thinking and behaviour details found for section11 of assessment`() {
       // Given
       val referralEntity = ReferralEntityFactory().produce()
       testDataGenerator.createReferral(referralEntity)
