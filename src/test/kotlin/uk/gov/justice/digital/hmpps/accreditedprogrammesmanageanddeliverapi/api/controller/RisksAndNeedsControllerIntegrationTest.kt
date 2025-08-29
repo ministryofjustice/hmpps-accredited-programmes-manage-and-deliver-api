@@ -20,7 +20,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.RoshAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysOffenceAnalysis
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysOffenceAnalysis.WhatOccurred
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.Timeline
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.YesValue.YES
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.getLatestCompletedLayerThreeAssessment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
@@ -930,6 +932,104 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.motivationAndTriggers).isEqualTo("Ms Puckett stated that as she had been attempting to address his long standing addiction to heroin, with the support of a Drug Rehabilitation Requirement as part of a community order, he had been using cannabis as a substitute in order to assuage symptoms of withdrawal or stress.")
       assertThat(response.responsibility?.acceptsResponsibility).isEqualTo("Yes")
       assertThat(response.responsibility?.acceptsResponsibilityDetail).isEqualTo("OPD Automatic screen in as first test")
+      assertThat(response.patternOfOffending).isEqualTo("Escalating violence in evenings when challenged, targeting vulnerable individuals, causing injuries requiring medical attention.")
+    }
+
+    @Test
+    fun `should return 404 when providing an unknown crn for Offence Analysis and no assessment exists`() {
+      // Given
+      val crn = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$crn/offence-analysis",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+      // Then
+      assertThat(response.developerMessage).isEqualTo("No assessment found for crn: $crn")
+    }
+
+    @Test
+    fun `should return 404 when no Offence Analysis found for section2 of assessment`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
+      val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
+      oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
+      oasysApiStubs.stubNotFoundOasysOffenceAnalysisResponse(assessmentId)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${referralEntity.crn}/offence-analysis",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      // Then
+      assertThat(response.developerMessage).isEqualTo("Failure to retrieve OffenceAnalysis data for assessmentId: $assessmentId, reason: 'Unable to complete GET request to /assessments/$assessmentId/section/section2: 404 NOT_FOUND'")
+    }
+
+    @Test
+    fun `should return 400 when crn is not in the correct format for offence analysis`() {
+      // Given & When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${randomAlphanumericString(6)}/offence-analysis",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.BAD_REQUEST.value(),
+      )
+      // Then
+      assertThat(response.developerMessage).isEqualTo("400 BAD_REQUEST \"Validation failure\"")
+    }
+  }
+
+  @Nested
+  @DisplayName("Get Offence Analysis section")
+  inner class GetOffenceAnalysis {
+    @Test
+    fun `should return Offence analysis section`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
+      val timeline = assessment.getLatestCompletedLayerThreeAssessment()
+      oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
+      val oasysOffenceAnalysis = OasysOffenceAnalysisFactory().produce()
+      oasysApiStubs.stubSuccessfulOasysOffenceAnalysisResponse(timeline!!.id, oasysOffenceAnalysis)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${referralEntity.crn}/offence-analysis",
+        returnType = object : ParameterizedTypeReference<OffenceAnalysis>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response).hasFieldOrProperty("assessmentCompleted")
+      assertThat(response).hasFieldOrProperty("briefOffenceDetails")
+      assertThat(response).hasFieldOrProperty("victimsAndPartners")
+      assertThat(response).hasFieldOrProperty("recognisesImpact")
+      assertThat(response).hasFieldOrProperty("otherOffendersAndInfluences")
+      assertThat(response).hasFieldOrProperty("motivationAndTriggers")
+      assertThat(response).hasFieldOrProperty("responsibility")
+      assertThat(response).hasFieldOrProperty("patternOfOffending")
+
+      assertThat(response.assessmentCompleted).isEqualTo(timeline.completedAt!!.toLocalDate())
+      assertThat(response.briefOffenceDetails).isEqualTo(oasysOffenceAnalysis.offenceAnalysis)
+      assertThat(response.victimsAndPartners?.contactTargeting).isEqualTo(
+        oasysOffenceAnalysis.whatOccurred?.contains(
+          WhatOccurred.TARGETING.description,
+        ),
+      )
+      assertThat(response.recognisesImpact).isEqualTo(oasysOffenceAnalysis.recognisesImpact == YES)
+      assertThat(response.motivationAndTriggers).isEqualTo(oasysOffenceAnalysis.offenceMotivation)
+      assertThat(response.responsibility?.acceptsResponsibility).isEqualTo(oasysOffenceAnalysis.acceptsResponsibilityYesNo == YES)
       assertThat(response.patternOfOffending).isEqualTo("Escalating violence in evenings when challenged, targeting vulnerable individuals, causing injuries requiring medical attention.")
     }
 
