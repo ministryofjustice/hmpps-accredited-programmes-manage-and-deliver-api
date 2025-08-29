@@ -415,6 +415,21 @@ class OasysApiStubs(
     )
   }
 
+  fun stubSuccessfulOasysEducationTrainingAndEmploymentDetailsResponse(
+    assessmentId: Long,
+    oasysEducationTrainingAndEmployment: OasysEducationTrainingAndEmployment = OasysEducationTrainingAndEmploymentFactory().produce(),
+  ) {
+    wiremock.stubFor(
+      get(urlEqualTo("/assessments/$assessmentId/section/section4"))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(objectMapper.writeValueAsString(oasysEducationTrainingAndEmployment)),
+        ),
+    )
+  }
+
   fun stubNotFoundOasysAlcoholMisuseDetailsResponse(
     assessmentId: Long,
   ) {
@@ -448,6 +463,19 @@ class OasysApiStubs(
   ) {
     wiremock.stubFor(
       get(urlEqualTo("/assessments/$assessmentId/section/section11"))
+        .willReturn(
+          aResponse()
+            .withStatus(404)
+            .withHeader("Content-Type", "application/json"),
+        ),
+    )
+  }
+
+  fun stubNotFoundEducationTrainingAndEmploymentDetailsResponse(
+    assessmentId: Long,
+  ) {
+    wiremock.stubFor(
+      get(urlEqualTo("/assessments/$assessmentId/section/section4"))
         .willReturn(
           aResponse()
             .withStatus(404)

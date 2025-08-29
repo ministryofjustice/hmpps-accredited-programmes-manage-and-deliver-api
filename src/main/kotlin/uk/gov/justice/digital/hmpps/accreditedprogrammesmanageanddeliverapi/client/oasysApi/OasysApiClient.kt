@@ -70,6 +70,10 @@ class OasysApiClient(
     path = "/assessments/$assessmentPk/section/section9"
   }
 
+  fun getEducationTrainingAndEmploymentDetails(assessmentPk: Long) = getRequest<OasysEducationTrainingAndEmployment>(OASYS_API) {
+    path = "/assessments/$assessmentPk/section/section4"
+  }
+
   fun getHealth(assessmentPk: Long) = getRequest<OasysHealth>(OASYS_API) {
     path = "/assessments/$assessmentPk/section/section13"
   }

@@ -102,6 +102,17 @@ class RisksAndNeedsService(
     ).toModel(assessmentCompletedDate?.toLocalDate())
   }
 
+  fun getEducationTrainingAndEmploymentDetails(crn: String): EducationTrainingAndEmployment? {
+    val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
+      ?: throw NotFoundException("No assessment found for crn: $crn")
+
+    return getDetails(
+      assessmentId,
+      oasysApiClient::getEducationTrainingAndEmploymentDetails,
+      "EducationTrainingAndEmployment",
+    ).toModel(assessmentCompletedDate?.toLocalDate())
+  }
+
   fun getEmotionalWellbeing(crn: String): EmotionalWellbeing? {
     val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
