@@ -425,32 +425,4 @@ class OasysApiStubs(
         ),
     )
   }
-
-  fun stubSuccessfulOasysOffenceAnalysisResponse(
-    assessmentId: Long,
-    oasysOffenceAnalysis: OasysOffenceAnalysis = OasysOffenceAnalysisFactory().produce(),
-  ) {
-    wiremock.stubFor(
-      get(urlEqualTo("/assessments/$assessmentId/section/section2"))
-        .willReturn(
-          aResponse()
-            .withStatus(200)
-            .withHeader("Content-Type", "application/json")
-            .withBody(objectMapper.writeValueAsString(oasysOffenceAnalysis)),
-        ),
-    )
-  }
-
-  fun stubNotFoundOasysOffenceAnalysisResponse(
-    assessmentId: Long,
-  ) {
-    wiremock.stubFor(
-      get(urlEqualTo("/assessments/$assessmentId/section/section2"))
-        .willReturn(
-          aResponse()
-            .withStatus(404)
-            .withHeader("Content-Type", "application/json"),
-        ),
-    )
-  }
 }

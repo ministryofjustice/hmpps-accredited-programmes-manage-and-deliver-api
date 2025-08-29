@@ -17,8 +17,12 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.method.annotation.HandlerMethodValidationException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.CrnRegex.CRN_REGEX
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.AlcoholMisuseDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.DrugDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Health
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LearningNeeds
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LifestyleAndAssociates
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.OffenceAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Relationships
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.RoshAnalysis
@@ -289,57 +293,6 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     )
     @PathVariable("crn") crn: String,
   ): ResponseEntity<RoshAnalysis> = ResponseEntity.ok(risksAndNeedsService.getRoshFullForCrn(crn))
-
-  @Operation(
-    tags = ["Oasys Integration"],
-    summary = "Offence Analysis details as held by Oasys",
-    operationId = "getOffenceAnalysisByCrn",
-    description = """""",
-    responses = [
-      ApiResponse(
-        responseCode = "200",
-        description = "Offence analysis details held by Oasys",
-        content = [Content(schema = Schema(implementation = OffenceAnalysis::class))],
-      ),
-      ApiResponse(
-        responseCode = "400",
-        description = "Invalid code format. Expected format for CRN: X718255.",
-        content = [Content(schema = Schema(implementation = HandlerMethodValidationException::class))],
-      ),
-      ApiResponse(
-        responseCode = "401",
-        description = "The request was unauthorised",
-        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-      ),
-      ApiResponse(
-        responseCode = "403",
-        description = "Forbidden. The client is not authorised to access this referral.",
-        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-      ),
-      ApiResponse(
-        responseCode = "404",
-        description = "The Offence analysis does not exist for the CRN provided.",
-        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-      ),
-    ],
-    security = [SecurityRequirement(name = "bearerAuth")],
-  )
-  @RequestMapping(
-    method = [RequestMethod.GET],
-    value = ["/risks-and-needs/{crn}/offence-analysis"],
-    produces = ["application/json"],
-  )
-  fun getOffenceAnalysisForCrn(
-    @Pattern(
-      regexp = CRN_REGEX,
-      message = "Invalid code format. Expected format for CRN: X718255",
-    )
-    @Parameter(
-      description = "CRN",
-      required = true,
-    )
-    @PathVariable("crn") crn: String,
-  ): ResponseEntity<OffenceAnalysis> = ResponseEntity.ok(risksAndNeedsService.getOffenceAnalysis(crn))
 
   @Operation(
     tags = ["Oasys Integration"],
