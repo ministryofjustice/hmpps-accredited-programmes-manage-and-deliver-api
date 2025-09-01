@@ -18,6 +18,7 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.CrnRegex.CRN_REGEX
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.AlcoholMisuseDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Attitude
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.DrugDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.EmotionalWellbeing
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Health
@@ -565,4 +566,56 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
       risksAndNeedsService
         .getThinkingAndBehaviour(crn),
     )
+
+  @Operation(
+    tags = ["Oasys Integration"],
+    summary = "Get attitude details as held by Oasys",
+    operationId = "getAttitude",
+    description = """Fetch attitude data""",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "successful operation",
+        content = [Content(schema = Schema(implementation = Attitude::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid code format. Expected format for CRN: X718255.",
+        content = [Content(schema = Schema(implementation = HandlerMethodValidationException::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden.  The client is not authorised to access attitude details.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The attitude detail information does not exist for the CRN provided.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @RequestMapping(
+    method = [RequestMethod.GET],
+    value = ["/risks-and-needs/{crn}/attitude"],
+    produces = ["application/json"],
+  )
+  fun getAttitude(
+    @Pattern(
+      regexp = CRN_REGEX,
+      message = "Invalid code format. Expected format for CRN: X718255",
+    )
+    @Parameter(
+      description = "CRN",
+      required = true,
+    )
+    @PathVariable("crn") crn: String,
+  ): ResponseEntity<Attitude?> =
+    ResponseEntity.ok(risksAndNeedsService.getAttitude(crn))
 }

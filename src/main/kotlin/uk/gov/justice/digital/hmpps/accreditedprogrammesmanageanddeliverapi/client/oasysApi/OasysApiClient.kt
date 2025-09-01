@@ -9,6 +9,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAccommodation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAlcoholMisuseDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAssessmentTimeline
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAttitude
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysDrugDetail
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysEmotionalWellbeing
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysHealth
@@ -65,6 +66,11 @@ class OasysApiClient(
   fun getThinkingAndBehaviourDetails(assessmentPk: Long) = getRequest<OasysThinkingAndBehaviour>(OASYS_API) {
     path = "/assessments/$assessmentPk/section/section11"
   }
+
+  fun getAttitude(assessmentPk: Long) = getRequest<OasysAttitude>(OASYS_API) {
+    path = "/assessments/$assessmentPk/section/section12"
+  }
+
 
   fun getAlcoholMisuseDetails(assessmentPk: Long) = getRequest<OasysAlcoholMisuseDetails>(OASYS_API) {
     path = "/assessments/$assessmentPk/section/section9"
