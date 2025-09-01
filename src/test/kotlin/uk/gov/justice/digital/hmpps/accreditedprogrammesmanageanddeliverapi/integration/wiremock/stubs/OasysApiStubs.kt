@@ -261,7 +261,6 @@ class OasysApiStubs(
     )
   }
 
-
   fun stubSuccessfulOasysHealthResponse(
     assessmentId: Long,
     oasysHealth: OasysHealth = OasysHealthFactory().produce(),

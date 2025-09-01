@@ -71,7 +71,6 @@ class OasysApiClient(
     path = "/assessments/$assessmentPk/section/section12"
   }
 
-
   fun getAlcoholMisuseDetails(assessmentPk: Long) = getRequest<OasysAlcoholMisuseDetails>(OASYS_API) {
     path = "/assessments/$assessmentPk/section/section9"
   }

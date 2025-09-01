@@ -616,6 +616,5 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
       required = true,
     )
     @PathVariable("crn") crn: String,
-  ): ResponseEntity<Attitude?> =
-    ResponseEntity.ok(risksAndNeedsService.getAttitude(crn))
+  ): ResponseEntity<Attitude?> = ResponseEntity.ok(risksAndNeedsService.getAttitude(crn))
 }
