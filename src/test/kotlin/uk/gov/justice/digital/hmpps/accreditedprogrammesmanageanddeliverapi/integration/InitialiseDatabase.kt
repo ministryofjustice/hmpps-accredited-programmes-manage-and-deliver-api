@@ -8,4 +8,3 @@ class InitialiseDatabase : IntegrationTestBase() {
     println("Database has been initialised by IntegrationTestBase")
   }
 }
-
