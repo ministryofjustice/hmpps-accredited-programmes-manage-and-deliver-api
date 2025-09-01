@@ -1,0 +1,1 @@
+ALTER TABLE referral ADD COLUMN sourced_from TEXT NULL;
