@@ -11,10 +11,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.ScoredAnswer
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Type
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAccommodation
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAttitude
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysHealth
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysLearning
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAccommodationFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAttitudeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysHealthFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysLearningFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -248,6 +250,53 @@ class OasysApiClientIntegrationTest : IntegrationTestBase() {
       // Then
       is ClientResult.Success -> fail("Unexpected client result: ${response::class.simpleName}")
       is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")
+      is ClientResult.Failure.StatusCode<*> -> {
+        assertThat(response.status).isEqualTo(HttpStatus.NOT_FOUND)
+      }
+    }
+  }
+
+  @Test
+  fun `should return oasys attitude section for known assessment id`() {
+    // Given
+    stubAuthTokenEndpoint()
+    val assessmentId = 12345L
+    oasysApiStubs.stubSuccessfulOasysAttitudeResponse(
+      assessmentId,
+      OasysAttitudeFactory()
+        .withProCriminalAttitudes("Negative towards authority")
+        .withMotivationToAddressBehaviour("Low motivation")
+        .withHostileOrientation("Hostile towards supervision")
+        .produce(),
+    )
+
+    // When
+    when (val response = oasysApiClient.getAttitude(assessmentId)) {
+      // Then
+      is ClientResult.Success<*> -> {
+        assertThat(response.status).isEqualTo(HttpStatus.OK)
+        val oasysAttitude = response.body as OasysAttitude
+        assertThat(oasysAttitude.proCriminalAttitudes).isEqualTo("Negative towards authority")
+        assertThat(oasysAttitude.motivationToAddressBehaviour).isEqualTo("Low motivation")
+        assertThat(oasysAttitude.hostileOrientation).isEqualTo("Hostile towards supervision")
+      }
+      is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")
+      is ClientResult.Failure.StatusCode<*> -> fail("Unexpected status: ${response.status}")
+    }
+  }
+
+  @Test
+  fun `should return NOT FOUND for unknown attitude assessment id`() {
+    // Given
+    stubAuthTokenEndpoint()
+    val assessmentId = 9999999L
+    oasysApiStubs.stubNotFoundOasysAttitudeResponse(assessmentId)
+
+    // When
+    when (val response = oasysApiClient.getAttitude(assessmentId)) {
+      // Then
+      is ClientResult.Success -> fail("Unexpected success result")
+      is ClientResult.Failure.Other<*> -> fail("Unexpected failure type: ${response::class.simpleName}")
       is ClientResult.Failure.StatusCode<*> -> {
         assertThat(response.status).isEqualTo(HttpStatus.NOT_FOUND)
       }
