@@ -11,6 +11,7 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.AlcoholMisuseDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Attitude
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.DrugDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.EducationTrainingAndEmployment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.EmotionalWellbeing
@@ -32,6 +33,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAlcoholMisuseDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAssessmentTimelineFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAttitudeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysDrugDetailFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysEducationTrainingAndEmploymentFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysEmotionalWellbeingFactory
@@ -327,6 +329,89 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
         HttpStatus.BAD_REQUEST.value(),
       )
       // Then
+      assertThat(response.developerMessage).isEqualTo("400 BAD_REQUEST \"Validation failure\"")
+    }
+  }
+
+  @Nested
+  @DisplayName("Get Attitude section")
+  inner class GetAttitude {
+    @Test
+    fun `should return attitude section`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
+      val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
+      val assessmentCompletedDate = assessment.getLatestCompletedLayerThreeAssessment()!!.completedAt?.toLocalDate()
+
+      oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
+      val oasysAttitude = OasysAttitudeFactory()
+        .withCrn(referralEntity.crn)
+        .produce()
+      oasysApiStubs.stubSuccessfulOasysAttitudeResponse(assessmentId, oasysAttitude)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${referralEntity.crn}/attitude",
+        returnType = object : ParameterizedTypeReference<Attitude>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.assessmentCompleted).isEqualTo(assessmentCompletedDate)
+      assertThat(response.proCriminalAttitudes).isEqualTo(oasysAttitude.proCriminalAttitudes)
+      assertThat(response.motivationToAddressBehaviour).isEqualTo(oasysAttitude.motivationToAddressBehaviour)
+      assertThat(response.hostileOrientation).isEqualTo(oasysAttitude.hostileOrientation)
+    }
+
+    @Test
+    fun `should return 404 when providing an unknown crn for attitude and no assessment exists`() {
+      val crn = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
+
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$crn/attitude",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(response.developerMessage).isEqualTo("No assessment found for crn: $crn")
+    }
+
+    @Test
+    fun `should return 404 when no attitude found for assessment`() {
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
+      val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
+
+      oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
+      oasysApiStubs.stubNotFoundOasysAttitudeResponse(assessmentId)
+
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${referralEntity.crn}/attitude",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(response.developerMessage).isEqualTo(
+        "Failure to retrieve Attitude data for assessmentId: $assessmentId, reason: 'Unable to complete GET request to /assessments/$assessmentId/section/section12: 404 NOT_FOUND'",
+      )
+    }
+
+    @Test
+    fun `should return 400 when crn is not in the correct format`() {
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${randomAlphanumericString(6)}/attitude",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.BAD_REQUEST.value(),
+      )
+
       assertThat(response.developerMessage).isEqualTo("400 BAD_REQUEST \"Validation failure\"")
     }
   }
