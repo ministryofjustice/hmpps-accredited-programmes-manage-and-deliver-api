@@ -4,39 +4,33 @@ on:
     - cron: "0 7 * * WED" # Every Wednesday at 07:00 UTC
 
   workflow_dispatch:
+    inputs:
+      java_options:
+        type: string
+        default: '-Xmx1024m -XX:ParallelGCThreads=2 -XX:ConcGCThreads=2 -Djava.util.concurrent.ForkJoinPool.common.parallelism=2 -Dorg.gradle.daemon=true -Dkotlin.compiler.execution.strategy=in-process -Dorg.gradle.workers.max=1'
+        required: false
+        description: Setting up common java optioins
 
 jobs:
-  schema-spy:
-    name: Schema Spy report generation
+  database_report:
     runs-on: ubuntu-latest
-    timeout-minutes: 240
-    environment: test
+    if: github.ref == 'refs/heads/main'
+    name: Generate Database SchemaSpy Report
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: ./.github/actions/cloud-platform-auth
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Setup Java
+        uses: actions/setup-java@v5
         with:
-          api: ${{ secrets.KUBE_ENV_API }}
-          cert: ${{ secrets.KUBE_CERT }}
-          cluster: ${{ secrets.KUBE_CLUSTER }}
-          namespace: ${{ secrets.KUBE_NAMESPACE }}
-          token: ${{ secrets.KUBE_TOKEN }}
-
-      - name: Generate report
-        run: schema-spy/run.sh
-        env:
-          DB: ${{ secrets.SCHEMA_SPY_DB }}
-          HOST: ${{ secrets.SCHEMA_SPY_HOST }}
-          PORT: ${{ secrets.SCHEMA_SPY_PORT }}
-          SCHEMA: ${{ secrets.SCHEMA_SPY_SCHEMA }}
-          DB_USERNAME: ${{ secrets.SCHEMA_SPY_USERNAME }}
-          DB_PASSWORD: ${{ secrets.SCHEMA_SPY_PASSWORD }}
-
-      - name: Publish HTML report
-        uses: JamesIves/github-pages-deploy-action@6c2d9db40f9296374acc17b90404b6e8864128c8 # v4.7.3
-        with:
-          folder: schema-spy-report
-          target-folder: schema-spy-report
-
-      - name: Add HTML report URL to the job summary
-        run: echo '[Schema Spy HTML Report](https://ministryofjustice.github.io/hmpps-accredited-programmes-manage-and-deliver-api/schema-spy-report)' | tee -a "$GITHUB_STEP_SUMMARY"
+          distribution: 'temurin'
+          java-version: '21'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Start Required Services
+        run: make start-containers
+      - name: Initialise DB
+        shell: bash
+        run: |
+          export JAVA_OPTS="${{ inputs.java_options }}"
+          ./gradlew initialiseDatabase
+      - uses: ministryofjustice/hmpps-github-actions/.github/actions/database_schema_report@v2 # WORKFLOW_VERSION
