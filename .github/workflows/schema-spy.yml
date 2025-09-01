@@ -32,9 +32,12 @@ jobs:
       - name: Initialise DB
         shell: bash
         run: |
-          export JAVA_OPTS="${{ inputs.java_options }}" 
+          export JAVA_OPTS="${{ inputs.java_options }}"
       - uses: ministryofjustice/hmpps-github-actions/.github/actions/database_schema_report@v2 # WORKFLOW_VERSION
         with:
-          schema: public
-          host: "localhost"
-          port: "5432"
+          database_name: ${{ secrets.SCHEMA_SPY_DB }}
+          host: ${{ secrets.SCHEMA_SPY_HOST }}
+          port: ${{ secrets.SCHEMA_SPY_PORT }}
+          schema: ${{ secrets.SCHEMA_SPY_SCHEMA }}
+          user:  ${{ secrets.SCHEMA_SPY_USERNAME }}
+          password: ${{ secrets.SCHEMA_SPY_PASSWORD }}
