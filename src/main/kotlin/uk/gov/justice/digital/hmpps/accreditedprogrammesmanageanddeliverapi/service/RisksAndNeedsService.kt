@@ -125,6 +125,17 @@ class RisksAndNeedsService(
     ).toModel(assessmentCompletedDate?.toLocalDate())
   }
 
+  fun getAttitude(crn: String): Attitude? {
+    val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
+      ?: throw NotFoundException("No assessment found for crn: $crn")
+
+    return getDetails(
+      assessmentId,
+      oasysApiClient::getAttitude,
+      "Attitude",
+    ).toModel(assessmentCompletedDate?.toLocalDate())
+  }
+
   fun getRisksByCrn(crn: String): Risks {
     val assessmentId = getAssessmentIdAndDate(crn)?.first
       ?: throw NotFoundException("No assessment found for crn: $crn")
@@ -162,17 +173,6 @@ class RisksAndNeedsService(
     is ClientResult.Success -> {
       response.body
     }
-  }
-
-  fun getAttitude(crn: String): Attitude? {
-    val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
-      ?: throw NotFoundException("No assessment found for crn: $crn")
-
-    return getDetails(
-      assessmentId,
-      oasysApiClient::getAttitude,
-      "Attitude",
-    ).toModel(assessmentCompletedDate?.toLocalDate())
   }
 
   private inline fun <T> getDetails(
