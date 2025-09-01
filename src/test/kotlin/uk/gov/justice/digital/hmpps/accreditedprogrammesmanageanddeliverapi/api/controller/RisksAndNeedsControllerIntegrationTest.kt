@@ -13,14 +13,17 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.AlcoholMisuseDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Attitude
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.DrugDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.EducationTrainingAndEmployment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.EmotionalWellbeing
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Health
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LearningNeeds
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LifestyleAndAssociates
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.OffenceAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Relationships
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.RoshAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.ThinkingAndBehaviour
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysOffenceAnalysis.WhatOccurred
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.Timeline
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.getLatestCompletedLayerThreeAssessment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
@@ -31,10 +34,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAlcoholMisuseDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAssessmentTimelineFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysDrugDetailFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysEducationTrainingAndEmploymentFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysEmotionalWellbeingFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysHealthFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysLearningFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysLifestyleAndAssociatesFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysOffenceAnalysisFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRelationshipsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRoshFullFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysThinkingAndBehaviourFactory
@@ -1094,6 +1099,203 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
         uri = "/risks-and-needs/${randomAlphanumericString(6)}/thinking-and-behaviour",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.BAD_REQUEST.value(),
+      )
+
+      assertThat(response.developerMessage).isEqualTo("400 BAD_REQUEST \"Validation failure\"")
+    }
+  }
+
+  @Nested
+  @DisplayName("Get Offence Analysis section")
+  inner class GetOffenceAnalysis {
+    @Test
+    fun `should return Offence analysis section`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
+      val timeline = assessment.getLatestCompletedLayerThreeAssessment()
+      oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
+      val oasysOffenceAnalysis = OasysOffenceAnalysisFactory()
+        .withWhatOccurred(
+          listOf(
+            WhatOccurred.TARGETING.description,
+            WhatOccurred.RACIAL_MOTIVATED.description,
+            WhatOccurred.REVENGE.description,
+            WhatOccurred.PHYSICAL_VIOLENCE_TOWARDS_PARTNER.description,
+            WhatOccurred.REPEAT_VICTIMISATION.description,
+            WhatOccurred.VICTIM_WAS_STRANGER.description,
+            WhatOccurred.STALKING.description,
+          ),
+        )
+        .produce()
+      oasysApiStubs.stubSuccessfulOasysOffenceAnalysisResponse(timeline!!.id, oasysOffenceAnalysis)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${referralEntity.crn}/offence-analysis",
+        returnType = object : ParameterizedTypeReference<OffenceAnalysis>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response).hasFieldOrProperty("assessmentCompleted")
+      assertThat(response).hasFieldOrProperty("briefOffenceDetails")
+      assertThat(response).hasFieldOrProperty("victimsAndPartners")
+      assertThat(response).hasFieldOrProperty("recognisesImpact")
+      assertThat(response).hasFieldOrProperty("otherOffendersAndInfluences")
+      assertThat(response).hasFieldOrProperty("motivationAndTriggers")
+      assertThat(response).hasFieldOrProperty("responsibility")
+      assertThat(response).hasFieldOrProperty("patternOfOffending")
+
+      assertThat(response.assessmentCompleted).isEqualTo(timeline.completedAt!!.toLocalDate())
+      assertThat(response.briefOffenceDetails).isEqualTo(oasysOffenceAnalysis.offenceAnalysis)
+      assertThat(response.victimsAndPartners?.contactTargeting).isEqualTo("Yes")
+      assertThat(response.victimsAndPartners?.raciallyMotivated).isEqualTo("Yes")
+      assertThat(response.victimsAndPartners?.revenge).isEqualTo("Yes")
+      assertThat(response.victimsAndPartners?.physicalViolenceTowardsPartner).isEqualTo("Yes")
+      assertThat(response.victimsAndPartners?.repeatVictimisation).isEqualTo("Yes")
+      assertThat(response.victimsAndPartners?.victimWasStranger).isEqualTo("Yes")
+      assertThat(response.victimsAndPartners?.stalking).isEqualTo("Yes")
+      assertThat(response.recognisesImpact).isEqualTo("No")
+      assertThat(response.otherOffendersAndInfluences?.wereOtherOffendersInvolved).isEqualTo("Yes")
+      assertThat(response.otherOffendersAndInfluences?.wasTheOffenderLeader).isEqualTo("No information available")
+      assertThat(response.otherOffendersAndInfluences?.peerGroupInfluences).isEqualTo("No")
+      assertThat(response.otherOffendersAndInfluences?.numberOfOthersInvolved).isEqualTo("2")
+      assertThat(response.motivationAndTriggers).isEqualTo("Ms Puckett stated that as she had been attempting to address his long standing addiction to heroin, with the support of a Drug Rehabilitation Requirement as part of a community order, he had been using cannabis as a substitute in order to assuage symptoms of withdrawal or stress.")
+      assertThat(response.responsibility?.acceptsResponsibility).isEqualTo("Yes")
+      assertThat(response.responsibility?.acceptsResponsibilityDetail).isEqualTo("OPD Automatic screen in as first test")
+      assertThat(response.patternOfOffending).isEqualTo("Escalating violence in evenings when challenged, targeting vulnerable individuals, causing injuries requiring medical attention.")
+    }
+
+    @Test
+    fun `should return 404 when providing an unknown crn for Offence Analysis and no assessment exists`() {
+      // Given
+      val crn = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$crn/offence-analysis",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+      // Then
+      assertThat(response.developerMessage).isEqualTo("No assessment found for crn: $crn")
+    }
+
+    @Test
+    fun `should return 404 when no Offence Analysis found for section2 of assessment`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
+      val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
+      oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
+      oasysApiStubs.stubNotFoundOasysOffenceAnalysisResponse(assessmentId)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${referralEntity.crn}/offence-analysis",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      // Then
+      assertThat(response.developerMessage).isEqualTo("Failure to retrieve OffenceAnalysis data for assessmentId: $assessmentId, reason: 'Unable to complete GET request to /assessments/$assessmentId/section/section2: 404 NOT_FOUND'")
+    }
+
+    @Test
+    fun `should return 400 when crn is not in the correct format for offence analysis`() {
+      // Given & When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${randomAlphanumericString(6)}/offence-analysis",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.BAD_REQUEST.value(),
+      )
+      // Then
+      assertThat(response.developerMessage).isEqualTo("400 BAD_REQUEST \"Validation failure\"")
+    }
+  }
+
+  @Nested
+  @DisplayName("Get education, training and employment details")
+  inner class GetEducationTrainingAndEmploymentDetails {
+
+    @Test
+    fun `should return education, training and employment details section for known crn`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+
+      val timeline = listOf(Timeline(1L, "COMPLETE", "LAYER3", LocalDateTime.now()))
+      val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).withTimeline(timeline).produce()
+      val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
+      oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
+      val oasysEducationTrainingAndEmployment = OasysEducationTrainingAndEmploymentFactory().produce()
+      oasysApiStubs.stubSuccessfulOasysEducationTrainingAndEmploymentDetailsResponse(assessmentId, oasysEducationTrainingAndEmployment)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${referralEntity.crn}/education-training-and-employment",
+        returnType = object : ParameterizedTypeReference<EducationTrainingAndEmployment>() {},
+      )
+
+      assertThat(response.learningDifficulties).isEqualTo("0-No problems")
+      assertThat(response.assessmentCompleted).isEqualTo(assessment.getLatestCompletedLayerThreeAssessment()?.completedAt?.toLocalDate())
+    }
+
+    @Test
+    fun `should return 404 when providing an unknown crn for education, training and employment details and no assessment exists`() {
+      // Given
+      val crn = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$crn/education-training-and-employment",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+      // Then
+      assertThat(response.developerMessage).isEqualTo("No assessment found for crn: $crn")
+    }
+
+    @Test
+    fun `should return 404 when no alcohol misuse details found for section4 of assessment`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
+      val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
+      oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
+      oasysApiStubs.stubNotFoundEducationTrainingAndEmploymentDetailsResponse(assessmentId)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${referralEntity.crn}/education-training-and-employment",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      // Then
+      assertThat(response.developerMessage).isEqualTo("Failure to retrieve EducationTrainingAndEmployment data for assessmentId: $assessmentId, reason: 'Unable to complete GET request to /assessments/$assessmentId/section/section4: 404 NOT_FOUND'")
+    }
+
+    @Test
+    fun `should return 400 when crn is not in the correct format`() {
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${randomAlphanumericString(6)}/education-training-and-employment",
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.BAD_REQUEST.value(),
       )

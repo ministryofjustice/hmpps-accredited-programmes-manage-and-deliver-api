@@ -20,10 +20,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.AlcoholMisuseDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Attitude
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.DrugDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.EducationTrainingAndEmployment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.EmotionalWellbeing
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Health
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LearningNeeds
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.LifestyleAndAssociates
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.OffenceAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Relationships
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.RoshAnalysis
@@ -298,6 +300,57 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
 
   @Operation(
     tags = ["Oasys Integration"],
+    summary = "Offence Analysis details as held by Oasys",
+    operationId = "getOffenceAnalysisByCrn",
+    description = """""",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Offence analysis details held by Oasys",
+        content = [Content(schema = Schema(implementation = OffenceAnalysis::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid code format. Expected format for CRN: X718255.",
+        content = [Content(schema = Schema(implementation = HandlerMethodValidationException::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden. The client is not authorised to access this referral.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The Offence analysis does not exist for the CRN provided.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @RequestMapping(
+    method = [RequestMethod.GET],
+    value = ["/risks-and-needs/{crn}/offence-analysis"],
+    produces = ["application/json"],
+  )
+  fun getOffenceAnalysisForCrn(
+    @Pattern(
+      regexp = CRN_REGEX,
+      message = "Invalid code format. Expected format for CRN: X718255",
+    )
+    @Parameter(
+      description = "CRN",
+      required = true,
+    )
+    @PathVariable("crn") crn: String,
+  ): ResponseEntity<OffenceAnalysis> = ResponseEntity.ok(risksAndNeedsService.getOffenceAnalysis(crn))
+
+  @Operation(
+    tags = ["Oasys Integration"],
     summary = "Get drug details as held by Oasys",
     operationId = "getDrugDetails",
     description = """""",
@@ -456,6 +509,57 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     @PathVariable("crn") crn: String,
   ): ResponseEntity<AlcoholMisuseDetails?> = ResponseEntity
     .ok(risksAndNeedsService.getAlcoholMisuseDetails(crn))
+
+  @Operation(
+    tags = ["Oasys Integration"],
+    summary = "Get education training and employment details as held by Oasys",
+    operationId = "getEducationTrainingAndEmployment",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "successful operation",
+        content = [Content(schema = Schema(implementation = EducationTrainingAndEmployment::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid code format. Expected format for CRN: X718255.",
+        content = [Content(schema = Schema(implementation = HandlerMethodValidationException::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden.  The client is not authorised to access alcohol misuse details.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The alcohol misuse detail information does not exist for the CRN provided.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @RequestMapping(
+    method = [RequestMethod.GET],
+    value = ["/risks-and-needs/{crn}/education-training-and-employment"],
+    produces = ["application/json"],
+  )
+  fun getEducationTrainingAndEmploymentDetails(
+    @Pattern(
+      regexp = CRN_REGEX,
+      message = "Invalid code format. Expected format for CRN: X718255",
+    )
+    @Parameter(
+      description = "CRN",
+      required = true,
+    )
+    @PathVariable("crn") crn: String,
+  ): ResponseEntity<EducationTrainingAndEmployment?> = ResponseEntity
+    .ok(risksAndNeedsService.getEducationTrainingAndEmploymentDetails(crn))
 
   @Operation(
     tags = ["Oasys Integration"],
