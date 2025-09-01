@@ -71,6 +71,11 @@ class ReferralEntity(
   var statusHistories: MutableList<ReferralStatusHistoryEntity> = mutableListOf(),
 
   @Nullable
+  @Column("sourced_from")
+  var sourcedFrom: ReferralEntitySourcedFrom? = null,
+
+  //  This is an alias to the sourced_from_id, i.e. the Requirement or Licence ID
+  @Nullable
   @Column("event_id")
   val eventId: String? = null,
 
@@ -79,3 +84,8 @@ class ReferralEntity(
   @Column("event_number")
   val eventNumber: Int? = null,
 )
+
+enum class ReferralEntitySourcedFrom(string: String) {
+  REQUIREMENT("requirement"),
+  LICENSE("licence"),
+}
