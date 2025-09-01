@@ -8,3 +8,4 @@ class InitialiseDatabase : IntegrationTestBase() {
     println("Database has been initialised by IntegrationTestBase")
   }
 }
+/* ktlint-disable no-multi-spaces paren-spacing */
