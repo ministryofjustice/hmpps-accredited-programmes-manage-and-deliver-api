@@ -1,7 +1,8 @@
 name: SchemaSpy report
 on:
-  schedule:
-    - cron: "0 7 * * WED" # Every Wednesday at 07:00 UTC
+  push:
+    branches:
+      - APG-1019/add-schemaspy
 
   workflow_dispatch:
     inputs:
