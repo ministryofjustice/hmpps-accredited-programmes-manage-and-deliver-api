@@ -3,7 +3,7 @@ JAVA_OPTS := "-Xmx4096m -XX:ParallelGCThreads=2 -XX:ConcGCThreads=2 -Djava.util.
 
 
 start-containers:
-ifeq (0,$(shell docker compose ps --services --filter "status=running" | grep 'hmpps-person-record' | wc -l | xargs))
+ifeq (0,$(shell docker compose ps --services --filter "status=running" | grep 'hmpps-accredited-programmes-manage-and-deliver-api' | wc -l | xargs))
 	docker compose up -d
 else
 	@echo "containers already running"
