@@ -1,0 +1,15 @@
+version: "3"
+services:
+  db:
+    image: postgres:latest
+    networks:
+      - hmpps
+    container_name: support-additional-needs-api-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=admin_password
+      - POSTGRES_USER=admin
+      - POSTGRES_DB=support-additional-needs-api-db
+networks:
+  hmpps:

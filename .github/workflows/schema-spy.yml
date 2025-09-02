@@ -16,7 +16,7 @@ jobs:
   database_report:
     runs-on: ubuntu-latest
     #if: github.ref == 'refs/heads/main'
-    name: Generate Database SchemaSpy Report
+    name: Generate Database Schema Report
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -28,15 +28,15 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
       - name: Start Required Services
-        run: make start-containers
+        run: docker compose -f docker-compose-schemaspy.yml up -d
       - name: Initialise DB
         shell: bash
         run: |
           export JAVA_OPTS="${{ inputs.java_options }}"
+           ./gradlew initialiseDatabase
       - uses: ministryofjustice/hmpps-github-actions/.github/actions/database_schema_report@v2 # WORKFLOW_VERSION
         with:
+          schema: public
           database_name: ${{ secrets.SCHEMA_SPY_DB }}
-          host: ${{ secrets.SCHEMA_SPY_HOST }}
-          schema: ${{ secrets.SCHEMA_SPY_SCHEMA }}
           user:  ${{ secrets.SCHEMA_SPY_USERNAME }}
           password: ${{ secrets.SCHEMA_SPY_PASSWORD }}
