@@ -56,7 +56,7 @@ kotlin {
 
 val test by testing.suites.existing(JvmTestSuite::class)
 
-tasks.register<Test>("RegionRepositoryIntegration") {
+tasks.register<Test>("RegionRepositoryIntegrationTest") {
   testClassesDirs = files(test.map { it.sources.output.classesDirs })
   classpath = files(test.map { it.sources.runtimeClasspath })
   include("**/RegionRepositoryIntegrationTest.class")
