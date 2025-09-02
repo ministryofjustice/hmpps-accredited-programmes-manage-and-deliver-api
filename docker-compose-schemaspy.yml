@@ -4,12 +4,11 @@ services:
     image: postgres:latest
     networks:
       - hmpps
-    container_name: support-additional-needs-api-db
+    container_name: postgres-api
     ports:
       - "5432:5432"
     environment:
       - POSTGRES_PASSWORD=admin_password
-      - POSTGRES_USER=admin
-      - POSTGRES_DB=postgres
+      - POSTGRES_USER=admin 
 networks:
   hmpps:
