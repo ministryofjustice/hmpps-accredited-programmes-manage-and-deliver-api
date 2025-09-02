@@ -72,6 +72,7 @@ class ReferralEntity(
 
   @Nullable
   @Column("sourced_from")
+  @Enumerated(EnumType.STRING)
   var sourcedFrom: ReferralEntitySourcedFrom? = null,
 
   //  This is an alias to the sourced_from_id, i.e. the Requirement or Licence ID
