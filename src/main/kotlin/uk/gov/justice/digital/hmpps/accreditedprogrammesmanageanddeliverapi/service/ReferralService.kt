@@ -18,7 +18,7 @@ import java.util.*
 
 @Service
 @Transactional
-class ReferralService(
+open class ReferralService(
   private val findAndReferInterventionApiClient: FindAndReferInterventionApiClient,
   private val referralRepository: ReferralRepository,
   private val serviceUserService: ServiceUserService,

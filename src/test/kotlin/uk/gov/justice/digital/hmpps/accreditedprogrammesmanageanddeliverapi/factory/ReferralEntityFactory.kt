@@ -6,6 +6,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomSentence
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
@@ -24,6 +25,7 @@ class ReferralEntityFactory {
     mutableListOf(referralStatusHistoryEntityFactory.withStatus("Assessment started").produce())
   private var setting: SettingType = SettingType.COMMUNITY
   private var eventId: String = randomUppercaseString(6)
+  private var sourcedFrom: ReferralEntitySourcedFrom? = null
   private var eventNumber: Int? = randomNumberAsInt(1)
   private var cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE
 
@@ -32,6 +34,7 @@ class ReferralEntityFactory {
   fun withCrn(crn: String?) = apply { this.crn = crn }
   fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
   fun withStatusHistories(statusHistories: MutableList<ReferralStatusHistoryEntity>) = apply { this.statusHistories = statusHistories }
+  fun withSourcedFrom(value: ReferralEntitySourcedFrom?) = apply { this.sourcedFrom = value }
 
   fun withCohort(cohort: OffenceCohort) = apply { this.cohort = cohort }
   fun withInterventionName(interventionName: String?) = apply { this.interventionName = interventionName }
@@ -50,6 +53,7 @@ class ReferralEntityFactory {
     statusHistories = this.statusHistories,
     setting = this.setting,
     interventionType = this.interventionType,
+    sourcedFrom = this.sourcedFrom,
     eventId = this.eventId,
     eventNumber = this.eventNumber,
     cohort = this.cohort,
