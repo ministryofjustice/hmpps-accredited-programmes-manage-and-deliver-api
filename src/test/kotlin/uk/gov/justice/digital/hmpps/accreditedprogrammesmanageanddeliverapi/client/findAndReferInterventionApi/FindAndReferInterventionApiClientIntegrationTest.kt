@@ -10,10 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.FindAndReferReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SourcedFromReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import java.util.UUID
 
@@ -33,8 +33,8 @@ class FindAndReferInterventionApiClientIntegrationTest : IntegrationTestBase() {
       personReference = "X123456",
       personReferenceType = PersonReferenceType.CRN,
       setting = SettingType.COMMUNITY,
-      sourcedFromReferenceType = SourcedFromReferenceType.REQUIREMENT,
-      sourcedFromReference = "2500828798",
+      sourcedFromReferenceType = ReferralEntitySourcedFrom.LICENSE_CONDITION,
+      sourcedFromReference = "licence-id-12345",
       eventNumber = 1,
     )
 
@@ -57,7 +57,8 @@ class FindAndReferInterventionApiClientIntegrationTest : IntegrationTestBase() {
         assertThat(findAndReferReferralDetails).isNotNull()
         assertThat(findAndReferReferralDetails.personReference).isEqualTo("X123456")
         assertThat(findAndReferReferralDetails.personReferenceType).isEqualTo(PersonReferenceType.CRN)
-        assertThat(findAndReferReferralDetails.sourcedFromReference).isEqualTo("2500828798")
+        assertThat(findAndReferReferralDetails.sourcedFromReference).isEqualTo("licence-id-12345")
+        assertThat(findAndReferReferralDetails.sourcedFromReferenceType).isEqualTo(ReferralEntitySourcedFrom.LICENSE_CONDITION)
       }
 
       is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")

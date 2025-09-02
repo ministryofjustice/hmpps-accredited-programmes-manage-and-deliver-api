@@ -20,6 +20,8 @@ class ReferralEntityTest : IntegrationTestBase() {
     val referral = ReferralEntityFactory()
       .withCrn("CRN123")
       .withPersonName("John Doe")
+      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
+      .withEventId("REQ-1234-REFENTITYTEST")
       .produce()
 
     referralRepository.save(referral)
@@ -31,5 +33,7 @@ class ReferralEntityTest : IntegrationTestBase() {
     assertThat(retrievedReferral.crn).isEqualTo("CRN123")
     assertThat(retrievedReferral.statusHistories).hasSize(1)
     assertThat(retrievedReferral.statusHistories[0].status).isEqualTo("Assessment started")
+    assertThat(retrievedReferral.sourcedFrom).isEqualTo(ReferralEntitySourcedFrom.REQUIREMENT)
+    assertThat(retrievedReferral.eventId).isEqualTo("REQ-1234-REFENTITYTEST")
   }
 }
