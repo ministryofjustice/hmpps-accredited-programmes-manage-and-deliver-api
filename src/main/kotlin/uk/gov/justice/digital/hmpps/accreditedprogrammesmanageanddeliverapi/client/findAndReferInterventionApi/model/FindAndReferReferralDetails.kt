@@ -8,7 +8,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SourcedFromReferenceType
 import java.util.UUID
 
 @Schema(description = "Full details of the Referral")
@@ -31,11 +30,11 @@ data class FindAndReferReferralDetails(
   @field:Schema(description = "The setting where the intervention will take place", example = "COMMUNITY")
   val setting: SettingType,
 
-  @field:Schema(description = "The upstream event reference type", example = "requirement")
-  val sourcedFromReference: String,
+  @field:Schema(description = "What was the up-stream event that caused this Referral to be automatically created", example = "requirement")
+  val sourcedFromReferenceType: ReferralEntitySourcedFrom,
 
-  @field:Schema(description = "A unique identifier to the sourceFromReference", example = "abc123")
-  val sourcedFromReferenceType: SourcedFromReferenceType,
+  @field:Schema(description = "A unique identifier pointing to the licence or requirement", example = "abc-123")
+  val sourcedFromReference: String,
 
   @field:Schema(description = "The event number from the source system, starts at 1.")
   val eventNumber: Int,
@@ -52,7 +51,7 @@ fun FindAndReferReferralDetails.toReferralEntity(
   personName = "UNKNOWN",
   statusHistories = statusHistories,
   cohort = cohort,
-  sourcedFrom = ReferralEntitySourcedFrom.valueOf(personReference),
+  sourcedFrom = sourcedFromReferenceType,
   eventId = sourcedFromReference,
   eventNumber = eventNumber,
 )

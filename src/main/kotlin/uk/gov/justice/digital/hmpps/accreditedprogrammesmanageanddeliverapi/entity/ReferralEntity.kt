@@ -85,7 +85,7 @@ class ReferralEntity(
   val eventNumber: Int? = null,
 )
 
-enum class ReferralEntitySourcedFrom(string: String) {
-  REQUIREMENT("requirement"),
-  LICENSE("licence"),
+enum class ReferralEntitySourcedFrom {
+  REQUIREMENT,
+  LICENSE_CONDITION,
 }

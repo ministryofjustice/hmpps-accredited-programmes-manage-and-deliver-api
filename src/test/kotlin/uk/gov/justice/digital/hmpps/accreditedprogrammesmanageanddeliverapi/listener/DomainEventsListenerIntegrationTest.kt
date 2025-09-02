@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
@@ -59,6 +60,8 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .withReferralId(sourceReferralId)
       .withPersonReference("X123456")
       .withPersonReferenceType(PersonReferenceType.CRN)
+      .withSourcedFromReferenceType(ReferralEntitySourcedFrom.LICENSE_CONDITION)
+      .withSourcedFromReference("LIC-12345")
       .produce()
 
     wiremock.stubFor(
@@ -145,11 +148,14 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     await untilCallTo {
       referralRepository.findAll().firstOrNull()
     } matches {
-      it?.setting == SettingType.COMMUNITY
-      it?.crn == "X123456"
-      it?.interventionName == "Test Intervention"
-      it?.interventionType == InterventionType.ACP
-      it?.statusHistories!!.first().status == "Created"
+      assertThat(it).isNotNull()
+      it!!.setting == SettingType.COMMUNITY
+      it.crn == "X123456"
+      it.interventionName == "Test Intervention"
+      it.interventionType == InterventionType.ACP
+      it.statusHistories.first().status == "Created"
+      it.sourcedFrom == ReferralEntitySourcedFrom.LICENSE_CONDITION
+      it.eventId == "LIC-12345"
     }
 
     messageHistoryRepository.findAll().first().let {

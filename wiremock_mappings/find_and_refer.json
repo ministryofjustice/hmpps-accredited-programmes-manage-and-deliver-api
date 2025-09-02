@@ -16,7 +16,9 @@
           "referralId": "{{request.pathSegments.[1]}}",
           "personReference": "X123456",
           "personReferenceType": "CRN",
-          "setting": "Community"
+          "setting": "Community",
+          "sourcedFromReferenceType": "REQUIREMENT",
+          "sourcedFromReference": "requirement-12345"
         },
         "transformers": [
           "response-template"
