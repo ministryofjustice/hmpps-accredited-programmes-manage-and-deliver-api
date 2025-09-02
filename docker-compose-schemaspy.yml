@@ -10,6 +10,6 @@ services:
     environment:
       - POSTGRES_PASSWORD=admin_password
       - POSTGRES_USER=admin
-      - POSTGRES_DB=support-additional-needs-api-db
+      - POSTGRES_DB=postgres
 networks:
   hmpps:
