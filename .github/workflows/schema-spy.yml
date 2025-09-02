@@ -36,7 +36,7 @@ jobs:
            ./gradlew initialiseDatabase
       - uses: ministryofjustice/hmpps-github-actions/.github/actions/database_schema_report@v2 # WORKFLOW_VERSION
         with:
-          database_name: ${{ secrets.SCHEMA_SPY_DB }}
+          database_name: postgres
           schema: public
-          user:  ${{ secrets.SCHEMA_SPY_USERNAME }}
-          password: ${{ secrets.SCHEMA_SPY_PASSWORD }}
+          user:  admin
+          password: admin_password
