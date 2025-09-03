@@ -54,12 +54,19 @@ kotlin {
   jvmToolchain(21)
 }
 
-// tasks.register<Test>("initialiseDatabase") {
-//  testClassesDirs = files(test.map { it.sources.output.classesDirs })
-//  classpath = files(test.map { it.sources.runtimeClasspath })
-//  include("**/InitialiseDatabase.class")
-//  onlyIf { gradle.startParameter.taskNames.contains("initialiseDatabase") }
-// }
+// This test is required for schema spy implementation and should NOT be run alongside our normal testsuite as it runs against a local application rather than the testcontainers instances.
+tasks.test {
+  exclude("**/InitialiseDatabase.class")
+}
+
+val test by testing.suites.existing(JvmTestSuite::class)
+
+tasks.register<Test>("initialiseDatabase") {
+  testClassesDirs = files(test.map { it.sources.output.classesDirs })
+  classpath = files(test.map { it.sources.runtimeClasspath })
+  include("**/InitialiseDatabase.class")
+  onlyIf { gradle.startParameter.taskNames.contains("initialiseDatabase") }
+}
 
 tasks {
   withType<KotlinCompile> {
