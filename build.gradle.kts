@@ -54,21 +54,12 @@ kotlin {
   jvmToolchain(21)
 }
 
-val test by testing.suites.existing(JvmTestSuite::class)
-
-tasks.register<Test>("RegionRepositoryIntegrationTest") {
-  testClassesDirs = files(test.map { it.sources.output.classesDirs })
-  classpath = files(test.map { it.sources.runtimeClasspath })
-  include("**/RegionRepositoryIntegrationTest.class")
-  onlyIf { gradle.startParameter.taskNames.contains("RegionRepositoryIntegrationTest") }
-}
-
-tasks.register<Test>("initialiseDatabase") {
-  testClassesDirs = files(test.map { it.sources.output.classesDirs })
-  classpath = files(test.map { it.sources.runtimeClasspath })
-  include("**/InitialiseDatabase.class")
-  onlyIf { gradle.startParameter.taskNames.contains("initialiseDatabase") }
-}
+// tasks.register<Test>("initialiseDatabase") {
+//  testClassesDirs = files(test.map { it.sources.output.classesDirs })
+//  classpath = files(test.map { it.sources.runtimeClasspath })
+//  include("**/InitialiseDatabase.class")
+//  onlyIf { gradle.startParameter.taskNames.contains("initialiseDatabase") }
+// }
 
 tasks {
   withType<KotlinCompile> {
