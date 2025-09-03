@@ -18,7 +18,7 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-web")
   implementation("org.springframework.boot:spring-boot-starter-security")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
-  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.11")
+  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.12")
 
   // AWS
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:5.4.10")
@@ -29,10 +29,10 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.5")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client:3.5.5")
   implementation("org.springframework.security:spring-security-crypto:6.5.3")
-  implementation("com.nimbusds:oauth2-oidc-sdk:11.27.1")
+  implementation("com.nimbusds:oauth2-oidc-sdk:11.28")
 
   testImplementation("org.wiremock:wiremock-standalone:3.13.1")
-  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.32") {
+  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.33") {
     exclude(group = "io.swagger.core.v3")
   }
   testImplementation("org.testcontainers:testcontainers:1.21.3")
@@ -41,7 +41,7 @@ dependencies {
   testImplementation("org.testcontainers:junit-jupiter:1.21.3")
   testImplementation("org.awaitility:awaitility-kotlin")
   testImplementation("com.ninja-squad:springmockk:4.0.2")
-  testImplementation("io.kotest:kotest-assertions-core:6.0.1")
+  testImplementation("io.kotest:kotest-assertions-core:6.0.2")
   testImplementation("io.mockk:mockk:1.14.5")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
