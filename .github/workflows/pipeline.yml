@@ -16,6 +16,11 @@ on:
         required: true
         default: false
         type: boolean
+      java_options:
+        type: string
+        default: '-Xmx1024m -XX:ParallelGCThreads=2 -XX:ConcGCThreads=2 -Djava.util.concurrent.ForkJoinPool.common.parallelism=2 -Dorg.gradle.daemon=true -Dkotlin.compiler.execution.strategy=in-process -Dorg.gradle.workers.max=1'
+        required: false
+        description: Setting up common java options
 
 permissions:
   contents: read
@@ -56,6 +61,32 @@ jobs:
       additional_docker_tag: ${{ inputs.additional_docker_tag }}
       push: ${{ inputs.push || true }}
       docker_multiplatform: true
+  database_report:
+    runs-on: ubuntu-latest
+    #if: github.ref == 'refs/heads/main'
+    name: Generate Database Schema Report
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Start Required Services
+        run: docker compose up hmpps-auth auth-db postgresql-d
+      - name: Initialise DB
+        shell: bash
+        run: ./gradlew initialiseDatabase
+      - uses: ${{ inputs.java_options }}
+      - uses: ministryofjustice/hmpps-github-actions/.github/actions/database_schema_report@v2 # WORKFLOW_VERSION
+        with:
+          database_name: postgres
+          schema: public
+          user: admin
+          password: admin_password
   deploy_dev:
     name: Deploy to the development environment
     needs:
