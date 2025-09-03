@@ -63,8 +63,7 @@ jobs:
       docker_multiplatform: true
   database_report:
     runs-on: ubuntu-latest
-    #if: github.ref == 'refs/heads/main'
-    #if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     name: Generate Database Schema Report
     steps:
       - name: Checkout code
