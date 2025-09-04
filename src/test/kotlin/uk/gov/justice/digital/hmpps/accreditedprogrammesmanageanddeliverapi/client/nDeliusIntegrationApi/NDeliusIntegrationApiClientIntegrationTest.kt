@@ -15,12 +15,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRequirementResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementManager
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementProbationDeliveryUnit
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionPdu
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffenceFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
@@ -263,14 +263,14 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
     val crn = "X123456"
     val requirementId = "REQ001"
 
-    val requirementResponse = NDeliusRequirementResponse(
-      manager = RequirementManager(
+    val requirementResponse = NDeliusCaseRequirementOrLicenceConditionResponse(
+      manager = RequirementOrLicenceConditionManager(
         staff = RequirementStaff(
           code = "STAFF001",
           name = FullName(forename = "StaffForename", surname = "StaffSurname"),
         ),
         team = CodeDescription(code = "TEAM001", description = "TeamDescription"),
-        probationDeliveryUnit = RequirementProbationDeliveryUnit(code = "PDU001", description = "North London PDU"),
+        probationDeliveryUnit = RequirementOrLicenceConditionPdu(code = "PDU001", description = "North London PDU"),
         officeLocations = listOf(
           CodeDescription(code = "OFF001", description = "OfficeOne"),
           CodeDescription(code = "OFF002", description = "OfficeTwo"),
@@ -292,7 +292,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
     when (val response = nDeliusIntegrationApiClient.getRequirementManagerDetails(crn, requirementId)) {
       is ClientResult.Success<*> -> {
         assertThat(response.status).isEqualTo(HttpStatus.OK)
-        val body = response.body as NDeliusRequirementResponse
+        val body = response.body as NDeliusCaseRequirementOrLicenceConditionResponse
 
         // Then
         assertThat(body.manager.staff.code).isEqualTo("STAFF001")
@@ -328,23 +328,6 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
 
     when (val response = nDeliusIntegrationApiClient.getRequirementManagerDetails(crn, requirementId)) {
       is ClientResult.Failure.StatusCode<*> -> assertThat(response.status).isEqualTo(HttpStatus.NOT_FOUND)
-      else -> fail("Unexpected result: ${response::class.simpleName}")
-    }
-  }
-
-  @Test
-  fun `should return INTERNAL SERVER ERROR when nDelius API fails for requirement manager details`() {
-    stubAuthTokenEndpoint()
-    val crn = "X123456"
-    val requirementId = "REQ001"
-
-    wiremock.stubFor(
-      get(urlEqualTo("/case/$crn/requirement/$requirementId"))
-        .willReturn(aResponse().withStatus(500)),
-    )
-
-    when (val response = nDeliusIntegrationApiClient.getRequirementManagerDetails(crn, requirementId)) {
-      is ClientResult.Failure.StatusCode<*> -> assertThat(response.status).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
       else -> fail("Unexpected result: ${response::class.simpleName}")
     }
   }

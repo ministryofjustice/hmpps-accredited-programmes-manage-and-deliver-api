@@ -6,9 +6,9 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.BaseHMPPSClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegistrations
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRequirementResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
 
@@ -43,8 +43,27 @@ class NDeliusIntegrationApiClient(
     path = "/case/$crn/registrations"
   }
 
-  //  TODO: confirm what a `requirementId` is in relation to this model APG-1222 TJWC 2025-08-27
-  fun getRequirementManagerDetails(crn: String, requirementId: String) = getRequest<NDeliusRequirementResponse>(N_DELIUS_INTEGRATION_API) {
+  /**
+   * For a Referral which was created from a Requirement (not a Licence Condition) fetch details of the staff
+   * member associated with that Requirement.
+   * @see getLicenceConditionManagerDetails for Referrals created via Licence Condition
+   *
+   * @param crn - CRN for the Person on Probation
+   * @param requirementId - Unique identifier for the Requirement which triggered the creation of the Referral
+   */
+  fun getRequirementManagerDetails(crn: String, requirementId: String) = getRequest<NDeliusCaseRequirementOrLicenceConditionResponse>(N_DELIUS_INTEGRATION_API) {
     path = "/case/$crn/requirement/$requirementId"
+  }
+
+  /**
+   * For a Referral which was created from a Licence Condition (not a Referral) fetch details of the staff
+   * member associated with that Licence Condition.
+   * @see getRequirementManagerDetails for Referrals created via Requirement
+   *
+   * @param crn - CRN for the Person on Probation
+   * @param licenceConditionId - Unique identifier for the Licence Condition which triggered the creation of the Referral
+   */
+  fun getLicenceConditionManagerDetails(crn: String, licenceConditionId: String) = getRequest<NDeliusCaseRequirementOrLicenceConditionResponse>(N_DELIUS_INTEGRATION_API) {
+    path = "/case/$crn/licence-conditions/$licenceConditionId"
   }
 }
