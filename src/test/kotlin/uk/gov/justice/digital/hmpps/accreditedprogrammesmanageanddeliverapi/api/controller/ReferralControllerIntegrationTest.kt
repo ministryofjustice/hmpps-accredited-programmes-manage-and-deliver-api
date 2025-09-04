@@ -16,7 +16,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionPdu
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
@@ -473,5 +479,74 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       object : ParameterizedTypeReference<ErrorResponse>() {},
       HttpStatus.NOT_FOUND.value(),
     )
+  }
+
+  @Nested
+  @DisplayName("Get manager for referral endpoint")
+  inner class GetManagerForReferral {
+    @Test
+    fun `should return manager details when requirement is found`() {
+      val crn = "X123456"
+      val eventId = "REQ001"
+      val referralEntity = ReferralEntityFactory()
+        .withCrn(crn)
+        .withEventId(eventId)
+        .withSourcedFrom(null)
+        .withCohort(OffenceCohort.GENERAL_OFFENCE)
+        .produce()
+
+      testDataGenerator.createReferral(referralEntity)
+      val savedReferral = referralRepository.findByCrn(crn)[0]
+
+      // Use the existing wiremock mappings that return successful responses for requirement lookup
+      nDeliusApiStubs.stubAccessCheck(granted = true, crn)
+      val expectedManager = RequirementOrLicenceConditionManager(
+        staff = RequirementStaff(
+          code = "STAFF001",
+          name = FullName(forename = "Wiremocked-Sarah", surname = "Johnson"),
+        ),
+        team = CodeDescription(code = "TEAM001", description = "(Wiremocked) Community Offender Management Team"),
+        probationDeliveryUnit = RequirementOrLicenceConditionPdu(code = "PDU001", description = "(Wiremocked) London PDU"),
+        officeLocations = listOf(
+          CodeDescription(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
+          CodeDescription(code = "OFF002", description = "(Wiremocked) Victoria Office"),
+        ),
+      )
+
+      val requirementResponse = NDeliusCaseRequirementOrLicenceConditionResponse(manager = expectedManager)
+      nDeliusApiStubs.stubSuccessfulRequirementManagerResponse(savedReferral.id.toString(), "REQ001", requirementResponse)
+
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}/manager",
+        returnType = object : ParameterizedTypeReference<RequirementOrLicenceConditionManager>() {},
+      )
+
+      // Verify the response contains the mocked data from nDeliusMock.json
+      assertThat(response.staff.code).isEqualTo("STAFF001")
+      assertThat(response.staff.name.forename).isEqualTo("Wiremocked-Sarah")
+      assertThat(response.staff.name.surname).isEqualTo("Johnson")
+      assertThat(response.team.code).isEqualTo("TEAM001")
+      assertThat(response.team.description).isEqualTo("(Wiremocked) Community Offender Management Team")
+      assertThat(response.probationDeliveryUnit.code).isEqualTo("PDU001")
+      assertThat(response.probationDeliveryUnit.description).isEqualTo("(Wiremocked) London PDU")
+      assertThat(response.officeLocations).hasSize(2)
+      assertThat(response.officeLocations[0].code).isEqualTo("OFF001")
+      assertThat(response.officeLocations[0].description).isEqualTo("(Wiremocked) Waterloo Office")
+      assertThat(response.officeLocations[1].code).isEqualTo("OFF002")
+      assertThat(response.officeLocations[1].description).isEqualTo("(Wiremocked) Victoria Office")
+    }
+
+    @Test
+    fun `should return 404 when referral does not exist`() {
+      val nonExistentReferralId = UUID.randomUUID()
+
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/$nonExistentReferralId/manager",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+    }
   }
 }
