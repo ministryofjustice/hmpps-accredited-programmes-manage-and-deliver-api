@@ -130,8 +130,46 @@
                 "description": "(Wiremocked) Waterloo Office"
               },
               {
-                "code": "OFF002", 
+                "code": "OFF002",
                 "description": "(Wiremocked) Victoria Office"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/case/[^/]+/licence-conditions/[^/]+$"
+      },
+      "priority": 1,
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "manager": {
+            "staff": {
+              "name": {
+                "forename": "Wiremock Sam",
+                "surname": "Surname"
+              },
+              "code": "N03UATU"
+            },
+            "team": {
+              "code": "N03UAT",
+              "description": "Unallocated Team(N03)"
+            },
+            "probationDeliveryUnit": {
+              "code": "N03UAT",
+              "description": "Unallocated Level 2(N03)"
+            },
+            "officeLocations": [
+              {
+                "code": "N03ANPS",
+                "description": "All Location"
               }
             ]
           }
