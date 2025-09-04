@@ -19,6 +19,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toModel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.OffenceService
@@ -206,4 +207,45 @@ class ReferralController(
       ResponseEntity.ok(it.toModel())
     } ?: throw NotFoundException("Sentence information not found for crn ${referral.crn} not found")
   }
+
+  @Operation(
+    tags = ["Referrals"],
+    summary = "Retrieve the manager associated with the Licence Condition or Requirement associated with a referral",
+    operationId = "getManagerByReferralId",
+    description = """
+      Retrieves the manager (Probation Practitioner) associated with the Case, which is upstream of the 
+      Referral itself.  We use this to retrieve a list of Delivery Locations (Offices) within the same
+      PDU as a Referral itself.
+      """,
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Information about the Manager associated with a Referral",
+        content = [Content(schema = Schema(implementation = RequirementOrLicenceConditionManager::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden.  The client is not authorised to access this referral.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The referral does not exist",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/referral-details/{id}/manager")
+  fun getDeliveryLocationsByReferralId(
+    @Parameter(description = "The id (UUID) of a referral", required = true)
+    @PathVariable("id") id: UUID,
+  ): ResponseEntity<RequirementOrLicenceConditionManager> = referralService.attemptToFindManagerForReferral(id)?.let {
+    ResponseEntity.ok(it)
+  } ?: throw NotFoundException("Could not retrieve Delivery Locations for Referral with ID: $id")
 }
