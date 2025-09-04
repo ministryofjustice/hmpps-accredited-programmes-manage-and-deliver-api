@@ -1,7 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRelationships
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.Sara
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysSara
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomSentence
 import kotlin.random.Random
 
@@ -12,7 +12,7 @@ class OasysRelationshipsFactory {
   private var perpAgainstFamily: String? = listOf("YES", "NO", "DON'T_KNOW").random()
   private var perpAgainstPartner: String? = listOf("YES", "NO", "DON'T_KNOW").random()
   private var relIssuesDetails: String? = if (Random.nextBoolean()) randomSentence(wordRange = 5..15) else null
-  private var sara: Sara? = SaraFactory().produce()
+  private var sara: OasysSara? = SaraFactory().produce()
   private var emotionalCongruence: String? = listOf("HIGH", "MEDIUM", "LOW", "NOT_APPLICABLE").random()
   private var relCloseFamily: String? =
     listOf("VERY_CLOSE", "REASONABLY_CLOSE", "NOT_VERY_CLOSE", "NOT_CLOSE_AT_ALL").random()
@@ -28,7 +28,7 @@ class OasysRelationshipsFactory {
   fun withPerpAgainstFamily(perpAgainstFamily: String?) = apply { this.perpAgainstFamily = perpAgainstFamily }
   fun withPerpAgainstPartner(perpAgainstPartner: String?) = apply { this.perpAgainstPartner = perpAgainstPartner }
   fun withRelIssuesDetails(relIssuesDetails: String?) = apply { this.relIssuesDetails = relIssuesDetails }
-  fun withSara(sara: Sara?) = apply { this.sara = sara }
+  fun withSara(sara: OasysSara?) = apply { this.sara = sara }
   fun withEmotionalCongruence(emotionalCongruence: String?) = apply { this.emotionalCongruence = emotionalCongruence }
   fun withRelCloseFamily(relCloseFamily: String?) = apply { this.relCloseFamily = relCloseFamily }
   fun withPrevCloseRelationships(prevCloseRelationships: String?) = apply { this.prevCloseRelationships = prevCloseRelationships }
@@ -61,7 +61,7 @@ class SaraFactory {
 
   fun withImminentRiskOfViolenceTowardsOthers(imminentRiskOfViolenceTowardsOthers: String?) = apply { this.imminentRiskOfViolenceTowardsOthers = imminentRiskOfViolenceTowardsOthers }
 
-  fun produce() = Sara(
+  fun produce() = OasysSara(
     imminentRiskOfViolenceTowardsPartner = this.imminentRiskOfViolenceTowardsPartner,
     imminentRiskOfViolenceTowardsOthers = this.imminentRiskOfViolenceTowardsOthers,
   )
