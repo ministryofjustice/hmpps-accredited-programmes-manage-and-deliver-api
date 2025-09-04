@@ -16,7 +16,7 @@ data class OasysRelationships(
   val perpAgainstPartner: String?,
   val relIssuesDetails: String?,
   @JsonAlias("SARA")
-  val sara: Sara?,
+  val sara: OasysSara?,
   val emotionalCongruence: String?,
   val relCloseFamily: String?,
   val prevCloseRelationships: String?,
@@ -25,7 +25,7 @@ data class OasysRelationships(
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class Sara(
+data class OasysSara(
   @Schema(
     description = "Risk of violence towards a partner",
     example = "Low",

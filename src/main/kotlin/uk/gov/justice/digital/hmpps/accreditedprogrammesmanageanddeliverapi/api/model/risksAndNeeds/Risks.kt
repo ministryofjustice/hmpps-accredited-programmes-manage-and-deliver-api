@@ -9,7 +9,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRelationships
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRiskPredictorScores
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRoshSummary
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.Sara
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysSara
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.Score
 import java.time.LocalDate
 
@@ -26,7 +26,7 @@ data class Risks(
   @get:JsonProperty("offenderViolencePredictor") val offenderViolencePredictor: Score? = null,
 
   @Schema(description = "Spousal Assault Risk Assessment", required = false)
-  @get:JsonProperty("sara") val sara: Sara? = null,
+  @get:JsonProperty("sara") val sara: OasysSara? = null,
 
   @Schema(description = "Risk of Serious Recidivism", required = false)
   @get:JsonProperty("riskOfSeriousRecidivism") val riskOfSeriousRecidivism: RiskOfSeriousRecidivism? = null,
