@@ -9,6 +9,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralCaseListItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getReferralCaseListItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withAllowedCrns
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
@@ -16,6 +17,8 @@ import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 @Service
 class ReferralCaseListItemService(
   private val referralCaseListItemRepository: ReferralCaseListItemRepository,
+  private val referralRepository: ReferralRepository,
+  private val ldcNeedsService: LdcNeedsService,
   private val serviceUserService: ServiceUserService,
   private val authenticationHolder: HmppsAuthenticationHolder,
 ) {
@@ -34,12 +37,21 @@ class ReferralCaseListItemService(
     val allowedCrns = serviceUserService.getAccessibleOffenders(username, crns)
 
     if (allowedCrns.isEmpty()) {
-      return PageImpl(emptyList(), pageable, 0)
+
+    return PageImpl(emptyList(), pageable, 0)
     }
 
     val restrictedSpec = withAllowedCrns(baseSpec, allowedCrns)
     val pagedEntities = referralCaseListItemRepository.findAll(restrictedSpec, pageable)
 
-    return pagedEntities.map { it.toApi() }
+    return pagedEntities.map { entity ->
+      // Load the full ReferralEntity so we can resolve LDC needs consistently
+      val referral = referralRepository.findById(entity.referralId)
+        .orElseThrow { IllegalStateException("Referral not found for id=${entity.referralId}") }
+
+      val finalLdcNeeds = ldcNeedsService.resolveLdcNeeds(referral!!)
+
+      entity.toApi(finalLdcNeeds)
+    }
   }
 }
