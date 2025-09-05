@@ -10,6 +10,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.util.UUID
 
 class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase() {
@@ -32,6 +33,7 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
 
   @Test
   @Transactional
+  @WithMockAuthUser("PROB_PRACTITIONER_1")
   fun `should retrieve a delivery location preference for a referral`() {
     val referralEntity = ReferralEntityFactory().produce()
     testDataGenerator.createReferral(referralEntity)
@@ -39,7 +41,6 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
     val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
       id = UUID.randomUUID(),
       referral = referralEntity,
-      createdBy = "USER",
       offices = offices,
       locationsCannotAttendText = "Alex cannot attend any locations in Postcode beginning NE1.",
     )
@@ -52,5 +53,6 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
     assertThat(result.referral).isEqualTo(referralEntity)
     assertThat(result.offices.size).isEqualTo(offices.size)
     assertThat(result.createdAt).isNotNull
+    assertThat(result.createdBy).isEqualTo("PROB_PRACTITIONER_1")
   }
 }
