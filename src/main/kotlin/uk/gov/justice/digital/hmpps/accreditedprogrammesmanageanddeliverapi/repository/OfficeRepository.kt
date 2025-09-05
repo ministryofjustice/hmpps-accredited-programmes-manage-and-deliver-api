@@ -7,4 +7,5 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 @Repository
 interface OfficeRepository : JpaRepository<OfficeEntity, String> {
   fun findByPduId(pduId: Int): MutableList<OfficeEntity>
+  fun findAllByIdIn(officeIds: List<String>): MutableSet<OfficeEntity>
 }
