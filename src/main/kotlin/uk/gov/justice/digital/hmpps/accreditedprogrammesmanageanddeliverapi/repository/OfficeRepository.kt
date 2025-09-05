@@ -5,4 +5,6 @@ import org.springframework.stereotype.Repository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.OfficeEntity
 
 @Repository
-interface OfficeRepository : JpaRepository<OfficeEntity, String>
+interface OfficeRepository : JpaRepository<OfficeEntity, String> {
+  fun findByPduId(pduId: Int): MutableList<OfficeEntity>
+}
