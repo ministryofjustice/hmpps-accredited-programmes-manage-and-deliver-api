@@ -10,6 +10,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlPathTemplate
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegistrations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
@@ -141,6 +142,66 @@ class NDeliusApiStubs(
   ) {
     wiremock.stubFor(
       get(urlPathTemplate("/case/$nomisIdOrCrn/registrations"))
+        .willReturn(
+          aResponse()
+            .withStatus(404)
+            .withHeader("Content-Type", "application/json"),
+        ),
+    )
+  }
+
+  fun stubSuccessfulRequirementManagerResponse(
+    crn: String,
+    requirementId: String,
+    requirementResponse: NDeliusCaseRequirementOrLicenceConditionResponse,
+  ) {
+    wiremock.stubFor(
+      get(urlEqualTo("/case/$crn/requirement/$requirementId"))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(objectMapper.writeValueAsString(requirementResponse)),
+        ),
+    )
+  }
+
+  fun stubNotFoundRequirementManagerResponse(
+    crn: String,
+    requirementId: String,
+  ) {
+    wiremock.stubFor(
+      get(urlEqualTo("/case/$crn/requirement/$requirementId"))
+        .willReturn(
+          aResponse()
+            .withStatus(404)
+            .withHeader("Content-Type", "application/json"),
+        ),
+    )
+  }
+
+  fun stubSuccessfulLicenceConditionManagerResponse(
+    crn: String,
+    licenceConditionId: String,
+    licenceConditionResponse: NDeliusCaseRequirementOrLicenceConditionResponse,
+  ) {
+    wiremock.stubFor(
+      get(urlEqualTo("/case/$crn/licence-conditions/$licenceConditionId"))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(objectMapper.writeValueAsString(licenceConditionResponse)),
+        ),
+    )
+  }
+
+  fun stubNotFoundLicenceConditionManagerResponse(
+    crn: String,
+    licenceConditionId: String,
+  ) {
+    wiremock.stubFor(
+      get(urlEqualTo("/case/$crn/licence-conditions/$licenceConditionId"))
         .willReturn(
           aResponse()
             .withStatus(404)

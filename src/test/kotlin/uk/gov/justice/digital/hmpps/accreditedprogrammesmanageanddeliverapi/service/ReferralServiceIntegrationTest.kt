@@ -1,0 +1,213 @@
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
+
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.springframework.beans.factory.annotation.Autowired
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionPdu
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import java.util.UUID
+
+class ReferralServiceIntegrationTest : IntegrationTestBase() {
+
+  private lateinit var nDeliusApiStubs: NDeliusApiStubs
+
+  @Autowired
+  private lateinit var testDataGenerator: TestDataGenerator
+
+  @Autowired
+  private lateinit var testDataCleaner: TestDataCleaner
+
+  @Autowired
+  private lateinit var referralRepository: ReferralRepository
+
+  @Autowired
+  private lateinit var referralService: ReferralService
+
+  @BeforeEach
+  fun setup() {
+    testDataCleaner.cleanAllTables()
+    nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
+    stubAuthTokenEndpoint()
+  }
+
+  @Test
+  fun `attemptToFindManagerForReferral should return manager when requirement endpoint returns 200`() {
+    // Given
+    val crn = "X123456"
+    val eventId = "REQ001"
+    val referralEntity = ReferralEntityFactory()
+      .withCrn(crn)
+      .withEventId(eventId)
+      .withSourcedFrom(null)
+      .withCohort(OffenceCohort.GENERAL_OFFENCE)
+      .produce()
+
+    testDataGenerator.createReferral(referralEntity)
+    val savedReferral = referralRepository.findByCrn(crn)[0]
+    val referralId = savedReferral.id!!.toString()
+
+    val expectedManager = RequirementOrLicenceConditionManager(
+      staff = RequirementStaff(
+        code = "STAFF001",
+        name = FullName(forename = "Wiremocked-Sarah", surname = "Johnson"),
+      ),
+      team = CodeDescription(code = "TEAM001", description = "(Wiremocked) Community Offender Management Team"),
+      probationDeliveryUnit = RequirementOrLicenceConditionPdu(code = "PDU001", description = "(Wiremocked) London PDU"),
+      officeLocations = listOf(
+        CodeDescription(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
+        CodeDescription(code = "OFF002", description = "(Wiremocked) Victoria Office"),
+      ),
+    )
+
+    val requirementResponse = NDeliusCaseRequirementOrLicenceConditionResponse(manager = expectedManager)
+    nDeliusApiStubs.stubSuccessfulRequirementManagerResponse(referralId, eventId, requirementResponse)
+
+    // When
+    val result = referralService.attemptToFindManagerForReferral(UUID.fromString(referralId))
+
+    // Then
+    assertThat(result).isNotNull
+    assertThat(result!!.staff.code).isEqualTo("STAFF001")
+    assertThat(result.staff.name.forename).isEqualTo("Wiremocked-Sarah")
+    assertThat(result.staff.name.surname).isEqualTo("Johnson")
+    assertThat(result.team.code).isEqualTo("TEAM001")
+    assertThat(result.team.description).isEqualTo("(Wiremocked) Community Offender Management Team")
+    assertThat(result.probationDeliveryUnit.code).isEqualTo("PDU001")
+    assertThat(result.probationDeliveryUnit.description).isEqualTo("(Wiremocked) London PDU")
+    assertThat(result.officeLocations).hasSize(2)
+    assertThat(result.officeLocations[0].code).isEqualTo("OFF001")
+    assertThat(result.officeLocations[0].description).isEqualTo("(Wiremocked) Waterloo Office")
+    assertThat(result.officeLocations[1].code).isEqualTo("OFF002")
+    assertThat(result.officeLocations[1].description).isEqualTo("(Wiremocked) Victoria Office")
+  }
+
+  @Test
+  fun `attemptToFindManagerForReferral should return manager when requirement returns 404 but licence condition returns 200`() {
+    // Given
+    val crn = "X654321"
+    val eventId = "LC001"
+    val referralEntity = ReferralEntityFactory()
+      .withCrn(crn)
+      .withEventId(eventId)
+      .withSourcedFrom(null)
+      .withCohort(OffenceCohort.GENERAL_OFFENCE)
+      .produce()
+
+    testDataGenerator.createReferral(referralEntity)
+    val savedReferral = referralRepository.findByCrn(crn)[0]
+    val referralId = savedReferral.id!!.toString()
+
+    val expectedManager = RequirementOrLicenceConditionManager(
+      staff = RequirementStaff(
+        code = "N03UATU",
+        name = FullName(forename = "Wiremock Sam", surname = "Surname"),
+      ),
+      team = CodeDescription(code = "N03UAT", description = "Unallocated Team(N03)"),
+      probationDeliveryUnit = RequirementOrLicenceConditionPdu(code = "N03UAT", description = "Unallocated Level 2(N03)"),
+      officeLocations = listOf(
+        CodeDescription(code = "N03ANPS", description = "All Location"),
+      ),
+    )
+
+    val licenceConditionResponse = NDeliusCaseRequirementOrLicenceConditionResponse(manager = expectedManager)
+
+    // Stub requirement endpoint to return 404
+    nDeliusApiStubs.stubNotFoundRequirementManagerResponse(referralId, eventId)
+    // Stub licence condition endpoint to return 200
+    nDeliusApiStubs.stubSuccessfulLicenceConditionManagerResponse(referralId, eventId, licenceConditionResponse)
+
+    // When
+    val result = referralService.attemptToFindManagerForReferral(UUID.fromString(referralId))
+
+    // Then
+    assertThat(result).isNotNull
+    assertThat(result!!.staff.code).isEqualTo("N03UATU")
+    assertThat(result.staff.name.forename).isEqualTo("Wiremock Sam")
+    assertThat(result.staff.name.surname).isEqualTo("Surname")
+    assertThat(result.team.code).isEqualTo("N03UAT")
+    assertThat(result.team.description).isEqualTo("Unallocated Team(N03)")
+    assertThat(result.probationDeliveryUnit.code).isEqualTo("N03UAT")
+    assertThat(result.probationDeliveryUnit.description).isEqualTo("Unallocated Level 2(N03)")
+    assertThat(result.officeLocations).hasSize(1)
+    assertThat(result.officeLocations[0].code).isEqualTo("N03ANPS")
+    assertThat(result.officeLocations[0].description).isEqualTo("All Location")
+  }
+
+  @Test
+  fun `attemptToFindManagerForReferral should return null when both requirement and licence condition return 404`() {
+    // Given
+    val crn = "X999999"
+    val eventId = "UNKNOWN001"
+    val referralEntity = ReferralEntityFactory()
+      .withCrn(crn)
+      .withEventId(eventId)
+      .withSourcedFrom(null)
+      .withCohort(OffenceCohort.GENERAL_OFFENCE)
+      .produce()
+
+    testDataGenerator.createReferral(referralEntity)
+    val savedReferral = referralRepository.findByCrn(crn)[0]
+    val referralId = savedReferral.id!!.toString()
+
+    // Stub both endpoints to return 404
+    nDeliusApiStubs.stubNotFoundRequirementManagerResponse(referralId, eventId)
+    nDeliusApiStubs.stubNotFoundLicenceConditionManagerResponse(referralId, eventId)
+
+    // When
+    val result = referralService.attemptToFindManagerForReferral(savedReferral.id!!)
+
+    // Then
+    assertThat(result).isNull()
+  }
+
+  @Test
+  fun `attemptToFindManagerForReferral should throw NotFoundException when referral does not exist`() {
+    // Given
+    val nonExistentReferralId = UUID.randomUUID()
+
+    // When & Then
+    val exception = assertThrows<NotFoundException> {
+      referralService.attemptToFindManagerForReferral(nonExistentReferralId)
+    }
+
+    assertThat(exception.message).isEqualTo("No Referral found for id: $nonExistentReferralId")
+  }
+
+  @Test
+  fun `attemptToFindManagerForReferral should throw NotFoundException when eventId is null or empty`() {
+    // Given
+    val crn = "X888888"
+    val referralEntity = ReferralEntityFactory()
+      .withCrn(crn)
+      .withEventId("") // Empty eventId
+      .withSourcedFrom(null)
+      .withCohort(OffenceCohort.GENERAL_OFFENCE)
+      .produce()
+
+    testDataGenerator.createReferral(referralEntity)
+
+    val savedReferral = referralRepository.findByCrn(crn)[0]
+    val referralId = savedReferral.id!!.toString()
+
+    // When & Then
+    val exception = assertThrows<NotFoundException> {
+      referralService.attemptToFindManagerForReferral(savedReferral.id!!)
+    }
+
+    assertThat(exception.message).isEqualTo("Referral with id: $referralId exists, but has no eventId")
+  }
+}
