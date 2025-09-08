@@ -1,14 +1,14 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity
 
 import jakarta.annotation.Nullable
+import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EntityListeners
 import jakarta.persistence.FetchType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
-import jakarta.persistence.JoinTable
-import jakarta.persistence.ManyToMany
+import jakarta.persistence.OneToMany
 import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
@@ -20,6 +20,11 @@ import org.springframework.security.core.context.SecurityContextHolder
 import java.time.LocalDateTime
 import java.util.UUID
 
+/**
+ * The DeliveryLocationPreferences records a Person on Probation's preferences (or requirements) for where they
+ * can/not attend an Accredited Programme.
+ * The list of places they can attend is the PreferredDeliveryLocations, which represents
+ */
 @Entity
 @Table(name = "delivery_location_preferences")
 @EntityListeners(AuditingEntityListener::class)
@@ -51,4 +56,17 @@ class DeliveryLocationPreferenceEntity(
   @Nullable
   @Column(name = "locations_cannot_attend_text")
   val locationsCannotAttendText: String? = null,
-)
+
+  @NotNull
+  @OneToMany(
+    fetch = FetchType.LAZY,
+    cascade = [CascadeType.ALL],
+    mappedBy = "deliveryLocationPreferences",
+  )
+  var preferredDeliveryLocations: MutableSet<PreferredDeliveryLocation> = mutableSetOf(),
+) {
+  fun addPreferredDeliveryLocations(vararg locationsToAdd: PreferredDeliveryLocation) {
+    preferredDeliveryLocations.addAll(locationsToAdd)
+    locationsToAdd.forEach { l -> l.deliveryLocationPreferences = this }
+  }
+}

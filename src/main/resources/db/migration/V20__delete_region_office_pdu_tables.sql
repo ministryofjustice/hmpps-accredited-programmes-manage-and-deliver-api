@@ -1,4 +1,4 @@
-drop table delivery_location_office_mapping;
-drop table office;
-drop table pdu;
-drop table region;
+DROP TABLE delivery_location_office_mapping;
+DROP TABLE office;
+DROP TABLE pdu;
+DROP TABLE region;
