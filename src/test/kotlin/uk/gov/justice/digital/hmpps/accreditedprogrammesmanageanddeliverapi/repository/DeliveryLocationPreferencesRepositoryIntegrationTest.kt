@@ -18,9 +18,6 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
   private lateinit var repository: DeliveryLocationPreferenceRepository
 
   @Autowired
-  private lateinit var officeRepository: OfficeRepository
-
-  @Autowired
   private lateinit var testDataGenerator: TestDataGenerator
 
   @Autowired
@@ -37,11 +34,9 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
   fun `should retrieve a delivery location preference for a referral`() {
     val referralEntity = ReferralEntityFactory().produce()
     testDataGenerator.createReferral(referralEntity)
-    val offices = officeRepository.findByPduId(1).toMutableSet()
     val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
       id = UUID.randomUUID(),
       referral = referralEntity,
-      offices = offices,
       locationsCannotAttendText = "Alex cannot attend any locations in Postcode beginning NE1.",
     )
 
@@ -51,7 +46,6 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
     val result = repository.findByReferralId(referralEntity.id!!).first()
 
     assertThat(result.referral).isEqualTo(referralEntity)
-    assertThat(result.offices.size).isEqualTo(offices.size)
     assertThat(result.createdAt).isNotNull
     assertThat(result.createdBy).isEqualTo("PROB_PRACTITIONER_1")
   }

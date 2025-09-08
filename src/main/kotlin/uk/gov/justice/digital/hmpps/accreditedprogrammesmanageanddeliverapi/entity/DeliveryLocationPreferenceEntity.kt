@@ -44,19 +44,11 @@ class DeliveryLocationPreferenceEntity(
   val createdAt: LocalDateTime? = LocalDateTime.now(),
 
   @NotNull
-  @Column("last_updated_at")
+  @Column(name = "last_updated_at")
   @LastModifiedDate
   val lastUpdatedAt: LocalDateTime? = LocalDateTime.now(),
 
   @Nullable
   @Column(name = "locations_cannot_attend_text")
   val locationsCannotAttendText: String? = null,
-
-  @ManyToMany
-  @JoinTable(
-    name = "delivery_location_office_mapping",
-    joinColumns = [JoinColumn(name = "delivery_location_id")],
-    inverseJoinColumns = [JoinColumn(name = "office_id")],
-  )
-  val offices: MutableSet<OfficeEntity> = mutableSetOf(),
 )
