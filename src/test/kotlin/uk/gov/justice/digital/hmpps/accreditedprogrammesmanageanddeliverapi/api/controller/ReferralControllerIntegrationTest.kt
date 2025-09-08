@@ -463,15 +463,45 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
     }
+
+    @Test
+    fun `should return 404 when referral is not found`() {
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${UUID.randomUUID()}/sentence-information",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+    }
   }
 
-  @Test
-  fun `should return 404 when referral is not found`() {
-    performRequestAndExpectStatus(
-      httpMethod = HttpMethod.GET,
-      uri = "/referral-details/${UUID.randomUUID()}/sentence-information",
-      object : ParameterizedTypeReference<ErrorResponse>() {},
-      HttpStatus.NOT_FOUND.value(),
-    )
+  @Nested
+  @DisplayName("Update cohort of referral")
+  inner class UpdateCohort {
+    @Test
+    fun `should update referral with cohort information`() {
+      val referralEntity = ReferralEntityFactory().withCohort(OffenceCohort.GENERAL_OFFENCE).produce()
+      testDataGenerator.createReferral(referralEntity)
+
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.PUT,
+        uri = "/referral/${referralEntity.id}/update-cohort",
+        body = OffenceCohort.SEXUAL_OFFENCE,
+        expectedResponseStatus = HttpStatus.NO_CONTENT.value(),
+      )
+
+      val referralById = testDataGenerator.getReferralById(referralEntity.id!!)
+      assertThat(referralById.cohort.name).isEqualTo(OffenceCohort.SEXUAL_OFFENCE.name)
+    }
+
+    @Test
+    fun `should return 404 when referral is not found`() {
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.PUT,
+        uri = "/referral/${UUID.randomUUID()}/update-cohort",
+        body = OffenceCohort.SEXUAL_OFFENCE,
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+    }
   }
 }
