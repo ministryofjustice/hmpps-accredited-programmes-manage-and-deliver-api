@@ -18,8 +18,8 @@ class NDeliusPersonalDetailsFactory {
   private var age: String = randomNumber().toString()
   private var sex: CodeDescription = createCodeDescription()
   private var ethnicity: CodeDescription? = createCodeDescription()
-  private var probationPractitioner: ProbationPractitioner = createProbationPractitioner()
-  private var probationDeliveryUnit: CodeDescription = createCodeDescription()
+  private var probationPractitioner: ProbationPractitioner? = createProbationPractitioner()
+  private var probationDeliveryUnit: CodeDescription? = createCodeDescription()
 
   fun createProbationPractitioner(): ProbationPractitioner = ProbationPractitioner(randomFullName(), randomUppercaseString(2), randomSentence())
 
@@ -27,6 +27,13 @@ class NDeliusPersonalDetailsFactory {
   fun createCodeDescription(): CodeDescription = CodeDescription(randomUppercaseString(2), randomSentence())
   fun withDateOfBirth(dateOfBirth: LocalDate?) = apply { this.dateOfBirth = dateOfBirth.toString() }
   fun withName(fullName: FullName) = apply { this.name = fullName }
+  fun withCrn(crn: String) = apply { this.crn = crn }
+  fun withSex(sex: CodeDescription) = apply { this.sex = sex }
+  fun withProbationPractitioner(probationPractitioner: ProbationPractitioner?) = apply { this.probationPractitioner = probationPractitioner }
+
+  fun withProbationDeliveryUnit(probationDeliveryUnit: CodeDescription?) = apply { this.probationDeliveryUnit = probationDeliveryUnit }
+
+  fun withAge(age: String) = apply { this.age = age }
 
   fun produce() = NDeliusPersonalDetails(
     name = this.name,

@@ -1,11 +1,11 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity
 
 import jakarta.annotation.Nullable
-import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EntityListeners
 import jakarta.persistence.FetchType
+import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.OneToMany
@@ -17,6 +17,7 @@ import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import org.springframework.security.core.context.SecurityContextHolder
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.deliveryLocationPreferences.CreateDeliveryLocationPreferences
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -29,10 +30,9 @@ import java.util.UUID
 @Table(name = "delivery_location_preferences")
 @EntityListeners(AuditingEntityListener::class)
 class DeliveryLocationPreferenceEntity(
-  @NotNull
   @Id
-  @Column(name = "id")
-  val id: UUID,
+  @GeneratedValue
+  val id: UUID? = null,
 
   @NotNull
   @OneToOne(fetch = FetchType.LAZY)
@@ -58,15 +58,16 @@ class DeliveryLocationPreferenceEntity(
   val locationsCannotAttendText: String? = null,
 
   @NotNull
-  @OneToMany(
-    fetch = FetchType.LAZY,
-    cascade = [CascadeType.ALL],
-    mappedBy = "deliveryLocationPreferences",
-  )
-  var preferredDeliveryLocations: MutableSet<PreferredDeliveryLocation> = mutableSetOf(),
-) {
-  fun addPreferredDeliveryLocations(vararg locationsToAdd: PreferredDeliveryLocation) {
-    preferredDeliveryLocations.addAll(locationsToAdd)
-    locationsToAdd.forEach { l -> l.deliveryLocationPreferences = this }
-  }
-}
+  @OneToMany(fetch = FetchType.LAZY)
+  @JoinColumn(name = "delivery_location_preferences_id")
+  var preferredDeliveryLocations: MutableSet<PreferredDeliveryLocationEntity> = mutableSetOf(),
+)
+
+fun CreateDeliveryLocationPreferences.toEntity(
+  referral: ReferralEntity,
+  deliveryLocations: MutableSet<PreferredDeliveryLocationEntity>,
+) = DeliveryLocationPreferenceEntity(
+  referral = referral,
+  locationsCannotAttendText = cannotAttendText,
+  preferredDeliveryLocations = deliveryLocations,
+)

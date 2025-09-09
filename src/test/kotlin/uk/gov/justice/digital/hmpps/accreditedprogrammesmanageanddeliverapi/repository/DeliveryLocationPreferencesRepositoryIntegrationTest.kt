@@ -9,12 +9,11 @@ import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocation
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnit
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnitEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
-import java.util.UUID
 
 class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase() {
   @Autowired
@@ -43,8 +42,7 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
     val referralEntity = ReferralEntityFactory().produce()
     testDataGenerator.createReferral(referralEntity)
 
-    val pdu = PreferredDeliveryLocationProbationDeliveryUnit(
-      id = UUID.randomUUID(),
+    val pdu = PreferredDeliveryLocationProbationDeliveryUnitEntity(
       deliusCode = "THE-PDU-CODE",
       deliusDescription = "The PDU Description",
     )
@@ -52,24 +50,22 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
       pdu,
     )
 
-    val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
-      id = UUID.randomUUID(),
-      referral = referralEntity,
-      locationsCannotAttendText = "The DeliveryLocationPreferences Cannot Attend Text",
-    )
-
-    val preferredDeliveryLocation = PreferredDeliveryLocation(
-      id = UUID.randomUUID(),
+    val preferredDeliveryLocation = PreferredDeliveryLocationEntity(
       deliusCode = "THE-PDL-CODE",
       deliusDescription = "The PreferredDeliveryLocation Description",
       preferredDeliveryLocationProbationDeliveryUnit = pdu,
     )
     testDataGenerator.createPreferredDeliveryLocation(preferredDeliveryLocation)
 
-    deliveryLocationPreference.addPreferredDeliveryLocations(preferredDeliveryLocation)
+    val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
+      referral = referralEntity,
+      locationsCannotAttendText = "The DeliveryLocationPreferences Cannot Attend Text",
+      preferredDeliveryLocations = mutableSetOf(preferredDeliveryLocation),
+    )
+
     testDataGenerator.createDeliveryLocationPreference(deliveryLocationPreference)
 
-    val foundDeliveryLocationPreferences = repository.findByReferralId(referralEntity.id!!).first()
+    val foundDeliveryLocationPreferences = repository.findByReferralId(referralEntity.id!!)!!
 
     assertThat(foundDeliveryLocationPreferences.referral).isEqualTo(referralEntity)
     assertThat(foundDeliveryLocationPreferences.createdAt).isNotNull
