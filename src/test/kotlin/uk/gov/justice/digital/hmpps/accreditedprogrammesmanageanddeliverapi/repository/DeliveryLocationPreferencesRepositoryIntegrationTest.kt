@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.rep
 
 import jakarta.transaction.Transactional
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -27,6 +28,11 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
 
   @BeforeEach
   override fun beforeEach() {
+    testDataCleaner.cleanAllTables()
+  }
+
+  @AfterEach
+  fun afterEach() {
     testDataCleaner.cleanAllTables()
   }
 

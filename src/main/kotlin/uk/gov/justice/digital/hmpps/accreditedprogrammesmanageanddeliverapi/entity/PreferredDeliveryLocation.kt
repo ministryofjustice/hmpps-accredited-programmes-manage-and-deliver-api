@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity
 
-import jakarta.annotation.Nonnull
-import jakarta.persistence.CascadeType
+import jakarta.annotation.Nullable
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -34,13 +33,13 @@ class PreferredDeliveryLocation(
   @Column(name = "delius_description")
   val deliusDescription: String,
 
-  @Nonnull
+  @Nullable
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "delivery_location_preferences_id")
   var deliveryLocationPreferences: DeliveryLocationPreferenceEntity? = null,
 
   @NotNull
-  @ManyToOne(fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(
     name = "preferred_delivery_location_probation_delivery_unit_id",
     referencedColumnName = "id",
