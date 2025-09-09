@@ -1,0 +1,7 @@
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository
+
+import org.springframework.data.repository.Repository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnit
+import java.util.UUID
+
+interface PreferredDeliveryLocationProbationDeliveryUnitRepository : Repository<PreferredDeliveryLocationProbationDeliveryUnit, UUID>

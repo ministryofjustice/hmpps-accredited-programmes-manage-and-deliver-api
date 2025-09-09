@@ -1,5 +1,8 @@
 # Geographic Reference Data Implementation
 
+> [!WARNING]
+> This data has since been removed, please see [the relevant .md file](./2025-09-09-removing-region-pdu-office-reference-data.md) for more information. 
+
 This work was done by wilson <thomaswilsonxyz>, for [APG-1213](https://dsdmoj.atlassian.net/browse/APG-1213), using reference data [provided by the BAs](https://justiceuk-my.sharepoint.com/:x:/g/personal/lauren_darby1_justice_gov_uk/EW62LeWVZE5NnXnLLSrNpswBmmNe9rNHkzFBR02RMjXxpw?e=EWZkRE) as the basis for work.
 
 ## Data Model Hierarchy
