@@ -217,9 +217,8 @@ class ReferralController(
     description = """""",
     responses = [
       ApiResponse(
-        responseCode = "200",
-        description = "Information about the sentence",
-        content = [Content(schema = Schema(implementation = SentenceInformation::class))],
+        responseCode = "204",
+        description = "No content - cohort updated successfully",
       ),
       ApiResponse(
         responseCode = "401",
@@ -241,7 +240,7 @@ class ReferralController(
   )
   @PutMapping("/referral/{id}/update-cohort", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun updateCohortForReferral(
-    @Parameter(description = "The id (UUID) of a referral", required = true)
+    @Parameter(description = "The id (UUID) of a referral allowed values SEXUAL_OFFENCE or GENERAL_OFFENCE", required = true)
     @PathVariable("id") id: UUID,
     @Parameter(
       description = "Cohort to update the referral with",
