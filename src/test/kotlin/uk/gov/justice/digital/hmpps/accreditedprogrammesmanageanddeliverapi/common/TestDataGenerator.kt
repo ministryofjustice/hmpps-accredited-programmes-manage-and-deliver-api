@@ -5,8 +5,12 @@ import jakarta.persistence.PersistenceContext
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocation
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import java.util.UUID
 
 @Transactional
 @Component
@@ -18,6 +22,23 @@ class TestDataGenerator {
   fun createReferral(referralEntity: ReferralEntity) {
     entityManager.persist(referralEntity)
   }
+
+  fun createPreferredDeliveryLocationProbationDeliveryUnit(preferredDeliveryLocationProbationDeliveryUnit: PreferredDeliveryLocationProbationDeliveryUnit) {
+    entityManager.persist(preferredDeliveryLocationProbationDeliveryUnit)
+  }
+
+  fun createPreferredDeliveryLocation(preferredDeliveryLocation: PreferredDeliveryLocation) {
+    entityManager.persist(preferredDeliveryLocation)
+  }
+
+  fun createDeliveryLocationPreference(deliveryLocationPreferenceEntity: DeliveryLocationPreferenceEntity) {
+    entityManager.persist(deliveryLocationPreferenceEntity)
+  }
+
+  fun getReferralById(id: UUID): ReferralEntity = entityManager
+    .createNativeQuery("SELECT * FROM referral r WHERE r.id = :referralId", ReferralEntity::class.java)
+    .setParameter("referralId", id)
+    .singleResult as ReferralEntity
 
   fun createAvailability(availabilityEntity: AvailabilityEntity) {
     entityManager.persist(availabilityEntity)

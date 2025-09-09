@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "9.0.0"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "9.0.1"
   kotlin("plugin.spring") version "2.2.10"
   kotlin("plugin.jpa") version "2.2.10"
   kotlin("plugin.allopen") version "2.2.10"
@@ -18,7 +18,7 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-web")
   implementation("org.springframework.boot:spring-boot-starter-security")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
-  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.12")
+  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13")
 
   // AWS
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:5.4.10")
@@ -41,7 +41,7 @@ dependencies {
   testImplementation("org.testcontainers:junit-jupiter:1.21.3")
   testImplementation("org.awaitility:awaitility-kotlin")
   testImplementation("com.ninja-squad:springmockk:4.0.2")
-  testImplementation("io.kotest:kotest-assertions-core:6.0.2")
+  testImplementation("io.kotest:kotest-assertions-core:6.0.3")
   testImplementation("io.mockk:mockk:1.14.5")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")

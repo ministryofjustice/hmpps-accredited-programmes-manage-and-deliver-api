@@ -4,6 +4,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.FindAndReferInterventionApiClient
@@ -63,4 +64,9 @@ open class ReferralService(
   }
 
   fun getReferralById(id: UUID): ReferralEntity? = referralRepository.findByIdOrNull(id)
+
+  fun updateCohort(referral: ReferralEntity, cohort: OffenceCohort): ReferralEntity {
+    referral.cohort = cohort
+    return referralRepository.save(referral)
+  }
 }

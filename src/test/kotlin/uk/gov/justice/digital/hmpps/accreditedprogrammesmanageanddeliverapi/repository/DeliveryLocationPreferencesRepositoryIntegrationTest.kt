@@ -1,0 +1,92 @@
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository
+
+import jakarta.transaction.Transactional
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocation
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnit
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
+import java.util.UUID
+
+class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase() {
+  @Autowired
+  private lateinit var repository: DeliveryLocationPreferenceRepository
+
+  @Autowired
+  private lateinit var testDataGenerator: TestDataGenerator
+
+  @Autowired
+  private lateinit var testDataCleaner: TestDataCleaner
+
+  @BeforeEach
+  override fun beforeEach() {
+    testDataCleaner.cleanAllTables()
+  }
+
+  @AfterEach
+  fun afterEach() {
+    testDataCleaner.cleanAllTables()
+  }
+
+  @Test
+  @Transactional
+  @WithMockAuthUser("PROB_PRACTITIONER_1")
+  fun `should retrieve a delivery location preference for a referral`() {
+    val referralEntity = ReferralEntityFactory().produce()
+    testDataGenerator.createReferral(referralEntity)
+
+    val preferredDeliveryLocationProbationDeliveryUnit = PreferredDeliveryLocationProbationDeliveryUnit(
+      id = UUID.randomUUID(),
+      deliusCode = "THE-PDU-CODE",
+      deliusDescription = "The PDU Description",
+    )
+    testDataGenerator.createPreferredDeliveryLocationProbationDeliveryUnit(
+      preferredDeliveryLocationProbationDeliveryUnit,
+    )
+
+    val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
+      id = UUID.randomUUID(),
+      referral = referralEntity,
+      locationsCannotAttendText = "The DeliveryLocationPreferences Cannot Attend Text",
+    )
+
+    val preferredDeliveryLocation = PreferredDeliveryLocation(
+      id = UUID.randomUUID(),
+      deliusCode = "THE-PDL-CODE",
+      deliusDescription = "The PreferredDeliveryLocation Description",
+      preferredDeliveryLocationProbationDeliveryUnit = preferredDeliveryLocationProbationDeliveryUnit,
+    )
+    testDataGenerator.createPreferredDeliveryLocation(preferredDeliveryLocation)
+
+    deliveryLocationPreference.addPreferredDeliveryLocations(preferredDeliveryLocation)
+    testDataGenerator.createDeliveryLocationPreference(deliveryLocationPreference)
+
+    val foundDeliveryLocationPreferences = repository.findByReferralId(referralEntity.id!!).first()
+
+    assertThat(foundDeliveryLocationPreferences.referral).isEqualTo(referralEntity)
+    assertThat(foundDeliveryLocationPreferences.createdAt).isNotNull
+    assertThat(foundDeliveryLocationPreferences.createdBy).isEqualTo("PROB_PRACTITIONER_1")
+
+    assertThat(foundDeliveryLocationPreferences.preferredDeliveryLocations.size).isEqualTo(1)
+
+    val firstDeliveryLocation = foundDeliveryLocationPreferences.preferredDeliveryLocations.first()
+    assertThat(firstDeliveryLocation).isNotNull()
+    assertThat(firstDeliveryLocation.deliusCode).isEqualTo("THE-PDL-CODE")
+    assertThat(firstDeliveryLocation.deliusDescription).isEqualTo("The PreferredDeliveryLocation Description")
+
+    assertThat(firstDeliveryLocation.preferredDeliveryLocationProbationDeliveryUnit).isNotNull()
+
+    val pduForDeliveryLocation = firstDeliveryLocation.preferredDeliveryLocationProbationDeliveryUnit
+    assertThat(pduForDeliveryLocation).isNotNull
+    assertThat(pduForDeliveryLocation.deliusCode).isEqualTo("THE-PDU-CODE")
+    assertThat(pduForDeliveryLocation.deliusDescription).isEqualTo("The PDU Description")
+  }
+}
