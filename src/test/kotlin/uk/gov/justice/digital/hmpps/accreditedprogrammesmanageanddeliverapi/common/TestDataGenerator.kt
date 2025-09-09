@@ -8,6 +8,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import java.util.UUID
 
 @Transactional
 @Component
@@ -23,6 +24,11 @@ class TestDataGenerator {
   fun createDeliveryLocationPreference(deliveryLocationPreferenceEntity: DeliveryLocationPreferenceEntity) {
     entityManager.persist(deliveryLocationPreferenceEntity)
   }
+
+  fun getReferralById(id: UUID): ReferralEntity = entityManager
+    .createNativeQuery("SELECT * FROM referral r WHERE r.id = :referralId", ReferralEntity::class.java)
+    .setParameter("referralId", id)
+    .singleResult as ReferralEntity
 
   fun createAvailability(availabilityEntity: AvailabilityEntity) {
     entityManager.persist(availabilityEntity)
