@@ -12,8 +12,11 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
@@ -206,6 +209,48 @@ class ReferralController(
     return sentenceService.getSentenceInformationByIdentifier(referral.crn, referral.eventNumber).let {
       ResponseEntity.ok(it.toModel())
     } ?: throw NotFoundException("Sentence information not found for crn ${referral.crn} not found")
+  }
+
+  @Operation(
+    tags = ["Referrals"],
+    summary = "Update cohort information for a referral",
+    operationId = "updateCohortForReferral",
+    description = """""",
+    responses = [
+      ApiResponse(
+        responseCode = "204",
+        description = "No content - cohort updated successfully",
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden.  The client is not authorised to access this referral.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The referral does not exist",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PutMapping("/referral/{id}/update-cohort", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun updateCohortForReferral(
+    @Parameter(description = "The id (UUID) of a referral allowed values SEXUAL_OFFENCE or GENERAL_OFFENCE", required = true)
+    @PathVariable("id") id: UUID,
+    @Parameter(
+      description = "Cohort to update the referral with",
+      required = true,
+    ) @RequestBody cohort: OffenceCohort,
+  ): ResponseEntity<Void> {
+    val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
+    referralService.updateCohort(referral, cohort)
+    return ResponseEntity.noContent().build()
   }
 
   @Operation(

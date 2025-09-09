@@ -1,0 +1,29 @@
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity
+
+import jakarta.persistence.CascadeType
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.FetchType
+import jakarta.persistence.Id
+import jakarta.persistence.OneToMany
+import jakarta.persistence.Table
+import java.util.UUID
+
+@Entity
+@Table(name = "preferred_delivery_location_probation_delivery_unit")
+class PreferredDeliveryLocationProbationDeliveryUnit(
+  @Id
+  @Column(name = "id")
+  val id: UUID,
+  @Column(name = "delius_code")
+  val deliusCode: String,
+  @Column(name = "delius_description")
+  val deliusDescription: String,
+
+  @OneToMany(
+    mappedBy = "preferredDeliveryLocationProbationDeliveryUnit",
+    cascade = [CascadeType.ALL],
+    fetch = FetchType.LAZY,
+  )
+  val preferredDeliveryLocations: MutableList<PreferredDeliveryLocation> = mutableListOf(),
+)

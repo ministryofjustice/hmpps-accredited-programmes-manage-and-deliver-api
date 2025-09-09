@@ -110,7 +110,7 @@ required for this secret.
 There is a guide on how to configure your postman client to be able to call endpoints in the Test environments
 (Dev) [here](https://dsdmoj.atlassian.net/wiki/spaces/IC/pages/5784142235/Connecting+Postman+to+test+environments).
 
-### Authorization
+### OAuth (local)
 
 The service uses an OAuth 2.0 setup managed through the HMPPS Auth project. To call any endpoints locally a bearer token
 must be generated. This can be done through calling the auth endpoint in the HMPPS-auth service.
@@ -118,13 +118,34 @@ must be generated. This can be done through calling the auth endpoint in the HMP
 | Variable         | Value                                                     |
 |------------------|-----------------------------------------------------------|
 | Grant type       | Client credentials                                        |
-| Access token URL | http://hmpps-auth:9090/auth/oauth/token                   |
+| Access token URL | http://localhost:8090/auth/oauth/token                    |
 | Client ID        | hmpps-accredited-programmes-manage-and-deliver-api-client |
 | Client Secret    | clientsecret                                              |
 | Scope            | Read                                                      |
 
 The values for `ClientId` and `Client Secret` are the local values. These are the same credentials that the UI uses to
 call this service.
+
+### OAuth (dev)
+
+If you need to create an OAuth token against the dev environment, you'll need to retrieve some values from the kubernetes environment.
+
+You can retrieve them with the following:
+
+```shell
+$ kubectl get secret hmpps-accredited-programmes-manage-and-deliver-api-client-creds -n hmpps-manage-and-deliver-accredited-programmes-dev -o go-template='{{range $k,$v := .data}}{{"### "}}{{$k}}{{"\n"}}{{$v|base64decode}}{{"\n\n"}}{{end}}'
+```
+
+And then using the following values in Postman to retrieve a token:
+
+| Variable         | Value                                                             |
+|------------------|-------------------------------------------------------------------|
+| Grant type       | Client credentials                                                |
+| Access token URL | https://sign-in-dev.hmpps.service.justice.gov.uk/auth/oauth/token |
+| Client ID        | `$CLIENT_ID_FROM_KUBERNETES`                                      |
+| Client Secret    | `$CLIENT_SECRET_FROM_KUBERNETES`                                  |
+| Scope            | Read                                                              |
+
 
 ## Health
 
