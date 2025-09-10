@@ -43,13 +43,13 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
     val referralEntity = ReferralEntityFactory().produce()
     testDataGenerator.createReferral(referralEntity)
 
-    val preferredDeliveryLocationProbationDeliveryUnit = PreferredDeliveryLocationProbationDeliveryUnit(
+    val pdu = PreferredDeliveryLocationProbationDeliveryUnit(
       id = UUID.randomUUID(),
       deliusCode = "THE-PDU-CODE",
       deliusDescription = "The PDU Description",
     )
     testDataGenerator.createPreferredDeliveryLocationProbationDeliveryUnit(
-      preferredDeliveryLocationProbationDeliveryUnit,
+      pdu,
     )
 
     val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
@@ -62,7 +62,7 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
       id = UUID.randomUUID(),
       deliusCode = "THE-PDL-CODE",
       deliusDescription = "The PreferredDeliveryLocation Description",
-      preferredDeliveryLocationProbationDeliveryUnit = preferredDeliveryLocationProbationDeliveryUnit,
+      preferredDeliveryLocationProbationDeliveryUnit = pdu,
     )
     testDataGenerator.createPreferredDeliveryLocation(preferredDeliveryLocation)
 
