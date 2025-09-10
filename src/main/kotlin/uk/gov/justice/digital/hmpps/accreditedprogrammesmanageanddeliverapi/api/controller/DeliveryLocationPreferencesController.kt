@@ -72,12 +72,12 @@ class DeliveryLocationPreferencesController(
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @GetMapping(
-    "/bff/referral-delivery-location-preferences-form/{referral_id}",
+    "/bff/referral-delivery-location-preferences-form/{referralId}",
     produces = [MediaType.APPLICATION_JSON_VALUE],
   )
   fun getDeliveryLocationPreferencesFormData(
     @Parameter(description = "The id (UUID) of a referral", required = true)
-    @PathVariable("referral_id") referralId: UUID,
+    @PathVariable("referralId") referralId: UUID,
   ): ResponseEntity<DeliveryLocationPreferencesFormData> {
     val formData = deliveryLocationPreferencesService.getDeliveryLocationPreferencesFormDataForReferral(referralId)
     return ResponseEntity.ok(formData)
