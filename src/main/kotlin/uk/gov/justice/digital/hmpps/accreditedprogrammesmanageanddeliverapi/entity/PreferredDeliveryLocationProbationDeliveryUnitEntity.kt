@@ -4,6 +4,7 @@ import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
+import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
@@ -13,8 +14,9 @@ import java.util.UUID
 @Table(name = "preferred_delivery_location_probation_delivery_unit")
 class PreferredDeliveryLocationProbationDeliveryUnitEntity(
   @Id
+  @GeneratedValue
   @Column(name = "id")
-  val id: UUID,
+  val id: UUID? = null,
   @Column(name = "delius_code")
   val deliusCode: String,
   @Column(name = "delius_description")

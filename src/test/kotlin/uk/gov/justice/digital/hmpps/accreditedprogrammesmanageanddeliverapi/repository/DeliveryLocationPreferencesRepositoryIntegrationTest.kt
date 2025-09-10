@@ -14,7 +14,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
-import java.util.UUID
 
 class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase() {
   @Autowired
@@ -44,25 +43,22 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
     testDataGenerator.createReferral(referralEntity)
 
     val preferredDeliveryLocationProbationDeliveryUnit = PreferredDeliveryLocationProbationDeliveryUnitEntity(
-      id = UUID.randomUUID(),
       deliusCode = "THE-PDU-CODE",
       deliusDescription = "The PDU Description",
     )
     testDataGenerator.createPreferredDeliveryLocationProbationDeliveryUnit(
-      pdu,
+      preferredDeliveryLocationProbationDeliveryUnit,
     )
 
     val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
-      id = null,
       referral = referralEntity,
       locationsCannotAttendText = "The DeliveryLocationPreferences Cannot Attend Text",
     )
 
     val preferredDeliveryLocation = PreferredDeliveryLocationEntity(
-      id = UUID.randomUUID(),
       deliusCode = "THE-PDL-CODE",
       deliusDescription = "The PreferredDeliveryLocation Description",
-      preferredDeliveryLocationProbationDeliveryUnit = pdu,
+      preferredDeliveryLocationProbationDeliveryUnit = preferredDeliveryLocationProbationDeliveryUnit,
     )
     testDataGenerator.createPreferredDeliveryLocation(preferredDeliveryLocation)
 

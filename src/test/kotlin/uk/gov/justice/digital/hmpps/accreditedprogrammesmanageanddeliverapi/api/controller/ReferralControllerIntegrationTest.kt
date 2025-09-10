@@ -599,26 +599,23 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       val probationDeliveryUnit = PreferredDeliveryLocationProbationDeliveryUnitEntity(
-        id = UUID.randomUUID(),
+        id = null,
         deliusCode = "PDU001",
         deliusDescription = "Test PDU",
       )
       testDataGenerator.createPreferredDeliveryLocationProbationDeliveryUnit(probationDeliveryUnit)
 
       val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
-        id = null,
         referral = savedReferral,
         locationsCannotAttendText = "Cannot attend evening sessions",
       )
 
       val preferredLocation1 = PreferredDeliveryLocationEntity(
-        id = UUID.randomUUID(),
         deliusCode = "LOC001",
         deliusDescription = "London Office",
         preferredDeliveryLocationProbationDeliveryUnit = probationDeliveryUnit,
       )
       val preferredLocation2 = PreferredDeliveryLocationEntity(
-        id = UUID.randomUUID(),
         deliusCode = "LOC002",
         deliusDescription = "Manchester Office",
         preferredDeliveryLocationProbationDeliveryUnit = probationDeliveryUnit,
@@ -648,7 +645,6 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       val probationDeliveryUnit = PreferredDeliveryLocationProbationDeliveryUnitEntity(
-        id = UUID.randomUUID(),
         deliusCode = "PDU001",
         deliusDescription = "Test PDU",
       )

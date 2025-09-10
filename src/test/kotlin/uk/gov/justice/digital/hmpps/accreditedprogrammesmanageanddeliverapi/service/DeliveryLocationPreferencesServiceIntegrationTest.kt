@@ -21,8 +21,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocation
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnit
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnitEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -71,22 +71,18 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     testDataGenerator.createReferral(referralEntity)
 
     // Create existing delivery location preferences
-    val pdu = PreferredDeliveryLocationProbationDeliveryUnit(
-      id = UUID.randomUUID(),
+    val pdu = PreferredDeliveryLocationProbationDeliveryUnitEntity(
       deliusCode = "PDU001",
       deliusDescription = "Test PDU",
     )
     testDataGenerator.createPreferredDeliveryLocationProbationDeliveryUnit(pdu)
 
     val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
-      id = UUID.randomUUID(),
       referral = referralEntity,
       locationsCannotAttendText = "The cannot attend locations free text value",
     )
 
-    val pdlId = UUID.randomUUID()
-    val preferredLocation = PreferredDeliveryLocation(
-      id = pdlId,
+    val preferredLocation = PreferredDeliveryLocationEntity(
       deliusCode = "OFFICE-001",
       deliusDescription = "Test Office",
       preferredDeliveryLocationProbationDeliveryUnit = pdu,
