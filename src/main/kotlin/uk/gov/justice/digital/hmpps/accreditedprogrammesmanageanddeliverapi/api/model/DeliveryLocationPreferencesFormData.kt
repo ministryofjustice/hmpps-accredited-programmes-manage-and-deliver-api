@@ -53,7 +53,10 @@ data class DeliveryLocationOption(
 
 @Schema(description = "Probation Delivery Unit with available delivery locations")
 data class ProbationDeliveryUnit(
-  @field:Schema(description = "PDU name", example = "East Sussex")
+  @field:Schema(description = "PDU Code (sourced from nDelius)", example = "N54DUR")
+  val code: String,
+
+  @field:Schema(description = "PDU name", example = "County Durham and Darlington")
   val name: String,
 
   @field:Schema(description = "Available delivery locations within this PDU")

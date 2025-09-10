@@ -173,12 +173,14 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     assertThat(existingPrefs.cannotAttendLocations).isEqualTo("The cannot attend locations free text value")
 
     assertThat(result.primaryPdu.name).isEqualTo("Primary PDU")
+    assertThat(result.primaryPdu.code).isEqualTo("PDU001")
     assertThat(result.primaryPdu.deliveryLocations).hasSize(2)
     assertThat(result.primaryPdu.deliveryLocations[0].value).isEqualTo("OFFICE-001")
     assertThat(result.primaryPdu.deliveryLocations[0].label).isEqualTo("Brighton and Hove: Probation Office")
 
     assertThat(result.otherPdusInSameRegion).hasSize(1)
     assertThat(result.otherPdusInSameRegion[0].name).isEqualTo("West Sussex")
+    assertThat(result.otherPdusInSameRegion[0].code).isEqualTo("PDU002")
     assertThat(result.otherPdusInSameRegion[0].deliveryLocations).hasSize(1)
     assertThat(result.otherPdusInSameRegion[0].deliveryLocations[0].value).isEqualTo("OFFICE-003")
   }
