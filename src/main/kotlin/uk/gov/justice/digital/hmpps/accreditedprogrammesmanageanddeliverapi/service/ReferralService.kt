@@ -11,9 +11,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.FindAndReferReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.toReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnitWithOfficeLocations
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.time.LocalDateTime
@@ -68,51 +71,113 @@ open class ReferralService(
 
   fun getReferralById(id: UUID): ReferralEntity? = referralRepository.findByIdOrNull(id)
 
-  fun attemptToFindManagerForReferral(referralId: UUID): RequirementOrLicenceConditionManager? {
+  private fun getReferralAndEnsureSourcedFrom(referralId: UUID): ReferralEntity {
+    log.info("getReferralAndEnsureSourcedFrom for $referralId")
     val referral = getReferralById(referralId)
 
     if (referral == null) {
+      log.error("Referral with id $referralId does not exist in database")
       throw NotFoundException("No Referral found for id: $referralId")
     } else if (referral.eventId.isNullOrEmpty()) {
+      log.error("Referral with id $referralId does not have an eventId")
       throw NotFoundException("Referral with id: $referralId exists, but has no eventId")
     }
 
-    val referralIdString = referral.id.toString()
-    val eventId: String = referral.eventId!!
+    if (referral.sourcedFrom !== null) {
+      log.info("Referral with id $referralId exists in database, and already has a sourcedFrom")
+      return referral
+    }
 
-    log.info("Attempting to retrieve a Requirement for Referral with ID: $referralId...")
-    // TODO: Check to see if the sourced_from field is set, then make an informed opinion based on that --TJWC 2025-09-04
-
-    when (val response = ndeliusIntegrationApiClient.getRequirementManagerDetails(referralIdString, eventId)) {
+    when (ndeliusIntegrationApiClient.getRequirementManagerDetails(referral.crn, referral.eventId!!)) {
       is ClientResult.Success -> {
-        log.info("...success! Found a Requirement for referral with ID: $referralId")
-        return response.body.manager
+        log.info("Referral with id ${referral.id} appears to be sourced from a Requirement, saving Entity and continuing...")
+        referral.sourcedFrom = ReferralEntitySourcedFrom.REQUIREMENT
+        referralRepository.save(referral)
+        return referral
       }
-      is ClientResult.Failure.StatusCode -> {
-        if (response.status.value() == 404) {
-          log.info("...could not find Requirement for Referral with ID: $referralId")
+
+      else -> {
+        log.info("Referral does not appear to come from Requirement, going to attempt to find a Licence Condition")
+      }
+    }
+
+    when (ndeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, referral.eventId!!)) {
+      is ClientResult.Success -> {
+        log.info("Referral with id ${referral.id} appears to be sourced from a LicenceCondition, saving Entity and continuing...")
+        referral.sourcedFrom = ReferralEntitySourcedFrom.LICENSE_CONDITION
+        referralRepository.save(referral)
+        return referral
+      }
+
+      else -> {
+        log.info("Referral does not appear to come from Licence Condition, going to return null")
+        throw NotFoundException("No LicenceCondition or Requirement found with id ${referral.eventId}")
+      }
+    }
+  }
+
+  private fun getRetRequirementOrLicenceCondition(referral: ReferralEntity): NDeliusCaseRequirementOrLicenceConditionResponse? {
+    val referralIdString = referral.id.toString()
+    val referralSourcedFrom = referral.sourcedFrom!!
+    val eventId = referral.eventId!!
+
+    if (referralSourcedFrom == ReferralEntitySourcedFrom.REQUIREMENT) {
+      when (
+        val response =
+          ndeliusIntegrationApiClient.getRequirementManagerDetails(referral.crn, eventId)
+      ) {
+        is ClientResult.Success -> {
+          log.info("...success! Found a Requirement for referral with ID: $referralIdString")
+          return response.body
+        }
+
+        else -> {
+          log.error("...failure, encountered an error while fetching Requirement for Referral with ID: $referralIdString from nDelius Integration API")
+          throw NotFoundException("Could not fetch a Requirement with ID $referralIdString, for Referral with ID: $referralIdString")
         }
       }
-      else -> {
-        log.error("...failure, encountered an error while fetching Requirement for Referral with ID: $referralId from nDelius Integration API")
-        throw NotFoundException("Could not fetch a Requirement with ID $eventId, for Referral with ID: $referralId")
+    } else if (referralSourcedFrom == ReferralEntitySourcedFrom.LICENSE_CONDITION) {
+      log.info("...attempting to retrieve a Licence Condition for Referral with ID: $referralIdString")
+
+      when (val response = ndeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, eventId)) {
+        is ClientResult.Success -> {
+          log.info("...success! Found a Licence Condition for referral with ID: $referralIdString")
+          return response.body
+        }
+
+        else -> {
+          log.error("...failure, neither a Requirement or Licence Condition returned for Referral with ID $referralIdString")
+          return null
+        }
       }
     }
 
-    log.info("...attempting to retrieve a Licence Condition for Referral with ID: $referralId")
-
-    when (val response = ndeliusIntegrationApiClient.getLicenceConditionManagerDetails(referralIdString, eventId)) {
-      is ClientResult.Success -> {
-        log.info("...success! Found a Licence Condition for referral with ID: $referralId")
-        return response.body.manager
-      }
-      else -> {
-        log.error("...failure, neither a Requirement or Licence Condition returned for Referral with ID $referralId")
-        return null
-      }
-    }
-
+    log.info("Referral is neither sourced from Requirement or Licence Condition")
     return null
+  }
+
+  fun attemptToFindManagerForReferral(referralId: UUID): RequirementOrLicenceConditionManager? {
+    val referral = this.getReferralAndEnsureSourcedFrom(referralId)
+
+    val managerResponse = this.getRetRequirementOrLicenceCondition(referral)
+
+    if (managerResponse == null) {
+      return null
+    }
+
+    return managerResponse.manager
+  }
+
+  fun attemptToFindNonPrimaryPdusForReferal(referralId: UUID): List<NDeliusApiProbationDeliveryUnitWithOfficeLocations>? {
+    val referral = this.getReferralAndEnsureSourcedFrom(referralId)
+
+    val ndeliusApiResponse = this.getRetRequirementOrLicenceCondition(referral)
+
+    if (ndeliusApiResponse == null) {
+      return null
+    }
+
+    return ndeliusApiResponse.probationDeliveryUnits
   }
 
   fun updateCohort(referral: ReferralEntity, cohort: OffenceCohort): ReferralEntity {

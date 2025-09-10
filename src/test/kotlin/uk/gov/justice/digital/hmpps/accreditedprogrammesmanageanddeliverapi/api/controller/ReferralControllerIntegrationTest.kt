@@ -545,7 +545,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       )
 
       val requirementResponse = NDeliusCaseRequirementOrLicenceConditionResponse(manager = expectedManager)
-      nDeliusApiStubs.stubSuccessfulRequirementManagerResponse(savedReferral.id.toString(), "REQ001", requirementResponse)
+      nDeliusApiStubs.stubSuccessfulRequirementManagerResponse("X123456", "REQ001", requirementResponse)
 
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
