@@ -18,10 +18,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiOfficeLocation
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionPdu
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
@@ -536,10 +537,10 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
           name = FullName(forename = "Wiremocked-Sarah", surname = "Johnson"),
         ),
         team = CodeDescription(code = "TEAM001", description = "(Wiremocked) Community Offender Management Team"),
-        probationDeliveryUnit = RequirementOrLicenceConditionPdu(code = "PDU001", description = "(Wiremocked) London PDU"),
+        probationDeliveryUnit = NDeliusApiProbationDeliveryUnit(code = "PDU001", description = "(Wiremocked) London PDU"),
         officeLocations = listOf(
-          CodeDescription(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
-          CodeDescription(code = "OFF002", description = "(Wiremocked) Victoria Office"),
+          NDeliusApiOfficeLocation(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
+          NDeliusApiOfficeLocation(code = "OFF002", description = "(Wiremocked) Victoria Office"),
         ),
       )
 

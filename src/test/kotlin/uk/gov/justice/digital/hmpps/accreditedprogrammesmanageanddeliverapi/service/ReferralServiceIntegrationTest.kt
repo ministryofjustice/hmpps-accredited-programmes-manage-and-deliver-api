@@ -8,9 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiOfficeLocation
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionPdu
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
@@ -66,10 +67,10 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         name = FullName(forename = "Wiremocked-Sarah", surname = "Johnson"),
       ),
       team = CodeDescription(code = "TEAM001", description = "(Wiremocked) Community Offender Management Team"),
-      probationDeliveryUnit = RequirementOrLicenceConditionPdu(code = "PDU001", description = "(Wiremocked) London PDU"),
+      probationDeliveryUnit = NDeliusApiProbationDeliveryUnit(code = "PDU001", description = "(Wiremocked) London PDU"),
       officeLocations = listOf(
-        CodeDescription(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
-        CodeDescription(code = "OFF002", description = "(Wiremocked) Victoria Office"),
+        NDeliusApiOfficeLocation(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
+        NDeliusApiOfficeLocation(code = "OFF002", description = "(Wiremocked) Victoria Office"),
       ),
     )
 
@@ -117,9 +118,9 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         name = FullName(forename = "Wiremock Sam", surname = "Surname"),
       ),
       team = CodeDescription(code = "N03UAT", description = "Unallocated Team(N03)"),
-      probationDeliveryUnit = RequirementOrLicenceConditionPdu(code = "N03UAT", description = "Unallocated Level 2(N03)"),
+      probationDeliveryUnit = NDeliusApiProbationDeliveryUnit(code = "N03UAT", description = "Unallocated Level 2(N03)"),
       officeLocations = listOf(
-        CodeDescription(code = "N03ANPS", description = "All Location"),
+        NDeliusApiOfficeLocation(code = "N03ANPS", description = "All Location"),
       ),
     )
 

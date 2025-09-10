@@ -15,12 +15,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiOfficeLocation
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnit
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnitWithOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionPdu
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffenceFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
@@ -270,10 +272,27 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
           name = FullName(forename = "StaffForename", surname = "StaffSurname"),
         ),
         team = CodeDescription(code = "TEAM001", description = "TeamDescription"),
-        probationDeliveryUnit = RequirementOrLicenceConditionPdu(code = "PDU001", description = "North London PDU"),
+        probationDeliveryUnit = NDeliusApiProbationDeliveryUnit(code = "PDU001", description = "North London PDU"),
         officeLocations = listOf(
-          CodeDescription(code = "OFF001", description = "OfficeOne"),
-          CodeDescription(code = "OFF002", description = "OfficeTwo"),
+          NDeliusApiOfficeLocation(code = "OFF001", description = "OfficeOne"),
+          NDeliusApiOfficeLocation(code = "OFF002", description = "OfficeTwo"),
+        ),
+      ),
+      probationDeliveryUnits = listOf(
+        NDeliusApiProbationDeliveryUnitWithOfficeLocations(
+          code = "NON-PRIMARY-PDU-CODE",
+          description = "Non-Primary PDU Description",
+          officeLocations = listOf(
+            NDeliusApiOfficeLocation(code = "LOC001", description = "Location 001"),
+            NDeliusApiOfficeLocation(code = "LOC002", description = "Location 002"),
+          ),
+        ),
+        NDeliusApiProbationDeliveryUnitWithOfficeLocations(
+          code = "PDU002",
+          description = "NON-PRIMARY-PDU-CODE-2",
+          officeLocations = listOf(
+            NDeliusApiOfficeLocation(code = "LOC003", description = "Location 003"),
+          ),
         ),
       ),
     )
@@ -310,6 +329,21 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
         assertThat(body.manager.officeLocations[0].description).isEqualTo("OfficeOne")
         assertThat(body.manager.officeLocations[1].code).isEqualTo("OFF002")
         assertThat(body.manager.officeLocations[1].description).isEqualTo("OfficeTwo")
+
+        assertThat(body.probationDeliveryUnits).hasSize(2)
+        assertThat(body.probationDeliveryUnits[0].code).isEqualTo("NON-PRIMARY-PDU-CODE")
+        assertThat(body.probationDeliveryUnits[0].description).isEqualTo("Non-Primary PDU Description")
+        assertThat(body.probationDeliveryUnits[0].officeLocations).hasSize(2)
+        assertThat(body.probationDeliveryUnits[0].officeLocations[0].code).isEqualTo("LOC001")
+        assertThat(body.probationDeliveryUnits[0].officeLocations[0].description).isEqualTo("Location 001")
+        assertThat(body.probationDeliveryUnits[0].officeLocations[1].code).isEqualTo("LOC002")
+        assertThat(body.probationDeliveryUnits[0].officeLocations[1].description).isEqualTo("Location 002")
+
+        assertThat(body.probationDeliveryUnits[1].code).isEqualTo("PDU002")
+        assertThat(body.probationDeliveryUnits[1].description).isEqualTo("NON-PRIMARY-PDU-CODE-2")
+        assertThat(body.probationDeliveryUnits[1].officeLocations).hasSize(1)
+        assertThat(body.probationDeliveryUnits[1].officeLocations[0].code).isEqualTo("LOC003")
+        assertThat(body.probationDeliveryUnits[1].officeLocations[0].description).isEqualTo("Location 003")
       }
       else -> fail("Unexpected result: ${response::class.simpleName}")
     }

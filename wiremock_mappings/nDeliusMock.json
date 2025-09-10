@@ -134,7 +134,33 @@
                 "description": "(Wiremocked) Victoria Office"
               }
             ]
-          }
+          },
+          "probationDeliveryUnits": [
+            {
+              "code": "PDU001",
+              "description": "(Wiremocked) Non-Primary London North PDU",
+              "officeLocations": [
+                {
+                  "code": "LOC001",
+                  "description": "(Wiremocked) Camden Office"
+                },
+                {
+                  "code": "LOC002",
+                  "description": "(Wiremocked) Islington Office"
+                }
+              ]
+            },
+            {
+              "code": "PDU002",
+              "description": "(Wiremocked) London South PDU",
+              "officeLocations": [
+                {
+                  "code": "LOC003",
+                  "description": "(Wiremocked) Southwark Office"
+                }
+              ]
+            }
+          ]
         }
       }
     },
@@ -172,7 +198,23 @@
                 "description": "All Location"
               }
             ]
-          }
+          },
+          "probationDeliveryUnits": [
+            {
+              "code": "PDU003",
+              "description": "(Wiremocked) Manchester Central PDU",
+              "officeLocations": [
+                {
+                  "code": "LOC004",
+                  "description": "(Wiremocked) City Centre Office"
+                },
+                {
+                  "code": "LOC005",
+                  "description": "(Wiremocked) Old Trafford Office"
+                }
+              ]
+            }
+          ]
         }
       }
     },
