@@ -22,7 +22,7 @@ import java.util.UUID
  */
 @Entity
 @Table(name = "preferred_delivery_location")
-class PreferredDeliveryLocation(
+class PreferredDeliveryLocationEntity(
   @Id
   @Column(name = "id")
   val id: UUID,
@@ -43,5 +43,5 @@ class PreferredDeliveryLocation(
   @JoinColumn(
     name = "preferred_delivery_location_probation_delivery_unit_id",
     referencedColumnName = "id",
-  ) var preferredDeliveryLocationProbationDeliveryUnit: PreferredDeliveryLocationProbationDeliveryUnit,
+  ) var preferredDeliveryLocationProbationDeliveryUnit: PreferredDeliveryLocationProbationDeliveryUnitEntity,
 )

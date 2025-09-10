@@ -10,6 +10,7 @@ import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DeliveryLocationPreferences
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceHistory
@@ -27,6 +28,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnitEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffenceFactory
@@ -34,6 +38,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.PreferredDeliveryLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.Utils.createCodeDescriptionList
 import java.time.LocalDate
@@ -42,6 +47,8 @@ import java.util.UUID
 
 class ReferralControllerIntegrationTest : IntegrationTestBase() {
 
+  @Autowired
+  private lateinit var preferredDeliveryLocationRepository: PreferredDeliveryLocationRepository
   private lateinit var nDeliusApiStubs: NDeliusApiStubs
 
   @Autowired
@@ -574,6 +581,124 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
         uri = "/referral-details/$nonExistentReferralId/manager",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+    }
+  }
+
+  @Nested
+  @DisplayName("Get preferred delivery locations for referral endpoint")
+  inner class GetPreferredDeliveryLocations {
+    @Test
+    fun `should return preferred delivery locations when referral has delivery location preferences`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+
+      val probationDeliveryUnit = PreferredDeliveryLocationProbationDeliveryUnitEntity(
+        id = UUID.randomUUID(),
+        deliusCode = "PDU001",
+        deliusDescription = "Test PDU",
+      )
+      testDataGenerator.createPreferredDeliveryLocationProbationDeliveryUnit(probationDeliveryUnit)
+
+      val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
+        id = null,
+        referral = savedReferral,
+        locationsCannotAttendText = "Cannot attend evening sessions",
+      )
+
+      val preferredLocation1 = PreferredDeliveryLocationEntity(
+        id = UUID.randomUUID(),
+        deliusCode = "LOC001",
+        deliusDescription = "London Office",
+        preferredDeliveryLocationProbationDeliveryUnit = probationDeliveryUnit,
+      )
+      val preferredLocation2 = PreferredDeliveryLocationEntity(
+        id = UUID.randomUUID(),
+        deliusCode = "LOC002",
+        deliusDescription = "Manchester Office",
+        preferredDeliveryLocationProbationDeliveryUnit = probationDeliveryUnit,
+      )
+
+      deliveryLocationPreference.addPreferredDeliveryLocations(preferredLocation1, preferredLocation2)
+      testDataGenerator.createDeliveryLocationPreference(deliveryLocationPreference)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}/delivery-location-preferences",
+        returnType = object : ParameterizedTypeReference<DeliveryLocationPreferences>() {},
+      )
+
+      // Then
+      assertThat(response.canAttendLocations).hasSize(2)
+      assertThat(response.canAttendLocations).containsExactlyInAnyOrder("London Office", "Manchester Office")
+      assertThat(response.cannotAttendLocations).isEqualTo("Cannot attend evening sessions")
+    }
+
+    @Test
+    fun `should return empty DeliveryLocationPreferences when referral has no delivery location preferences`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+
+      val probationDeliveryUnit = PreferredDeliveryLocationProbationDeliveryUnitEntity(
+        id = UUID.randomUUID(),
+        deliusCode = "PDU001",
+        deliusDescription = "Test PDU",
+      )
+      testDataGenerator.createPreferredDeliveryLocationProbationDeliveryUnit(probationDeliveryUnit)
+
+      val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
+        id = null,
+        referral = savedReferral,
+      )
+
+      testDataGenerator.createDeliveryLocationPreference(deliveryLocationPreference)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}/delivery-location-preferences",
+        returnType = object : ParameterizedTypeReference<DeliveryLocationPreferences>() {},
+      )
+
+      // Then
+      assertThat(response.canAttendLocations).isEmpty()
+      assertThat(response.cannotAttendLocations).isNull()
+      assertThat(response.createdBy).isEqualTo("UNKNOWN_USER")
+      assertThat(response.lastUpdatedAt).isNotNull
+    }
+
+    @Test
+    fun `should return 404 when referral does not exist`() {
+      // Given
+      val nonExistentReferralId = UUID.randomUUID()
+
+      // When
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/$nonExistentReferralId/delivery-location-preferences",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+    }
+
+    @Test
+    fun `should return 404 when delivery location details do not exist for referral`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referralEntity)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+
+      // When
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}/delivery-location-preferences",
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.NOT_FOUND.value(),
       )

@@ -11,7 +11,7 @@ import java.util.UUID
 
 @Entity
 @Table(name = "preferred_delivery_location_probation_delivery_unit")
-class PreferredDeliveryLocationProbationDeliveryUnit(
+class PreferredDeliveryLocationProbationDeliveryUnitEntity(
   @Id
   @Column(name = "id")
   val id: UUID,
@@ -25,5 +25,5 @@ class PreferredDeliveryLocationProbationDeliveryUnit(
     cascade = [CascadeType.ALL],
     fetch = FetchType.LAZY,
   )
-  val preferredDeliveryLocations: MutableList<PreferredDeliveryLocation> = mutableListOf(),
+  val preferredDeliveryLocations: MutableList<PreferredDeliveryLocationEntity> = mutableListOf(),
 )
