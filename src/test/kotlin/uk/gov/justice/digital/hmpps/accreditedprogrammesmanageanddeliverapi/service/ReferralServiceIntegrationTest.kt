@@ -75,7 +75,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     )
 
     val requirementResponse = NDeliusCaseRequirementOrLicenceConditionResponse(manager = expectedManager)
-    nDeliusApiStubs.stubSuccessfulRequirementManagerResponse(referralId, eventId, requirementResponse)
+    nDeliusApiStubs.stubSuccessfulRequirementManagerResponse("X123456", eventId, requirementResponse)
 
     // When
     val result = referralService.attemptToFindManagerForReferral(UUID.fromString(referralId))
@@ -127,9 +127,9 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     val licenceConditionResponse = NDeliusCaseRequirementOrLicenceConditionResponse(manager = expectedManager)
 
     // Stub requirement endpoint to return 404
-    nDeliusApiStubs.stubNotFoundRequirementManagerResponse(referralId, eventId)
+    nDeliusApiStubs.stubNotFoundRequirementManagerResponse("X654321", eventId)
     // Stub licence condition endpoint to return 200
-    nDeliusApiStubs.stubSuccessfulLicenceConditionManagerResponse(referralId, eventId, licenceConditionResponse)
+    nDeliusApiStubs.stubSuccessfulLicenceConditionManagerResponse("X654321", eventId, licenceConditionResponse)
 
     // When
     val result = referralService.attemptToFindManagerForReferral(UUID.fromString(referralId))
@@ -162,17 +162,17 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
     testDataGenerator.createReferral(referralEntity)
     val savedReferral = referralRepository.findByCrn(crn)[0]
-    val referralId = savedReferral.id!!.toString()
 
     // Stub both endpoints to return 404
-    nDeliusApiStubs.stubNotFoundRequirementManagerResponse(referralId, eventId)
-    nDeliusApiStubs.stubNotFoundLicenceConditionManagerResponse(referralId, eventId)
+    nDeliusApiStubs.stubNotFoundRequirementManagerResponse("X999999", eventId)
+    nDeliusApiStubs.stubNotFoundLicenceConditionManagerResponse("X999999", eventId)
 
     // When
-    val result = referralService.attemptToFindManagerForReferral(savedReferral.id!!)
+    val exception = assertThrows<NotFoundException> {
+      referralService.attemptToFindManagerForReferral(savedReferral.id!!)
+    }
 
-    // Then
-    assertThat(result).isNull()
+    assertThat(exception.message).isEqualTo("No LicenceCondition or Requirement found with id UNKNOWN001")
   }
 
   @Test
