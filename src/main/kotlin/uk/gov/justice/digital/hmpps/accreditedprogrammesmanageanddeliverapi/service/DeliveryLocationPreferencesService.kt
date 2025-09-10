@@ -59,6 +59,7 @@ class DeliveryLocationPreferencesService(
       },
       primaryPdu = ProbationDeliveryUnit(
         name = managerDetails.probationDeliveryUnit.description,
+        code = managerDetails.probationDeliveryUnit.code,
         deliveryLocations = managerDetails.officeLocations.map { office ->
           DeliveryLocationOption(
             value = office.code,
@@ -74,6 +75,7 @@ class DeliveryLocationPreferencesService(
 
   private fun NDeliusApiProbationDeliveryUnitWithOfficeLocations.toProbationDeliveryUnit(): ProbationDeliveryUnit = ProbationDeliveryUnit(
     name = this.description,
+    code = this.code,
     deliveryLocations = this.officeLocations.map { office ->
       DeliveryLocationOption(
         value = office.code,
