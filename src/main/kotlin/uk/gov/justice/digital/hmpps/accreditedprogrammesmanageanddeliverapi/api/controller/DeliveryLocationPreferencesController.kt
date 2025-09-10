@@ -71,7 +71,10 @@ class DeliveryLocationPreferencesController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/referral-delivery-location-preferences-form/{referral_id}", produces = [MediaType.APPLICATION_JSON_VALUE])
+  @GetMapping(
+    "/bff/referral-delivery-location-preferences-form/{referral_id}",
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+  )
   fun getDeliveryLocationPreferencesFormData(
     @Parameter(description = "The id (UUID) of a referral", required = true)
     @PathVariable("referral_id") referralId: UUID,
@@ -88,7 +91,7 @@ class DeliveryLocationPreferencesController(
     responses =
     [
       ApiResponse(
-        responseCode = "200",
+        responseCode = "201",
         description = "Delivery Location Preferences created",
         content = [Content(schema = Schema(implementation = Void::class))],
       ),
