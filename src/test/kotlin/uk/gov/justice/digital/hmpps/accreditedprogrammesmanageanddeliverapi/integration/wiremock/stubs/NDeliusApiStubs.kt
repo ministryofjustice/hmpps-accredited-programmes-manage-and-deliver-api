@@ -65,6 +65,21 @@ class NDeliusApiStubs(
     )
   }
 
+  fun stubPersonalDetailsResponseForCrn(
+    crn: String,
+    personalDetails: NDeliusPersonalDetails,
+  ) {
+    wiremock.stubFor(
+      get(urlEqualTo("/case/$crn/personal-details"))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(objectMapper.writeValueAsString(personalDetails)),
+        ),
+    )
+  }
+
   fun stubSuccessfulOffencesResponse(
     crn: String,
     eventNumber: String,
