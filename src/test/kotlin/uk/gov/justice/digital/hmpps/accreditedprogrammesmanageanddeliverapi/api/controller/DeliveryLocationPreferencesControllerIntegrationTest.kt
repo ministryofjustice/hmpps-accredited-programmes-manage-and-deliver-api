@@ -42,7 +42,7 @@ class DeliveryLocationPreferencesControllerIntegrationTest : IntegrationTestBase
   }
 
   @Test
-  fun `create delivery preferences for referral that exists and does not have existing locations or pdu's`() {
+  fun `create delivery preferences for referral that exists and does not have existing locations or pdus`() {
     val referralEntity = ReferralEntityFactory().produce()
     val createDeliveryLocationPreferences = CreateDeliveryLocationPreferencesFactory().produce()
     testDataGenerator.createReferral(referralEntity)
@@ -58,33 +58,42 @@ class DeliveryLocationPreferencesControllerIntegrationTest : IntegrationTestBase
 
     assertThat(deliveryLocationProbationDeliveryUnitRepository.count()).isOne
 
-    val pdu = deliveryLocationProbationDeliveryUnitRepository.findByDeliusCode(
-      createDeliveryLocationPreferences.preferredDeliveryLocations.first().pduCode,
-    )
-    assertThat(pdu).isNotNull
+    val submittedPdu = createDeliveryLocationPreferences.preferredDeliveryLocations.first()
+    val savedPdu = deliveryLocationProbationDeliveryUnitRepository.findByDeliusCode(submittedPdu.pduCode)!!
+    assertThat(savedPdu.deliusCode).isEqualTo(submittedPdu.pduCode)
+    assertThat(savedPdu.deliusDescription).isEqualTo(submittedPdu.pduDescription)
 
     val savedEntity = deliveryLocationPreferenceRepository.findByReferralId(referralEntity.id!!)!!
-    assertThat(savedEntity.preferredDeliveryLocations).isNotEmpty()
+    val expectedDeliveryLocations = createDeliveryLocationPreferences.preferredDeliveryLocations
+      .flatMap { pdu ->
+        pdu.deliveryLocations.map { it.code to it.description }
+      }.toSet()
+    savedEntity.preferredDeliveryLocations.forEach { preferredDeliveryLocationEntity ->
+      val actualPair = preferredDeliveryLocationEntity.deliusCode to preferredDeliveryLocationEntity.deliusDescription
+      assertThat(actualPair).isIn(expectedDeliveryLocations)
+    }
     assertThat(savedEntity.locationsCannotAttendText).isEqualTo(createDeliveryLocationPreferences.cannotAttendText)
   }
 
   @Test
   fun `return conflict when delivery preferences already exist`() {
-    val referralEntity = ReferralEntityFactory().produce()
+    val referralEntity = ReferralEntityFactory()
+      .produce()
     val pdu = PreferredDeliveryLocationProbationDeliveryUnitEntityFactory().produce()
-    val preferredDeliveryLocations = PreferredDeliveryLocationEntityFactory()
+    val preferredDeliveryLocation = PreferredDeliveryLocationEntityFactory()
       .withPreferredDeliveryLocationProbationDeliveryUnit(pdu)
       .produce()
-    val deliveryLocationPreferences = DeliveryLocationPreferenceEntityFactory()
+    val deliveryLocationPreference = DeliveryLocationPreferenceEntityFactory()
       .withReferral(referralEntity)
-      .withPreferredDeliveryLocations(mutableSetOf(preferredDeliveryLocations))
+      .withPreferredDeliveryLocations(mutableSetOf(preferredDeliveryLocation))
       .produce()
 
-    testDataGenerator.createReferral(referralEntity)
-    testDataGenerator.createPreferredDeliveryLocationProbationDeliveryUnit(pdu)
-    testDataGenerator.createPreferredDeliveryLocation(preferredDeliveryLocations)
-    testDataGenerator.createDeliveryLocationPreference(deliveryLocationPreferences)
-
+    testDataGenerator.createReferralWithDeliveryLocationPreferences(
+      referralEntity,
+      pdu,
+      preferredDeliveryLocation,
+      deliveryLocationPreference,
+    )
     assertThat(deliveryLocationPreferenceRepository.count()).isOne
 
     val createDeliveryLocationPreferences = CreateDeliveryLocationPreferencesFactory().produce()
@@ -104,13 +113,15 @@ class DeliveryLocationPreferencesControllerIntegrationTest : IntegrationTestBase
     val referralEntity = ReferralEntityFactory().produce()
     val pdu = PreferredDeliveryLocationProbationDeliveryUnitEntityFactory().produce()
 
-    testDataGenerator.createReferral(referralEntity)
-    testDataGenerator.createPreferredDeliveryLocationProbationDeliveryUnit(pdu)
+    testDataGenerator.createReferralWithDeliveryLocationPreferences(referralEntity, pdu)
 
     assertThat(deliveryLocationProbationDeliveryUnitRepository.count()).isOne
 
     val preferredDeliveryLocations = mutableSetOf(
-      PreferredDeliveryLocationsFactory().withPduCode(pdu.deliusCode).produce(),
+      PreferredDeliveryLocationsFactory()
+        .withPduCode(pdu.deliusCode)
+        .withPduDescription(pdu.deliusDescription)
+        .produce(),
     )
     val createDeliveryLocationPreferences = CreateDeliveryLocationPreferencesFactory()
       .withPreferredDeliveryLocations(preferredDeliveryLocations)
@@ -127,6 +138,14 @@ class DeliveryLocationPreferencesControllerIntegrationTest : IntegrationTestBase
 
     val savedEntity = deliveryLocationPreferenceRepository.findByReferralId(referralEntity.id!!)!!
     assertThat(savedEntity.preferredDeliveryLocations).isNotEmpty()
+    val expectedDeliveryLocations = createDeliveryLocationPreferences.preferredDeliveryLocations
+      .flatMap { pdu ->
+        pdu.deliveryLocations.map { it.code to it.description }
+      }.toSet()
+    savedEntity.preferredDeliveryLocations.forEach { preferredDeliveryLocationEntity ->
+      val actualPair = preferredDeliveryLocationEntity.deliusCode to preferredDeliveryLocationEntity.deliusDescription
+      assertThat(actualPair).isIn(expectedDeliveryLocations)
+    }
     assertThat(savedEntity.locationsCannotAttendText).isEqualTo(createDeliveryLocationPreferences.cannotAttendText)
   }
 
@@ -156,22 +175,23 @@ class DeliveryLocationPreferencesControllerIntegrationTest : IntegrationTestBase
   }
 
   @Test
-  fun `should return bad request when cannotAttendText is emptyString`() {
+  fun `when cannotAttendText is empty string convert to null and create Delivery Location Preferences`() {
     val referralEntity = ReferralEntityFactory().produce()
     testDataGenerator.createReferral(referralEntity)
     val createDeliveryLocationPreferences = CreateDeliveryLocationPreferencesFactory()
       .withCannotAttendText("")
       .produce()
 
-    assertThat(deliveryLocationProbationDeliveryUnitRepository.count()).isZero
-
-    performRequestAndExpectStatusWithBody(
+    performRequestAndExpectStatus(
       httpMethod = HttpMethod.POST,
       uri = "/delivery-location-preferences/referral/${referralEntity.id}",
-      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
       body = createDeliveryLocationPreferences,
-      expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+      expectedResponseStatus = HttpStatus.CREATED.value(),
     )
+
+    assertThat(deliveryLocationProbationDeliveryUnitRepository.count()).isOne
+    val savedEntity = deliveryLocationPreferenceRepository.findByReferralId(referralEntity.id!!)!!
+    assertThat(savedEntity.locationsCannotAttendText).isNull()
   }
 
   @Test

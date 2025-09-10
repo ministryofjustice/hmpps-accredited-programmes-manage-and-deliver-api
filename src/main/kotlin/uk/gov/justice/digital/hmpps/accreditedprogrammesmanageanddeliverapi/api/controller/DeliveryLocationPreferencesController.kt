@@ -84,7 +84,7 @@ class DeliveryLocationPreferencesController(
   }
 
   @Operation(
-    tags = ["DeliveryLocationPreferences"],
+    tags = ["Delivery Location Preferences"],
     summary = "Create Delivery Location Preferences for a referral",
     operationId = "createDeliveryLocationPreferencesForReferral",
     description = "Create Delivery Location Preferences for a referral",

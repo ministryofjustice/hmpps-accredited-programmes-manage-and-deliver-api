@@ -10,7 +10,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonOnProbationSummary
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.deliveryLocationPreferences.CreateDeliveryLocationPreferences
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.deliveryLocationPreferences.PreferredDeliveryLocations
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.deliveryLocationPreferences.PreferredDeliveryLocation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnitWithOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -46,7 +46,7 @@ class DeliveryLocationPreferencesService(
     deliveryLocationPreferenceRepository.findByReferralId(referralId)
       ?.let {
         throw ConflictException(
-          "A delivery location preferences for this referral already exists",
+          "A DeliveryLocationPreferences for this referral with id: $referralId already exists",
         )
       }
     val referral =
@@ -124,7 +124,7 @@ class DeliveryLocationPreferencesService(
   }
 
   private fun findOrCreateProbationDeliveryUnit(
-    preferredLocations: PreferredDeliveryLocations,
+    preferredLocations: PreferredDeliveryLocation,
   ): PreferredDeliveryLocationProbationDeliveryUnitEntity = preferredDeliveryLocationProbationDeliveryUnitRepository
     .findByDeliusCode(preferredLocations.pduCode)
     ?: run {

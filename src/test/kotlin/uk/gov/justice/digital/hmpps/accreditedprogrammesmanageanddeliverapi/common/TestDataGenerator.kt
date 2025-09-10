@@ -35,6 +35,18 @@ class TestDataGenerator {
     entityManager.persist(deliveryLocationPreferenceEntity)
   }
 
+  fun createReferralWithDeliveryLocationPreferences(
+    referralEntity: ReferralEntity,
+    pdu: PreferredDeliveryLocationProbationDeliveryUnitEntity? = null,
+    preferredDeliveryLocation: PreferredDeliveryLocationEntity? = null,
+    deliveryLocationPreference: DeliveryLocationPreferenceEntity? = null,
+  ) {
+    createReferral(referralEntity)
+    pdu?.let { createPreferredDeliveryLocationProbationDeliveryUnit(pdu) }
+    preferredDeliveryLocation?.let { createPreferredDeliveryLocation(preferredDeliveryLocation) }
+    deliveryLocationPreference?.let { createDeliveryLocationPreference(deliveryLocationPreference) }
+  }
+
   fun getReferralById(id: UUID): ReferralEntity = entityManager
     .createNativeQuery("SELECT * FROM referral r WHERE r.id = :referralId", ReferralEntity::class.java)
     .setParameter("referralId", id)
