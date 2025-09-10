@@ -10,21 +10,20 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class NDeliusCaseRequirementOrLicenceConditionResponse(
   val manager: RequirementOrLicenceConditionManager,
+  val probationDeliveryUnits: List<NDeliusApiProbationDeliveryUnitWithOfficeLocations> = emptyList(),
 )
 
-data class RequirementOrLicenceConditionPdu(
-  /** @example N03ANPS */
-  val code: String,
-  /** @example All Location */
-  val description: String,
-)
-
+/**
+ * The Manager of a Licence Condition or Requirement represents a Probation Practitioner
+ * associated with the relevant initial source.  This person may not be the Person on
+ * Probation's Probation Manager or Probation Practitioner.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class RequirementOrLicenceConditionManager(
   val staff: RequirementStaff,
   val team: CodeDescription,
-  val probationDeliveryUnit: RequirementOrLicenceConditionPdu,
-  val officeLocations: List<CodeDescription>,
+  val probationDeliveryUnit: NDeliusApiProbationDeliveryUnit,
+  val officeLocations: List<NDeliusApiOfficeLocation>,
 )
 
 /**

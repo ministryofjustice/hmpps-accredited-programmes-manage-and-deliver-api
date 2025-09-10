@@ -8,9 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiOfficeLocation
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionPdu
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
@@ -66,15 +67,15 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         name = FullName(forename = "Wiremocked-Sarah", surname = "Johnson"),
       ),
       team = CodeDescription(code = "TEAM001", description = "(Wiremocked) Community Offender Management Team"),
-      probationDeliveryUnit = RequirementOrLicenceConditionPdu(code = "PDU001", description = "(Wiremocked) London PDU"),
+      probationDeliveryUnit = NDeliusApiProbationDeliveryUnit(code = "PDU001", description = "(Wiremocked) London PDU"),
       officeLocations = listOf(
-        CodeDescription(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
-        CodeDescription(code = "OFF002", description = "(Wiremocked) Victoria Office"),
+        NDeliusApiOfficeLocation(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
+        NDeliusApiOfficeLocation(code = "OFF002", description = "(Wiremocked) Victoria Office"),
       ),
     )
 
     val requirementResponse = NDeliusCaseRequirementOrLicenceConditionResponse(manager = expectedManager)
-    nDeliusApiStubs.stubSuccessfulRequirementManagerResponse(referralId, eventId, requirementResponse)
+    nDeliusApiStubs.stubSuccessfulRequirementManagerResponse("X123456", eventId, requirementResponse)
 
     // When
     val result = referralService.attemptToFindManagerForReferral(UUID.fromString(referralId))
@@ -117,18 +118,18 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         name = FullName(forename = "Wiremock Sam", surname = "Surname"),
       ),
       team = CodeDescription(code = "N03UAT", description = "Unallocated Team(N03)"),
-      probationDeliveryUnit = RequirementOrLicenceConditionPdu(code = "N03UAT", description = "Unallocated Level 2(N03)"),
+      probationDeliveryUnit = NDeliusApiProbationDeliveryUnit(code = "N03UAT", description = "Unallocated Level 2(N03)"),
       officeLocations = listOf(
-        CodeDescription(code = "N03ANPS", description = "All Location"),
+        NDeliusApiOfficeLocation(code = "N03ANPS", description = "All Location"),
       ),
     )
 
     val licenceConditionResponse = NDeliusCaseRequirementOrLicenceConditionResponse(manager = expectedManager)
 
     // Stub requirement endpoint to return 404
-    nDeliusApiStubs.stubNotFoundRequirementManagerResponse(referralId, eventId)
+    nDeliusApiStubs.stubNotFoundRequirementManagerResponse("X654321", eventId)
     // Stub licence condition endpoint to return 200
-    nDeliusApiStubs.stubSuccessfulLicenceConditionManagerResponse(referralId, eventId, licenceConditionResponse)
+    nDeliusApiStubs.stubSuccessfulLicenceConditionManagerResponse("X654321", eventId, licenceConditionResponse)
 
     // When
     val result = referralService.attemptToFindManagerForReferral(UUID.fromString(referralId))
@@ -161,17 +162,17 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
     testDataGenerator.createReferral(referralEntity)
     val savedReferral = referralRepository.findByCrn(crn)[0]
-    val referralId = savedReferral.id!!.toString()
 
     // Stub both endpoints to return 404
-    nDeliusApiStubs.stubNotFoundRequirementManagerResponse(referralId, eventId)
-    nDeliusApiStubs.stubNotFoundLicenceConditionManagerResponse(referralId, eventId)
+    nDeliusApiStubs.stubNotFoundRequirementManagerResponse("X999999", eventId)
+    nDeliusApiStubs.stubNotFoundLicenceConditionManagerResponse("X999999", eventId)
 
     // When
-    val result = referralService.attemptToFindManagerForReferral(savedReferral.id!!)
+    val exception = assertThrows<NotFoundException> {
+      referralService.attemptToFindManagerForReferral(savedReferral.id!!)
+    }
 
-    // Then
-    assertThat(result).isNull()
+    assertThat(exception.message).isEqualTo("No LicenceCondition or Requirement found with id UNKNOWN001")
   }
 
   @Test

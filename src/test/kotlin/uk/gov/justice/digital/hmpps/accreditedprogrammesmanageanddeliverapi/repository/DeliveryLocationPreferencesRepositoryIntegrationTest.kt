@@ -49,7 +49,7 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
       deliusDescription = "The PDU Description",
     )
     testDataGenerator.createPreferredDeliveryLocationProbationDeliveryUnit(
-      preferredDeliveryLocationProbationDeliveryUnit,
+      pdu,
     )
 
     val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
@@ -62,7 +62,7 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
       id = UUID.randomUUID(),
       deliusCode = "THE-PDL-CODE",
       deliusDescription = "The PreferredDeliveryLocation Description",
-      preferredDeliveryLocationProbationDeliveryUnit = preferredDeliveryLocationProbationDeliveryUnit,
+      preferredDeliveryLocationProbationDeliveryUnit = pdu,
     )
     testDataGenerator.createPreferredDeliveryLocation(preferredDeliveryLocation)
 
