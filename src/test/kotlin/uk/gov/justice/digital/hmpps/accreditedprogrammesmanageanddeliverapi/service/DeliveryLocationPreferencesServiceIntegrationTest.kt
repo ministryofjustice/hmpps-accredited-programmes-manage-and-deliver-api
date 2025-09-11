@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import jakarta.persistence.EntityManager
 import jakarta.transaction.Transactional
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -14,17 +13,17 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnitWithOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocation
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.deliveryLocationPreferences.DeliveryLocationPreferenceEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.deliveryLocationPreferences.PreferredDeliveryLocationEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.deliveryLocationPreferences.PreferredDeliveryLocationProbationDeliveryUnitEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
@@ -44,9 +43,6 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
 
   @Autowired
   private lateinit var deliveryLocationPreferencesService: DeliveryLocationPreferencesService
-
-  @Autowired
-  private lateinit var entityManager: EntityManager
 
   @BeforeEach
   fun setup() {
@@ -71,42 +67,37 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     testDataGenerator.createReferral(referralEntity)
 
     // Create existing delivery location preferences
-    val pdu = PreferredDeliveryLocationProbationDeliveryUnit(
-      id = UUID.randomUUID(),
-      deliusCode = "PDU001",
-      deliusDescription = "Test PDU",
-    )
+    val pdu = PreferredDeliveryLocationProbationDeliveryUnitEntityFactory()
+      .withDeliusCode("PDU001")
+      .withDeliusDescription("Test PDU")
+      .produce()
+
+    val preferredDeliveryLocations = PreferredDeliveryLocationEntityFactory()
+      .withDeliusCode("OFFICE-001")
+      .withDeliusDescription("Test Office")
+      .withPreferredDeliveryLocationProbationDeliveryUnit(pdu)
+      .produce()
+
+    val deliveryLocationPreference = DeliveryLocationPreferenceEntityFactory()
+      .withReferral(referralEntity)
+      .withPreferredDeliveryLocations(mutableSetOf(preferredDeliveryLocations))
+      .withLocationsCannotAttendText("The cannot attend locations free text value")
+      .produce()
+
     testDataGenerator.createPreferredDeliveryLocationProbationDeliveryUnit(pdu)
-
-    val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
-      id = UUID.randomUUID(),
-      referral = referralEntity,
-      locationsCannotAttendText = "The cannot attend locations free text value",
-    )
-
-    val pdlId = UUID.randomUUID()
-    val preferredLocation = PreferredDeliveryLocation(
-      id = pdlId,
-      deliusCode = "OFFICE-001",
-      deliusDescription = "Test Office",
-      preferredDeliveryLocationProbationDeliveryUnit = pdu,
-    )
-    testDataGenerator.createPreferredDeliveryLocation(preferredLocation)
-
-    deliveryLocationPreference.addPreferredDeliveryLocations(preferredLocation)
+    testDataGenerator.createPreferredDeliveryLocation(preferredDeliveryLocations)
     testDataGenerator.createDeliveryLocationPreference(deliveryLocationPreference)
 
     // Mock NDelius responses
-    val personalDetails = NDeliusPersonalDetails(
-      crn = crn,
-      name = FullName(forename = "John", surname = "Doe"),
-      dateOfBirth = "1980-01-01",
-      age = "44",
-      sex = CodeDescription("M", "Male"),
-      ethnicity = CodeDescription("WHITE", "White"),
-      probationPractitioner = null,
-      probationDeliveryUnit = CodeDescription("PDU001", "Primary PDU"),
-    )
+    val personalDetails = NDeliusPersonalDetailsFactory()
+      .withCrn(crn)
+      .withName(FullName(forename = "John", surname = "Doe"))
+      .withDateOfBirth(LocalDate.parse("1980-01-01"))
+      .withSex(CodeDescription("M", "Male"))
+      .withEthnicity(CodeDescription("WHITE", "White"))
+      .withProbationPractitioner(null)
+      .withProbationDeliveryUnit(CodeDescription("PDU001", "Primary PDU"))
+      .produce()
 
     val primaryPdu = NDeliusApiProbationDeliveryUnit(
       code = "PDU001",
@@ -157,7 +148,8 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     nDeliusApiStubs.stubSuccessfulRequirementManagerResponse(crn, eventId, requirementResponse)
 
     // When
-    val result = deliveryLocationPreferencesService.getDeliveryLocationPreferencesFormDataForReferral(referralEntity.id!!)
+    val result =
+      deliveryLocationPreferencesService.getDeliveryLocationPreferencesFormDataForReferral(referralEntity.id!!)
 
     // Then
     assertThat(result.personOnProbation.name).isEqualTo("John Doe")
@@ -173,12 +165,14 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     assertThat(existingPrefs.cannotAttendLocations).isEqualTo("The cannot attend locations free text value")
 
     assertThat(result.primaryPdu.name).isEqualTo("Primary PDU")
+    assertThat(result.primaryPdu.code).isEqualTo("PDU001")
     assertThat(result.primaryPdu.deliveryLocations).hasSize(2)
     assertThat(result.primaryPdu.deliveryLocations[0].value).isEqualTo("OFFICE-001")
     assertThat(result.primaryPdu.deliveryLocations[0].label).isEqualTo("Brighton and Hove: Probation Office")
 
     assertThat(result.otherPdusInSameRegion).hasSize(1)
     assertThat(result.otherPdusInSameRegion[0].name).isEqualTo("West Sussex")
+    assertThat(result.otherPdusInSameRegion[0].code).isEqualTo("PDU002")
     assertThat(result.otherPdusInSameRegion[0].deliveryLocations).hasSize(1)
     assertThat(result.otherPdusInSameRegion[0].deliveryLocations[0].value).isEqualTo("OFFICE-003")
   }
@@ -198,16 +192,16 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     testDataGenerator.createReferral(referralEntity)
 
     // Mock NDelius responses
-    val personalDetails = NDeliusPersonalDetails(
-      crn = crn,
-      name = FullName(forename = "Alex", surname = "River"),
-      dateOfBirth = "2000-01-01",
-      age = "25",
-      sex = CodeDescription("F", "Female"),
-      ethnicity = null,
-      probationPractitioner = null,
-      probationDeliveryUnit = CodeDescription("C2", "C2"),
-    )
+    val personalDetails = NDeliusPersonalDetailsFactory()
+      .withCrn(crn)
+      .withName(FullName(forename = "Alex", surname = "River"))
+      .withDateOfBirth(LocalDate.parse("2000-01-01"))
+      .withAge("25")
+      .withSex(CodeDescription("F", "Female"))
+      .withEthnicity(null)
+      .withProbationPractitioner(null)
+      .withProbationDeliveryUnit(CodeDescription("C2", "C2"))
+      .produce()
 
     val primaryPdu = NDeliusApiProbationDeliveryUnit(
       code = "PDU001",
@@ -241,7 +235,8 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     nDeliusApiStubs.stubSuccessfulRequirementManagerResponse(crn, eventId, requirementResponse)
 
     // When
-    val result = deliveryLocationPreferencesService.getDeliveryLocationPreferencesFormDataForReferral(referralEntity.id!!)
+    val result =
+      deliveryLocationPreferencesService.getDeliveryLocationPreferencesFormDataForReferral(referralEntity.id!!)
 
     // Then
     assertThat(result.personOnProbation.name).isEqualTo("Alex River")
@@ -274,16 +269,16 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     testDataGenerator.createReferral(referralEntity)
 
     // Mock NDelius responses
-    val personalDetails = NDeliusPersonalDetails(
-      crn = crn,
-      name = FullName(forename = "Test", surname = "Person"),
-      dateOfBirth = "1990-06-15",
-      age = "35",
-      sex = CodeDescription("M", "Male"),
-      ethnicity = CodeDescription("ASIAN", "Asian"),
-      probationPractitioner = null,
-      probationDeliveryUnit = CodeDescription("PDU002", "Test PDU"),
-    )
+    val personalDetails = NDeliusPersonalDetailsFactory()
+      .withCrn(crn)
+      .withName(FullName(forename = "Test", surname = "Person"))
+      .withDateOfBirth(LocalDate.parse("1990-06-15"))
+      .withAge("35")
+      .withSex(CodeDescription("M", "Male"))
+      .withEthnicity(CodeDescription("ASIAN", "Asian"))
+      .withProbationPractitioner(null)
+      .withProbationDeliveryUnit(CodeDescription("PDU002", "Test PDU"))
+      .produce()
 
     val primaryPdu = NDeliusApiProbationDeliveryUnit(
       code = "PDU002",
@@ -310,7 +305,8 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     nDeliusApiStubs.stubSuccessfulLicenceConditionManagerResponse(crn, eventId, licenceConditionResponse)
 
     // When
-    val result = deliveryLocationPreferencesService.getDeliveryLocationPreferencesFormDataForReferral(referralEntity.id!!)
+    val result =
+      deliveryLocationPreferencesService.getDeliveryLocationPreferencesFormDataForReferral(referralEntity.id!!)
 
     // Then
     assertThat(result.personOnProbation.name).isEqualTo("Test Person")
@@ -343,16 +339,16 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
 
     testDataGenerator.createReferral(referralEntity)
 
-    val personalDetails = NDeliusPersonalDetails(
-      crn = crn,
-      name = FullName(forename = "John", surname = "Doe"),
-      dateOfBirth = "1980-01-01",
-      age = "44",
-      sex = CodeDescription("M", "Male"),
-      ethnicity = null,
-      probationPractitioner = null,
-      probationDeliveryUnit = null,
-    )
+    val personalDetails = NDeliusPersonalDetailsFactory()
+      .withCrn(crn)
+      .withName(FullName(forename = "John", surname = "Doe"))
+      .withDateOfBirth(LocalDate.parse("1980-01-01"))
+      .withAge("44")
+      .withSex(CodeDescription("M", "Male"))
+      .withEthnicity(null)
+      .withProbationPractitioner(null)
+      .withProbationDeliveryUnit(null)
+      .produce()
 
     nDeliusApiStubs.stubAccessCheck(true, crn)
     nDeliusApiStubs.stubPersonalDetailsResponseForCrn(crn, personalDetails)

@@ -5,6 +5,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomNumberAsInt
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomSentence
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
@@ -28,12 +29,14 @@ class ReferralEntityFactory {
   private var sourcedFrom: ReferralEntitySourcedFrom? = null
   private var eventNumber: Int? = randomNumberAsInt(1)
   private var cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE
+  private var deliveryLocationPreferences: DeliveryLocationPreferenceEntity? = null
 
   fun withId(id: UUID?) = apply { this.id = id }
   fun withPersonName(personName: String?) = apply { this.personName = personName }
   fun withCrn(crn: String?) = apply { this.crn = crn }
   fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
   fun withStatusHistories(statusHistories: MutableList<ReferralStatusHistoryEntity>) = apply { this.statusHistories = statusHistories }
+
   fun withSourcedFrom(value: ReferralEntitySourcedFrom?) = apply { this.sourcedFrom = value }
 
   fun withCohort(cohort: OffenceCohort) = apply { this.cohort = cohort }
@@ -43,6 +46,7 @@ class ReferralEntityFactory {
   fun withEventNumber(eventNumber: Int?) = apply { this.eventNumber = eventNumber }
   fun withEventId(eventId: String) = apply { this.eventId = eventId }
   fun addStatusHistory(statusHistory: ReferralStatusHistoryEntity) = apply { this.statusHistories.add(statusHistory) }
+  fun withDeliveryLocationPreferences(deliveryLocationPreferences: DeliveryLocationPreferenceEntity) = apply { this.deliveryLocationPreferences = deliveryLocationPreferences }
 
   fun produce() = ReferralEntity(
     id = this.id,
