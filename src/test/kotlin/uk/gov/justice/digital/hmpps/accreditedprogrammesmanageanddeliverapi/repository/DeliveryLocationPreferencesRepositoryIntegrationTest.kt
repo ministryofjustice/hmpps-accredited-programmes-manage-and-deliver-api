@@ -62,10 +62,15 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
     )
     testDataGenerator.createPreferredDeliveryLocation(preferredDeliveryLocation)
 
-    deliveryLocationPreference.addPreferredDeliveryLocations(preferredDeliveryLocation)
+    val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
+      referral = referralEntity,
+      locationsCannotAttendText = "The DeliveryLocationPreferences Cannot Attend Text",
+      preferredDeliveryLocations = mutableSetOf(preferredDeliveryLocation),
+    )
+
     testDataGenerator.createDeliveryLocationPreference(deliveryLocationPreference)
 
-    val foundDeliveryLocationPreferences = repository.findByReferralId(referralEntity.id!!).first()
+    val foundDeliveryLocationPreferences = repository.findByReferralId(referralEntity.id!!)!!
 
     assertThat(foundDeliveryLocationPreferences.referral).isEqualTo(referralEntity)
     assertThat(foundDeliveryLocationPreferences.createdAt).isNotNull

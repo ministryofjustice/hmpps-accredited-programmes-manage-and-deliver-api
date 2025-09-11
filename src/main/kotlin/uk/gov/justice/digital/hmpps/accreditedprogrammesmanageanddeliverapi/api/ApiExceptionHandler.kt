@@ -1,11 +1,13 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.BAD_REQUEST
 import org.springframework.http.HttpStatus.FORBIDDEN
 import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.AccessDeniedException
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -13,6 +15,7 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 
 @RestControllerAdvice
@@ -39,6 +42,17 @@ class ApiExceptionHandler {
   @ExceptionHandler(MethodArgumentTypeMismatchException::class)
   @ResponseStatus(BAD_REQUEST)
   fun handleEnumMismatchException(e: MethodArgumentTypeMismatchException): ResponseEntity<ErrorResponse> = ResponseEntity.status(BAD_REQUEST)
+    .body(
+      ErrorResponse(
+        status = BAD_REQUEST.value(),
+        userMessage = "Invalid value for parameter ${e.parameter.parameterName}",
+        developerMessage = e.message,
+      ),
+    )
+
+  @ExceptionHandler(MethodArgumentNotValidException::class)
+  @ResponseStatus(BAD_REQUEST)
+  fun handleMethodArgumentNotValidException(e: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> = ResponseEntity.status(BAD_REQUEST)
     .body(
       ErrorResponse(
         status = BAD_REQUEST.value(),
@@ -88,4 +102,14 @@ class ApiExceptionHandler {
         ),
       )
   }
+
+  @ExceptionHandler(ConflictException::class)
+  fun handleConflict(exception: ConflictException): ResponseEntity<ErrorResponse> = ResponseEntity.status(HttpStatus.CONFLICT)
+    .body(
+      ErrorResponse(
+        status = HttpStatus.CONFLICT.value(),
+        userMessage = "Conflict: ${exception.message}",
+        developerMessage = exception.localizedMessage,
+      ),
+    )
 }
