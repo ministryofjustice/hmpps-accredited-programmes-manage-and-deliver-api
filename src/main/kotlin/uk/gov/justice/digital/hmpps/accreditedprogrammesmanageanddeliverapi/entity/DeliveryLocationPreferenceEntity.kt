@@ -62,14 +62,7 @@ class DeliveryLocationPreferenceEntity(
   @OneToMany(fetch = FetchType.LAZY)
   @JoinColumn(name = "delivery_location_preferences_id")
   var preferredDeliveryLocations: MutableSet<PreferredDeliveryLocationEntity> = mutableSetOf(),
-) {
-
-  fun addPreferredDeliveryLocations(vararg locationsToAdd: PreferredDeliveryLocationEntity) {
-    preferredDeliveryLocations.addAll(locationsToAdd)
-//  locationsToAdd.forEach { l -> l.preferredDeliveryLocations = this }
-  }
-}
-
+)
 fun CreateDeliveryLocationPreferences.toEntity(
   referral: ReferralEntity,
   deliveryLocations: MutableSet<PreferredDeliveryLocationEntity>,

@@ -28,7 +28,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.LocalDate
-import java.util.*
+import java.util.UUID
 
 @WithMockAuthUser("PROB_PRACTITIONER_1")
 class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() {
