@@ -50,11 +50,6 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
       preferredDeliveryLocationProbationDeliveryUnit,
     )
 
-//    val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
-//      referral = referralEntity,
-//      locationsCannotAttendText = "The DeliveryLocationPreferences Cannot Attend Text",
-//    )
-
     val preferredDeliveryLocation = PreferredDeliveryLocationEntity(
       deliusCode = "THE-PDL-CODE",
       deliusDescription = "The PreferredDeliveryLocation Description",
