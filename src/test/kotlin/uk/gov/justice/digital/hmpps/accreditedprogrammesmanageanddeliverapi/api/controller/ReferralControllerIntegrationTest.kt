@@ -615,13 +615,16 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
         deliusDescription = "London Office",
         preferredDeliveryLocationProbationDeliveryUnit = probationDeliveryUnit,
       )
+      testDataGenerator.createPreferredDeliveryLocation(preferredLocation1)
       val preferredLocation2 = PreferredDeliveryLocationEntity(
         deliusCode = "LOC002",
         deliusDescription = "Manchester Office",
         preferredDeliveryLocationProbationDeliveryUnit = probationDeliveryUnit,
       )
+      testDataGenerator.createPreferredDeliveryLocation(preferredLocation2)
 
-      deliveryLocationPreference.addPreferredDeliveryLocations(preferredLocation1, preferredLocation2)
+      deliveryLocationPreference.preferredDeliveryLocations = mutableSetOf(preferredLocation1, preferredLocation2)
+
       testDataGenerator.createDeliveryLocationPreference(deliveryLocationPreference)
 
       // When
