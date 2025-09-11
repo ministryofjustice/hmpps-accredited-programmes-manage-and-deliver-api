@@ -12,6 +12,7 @@ import java.util.UUID
 class PreferredDeliveryLocationProbationDeliveryUnitEntity(
   @Id
   @GeneratedValue
+  @Column(name = "id")
   val id: UUID? = null,
   @Column(name = "delius_code")
   val deliusCode: String,

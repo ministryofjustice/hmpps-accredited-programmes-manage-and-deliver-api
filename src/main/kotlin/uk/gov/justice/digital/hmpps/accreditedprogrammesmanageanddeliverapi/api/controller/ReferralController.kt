@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DeliveryLocationPreferences
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceHistory
@@ -293,4 +294,42 @@ class ReferralController(
   ): ResponseEntity<RequirementOrLicenceConditionManager> = referralService.attemptToFindManagerForReferral(id)?.let {
     ResponseEntity.ok(it)
   } ?: throw NotFoundException("Could not retrieve Delivery Locations for Referral with ID: $id")
+
+  @Operation(
+    tags = ["Referrals"],
+    summary = "Retrieve preferred delivery locations for a referral",
+    operationId = "getPreferredDeliveryLocationsByReferralId",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Preferred delivery locations and restrictions for the referral",
+        content = [Content(schema = Schema(implementation = DeliveryLocationPreferences::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden.  The client is not authorised to access this referral.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The referral does not exist",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/referral-details/{id}/delivery-location-preferences", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getPreferredDeliveryLocationsByReferralId(
+    @Parameter(description = "The id (UUID) of a referral", required = true)
+    @PathVariable("id") id: UUID,
+  ): ResponseEntity<DeliveryLocationPreferences> {
+    val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
+    return referral.deliveryLocationPreferences?.toModel()?.let { ResponseEntity.ok(it) }
+      ?: throw NotFoundException("Delivery location preferences for referral id $id not found")
+  }
 }

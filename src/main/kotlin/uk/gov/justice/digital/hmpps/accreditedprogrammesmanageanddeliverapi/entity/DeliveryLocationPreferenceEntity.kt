@@ -32,6 +32,7 @@ import java.util.UUID
 class DeliveryLocationPreferenceEntity(
   @Id
   @GeneratedValue
+  @Column(name = "id")
   val id: UUID? = null,
 
   @NotNull
@@ -62,7 +63,6 @@ class DeliveryLocationPreferenceEntity(
   @JoinColumn(name = "delivery_location_preferences_id")
   var preferredDeliveryLocations: MutableSet<PreferredDeliveryLocationEntity> = mutableSetOf(),
 )
-
 fun CreateDeliveryLocationPreferences.toEntity(
   referral: ReferralEntity,
   deliveryLocations: MutableSet<PreferredDeliveryLocationEntity>,
