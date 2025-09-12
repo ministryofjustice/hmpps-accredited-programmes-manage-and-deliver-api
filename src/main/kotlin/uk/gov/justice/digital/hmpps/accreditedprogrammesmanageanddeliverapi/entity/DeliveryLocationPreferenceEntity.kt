@@ -56,7 +56,7 @@ class DeliveryLocationPreferenceEntity(
 
   @Nullable
   @Column(name = "locations_cannot_attend_text")
-  val locationsCannotAttendText: String? = null,
+  var locationsCannotAttendText: String? = null,
 
   @NotNull
   @OneToMany(fetch = FetchType.LAZY)

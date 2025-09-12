@@ -17,6 +17,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DeliveryLocationPreferencesFormData
@@ -138,5 +139,57 @@ class DeliveryLocationPreferencesController(
     )
 
     return ResponseEntity.status(HttpStatus.CREATED).build()
+  }
+
+  @Operation(
+    tags = ["Delivery Location Preferences"],
+    summary = "Update Delivery Location Preferences for a referral",
+    operationId = "updateDeliveryLocationPreferencesForReferral",
+    description = "Update Delivery Location Preferences for a referral",
+    responses =
+    [
+      ApiResponse(
+        responseCode = "200",
+        description = "Delivery Location Preferences updated",
+        content = [Content(schema = Schema(implementation = Void::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Bad Request. Blank or missing values",
+        content = [Content(schema = Schema(implementation = MethodArgumentNotValidException::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The referral does not exist or delivery location preferences do not exist for this referral",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PutMapping(
+    "/delivery-location-preferences/referral/{referralId}",
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+    consumes = [MediaType.APPLICATION_JSON_VALUE],
+  )
+  fun updateDeliveryLocationPreferencesForReferral(
+    @Parameter(description = "The id (UUID) of a referral", required = true)
+    @PathVariable("referralId") referralId: UUID,
+    @Parameter(
+      description = "The delivery location preferences for a referral",
+      required = true,
+    ) @Valid @RequestBody createDeliveryLocationPreferences: CreateDeliveryLocationPreferences,
+  ): ResponseEntity<Void> {
+    log.info("Received request to update Delivery Location preferences for Referral Id: $referralId")
+    deliveryLocationPreferencesService.updateDeliveryLocationPreferences(
+      referralId,
+      createDeliveryLocationPreferences,
+    )
+
+    return ResponseEntity.ok().build()
   }
 }

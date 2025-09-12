@@ -25,6 +25,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import java.util.UUID
 
 @Service
+@Transactional
 class DeliveryLocationPreferencesService(
   private val deliveryLocationPreferenceRepository: DeliveryLocationPreferenceRepository,
   private val referralService: ReferralService,
@@ -38,7 +39,6 @@ class DeliveryLocationPreferencesService(
     private val log = LoggerFactory.getLogger(this::class.java)
   }
 
-  @Transactional
   fun createDeliveryLocationPreferences(
     referralId: UUID,
     createDeliveryLocationPreferences: CreateDeliveryLocationPreferences,
@@ -52,6 +52,40 @@ class DeliveryLocationPreferencesService(
     val referral =
       referralRepository.findByIdOrNull(referralId) ?: throw NotFoundException("No referral found with id: $referralId")
     val preferredDeliveryLocations =
+      createOrUpdateDeliveryLocations(createDeliveryLocationPreferences, referralId)
+
+    val deliveryLocationPreferencesEntity =
+      createDeliveryLocationPreferences.toEntity(referral, preferredDeliveryLocations)
+    return deliveryLocationPreferenceRepository.save(deliveryLocationPreferencesEntity)
+  }
+
+  fun updateDeliveryLocationPreferences(
+    referralId: UUID,
+    updateDeliveryLocationPreferences: CreateDeliveryLocationPreferences,
+  ) {
+    val existingDeliveryLocationPreferenceEntity = deliveryLocationPreferenceRepository.findByReferralId(referralId)
+      ?: throw NotFoundException("No DeliveryLocationPreferences found for referral with id: $referralId")
+
+    // Update the existing entity for an updated locationsCannotAttendText value if it has been provided
+    existingDeliveryLocationPreferenceEntity.locationsCannotAttendText = updateDeliveryLocationPreferences.cannotAttendText?.takeIf { it.isNotBlank() }
+
+    // Clear existing preferred locations and add new ones
+    existingDeliveryLocationPreferenceEntity.preferredDeliveryLocations.clear()
+
+    val updatedPreferredDeliveryLocations =
+      createOrUpdateDeliveryLocations(updateDeliveryLocationPreferences, referralId)
+
+    existingDeliveryLocationPreferenceEntity.preferredDeliveryLocations.addAll(updatedPreferredDeliveryLocations)
+
+    // Save the existing entity, so UPDATE rather than INSERT)
+    deliveryLocationPreferenceRepository.save(existingDeliveryLocationPreferenceEntity)
+  }
+
+  private fun createOrUpdateDeliveryLocations(
+    createDeliveryLocationPreferences: CreateDeliveryLocationPreferences,
+    referralId: UUID,
+  ): MutableSet<PreferredDeliveryLocationEntity> {
+    val updatedPreferredDeliveryLocations =
       createDeliveryLocationPreferences.preferredDeliveryLocations.flatMap { preferredLocations ->
 
         val probationDeliveryUnit = findOrCreateProbationDeliveryUnit(preferredLocations)
@@ -67,10 +101,7 @@ class DeliveryLocationPreferencesService(
         log.info("Saving ${preferredDeliveryLocationEntities.size} preferred delivery locations for referral with id: $referralId")
         preferredDeliveryLocationRepository.saveAll(preferredDeliveryLocationEntities)
       }.toMutableSet()
-
-    val deliveryLocationPreferencesEntity =
-      createDeliveryLocationPreferences.toEntity(referral, preferredDeliveryLocations)
-    return deliveryLocationPreferenceRepository.save(deliveryLocationPreferencesEntity)
+    return updatedPreferredDeliveryLocations
   }
 
   fun getDeliveryLocationPreferencesFormDataForReferral(referralId: UUID): DeliveryLocationPreferencesFormData {
