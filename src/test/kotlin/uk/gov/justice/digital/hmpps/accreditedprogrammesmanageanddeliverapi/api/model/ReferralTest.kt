@@ -20,6 +20,7 @@ internal class ReferralTest {
     val createdAt = LocalDateTime.now()
     val activeStatus = "Created"
     val setting = SettingType.COMMUNITY
+    val cohort = OffenceCohort.SEXUAL_OFFENCE
 
     val statusHistory = ReferralStatusHistoryEntity(status = activeStatus, endDate = null)
     val referralEntity = ReferralEntity(
@@ -45,6 +46,7 @@ internal class ReferralTest {
     assertEquals(crn, referral.crn)
     assertEquals(createdAt, referral.createdAt)
     assertEquals(activeStatus, referral.status)
+    assertEquals(cohort, OffenceCohort.SEXUAL_OFFENCE)
   }
 
   @Test
@@ -55,6 +57,7 @@ internal class ReferralTest {
     val crn = "Y67890"
     val createdAt = LocalDateTime.now()
     val setting = SettingType.COMMUNITY
+    val cohort = OffenceCohort.SEXUAL_OFFENCE
 
     val statusHistory = ReferralStatusHistoryEntity(status = "Withdrawn", endDate = LocalDateTime.now())
     val referralEntity = ReferralEntity(
@@ -68,7 +71,7 @@ internal class ReferralTest {
       interventionName = "Building Choices",
       eventId = "2500828798",
       eventNumber = 1,
-      cohort = OffenceCohort.SEXUAL_OFFENCE,
+      cohort = cohort,
     )
 
     // Act
@@ -80,6 +83,7 @@ internal class ReferralTest {
     assertEquals(crn, referral.crn)
     assertEquals(createdAt, referral.createdAt)
     assertEquals("Unknown", referral.status)
+    assertEquals(cohort, OffenceCohort.SEXUAL_OFFENCE)
   }
 
   @Test
@@ -90,6 +94,7 @@ internal class ReferralTest {
     val crn = "Z12345"
     val createdAt = LocalDateTime.now()
     val setting = SettingType.COMMUNITY
+    val cohort = OffenceCohort.GENERAL_OFFENCE
 
     val referralEntity = ReferralEntity(
       id = id,
@@ -102,7 +107,7 @@ internal class ReferralTest {
       interventionName = "Building Choices",
       eventId = "2500828798",
       eventNumber = 1,
-      cohort = OffenceCohort.SEXUAL_OFFENCE,
+      cohort = cohort,
     )
 
     // Act
@@ -114,5 +119,6 @@ internal class ReferralTest {
     assertEquals(crn, referral.crn)
     assertEquals(createdAt, referral.createdAt)
     assertEquals("Unknown", referral.status)
+    assertEquals(cohort, OffenceCohort.GENERAL_OFFENCE)
   }
 }
