@@ -39,6 +39,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.PreferredDeliveryLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.Utils.createCodeDescriptionList
@@ -491,7 +492,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
 
   @Nested
   @DisplayName("Update cohort of referral")
-  inner class UpdateCohort {
+  inner class UpdateReferralCohort {
     @Test
     fun `should update referral with cohort information`() {
       val referralEntity = ReferralEntityFactory().withCohort(OffenceCohort.GENERAL_OFFENCE).produce()
@@ -500,8 +501,8 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.PUT,
         uri = "/referral/${referralEntity.id}/update-cohort",
-        body = OffenceCohort.SEXUAL_OFFENCE,
-        expectedResponseStatus = HttpStatus.NO_CONTENT.value(),
+        body = UpdateCohort(OffenceCohort.SEXUAL_OFFENCE),
+        expectedResponseStatus = HttpStatus.OK.value(),
       )
 
       val referralById = testDataGenerator.getReferralById(referralEntity.id!!)
@@ -513,7 +514,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.PUT,
         uri = "/referral/${UUID.randomUUID()}/update-cohort",
-        body = OffenceCohort.SEXUAL_OFFENCE,
+        body = UpdateCohort(OffenceCohort.SEXUAL_OFFENCE),
         expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
       )
     }

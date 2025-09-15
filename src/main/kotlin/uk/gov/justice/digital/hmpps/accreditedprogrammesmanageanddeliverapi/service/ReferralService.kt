@@ -5,7 +5,9 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.FindAndReferInterventionApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.FindAndReferReferralDetails
@@ -180,8 +182,9 @@ open class ReferralService(
     return ndeliusApiResponse.probationDeliveryUnits
   }
 
-  fun updateCohort(referral: ReferralEntity, cohort: OffenceCohort): ReferralEntity {
+  fun updateCohort(referral: ReferralEntity, cohort: OffenceCohort): Referral {
     referral.cohort = cohort
-    return referralRepository.save(referral)
+    val save = referralRepository.save(referral)
+    return save.toApi()
   }
 }

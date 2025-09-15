@@ -46,6 +46,14 @@ data class Referral(
   )
   @get:JsonProperty("status", required = true)
   val status: String,
+
+  @Schema(
+    example = "Cohort",
+    required = true,
+    description = "The current cohort of a referral",
+  )
+  @get:JsonProperty("cohort", required = true)
+  var cohort: OffenceCohort,
 )
 
 fun ReferralEntity.toApi() = Referral(
@@ -54,4 +62,5 @@ fun ReferralEntity.toApi() = Referral(
   crn = crn,
   createdAt = createdAt,
   status = statusHistories.find { it.endDate == null }?.status ?: "Unknown",
+  cohort = cohort,
 )
