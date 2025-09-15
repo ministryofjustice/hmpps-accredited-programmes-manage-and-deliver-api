@@ -6,7 +6,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 
 data class UpdateCohort(
 
-  @get:JsonProperty("startDate")
+  @get:JsonProperty("cohort")
   @Schema(example = "SEXUAL_OFFENCE", description = "Cohort of the referral")
   val cohort: OffenceCohort,
 )
