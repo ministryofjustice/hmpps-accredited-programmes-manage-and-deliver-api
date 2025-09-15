@@ -19,13 +19,13 @@ class CreateDeliveryLocationPreferencesFactory {
     ),
   )
 
-  private var cannotAttendText: String = randomSentence(wordRange = 5..10)
+  private var cannotAttendText: String? = randomSentence(wordRange = 5..10)
 
   fun withPreferredDeliveryLocations(preferredDeliveryLocations: MutableSet<PreferredDeliveryLocation>) = apply {
     this.preferredDeliveryLocations = preferredDeliveryLocations
   }
 
-  fun withCannotAttendText(cannotAttendText: String) = apply {
+  fun withCannotAttendText(cannotAttendText: String?) = apply {
     this.cannotAttendText = cannotAttendText
   }
 
