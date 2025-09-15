@@ -544,7 +544,10 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
           name = FullName(forename = "Wiremocked-Sarah", surname = "Johnson"),
         ),
         team = CodeDescription(code = "TEAM001", description = "(Wiremocked) Community Offender Management Team"),
-        probationDeliveryUnit = NDeliusApiProbationDeliveryUnit(code = "PDU001", description = "(Wiremocked) London PDU"),
+        probationDeliveryUnit = NDeliusApiProbationDeliveryUnit(
+          code = "PDU001",
+          description = "(Wiremocked) London PDU",
+        ),
         officeLocations = listOf(
           NDeliusApiOfficeLocation(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
           NDeliusApiOfficeLocation(code = "OFF002", description = "(Wiremocked) Victoria Office"),
@@ -653,13 +656,6 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       )
       testDataGenerator.createPreferredDeliveryLocationProbationDeliveryUnit(probationDeliveryUnit)
 
-      val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
-        id = null,
-        referral = savedReferral,
-      )
-
-      testDataGenerator.createDeliveryLocationPreference(deliveryLocationPreference)
-
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
@@ -670,8 +666,8 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       // Then
       assertThat(response.canAttendLocations).isEmpty()
       assertThat(response.cannotAttendLocations).isNull()
-      assertThat(response.createdBy).isEqualTo("UNKNOWN_USER")
-      assertThat(response.lastUpdatedAt).isNotNull
+      assertThat(response.createdBy).isNull()
+      assertThat(response.lastUpdatedAt).isNull()
     }
 
     @Test
@@ -689,19 +685,23 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should return 404 when delivery location details do not exist for referral`() {
+    fun `should return 200 with empty delivery location preferences when delivery location details do not exist for referral`() {
       // Given
       val referralEntity = ReferralEntityFactory().produce()
       testDataGenerator.createReferral(referralEntity)
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       // When
-      performRequestAndExpectStatus(
+      val result = performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
         uri = "/referral-details/${savedReferral.id}/delivery-location-preferences",
-        object : ParameterizedTypeReference<ErrorResponse>() {},
-        HttpStatus.NOT_FOUND.value(),
+        object : ParameterizedTypeReference<DeliveryLocationPreferences>() {},
+        HttpStatus.OK.value(),
       )
+
+      assertThat(result.cannotAttendLocations).isNull()
+      assertThat(result.canAttendLocations).isEmpty()
+      assertThat(result.lastUpdatedAt).isNull()
     }
   }
 }

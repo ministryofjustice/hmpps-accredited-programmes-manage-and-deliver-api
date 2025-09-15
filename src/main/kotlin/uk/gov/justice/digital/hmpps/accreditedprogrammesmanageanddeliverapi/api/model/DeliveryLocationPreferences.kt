@@ -1,9 +1,10 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model
 
+import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
-import java.time.LocalDateTime
+import java.time.LocalDate
 
 data class DeliveryLocationPreferences(
   @get:JsonProperty("preferredDeliveryLocations")
@@ -15,19 +16,20 @@ data class DeliveryLocationPreferences(
     description = "Text describing locations or circumstances where the person cannot attend",
     example = "Cannot attend evening sessions due to caring responsibilities",
   )
-  val cannotAttendLocations: String?,
+  val cannotAttendLocations: String? = null,
 
   @get:JsonProperty("lastUpdatedBy")
   @Schema(description = "The user that last created the delivery location preferences")
   val createdBy: String? = null,
   @get:JsonProperty("lastUpdatedAt")
   @Schema(description = "The time and date of the last update to the delivery location preferences")
-  val lastUpdatedAt: LocalDateTime? = null,
+  @JsonFormat(pattern = "d MMMM yyyy")
+  val lastUpdatedAt: LocalDate? = null,
 )
 
 fun DeliveryLocationPreferenceEntity.toModel(): DeliveryLocationPreferences = DeliveryLocationPreferences(
   createdBy = createdBy,
-  lastUpdatedAt = lastUpdatedAt,
+  lastUpdatedAt = lastUpdatedAt?.toLocalDate(),
   cannotAttendLocations = locationsCannotAttendText,
   canAttendLocations = preferredDeliveryLocations.map { it.deliusDescription },
 )
