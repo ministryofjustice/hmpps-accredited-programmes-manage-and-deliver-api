@@ -31,5 +31,5 @@ fun DeliveryLocationPreferenceEntity.toModel(): DeliveryLocationPreferences = De
   createdBy = createdBy,
   lastUpdatedAt = lastUpdatedAt?.toLocalDate(),
   cannotAttendLocations = locationsCannotAttendText,
-  canAttendLocations = preferredDeliveryLocations.map { it.deliusDescription },
+  canAttendLocations = preferredDeliveryLocations.map { it.deliusDescription }.sorted(),
 )

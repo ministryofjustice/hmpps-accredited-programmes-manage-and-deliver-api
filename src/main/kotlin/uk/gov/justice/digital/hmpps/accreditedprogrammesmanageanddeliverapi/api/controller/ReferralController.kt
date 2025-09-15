@@ -43,7 +43,7 @@ class ReferralController(
   private val deliveryLocationPreferencesService: DeliveryLocationPreferencesService,
 ) {
 
-  val log = LoggerFactory.getLogger(this::class.java)
+  private val log = LoggerFactory.getLogger(this::class.java)
 
   @Operation(
     tags = ["Referrals"],
