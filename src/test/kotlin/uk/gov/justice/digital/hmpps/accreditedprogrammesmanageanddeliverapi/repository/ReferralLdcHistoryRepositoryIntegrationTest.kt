@@ -43,12 +43,12 @@ class ReferralLdcHistoryRepositoryIntegrationTest : IntegrationTestBase() {
 
     val ldcEntity1 = ReferralLdcHistoryEntity(
       referral = referralEntity,
-      status = true,
+      hasLdc = true,
     )
 
     val ldcEntity2 = ReferralLdcHistoryEntity(
       referral = referralEntity,
-      status = false,
+      hasLdc = false,
     )
     testDataGenerator.createLdcHistoryForAReferral(ldcEntity1)
     testDataGenerator.createLdcHistoryForAReferral(ldcEntity2)
@@ -56,6 +56,6 @@ class ReferralLdcHistoryRepositoryIntegrationTest : IntegrationTestBase() {
     val savedLdcEntity = repo.findTopByReferralIdOrderByCreatedAtDesc(referralEntity.id!!)!!
 
     assertThat(savedLdcEntity).isNotNull
-    assertThat(savedLdcEntity.status).isFalse
+    assertThat(savedLdcEntity.hasLdc).isFalse
   }
 }
