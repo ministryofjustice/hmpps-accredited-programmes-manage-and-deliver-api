@@ -6,7 +6,7 @@ management.endpoint:
   info.cache.time-to-live: 0
 
 hmpps-auth:
-  url: "http://localhost:8090/auth"
+  url: "http://localhost:9999/auth"
 
 spring:
   jpa:

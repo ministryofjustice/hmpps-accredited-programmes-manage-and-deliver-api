@@ -15,4 +15,4 @@ COMMENT ON COLUMN referral_ldc_history.created_by IS 'Username of the person/sys
 COMMENT ON COLUMN referral_ldc_history.created_at IS 'Timestamp of when the LDC status was changed for a referral.';
 
 CREATE INDEX idx_referral_ldc_history_referral_id ON referral_ldc_history (referral_id);
-CREATE INDEX idx_referral_ldc_history_created_by ON referral_ldc_history (created_by);
+CREATE INDEX idx_referral_ldc_history_created_at ON referral_ldc_history (created_at);
