@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomPrisonNumber
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
@@ -71,7 +70,7 @@ class EntityFactoriesTest {
     assertThat(referral.personName).isNotNull()
     assertThat(referral.crn).isNotNull()
     assertThat(referral.createdAt).isNotNull()
-    assertThat(referral.statusHistories).isNotEmpty
+    assertThat(referral.statusHistories).isEmpty()
   }
 
   @Test
@@ -80,35 +79,30 @@ class EntityFactoriesTest {
     val personName = "Custom Person"
     val crn = "CUSTOM123"
     val createdAt = LocalDateTime.of(2023, 1, 1, 12, 0)
-    val statusHistory = ReferralStatusHistoryEntity(
-      status = "Custom Status",
-      createdBy = "Test User",
-      startDate = LocalDateTime.now(),
-      endDate = null,
-    )
 
     val referral = ReferralEntityFactory()
       .withId(id)
       .withPersonName(personName)
       .withCrn(crn)
       .withCreatedAt(createdAt)
-      .withStatusHistories(mutableListOf(statusHistory))
+      .withStatusHistories(mutableListOf())
       .produce()
 
     assertThat(referral.id).isEqualTo(id)
     assertThat(referral.personName).isEqualTo(personName)
     assertThat(referral.crn).isEqualTo(crn)
     assertThat(referral.createdAt).isEqualTo(createdAt)
-    assertThat(referral.statusHistories).hasSize(1)
-    assertThat(referral.statusHistories[0]).isEqualTo(statusHistory)
+    assertThat(referral.statusHistories).hasSize(0)
   }
 
   @Test
   fun `ReferralStatusHistoryEntityFactory should create entity with default values`() {
-    val statusHistory = ReferralStatusHistoryEntityFactory().produce()
+    val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+      ReferralEntityFactory().produce(),
+      ReferralStatusDescriptionEntityFactory().produce(),
+    )
 
     assertThat(statusHistory.id).isNull()
-    assertThat(statusHistory.status).isNotNull()
     assertThat(statusHistory.createdAt).isNotNull()
     assertThat(statusHistory.createdBy).isNotNull()
     assertThat(statusHistory.startDate).isNotNull()
@@ -118,7 +112,6 @@ class EntityFactoriesTest {
   @Test
   fun `ReferralStatusHistoryEntityFactory should create entity with custom values`() {
     val id = UUID.randomUUID()
-    val status = "Custom Status"
     val createdAt = LocalDateTime.of(2023, 1, 1, 12, 0)
     val createdBy = "Custom User"
     val startDate = LocalDateTime.of(2023, 1, 1, 12, 0)
@@ -126,15 +119,16 @@ class EntityFactoriesTest {
 
     val statusHistory = ReferralStatusHistoryEntityFactory()
       .withId(id)
-      .withStatus(status)
       .withCreatedAt(createdAt)
       .withCreatedBy(createdBy)
       .withStartDate(startDate)
       .withEndDate(endDate)
-      .produce()
+      .produce(
+        ReferralEntityFactory().produce(),
+        ReferralStatusDescriptionEntityFactory().produce(),
+      )
 
     assertThat(statusHistory.id).isEqualTo(id)
-    assertThat(statusHistory.status).isEqualTo(status)
     assertThat(statusHistory.createdAt).isEqualTo(createdAt)
     assertThat(statusHistory.createdBy).isEqualTo(createdBy)
     assertThat(statusHistory.startDate).isEqualTo(startDate)

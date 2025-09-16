@@ -10,7 +10,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnitEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import java.util.UUID
 
@@ -72,15 +71,9 @@ class TestDataGenerator {
   ) {
     entityManager.persist(referralEntity)
     entityManager.persist(referralStatusHistoryEntity)
-    referralEntity.statusHistories.add(referralStatusHistoryEntity)
-    entityManager.merge(referralEntity)
   }
 
   fun refreshReferralCaseListItemView() {
     entityManager.createNativeQuery("REFRESH MATERIALIZED VIEW referral_caselist_item_view").executeUpdate()
-  }
-
-  fun createReferralStatusDescription(referralStatusDescription: ReferralStatusDescriptionEntity) {
-    entityManager.persist(referralStatusDescription)
   }
 }

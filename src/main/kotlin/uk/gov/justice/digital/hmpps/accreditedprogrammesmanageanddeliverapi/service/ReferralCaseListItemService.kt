@@ -31,6 +31,11 @@ class ReferralCaseListItemService(
 
     val baseSpec = getReferralCaseListItemSpecification(openOrClosed, crnOrPersonName, cohort, status)
     val crns = referralCaseListItemRepository.findAllCrns(baseSpec)
+
+    if (crns.isEmpty()) {
+      return PageImpl(emptyList(), pageable, 0)
+    }
+
     val allowedCrns = serviceUserService.getAccessibleOffenders(username, crns)
 
     if (allowedCrns.isEmpty()) {

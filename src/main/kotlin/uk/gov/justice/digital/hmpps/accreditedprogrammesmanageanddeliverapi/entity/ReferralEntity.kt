@@ -9,8 +9,6 @@ import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.JoinTable
 import jakarta.persistence.OneToMany
 import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
@@ -60,14 +58,10 @@ class ReferralEntity(
   var createdAt: LocalDateTime = LocalDateTime.now(),
 
   @OneToMany(
+    mappedBy = "referral",
     fetch = FetchType.LAZY,
     cascade = [CascadeType.ALL],
     orphanRemoval = true,
-  )
-  @JoinTable(
-    name = "referral_status_history_mapping",
-    joinColumns = [JoinColumn(name = "referral_id")],
-    inverseJoinColumns = [JoinColumn(name = "referral_status_history_id")],
   )
   var statusHistories: MutableList<ReferralStatusHistoryEntity> = mutableListOf(),
 

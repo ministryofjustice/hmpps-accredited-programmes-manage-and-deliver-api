@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.FindAndReferReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiOfficeLocation
@@ -16,13 +17,23 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.util.UUID
 
-class ReferralServiceIntegrationTest : IntegrationTestBase() {
+class ReferralServiceIntegrationTest(
+  @Autowired
+  private var referralService: ReferralService,
+) : IntegrationTestBase() {
+
+  private lateinit var oasysApiStubs: OasysApiStubs
 
   private lateinit var nDeliusApiStubs: NDeliusApiStubs
 
@@ -35,14 +46,44 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
   @Autowired
   private lateinit var referralRepository: ReferralRepository
 
-  @Autowired
-  private lateinit var referralService: ReferralService
-
   @BeforeEach
   fun setup() {
     testDataCleaner.cleanAllTables()
     nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
+    oasysApiStubs = OasysApiStubs(wiremock, objectMapper)
     stubAuthTokenEndpoint()
+  }
+
+  @Test
+  fun `createReferral should create a Referral, its Status History`() {
+    //    Given
+    oasysApiStubs.stubSuccessfulPniResponse("CRN-12345")
+
+    //    When
+    val referral = referralService.createReferral(
+      FindAndReferReferralDetails(
+        interventionType = InterventionType.TOOLKITS,
+        interventionName = "The Intervention Name",
+        personReference = "CRN-12345",
+        personReferenceType = PersonReferenceType.CRN,
+        referralId = UUID.randomUUID(),
+        setting = SettingType.COMMUNITY,
+        sourcedFromReferenceType = ReferralEntitySourcedFrom.LICENSE_CONDITION,
+        sourcedFromReference = "LICENCE-12345",
+        eventNumber = 1,
+      ),
+    )
+
+    //    Then
+    val referralFromRepo = referralRepository.findByCrn("CRN-12345").firstOrNull() ?: throw NotFoundException("Referral with CRN-12345")
+
+    assertThat(referralFromRepo.id).isEqualTo(referral.id)
+    assertThat(referralFromRepo.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
+    assertThat(referralFromRepo.interventionType).isEqualTo(InterventionType.TOOLKITS)
+    assertThat(referralFromRepo.interventionName).isEqualTo("The Intervention Name")
+    assertThat(referralFromRepo.setting).isEqualTo(SettingType.COMMUNITY)
+    assertThat(referralFromRepo.statusHistories).hasSize(1)
+    assertThat(referralFromRepo.statusHistories.firstOrNull()?.referralStatusDescription?.description).isEqualTo("Awaiting Assessment")
   }
 
   @Test
@@ -118,7 +159,10 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         name = FullName(forename = "Wiremock Sam", surname = "Surname"),
       ),
       team = CodeDescription(code = "N03UAT", description = "Unallocated Team(N03)"),
-      probationDeliveryUnit = NDeliusApiProbationDeliveryUnit(code = "N03UAT", description = "Unallocated Level 2(N03)"),
+      probationDeliveryUnit = NDeliusApiProbationDeliveryUnit(
+        code = "N03UAT",
+        description = "Unallocated Level 2(N03)",
+      ),
       officeLocations = listOf(
         NDeliusApiOfficeLocation(code = "N03ANPS", description = "All Location"),
       ),

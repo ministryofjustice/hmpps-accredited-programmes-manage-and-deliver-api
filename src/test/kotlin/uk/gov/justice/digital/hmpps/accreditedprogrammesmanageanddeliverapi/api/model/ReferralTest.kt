@@ -3,7 +3,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import java.time.LocalDateTime
@@ -22,13 +21,12 @@ internal class ReferralTest {
     val setting = SettingType.COMMUNITY
     val cohort = OffenceCohort.SEXUAL_OFFENCE
 
-    val statusHistory = ReferralStatusHistoryEntity(status = activeStatus, endDate = null)
     val referralEntity = ReferralEntity(
       id = id,
       personName = personName,
       crn = crn,
       createdAt = createdAt,
-      statusHistories = mutableListOf(statusHistory),
+      statusHistories = mutableListOf(),
       setting = setting,
       interventionType = InterventionType.ACP,
       interventionName = "Building Choices",
@@ -45,44 +43,6 @@ internal class ReferralTest {
     assertEquals(personName, referral.personName)
     assertEquals(crn, referral.crn)
     assertEquals(createdAt, referral.createdAt)
-    assertEquals(activeStatus, referral.status)
-    assertEquals(cohort, OffenceCohort.SEXUAL_OFFENCE)
-  }
-
-  @Test
-  fun `toApi should use 'Unknown' status when no active status is found`() {
-    // Arrange
-    val id = UUID.randomUUID()
-    val personName = "Jane Doe"
-    val crn = "Y67890"
-    val createdAt = LocalDateTime.now()
-    val setting = SettingType.COMMUNITY
-    val cohort = OffenceCohort.SEXUAL_OFFENCE
-
-    val statusHistory = ReferralStatusHistoryEntity(status = "Withdrawn", endDate = LocalDateTime.now())
-    val referralEntity = ReferralEntity(
-      id = id,
-      personName = personName,
-      crn = crn,
-      createdAt = createdAt,
-      statusHistories = mutableListOf(statusHistory),
-      setting = setting,
-      interventionType = InterventionType.ACP,
-      interventionName = "Building Choices",
-      eventId = "2500828798",
-      eventNumber = 1,
-      cohort = cohort,
-    )
-
-    // Act
-    val referral = referralEntity.toApi()
-
-    // Assert
-    assertEquals(id, referral.id)
-    assertEquals(personName, referral.personName)
-    assertEquals(crn, referral.crn)
-    assertEquals(createdAt, referral.createdAt)
-    assertEquals("Unknown", referral.status)
     assertEquals(cohort, OffenceCohort.SEXUAL_OFFENCE)
   }
 
