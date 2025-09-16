@@ -10,7 +10,7 @@ CREATE TABLE referral_ldc_history
 COMMENT ON TABLE referral_ldc_history IS 'Contains a history of the changes to the LDC (Learning Difficulties and Challenges) for a referral.';
 COMMENT ON COLUMN referral_ldc_history.id IS 'The unique identifier for a referral_ldc_history entry.';
 COMMENT ON COLUMN referral_ldc_history.referral_id IS 'Foreign key relationship to the referral table.';
-COMMENT ON COLUMN referral_ldc_history.has_ldc IS 'If a referral has LDC.';
+COMMENT ON COLUMN referral_ldc_history.has_ldc IS 'If a referral has Learning Difficulties or Challenges.';
 COMMENT ON COLUMN referral_ldc_history.created_by IS 'Username of the person/system that changed the LDC status of the referral';
 COMMENT ON COLUMN referral_ldc_history.created_at IS 'Timestamp of when the LDC status was changed for a referral.';
 
