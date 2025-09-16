@@ -138,7 +138,6 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .withDetailUrl("http://find-and-refer/referral/$sourceReferralId")
       .produce()
 
-    val beforeCount = referralRepository.count()
     // When
     sendDomainEvent(domainEventsMessage)
 
