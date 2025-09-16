@@ -3,7 +3,10 @@ CREATE TABLE referral_status_transition
     referral_status_transition_id UUID PRIMARY KEY                                       NOT NULL,
     transition_from_status        UUID REFERENCES referral_status_description (id)       NOT NULL,
     transition_to_status          UUID REFERENCES referral_status_description (id)       NOT NULL,
-    description                   TEXT                                                   NULL
+    description                   TEXT                                                   NULL,
+    created_at                    TIMESTAMP                                              NULL,
+    updated_at                    TIMESTAMP                                              NULL,
+    deleted_at                    TIMESTAMP                                              NULL
 );
 
 -- Create indexes for performance
@@ -15,3 +18,6 @@ COMMENT ON COLUMN referral_status_transition.referral_status_transition_id IS 'U
 COMMENT ON COLUMN referral_status_transition.transition_from_status IS 'References the source status description';
 COMMENT ON COLUMN referral_status_transition.transition_to_status IS 'References the target status description';
 COMMENT ON COLUMN referral_status_transition.description IS 'Optional description of the transition';
+COMMENT ON COLUMN referral_status_transition.created_at IS 'Timestamp when the record was created';
+COMMENT ON COLUMN referral_status_transition.updated_at IS 'Timestamp when the record was last updated';
+COMMENT ON COLUMN referral_status_transition.deleted_at IS 'Timestamp when the record was deleted (soft delete)';

@@ -6,6 +6,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Entity
@@ -25,5 +26,14 @@ class ReferralStatusTransitionEntity(
 
   @Column(name = "description")
   val description: String?,
+
+  @Column(name = "created_at")
+  val createdAt: LocalDateTime? = null,
+
+  @Column(name = "updated_at")
+  val updatedAt: LocalDateTime? = null,
+
+  @Column(name = "deleted_at")
+  val deletedAt: LocalDateTime? = null,
 
 )

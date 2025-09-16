@@ -4,6 +4,7 @@ import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Entity
@@ -21,4 +22,13 @@ class ReferralStatusDescriptionEntity(
 
   @Column(name = "label_colour")
   val labelColour: String? = null,
+
+  @Column(name = "created_at")
+  val createdAt: LocalDateTime? = null,
+
+  @Column(name = "updated_at")
+  val updatedAt: LocalDateTime? = null,
+
+  @Column(name = "deleted_at")
+  val deletedAt: LocalDateTime? = null,
 )
