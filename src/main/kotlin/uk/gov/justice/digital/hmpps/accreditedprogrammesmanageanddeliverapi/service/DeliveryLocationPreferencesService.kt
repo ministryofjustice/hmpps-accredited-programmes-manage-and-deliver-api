@@ -5,12 +5,14 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DeliveryLocationOption
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DeliveryLocationPreferences
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DeliveryLocationPreferencesFormData
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ExistingDeliveryLocationPreferences
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonOnProbationSummary
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.deliveryLocationPreferences.CreateDeliveryLocationPreferences
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.deliveryLocationPreferences.PreferredDeliveryLocation
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnitWithOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -67,7 +69,8 @@ class DeliveryLocationPreferencesService(
       ?: throw NotFoundException("No DeliveryLocationPreferences found for referral with id: $referralId")
 
     // Update the existing entity for an updated locationsCannotAttendText value if it has been provided
-    existingDeliveryLocationPreferenceEntity.locationsCannotAttendText = updateDeliveryLocationPreferences.cannotAttendText?.takeIf { it.isNotBlank() }
+    existingDeliveryLocationPreferenceEntity.locationsCannotAttendText =
+      updateDeliveryLocationPreferences.cannotAttendText?.takeIf { it.isNotBlank() }
 
     // Clear existing preferred locations and add new ones
     existingDeliveryLocationPreferenceEntity.preferredDeliveryLocations.clear()
@@ -152,6 +155,13 @@ class DeliveryLocationPreferencesService(
         .filter { pdu: NDeliusApiProbationDeliveryUnitWithOfficeLocations -> pdu.code != managerDetails.probationDeliveryUnit.code }
         .map { pdu: NDeliusApiProbationDeliveryUnitWithOfficeLocations -> pdu.toProbationDeliveryUnit() },
     )
+  }
+
+  fun getPreferredDeliveryLocationsForReferral(referralId: UUID): DeliveryLocationPreferences {
+    val referral = referralService.getReferralById(referralId)
+      ?: throw NotFoundException("Referral with referralId $referralId not found")
+    // Create empty delivery location preferences if there is no existing preferences
+    return referral.deliveryLocationPreferences?.toModel() ?: DeliveryLocationPreferences()
   }
 
   private fun findOrCreateProbationDeliveryUnit(

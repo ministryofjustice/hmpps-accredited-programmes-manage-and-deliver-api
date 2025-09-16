@@ -39,6 +39,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.PreferredDeliveryLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.Utils.createCodeDescriptionList
@@ -491,7 +492,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
 
   @Nested
   @DisplayName("Update cohort of referral")
-  inner class UpdateCohort {
+  inner class UpdateReferralCohort {
     @Test
     fun `should update referral with cohort information`() {
       val referralEntity = ReferralEntityFactory().withCohort(OffenceCohort.GENERAL_OFFENCE).produce()
@@ -500,8 +501,8 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.PUT,
         uri = "/referral/${referralEntity.id}/update-cohort",
-        body = OffenceCohort.SEXUAL_OFFENCE,
-        expectedResponseStatus = HttpStatus.NO_CONTENT.value(),
+        body = UpdateCohort(OffenceCohort.SEXUAL_OFFENCE),
+        expectedResponseStatus = HttpStatus.OK.value(),
       )
 
       val referralById = testDataGenerator.getReferralById(referralEntity.id!!)
@@ -513,7 +514,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.PUT,
         uri = "/referral/${UUID.randomUUID()}/update-cohort",
-        body = OffenceCohort.SEXUAL_OFFENCE,
+        body = UpdateCohort(OffenceCohort.SEXUAL_OFFENCE),
         expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
       )
     }
@@ -544,7 +545,10 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
           name = FullName(forename = "Wiremocked-Sarah", surname = "Johnson"),
         ),
         team = CodeDescription(code = "TEAM001", description = "(Wiremocked) Community Offender Management Team"),
-        probationDeliveryUnit = NDeliusApiProbationDeliveryUnit(code = "PDU001", description = "(Wiremocked) London PDU"),
+        probationDeliveryUnit = NDeliusApiProbationDeliveryUnit(
+          code = "PDU001",
+          description = "(Wiremocked) London PDU",
+        ),
         officeLocations = listOf(
           NDeliusApiOfficeLocation(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
           NDeliusApiOfficeLocation(code = "OFF002", description = "(Wiremocked) Victoria Office"),
@@ -653,13 +657,6 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       )
       testDataGenerator.createPreferredDeliveryLocationProbationDeliveryUnit(probationDeliveryUnit)
 
-      val deliveryLocationPreference = DeliveryLocationPreferenceEntity(
-        id = null,
-        referral = savedReferral,
-      )
-
-      testDataGenerator.createDeliveryLocationPreference(deliveryLocationPreference)
-
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
@@ -670,8 +667,8 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       // Then
       assertThat(response.canAttendLocations).isEmpty()
       assertThat(response.cannotAttendLocations).isNull()
-      assertThat(response.createdBy).isEqualTo("UNKNOWN_USER")
-      assertThat(response.lastUpdatedAt).isNotNull
+      assertThat(response.createdBy).isNull()
+      assertThat(response.lastUpdatedAt).isNull()
     }
 
     @Test
@@ -689,19 +686,23 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should return 404 when delivery location details do not exist for referral`() {
+    fun `should return 200 with empty delivery location preferences when delivery location details do not exist for referral`() {
       // Given
       val referralEntity = ReferralEntityFactory().produce()
       testDataGenerator.createReferral(referralEntity)
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       // When
-      performRequestAndExpectStatus(
+      val result = performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
         uri = "/referral-details/${savedReferral.id}/delivery-location-preferences",
-        object : ParameterizedTypeReference<ErrorResponse>() {},
-        HttpStatus.NOT_FOUND.value(),
+        object : ParameterizedTypeReference<DeliveryLocationPreferences>() {},
+        HttpStatus.OK.value(),
       )
+
+      assertThat(result.cannotAttendLocations).isNull()
+      assertThat(result.canAttendLocations).isEmpty()
+      assertThat(result.lastUpdatedAt).isNull()
     }
   }
 }

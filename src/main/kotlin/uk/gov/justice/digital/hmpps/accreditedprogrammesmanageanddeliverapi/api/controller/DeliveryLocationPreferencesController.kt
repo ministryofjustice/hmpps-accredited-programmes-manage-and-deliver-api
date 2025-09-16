@@ -38,7 +38,6 @@ class DeliveryLocationPreferencesController(
   private val log = LoggerFactory.getLogger(this::class.java)
 
   @Operation(
-    tags = ["Delivery Location Preferences"],
     summary = "A Backend-For-Frontend endpoint for the multi-page Delivery Location Preferences form",
     operationId = "getDeliveryLocationPreferencesFormData",
     description = """
@@ -85,7 +84,6 @@ class DeliveryLocationPreferencesController(
   }
 
   @Operation(
-    tags = ["Delivery Location Preferences"],
     summary = "Create Delivery Location Preferences for a referral",
     operationId = "createDeliveryLocationPreferencesForReferral",
     description = "Create Delivery Location Preferences for a referral",
@@ -142,7 +140,6 @@ class DeliveryLocationPreferencesController(
   }
 
   @Operation(
-    tags = ["Delivery Location Preferences"],
     summary = "Update Delivery Location Preferences for a referral",
     operationId = "updateDeliveryLocationPreferencesForReferral",
     description = "Update Delivery Location Preferences for a referral",

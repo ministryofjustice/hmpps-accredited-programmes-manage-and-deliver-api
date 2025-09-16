@@ -17,15 +17,17 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DeliveryLocationPreferences
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.DeliveryLocationPreferencesService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.OffenceService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SentenceService
@@ -39,6 +41,7 @@ class ReferralController(
   private val serviceUserService: ServiceUserService,
   private val offenceService: OffenceService,
   private val sentenceService: SentenceService,
+  private val deliveryLocationPreferencesService: DeliveryLocationPreferencesService,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -242,16 +245,19 @@ class ReferralController(
   )
   @PutMapping("/referral/{id}/update-cohort", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun updateCohortForReferral(
-    @Parameter(description = "The id (UUID) of a referral allowed values SEXUAL_OFFENCE or GENERAL_OFFENCE", required = true)
+    @Parameter(
+      description = "The id (UUID) of a referral allowed values SEXUAL_OFFENCE or GENERAL_OFFENCE",
+      required = true,
+    )
     @PathVariable("id") id: UUID,
     @Parameter(
       description = "Cohort to update the referral with",
       required = true,
-    ) @RequestBody cohort: OffenceCohort,
-  ): ResponseEntity<Void> {
+    ) @RequestBody updateCohort: UpdateCohort,
+  ): ResponseEntity<Referral?> {
     val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
-    referralService.updateCohort(referral, cohort)
-    return ResponseEntity.noContent().build()
+    val updateCohort = referralService.updateCohort(referral, updateCohort.cohort)
+    return ResponseEntity.ok(updateCohort)
   }
 
   @Operation(
@@ -328,8 +334,7 @@ class ReferralController(
     @Parameter(description = "The id (UUID) of a referral", required = true)
     @PathVariable("id") id: UUID,
   ): ResponseEntity<DeliveryLocationPreferences> {
-    val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
-    return referral.deliveryLocationPreferences?.toModel()?.let { ResponseEntity.ok(it) }
-      ?: throw NotFoundException("Delivery location preferences for referral id $id not found")
+    val deliveryLocationPreferences = deliveryLocationPreferencesService.getPreferredDeliveryLocationsForReferral(id)
+    return ResponseEntity.ok().body(deliveryLocationPreferences)
   }
 }
