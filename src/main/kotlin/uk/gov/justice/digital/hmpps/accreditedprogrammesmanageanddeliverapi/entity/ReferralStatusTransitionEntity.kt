@@ -13,15 +13,15 @@ import java.util.UUID
 @Table(name = "referral_status_transition")
 class ReferralStatusTransitionEntity(
   @Id
-  @Column(name = "referral_status_transition_id")
+  @Column(name = "id")
   val id: UUID,
 
   @ManyToOne
-  @JoinColumn(name = "transition_from_status")
+  @JoinColumn(name = "from_status")
   val fromStatus: ReferralStatusDescriptionEntity,
 
   @ManyToOne
-  @JoinColumn(name = "transition_to_status")
+  @JoinColumn(name = "to_status")
   val toStatus: ReferralStatusDescriptionEntity,
 
   @Column(name = "description")
