@@ -77,8 +77,7 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
     val allStatuses = statusDescriptionRepository.findAll()
 
     // Then
-    assertThat(allStatuses).hasSize(2)
-    assertThat(allStatuses.map { it.description }).containsExactlyInAnyOrder("Status 1", "Status 2")
+    assertThat(allStatuses.map { it.description }).containsExactlyInAnyOrder("Status 1", "Status 2", "Awaiting Assessment")
   }
 
   @Test
@@ -105,5 +104,15 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
     assertThat(retrievedStatusHistory).isPresent
     assertThat(retrievedStatusHistory.get().referralStatusDescription?.description).isEqualTo("Awaiting Assessment")
     assertThat(retrievedStatusHistory.get().referralStatusDescription?.isClosed).isFalse
+  }
+
+  @Test
+  fun `should retrieve awaiting assessment status description`() {
+    // When
+    val awaitingAssessmentStatusDescription = statusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+
+    // Then
+    assertThat(awaitingAssessmentStatusDescription).isNotNull
+    assertThat(awaitingAssessmentStatusDescription.description).isEqualTo("Awaiting Assessment")
   }
 }
