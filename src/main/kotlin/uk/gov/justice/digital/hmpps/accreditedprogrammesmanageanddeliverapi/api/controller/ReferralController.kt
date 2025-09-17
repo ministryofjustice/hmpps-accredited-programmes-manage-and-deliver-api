@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PutMapping
@@ -21,11 +22,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.DeliveryLocationPreferencesService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.OffenceService
@@ -258,6 +261,58 @@ class ReferralController(
     val referral = referralService.getReferralById(id)
     val updateCohort = referralService.updateCohort(referral, updateCohort.cohort)
     return ResponseEntity.ok(updateCohort)
+  }
+
+  @Operation(
+    tags = ["Referrals"],
+    summary = "Update the Status of a Referral",
+    operationId = "updateStatusForReferral",
+    description = """Updates the Status of a Referral, by creating a new entry in the log of Referral Statuses""",
+    responses = [
+      ApiResponse(
+        responseCode = "201",
+        description = "Referral Status updated successfully",
+        content = [Content(schema = Schema(implementation = ReferralStatusHistory::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden.  The client is not authorised to access this referral.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The referral does not exist",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PutMapping("/referral/{id}/status-history", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun updateStatusForReferral(
+    @Parameter(
+      description = "The id (UUID) of a Referral",
+      required = true,
+    )
+    @PathVariable("id") id: UUID,
+    @Parameter(
+      description = "Cohort to update the referral with",
+      required = true,
+    ) @RequestBody createReferralStatusHistory: CreateReferralStatusHistory,
+  ): ResponseEntity<ReferralStatusHistory> {
+    val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
+
+    val result = referralService.updateStatus(
+      referral,
+      createReferralStatusHistory.referralStatusDescriptionId,
+      createdBy = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
+    )
+
+    return ResponseEntity.ok(result)
   }
 
   @Operation(
