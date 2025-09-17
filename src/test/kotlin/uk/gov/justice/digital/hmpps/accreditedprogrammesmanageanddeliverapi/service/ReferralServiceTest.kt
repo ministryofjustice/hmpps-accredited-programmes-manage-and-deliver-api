@@ -26,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import java.util.Optional
 import java.util.UUID
@@ -41,6 +42,9 @@ class ReferralServiceTest {
 
   @Mock
   private lateinit var referralRepository: ReferralRepository
+
+  @Mock
+  private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
 
   @Mock
   private lateinit var referralStatusHistoryRepository: ReferralStatusHistoryRepository
