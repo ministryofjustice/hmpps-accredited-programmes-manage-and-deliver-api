@@ -324,7 +324,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.interventionName).isEqualTo(referralDetails.interventionName)
       assertThat(savedReferral.cohort).isEqualTo(cohort)
       assertThat(savedReferral.statusHistories.first().status).isEqualTo("Created")
-      assertThat(savedReferral.referralLdcHistories.first().hasLdc).isTrue
+      assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
     }
 
     @Test
