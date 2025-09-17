@@ -6,21 +6,15 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.RiskScoreLevel
 
 @Service
-class CohortService(
-  private val pniService: PniService,
-) {
+class CohortService {
   companion object {
     private const val SEX_DOMAIN_MINIMUM_THRESHOLD = 0.0
   }
 
-  fun determineOffenceCohort(crn: String): OffenceCohort {
-    val pniScore = pniService.getPniScore(crn)
-
-    return if (hasSignificantOspScore(pniScore) || hasSignificantSexDomainScore(pniScore)) {
-      OffenceCohort.SEXUAL_OFFENCE
-    } else {
-      OffenceCohort.GENERAL_OFFENCE
-    }
+  fun determineOffenceCohort(pniScore: PniScore): OffenceCohort = if (hasSignificantOspScore(pniScore) || hasSignificantSexDomainScore(pniScore)) {
+    OffenceCohort.SEXUAL_OFFENCE
+  } else {
+    OffenceCohort.GENERAL_OFFENCE
   }
 
   private fun hasSignificantOspScore(pniScore: PniScore): Boolean {

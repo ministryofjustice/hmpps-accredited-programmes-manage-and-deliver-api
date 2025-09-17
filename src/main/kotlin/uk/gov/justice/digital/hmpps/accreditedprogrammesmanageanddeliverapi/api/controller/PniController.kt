@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.toPniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.PniService
 
 @RestController
@@ -53,5 +54,5 @@ class PniController(
   fun getPniScoreByCrn(
     @Parameter(description = "The unique crn of an individual", required = true)
     @PathVariable("crn") crn: String,
-  ) = pniService.getPniScore(crn)
+  ) = pniService.getPniCalculation(crn).toPniScore()
 }

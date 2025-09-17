@@ -16,9 +16,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnitWithOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.hasLdc
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.toPniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -28,13 +31,14 @@ import java.util.UUID
 
 @Service
 @Transactional
-open class ReferralService(
+class ReferralService(
   private val findAndReferInterventionApiClient: FindAndReferInterventionApiClient,
   private val ndeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val referralRepository: ReferralRepository,
   private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
   private val serviceUserService: ServiceUserService,
   private val cohortService: CohortService,
+  private val pniService: PniService,
   private val referralStatusHistoryRepository: ReferralStatusHistoryRepository,
 ) {
   companion object {
@@ -61,7 +65,9 @@ open class ReferralService(
   }
 
   fun createReferral(findAndReferReferralDetails: FindAndReferReferralDetails): ReferralEntity {
-    val cohort = cohortService.determineOffenceCohort(findAndReferReferralDetails.personReference)
+    val pniCalculation = pniService.getPniCalculation(findAndReferReferralDetails.personReference)
+    val cohort = cohortService.determineOffenceCohort(pniCalculation.toPniScore())
+    val hasLdc = pniCalculation.hasLdc()
     val awaitingAssessmentStatusDescription = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
 
     val referralEntity = findAndReferReferralDetails.toReferralEntity(
@@ -82,6 +88,11 @@ open class ReferralService(
     log.info("Inserting the default ReferralStatusHistory row for newly created Referral with id ${referral.id!!}")
     referralStatusHistoryRepository.save(statusHistoryEntity)
 
+    val referralLdcHistories = mutableSetOf(ReferralLdcHistoryEntity(hasLdc = hasLdc, referral = referralEntity))
+    referralEntity.referralLdcHistories = referralLdcHistories
+
+    log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort and Ldc status: '$hasLdc'")
+    referralRepository.save(referralEntity)
     return referralRepository.findByIdOrNull(referral.id!!) ?: throw NotFoundException("Referral with id $referral.id")
   }
 
@@ -175,11 +186,7 @@ open class ReferralService(
   fun attemptToFindManagerForReferral(referralId: UUID): RequirementOrLicenceConditionManager? {
     val referral = this.getReferralAndEnsureSourcedFrom(referralId)
 
-    val managerResponse = this.getRetRequirementOrLicenceCondition(referral)
-
-    if (managerResponse == null) {
-      return null
-    }
+    val managerResponse = this.getRetRequirementOrLicenceCondition(referral) ?: return null
 
     return managerResponse.manager
   }
@@ -187,11 +194,7 @@ open class ReferralService(
   fun attemptToFindNonPrimaryPdusForReferal(referralId: UUID): List<NDeliusApiProbationDeliveryUnitWithOfficeLocations>? {
     val referral = this.getReferralAndEnsureSourcedFrom(referralId)
 
-    val ndeliusApiResponse = this.getRetRequirementOrLicenceCondition(referral)
-
-    if (ndeliusApiResponse == null) {
-      return null
-    }
+    val ndeliusApiResponse = this.getRetRequirementOrLicenceCondition(referral) ?: return null
 
     return ndeliusApiResponse.probationDeliveryUnits
   }

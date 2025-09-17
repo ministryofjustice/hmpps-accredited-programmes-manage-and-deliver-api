@@ -29,6 +29,7 @@ class ReferralEntityFactory {
   private var eventNumber: Int? = randomNumberAsInt(1)
   private var cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE
   private var deliveryLocationPreferences: DeliveryLocationPreferenceEntity? = null
+//  private var referralLdcHistories: MutableSet<ReferralLdcHistoryEntity> = mutableSetOf()
 
   fun withId(id: UUID?) = apply { this.id = id }
   fun withPersonName(personName: String?) = apply { this.personName = personName }
@@ -46,6 +47,8 @@ class ReferralEntityFactory {
   fun withEventId(eventId: String) = apply { this.eventId = eventId }
   fun addStatusHistory(statusHistory: ReferralStatusHistoryEntity) = apply { this.statusHistories.add(statusHistory) }
   fun withDeliveryLocationPreferences(deliveryLocationPreferences: DeliveryLocationPreferenceEntity) = apply { this.deliveryLocationPreferences = deliveryLocationPreferences }
+
+//  fun withLdcHistories(ldcHistories: MutableSet<ReferralLdcHistoryEntity>) = apply { this.referralLdcHistories = ldcHistories }
 
   fun produce() = ReferralEntity(
     id = this.id,

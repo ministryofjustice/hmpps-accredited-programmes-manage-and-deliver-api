@@ -5,6 +5,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RiskScore
 
+private const val LEARNING_DISABILITIES_AND_CHALLENGES_THRESHOLD = 3
+
 data class PniResponse(val pniCalculation: PniCalculation?, val assessment: PniAssessment?)
 
 fun PniResponse.toPniScore() = PniScore(
@@ -16,3 +18,5 @@ fun PniResponse.toPniScore() = PniScore(
   ),
   validationErrors = emptyList(),
 )
+
+fun PniResponse.hasLdc(): Boolean = assessment?.ldc?.subTotal?.let { it >= LEARNING_DISABILITIES_AND_CHALLENGES_THRESHOLD } == true

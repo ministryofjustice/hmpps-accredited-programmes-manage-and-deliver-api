@@ -30,7 +30,10 @@ data class FindAndReferReferralDetails(
   @field:Schema(description = "The setting where the intervention will take place", example = "COMMUNITY")
   val setting: SettingType,
 
-  @field:Schema(description = "What was the up-stream event that caused this Referral to be automatically created", example = "requirement")
+  @field:Schema(
+    description = "What was the up-stream event that caused this Referral to be automatically created",
+    example = "requirement",
+  )
   val sourcedFromReferenceType: ReferralEntitySourcedFrom,
 
   @field:Schema(description = "A unique identifier pointing to the licence or requirement", example = "abc-123")

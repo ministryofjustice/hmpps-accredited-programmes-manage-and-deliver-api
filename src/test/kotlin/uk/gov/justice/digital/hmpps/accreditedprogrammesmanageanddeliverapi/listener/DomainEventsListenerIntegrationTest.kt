@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
@@ -156,6 +157,104 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.interventionType == InterventionType.ACP
       it.sourcedFrom == ReferralEntitySourcedFrom.LICENSE_CONDITION
       it.eventId == "LIC-12345"
+    }
+
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(domainEventsMessage.eventType)
+      assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+      )
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
+  }
+
+  @Test
+  fun `should create referral and automatically assign ldc status true when score greater than or equal to 3 and on receipt of community referral creation message`() {
+    // Given
+    val crn = "X123456"
+    val ldc = Ldc(
+      score = 4,
+      subTotal = 4,
+    )
+    oasysApiStubs.stubSuccessfulPniResponseWithLdc(crn, ldc)
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withDetailUrl("http://find-and-refer/referral/$sourceReferralId")
+      .produce()
+
+    // When
+    sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofSeconds(1) untilCallTo {
+      domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
+    } matches { it == 0 }
+
+    await untilCallTo {
+      referralRepository.findAll().firstOrNull()
+    } matches {
+      assertThat(it).isNotNull()
+      it!!.setting == SettingType.COMMUNITY
+      it.crn == "X123456"
+      it.interventionName == "Test Intervention"
+      it.interventionType == InterventionType.ACP
+      it.statusHistories.first().status == "Created"
+      it.sourcedFrom == ReferralEntitySourcedFrom.LICENSE_CONDITION
+      it.eventId == "LIC-12345"
+      it.referralLdcHistories.first().hasLdc
+    }
+
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(domainEventsMessage.eventType)
+      assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+      )
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
+  }
+
+  @Test
+  fun `should create referral and automatically assign ldc status true when score less than 3 and on receipt of community referral creation message`() {
+    // Given
+    val crn = "X123456"
+    val ldc = Ldc(
+      score = 2,
+      subTotal = 2,
+    )
+    oasysApiStubs.stubSuccessfulPniResponseWithLdc(crn, ldc)
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withDetailUrl("http://find-and-refer/referral/$sourceReferralId")
+      .produce()
+
+    // When
+    sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofSeconds(1) untilCallTo {
+      domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
+    } matches { it == 0 }
+
+    await untilCallTo {
+      referralRepository.findAll().firstOrNull()
+    } matches {
+      assertThat(it).isNotNull()
+      it!!.setting == SettingType.COMMUNITY
+      it.crn == "X123456"
+      it.interventionName == "Test Intervention"
+      it.interventionType == InterventionType.ACP
+      it.statusHistories.first().status == "Created"
+      it.sourcedFrom == ReferralEntitySourcedFrom.LICENSE_CONDITION
+      it.eventId == "LIC-12345"
+      !it.referralLdcHistories.first().hasLdc
     }
 
     messageHistoryRepository.findAll().first().let {

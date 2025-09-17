@@ -1,0 +1,77 @@
+{
+  "mappings": [
+    {
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/assessments/pni/.*",
+        "queryParameters": {
+          "community": {
+            "equalTo": "true"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "pniCalculation": {
+            "sexDomain": {
+              "level": "H",
+              "score": 2
+            },
+            "thinkingDomain": {
+              "level": "H",
+              "score": 2
+            },
+            "relationshipDomain": {
+              "level": "H",
+              "score": 2
+            },
+            "selfManagementDomain": {
+              "level": "H",
+              "score": 2
+            },
+            "riskLevel": "H",
+            "needLevel": "H",
+            "totalDomainScore": 8,
+            "pni": "M",
+            "saraRiskLevel": {
+              "toPartner": 3,
+              "toOther": 3
+            }
+          },
+          "assessment": {
+            "id": 10550534,
+            "ogrs3Risk": "LOW",
+            "ovpRisk": "HIGH",
+            "osp": {
+              "cdc": "HIGH",
+              "iiic": "MEDIUM"
+            },
+            "rsrPercentage": 29.57,
+            "offenderAge": 42,
+            "questions": {
+              "everCommittedSexualOffence": "YES",
+              "openSexualOffendingQuestions": "Unknown",
+              "sexualPreOccupation": "SIGNIFICANT",
+              "offenceRelatedSexualInterests": "SIGNIFICANT",
+              "emotionalCongruence": "SIGNIFICANT",
+              "proCriminalAttitudes": "SIGNIFICANT",
+              "hostileOrientation": "SIGNIFICANT",
+              "relCloseFamily": "SIGNIFICANT",
+              "prevCloseRelationships": "SIGNIFICANT",
+              "easilyInfluenced": "SIGNIFICANT",
+              "aggressiveControllingBehaviour": "SIGNIFICANT",
+              "impulsivity": "SIGNIFICANT",
+              "temperControl": "SIGNIFICANT",
+              "problemSolvingSkills": "SIGNIFICANT",
+              "difficultiesCoping": "SIGNIFICANT"
+            }
+          }
+        }
+      }
+    }
+  ]
+}
