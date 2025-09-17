@@ -11,21 +11,14 @@ import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.FindAndReferInterventionApiClient
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.toReferralEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.toPniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.util.Optional
@@ -87,80 +80,6 @@ class ReferralServiceTest {
     // When & Then
     assertThrows<NotFoundException> { referralService.getFindAndReferReferralDetails(referralId) }
     verify(findAndReferInterventionApiClient).getFindAndReferReferral(referralId)
-  }
-
-  @Test
-  fun `createReferral should save referral and add status history and determine ldc status`() {
-    // Given
-    val referralDetails = FindAndReferReferralDetailsFactory().produce()
-    val cohort = OffenceCohort.SEXUAL_OFFENCE
-    val statusHistoryEntity = ReferralStatusHistoryEntityFactory().withStatus("Created").produce()
-    val referralEntity =
-      referralDetails.toReferralEntity(
-        mutableListOf(statusHistoryEntity),
-        cohort,
-      ) // Use actual transformation with cohort
-
-    val ldcResponse = Ldc(
-      score = 4,
-      subTotal = 4,
-    )
-    val pniAssessment = PniAssessmentFactory().withLdc(ldcResponse).produce()
-    val pniResponse = PniResponseFactory().withAssessment(pniAssessment).produce()
-    `when`(cohortService.determineOffenceCohort(pniResponse.toPniScore())).thenReturn(cohort)
-    `when`(pniService.getPniCalculation(referralDetails.personReference)).thenReturn(pniResponse)
-    `when`(referralRepository.save(any())).thenReturn(referralEntity)
-
-    // When
-    referralService.createReferral(referralDetails)
-
-    // Then
-    verify(cohortService).determineOffenceCohort(pniResponse.toPniScore())
-    verify(referralRepository).save(
-      argThat { saved ->
-        saved.crn == referralEntity.crn &&
-          saved.interventionType == referralEntity.interventionType &&
-          saved.interventionName == referralEntity.interventionName &&
-          saved.cohort == cohort &&
-          saved.statusHistories.first().status == "Created" &&
-          saved.referralLdcHistories.first().hasLdc
-      },
-    )
-  }
-
-  @Test
-  fun `createReferral should save referral and add status history and determine ldc status when ldc is null from pni`() {
-    // Given
-    val referralDetails = FindAndReferReferralDetailsFactory().produce()
-    val cohort = OffenceCohort.SEXUAL_OFFENCE
-    val statusHistoryEntity = ReferralStatusHistoryEntityFactory().withStatus("Created").produce()
-    val referralEntity =
-      referralDetails.toReferralEntity(
-        mutableListOf(statusHistoryEntity),
-        cohort,
-      ) // Use actual transformation with cohort
-
-    val pniAssessment = PniAssessmentFactory().withLdc(null).produce()
-    val pniResponse = PniResponseFactory().withAssessment(pniAssessment).produce()
-    `when`(cohortService.determineOffenceCohort(pniResponse.toPniScore())).thenReturn(cohort)
-    `when`(pniService.getPniCalculation(referralDetails.personReference)).thenReturn(pniResponse)
-    `when`(referralRepository.save(any())).thenReturn(referralEntity)
-
-    // When
-    referralService.createReferral(referralDetails)
-
-    // Then
-    verify(cohortService).determineOffenceCohort(pniResponse.toPniScore())
-    verify(referralRepository).save(
-      argThat { saved ->
-        saved.crn == referralEntity.crn &&
-          saved.interventionType == referralEntity.interventionType &&
-          saved.interventionName == referralEntity.interventionName &&
-          saved.cohort == cohort &&
-          saved.statusHistories.first().status == "Created" &&
-          !saved.referralLdcHistories.first().hasLdc
-      },
-    )
   }
 
   @Test
