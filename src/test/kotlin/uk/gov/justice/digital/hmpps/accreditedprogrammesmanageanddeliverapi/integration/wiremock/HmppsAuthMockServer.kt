@@ -38,7 +38,7 @@ class HmppsAuthApiExtension :
 
 class HmppsAuthMockServer : WireMockServer(WIREMOCK_PORT) {
   companion object {
-    private const val WIREMOCK_PORT = 8090
+    private const val WIREMOCK_PORT = 9999
   }
 
   fun stubGrantToken() {
