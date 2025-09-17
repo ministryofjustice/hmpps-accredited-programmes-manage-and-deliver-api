@@ -298,7 +298,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     // When
     val response = performRequestAndExpectOk(
       HttpMethod.GET,
-      "/pages/caselist/open?status=Awaiting%20Assessment",
+      "/pages/caselist/open?status=Awaiting%20assessment",
       object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
     )
     val referralCaseListItems = response.content
