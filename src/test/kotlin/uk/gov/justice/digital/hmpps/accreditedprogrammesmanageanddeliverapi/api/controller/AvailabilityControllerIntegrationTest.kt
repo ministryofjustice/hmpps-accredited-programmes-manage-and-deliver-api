@@ -165,7 +165,6 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `create availability returns conflict if availability already exists`() {
     val otherDetails = "Available remotely"
-    val lastModifiedBy = "AUTH_ADM"
     val startDate: LocalDate = LocalDate.now()
     val endDate: LocalDate = LocalDate.now().plusDays(10)
 
@@ -174,7 +173,7 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
 
     val createdAvailability = createAvailability(referralEntity, startDate, endDate, otherDetails)
 
-    // assert that its a conflict
+    // assert that it's a conflict
     val duplicateAvailability =
       createAvailability(referralEntity, startDate, endDate, otherDetails, HttpStatus.CONFLICT.value())
 

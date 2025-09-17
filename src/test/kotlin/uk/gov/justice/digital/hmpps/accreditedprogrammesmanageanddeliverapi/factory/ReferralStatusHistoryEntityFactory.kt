@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomSentence
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import java.time.LocalDateTime
 import java.util.UUID
@@ -13,6 +14,7 @@ class ReferralStatusHistoryEntityFactory {
   private var createdBy: String? = randomSentence(wordRange = 1..2)
   private var startDate: LocalDateTime? = LocalDateTime.now()
   private var endDate: LocalDateTime? = null
+  private var referralStatusDescription: ReferralStatusDescriptionEntity? = null
 
   fun withId(id: UUID?) = apply { this.id = id }
   fun withStatus(status: String?) = apply { this.status = status }
@@ -20,6 +22,7 @@ class ReferralStatusHistoryEntityFactory {
   fun withCreatedBy(createdBy: String?) = apply { this.createdBy = createdBy }
   fun withStartDate(startDate: LocalDateTime?) = apply { this.startDate = startDate }
   fun withEndDate(endDate: LocalDateTime?) = apply { this.endDate = endDate }
+  fun withReferralStatusDescription(referralStatusDescription: ReferralStatusDescriptionEntity) = apply { this.referralStatusDescription = referralStatusDescription }
 
   fun produce() = ReferralStatusHistoryEntity(
     id = this.id,
@@ -28,5 +31,6 @@ class ReferralStatusHistoryEntityFactory {
     createdBy = this.createdBy,
     startDate = this.startDate,
     endDate = this.endDate,
+    referralStatusDescription = this.referralStatusDescription,
   )
 }

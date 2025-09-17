@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -30,6 +31,7 @@ open class ReferralService(
   private val findAndReferInterventionApiClient: FindAndReferInterventionApiClient,
   private val ndeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val referralRepository: ReferralRepository,
+  private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
   private val serviceUserService: ServiceUserService,
   private val cohortService: CohortService,
 ) {
@@ -56,19 +58,21 @@ open class ReferralService(
     return referralDetails
   }
 
-  fun createReferral(findAndReferReferralDetails: FindAndReferReferralDetails) {
+  fun createReferral(findAndReferReferralDetails: FindAndReferReferralDetails): ReferralEntity {
     val cohort = cohortService.determineOffenceCohort(findAndReferReferralDetails.personReference)
+    val awaitingAssessmentStatusDescription = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
 
     val statusHistoryEntity = ReferralStatusHistoryEntity(
       status = "Created",
       startDate = LocalDateTime.now(),
       endDate = null,
+      referralStatusDescription = awaitingAssessmentStatusDescription,
     )
 
     val referralEntity = findAndReferReferralDetails.toReferralEntity(mutableListOf(statusHistoryEntity), cohort)
 
     log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort")
-    referralRepository.save(referralEntity)
+    return referralRepository.save(referralEntity)
   }
 
   fun getReferralById(id: UUID): ReferralEntity? = referralRepository.findByIdOrNull(id)
