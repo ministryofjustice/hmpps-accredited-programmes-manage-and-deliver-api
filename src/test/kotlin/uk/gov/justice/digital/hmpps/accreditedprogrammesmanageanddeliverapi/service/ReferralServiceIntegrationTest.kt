@@ -28,10 +28,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.util.UUID
 
-class ReferralServiceIntegrationTest(
-  @Autowired
-  private var referralService: ReferralService,
-) : IntegrationTestBase() {
+class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
   private lateinit var oasysApiStubs: OasysApiStubs
 
@@ -45,6 +42,9 @@ class ReferralServiceIntegrationTest(
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
+
+  @Autowired
+  private lateinit var referralService: ReferralService
 
   @BeforeEach
   fun setup() {
@@ -83,7 +83,7 @@ class ReferralServiceIntegrationTest(
     assertThat(referralFromRepo.interventionName).isEqualTo("The Intervention Name")
     assertThat(referralFromRepo.setting).isEqualTo(SettingType.COMMUNITY)
     assertThat(referralFromRepo.statusHistories).hasSize(1)
-    assertThat(referralFromRepo.statusHistories.firstOrNull()?.referralStatusDescription?.description).isEqualTo("Awaiting Assessment")
+    assertThat(referralFromRepo.statusHistories.firstOrNull()?.referralStatusDescription?.description).isEqualTo("Awaiting assessment")
   }
 
   @Test

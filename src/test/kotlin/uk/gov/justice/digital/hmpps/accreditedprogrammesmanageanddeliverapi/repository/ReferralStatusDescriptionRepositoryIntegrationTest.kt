@@ -64,7 +64,7 @@ class ReferralStatusDescriptionRepositoryIntegrationTest(@Autowired private val 
 
     // Then
     assertThat(retrievedStatusHistory).isPresent
-    assertThat(retrievedStatusHistory.get().referralStatusDescription?.description).isEqualTo("Awaiting Assessment")
+    assertThat(retrievedStatusHistory.get().referralStatusDescription?.description).isEqualTo("Awaiting assessment")
     assertThat(retrievedStatusHistory.get().referralStatusDescription?.isClosed).isFalse
   }
 

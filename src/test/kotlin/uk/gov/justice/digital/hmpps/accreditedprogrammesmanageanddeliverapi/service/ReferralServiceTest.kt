@@ -36,9 +36,6 @@ class ReferralServiceTest {
   private lateinit var findAndReferInterventionApiClient: FindAndReferInterventionApiClient
 
   @Mock
-  private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
-
-  @Mock
   private lateinit var referralRepository: ReferralRepository
 
   @Mock

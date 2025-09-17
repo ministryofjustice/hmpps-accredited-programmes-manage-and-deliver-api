@@ -5,7 +5,7 @@ import java.util.UUID
 
 class ReferralStatusDescriptionEntityFactory {
   companion object {
-    fun awaitingAssessmentStatusDescription(): ReferralStatusDescriptionEntity = ReferralStatusDescriptionEntityFactory().withDescription("Awaiting Assessment").produce()
+    fun awaitingAssessmentStatusDescription(): ReferralStatusDescriptionEntity = ReferralStatusDescriptionEntityFactory().withDescription("Awaiting assessment").produce()
   }
   private var id: UUID = UUID.randomUUID()
   private var description: String = "Test Status Description"

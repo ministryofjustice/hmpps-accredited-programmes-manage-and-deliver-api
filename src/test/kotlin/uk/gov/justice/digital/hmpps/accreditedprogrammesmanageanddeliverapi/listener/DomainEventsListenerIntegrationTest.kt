@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.DomainEventsMessageFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -146,16 +147,15 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     } matches { it == 0 }
 
     await withPollDelay ofSeconds(1) untilCallTo {
-      referralRepository.count()
+      referralRepository.findAll().firstOrNull()
     } matches {
-      it == beforeCount + 1
-//      assertThat(it).isNotNull()
-//      it!!.setting == SettingType.COMMUNITY
-//      it.crn == "X123456"
-//      it.interventionName == "Test Intervention"
-//      it.interventionType == InterventionType.ACP
-//      it.sourcedFrom == ReferralEntitySourcedFrom.LICENSE_CONDITION
-//      it.eventId == "LIC-12345"
+      assertThat(it).isNotNull()
+      it!!.setting == SettingType.COMMUNITY
+      it.crn == "X123456"
+      it.interventionName == "Test Intervention"
+      it.interventionType == InterventionType.ACP
+      it.sourcedFrom == ReferralEntitySourcedFrom.LICENSE_CONDITION
+      it.eventId == "LIC-12345"
     }
 
     messageHistoryRepository.findAll().first().let {

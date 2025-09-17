@@ -265,7 +265,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     assertThat(referral.personName).isEqualTo("Alex River")
     assertThat(referral.crn).isEqualTo("CRN-999999")
     assertThat(referral.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
-    assertThat(referral.referralStatus).isEqualTo("Awaiting Assessment")
+    assertThat(referral.referralStatus).isEqualTo("Awaiting assessment")
   }
 
   @Test
@@ -309,7 +309,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
     assertThat(referralCaseListItems)
       .allSatisfy { item ->
-        assertThat(item.referralStatus).isEqualTo("Awaiting Assessment")
+        assertThat(item.referralStatus).isEqualTo("Awaiting assessment")
       }
   }
 }
