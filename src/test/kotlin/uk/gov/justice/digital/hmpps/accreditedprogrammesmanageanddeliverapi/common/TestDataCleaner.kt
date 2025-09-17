@@ -14,7 +14,6 @@ class TestDataCleaner(
   fun cleanAllTables() {
     entityManager.apply {
       createNativeQuery("TRUNCATE TABLE message_history CASCADE").executeUpdate()
-      createNativeQuery("TRUNCATE TABLE referral_status_history_mapping CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE referral_status_history CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE referral_ldc_history CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE referral CASCADE").executeUpdate()
