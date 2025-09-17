@@ -4,9 +4,6 @@ DROP TABLE referral_status_history_mapping;
 
 -- Then we have to add these columns to the table, one-by-one
 ALTER TABLE referral_status_history
-    ADD COLUMN referral_status_description_id UUID REFERENCES referral_status_description (id);
-
-ALTER TABLE referral_status_history
     ADD COLUMN referral_id UUID REFERENCES referral (id);
 
 ALTER TABLE referral_status_history
@@ -37,8 +34,6 @@ CREATE INDEX idx_referral_person_name ON referral_caselist_item_view (person_nam
 CREATE INDEX idx_referral_status ON referral_caselist_item_view (status);
 
 -- Finally, create some indexes on the new rows, for performance
-CREATE INDEX idx_referral_status_history_description_id ON referral_status_history (referral_status_description_id);
 CREATE INDEX idx_referral_status_history_referral_id ON referral_status_history (referral_id);
 
-COMMENT ON COLUMN referral_status_history.referral_status_description_id IS 'References the status description for this history entry';
 COMMENT ON COLUMN referral_status_history.referral_id IS 'References the Referral that this Status History belongs to';
