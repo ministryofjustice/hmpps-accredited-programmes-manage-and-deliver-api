@@ -9,6 +9,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnitEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import java.util.UUID
@@ -46,6 +47,10 @@ class TestDataGenerator {
     pdu?.let { createPreferredDeliveryLocationProbationDeliveryUnit(pdu) }
     preferredDeliveryLocation?.let { createPreferredDeliveryLocation(preferredDeliveryLocation) }
     deliveryLocationPreference?.let { createDeliveryLocationPreference(deliveryLocationPreference) }
+  }
+
+  fun createLdcHistoryForAReferral(referralLdcHistoryEntity: ReferralLdcHistoryEntity) {
+    entityManager.persist(referralLdcHistoryEntity)
   }
 
   fun getReferralById(id: UUID): ReferralEntity = entityManager
