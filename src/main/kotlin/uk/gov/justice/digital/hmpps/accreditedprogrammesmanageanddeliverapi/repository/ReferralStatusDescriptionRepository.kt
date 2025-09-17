@@ -6,6 +6,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import java.util.UUID
 
 interface ReferralStatusDescriptionRepository : JpaRepository<ReferralStatusDescriptionEntity, UUID> {
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Awaiting Assessment'")
+  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Awaiting assessment'")
   fun getAwaitingAssessmentStatusDescription(): ReferralStatusDescriptionEntity
 }
