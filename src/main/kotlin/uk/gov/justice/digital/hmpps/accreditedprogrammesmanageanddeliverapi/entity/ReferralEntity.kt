@@ -18,7 +18,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @Entity
 @Table(name = "referral")
@@ -86,6 +86,13 @@ class ReferralEntity(
     mappedBy = "referral",
   )
   val deliveryLocationPreferences: DeliveryLocationPreferenceEntity? = null,
+
+  @OneToMany(
+    fetch = FetchType.LAZY,
+    cascade = [CascadeType.ALL],
+    mappedBy = "referral",
+  )
+  var referralLdcHistories: MutableSet<ReferralLdcHistoryEntity> = mutableSetOf(),
 )
 
 enum class ReferralEntitySourcedFrom {

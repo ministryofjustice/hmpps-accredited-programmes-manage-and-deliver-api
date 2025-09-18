@@ -50,6 +50,9 @@ class ReferralServiceTest {
   @Mock
   private lateinit var cohortService: CohortService
 
+  @Mock
+  private lateinit var pniService: PniService
+
   @InjectMocks
   private lateinit var referralService: ReferralService
 

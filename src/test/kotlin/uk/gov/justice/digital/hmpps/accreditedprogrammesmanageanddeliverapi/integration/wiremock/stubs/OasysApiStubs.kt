@@ -5,6 +5,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAccommodation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAlcoholMisuseDetails
@@ -22,6 +23,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRoshFull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRoshSummary
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysThinkingAndBehaviour
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAccommodationFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAlcoholMisuseDetailsFactory
@@ -55,6 +57,18 @@ class OasysApiStubs(
             .withBody(objectMapper.writeValueAsString(pniResponse)),
         ),
     )
+  }
+
+  fun stubSuccessfulPniResponseWithLdc(
+    crn: String,
+    ldc: Ldc = Ldc(
+      score = 4,
+      subTotal = 4,
+    ),
+  ) {
+    val pniAssessment = PniAssessmentFactory().withLdc(ldc).produce()
+    val pniResponse = PniResponseFactory().withAssessment(pniAssessment).produce()
+    stubSuccessfulPniResponse(crn, pniResponse)
   }
 
   fun stubNotFoundPniResponse(crn: String) {
@@ -346,6 +360,7 @@ class OasysApiStubs(
         ),
     )
   }
+
   fun stubSuccessfulOasysDrugDetailResponse(
     assessmentId: Long,
     oasysDrugDetail: OasysDrugDetail = OasysDrugDetailFactory().produce(),

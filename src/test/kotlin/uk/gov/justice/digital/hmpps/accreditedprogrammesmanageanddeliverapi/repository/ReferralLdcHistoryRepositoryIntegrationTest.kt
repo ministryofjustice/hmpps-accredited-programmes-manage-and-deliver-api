@@ -8,8 +8,8 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralLdcHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 
@@ -39,17 +39,9 @@ class ReferralLdcHistoryRepositoryIntegrationTest : IntegrationTestBase() {
   @WithMockAuthUser("SYSTEM")
   fun `retrieve the latest LDC status for a referral`() {
     val referralEntity = ReferralEntityFactory().produce()
+    val ldcEntity1 = ReferralLdcHistoryFactory().withReferral(referralEntity).withHasLdc(true).produce()
+    val ldcEntity2 = ReferralLdcHistoryFactory().withReferral(referralEntity).withHasLdc(false).produce()
     testDataGenerator.createReferral(referralEntity)
-
-    val ldcEntity1 = ReferralLdcHistoryEntity(
-      referral = referralEntity,
-      hasLdc = true,
-    )
-
-    val ldcEntity2 = ReferralLdcHistoryEntity(
-      referral = referralEntity,
-      hasLdc = false,
-    )
     testDataGenerator.createLdcHistoryForAReferral(ldcEntity1)
     testDataGenerator.createLdcHistoryForAReferral(ldcEntity2)
 
