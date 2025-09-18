@@ -255,6 +255,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.sourcedFrom == ReferralEntitySourcedFrom.LICENSE_CONDITION
       it.eventId == "LIC-12345"
       !it.referralLdcHistories.first().hasLdc
+      it.referralLdcHistories.first().createdBy == "SYSTEM"
     }
 
     messageHistoryRepository.findAll().first().let {

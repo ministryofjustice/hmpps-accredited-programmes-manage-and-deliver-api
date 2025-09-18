@@ -299,6 +299,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.cohort).isEqualTo(cohort)
       assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isTrue
+      assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
     }
 
     @Test
@@ -326,6 +327,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.cohort).isEqualTo(cohort)
       assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
+      assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
     }
 
     @Test
@@ -350,6 +352,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.cohort).isEqualTo(cohort)
       assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
+      assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
     }
   }
 }
