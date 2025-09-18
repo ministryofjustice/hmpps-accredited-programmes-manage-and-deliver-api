@@ -9,6 +9,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnitEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import java.util.UUID
 
@@ -47,6 +48,10 @@ class TestDataGenerator {
     deliveryLocationPreference?.let { createDeliveryLocationPreference(deliveryLocationPreference) }
   }
 
+  fun createLdcHistoryForAReferral(referralLdcHistoryEntity: ReferralLdcHistoryEntity) {
+    entityManager.persist(referralLdcHistoryEntity)
+  }
+
   fun getReferralById(id: UUID): ReferralEntity = entityManager
     .createNativeQuery("SELECT * FROM referral r WHERE r.id = :referralId", ReferralEntity::class.java)
     .setParameter("referralId", id)
@@ -66,8 +71,6 @@ class TestDataGenerator {
   ) {
     entityManager.persist(referralEntity)
     entityManager.persist(referralStatusHistoryEntity)
-    referralEntity.statusHistories.add(referralStatusHistoryEntity)
-    entityManager.merge(referralEntity)
   }
 
   fun refreshReferralCaseListItemView() {

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralCaseListItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralCaseListItemService
+import java.net.URLDecoder
 
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
 @RestController
@@ -62,7 +63,7 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
     openOrClosed = openOrClosed,
     crnOrPersonName = crnOrPersonName,
     cohort = cohort?.name,
-    status = status,
+    status = if (status.isNullOrEmpty()) null else URLDecoder.decode(status, "UTF-8"),
   )
 }
 

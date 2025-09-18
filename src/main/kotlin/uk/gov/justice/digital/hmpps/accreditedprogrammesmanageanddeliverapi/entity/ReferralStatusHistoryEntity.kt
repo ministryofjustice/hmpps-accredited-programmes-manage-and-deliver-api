@@ -2,8 +2,11 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ent
 
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
@@ -18,8 +21,13 @@ class ReferralStatusHistoryEntity(
   @Column(name = "id")
   var id: UUID? = null,
 
-  @Column(name = "status")
-  var status: String? = null,
+  @ManyToOne
+  @JoinColumn(name = "referral_id")
+  val referral: ReferralEntity,
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "referral_status_description_id")
+  val referralStatusDescription: ReferralStatusDescriptionEntity,
 
   @Column(name = "created_at")
   @CreatedDate

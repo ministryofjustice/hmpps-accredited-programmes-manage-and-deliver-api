@@ -21,6 +21,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -30,8 +32,10 @@ open class ReferralService(
   private val findAndReferInterventionApiClient: FindAndReferInterventionApiClient,
   private val ndeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val referralRepository: ReferralRepository,
+  private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
   private val serviceUserService: ServiceUserService,
   private val cohortService: CohortService,
+  private val referralStatusHistoryRepository: ReferralStatusHistoryRepository,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -56,19 +60,29 @@ open class ReferralService(
     return referralDetails
   }
 
-  fun createReferral(findAndReferReferralDetails: FindAndReferReferralDetails) {
+  fun createReferral(findAndReferReferralDetails: FindAndReferReferralDetails): ReferralEntity {
     val cohort = cohortService.determineOffenceCohort(findAndReferReferralDetails.personReference)
+    val awaitingAssessmentStatusDescription = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+
+    val referralEntity = findAndReferReferralDetails.toReferralEntity(
+      statusHistories = mutableListOf(),
+      cohort = cohort,
+    )
+
+    log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort")
+    val referral = referralRepository.save(referralEntity)
 
     val statusHistoryEntity = ReferralStatusHistoryEntity(
-      status = "Created",
+      referral = referral,
+      referralStatusDescription = awaitingAssessmentStatusDescription,
       startDate = LocalDateTime.now(),
       endDate = null,
     )
 
-    val referralEntity = findAndReferReferralDetails.toReferralEntity(mutableListOf(statusHistoryEntity), cohort)
+    log.info("Inserting the default ReferralStatusHistory row for newly created Referral with id ${referral.id!!}")
+    referralStatusHistoryRepository.save(statusHistoryEntity)
 
-    log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort")
-    referralRepository.save(referralEntity)
+    return referralRepository.findByIdOrNull(referral.id!!) ?: throw NotFoundException("Referral with id $referral.id")
   }
 
   fun getReferralById(id: UUID): ReferralEntity? = referralRepository.findByIdOrNull(id)

@@ -18,12 +18,16 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.time.LocalDateTime
 
 class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var testDataGenerator: TestDataGenerator
+
+  @Autowired
+  private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
 
   @Autowired
   private lateinit var testDataCleaner: TestDataCleaner
@@ -50,18 +54,21 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
   private fun createReferralsWithStatusHistory() {
     // Create referrals with associated status history
+    val awaitingAssessmentStatusDescription = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+
     val referral1 = ReferralEntityFactory()
       .withPersonName("Joe Bloggs")
       .withCrn("X7182552")
       .withInterventionName("Horizon")
       .withCohort(OffenceCohort.GENERAL_OFFENCE)
       .produce()
+
     val statusHistory1 = ReferralStatusHistoryEntityFactory()
-      .withStatus("CREATED")
       .withCreatedAt(LocalDateTime.now())
       .withCreatedBy("USER_ID_12345")
       .withStartDate(LocalDateTime.now())
-      .produce()
+      .produce(referral1, awaitingAssessmentStatusDescription)
+
     testDataGenerator.createReferralWithStatusHistory(referral1, statusHistory1)
 
     val referral2 = ReferralEntityFactory()
@@ -70,12 +77,13 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       .withInterventionName("Building Choices")
       .withCohort(OffenceCohort.SEXUAL_OFFENCE)
       .produce()
+
     val statusHistory2 = ReferralStatusHistoryEntityFactory()
-      .withStatus("CREATED")
       .withCreatedAt(LocalDateTime.now())
       .withCreatedBy("USER_ID_12345")
       .withStartDate(LocalDateTime.now())
-      .produce()
+      .produce(referral2, awaitingAssessmentStatusDescription)
+
     testDataGenerator.createReferralWithStatusHistory(referral2, statusHistory2)
 
     val referral3 = ReferralEntityFactory()
@@ -85,11 +93,10 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       .withCohort(OffenceCohort.GENERAL_OFFENCE)
       .produce()
     val statusHistory3 = ReferralStatusHistoryEntityFactory()
-      .withStatus("CREATED")
       .withCreatedAt(LocalDateTime.now())
       .withCreatedBy("USER_ID_12345")
       .withStartDate(LocalDateTime.now())
-      .produce()
+      .produce(referral3, awaitingAssessmentStatusDescription)
     testDataGenerator.createReferralWithStatusHistory(referral3, statusHistory3)
 
     val referral4 = ReferralEntityFactory()
@@ -99,11 +106,10 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       .withCohort(OffenceCohort.GENERAL_OFFENCE)
       .produce()
     val statusHistory4 = ReferralStatusHistoryEntityFactory()
-      .withStatus("CREATED")
       .withCreatedAt(LocalDateTime.now())
       .withCreatedBy("USER_ID_12345")
       .withStartDate(LocalDateTime.now())
-      .produce()
+      .produce(referral4, awaitingAssessmentStatusDescription)
     testDataGenerator.createReferralWithStatusHistory(referral4, statusHistory4)
 
     val referral5 = ReferralEntityFactory()
@@ -113,12 +119,11 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       .withCohort(OffenceCohort.GENERAL_OFFENCE)
       .produce()
     val statusHistory5 = ReferralStatusHistoryEntityFactory()
-      .withStatus("STARTED")
       .withCreatedAt(LocalDateTime.parse("2025-07-10T00:00:00"))
       .withCreatedBy("USER_ID_12345")
       .withStartDate(LocalDateTime.parse("2025-07-10T00:00:00"))
       .withEndDate(LocalDateTime.parse("2025-07-10T00:00:00"))
-      .produce()
+      .produce(referral5, awaitingAssessmentStatusDescription)
     testDataGenerator.createReferralWithStatusHistory(referral5, statusHistory5)
 
     val referral6 = ReferralEntityFactory()
@@ -128,11 +133,10 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       .withCohort(OffenceCohort.GENERAL_OFFENCE)
       .produce()
     val statusHistory6 = ReferralStatusHistoryEntityFactory()
-      .withStatus("CREATED")
       .withCreatedAt(LocalDateTime.now())
       .withCreatedBy("USER_ID_12345")
       .withStartDate(LocalDateTime.now())
-      .produce()
+      .produce(referral6, awaitingAssessmentStatusDescription)
     testDataGenerator.createReferralWithStatusHistory(referral6, statusHistory6)
   }
 
@@ -261,7 +265,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     assertThat(referral.personName).isEqualTo("Alex River")
     assertThat(referral.crn).isEqualTo("CRN-999999")
     assertThat(referral.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
-    assertThat(referral.referralStatus).isEqualTo("CREATED")
+    assertThat(referral.referralStatus).isEqualTo("Awaiting assessment")
   }
 
   @Test
@@ -294,18 +298,18 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     // When
     val response = performRequestAndExpectOk(
       HttpMethod.GET,
-      "/pages/caselist/open?status=CREATED",
+      "/pages/caselist/open?status=Awaiting%20assessment",
       object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
     )
     val referralCaseListItems = response.content
 
     // Then
     assertThat(response).isNotNull
-    assertThat(referralCaseListItems).hasSize(5)
+    assertThat(referralCaseListItems).hasSize(6) // TODO: Return this back to 5, when another ReferralStatusDescription has been put in --TJWC 2025-09-16
 
     assertThat(referralCaseListItems)
       .allSatisfy { item ->
-        assertThat(item.referralStatus).isEqualTo("CREATED")
+        assertThat(item.referralStatus).isEqualTo("Awaiting assessment")
       }
   }
 }
