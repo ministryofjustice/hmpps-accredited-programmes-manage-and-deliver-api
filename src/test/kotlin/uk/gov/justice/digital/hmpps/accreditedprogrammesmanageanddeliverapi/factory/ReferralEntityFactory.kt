@@ -22,8 +22,7 @@ class ReferralEntityFactory {
   private var interventionType: InterventionType = InterventionType.ACP
   private var crn: String? = randomCrn()
   private var createdAt: LocalDateTime = LocalDateTime.now()
-  private var statusHistories: MutableList<ReferralStatusHistoryEntity> =
-    mutableListOf(referralStatusHistoryEntityFactory.withStatus("Assessment started").produce())
+  private var statusHistories: MutableList<ReferralStatusHistoryEntity> = mutableListOf()
   private var setting: SettingType = SettingType.COMMUNITY
   private var eventId: String = randomUppercaseString(6)
   private var sourcedFrom: ReferralEntitySourcedFrom? = null

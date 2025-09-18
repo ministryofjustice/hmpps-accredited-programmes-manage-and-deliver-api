@@ -21,12 +21,13 @@ class ReferralStatusHistoryEntity(
   @Column(name = "id")
   var id: UUID? = null,
 
-  @Column(name = "status")
-  var status: String? = null, // TODO is this redundant post introduction of the referralStatusDescription below?
+  @ManyToOne
+  @JoinColumn(name = "referral_id")
+  val referral: ReferralEntity,
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "referral_status_description_id")
-  val referralStatusDescription: ReferralStatusDescriptionEntity? = null, // TODO this should not be nullable - refactor post population of table
+  val referralStatusDescription: ReferralStatusDescriptionEntity,
 
   @Column(name = "created_at")
   @CreatedDate

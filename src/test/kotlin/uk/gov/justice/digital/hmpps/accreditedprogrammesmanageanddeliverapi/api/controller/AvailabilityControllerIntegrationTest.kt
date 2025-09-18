@@ -173,7 +173,6 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
 
     val createdAvailability = createAvailability(referralEntity, startDate, endDate, otherDetails)
 
-    // assert that it's a conflict
     val duplicateAvailability =
       createAvailability(referralEntity, startDate, endDate, otherDetails, HttpStatus.CONFLICT.value())
 

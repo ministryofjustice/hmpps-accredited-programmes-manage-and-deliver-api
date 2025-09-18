@@ -8,7 +8,7 @@ class ReferralStatusTransitionEntityFactory {
   private val referralStatusDescriptionEntityFactory = ReferralStatusDescriptionEntityFactory()
   private var id: UUID = UUID.randomUUID()
   private var fromStatus: ReferralStatusDescriptionEntity = referralStatusDescriptionEntityFactory
-    .withDescription("Awaiting Assessment")
+    .withDescription("Awaiting assessment")
     .produce()
   private var toStatus: ReferralStatusDescriptionEntity = referralStatusDescriptionEntityFactory
     .withDescription("Not Eligible")

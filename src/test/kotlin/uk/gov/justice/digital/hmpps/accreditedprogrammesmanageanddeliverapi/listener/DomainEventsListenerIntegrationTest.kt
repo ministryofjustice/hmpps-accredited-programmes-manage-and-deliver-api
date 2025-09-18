@@ -38,10 +38,10 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   lateinit var messageHistoryRepository: MessageHistoryRepository
 
   @Autowired
-  lateinit var referralRepository: ReferralRepository
+  lateinit var testDataCleaner: TestDataCleaner
 
   @Autowired
-  lateinit var testDataCleaner: TestDataCleaner
+  lateinit var referralRepository: ReferralRepository
 
   lateinit var sourceReferralId: UUID
   lateinit var oasysApiStubs: OasysApiStubs
@@ -137,6 +137,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .withDetailUrl("http://find-and-refer/referral/$sourceReferralId")
       .produce()
 
+    val beforeCount = referralRepository.count()
     // When
     sendDomainEvent(domainEventsMessage)
 
@@ -145,7 +146,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
     } matches { it == 0 }
 
-    await untilCallTo {
+    await withPollDelay ofSeconds(1) untilCallTo {
       referralRepository.findAll().firstOrNull()
     } matches {
       assertThat(it).isNotNull()
@@ -153,7 +154,6 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.crn == "X123456"
       it.interventionName == "Test Intervention"
       it.interventionType == InterventionType.ACP
-      it.statusHistories.first().status == "Created"
       it.sourcedFrom == ReferralEntitySourcedFrom.LICENSE_CONDITION
       it.eventId == "LIC-12345"
     }
