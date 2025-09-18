@@ -8,6 +8,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
@@ -29,7 +30,7 @@ class ReferralEntityFactory {
   private var eventNumber: Int? = randomNumberAsInt(1)
   private var cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE
   private var deliveryLocationPreferences: DeliveryLocationPreferenceEntity? = null
-//  private var referralLdcHistories: MutableSet<ReferralLdcHistoryEntity> = mutableSetOf()
+  private var referralLdcHistories: MutableSet<ReferralLdcHistoryEntity> = mutableSetOf()
 
   fun withId(id: UUID?) = apply { this.id = id }
   fun withPersonName(personName: String?) = apply { this.personName = personName }
@@ -48,7 +49,7 @@ class ReferralEntityFactory {
   fun addStatusHistory(statusHistory: ReferralStatusHistoryEntity) = apply { this.statusHistories.add(statusHistory) }
   fun withDeliveryLocationPreferences(deliveryLocationPreferences: DeliveryLocationPreferenceEntity) = apply { this.deliveryLocationPreferences = deliveryLocationPreferences }
 
-//  fun withLdcHistories(ldcHistories: MutableSet<ReferralLdcHistoryEntity>) = apply { this.referralLdcHistories = ldcHistories }
+  fun withLdcHistories(ldcHistories: MutableSet<ReferralLdcHistoryEntity>) = apply { this.referralLdcHistories = ldcHistories }
 
   fun produce() = ReferralEntity(
     id = this.id,
@@ -63,5 +64,6 @@ class ReferralEntityFactory {
     eventId = this.eventId,
     eventNumber = this.eventNumber,
     cohort = this.cohort,
+    referralLdcHistories = referralLdcHistories,
   )
 }

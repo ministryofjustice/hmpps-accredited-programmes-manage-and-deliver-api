@@ -202,7 +202,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.crn == "X123456"
       it.interventionName == "Test Intervention"
       it.interventionType == InterventionType.ACP
-      it.statusHistories.first().status == "Created"
+      it.statusHistories.first().referralStatusDescription.description == "Awaiting assessment"
       it.sourcedFrom == ReferralEntitySourcedFrom.LICENSE_CONDITION
       it.eventId == "LIC-12345"
       it.referralLdcHistories.first().hasLdc
@@ -251,7 +251,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.crn == "X123456"
       it.interventionName == "Test Intervention"
       it.interventionType == InterventionType.ACP
-      it.statusHistories.first().status == "Created"
+      it.statusHistories.first().referralStatusDescription.description == "Awaiting assessment"
       it.sourcedFrom == ReferralEntitySourcedFrom.LICENSE_CONDITION
       it.eventId == "LIC-12345"
       !it.referralLdcHistories.first().hasLdc

@@ -20,13 +20,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
@@ -262,7 +262,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       )
 
       //    Then
-      val referralFromRepo = referralRepository.findByCrn("CRN-12345").firstOrNull() ?: throw NotFoundException("Referral with CRN-12345")
+      val referralFromRepo =
+        referralRepository.findByCrn("CRN-12345").firstOrNull() ?: throw NotFoundException("Referral with CRN-12345")
 
       assertThat(referralFromRepo.id).isEqualTo(referral.id)
       assertThat(referralFromRepo.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
@@ -296,7 +297,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.interventionType).isEqualTo(referralDetails.interventionType)
       assertThat(savedReferral.interventionName).isEqualTo(referralDetails.interventionName)
       assertThat(savedReferral.cohort).isEqualTo(cohort)
-      assertThat(savedReferral.statusHistories.first().status).isEqualTo("Created")
+      assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isTrue
     }
 
@@ -323,7 +324,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.interventionType).isEqualTo(referralDetails.interventionType)
       assertThat(savedReferral.interventionName).isEqualTo(referralDetails.interventionName)
       assertThat(savedReferral.cohort).isEqualTo(cohort)
-      assertThat(savedReferral.statusHistories.first().status).isEqualTo("Created")
+      assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
     }
 
@@ -347,7 +348,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.interventionType).isEqualTo(referralDetails.interventionType)
       assertThat(savedReferral.interventionName).isEqualTo(referralDetails.interventionName)
       assertThat(savedReferral.cohort).isEqualTo(cohort)
-      assertThat(savedReferral.statusHistories.first().status).isEqualTo("Created")
+      assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
     }
   }

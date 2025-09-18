@@ -6,8 +6,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.OasysApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 
-private const val LEARNING_DISABILITIES_AND_CHALLENGES_THRESHOLD = 3
-
 @Service
 class PniService(
   private val oasysApiClient: OasysApiClient,

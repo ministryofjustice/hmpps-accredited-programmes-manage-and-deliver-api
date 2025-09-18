@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.FindAndReferInterventionApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
@@ -21,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import java.util.Optional
 import java.util.UUID
 
@@ -28,13 +30,19 @@ import java.util.UUID
 class ReferralServiceTest {
 
   @Mock
+  private lateinit var ndeliusIntegrationApiClient: NDeliusIntegrationApiClient
+
+  @Mock
   private lateinit var findAndReferInterventionApiClient: FindAndReferInterventionApiClient
+
+  @Mock
+  private lateinit var referralRepository: ReferralRepository
 
   @Mock
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
 
   @Mock
-  private lateinit var referralRepository: ReferralRepository
+  private lateinit var referralStatusHistoryRepository: ReferralStatusHistoryRepository
 
   @Mock
   private lateinit var serviceUserService: ServiceUserService
