@@ -84,7 +84,7 @@ class ReferralService(
       referral = referral,
       referralStatusDescription = awaitingAssessmentStatusDescription,
       startDate = LocalDateTime.now(),
-      endDate = null,
+      additionalDetails = null,
     )
 
     log.info("Inserting the default ReferralStatusHistory row for newly created Referral with id ${referral.id!!}")
@@ -211,6 +211,7 @@ class ReferralService(
   fun updateStatus(
     referral: ReferralEntity,
     referralStatusDescriptionId: UUID,
+    additionalDetails: String? = null,
     createdBy: String,
   ): ReferralStatusHistory {
     val referralStatusDescription = referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId)
@@ -224,15 +225,14 @@ class ReferralService(
       ReferralStatusHistoryEntity(
         referral = referral,
         referralStatusDescription = referralStatusDescription,
-        createdAt = LocalDateTime.now(),
-        startDate = LocalDateTime.now(),
+        additionalDetails = additionalDetails,
         createdBy = createdBy,
       ),
     )
 
     return ReferralStatusHistory(
-      id = historyEntry.id.toString(),
-      referralStatusDescriptionId = referralStatusDescription.id.toString(),
+      id = historyEntry.id!!,
+      referralStatusDescriptionId = referralStatusDescription.id,
       referralStatusDescriptionName = referralStatusDescription.description,
     )
   }

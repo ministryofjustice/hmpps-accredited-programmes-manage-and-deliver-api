@@ -115,7 +115,6 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       .withCreatedAt(LocalDateTime.parse("2025-07-10T00:00:00"))
       .withCreatedBy("USER_ID_12345")
       .withStartDate(LocalDateTime.parse("2025-07-10T00:00:00"))
-      .withEndDate(LocalDateTime.parse("2025-07-10T00:00:00"))
       .produce(referral5, awaitingAssessmentStatusDescription)
     testDataGenerator.createReferralWithStatusHistory(referral5, statusHistory5)
 
