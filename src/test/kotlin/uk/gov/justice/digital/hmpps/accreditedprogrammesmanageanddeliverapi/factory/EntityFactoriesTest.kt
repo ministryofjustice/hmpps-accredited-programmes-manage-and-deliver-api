@@ -106,7 +106,7 @@ class EntityFactoriesTest {
     assertThat(statusHistory.createdAt).isNotNull()
     assertThat(statusHistory.createdBy).isNotNull()
     assertThat(statusHistory.startDate).isNotNull()
-    assertThat(statusHistory.endDate).isNull()
+    assertThat(statusHistory.additionalDetails).isNull()
   }
 
   @Test
@@ -115,14 +115,13 @@ class EntityFactoriesTest {
     val createdAt = LocalDateTime.of(2023, 1, 1, 12, 0)
     val createdBy = "Custom User"
     val startDate = LocalDateTime.of(2023, 1, 1, 12, 0)
-    val endDate = LocalDateTime.of(2023, 1, 2, 12, 0)
 
     val statusHistory = ReferralStatusHistoryEntityFactory()
       .withId(id)
       .withCreatedAt(createdAt)
       .withCreatedBy(createdBy)
       .withStartDate(startDate)
-      .withEndDate(endDate)
+      .withAdditionalDetails("Here are my additional details")
       .produce(
         ReferralEntityFactory().produce(),
         ReferralStatusDescriptionEntityFactory().produce(),
@@ -132,7 +131,7 @@ class EntityFactoriesTest {
     assertThat(statusHistory.createdAt).isEqualTo(createdAt)
     assertThat(statusHistory.createdBy).isEqualTo(createdBy)
     assertThat(statusHistory.startDate).isEqualTo(startDate)
-    assertThat(statusHistory.endDate).isEqualTo(endDate)
+    assertThat(statusHistory.additionalDetails).isEqualTo("Here are my additional details")
   }
 
   @Test

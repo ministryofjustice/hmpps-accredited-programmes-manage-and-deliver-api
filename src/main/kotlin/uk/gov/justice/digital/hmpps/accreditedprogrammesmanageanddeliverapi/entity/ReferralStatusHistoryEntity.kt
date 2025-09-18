@@ -29,6 +29,9 @@ class ReferralStatusHistoryEntity(
   @JoinColumn(name = "referral_status_description_id")
   val referralStatusDescription: ReferralStatusDescriptionEntity,
 
+  @Column(name = "additional_details")
+  var additionalDetails: String? = null,
+
   @Column(name = "created_at")
   @CreatedDate
   var createdAt: LocalDateTime = LocalDateTime.now(),
@@ -39,7 +42,4 @@ class ReferralStatusHistoryEntity(
 
   @Column(name = "start_date")
   var startDate: LocalDateTime? = null,
-
-  @Column(name = "end_date")
-  var endDate: LocalDateTime? = null,
 )

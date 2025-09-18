@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
@@ -292,7 +293,7 @@ class ReferralController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @PutMapping("/referral/{id}/status-history", produces = [MediaType.APPLICATION_JSON_VALUE])
+  @PostMapping("/referral/{id}/status-history", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun updateStatusForReferral(
     @Parameter(
       description = "The id (UUID) of a Referral",
@@ -300,15 +301,16 @@ class ReferralController(
     )
     @PathVariable("id") id: UUID,
     @Parameter(
-      description = "Cohort to update the referral with",
+      description = "Details of the new Referral Status to assign",
       required = true,
-    ) @RequestBody createReferralStatusHistory: CreateReferralStatusHistory,
+    ) @RequestBody updateReferralStatus: CreateReferralStatusHistory,
   ): ResponseEntity<ReferralStatusHistory> {
     val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
 
     val result = referralService.updateStatus(
       referral,
-      createReferralStatusHistory.referralStatusDescriptionId,
+      updateReferralStatus.referralStatusDescriptionId,
+      additionalDetails = updateReferralStatus.additionalDetails,
       createdBy = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
     )
 
