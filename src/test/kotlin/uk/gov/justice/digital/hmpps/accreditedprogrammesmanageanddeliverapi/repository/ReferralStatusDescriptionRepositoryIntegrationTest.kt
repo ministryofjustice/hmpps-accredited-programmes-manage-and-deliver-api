@@ -5,16 +5,21 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusDescriptionEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import java.util.*
 
-class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase() {
+class ReferralStatusDescriptionRepositoryIntegrationTest(@Autowired private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository) : IntegrationTestBase() {
   @Autowired
   private lateinit var statusDescriptionRepository: ReferralStatusDescriptionRepository
+
+  @Autowired
+  private lateinit var referralRepository: ReferralRepository
 
   @Autowired
   private lateinit var statusHistoryRepository: ReferralStatusHistoryRepository
@@ -34,67 +39,24 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
 
   @Test
   @Transactional
-  fun `should save and retrieve a referral status description`() {
-    // Given
-    val statusId = UUID.randomUUID()
-    val statusDescription = ReferralStatusDescriptionEntityFactory()
-      .withId(statusId)
-      .withDescription("Test Status Description")
-      .withIsClosed(false)
-      .withLabelColour("Grey")
-      .produce()
-
-    statusDescriptionRepository.save(statusDescription)
-
-    // When
-    val retrieved = statusDescriptionRepository.findById(statusId)
-
-    // Then
-    assertThat(retrieved).isPresent
-    assertThat(retrieved.get().description).isEqualTo("Test Status Description")
-    assertThat(retrieved.get().isClosed).isFalse()
-    assertThat(retrieved.get().labelColour).isEqualTo("Grey")
-  }
-
-  @Test
-  @Transactional
   fun `should find all referral status descriptions`() {
-    // Given
-    val status1 = ReferralStatusDescriptionEntityFactory()
-      .withId(UUID.randomUUID())
-      .withDescription("Status 1")
-      .withIsClosed(false)
-      .produce()
-    val status2 = ReferralStatusDescriptionEntityFactory()
-      .withId(UUID.randomUUID())
-      .withDescription("Status 2")
-      .withIsClosed(true)
-      .produce()
-
-    statusDescriptionRepository.saveAll(listOf(status1, status2))
-
     // When
     val allStatuses = statusDescriptionRepository.findAll()
 
     // Then
-    assertThat(allStatuses.map { it.description }).containsExactlyInAnyOrder("Status 1", "Status 2", "Awaiting assessment")
+    assertThat(allStatuses.map { it.description }).containsExactlyInAnyOrder("Awaiting assessment")
   }
 
   @Test
   @Transactional
   fun `should retrieve the associated referral status description for a status history entity`() {
     // Given
-    val status = ReferralStatusDescriptionEntityFactory()
-      .withId(UUID.randomUUID())
-      .withDescription("Awaiting Assessment")
-      .withIsClosed(false)
-      .produce()
-
-    val savedStatusDescription = statusDescriptionRepository.save(status)
+    val awaitingAssessmentStatusDescription = statusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+    val referral = referralRepository.save(ReferralEntityFactory().produce())
 
     val statusHistory = ReferralStatusHistoryEntityFactory()
-      .withReferralStatusDescription(savedStatusDescription)
-      .produce()
+      .produce(referral, awaitingAssessmentStatusDescription)
+
     statusHistoryRepository.save(statusHistory)
 
     // When
@@ -102,7 +64,7 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
 
     // Then
     assertThat(retrievedStatusHistory).isPresent
-    assertThat(retrievedStatusHistory.get().referralStatusDescription?.description).isEqualTo("Awaiting Assessment")
+    assertThat(retrievedStatusHistory.get().referralStatusDescription?.description).isEqualTo("Awaiting assessment")
     assertThat(retrievedStatusHistory.get().referralStatusDescription?.isClosed).isFalse
   }
 
@@ -114,5 +76,12 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
     // Then
     assertThat(awaitingAssessmentStatusDescription).isNotNull
     assertThat(awaitingAssessmentStatusDescription.description).isEqualTo("Awaiting assessment")
+  }
+
+  @Test
+  fun `should not let you save a ReferralStatusDescriptionEntity`() {
+    assertThrows<NotImplementedError> {
+      statusDescriptionRepository.save(ReferralStatusDescriptionEntityFactory().produce())
+    }
   }
 }
