@@ -223,7 +223,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should create referral and automatically assign ldc status true when score less than 3 and on receipt of community referral creation message`() {
+  fun `should create referral and automatically assign ldc status false when score less than 3 and on receipt of community referral creation message`() {
     // Given
     val crn = "X123456"
     val ldc = Ldc(
