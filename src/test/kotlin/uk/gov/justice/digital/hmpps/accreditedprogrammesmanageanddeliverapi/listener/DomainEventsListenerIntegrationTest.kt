@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
@@ -37,9 +36,6 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   lateinit var messageHistoryRepository: MessageHistoryRepository
-
-  @Autowired
-  lateinit var testDataCleaner: TestDataCleaner
 
   @Autowired
   lateinit var referralRepository: ReferralRepository

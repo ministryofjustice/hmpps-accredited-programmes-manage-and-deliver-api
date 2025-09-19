@@ -9,8 +9,6 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.deliveryLocationPreferences.CreateDeliveryLocationPreferencesFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.deliveryLocationPreferences.DeliveryLocationPreferenceEntityFactory
@@ -29,12 +27,6 @@ class DeliveryLocationPreferencesControllerIntegrationTest : IntegrationTestBase
 
   @Autowired
   private lateinit var deliveryLocationProbationDeliveryUnitRepository: PreferredDeliveryLocationProbationDeliveryUnitRepository
-
-  @Autowired
-  private lateinit var testDataGenerator: TestDataGenerator
-
-  @Autowired
-  private lateinit var testDataCleaner: TestDataCleaner
 
   @BeforeEach
   fun setup() {

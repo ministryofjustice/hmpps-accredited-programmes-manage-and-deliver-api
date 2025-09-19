@@ -26,8 +26,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
@@ -52,12 +50,6 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
   @Autowired
   private lateinit var preferredDeliveryLocationRepository: PreferredDeliveryLocationRepository
   private lateinit var nDeliusApiStubs: NDeliusApiStubs
-
-  @Autowired
-  private lateinit var testDataGenerator: TestDataGenerator
-
-  @Autowired
-  private lateinit var testDataCleaner: TestDataCleaner
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
