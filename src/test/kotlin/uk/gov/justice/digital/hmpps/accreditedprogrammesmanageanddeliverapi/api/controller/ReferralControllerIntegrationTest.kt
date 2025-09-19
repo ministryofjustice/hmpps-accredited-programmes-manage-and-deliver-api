@@ -35,17 +35,20 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffenceFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.PreferredDeliveryLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.Utils.createCodeDescriptionList
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
-class ReferralControllerIntegrationTest : IntegrationTestBase() {
+class ReferralControllerIntegrationTest(@Autowired private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository) : IntegrationTestBase() {
 
   @Autowired
   private lateinit var preferredDeliveryLocationRepository: PreferredDeliveryLocationRepository
@@ -479,6 +482,42 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.NOT_FOUND.value(),
       )
+    }
+  }
+
+  @Nested
+  @DisplayName("Update the Status of a Referral")
+  inner class UpdateReferralStatusHistory {
+    @Test
+    fun `should update the Status of a Referral that exists`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().withCohort(OffenceCohort.GENERAL_OFFENCE).produce()
+
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+
+      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+
+      assertThat(testDataGenerator.getReferralById(referralEntity.id!!).statusHistories).hasSize(1)
+
+      // When
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/referral/${referralEntity.id}/status-history",
+        body = CreateReferralStatusHistory(
+          referralStatusDescriptionId = UUID.fromString("76b2f8d8-260c-4766-a716-de9325292609"),
+          additionalDetails = "This is a test comment",
+        ),
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      val referralById = testDataGenerator.getReferralById(referralEntity.id!!)
+      assertThat(referralById.statusHistories).hasSize(2)
+      assertThat(
+        referralById.statusHistories.first().additionalDetails,
+      ).isEqualTo("This is a test comment")
     }
   }
 

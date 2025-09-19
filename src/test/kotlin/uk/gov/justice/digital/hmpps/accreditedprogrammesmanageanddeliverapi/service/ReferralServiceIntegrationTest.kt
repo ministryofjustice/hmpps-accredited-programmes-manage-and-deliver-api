@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import io.kotest.matchers.throwable.shouldHaveMessage
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -18,6 +19,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
@@ -226,6 +228,58 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       }
 
       assertThat(exception.message).isEqualTo("Referral with id: $referralId exists, but has no eventId")
+    }
+
+    @Nested
+    @DisplayName("UpdateStatusIntegrationTests")
+    inner class UpdateStatusIntegrationTests {
+      @Test
+      fun `updateStatus should create a new entry in the ReferralStatusHistory log`() {
+        // Given
+        val theCrnNumber = randomUppercaseString()
+        oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+        val referral =
+          referralService.createReferral(
+            FindAndReferReferralDetailsFactory().withPersonReference(theCrnNumber).produce(),
+          )
+
+        // When
+        val result = referralService.updateStatus(
+          referral,
+          UUID.fromString("76b2f8d8-260c-4766-a716-de9325292609"),
+          "Additional details string",
+          createdBy = "THE_USER_ID",
+        )
+
+        // Then
+        val foundReferral = referralRepository.findByCrn(theCrnNumber).firstOrNull()
+          ?: throw NotFoundException("No Referral found for crn: $theCrnNumber")
+
+        assertThat(result.referralStatusDescriptionId).isEqualTo(UUID.fromString("76b2f8d8-260c-4766-a716-de9325292609"))
+        assertThat(result.referralStatusDescriptionName).isEqualTo("Awaiting assessment")
+
+        assertThat(foundReferral.statusHistories).hasSize(2)
+        assertThat(foundReferral.statusHistories.first().createdBy).isEqualTo("THE_USER_ID")
+        assertThat(foundReferral.statusHistories.first().id).isEqualTo(result.id)
+        assertThat(foundReferral.statusHistories.first().additionalDetails).isEqualTo("Additional details string")
+      }
+
+      @Test
+      fun `updateStatus should throw a NotFoundError if the ReferralStatusDescription does not exist`() {
+        // Given
+        val aRandomUuid = UUID.randomUUID()
+        val referral = ReferralEntityFactory().produce()
+        testDataGenerator.createReferral(referral)
+
+        // When/Then
+        assertThrows<NotFoundException> {
+          referralService.updateStatus(
+            referral,
+            aRandomUuid,
+            createdBy = "DOES NOT MATTER",
+          )
+        } shouldHaveMessage "Unable to find Referral Status Description with ID $aRandomUuid"
+      }
     }
   }
 
