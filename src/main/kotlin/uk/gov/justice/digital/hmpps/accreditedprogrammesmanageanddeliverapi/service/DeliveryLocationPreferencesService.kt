@@ -2,7 +2,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DeliveryLocationOption
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DeliveryLocationPreferences
@@ -51,8 +50,7 @@ class DeliveryLocationPreferencesService(
           "A DeliveryLocationPreferences for this referral with id: $referralId already exists",
         )
       }
-    val referral =
-      referralRepository.findByIdOrNull(referralId) ?: throw NotFoundException("No referral found with id: $referralId")
+    val referral = referralService.getReferralById(referralId)
     val preferredDeliveryLocations =
       createOrUpdateDeliveryLocations(createDeliveryLocationPreferences, referralId)
 
@@ -111,7 +109,6 @@ class DeliveryLocationPreferencesService(
     log.info("Getting delivery location preferences form data for referral: $referralId")
 
     val referral = referralService.getReferralById(referralId)
-      ?: throw NotFoundException("Referral not found id $referralId")
 
     val personalDetails = serviceUserService.getPersonalDetailsByIdentifier(referral.crn)
 
@@ -159,7 +156,6 @@ class DeliveryLocationPreferencesService(
 
   fun getPreferredDeliveryLocationsForReferral(referralId: UUID): DeliveryLocationPreferences {
     val referral = referralService.getReferralById(referralId)
-      ?: throw NotFoundException("Referral with referralId $referralId not found")
     // Create empty delivery location preferences if there is no existing preferences
     return referral.deliveryLocationPreferences?.toModel() ?: DeliveryLocationPreferences()
   }
