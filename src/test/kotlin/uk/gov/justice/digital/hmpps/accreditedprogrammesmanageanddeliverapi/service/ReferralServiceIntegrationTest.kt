@@ -247,7 +247,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
           personReferenceType = PersonReferenceType.CRN,
           referralId = UUID.randomUUID(),
           setting = SettingType.COMMUNITY,
-          sourcedFromReferenceType = ReferralEntitySourcedFrom.LICENSE_CONDITION,
+          sourcedFromReferenceType = ReferralEntitySourcedFrom.LICENCE_CONDITION,
           sourcedFromReference = "LICENCE-12345",
           eventNumber = 1,
         ),

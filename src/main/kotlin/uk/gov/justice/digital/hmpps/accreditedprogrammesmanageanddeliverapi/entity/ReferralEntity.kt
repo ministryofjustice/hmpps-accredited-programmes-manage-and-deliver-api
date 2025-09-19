@@ -97,5 +97,5 @@ class ReferralEntity(
 
 enum class ReferralEntitySourcedFrom {
   REQUIREMENT,
-  LICENSE_CONDITION,
+  LICENCE_CONDITION,
 }
