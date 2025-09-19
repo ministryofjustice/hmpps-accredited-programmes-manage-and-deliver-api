@@ -6,8 +6,6 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnitEntity
@@ -18,12 +16,6 @@ import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase() {
   @Autowired
   private lateinit var repository: DeliveryLocationPreferenceRepository
-
-  @Autowired
-  private lateinit var testDataGenerator: TestDataGenerator
-
-  @Autowired
-  private lateinit var testDataCleaner: TestDataCleaner
 
   @BeforeEach
   override fun beforeEach() {

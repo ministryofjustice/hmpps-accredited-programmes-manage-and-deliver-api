@@ -27,6 +27,8 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
 import software.amazon.awssdk.services.sqs.model.PurgeQueueRequest
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.DomainEventsMessage
@@ -43,6 +45,12 @@ import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @ActiveProfiles("test")
 abstract class IntegrationTestBase {
+
+  @Autowired
+  protected lateinit var testDataCleaner: TestDataCleaner
+
+  @Autowired
+  protected lateinit var testDataGenerator: TestDataGenerator
 
   @Autowired
   protected lateinit var webTestClient: WebTestClient

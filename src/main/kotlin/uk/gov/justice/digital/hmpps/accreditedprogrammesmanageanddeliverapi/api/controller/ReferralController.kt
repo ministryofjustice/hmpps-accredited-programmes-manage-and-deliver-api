@@ -117,7 +117,7 @@ class ReferralController(
     @Parameter(description = "The id (UUID) of a referral", required = true)
     @PathVariable("id") id: UUID,
   ): ResponseEntity<PersonalDetails> {
-    val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
+    val referral = referralService.getReferralById(id)
     return serviceUserService.getPersonalDetailsByIdentifier(referral.crn).let {
       ResponseEntity.ok(it.toModel(referral.setting))
     } ?: throw NotFoundException("Personal details not found for crn ${referral.crn} not found")
@@ -166,7 +166,7 @@ class ReferralController(
     @Parameter(description = "The id (UUID) of a referral", required = true)
     @PathVariable("id") id: UUID,
   ): ResponseEntity<OffenceHistory> {
-    val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
+    val referral = referralService.getReferralById(id)
     return offenceService.getOffenceHistory(referral).let { ResponseEntity.ok(it) }
       ?: throw NotFoundException("Offence history not found for crn ${referral.crn} and referral with id $id")
   }
@@ -205,7 +205,7 @@ class ReferralController(
     @Parameter(description = "The id (UUID) of a referral", required = true)
     @PathVariable("id") id: UUID,
   ): ResponseEntity<SentenceInformation> {
-    val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
+    val referral = referralService.getReferralById(id)
     if (referral.eventNumber == null) {
       log.error("Referral with id $id has null eventNumber")
       throw BusinessException("Referral with id $id has null eventNumber")
@@ -255,7 +255,7 @@ class ReferralController(
       required = true,
     ) @RequestBody updateCohort: UpdateCohort,
   ): ResponseEntity<Referral?> {
-    val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
+    val referral = referralService.getReferralById(id)
     val updateCohort = referralService.updateCohort(referral, updateCohort.cohort)
     return ResponseEntity.ok(updateCohort)
   }

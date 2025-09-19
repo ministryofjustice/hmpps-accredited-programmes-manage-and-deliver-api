@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus.BAD_REQUEST
 import org.springframework.http.HttpStatus.FORBIDDEN
 import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -112,4 +113,18 @@ class ApiExceptionHandler {
         developerMessage = exception.localizedMessage,
       ),
     )
+
+  @ExceptionHandler(HttpMessageNotReadableException::class)
+  fun handleHttpMessageNotReadableException(exception: HttpMessageNotReadableException): ResponseEntity<ErrorResponse> {
+    log.warn("Bad request", exception)
+    return ResponseEntity
+      .status(BAD_REQUEST)
+      .body(
+        ErrorResponse(
+          status = BAD_REQUEST.value(),
+          userMessage = "Bad request: ${exception.message}",
+          developerMessage = exception.message,
+        ),
+      )
+  }
 }

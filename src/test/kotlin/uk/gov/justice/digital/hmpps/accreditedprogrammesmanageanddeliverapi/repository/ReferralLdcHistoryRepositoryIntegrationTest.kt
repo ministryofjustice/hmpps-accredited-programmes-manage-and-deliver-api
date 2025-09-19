@@ -6,8 +6,6 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralLdcHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -17,12 +15,6 @@ class ReferralLdcHistoryRepositoryIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var repo: ReferralLdcHistoryRepository
-
-  @Autowired
-  private lateinit var testDataGenerator: TestDataGenerator
-
-  @Autowired
-  private lateinit var testDataCleaner: TestDataCleaner
 
   @BeforeEach
   override fun beforeEach() {

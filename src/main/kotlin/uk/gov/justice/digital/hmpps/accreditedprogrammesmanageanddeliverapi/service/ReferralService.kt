@@ -95,19 +95,19 @@ class ReferralService(
 
     log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort and Ldc status: '$hasLdc'")
     referralRepository.save(referralEntity)
-    return referralRepository.findByIdOrNull(referral.id!!) ?: throw NotFoundException("Referral with id $referral.id")
+    return getReferralById(referral.id!!)
   }
 
-  fun getReferralById(id: UUID): ReferralEntity? = referralRepository.findByIdOrNull(id)
+  fun getReferralById(referralId: UUID): ReferralEntity = referralRepository.findByIdOrNull(referralId) ?: let {
+    log.error("Referral with id $referralId does not exist in database")
+    throw NotFoundException("No Referral found for id: $referralId")
+  }
 
   private fun getReferralAndEnsureSourcedFrom(referralId: UUID): ReferralEntity {
     log.info("getReferralAndEnsureSourcedFrom for $referralId")
     val referral = getReferralById(referralId)
 
-    if (referral == null) {
-      log.error("Referral with id $referralId does not exist in database")
-      throw NotFoundException("No Referral found for id: $referralId")
-    } else if (referral.eventId.isNullOrEmpty()) {
+    if (referral.eventId.isNullOrEmpty()) {
       log.error("Referral with id $referralId does not have an eventId")
       throw NotFoundException("Referral with id: $referralId exists, but has no eventId")
     }
