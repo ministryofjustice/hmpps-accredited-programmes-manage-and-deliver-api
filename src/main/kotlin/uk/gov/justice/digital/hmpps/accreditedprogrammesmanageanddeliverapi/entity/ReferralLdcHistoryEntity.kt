@@ -15,6 +15,7 @@ import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import org.springframework.security.core.context.SecurityContextHolder
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.UpdateLdc
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -45,4 +46,9 @@ open class ReferralLdcHistoryEntity(
   @NotNull
   @CreatedDate
   open var createdAt: LocalDateTime? = LocalDateTime.now(),
+)
+
+fun UpdateLdc.toEntity(referralEntity: ReferralEntity): ReferralLdcHistoryEntity = ReferralLdcHistoryEntity(
+  referral = referralEntity,
+  hasLdc = hasLdc,
 )
