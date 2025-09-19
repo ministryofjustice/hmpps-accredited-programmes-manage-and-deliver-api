@@ -11,8 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
@@ -31,12 +29,6 @@ import java.time.LocalDate
 import java.util.UUID
 
 class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
-
-  @Autowired
-  private lateinit var testDataCleaner: TestDataCleaner
-
-  @Autowired
-  private lateinit var testDataGenerator: TestDataGenerator
 
   @Autowired
   private lateinit var availabilityService: AvailabilityService
@@ -189,7 +181,8 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
     val referralEntity = ReferralEntityFactory().produce()
     testDataGenerator.createReferral(referralEntity)
 
-    val createAvailability = createAvailability(referralEntity, startDate, endDate, otherDetails, HttpStatus.CREATED.value())
+    val createAvailability =
+      createAvailability(referralEntity, startDate, endDate, otherDetails, HttpStatus.CREATED.value())
 
     val availability = performRequestAndExpectStatusWithBody(
       httpMethod = HttpMethod.PUT,

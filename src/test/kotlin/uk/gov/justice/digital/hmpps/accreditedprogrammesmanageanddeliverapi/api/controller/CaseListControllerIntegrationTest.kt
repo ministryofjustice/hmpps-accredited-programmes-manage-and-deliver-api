@@ -12,8 +12,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralCaseListItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.RestResponsePage
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -24,13 +22,7 @@ import java.time.LocalDateTime
 class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
-  private lateinit var testDataGenerator: TestDataGenerator
-
-  @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
-
-  @Autowired
-  private lateinit var testDataCleaner: TestDataCleaner
 
   private lateinit var nDeliusApiStubs: NDeliusApiStubs
 
@@ -54,7 +46,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
   private fun createReferralsWithStatusHistory() {
     // Create referrals with associated status history
-    val awaitingAssessmentStatusDescription = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+    val awaitingAssessmentStatusDescription =
+      referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
 
     val referral1 = ReferralEntityFactory()
       .withPersonName("Joe Bloggs")
