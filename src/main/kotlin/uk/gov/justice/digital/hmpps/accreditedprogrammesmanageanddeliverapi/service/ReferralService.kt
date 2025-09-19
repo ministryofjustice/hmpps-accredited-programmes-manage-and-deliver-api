@@ -133,7 +133,7 @@ class ReferralService(
     when (ndeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, referral.eventId!!)) {
       is ClientResult.Success -> {
         log.info("Referral with id ${referral.id} appears to be sourced from a LicenceCondition, saving Entity and continuing...")
-        referral.sourcedFrom = ReferralEntitySourcedFrom.LICENSE_CONDITION
+        referral.sourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION
         referralRepository.save(referral)
         return referral
       }
@@ -165,7 +165,7 @@ class ReferralService(
           throw NotFoundException("Could not fetch a Requirement with ID $referralIdString, for Referral with ID: $referralIdString")
         }
       }
-    } else if (referralSourcedFrom == ReferralEntitySourcedFrom.LICENSE_CONDITION) {
+    } else if (referralSourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION) {
       log.info("...attempting to retrieve a Licence Condition for Referral with ID: $referralIdString")
 
       when (val response = ndeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, eventId)) {

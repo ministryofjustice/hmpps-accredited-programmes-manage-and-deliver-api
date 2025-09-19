@@ -33,7 +33,7 @@ class FindAndReferInterventionApiClientIntegrationTest : IntegrationTestBase() {
       personReference = "X123456",
       personReferenceType = PersonReferenceType.CRN,
       setting = SettingType.COMMUNITY,
-      sourcedFromReferenceType = ReferralEntitySourcedFrom.LICENSE_CONDITION,
+      sourcedFromReferenceType = ReferralEntitySourcedFrom.LICENCE_CONDITION,
       sourcedFromReference = "licence-id-12345",
       eventNumber = 1,
     )
@@ -58,7 +58,7 @@ class FindAndReferInterventionApiClientIntegrationTest : IntegrationTestBase() {
         assertThat(findAndReferReferralDetails.personReference).isEqualTo("X123456")
         assertThat(findAndReferReferralDetails.personReferenceType).isEqualTo(PersonReferenceType.CRN)
         assertThat(findAndReferReferralDetails.sourcedFromReference).isEqualTo("licence-id-12345")
-        assertThat(findAndReferReferralDetails.sourcedFromReferenceType).isEqualTo(ReferralEntitySourcedFrom.LICENSE_CONDITION)
+        assertThat(findAndReferReferralDetails.sourcedFromReferenceType).isEqualTo(ReferralEntitySourcedFrom.LICENCE_CONDITION)
       }
 
       is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")
