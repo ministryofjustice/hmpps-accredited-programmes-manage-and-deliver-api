@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "9.0.1"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "9.0.2"
   kotlin("plugin.spring") version "2.2.20"
   kotlin("plugin.jpa") version "2.2.20"
   kotlin("plugin.allopen") version "2.2.20"
@@ -12,7 +12,7 @@ configurations {
 }
 
 dependencies {
-  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:1.6.0")
+  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:1.7.0")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
   implementation("org.springframework.boot:spring-boot-starter-web")
@@ -21,13 +21,13 @@ dependencies {
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13")
 
   // AWS
-  implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:5.4.10")
+  implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:5.4.11")
 
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:1.6.0")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:1.7.0")
 
   // security
-  implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.5")
-  implementation("org.springframework.boot:spring-boot-starter-oauth2-client:3.5.5")
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.6")
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-client:3.5.6")
   implementation("org.springframework.security:spring-security-crypto:6.5.5")
   implementation("com.nimbusds:oauth2-oidc-sdk:11.28")
 
@@ -45,7 +45,7 @@ dependencies {
   testImplementation("io.mockk:mockk:1.14.5")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
-  runtimeOnly("org.postgresql:postgresql:42.7.7")
+  runtimeOnly("org.postgresql:postgresql:42.7.8")
 
   testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
 }
