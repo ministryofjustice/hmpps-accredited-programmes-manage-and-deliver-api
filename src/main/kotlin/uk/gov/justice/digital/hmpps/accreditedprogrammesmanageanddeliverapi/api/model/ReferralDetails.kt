@@ -3,11 +3,12 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.LdcStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import java.time.LocalDate
-import java.util.*
+import java.util.UUID
 
 data class ReferralDetails(
   @Schema(
@@ -84,9 +85,21 @@ data class ReferralDetails(
   @get:JsonProperty("cohort", required = true)
   val cohort: OffenceCohort,
 
+  @Schema(
+    example = "False",
+    required = true,
+    description = "The latest LDC status of a referral",
+  )
+  @get:JsonProperty("hasLdc", required = true)
+  val hasLdcText: String = LdcStatus.NO_LDC.displayText,
+
 ) {
   companion object {
-    fun toModel(referral: ReferralEntity, nDeliusPersonalDetails: NDeliusPersonalDetails): ReferralDetails = ReferralDetails(
+    fun toModel(
+      referral: ReferralEntity,
+      nDeliusPersonalDetails: NDeliusPersonalDetails,
+      hasLdc: Boolean? = false,
+    ): ReferralDetails = ReferralDetails(
       id = referral.id!!,
       crn = referral.crn,
       personName = nDeliusPersonalDetails.name.getNameAsString(),
@@ -96,6 +109,7 @@ data class ReferralDetails(
       probationPractitionerName = nDeliusPersonalDetails.probationPractitioner?.name?.getNameAsString(),
       probationPractitionerEmail = nDeliusPersonalDetails.probationPractitioner?.email,
       cohort = referral.cohort,
+      hasLdcText = LdcStatus.getDisplayText(hasLdc),
     )
   }
 }

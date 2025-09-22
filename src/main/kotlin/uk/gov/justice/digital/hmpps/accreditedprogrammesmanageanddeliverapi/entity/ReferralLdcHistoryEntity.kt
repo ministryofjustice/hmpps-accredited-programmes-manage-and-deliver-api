@@ -36,7 +36,7 @@ open class ReferralLdcHistoryEntity(
   @NotNull
   @ColumnDefault("false")
   @Column(name = "has_ldc")
-  open var hasLdc: Boolean,
+  open var hasLdc: Boolean = false,
 
   @NotNull
   @Column(name = "created_by")

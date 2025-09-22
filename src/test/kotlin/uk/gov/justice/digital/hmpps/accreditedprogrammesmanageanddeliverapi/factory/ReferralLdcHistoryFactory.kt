@@ -16,6 +16,7 @@ class ReferralLdcHistoryFactory(
 
   fun withHasLdc(hasLdc: Boolean) = apply { this.hasLdc = hasLdc }
   fun withReferral(referral: ReferralEntity) = apply { this.referral = referral }
+  fun withCreatedBy(createdBy: String) = apply { this.createdBy = createdBy }
 
   fun produce(): ReferralLdcHistoryEntity = ReferralLdcHistoryEntity(
     id = this.id,

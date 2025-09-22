@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.LdcStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiOfficeLocation
@@ -35,6 +36,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffenceFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralLdcHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
@@ -98,6 +100,80 @@ class ReferralControllerIntegrationTest(@Autowired private val referralStatusDes
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       assertThat(response.probationPractitionerEmail)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
+    }
+
+    @Test
+    fun `should return referral details object default false LDC status when access granted is true`() {
+      val createdAt = LocalDateTime.now()
+      val referralEntity = ReferralEntityFactory()
+        .withCreatedAt(createdAt)
+        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
+        .produce()
+      testDataGenerator.createReferral(referralEntity)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+
+      val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
+      )
+
+      assertThat(response.id).isEqualTo(savedReferral.id)
+      assertThat(response.crn).isEqualTo(savedReferral.crn)
+      assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
+      assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
+      assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
+      assertThat(response.cohort).isEqualTo(savedReferral.cohort)
+      assertThat(response.probationPractitionerName)
+        .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
+      assertThat(response.probationPractitionerEmail)
+        .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
+      assertThat(response.hasLdcText).isEqualTo(LdcStatus.NO_LDC.displayText)
+    }
+
+    @Test
+    fun `should return referral details object with true LDC status when access granted is true`() {
+      val createdAt = LocalDateTime.now()
+      val referralEntity = ReferralEntityFactory()
+        .withCreatedAt(createdAt)
+        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
+        .produce()
+      val ldcHistories = ReferralLdcHistoryFactory()
+        .withReferral(referralEntity)
+        .withHasLdc(true)
+        .withCreatedBy("MOCK_USER")
+        .produce()
+      testDataGenerator.createReferral(referralEntity)
+      testDataGenerator.createLdcHistoryForAReferral(ldcHistories)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+
+      val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
+      )
+
+      assertThat(response.id).isEqualTo(savedReferral.id)
+      assertThat(response.crn).isEqualTo(savedReferral.crn)
+      assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
+      assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
+      assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
+      assertThat(response.cohort).isEqualTo(savedReferral.cohort)
+      assertThat(response.probationPractitionerName)
+        .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
+      assertThat(response.probationPractitionerEmail)
+        .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
+      assertThat(response.hasLdcText).isEqualTo(LdcStatus.HAS_LDC.displayText)
     }
 
     @Test
