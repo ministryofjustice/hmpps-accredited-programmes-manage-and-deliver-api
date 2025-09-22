@@ -57,7 +57,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .withReferralId(sourceReferralId)
       .withPersonReference("X123456")
       .withPersonReferenceType(PersonReferenceType.CRN)
-      .withSourcedFromReferenceType(ReferralEntitySourcedFrom.LICENSE_CONDITION)
+      .withSourcedFromReferenceType(ReferralEntitySourcedFrom.LICENCE_CONDITION)
       .withSourcedFromReference("LIC-12345")
       .produce()
 
@@ -151,7 +151,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.crn == "X123456"
       it.interventionName == "Test Intervention"
       it.interventionType == InterventionType.ACP
-      it.sourcedFrom == ReferralEntitySourcedFrom.LICENSE_CONDITION
+      it.sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION
       it.eventId == "LIC-12345"
     }
 
@@ -199,7 +199,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.interventionName == "Test Intervention"
       it.interventionType == InterventionType.ACP
       it.statusHistories.first().referralStatusDescription.description == "Awaiting assessment"
-      it.sourcedFrom == ReferralEntitySourcedFrom.LICENSE_CONDITION
+      it.sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION
       it.eventId == "LIC-12345"
       it.referralLdcHistories.first().hasLdc
     }
@@ -248,7 +248,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.interventionName == "Test Intervention"
       it.interventionType == InterventionType.ACP
       it.statusHistories.first().referralStatusDescription.description == "Awaiting assessment"
-      it.sourcedFrom == ReferralEntitySourcedFrom.LICENSE_CONDITION
+      it.sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION
       it.eventId == "LIC-12345"
       !it.referralLdcHistories.first().hasLdc
       it.referralLdcHistories.first().createdBy == "SYSTEM"
