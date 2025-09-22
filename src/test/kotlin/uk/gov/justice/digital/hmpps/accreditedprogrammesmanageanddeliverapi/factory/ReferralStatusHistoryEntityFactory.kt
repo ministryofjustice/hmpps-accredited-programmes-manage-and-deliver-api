@@ -11,21 +11,21 @@ class ReferralStatusHistoryEntityFactory {
   private var id: UUID? = null
   private var createdAt: LocalDateTime = LocalDateTime.now()
   private var createdBy: String? = randomSentence(wordRange = 1..2)
+  private var additionalDetails: String? = null
   private var startDate: LocalDateTime? = LocalDateTime.now()
-  private var endDate: LocalDateTime? = null
 
   fun withId(id: UUID?) = apply { this.id = id }
   fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
   fun withCreatedBy(createdBy: String?) = apply { this.createdBy = createdBy }
   fun withStartDate(startDate: LocalDateTime?) = apply { this.startDate = startDate }
-  fun withEndDate(endDate: LocalDateTime?) = apply { this.endDate = endDate }
+  fun withAdditionalDetails(additionalDetails: String?) = apply { this.additionalDetails = additionalDetails }
 
   fun produce(referral: ReferralEntity, referralStatusDescription: ReferralStatusDescriptionEntity) = ReferralStatusHistoryEntity(
     id = this.id,
     createdAt = this.createdAt,
     createdBy = this.createdBy,
     startDate = this.startDate,
-    endDate = this.endDate,
+    additionalDetails = this.additionalDetails,
     referralStatusDescription = referralStatusDescription,
     referral = referral,
   )

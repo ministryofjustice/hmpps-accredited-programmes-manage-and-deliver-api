@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.FindAndReferInterventionApiClient
@@ -83,7 +84,7 @@ class ReferralService(
       referral = referral,
       referralStatusDescription = awaitingAssessmentStatusDescription,
       startDate = LocalDateTime.now(),
-      endDate = null,
+      additionalDetails = null,
     )
 
     log.info("Inserting the default ReferralStatusHistory row for newly created Referral with id ${referral.id!!}")
@@ -133,7 +134,7 @@ class ReferralService(
     when (ndeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, referral.eventId!!)) {
       is ClientResult.Success -> {
         log.info("Referral with id ${referral.id} appears to be sourced from a LicenceCondition, saving Entity and continuing...")
-        referral.sourcedFrom = ReferralEntitySourcedFrom.LICENSE_CONDITION
+        referral.sourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION
         referralRepository.save(referral)
         return referral
       }
@@ -165,7 +166,7 @@ class ReferralService(
           throw NotFoundException("Could not fetch a Requirement with ID $referralIdString, for Referral with ID: $referralIdString")
         }
       }
-    } else if (referralSourcedFrom == ReferralEntitySourcedFrom.LICENSE_CONDITION) {
+    } else if (referralSourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION) {
       log.info("...attempting to retrieve a Licence Condition for Referral with ID: $referralIdString")
 
       when (val response = ndeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, eventId)) {
@@ -205,5 +206,34 @@ class ReferralService(
     referral.cohort = cohort
     val save = referralRepository.save(referral)
     return save.toApi()
+  }
+
+  fun updateStatus(
+    referral: ReferralEntity,
+    referralStatusDescriptionId: UUID,
+    additionalDetails: String? = null,
+    createdBy: String,
+  ): ReferralStatusHistory {
+    val referralStatusDescription = referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId)
+
+    if (referralStatusDescription == null) {
+      log.warn("Unable to find Referral Status Description with ID $referralStatusDescriptionId")
+      throw NotFoundException("Unable to find Referral Status Description with ID $referralStatusDescriptionId")
+    }
+
+    val historyEntry = referralStatusHistoryRepository.save(
+      ReferralStatusHistoryEntity(
+        referral = referral,
+        referralStatusDescription = referralStatusDescription,
+        additionalDetails = additionalDetails,
+        createdBy = createdBy,
+      ),
+    )
+
+    return ReferralStatusHistory(
+      id = historyEntry.id!!,
+      referralStatusDescriptionId = referralStatusDescription.id,
+      referralStatusDescriptionName = referralStatusDescription.description,
+    )
   }
 }

@@ -16,7 +16,6 @@ import java.util.UUID
 @Transactional
 @Component
 class TestDataGenerator {
-
   @PersistenceContext
   private lateinit var entityManager: EntityManager
 

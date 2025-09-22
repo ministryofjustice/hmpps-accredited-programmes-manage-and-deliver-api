@@ -254,7 +254,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     val referralEntity = ReferralEntityFactory()
       .withCrn(crn)
       .withEventId(eventId)
-      .withSourcedFrom(ReferralEntitySourcedFrom.LICENSE_CONDITION)
+      .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
       .withCohort(OffenceCohort.SEXUAL_OFFENCE)
       .produce()
 
