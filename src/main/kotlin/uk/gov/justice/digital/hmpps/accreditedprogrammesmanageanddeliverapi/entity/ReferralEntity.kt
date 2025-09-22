@@ -11,6 +11,7 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.OneToMany
 import jakarta.persistence.OneToOne
+import jakarta.persistence.OrderBy
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedDate
@@ -63,6 +64,7 @@ class ReferralEntity(
     cascade = [CascadeType.ALL],
     orphanRemoval = true,
   )
+  @OrderBy("createdAt DESC")
   var statusHistories: MutableList<ReferralStatusHistoryEntity> = mutableListOf(),
 
   @Nullable

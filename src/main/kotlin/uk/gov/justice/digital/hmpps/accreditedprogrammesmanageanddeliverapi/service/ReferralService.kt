@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.FindAndReferInterventionApiClient
@@ -83,7 +84,7 @@ class ReferralService(
       referral = referral,
       referralStatusDescription = awaitingAssessmentStatusDescription,
       startDate = LocalDateTime.now(),
-      endDate = null,
+      additionalDetails = null,
     )
 
     log.info("Inserting the default ReferralStatusHistory row for newly created Referral with id ${referral.id!!}")
@@ -205,5 +206,34 @@ class ReferralService(
     referral.cohort = cohort
     val save = referralRepository.save(referral)
     return save.toApi()
+  }
+
+  fun updateStatus(
+    referral: ReferralEntity,
+    referralStatusDescriptionId: UUID,
+    additionalDetails: String? = null,
+    createdBy: String,
+  ): ReferralStatusHistory {
+    val referralStatusDescription = referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId)
+
+    if (referralStatusDescription == null) {
+      log.warn("Unable to find Referral Status Description with ID $referralStatusDescriptionId")
+      throw NotFoundException("Unable to find Referral Status Description with ID $referralStatusDescriptionId")
+    }
+
+    val historyEntry = referralStatusHistoryRepository.save(
+      ReferralStatusHistoryEntity(
+        referral = referral,
+        referralStatusDescription = referralStatusDescription,
+        additionalDetails = additionalDetails,
+        createdBy = createdBy,
+      ),
+    )
+
+    return ReferralStatusHistory(
+      id = historyEntry.id!!,
+      referralStatusDescriptionId = referralStatusDescription.id,
+      referralStatusDescriptionName = referralStatusDescription.description,
+    )
   }
 }
