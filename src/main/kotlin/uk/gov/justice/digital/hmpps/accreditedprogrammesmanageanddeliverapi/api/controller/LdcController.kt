@@ -12,11 +12,15 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.UpdateLdc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.LdcService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import java.util.UUID
 
 @RestController
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
-class LdcController(private val ldcService: LdcService) {
+class LdcController(
+  private val ldcService: LdcService,
+  private val referralService: ReferralService,
+) {
 
   @PostMapping(
     "/referral/{referralId}/update-ldc",
@@ -36,7 +40,8 @@ class LdcController(private val ldcService: LdcService) {
     @Valid
     @RequestBody updateLdc: UpdateLdc,
   ): ResponseEntity<Void> {
-    ldcService.updateLdcStatusForReferral(referralId, updateLdc)
+    val referral = referralService.getReferralById(referralId)
+    ldcService.updateLdcStatusForReferral(referral, updateLdc)
     return ResponseEntity.status(HttpStatus.OK).build()
   }
 }

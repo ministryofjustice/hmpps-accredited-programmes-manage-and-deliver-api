@@ -8,6 +8,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.UpdateLdc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.FindAndReferInterventionApiClient
@@ -43,6 +44,7 @@ class ReferralService(
   private val pniService: PniService,
   private val referralStatusHistoryRepository: ReferralStatusHistoryRepository,
   private val referralLdcHistoryRepository: ReferralLdcHistoryRepository,
+  private val ldcService: LdcService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -50,9 +52,13 @@ class ReferralService(
 
   fun getReferralDetails(referralId: UUID): ReferralDetails? {
     val referral = referralRepository.findByIdOrNull(referralId) ?: return null
-    val hasLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.hasLdc
+    val hasLdc = pniService.getPniCalculation(referral.crn).hasLdc()
+    if (!ldcService.hasOverriddenLdcStatus(referralId)) {
+      ldcService.updateLdcStatusForReferral(referral, UpdateLdc(hasLdc))
+    }
+    val referralLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.hasLdc
     val personalDetails = serviceUserService.getPersonalDetailsByIdentifier(referral.crn)
-    return ReferralDetails.toModel(referral, personalDetails, hasLdc)
+    return ReferralDetails.toModel(referral, personalDetails, referralLdc)
   }
 
   fun getFindAndReferReferralDetails(referralId: UUID): FindAndReferReferralDetails {

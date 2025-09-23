@@ -9,6 +9,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.any
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
@@ -19,6 +20,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -47,6 +49,9 @@ class ReferralServiceTest {
 
   @Mock
   private lateinit var serviceUserService: ServiceUserService
+
+  @Mock
+  private lateinit var ldcService: LdcService
 
   @Mock
   private lateinit var cohortService: CohortService
@@ -102,6 +107,8 @@ class ReferralServiceTest {
     val optionalEntity: Optional<ReferralEntity> =
       Optional.of<ReferralEntity>(referralEntity)
     `when`(referralRepository.findById(referralId)).thenReturn(optionalEntity as Optional<ReferralEntity?>)
+    `when`(pniService.getPniCalculation(any())).thenReturn(PniResponseFactory().produce())
+    `when`(ldcService.hasOverriddenLdcStatus(any())).thenReturn(true)
 
     val personalDetails = NDeliusPersonalDetailsFactory().produce()
     // Use Mockito's when instead of MockK's every

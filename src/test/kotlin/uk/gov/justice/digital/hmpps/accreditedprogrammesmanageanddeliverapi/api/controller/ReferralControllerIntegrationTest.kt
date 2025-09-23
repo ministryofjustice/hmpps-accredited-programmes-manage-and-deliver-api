@@ -27,6 +27,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
@@ -40,6 +41,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.PreferredDeliveryLocationRepository
@@ -55,6 +57,7 @@ class ReferralControllerIntegrationTest(@Autowired private val referralStatusDes
   @Autowired
   private lateinit var preferredDeliveryLocationRepository: PreferredDeliveryLocationRepository
   private lateinit var nDeliusApiStubs: NDeliusApiStubs
+  private lateinit var oasysApiStubs: OasysApiStubs
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
@@ -63,6 +66,7 @@ class ReferralControllerIntegrationTest(@Autowired private val referralStatusDes
   fun setup() {
     testDataCleaner.cleanAllTables()
     nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
+    oasysApiStubs = OasysApiStubs(wiremock, objectMapper)
     stubAuthTokenEndpoint()
   }
 
@@ -71,6 +75,7 @@ class ReferralControllerIntegrationTest(@Autowired private val referralStatusDes
   inner class GetReferralDetails {
     @Test
     fun `should return referral details object with personal details when access granted is true`() {
+      // Given
       val createdAt = LocalDateTime.now()
       val referralEntity = ReferralEntityFactory()
         .withCreatedAt(createdAt)
@@ -83,12 +88,17 @@ class ReferralControllerIntegrationTest(@Autowired private val referralStatusDes
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
       nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+
+      oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
+
+      // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/referral-details/${savedReferral.id}",
         returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
       )
 
+      // Then
       assertThat(response.id).isEqualTo(savedReferral.id)
       assertThat(response.crn).isEqualTo(savedReferral.crn)
       assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
@@ -116,12 +126,17 @@ class ReferralControllerIntegrationTest(@Autowired private val referralStatusDes
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
       nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+
+      oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
+
+      // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/referral-details/${savedReferral.id}",
         returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
       )
 
+      // Then
       assertThat(response.id).isEqualTo(savedReferral.id)
       assertThat(response.crn).isEqualTo(savedReferral.crn)
       assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
@@ -139,6 +154,7 @@ class ReferralControllerIntegrationTest(@Autowired private val referralStatusDes
 
     @Test
     fun `should return referral details object with true LDC status when access granted is true`() {
+      // Given
       val createdAt = LocalDateTime.now()
       val referralEntity = ReferralEntityFactory()
         .withCreatedAt(createdAt)
@@ -157,12 +173,17 @@ class ReferralControllerIntegrationTest(@Autowired private val referralStatusDes
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
       nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+
+      oasysApiStubs.stubSuccessfulPniResponseWithLdc(referralEntity.crn)
+
+      // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/referral-details/${savedReferral.id}",
         returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
       )
 
+      // Then
       assertThat(response.id).isEqualTo(savedReferral.id)
       assertThat(response.crn).isEqualTo(savedReferral.crn)
       assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
@@ -180,6 +201,7 @@ class ReferralControllerIntegrationTest(@Autowired private val referralStatusDes
 
     @Test
     fun `should return referral details object with personal details when access granted is true and no middle name`() {
+      // Given
       val createdAt = LocalDateTime.now()
       val referralEntity = ReferralEntityFactory()
         .withCreatedAt(createdAt)
@@ -193,12 +215,16 @@ class ReferralControllerIntegrationTest(@Autowired private val referralStatusDes
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
       nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+      oasysApiStubs.stubSuccessfulPniResponseWithLdc(referralEntity.crn)
+
+      // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/referral-details/${savedReferral.id}",
         returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
       )
 
+      // Then
       assertThat(response.id).isEqualTo(savedReferral.id)
       assertThat(response.crn).isEqualTo(savedReferral.crn)
       assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
@@ -218,6 +244,7 @@ class ReferralControllerIntegrationTest(@Autowired private val referralStatusDes
       val referralEntity = ReferralEntityFactory().withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
       testDataGenerator.createReferral(referralEntity)
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+      oasysApiStubs.stubSuccessfulPniResponseWithLdc(referralEntity.crn)
 
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
@@ -235,6 +262,116 @@ class ReferralControllerIntegrationTest(@Autowired private val referralStatusDes
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.NOT_FOUND.value(),
       )
+    }
+
+    @Test
+    fun `should update LDC status when PNI response indicates LDC is present with subTotal 3 or higher`() {
+      // Given
+      val referralEntity = ReferralEntityFactory()
+        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
+        .produce()
+      testDataGenerator.createReferral(referralEntity)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+
+      val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+
+      // Stub PNI response with LDC subTotal >= 3 (threshold)
+      val ldcWithHighSubTotal = Ldc(
+        score = 4,
+        subTotal = 4, // >= 3, so hasLdc() should return true
+      )
+      oasysApiStubs.stubSuccessfulPniResponseWithLdc(referralEntity.crn, ldcWithHighSubTotal)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
+      )
+
+      // Then
+      assertThat(response.id).isEqualTo(savedReferral.id)
+      assertThat(response.crn).isEqualTo(savedReferral.crn)
+
+      val updatedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+      assertThat(updatedReferral.referralLdcHistories).isNotEmpty()
+      val latestLdcEntry = updatedReferral.referralLdcHistories.maxByOrNull { it.createdAt!! }
+      assertThat(latestLdcEntry?.hasLdc).isTrue()
+    }
+
+    @Test
+    fun `should not indicate LDC when PNI response has low LDC subTotal below 3`() {
+      // Given
+      val referralEntity = ReferralEntityFactory()
+        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
+        .produce()
+      testDataGenerator.createReferral(referralEntity)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+
+      val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+
+      // Stub PNI response with LDC subTotal < 3 (threshold)
+      val ldcWithLowSubTotal = Ldc(
+        score = 2,
+        subTotal = 2, // < 3, so hasLdc() should return false
+      )
+      oasysApiStubs.stubSuccessfulPniResponseWithLdc(referralEntity.crn, ldcWithLowSubTotal)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
+      )
+
+      // Then
+      assertThat(response.id).isEqualTo(savedReferral.id)
+      assertThat(response.crn).isEqualTo(savedReferral.crn)
+
+      val updatedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+      assertThat(updatedReferral.referralLdcHistories).isNotEmpty()
+      val latestLdcEntry = updatedReferral.referralLdcHistories.maxByOrNull { it.createdAt!! }
+      assertThat(latestLdcEntry?.hasLdc).isFalse()
+    }
+
+    @Test
+    fun `should not update LDC when PNI response has null LDC assessment`() {
+      // Given
+      val referralEntity = ReferralEntityFactory()
+        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
+        .produce()
+      testDataGenerator.createReferral(referralEntity)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+
+      val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+
+      // Stub PNI response without LDC (default factory creates null LDC)
+      oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
+      )
+
+      // Then
+      assertThat(response.id).isEqualTo(savedReferral.id)
+      assertThat(response.crn).isEqualTo(savedReferral.crn)
+
+      val updatedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+      assertThat(updatedReferral.referralLdcHistories).isNotEmpty()
+      val latestLdcEntry = updatedReferral.referralLdcHistories.maxByOrNull { it.createdAt!! }
+      assertThat(latestLdcEntry?.hasLdc).isFalse()
     }
   }
 
