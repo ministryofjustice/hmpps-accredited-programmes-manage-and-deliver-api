@@ -85,13 +85,8 @@ data class ReferralDetails(
   @get:JsonProperty("cohort", required = true)
   val cohort: OffenceCohort,
 
-  @Schema(
-    example = "False",
-    required = true,
-    description = "The latest LDC status of a referral",
-  )
   @get:JsonProperty("hasLdc", required = true)
-  val hasLdcText: String = LdcStatus.NO_LDC.displayText,
+  val hasLdc: LdcStatus = LdcStatus.NO_LDC,
 
 ) {
   companion object {
@@ -109,7 +104,7 @@ data class ReferralDetails(
       probationPractitionerName = nDeliusPersonalDetails.probationPractitioner?.name?.getNameAsString(),
       probationPractitionerEmail = nDeliusPersonalDetails.probationPractitioner?.email,
       cohort = referral.cohort,
-      hasLdcText = LdcStatus.getDisplayText(hasLdc),
+      hasLdc = LdcStatus.fromBoolean(hasLdc) ?: LdcStatus.NO_LDC,
     )
   }
 }
