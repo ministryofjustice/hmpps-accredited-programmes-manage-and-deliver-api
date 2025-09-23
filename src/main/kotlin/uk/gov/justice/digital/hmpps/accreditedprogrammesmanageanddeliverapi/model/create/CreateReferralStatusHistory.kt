@@ -13,7 +13,7 @@ data class CreateReferralStatusHistory(
   )
   val referralStatusDescriptionId: UUID,
 
-  @get:JsonProperty("additionalDetails", required = true)
+  @get:JsonProperty("additionalDetails", required = false)
   @Schema(
     example = "Updating the status following a one-to-one meeting with Person on Probation",
     description = "A free-text description that allows a user to add context or information to the Status change",
