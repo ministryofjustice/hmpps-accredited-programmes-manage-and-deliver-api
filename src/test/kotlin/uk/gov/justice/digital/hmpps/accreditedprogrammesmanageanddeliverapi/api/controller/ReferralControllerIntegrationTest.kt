@@ -52,10 +52,13 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
-class ReferralControllerIntegrationTest(@Autowired private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository) : IntegrationTestBase() {
+class ReferralControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var preferredDeliveryLocationRepository: PreferredDeliveryLocationRepository
+
+  @Autowired
+  private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
   private lateinit var nDeliusApiStubs: NDeliusApiStubs
   private lateinit var oasysApiStubs: OasysApiStubs
 
@@ -733,6 +736,51 @@ class ReferralControllerIntegrationTest(@Autowired private val referralStatusDes
       assertThat(
         referralById.statusHistories.first().additionalDetails,
       ).isEqualTo("This is a test comment")
+    }
+  }
+
+  @Nested
+  @DisplayName("Get the Referral Status history for a Referral")
+  inner class GetReferralStatusHistory {
+    @Test
+    fun `should get the Referral Status history for a Referral that exists`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().withCohort(OffenceCohort.GENERAL_OFFENCE).produce()
+
+      val statusHistory = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.of(2025, 9, 1, 12, 0))
+        .produce(
+          referralEntity,
+          referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        )
+
+      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+
+      val secondStatusHistory = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.of(2025, 9, 15, 20, 30))
+        .produce(referralEntity, referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription())
+
+      testDataGenerator.createReferralStatusHistory(secondStatusHistory)
+
+      assertThat(testDataGenerator.getReferralById(referralEntity.id!!).statusHistories).hasSize(2)
+
+      // When
+      val body = performRequestAndExpectStatusAndReturnBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral/${referralEntity.id}/status-history",
+        body = CreateReferralStatusHistory(
+          referralStatusDescriptionId = UUID.fromString("76b2f8d8-260c-4766-a716-de9325292609"),
+          additionalDetails = "This is a test comment",
+        ),
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      body.jsonPath("$[0].referralStatusDescriptionId").isEqualTo(referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription().id)
+      body.jsonPath("$[0].referralStatusDescriptionName").isEqualTo("Awaiting assessment")
+
+      body.jsonPath("$[1].referralStatusDescriptionId").isEqualTo(referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription().id)
+      body.jsonPath("$[1].referralStatusDescriptionName").isEqualTo("Awaiting allocation")
     }
   }
 

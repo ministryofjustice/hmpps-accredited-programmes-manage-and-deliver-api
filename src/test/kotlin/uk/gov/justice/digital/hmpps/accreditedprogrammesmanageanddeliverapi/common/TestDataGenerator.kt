@@ -72,6 +72,12 @@ class TestDataGenerator {
     entityManager.persist(referralStatusHistoryEntity)
   }
 
+  fun createReferralStatusHistory(
+    referralStatusHistoryEntity: ReferralStatusHistoryEntity,
+  ) {
+    entityManager.persist(referralStatusHistoryEntity)
+  }
+
   fun refreshReferralCaseListItemView() {
     entityManager.createNativeQuery("REFRESH MATERIALIZED VIEW referral_caselist_item_view").executeUpdate()
   }

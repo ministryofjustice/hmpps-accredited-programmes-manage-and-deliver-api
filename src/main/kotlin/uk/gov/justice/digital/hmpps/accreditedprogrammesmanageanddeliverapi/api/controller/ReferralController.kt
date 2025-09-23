@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.media.ArraySchema
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -29,6 +30,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.DeliveryLocationPreferencesService
@@ -315,6 +317,48 @@ class ReferralController(
     )
 
     return ResponseEntity.ok(result)
+  }
+
+  @Operation(
+    tags = ["Referrals"],
+    summary = "Get the Status History for a Referral",
+    operationId = "getStatusHistoryForReferral",
+    description = """Fetches an event log history of the Referral Status for a given Referral""",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "The Referral Status History of the Referral",
+        content = [Content(array = ArraySchema(schema = Schema(implementation = ReferralStatusHistory::class)))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden.  The client is not authorised to access this referral.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The Referral does not exist",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/referral/{id}/status-history", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getStatusHistoryForReferral(
+    @Parameter(
+      description = "The id (UUID) of a Referral",
+      required = true,
+    )
+    @PathVariable("id") id: UUID,
+  ): ResponseEntity<List<ReferralStatusHistory>> {
+    val result = referralService.getStatusHistory(id)
+
+    return ResponseEntity.ok(result.map { it.toApi() })
   }
 
   @Operation(
