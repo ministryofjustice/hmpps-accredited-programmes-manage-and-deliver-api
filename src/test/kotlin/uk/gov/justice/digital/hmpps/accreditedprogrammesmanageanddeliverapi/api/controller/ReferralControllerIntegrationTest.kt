@@ -133,8 +133,8 @@ class ReferralControllerIntegrationTest(@Autowired private val referralStatusDes
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       assertThat(response.probationPractitionerEmail)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
-      assertThat(response.hasLdc.value).isEqualTo(LdcStatus.NO_LDC.value)
-      assertThat(response.hasLdc.displayText).isEqualTo(LdcStatus.NO_LDC.displayText)
+      assertThat(response.hasLdc).isEqualTo(LdcStatus.NO_LDC.value)
+      assertThat(response.hasLdcDisplayText).isEqualTo(LdcStatus.NO_LDC.displayText)
     }
 
     @Test
@@ -174,8 +174,8 @@ class ReferralControllerIntegrationTest(@Autowired private val referralStatusDes
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       assertThat(response.probationPractitionerEmail)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
-      assertThat(response.hasLdc.value).isEqualTo(LdcStatus.HAS_LDC.value)
-      assertThat(response.hasLdc.displayText).isEqualTo(LdcStatus.HAS_LDC.displayText)
+      assertThat(response.hasLdc).isEqualTo(LdcStatus.HAS_LDC.value)
+      assertThat(response.hasLdcDisplayText).isEqualTo(LdcStatus.HAS_LDC.displayText)
     }
 
     @Test

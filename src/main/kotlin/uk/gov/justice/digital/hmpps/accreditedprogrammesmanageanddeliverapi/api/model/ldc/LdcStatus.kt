@@ -9,7 +9,7 @@ enum class LdcStatus(val value: Boolean, val displayText: String) {
   ;
 
   companion object {
-    fun fromBoolean(value: Boolean?): LdcStatus? = entries.find { it.value == value }
-    fun getDisplayText(value: Boolean?): String = fromBoolean(value)?.displayText ?: NO_LDC.displayText
+    fun fromBoolean(value: Boolean?): LdcStatus = entries.find { it.value == value } ?: NO_LDC
+    fun getDisplayText(value: Boolean?): String = fromBoolean(value).displayText
   }
 }
