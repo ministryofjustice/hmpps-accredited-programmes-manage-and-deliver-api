@@ -239,4 +239,6 @@ class ReferralService(
       referralStatusDescriptionName = referralStatusDescription.description,
     )
   }
+
+  fun getStatusHistory(referralId: UUID): List<ReferralStatusHistoryEntity> = referralStatusHistoryRepository.findAllByReferralId(referralId).sortedBy { it.createdAt }
 }

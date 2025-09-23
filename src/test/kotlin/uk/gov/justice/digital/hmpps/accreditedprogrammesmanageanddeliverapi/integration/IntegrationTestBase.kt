@@ -202,6 +202,24 @@ abstract class IntegrationTestBase {
       .accept(MediaType.APPLICATION_JSON)
       .bodyValue(body)
       .exchange()
-      .expectStatus().isEqualTo(expectedResponseStatus)
+      .expectStatus()
+      .isEqualTo(expectedResponseStatus)
   }
+
+  fun performRequestAndExpectStatusAndReturnBody(
+    httpMethod: HttpMethod,
+    uri: String,
+    body: Any,
+    expectedResponseStatus: Int,
+  ): WebTestClient.BodyContentSpec = webTestClient
+    .method(httpMethod)
+    .uri(uri)
+    .contentType(MediaType.APPLICATION_JSON)
+    .headers(setAuthorisation())
+    .accept(MediaType.APPLICATION_JSON)
+    .bodyValue(body)
+    .exchange()
+    .expectStatus()
+    .isEqualTo(expectedResponseStatus)
+    .expectBody()
 }

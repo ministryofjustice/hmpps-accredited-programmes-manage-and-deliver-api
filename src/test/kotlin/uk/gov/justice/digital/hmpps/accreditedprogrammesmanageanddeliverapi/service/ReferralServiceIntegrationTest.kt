@@ -32,6 +32,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.util.UUID
 
 class ReferralServiceIntegrationTest : IntegrationTestBase() {
@@ -42,6 +43,9 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
+
+  @Autowired
+  private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
 
   @Autowired
   private lateinit var referralService: ReferralService
@@ -228,6 +232,35 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       }
 
       assertThat(exception.message).isEqualTo("Referral with id: $referralId exists, but has no eventId")
+    }
+
+    @Nested
+    @DisplayName(value = "GetStatusHistoryIntegrationTests for Delius")
+    inner class GetStatusHistoryIntegrationTest {
+      @Test
+      fun `getStatusHistoryIntegration should return status records when they exist`() {
+        // Given
+        val theCrnNumber = randomUppercaseString()
+        val awaitingAllocation = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+        oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+
+        val referral =
+          referralService.createReferral(
+            FindAndReferReferralDetailsFactory().withPersonReference(theCrnNumber).produce(),
+          )
+
+        referralService.updateStatus(referral, awaitingAllocation.id, "Additional Details", "USER_ID")
+
+        // When
+        val result = referralService.getStatusHistory(referral.id!!)
+
+        // Then
+        assertThat(result).hasSize(2)
+
+        assertThat(result[0].referralStatusDescription.description).isEqualTo("Awaiting assessment")
+
+        assertThat(result[1].referralStatusDescription.description).isEqualTo("Awaiting allocation")
+      }
     }
 
     @Nested
