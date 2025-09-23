@@ -24,6 +24,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
@@ -41,6 +42,7 @@ class ReferralService(
   private val cohortService: CohortService,
   private val pniService: PniService,
   private val referralStatusHistoryRepository: ReferralStatusHistoryRepository,
+  private val referralLdcHistoryRepository: ReferralLdcHistoryRepository,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -48,8 +50,9 @@ class ReferralService(
 
   fun getReferralDetails(referralId: UUID): ReferralDetails? {
     val referral = referralRepository.findByIdOrNull(referralId) ?: return null
+    val hasLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.hasLdc
     val personalDetails = serviceUserService.getPersonalDetailsByIdentifier(referral.crn)
-    return ReferralDetails.toModel(referral, personalDetails)
+    return ReferralDetails.toModel(referral, personalDetails, hasLdc)
   }
 
   fun getFindAndReferReferralDetails(referralId: UUID): FindAndReferReferralDetails {
