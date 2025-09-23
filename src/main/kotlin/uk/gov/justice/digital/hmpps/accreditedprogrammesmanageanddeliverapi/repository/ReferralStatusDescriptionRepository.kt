@@ -9,6 +9,39 @@ interface ReferralStatusDescriptionRepository : JpaRepository<ReferralStatusDesc
   @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Awaiting assessment'")
   fun getAwaitingAssessmentStatusDescription(): ReferralStatusDescriptionEntity
 
+  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Awaiting allocation'")
+  fun getAwaitingAllocationStatusDescription(): ReferralStatusDescriptionEntity
+
+  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Suitable but not ready'")
+  fun getSuitableButNotReadyStatusDescription(): ReferralStatusDescriptionEntity
+
+  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Deprioritised'")
+  fun getDeprioritisedStatusDescription(): ReferralStatusDescriptionEntity
+
+  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Recall'")
+  fun getRecallStatusDescription(): ReferralStatusDescriptionEntity
+
+  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Return to court'")
+  fun getReturnToCourtStatusDescription(): ReferralStatusDescriptionEntity
+
+  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Scheduled'")
+  fun getScheduledStatusDescription(): ReferralStatusDescriptionEntity
+
+  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'On programme'")
+  fun getOnProgrammeStatusDescription(): ReferralStatusDescriptionEntity
+
+  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Programme complete'")
+  fun getProgrammeCompleteStatusDescription(): ReferralStatusDescriptionEntity
+
+  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Breach (non-attendance)'")
+  fun getBreachNonAttendanceStatusDescription(): ReferralStatusDescriptionEntity
+
+  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Deferred'")
+  fun getDeferredStatusDescription(): ReferralStatusDescriptionEntity
+
+  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Withdrawn'")
+  fun getWithdrawnStatusDescription(): ReferralStatusDescriptionEntity
+
   /**
    * Right now, all ReferralStatusDescriptions are Reference data which should be created or modified only
    * by developers / system maintainers via SQL migration scripts.  Attempting to use this method (even in tests)
