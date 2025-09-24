@@ -433,5 +433,27 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
     }
+
+    @Test
+    fun `createReferral should save referral and add status history with ldc status as false and cohort as general offence a when no data found from PNI`() {
+      // Given
+      val referralDetails = FindAndReferReferralDetailsFactory().produce()
+
+      oasysApiStubs.stubNotFoundPniResponse(referralDetails.personReference)
+
+      // When
+      referralService.createReferral(referralDetails)
+
+      val savedReferral = referralRepository.findByCrn(referralDetails.personReference).first()
+
+      // Then
+      assertThat(savedReferral.crn).isEqualTo(referralDetails.personReference)
+      assertThat(savedReferral.interventionType).isEqualTo(referralDetails.interventionType)
+      assertThat(savedReferral.interventionName).isEqualTo(referralDetails.interventionName)
+      assertThat(savedReferral.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+      assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
+      assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
+      assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
+    }
   }
 }

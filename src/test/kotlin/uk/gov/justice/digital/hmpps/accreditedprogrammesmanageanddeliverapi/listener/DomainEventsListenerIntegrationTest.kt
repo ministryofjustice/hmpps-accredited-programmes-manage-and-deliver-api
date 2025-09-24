@@ -268,6 +268,53 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `should create referral and automatically assign ldc status false on receipt of community referral creation message when PNI doesn't exist`() {
+    // Given
+    val crn = "X123456"
+
+    oasysApiStubs.stubNotFoundPniResponse(crn)
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withDetailUrl("http://find-and-refer/referral/$sourceReferralId")
+      .produce()
+
+    // When
+    sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofSeconds(1) untilCallTo {
+      domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
+    } matches { it == 0 }
+
+    await untilCallTo {
+      referralRepository.findAll().firstOrNull()
+    } matches {
+      assertThat(it).isNotNull()
+      it!!.setting == SettingType.COMMUNITY
+      it.crn == "X123456"
+      it.interventionName == "Test Intervention"
+      it.interventionType == InterventionType.ACP
+      it.statusHistories.first().referralStatusDescription.description == "Awaiting assessment"
+      it.sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION
+      it.eventId == "LIC-12345"
+      !it.referralLdcHistories.first().hasLdc
+      it.referralLdcHistories.first().createdBy == "SYSTEM"
+    }
+
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(domainEventsMessage.eventType)
+      assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+      )
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
+  }
+
+  @Test
   fun `should throw exception for unknown message event type`() {
     // Given
     val eventType = "unknown.event.type.created"
