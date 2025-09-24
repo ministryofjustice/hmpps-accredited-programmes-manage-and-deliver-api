@@ -28,7 +28,7 @@ data class ReferralStatus(
     description = "The description text for this particular status transition",
   )
   @get:JsonProperty("transitionDescription", required = true)
-  val transitionDescription: String,
+  val transitionDescription: String?,
 
   @Schema(
     example = "false",
@@ -47,7 +47,7 @@ data class ReferralStatus(
   val labelColour: String?,
 )
 
-fun ReferralStatusDescriptionEntity.toApi(transitionDescription: String) = ReferralStatus(
+fun ReferralStatusDescriptionEntity.toApi(transitionDescription: String?) = ReferralStatus(
   id = id,
   status = description,
   isClosed = isClosed,

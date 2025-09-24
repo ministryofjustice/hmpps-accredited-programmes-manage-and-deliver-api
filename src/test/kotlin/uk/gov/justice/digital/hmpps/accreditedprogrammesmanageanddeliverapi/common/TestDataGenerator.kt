@@ -10,6 +10,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnitEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import java.util.UUID
 
@@ -58,6 +59,10 @@ class TestDataGenerator {
 
   fun createAvailability(availabilityEntity: AvailabilityEntity) {
     entityManager.persist(availabilityEntity)
+  }
+
+  fun createReferralStatusDescriptionEntity(referralStatusDescriptionEntity: ReferralStatusDescriptionEntity) {
+    entityManager.persist(referralStatusDescriptionEntity)
   }
 
   fun creatReferralStatusHistory(referralStatusHistoryEntity: ReferralStatusHistoryEntity) {

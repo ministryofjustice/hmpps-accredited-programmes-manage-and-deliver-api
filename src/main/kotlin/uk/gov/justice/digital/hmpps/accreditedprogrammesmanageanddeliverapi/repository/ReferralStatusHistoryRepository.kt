@@ -8,4 +8,5 @@ import java.util.UUID
 @Repository
 interface ReferralStatusHistoryRepository : JpaRepository<ReferralStatusHistoryEntity, UUID> {
   fun findAllByReferralId(referralId: UUID): List<ReferralStatusHistoryEntity>
+  fun findFirstByReferralIdOrderByCreatedAtDesc(referralId: UUID): ReferralStatusHistoryEntity?
 }
