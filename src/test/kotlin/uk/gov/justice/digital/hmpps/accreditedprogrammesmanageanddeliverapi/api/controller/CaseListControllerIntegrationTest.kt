@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.time.LocalDateTime
 
@@ -23,6 +24,9 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
+
+  @Autowired
+  private lateinit var referralRepository: ReferralRepository
 
   private lateinit var nDeliusApiStubs: NDeliusApiStubs
 
@@ -151,6 +155,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(item).hasFieldOrProperty("crn")
       assertThat(item).hasFieldOrProperty("personName")
       assertThat(item).hasFieldOrProperty("referralStatus")
+      assertThat(item).hasFieldOrProperty("cohort")
+      assertThat(item).hasFieldOrProperty("hasLdc")
     }
   }
 
@@ -172,7 +178,29 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(item).hasFieldOrProperty("crn")
       assertThat(item).hasFieldOrProperty("personName")
       assertThat(item).hasFieldOrProperty("referralStatus")
+      assertThat(item).hasFieldOrProperty("cohort")
+      assertThat(item).hasFieldOrProperty("hasLdc")
     }
+  }
+
+  @Test
+  fun `getCaseListItems for OPEN referrals with no LDC history should default to false and return 200 and paged list of referral case list items`() {
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "/pages/caselist/open",
+      object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+    )
+    val referralCaseListItems = response.content
+
+    assertThat(response).isNotNull
+    assertThat(response.totalElements).isEqualTo(6)
+    assertThat(referralCaseListItems.map { it.crn })
+      .containsExactlyInAnyOrder("X7182552", "CRN-999999", "CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555")
+
+    assertThat(referralCaseListItems)
+      .allSatisfy { item ->
+        assertThat(item.hasLdc).isFalse
+      }
   }
 
   @Test
@@ -214,10 +242,16 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     assertThat(response.totalElements).isEqualTo(1)
     assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-888888")
 
+    assertThat(referralCaseListItems)
+      .allSatisfy { item ->
+        assertThat(item.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+      }
     referralCaseListItems.forEach { item ->
       assertThat(item).hasFieldOrProperty("crn")
       assertThat(item).hasFieldOrProperty("personName")
       assertThat(item).hasFieldOrProperty("referralStatus")
+      assertThat(item).hasFieldOrProperty("cohort")
+      assertThat(item).hasFieldOrProperty("hasLdc")
     }
   }
 
@@ -238,6 +272,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(item).hasFieldOrProperty("crn")
       assertThat(item).hasFieldOrProperty("personName")
       assertThat(item).hasFieldOrProperty("referralStatus")
+      assertThat(item).hasFieldOrProperty("cohort")
+      assertThat(item).hasFieldOrProperty("hasLdc")
     }
   }
 

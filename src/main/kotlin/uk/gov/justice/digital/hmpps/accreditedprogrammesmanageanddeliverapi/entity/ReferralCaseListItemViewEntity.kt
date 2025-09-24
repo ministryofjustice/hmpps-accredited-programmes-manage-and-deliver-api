@@ -32,4 +32,8 @@ class ReferralCaseListItemViewEntity(
   @NotNull
   @Column(name = "cohort")
   var cohort: String,
+
+  @NotNull
+  @Column(name = "has_ldc")
+  var hasLdc: Boolean,
 )
