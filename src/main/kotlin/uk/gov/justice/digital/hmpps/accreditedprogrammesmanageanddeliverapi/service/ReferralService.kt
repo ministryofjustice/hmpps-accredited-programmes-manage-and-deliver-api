@@ -95,7 +95,7 @@ class ReferralService(
       referralStatusDescription = awaitingAssessmentStatusDescription,
       startDate = LocalDateTime.now(),
       additionalDetails = null,
-      createdBy = "testData",
+      createdBy = "SYSTEM",
     )
 
     log.info("Inserting the default ReferralStatusHistory row for newly created Referral with id ${referral.id!!}")
