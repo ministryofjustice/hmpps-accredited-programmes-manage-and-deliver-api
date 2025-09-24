@@ -29,7 +29,7 @@ data class CurrentStatus(
   val title: String,
 
   @field:Schema(description = "The display colour of the status tag")
-  @get:JsonProperty("id", required = true)
+  @get:JsonProperty("tagColour", required = true)
   val tagColour: String,
 
   @Schema(description = "The name of the person that updated the last status")
