@@ -19,4 +19,6 @@ fun PniResponse.toPniScore() = PniScore(
   validationErrors = emptyList(),
 )
 
-fun PniResponse.hasLdc(): Boolean = assessment?.ldc?.subTotal?.let { it >= LEARNING_DISABILITIES_AND_CHALLENGES_THRESHOLD } == true
+fun PniResponse.hasLdc(): Boolean = assessment?.ldc?.subTotal?.let { subTotal ->
+  subTotal >= LEARNING_DISABILITIES_AND_CHALLENGES_THRESHOLD
+} ?: false
