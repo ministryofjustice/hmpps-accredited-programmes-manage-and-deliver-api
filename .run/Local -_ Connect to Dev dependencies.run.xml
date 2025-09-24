@@ -1,0 +1,20 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Local -&gt; Connect to Dev dependencies" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <option name="ACTIVE_PROFILES" value="LOCAL" />
+    <option name="ALTERNATIVE_JRE_PATH" value="21" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <envs>
+      <env name="API_CLIENT_ID" value="hmpps-accredited-programmes-manage-and-deliver-api-client-1" />
+      <env name="API_CLIENT_SECRET" value="PLACEHOLDER" />
+      <env name="FIND_AND_REFER_BASE_URL" value="https://find-and-refer-intervention-api-dev.hmpps.service.justice.gov.uk" />
+      <env name="HMPPS_AUTH_BASE_URL" value="https://sign-in-dev.hmpps.service.justice.gov.uk" />
+      <env name="NDELIUS_BASE_URL" value="https://accredited-programmes-and-delius-dev.hmpps.service.justice.gov.uk" />
+      <env name="OASYS_BASE_URL" value="https://accredited-programmes-and-oasys-dev.hmpps.service.justice.gov.uk" />
+    </envs>
+    <module name="hmpps-accredited-programmes-manage-and-deliver-api.main" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.AccreditedProgrammesManageAndDeliverApi" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
