@@ -10,13 +10,13 @@ import java.util.UUID
 class ReferralStatusHistoryEntityFactory {
   private var id: UUID? = null
   private var createdAt: LocalDateTime = LocalDateTime.now()
-  private var createdBy: String? = randomSentence(wordRange = 1..2)
+  private var createdBy: String = randomSentence(wordRange = 1..2)
   private var additionalDetails: String? = null
   private var startDate: LocalDateTime? = LocalDateTime.now()
 
   fun withId(id: UUID?) = apply { this.id = id }
   fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
-  fun withCreatedBy(createdBy: String?) = apply { this.createdBy = createdBy }
+  fun withCreatedBy(createdBy: String) = apply { this.createdBy = createdBy }
   fun withStartDate(startDate: LocalDateTime?) = apply { this.startDate = startDate }
   fun withAdditionalDetails(additionalDetails: String?) = apply { this.additionalDetails = additionalDetails }
 

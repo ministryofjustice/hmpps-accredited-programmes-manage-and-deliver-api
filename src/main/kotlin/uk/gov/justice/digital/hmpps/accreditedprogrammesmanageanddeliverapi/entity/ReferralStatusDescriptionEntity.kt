@@ -21,7 +21,7 @@ class ReferralStatusDescriptionEntity(
   val isClosed: Boolean,
 
   @Column(name = "label_colour")
-  val labelColour: String? = null,
+  val labelColour: String,
 
   @Column(name = "created_at")
   val createdAt: LocalDateTime? = null,
