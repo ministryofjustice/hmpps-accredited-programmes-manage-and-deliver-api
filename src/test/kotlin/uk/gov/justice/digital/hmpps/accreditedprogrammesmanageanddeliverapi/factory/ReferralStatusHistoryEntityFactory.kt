@@ -20,7 +20,10 @@ class ReferralStatusHistoryEntityFactory {
   fun withStartDate(startDate: LocalDateTime?) = apply { this.startDate = startDate }
   fun withAdditionalDetails(additionalDetails: String?) = apply { this.additionalDetails = additionalDetails }
 
-  fun produce(referral: ReferralEntity, referralStatusDescription: ReferralStatusDescriptionEntity) = ReferralStatusHistoryEntity(
+  fun produce(
+    referral: ReferralEntity,
+    referralStatusDescription: ReferralStatusDescriptionEntity,
+  ) = ReferralStatusHistoryEntity(
     id = this.id,
     createdAt = this.createdAt,
     createdBy = this.createdBy,

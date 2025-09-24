@@ -7,6 +7,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.mostRecentStatus
 import java.time.LocalDate
 import java.util.UUID
 
@@ -101,6 +102,14 @@ data class ReferralDetails(
   @get:JsonProperty("hasLdcDisplayText", required = true)
   val hasLdcDisplayText: String = LdcStatus.NO_LDC.displayText,
 
+  @Schema(
+    example = "Awaiting assessment",
+    required = true,
+    description = "The display name of the Referral's current Status",
+  )
+  @get:JsonProperty("currentStatusDescription", required = true)
+  val currentStatusDescription: String,
+
 ) {
   companion object {
     fun toModel(
@@ -119,6 +128,7 @@ data class ReferralDetails(
       cohort = referral.cohort,
       hasLdc = LdcStatus.fromBoolean(hasLdc).value,
       hasLdcDisplayText = LdcStatus.getDisplayText(hasLdc),
+      currentStatusDescription = referral.mostRecentStatus().description,
     )
   }
 }
