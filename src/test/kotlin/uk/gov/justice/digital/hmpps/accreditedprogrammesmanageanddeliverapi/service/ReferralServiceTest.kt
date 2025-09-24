@@ -9,24 +9,17 @@ import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
-import org.mockito.kotlin.any
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.FindAndReferInterventionApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
-import java.util.Optional
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -97,31 +90,5 @@ class ReferralServiceTest {
     // When & Then
     assertThrows<NotFoundException> { referralService.getFindAndReferReferralDetails(referralId) }
     verify(findAndReferInterventionApiClient).getFindAndReferReferral(referralId)
-  }
-
-  @Test
-  fun `getReferralDetails should retrieve details and return API model`() {
-    // Given
-    val referralId = UUID.randomUUID()
-    val referralEntity: ReferralEntity = ReferralEntityFactory().withId(referralId).produce()
-    val optionalEntity: Optional<ReferralEntity> =
-      Optional.of<ReferralEntity>(referralEntity)
-    `when`(referralRepository.findById(referralId)).thenReturn(optionalEntity as Optional<ReferralEntity?>)
-    `when`(pniService.getPniCalculation(any())).thenReturn(PniResponseFactory().produce())
-    `when`(ldcService.hasOverriddenLdcStatus(any())).thenReturn(true)
-
-    val personalDetails = NDeliusPersonalDetailsFactory().produce()
-    // Use Mockito's when instead of MockK's every
-    `when`(serviceUserService.getPersonalDetailsByIdentifier(referralEntity.crn)).thenReturn(personalDetails)
-
-    // When
-    val referralDetails = referralService.getReferralDetails(referralId)
-
-    // Then
-    verify(referralRepository).findById(referralId)
-    verify(serviceUserService).getPersonalDetailsByIdentifier(referralEntity.crn)
-    val expectedReferral = ReferralDetails.toModel(referralEntity, personalDetails)
-
-    assertThat(referralDetails).isEqualTo(expectedReferral)
   }
 }

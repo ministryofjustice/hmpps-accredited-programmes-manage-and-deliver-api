@@ -97,6 +97,12 @@ class ReferralEntity(
   var referralLdcHistories: MutableSet<ReferralLdcHistoryEntity> = mutableSetOf(),
 )
 
+fun ReferralEntity.mostRecentStatus(): ReferralStatusDescriptionEntity {
+  val mostRecentStatus = this.statusHistories.maxBy { it.createdAt }.referralStatusDescription
+
+  return mostRecentStatus
+}
+
 enum class ReferralEntitySourcedFrom {
   REQUIREMENT,
   LICENCE_CONDITION,

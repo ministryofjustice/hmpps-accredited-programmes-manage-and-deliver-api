@@ -20,6 +20,7 @@ class TestDataGenerator {
   @PersistenceContext
   private lateinit var entityManager: EntityManager
 
+  @Deprecated("Use createReferralWithStatusHistory")
   fun createReferral(referralEntity: ReferralEntity) {
     entityManager.persist(referralEntity)
   }
