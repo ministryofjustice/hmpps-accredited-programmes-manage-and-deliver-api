@@ -42,7 +42,7 @@ data class CurrentStatus(
   val createdAt: LocalDate,
 )
 
-fun ReferralStatusHistoryEntity.toApi() = CurrentStatus(
+fun ReferralStatusHistoryEntity.toCurrentStatus() = CurrentStatus(
   statusDescriptionId = referralStatusDescription.id,
   title = referralStatusDescription.description,
   tagColour = referralStatusDescription.labelColour,
