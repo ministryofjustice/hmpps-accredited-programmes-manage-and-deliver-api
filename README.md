@@ -110,6 +110,18 @@ required for this secret.
 There is a guide on how to configure your postman client to be able to call endpoints in the Test environments
 (Dev) [here](https://dsdmoj.atlassian.net/wiki/spaces/IC/pages/5784142235/Connecting+Postman+to+test+environments).
 
+There is a Local run configuration for IntelliJ stored in the project `Local - Connect to Dev dependencies` which has
+all the environment variables present in order to call out to the dev instances of external dependencies such as
+nDelius. This contains a `PLACEHOLDER` for the `API_CLIENT_CREDS` secret so to fetch that run the following command
+
+```zsh
+cloud-platform decode secret -n hmpps-manage-and-deliver-accredited-programmes-dev -s hmpps-accredited-programmes-manage-and-deliver-api-client-creds
+```
+
+**Note**
+`Cloud-platform` cli tool is available following this
+guide https://user-guide.cloud-platform.service.justice.gov.uk/documentation/getting-started/cloud-platform-cli.html
+
 ### OAuth (local)
 
 The service uses an OAuth 2.0 setup managed through the HMPPS Auth project. To call any endpoints locally a bearer token
@@ -128,7 +140,8 @@ call this service.
 
 ### OAuth (dev)
 
-If you need to create an OAuth token against the dev environment, you'll need to retrieve some values from the kubernetes environment.
+If you need to create an OAuth token against the dev environment, you'll need to retrieve some values from the
+kubernetes environment.
 
 You can retrieve them with the following:
 
@@ -145,7 +158,6 @@ And then using the following values in Postman to retrieve a token:
 | Client ID        | `$CLIENT_ID_FROM_KUBERNETES`                                      |
 | Client Secret    | `$CLIENT_SECRET_FROM_KUBERNETES`                                  |
 | Scope            | Read                                                              |
-
 
 ## Health
 
