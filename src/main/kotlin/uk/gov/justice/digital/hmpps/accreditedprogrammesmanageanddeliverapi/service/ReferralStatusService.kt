@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusFormData
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toCurrentStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
 import java.util.UUID
@@ -23,6 +24,6 @@ class ReferralStatusService(
     val currentStatus = referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId) ?: return null
     val availableStatuses = referralStatusTransitionRepository.findByFromStatusId(currentStatus.referralStatusDescription.id).map { it.toStatus.toApi(it.description) }
 
-    return ReferralStatusFormData(currentStatus.toApi(), availableStatuses)
+    return ReferralStatusFormData(currentStatus.toCurrentStatus(), availableStatuses)
   }
 }

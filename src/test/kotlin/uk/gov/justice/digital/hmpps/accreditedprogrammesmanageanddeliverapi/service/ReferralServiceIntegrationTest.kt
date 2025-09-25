@@ -249,17 +249,22 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
             FindAndReferReferralDetailsFactory().withPersonReference(theCrnNumber).produce(),
           )
 
-        referralService.updateStatus(referral, awaitingAllocation.id, "Additional Details", "USER_ID")
-
         // When
-        val result = referralService.getStatusHistory(referral.id!!)
+        referralService.updateStatus(referral, awaitingAllocation.id, "Additional Details", "The User's name")
+        val getResult = referralService.getStatusHistory(referral.id!!)
 
         // Then
-        assertThat(result).hasSize(2)
+        assertThat(getResult).hasSize(2)
 
-        assertThat(result[0].referralStatusDescription.description).isEqualTo("Awaiting assessment")
+        assertThat(getResult[0].referralStatusDescriptionName).isEqualTo("Awaiting assessment")
+        assertThat(getResult[0].updatedBy).isEqualTo("SYSTEM")
+        assertThat(getResult[0].additionalDetails).isEqualTo(null)
+        assertThat(getResult[0].tagColour).isEqualTo("purple")
 
-        assertThat(result[1].referralStatusDescription.description).isEqualTo("Awaiting allocation")
+        assertThat(getResult[1].referralStatusDescriptionName).isEqualTo("Awaiting allocation")
+        assertThat(getResult[1].updatedBy).isEqualTo("The User's name")
+        assertThat(getResult[1].additionalDetails).isEqualTo("Additional Details")
+        assertThat(getResult[1].tagColour).isEqualTo("light-blue")
       }
     }
 

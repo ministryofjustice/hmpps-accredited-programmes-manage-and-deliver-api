@@ -254,12 +254,8 @@ class ReferralService(
       ),
     )
 
-    return ReferralStatusHistory(
-      id = historyEntry.id!!,
-      referralStatusDescriptionId = referralStatusDescription.id,
-      referralStatusDescriptionName = referralStatusDescription.description,
-    )
+    return historyEntry.toApi()
   }
 
-  fun getStatusHistory(referralId: UUID): List<ReferralStatusHistoryEntity> = referralStatusHistoryRepository.findAllByReferralId(referralId).sortedBy { it.createdAt }
+  fun getStatusHistory(referralId: UUID): List<ReferralStatusHistory> = referralStatusHistoryRepository.findAllByReferralId(referralId).sortedBy { it.createdAt }.map { it.toApi() }
 }

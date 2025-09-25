@@ -10,7 +10,6 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
 import java.time.LocalDateTime
 import java.util.*
 
@@ -43,10 +42,4 @@ class ReferralStatusHistoryEntity(
 
   @Column(name = "start_date")
   var startDate: LocalDateTime? = null,
-)
-
-fun ReferralStatusHistoryEntity.toApi(): ReferralStatusHistory = ReferralStatusHistory(
-  id = id!!,
-  referralStatusDescriptionId = referralStatusDescription.id,
-  referralStatusDescriptionName = referralStatusDescription.description,
 )
