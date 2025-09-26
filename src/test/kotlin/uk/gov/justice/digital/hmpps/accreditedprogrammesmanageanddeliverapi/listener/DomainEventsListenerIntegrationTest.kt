@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.PersonReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.hmpps.sqs.countMessagesOnQueue
@@ -82,6 +83,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     val domainEventsMessage = DomainEventsMessageFactory()
       .withDetailUrl("/referral/$sourceReferralId")
       .withEventType(eventType)
+      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", "X957673"))))
       .produce()
 
     // When
@@ -114,6 +116,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     val domainEventsMessage = DomainEventsMessageFactory()
       .withDetailUrl(null)
       .withEventType(eventType)
+      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", "X957673"))))
       .produce()
 
     // When
@@ -132,6 +135,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     // Given
     val domainEventsMessage = DomainEventsMessageFactory()
       .withDetailUrl("http://find-and-refer/referral/$sourceReferralId")
+      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", "X957673"))))
       .produce()
 
     // When
@@ -179,6 +183,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     oasysApiStubs.stubSuccessfulPniResponseWithLdc(crn, ldc)
     val domainEventsMessage = DomainEventsMessageFactory()
       .withDetailUrl("http://find-and-refer/referral/$sourceReferralId")
+      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", "X957673"))))
       .produce()
 
     // When
@@ -228,6 +233,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     oasysApiStubs.stubSuccessfulPniResponseWithLdc(crn, ldc)
     val domainEventsMessage = DomainEventsMessageFactory()
       .withDetailUrl("http://find-and-refer/referral/$sourceReferralId")
+      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", "X957673"))))
       .produce()
 
     // When
@@ -275,6 +281,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     oasysApiStubs.stubNotFoundPniResponse(crn)
     val domainEventsMessage = DomainEventsMessageFactory()
       .withDetailUrl("http://find-and-refer/referral/$sourceReferralId")
+      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", "X957673"))))
       .produce()
 
     // When
