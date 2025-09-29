@@ -21,8 +21,11 @@ class ReferralStatusService(
     .map { it.toStatus.toApi(it.description!!) }
 
   fun getReferralStatusFormDataFromReferralId(referralId: UUID): ReferralStatusFormData? {
-    val currentStatus = referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId) ?: return null
-    val availableStatuses = referralStatusTransitionRepository.findByFromStatusId(currentStatus.referralStatusDescription.id).map { it.toStatus.toApi(it.description) }
+    val currentStatus =
+      referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId) ?: return null
+    val availableStatuses =
+      referralStatusTransitionRepository.findByFromStatusId(currentStatus.referralStatusDescription.id)
+        .map { it.toStatus.toApi(it.description) }
 
     return ReferralStatusFormData(currentStatus.toCurrentStatus(), availableStatuses)
   }
