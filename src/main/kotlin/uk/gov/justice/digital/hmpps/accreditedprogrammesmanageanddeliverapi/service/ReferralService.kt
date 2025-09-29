@@ -79,7 +79,8 @@ class ReferralService(
   fun createReferral(findAndReferReferralDetails: FindAndReferReferralDetails): ReferralEntity {
     val pniCalculation = getPni(findAndReferReferralDetails)
 
-    val cohort = pniCalculation?.let { cohortService.determineOffenceCohort(it.toPniScore()) } ?: OffenceCohort.GENERAL_OFFENCE
+    val cohort =
+      pniCalculation?.let { cohortService.determineOffenceCohort(it.toPniScore()) } ?: OffenceCohort.GENERAL_OFFENCE
     val hasLdc = pniCalculation?.hasLdc() ?: false
     val awaitingAssessmentStatusDescription =
       referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()

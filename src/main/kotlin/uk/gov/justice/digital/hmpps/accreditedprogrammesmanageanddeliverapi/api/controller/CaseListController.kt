@@ -11,13 +11,16 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralCaseListItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilters
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.StatusFilters
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralCaseListItemService
 import java.net.URLDecoder
 
@@ -65,6 +68,22 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
     cohort = cohort?.name,
     status = if (status.isNullOrEmpty()) null else URLDecoder.decode(status, "UTF-8"),
   )
+
+  @Operation(
+    tags = ["Caselist"],
+    summary = "Get reference data for displaying the possible filters for the ui",
+    operationId = "getCaseListFilterData",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "The filter reference data to display in the UI",
+        content = [Content(schema = Schema(implementation = StatusFilters::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/pages/caselist/filters", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getCaseListFilterData(): ResponseEntity<CaseListFilters> = ResponseEntity.ok().body(referralCaseListItemService.getCaseListFilterData())
 }
 
 enum class OpenOrClosed {

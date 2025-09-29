@@ -1,5 +1,6 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList
 
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
 import java.util.UUID
 

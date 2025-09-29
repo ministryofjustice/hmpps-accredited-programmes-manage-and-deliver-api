@@ -6,9 +6,12 @@ import org.springframework.data.domain.Pageable
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller.OpenOrClosed
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralCaseListItem
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilters
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.StatusFilters
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getReferralCaseListItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withAllowedCrns
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
@@ -18,6 +21,7 @@ class ReferralCaseListItemService(
   private val referralCaseListItemRepository: ReferralCaseListItemRepository,
   private val serviceUserService: ServiceUserService,
   private val authenticationHolder: HmppsAuthenticationHolder,
+  private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
 ) {
   fun getReferralCaseListItemServiceByCriteria(
     pageable: Pageable,
@@ -46,5 +50,20 @@ class ReferralCaseListItemService(
     val pagedEntities = referralCaseListItemRepository.findAll(restrictedSpec, pageable)
 
     return pagedEntities.map { it.toApi() }
+  }
+
+  fun getCaseListFilterData(): CaseListFilters {
+    val allStatuses = referralStatusDescriptionRepository.findAll().sortedBy { it.description }
+
+    val (closed, open) = allStatuses.partition { it.isClosed }
+
+    val statusFilters = StatusFilters(
+      open = open.map { it.description },
+      closed = closed.map { it.description },
+    )
+
+    return CaseListFilters(
+      statusFilters = statusFilters,
+    )
   }
 }
