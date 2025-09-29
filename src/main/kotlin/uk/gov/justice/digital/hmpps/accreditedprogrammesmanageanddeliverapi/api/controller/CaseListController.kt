@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilters
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.StatusFilters
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralCaseListItemService
 import java.net.URLDecoder
 
@@ -77,7 +76,7 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
       ApiResponse(
         responseCode = "200",
         description = "The filter reference data to display in the UI",
-        content = [Content(schema = Schema(implementation = StatusFilters::class))],
+        content = [Content(schema = Schema(implementation = CaseListFilters::class))],
       ),
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
