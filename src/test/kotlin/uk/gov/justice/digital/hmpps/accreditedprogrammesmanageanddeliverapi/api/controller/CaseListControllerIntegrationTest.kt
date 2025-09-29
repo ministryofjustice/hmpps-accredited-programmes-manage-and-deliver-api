@@ -47,6 +47,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         "CRN-777777",
         "CRN-66666",
         "CRN-555555",
+        "CRN-111111",
       )
     }
 
@@ -54,6 +55,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       // Create referrals with associated status history
       val awaitingAssessmentStatusDescription =
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+      val programmeCompleteStatusDescription =
+        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
 
       val referral1 = ReferralEntityFactory()
         .withPersonName("Joe Bloggs")
@@ -136,9 +139,21 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withStartDate(LocalDateTime.now())
         .produce(referral6, awaitingAssessmentStatusDescription)
       testDataGenerator.createReferralWithStatusHistory(referral6, statusHistory6)
+
+      val referral7 = ReferralEntityFactory()
+        .withPersonName("James Mars")
+        .withCrn("CRN-111111")
+        .withInterventionName("Building Choices")
+        .withCohort(OffenceCohort.GENERAL_OFFENCE)
+        .produce()
+      val statusHistory7 = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .withCreatedBy("USER_ID_12345")
+        .withStartDate(LocalDateTime.now())
+        .produce(referral7, programmeCompleteStatusDescription)
+      testDataGenerator.createReferralWithStatusHistory(referral7, statusHistory7)
     }
 
-    // The OPEN and CLOSED referrals tests currently return the same values as we don't yet know the statuses which will map to OPEN/CLOSED
     @Test
     fun `getCaseListItems for OPEN referrals return 200 and paged list of referral case list items`() {
       val response = performRequestAndExpectOk(
@@ -166,15 +181,15 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     fun `getCaseListItems for CLOSED referrals return 200 and paged list of referral case list items`() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/open",
+        "/pages/caselist/closed",
         object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
       )
       val referralCaseListItems = response.content
 
       assertThat(response).isNotNull
-      assertThat(response.totalElements).isEqualTo(6)
+      assertThat(response.totalElements).isEqualTo(1)
       assertThat(referralCaseListItems.map { it.crn })
-        .containsExactlyInAnyOrder("X7182552", "CRN-999999", "CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555")
+        .containsExactlyInAnyOrder("CRN-111111")
 
       referralCaseListItems.forEach { item ->
         assertThat(item).hasFieldOrProperty("crn")
