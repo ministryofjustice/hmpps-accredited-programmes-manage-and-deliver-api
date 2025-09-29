@@ -16,12 +16,14 @@ data class StatusFilters(
   @Schema(
     required = true,
     description = "Open referral statuses",
+    examples = ["Awaiting assessment", "Awaiting allocation"],
   )
   @get:JsonProperty("open", required = true)
   val open: List<String>,
   @Schema(
     required = true,
     description = "Closed referral statuses",
+    examples = ["Programme complete", "Withdrawn"],
   )
   @get:JsonProperty("closed", required = true)
   val closed: List<String>,
