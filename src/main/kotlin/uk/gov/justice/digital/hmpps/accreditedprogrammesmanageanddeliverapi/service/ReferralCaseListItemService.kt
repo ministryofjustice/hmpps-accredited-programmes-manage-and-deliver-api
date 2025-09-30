@@ -11,7 +11,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.StatusFilters
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getReferralCaseListItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withAllowedCrns
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
@@ -21,7 +20,7 @@ class ReferralCaseListItemService(
   private val referralCaseListItemRepository: ReferralCaseListItemRepository,
   private val serviceUserService: ServiceUserService,
   private val authenticationHolder: HmppsAuthenticationHolder,
-  private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
+  private val referralStatusService: ReferralStatusService,
 ) {
   fun getReferralCaseListItemServiceByCriteria(
     pageable: Pageable,
@@ -33,7 +32,9 @@ class ReferralCaseListItemService(
     val username = authenticationHolder.username
       ?: throw AuthenticationCredentialsNotFoundException("No authenticated user found")
 
-    val baseSpec = getReferralCaseListItemSpecification(openOrClosed, crnOrPersonName, cohort, status)
+    val possibleStatuses = referralStatusService.getOpenOrClosedStatusesDescriptions(openOrClosed)
+
+    val baseSpec = getReferralCaseListItemSpecification(possibleStatuses, crnOrPersonName, cohort, status)
     val crns = referralCaseListItemRepository.findAllCrns(baseSpec)
 
     if (crns.isEmpty()) {
@@ -53,7 +54,7 @@ class ReferralCaseListItemService(
   }
 
   fun getCaseListFilterData(): CaseListFilters {
-    val allStatuses = referralStatusDescriptionRepository.findAll().sortedBy { it.description }
+    val allStatuses = referralStatusService.getAllStatuses()
 
     val (closed, open) = allStatuses.partition { it.isClosed }
 

@@ -5,16 +5,21 @@ import jakarta.persistence.criteria.CriteriaQuery
 import jakarta.persistence.criteria.Predicate
 import jakarta.persistence.criteria.Root
 import org.springframework.data.jpa.domain.Specification
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller.OpenOrClosed
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
 
 fun getReferralCaseListItemSpecification(
-  openOrClosed: OpenOrClosed,
+  possibleStatuses: List<String>,
   crnOrPersonName: String? = null,
   cohort: String? = null,
   status: String? = null,
 ): Specification<ReferralCaseListItemViewEntity> = Specification<ReferralCaseListItemViewEntity> { root: Root<ReferralCaseListItemViewEntity?>, query: CriteriaQuery<*>?, criteriaBuilder: CriteriaBuilder ->
   val predicates: MutableList<Predicate> = mutableListOf()
+
+  possibleStatuses.let {
+    predicates.add(
+      root.get<String>("status").`in`(possibleStatuses),
+    )
+  }
 
   crnOrPersonName?.let {
     predicates.add(
