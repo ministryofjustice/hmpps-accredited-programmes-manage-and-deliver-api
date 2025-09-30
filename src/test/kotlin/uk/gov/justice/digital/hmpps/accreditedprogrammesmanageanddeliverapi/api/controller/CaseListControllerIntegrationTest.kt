@@ -12,7 +12,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilters
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.RestResponsePage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
@@ -367,13 +367,13 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/filters",
-        object : ParameterizedTypeReference<CaseListFilters>() {},
+        "/bff/caselist/filters",
+        object : ParameterizedTypeReference<CaseListFilterValues>() {},
       )
 
       // Then
       assertThat(response).isNotNull
-      assertThat(response).hasFieldOrProperty("statusFilters")
+      assertThat(response).hasFieldOrProperty("statusFilterValues")
       val (statusFilters) = response
 
       assertThat(statusFilters.open).hasSize(10)
