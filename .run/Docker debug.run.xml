@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Docker debug" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <option name="ACTIVE_PROFILES" value="LOCAL" />
+    <module name="hmpps-accredited-programmes-manage-and-deliver-api.main" />
+    <target name="hmpps-accredited-programmes-manage-and-deliver-api" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.AccreditedProgrammesManageAndDeliverApiKt" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
