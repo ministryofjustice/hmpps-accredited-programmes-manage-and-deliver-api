@@ -6,9 +6,9 @@ import org.springframework.data.domain.Pageable
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller.OpenOrClosed
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilters
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.StatusFilters
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.StatusFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getReferralCaseListItemSpecification
@@ -53,18 +53,18 @@ class ReferralCaseListItemService(
     return pagedEntities.map { it.toApi() }
   }
 
-  fun getCaseListFilterData(): CaseListFilters {
+  fun getCaseListFilterData(): CaseListFilterValues {
     val allStatuses = referralStatusService.getAllStatuses()
 
     val (closed, open) = allStatuses.partition { it.isClosed }
 
-    val statusFilters = StatusFilters(
+    val statusFilterValues = StatusFilterValues(
       open = open.map { it.description },
       closed = closed.map { it.description },
     )
 
-    return CaseListFilters(
-      statusFilters = statusFilters,
+    return CaseListFilterValues(
+      statusFilterValues = statusFilterValues,
     )
   }
 }

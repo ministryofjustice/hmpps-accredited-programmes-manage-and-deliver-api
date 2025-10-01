@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilters
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralCaseListItemService
 import java.net.URLDecoder
@@ -76,13 +76,13 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
       ApiResponse(
         responseCode = "200",
         description = "The filter reference data to display in the UI",
-        content = [Content(schema = Schema(implementation = CaseListFilters::class))],
+        content = [Content(schema = Schema(implementation = CaseListFilterValues::class))],
       ),
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/pages/caselist/filters", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun getCaseListFilterData(): ResponseEntity<CaseListFilters> = ResponseEntity.ok().body(referralCaseListItemService.getCaseListFilterData())
+  @GetMapping("/bff/caselist/filters", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getCaseListFilterData(): ResponseEntity<CaseListFilterValues> = ResponseEntity.ok().body(referralCaseListItemService.getCaseListFilterData())
 }
 
 enum class OpenOrClosed {

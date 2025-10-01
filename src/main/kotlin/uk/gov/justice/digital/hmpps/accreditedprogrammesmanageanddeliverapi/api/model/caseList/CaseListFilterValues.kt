@@ -3,16 +3,16 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 
-data class CaseListFilters(
+data class CaseListFilterValues(
   @Schema(
     required = true,
     description = "Contains lists of open and closed referral statuses",
   )
   @get:JsonProperty("statusFilters", required = true)
-  val statusFilters: StatusFilters,
+  val statusFilterValues: StatusFilterValues,
 )
 
-data class StatusFilters(
+data class StatusFilterValues(
   @Schema(
     required = true,
     description = "Open referral statuses",
