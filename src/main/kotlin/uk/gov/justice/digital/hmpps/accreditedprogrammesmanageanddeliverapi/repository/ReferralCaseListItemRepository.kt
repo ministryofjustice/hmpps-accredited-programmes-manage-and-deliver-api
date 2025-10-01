@@ -10,4 +10,6 @@ import java.util.UUID
 interface ReferralCaseListItemRepository :
   JpaRepository<ReferralCaseListItemViewEntity, UUID>,
   JpaSpecificationExecutor<ReferralCaseListItemViewEntity>,
-  ReferralCaseListItemRepositoryCustom
+  ReferralCaseListItemRepositoryCustom {
+  fun countAllByStatusIn(statuses: List<String>): Int
+}

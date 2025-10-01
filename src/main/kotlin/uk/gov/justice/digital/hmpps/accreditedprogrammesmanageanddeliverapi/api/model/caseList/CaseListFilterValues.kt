@@ -10,6 +10,13 @@ data class CaseListFilterValues(
   )
   @get:JsonProperty("statusFilters", required = true)
   val statusFilterValues: StatusFilterValues,
+
+  @Schema(
+    required = true,
+    description = "A count of the referrals for the opposite caselist tab you are in",
+  )
+  @get:JsonProperty("otherReferralsCount", required = true)
+  val otherReferralsCount: Int,
 )
 
 data class StatusFilterValues(

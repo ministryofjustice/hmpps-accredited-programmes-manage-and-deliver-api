@@ -81,8 +81,13 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/caselist/filters", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun getCaseListFilterData(): ResponseEntity<CaseListFilterValues> = ResponseEntity.ok().body(referralCaseListItemService.getCaseListFilterData())
+  @GetMapping("/bff/caselist/filters/{openOrClosed}", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getCaseListFilterData(
+    @PathVariable(
+      name = "openOrClosed",
+      required = true,
+    ) openOrClosed: OpenOrClosed,
+  ): ResponseEntity<CaseListFilterValues> = ResponseEntity.ok().body(referralCaseListItemService.getCaseListFilterData(openOrClosed))
 }
 
 enum class OpenOrClosed {
