@@ -8,14 +8,12 @@ import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller.OpenOrClosed
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.StatusFilterItems
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.StatusFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getReferralCaseListItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withAllowedCrns
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
-import java.net.URLDecoder
 
 @Service
 class ReferralCaseListItemService(
@@ -61,18 +59,8 @@ class ReferralCaseListItemService(
     val (closed, open) = allStatuses.partition { it.isClosed }
 
     val statusFilterValues = StatusFilterValues(
-      open = open.map {
-        StatusFilterItems(
-          value = it.description,
-          text = URLDecoder.decode(it.description, "UTF-8"),
-        )
-      },
-      closed = closed.map {
-        StatusFilterItems(
-          value = it.description,
-          text = URLDecoder.decode(it.description, "UTF-8"),
-        )
-      },
+      open = open.map { it.description },
+      closed = closed.map { it.description },
     )
 
     return CaseListFilterValues(

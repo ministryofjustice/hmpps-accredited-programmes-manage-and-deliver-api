@@ -19,29 +19,12 @@ data class StatusFilterValues(
     examples = ["Awaiting assessment", "Awaiting allocation"],
   )
   @get:JsonProperty("open", required = true)
-  val open: List<StatusFilterItems>,
+  val open: List<String>,
   @Schema(
     required = true,
     description = "Closed referral statuses",
     examples = ["Programme complete", "Withdrawn"],
   )
   @get:JsonProperty("closed", required = true)
-  val closed: List<StatusFilterItems>,
-)
-
-data class StatusFilterItems(
-  @Schema(
-    required = true,
-    description = "Display value for the status filter",
-    example = "Programme complete",
-  )
-  @get:JsonProperty("text", required = true)
-  val text: String,
-  @Schema(
-    required = true,
-    description = "UTF-8 encoded value for the status filter",
-    example = "Programme+complete",
-  )
-  @get:JsonProperty("value", required = true)
-  val value: String,
+  val closed: List<String>,
 )
