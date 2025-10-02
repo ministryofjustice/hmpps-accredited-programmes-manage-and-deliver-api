@@ -95,6 +95,12 @@ class ReferralEntity(
     mappedBy = "referral",
   )
   var referralLdcHistories: MutableSet<ReferralLdcHistoryEntity> = mutableSetOf(),
+
+  @OneToOne(
+    fetch = FetchType.LAZY,
+    mappedBy = "referral",
+  )
+  val referralReportingLocationEntity: ReferralReportingLocationEntity? = null,
 )
 
 fun ReferralEntity.mostRecentStatus(): ReferralStatusDescriptionEntity {
