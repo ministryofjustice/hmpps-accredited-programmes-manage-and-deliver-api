@@ -357,27 +357,49 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
           assertThat(item.referralStatus).isEqualTo("Awaiting assessment")
         }
     }
-  }
 
-  @Nested
-  @DisplayName("Get Case List Filter Data")
-  inner class GetCaseListFilterData {
-    @Test
-    fun `getCaseListFilterData should return status filters`() {
-      // When
-      val response = performRequestAndExpectOk(
-        HttpMethod.GET,
-        "/bff/caselist/filters",
-        object : ParameterizedTypeReference<CaseListFilterValues>() {},
-      )
+    @Nested
+    @DisplayName("Get Case List Filter Data")
+    inner class GetCaseListFilterData {
+      @Test
+      fun `getCaseListFilterData should return status filters for OPEN cases`() {
+        // When
+        val response = performRequestAndExpectOk(
+          HttpMethod.GET,
+          "/bff/caselist/filters/OPEN",
+          object : ParameterizedTypeReference<CaseListFilterValues>() {},
+        )
 
-      // Then
-      assertThat(response).isNotNull
-      assertThat(response).hasFieldOrProperty("statusFilterValues")
-      val (statusFilters) = response
+        // Then
+        assertThat(response).isNotNull
+        assertThat(response).hasFieldOrProperty("statusFilterValues")
+        assertThat(response).hasFieldOrProperty("otherReferralsCount")
+        assertThat(response.otherReferralsCount).isEqualTo(1)
+        val (statusFilters) = response
 
-      assertThat(statusFilters.open).hasSize(10)
-      assertThat(statusFilters.closed).hasSize(2)
+        assertThat(statusFilters.open).hasSize(10)
+        assertThat(statusFilters.closed).hasSize(2)
+      }
+
+      @Test
+      fun `getCaseListFilterData should return status filters for CLOSED cases`() {
+        // When
+        val response = performRequestAndExpectOk(
+          HttpMethod.GET,
+          "/bff/caselist/filters/CLOSED",
+          object : ParameterizedTypeReference<CaseListFilterValues>() {},
+        )
+
+        // Then
+        assertThat(response).isNotNull
+        assertThat(response).hasFieldOrProperty("statusFilterValues")
+        assertThat(response).hasFieldOrProperty("otherReferralsCount")
+        assertThat(response.otherReferralsCount).isEqualTo(6)
+        val (statusFilters) = response
+
+        assertThat(statusFilters.open).hasSize(10)
+        assertThat(statusFilters.closed).hasSize(2)
+      }
     }
   }
 }

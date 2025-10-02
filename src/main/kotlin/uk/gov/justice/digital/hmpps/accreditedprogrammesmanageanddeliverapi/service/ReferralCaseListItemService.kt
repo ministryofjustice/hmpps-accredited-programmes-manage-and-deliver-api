@@ -53,10 +53,13 @@ class ReferralCaseListItemService(
     return pagedEntities.map { it.toApi() }
   }
 
-  fun getCaseListFilterData(): CaseListFilterValues {
+  fun getCaseListFilterData(openOrClosed: OpenOrClosed): CaseListFilterValues {
     val allStatuses = referralStatusService.getAllStatuses()
 
     val (closed, open) = allStatuses.partition { it.isClosed }
+
+    val statusesToCount = if (openOrClosed == OpenOrClosed.OPEN) closed else open
+    val otherReferralsCount = referralCaseListItemRepository.countAllByStatusIn(statusesToCount.map { it.description })
 
     val statusFilterValues = StatusFilterValues(
       open = open.map { it.description },
@@ -65,6 +68,7 @@ class ReferralCaseListItemService(
 
     return CaseListFilterValues(
       statusFilterValues = statusFilterValues,
+      otherReferralsCount = otherReferralsCount,
     )
   }
 }
