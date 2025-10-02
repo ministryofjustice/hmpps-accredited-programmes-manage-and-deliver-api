@@ -11,6 +11,8 @@ data class ReferralCaseListItem(
   val referralStatus: String,
   val cohort: OffenceCohort,
   val hasLdc: Boolean,
+  val pdu: String,
+  val reportingTeam: String,
 )
 
 fun ReferralCaseListItemViewEntity.toApi() = ReferralCaseListItem(
@@ -20,4 +22,6 @@ fun ReferralCaseListItemViewEntity.toApi() = ReferralCaseListItem(
   referralStatus = status,
   cohort = OffenceCohort.valueOf(cohort),
   hasLdc = hasLdc,
+  pdu = pduName,
+  reportingTeam = reportingTeam,
 )

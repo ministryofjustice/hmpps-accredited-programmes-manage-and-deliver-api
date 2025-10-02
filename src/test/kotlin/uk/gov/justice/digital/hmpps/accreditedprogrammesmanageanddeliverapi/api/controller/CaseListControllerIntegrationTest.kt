@@ -358,6 +358,27 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         }
     }
 
+    @Test
+    fun `getCaseListItems for OPEN referrals with reporting location should default to 'UNKNOWN' values and return 200 and paged list of referral case list items`() {
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open",
+        object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+      )
+      val referralCaseListItems = response.content
+
+      assertThat(response).isNotNull
+      assertThat(response.totalElements).isEqualTo(6)
+      assertThat(referralCaseListItems.map { it.crn })
+        .containsExactlyInAnyOrder("X7182552", "CRN-999999", "CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555")
+
+      assertThat(referralCaseListItems)
+        .allSatisfy { item ->
+          assertThat(item.reportingTeam).isEqualTo("UNKNOWN_REPORTING_TEAM")
+          assertThat(item.pdu).isEqualTo("UNKNOWN_PDU_NAME")
+        }
+    }
+
     @Nested
     @DisplayName("Get Case List Filter Data")
     inner class GetCaseListFilterData {
