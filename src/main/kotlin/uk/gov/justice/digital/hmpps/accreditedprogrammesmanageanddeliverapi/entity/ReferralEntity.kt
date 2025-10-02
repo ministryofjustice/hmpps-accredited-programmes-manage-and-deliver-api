@@ -96,6 +96,7 @@ class ReferralEntity(
   )
   var referralLdcHistories: MutableSet<ReferralLdcHistoryEntity> = mutableSetOf(),
 
+  @Nullable
   @OneToOne(
     fetch = FetchType.LAZY,
     mappedBy = "referral",
