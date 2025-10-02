@@ -36,4 +36,12 @@ class ReferralCaseListItemViewEntity(
   @NotNull
   @Column(name = "has_ldc")
   var hasLdc: Boolean,
+
+  @NotNull
+  @Column(name = "pdu_name")
+  var pduName: String,
+
+  @NotNull
+  @Column(name = "reporting_team")
+  var reportingTeam: String,
 )
