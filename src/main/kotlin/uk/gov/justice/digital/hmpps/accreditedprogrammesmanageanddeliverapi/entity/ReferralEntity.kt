@@ -102,8 +102,8 @@ class ReferralEntity(
     mappedBy = "referral",
   )
   val referralReportingLocationEntity: ReferralReportingLocationEntity? = null,
-)
 
+)
 fun ReferralEntity.mostRecentStatus(): ReferralStatusDescriptionEntity {
   val mostRecentStatus = this.statusHistories.maxBy { it.createdAt }.referralStatusDescription
 
