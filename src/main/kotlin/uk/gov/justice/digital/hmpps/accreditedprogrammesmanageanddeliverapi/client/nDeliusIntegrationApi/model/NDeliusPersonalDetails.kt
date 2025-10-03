@@ -12,6 +12,8 @@ data class NDeliusPersonalDetails(
   val ethnicity: CodeDescription?,
   val probationPractitioner: ProbationPractitioner?,
   val probationDeliveryUnit: CodeDescription?,
+  val team: CodeDescription,
+  val region: CodeDescription,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

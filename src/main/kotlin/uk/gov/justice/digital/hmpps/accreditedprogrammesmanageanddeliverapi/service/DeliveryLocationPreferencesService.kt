@@ -117,7 +117,7 @@ class DeliveryLocationPreferencesService(
     val managerDetails = referralService.attemptToFindManagerForReferral(referralId)
       ?: throw NotFoundException("Could not retrieve manager details for referral $referralId")
 
-    val additionalPdusData = referralService.attemptToFindNonPrimaryPdusForReferal(referralId)
+    val additionalPdusData = referralService.attemptToFindNonPrimaryPdusForReferral(referralId)
       ?: throw NotFoundException("Could not find additional PDUS for referral $referralId")
 
     return DeliveryLocationPreferencesFormData(

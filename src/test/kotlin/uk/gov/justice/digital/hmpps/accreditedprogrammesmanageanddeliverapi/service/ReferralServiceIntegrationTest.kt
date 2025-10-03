@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
@@ -25,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
@@ -50,12 +52,43 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
   @Autowired
   private lateinit var referralService: ReferralService
 
+  val personalDetails = NDeliusPersonalDetailsFactory()
+    .withName(
+      FullName(
+        forename = "John",
+        middleNames = "Alex",
+        surname = "Doe",
+      ),
+    )
+    .withCrn("X123456")
+    .withTeam(
+      CodeDescription(
+        code = "1234",
+        description = "TEAM_1",
+      ),
+    )
+    .withProbationDeliveryUnit(
+      CodeDescription(
+        code = "1234",
+        description = "PDU_1",
+      ),
+    )
+    .withRegion(
+      CodeDescription(
+        code = "1234",
+        description = "REGION_1",
+      ),
+    )
+    .produce()
+
   @BeforeEach
   fun setup() {
     testDataCleaner.cleanAllTables()
     nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
     oasysApiStubs = OasysApiStubs(wiremock, objectMapper)
     stubAuthTokenEndpoint()
+
+    nDeliusApiStubs.stubPersonalDetailsResponse(personalDetails)
   }
 
   @Nested
@@ -459,6 +492,31 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
+    }
+
+    @Test
+    fun `createReferral should save referral and add name reporting locations`() {
+      // Given
+      val referralDetails = FindAndReferReferralDetailsFactory().produce()
+
+      oasysApiStubs.stubNotFoundPniResponse(referralDetails.personReference)
+
+      // When
+      referralService.createReferral(referralDetails)
+
+      val savedReferral = referralRepository.findByCrn(referralDetails.personReference).first()
+
+      // Then
+      assertThat(savedReferral.crn).isEqualTo(referralDetails.personReference)
+      assertThat(savedReferral.interventionType).isEqualTo(referralDetails.interventionType)
+      assertThat(savedReferral.interventionName).isEqualTo(referralDetails.interventionName)
+      assertThat(savedReferral.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+      assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
+      assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
+      assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
+      assertThat(savedReferral.personName).isEqualTo(personalDetails.name.getNameAsString())
+      assertThat(savedReferral.referralReportingLocationEntity?.pduName).isEqualTo(personalDetails.probationDeliveryUnit?.description)
+      assertThat(savedReferral.referralReportingLocationEntity?.reportingTeam).isEqualTo(personalDetails.team.description)
     }
   }
 }

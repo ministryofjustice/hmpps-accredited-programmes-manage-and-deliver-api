@@ -51,6 +51,8 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
         email = "jane.doe@probation.gov.uk",
       ),
       probationDeliveryUnit = CodeDescription(code = "PDU123", description = "North London"),
+      team = CodeDescription(code = "TEAM123", description = "Team Two"),
+      region = CodeDescription(code = "REGION123", description = "London"),
     )
 
     wiremock.stubFor(
@@ -237,6 +239,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
         assertThat(body.additionalOffences[1].subCategoryCode).isEqualTo("01")
         assertThat(body.additionalOffences[1].subCategoryDescription).isEqualTo("Common assault and battery")
       }
+
       else -> fail("Unexpected result: ${response::class.simpleName}")
     }
   }
@@ -345,6 +348,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
         assertThat(body.probationDeliveryUnits[1].officeLocations[0].code).isEqualTo("LOC003")
         assertThat(body.probationDeliveryUnits[1].officeLocations[0].description).isEqualTo("Location 003")
       }
+
       else -> fail("Unexpected result: ${response::class.simpleName}")
     }
   }

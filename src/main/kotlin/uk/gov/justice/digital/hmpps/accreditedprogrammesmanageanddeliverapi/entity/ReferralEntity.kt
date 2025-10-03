@@ -101,9 +101,10 @@ class ReferralEntity(
     fetch = FetchType.LAZY,
     mappedBy = "referral",
   )
-  val referralReportingLocationEntity: ReferralReportingLocationEntity? = null,
+  var referralReportingLocationEntity: ReferralReportingLocationEntity? = null,
 
 )
+
 fun ReferralEntity.mostRecentStatus(): ReferralStatusDescriptionEntity {
   val mostRecentStatus = this.statusHistories.maxBy { it.createdAt }.referralStatusDescription
 
