@@ -19,7 +19,9 @@ class NDeliusPersonalDetailsFactory {
   private var sex: CodeDescription = createCodeDescription()
   private var ethnicity: CodeDescription? = createCodeDescription()
   private var probationPractitioner: ProbationPractitioner? = createProbationPractitioner()
-  private var probationDeliveryUnit: CodeDescription? = createCodeDescription()
+  private var probationDeliveryUnit: CodeDescription = createCodeDescription()
+  private var team: CodeDescription = createCodeDescription()
+  private var region: CodeDescription = createCodeDescription()
 
   fun createProbationPractitioner(): ProbationPractitioner = ProbationPractitioner(randomFullName(), randomUppercaseString(2), randomSentence())
 
@@ -31,7 +33,10 @@ class NDeliusPersonalDetailsFactory {
   fun withSex(sex: CodeDescription) = apply { this.sex = sex }
   fun withProbationPractitioner(probationPractitioner: ProbationPractitioner?) = apply { this.probationPractitioner = probationPractitioner }
 
-  fun withProbationDeliveryUnit(probationDeliveryUnit: CodeDescription?) = apply { this.probationDeliveryUnit = probationDeliveryUnit }
+  fun withProbationDeliveryUnit(probationDeliveryUnit: CodeDescription) = apply { this.probationDeliveryUnit = probationDeliveryUnit }
+
+  fun withTeam(team: CodeDescription) = apply { this.team = team }
+  fun withRegion(region: CodeDescription) = apply { this.region = region }
 
   fun withAge(age: String) = apply { this.age = age }
 
@@ -44,5 +49,7 @@ class NDeliusPersonalDetailsFactory {
     ethnicity = this.ethnicity,
     probationPractitioner = this.probationPractitioner,
     probationDeliveryUnit = this.probationDeliveryUnit,
+    team = this.team,
+    region = this.region,
   )
 }

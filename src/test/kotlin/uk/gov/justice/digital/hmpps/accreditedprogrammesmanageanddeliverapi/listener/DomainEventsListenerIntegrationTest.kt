@@ -12,6 +12,8 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
@@ -19,7 +21,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.DomainEventsMessageFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.PersonReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
@@ -43,6 +47,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
 
   lateinit var sourceReferralId: UUID
   lateinit var oasysApiStubs: OasysApiStubs
+  lateinit var nDeliusApiStubs: NDeliusApiStubs
 
   @BeforeEach
   fun setUp() {
@@ -74,6 +79,37 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
 
     oasysApiStubs = OasysApiStubs(wiremock, objectMapper)
     oasysApiStubs.stubSuccessfulPniResponse("X123456")
+
+    nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
+    val personalDetails = NDeliusPersonalDetailsFactory()
+      .withName(
+        FullName(
+          forename = "John",
+          middleNames = "Alex",
+          surname = "Doe",
+        ),
+      )
+      .withCrn("X123456")
+      .withTeam(
+        CodeDescription(
+          code = "1234",
+          description = "TEAM_1",
+        ),
+      )
+      .withProbationDeliveryUnit(
+        CodeDescription(
+          code = "1234",
+          description = "PDU_1",
+        ),
+      )
+      .withRegion(
+        CodeDescription(
+          code = "1234",
+          description = "REGION_1",
+        ),
+      )
+      .produce()
+    nDeliusApiStubs.stubPersonalDetailsResponse(personalDetails)
   }
 
   @Test
@@ -156,6 +192,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.interventionType == InterventionType.ACP
       it.sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION
       it.eventId == "LIC-12345"
+      it.personName == ("John Alex Doe")
+      it.referralReportingLocationEntity!!.reportingTeam == "TEAM_1"
+      it.referralReportingLocationEntity!!.pduName == "PDU_1"
     }
 
     messageHistoryRepository.findAll().first().let {
@@ -206,6 +245,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION
       it.eventId == "LIC-12345"
       it.referralLdcHistories.first().hasLdc
+      it.personName == ("John Alex Doe")
+      it.referralReportingLocationEntity!!.reportingTeam == "TEAM_1"
+      it.referralReportingLocationEntity!!.pduName == "PDU_1"
     }
 
     messageHistoryRepository.findAll().first().let {
@@ -257,6 +299,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.eventId == "LIC-12345"
       !it.referralLdcHistories.first().hasLdc
       it.referralLdcHistories.first().createdBy == "SYSTEM"
+      it.personName == ("John Alex Doe")
+      it.referralReportingLocationEntity!!.reportingTeam == "TEAM_1"
+      it.referralReportingLocationEntity!!.pduName == "PDU_1"
     }
 
     messageHistoryRepository.findAll().first().let {
@@ -305,6 +350,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.eventId == "LIC-12345"
       !it.referralLdcHistories.first().hasLdc
       it.referralLdcHistories.first().createdBy == "SYSTEM"
+      it.personName == ("John Alex Doe")
+      it.referralReportingLocationEntity!!.reportingTeam == "TEAM_1"
+      it.referralReportingLocationEntity!!.pduName == "PDU_1"
     }
 
     messageHistoryRepository.findAll().first().let {

@@ -339,7 +339,6 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
       .withSex(CodeDescription("M", "Male"))
       .withEthnicity(null)
       .withProbationPractitioner(null)
-      .withProbationDeliveryUnit(null)
       .produce()
 
     nDeliusApiStubs.stubAccessCheck(true, crn)

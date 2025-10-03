@@ -2,6 +2,8 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
@@ -46,15 +48,17 @@ data class FindAndReferReferralDetails(
 fun FindAndReferReferralDetails.toReferralEntity(
   statusHistories: MutableList<ReferralStatusHistoryEntity>,
   cohort: OffenceCohort,
+  personalDetails: NDeliusPersonalDetails?,
 ) = ReferralEntity(
   crn = if (personReferenceType == PersonReferenceType.CRN) personReference else "UNKNOWN",
   interventionType = interventionType,
   interventionName = interventionName,
   setting = setting,
-  personName = "UNKNOWN",
+  personName = personalDetails?.name?.getNameAsString() ?: "UNKNOWN",
   statusHistories = statusHistories,
   cohort = cohort,
   sourcedFrom = sourcedFromReferenceType,
   eventId = sourcedFromReference,
   eventNumber = eventNumber,
+
 )

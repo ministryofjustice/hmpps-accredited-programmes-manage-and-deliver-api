@@ -17,7 +17,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnitWithOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.hasLdc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.toPniScore
@@ -25,8 +27,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
@@ -46,6 +50,7 @@ class ReferralService(
   private val referralStatusHistoryRepository: ReferralStatusHistoryRepository,
   private val referralLdcHistoryRepository: ReferralLdcHistoryRepository,
   private val ldcService: LdcService,
+  private val referralReportingLocationRepository: ReferralReportingLocationRepository,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -60,6 +65,8 @@ class ReferralService(
     }
     val referralLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.hasLdc
     val personalDetails = serviceUserService.getPersonalDetailsByIdentifier(referral.crn)
+    updateReferralReportingLocation(referral, personalDetails)
+
     return ReferralDetails.toModel(referral, personalDetails, referralLdc)
   }
 
@@ -85,9 +92,12 @@ class ReferralService(
     val awaitingAssessmentStatusDescription =
       referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
 
+    val personalDetails: NDeliusPersonalDetails? = getPersonalDetails(findAndReferReferralDetails.personReference)
+
     val referralEntity = findAndReferReferralDetails.toReferralEntity(
       statusHistories = mutableListOf(),
       cohort = cohort,
+      personalDetails = personalDetails,
     )
 
     log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort")
@@ -108,6 +118,16 @@ class ReferralService(
       mutableSetOf(ReferralLdcHistoryEntity(hasLdc = hasLdc, referral = referralEntity, createdBy = "SYSTEM"))
     referralEntity.referralLdcHistories = referralLdcHistories
 
+    personalDetails?.let {
+      val referralReportingLocation = ReferralReportingLocationEntity(
+        referral = referral,
+        pduName = personalDetails.probationDeliveryUnit.description,
+        reportingTeam = personalDetails.team.description,
+      )
+      referralReportingLocationRepository.save(referralReportingLocation)
+      referralEntity.referralReportingLocationEntity = referralReportingLocation
+    }
+
     log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort and Ldc status: '$hasLdc'")
     referralRepository.save(referralEntity)
     return getReferralById(referral.id!!)
@@ -118,7 +138,7 @@ class ReferralService(
 
     try {
       pniResponse = pniService.getPniCalculation(findAndReferReferralDetails.personReference)
-    } catch (ex: Exception) {
+    } catch (_: Exception) {
       log.info("Failure to retrieve PNI score for crn : ${findAndReferReferralDetails.personReference} falling back to defaults")
     }
     return pniResponse
@@ -219,7 +239,7 @@ class ReferralService(
     return managerResponse.manager
   }
 
-  fun attemptToFindNonPrimaryPdusForReferal(referralId: UUID): List<NDeliusApiProbationDeliveryUnitWithOfficeLocations>? {
+  fun attemptToFindNonPrimaryPdusForReferral(referralId: UUID): List<NDeliusApiProbationDeliveryUnitWithOfficeLocations>? {
     val referral = this.getReferralAndEnsureSourcedFrom(referralId)
 
     val ndeliusApiResponse = this.getRetRequirementOrLicenceCondition(referral) ?: return null
@@ -259,4 +279,29 @@ class ReferralService(
   }
 
   fun getStatusHistory(referralId: UUID): List<ReferralStatusHistory> = referralStatusHistoryRepository.findAllByReferralId(referralId).sortedBy { it.createdAt }.map { it.toApi() }
+
+  fun updateReferralReportingLocation(referral: ReferralEntity, personalDetails: NDeliusPersonalDetails) {
+    // If there is already a row in the db then update it otherwise create a new one
+    val referralReportingLocation = referralReportingLocationRepository.findByReferralId(referral.id)
+      ?.apply {
+        pduName = personalDetails.team.description
+        reportingTeam = personalDetails.probationDeliveryUnit.description
+      }
+      ?: ReferralReportingLocationEntity(
+        referral = referral,
+        pduName = personalDetails.probationDeliveryUnit.description,
+        reportingTeam = personalDetails.team.description,
+      )
+
+    val savedEntity = referralReportingLocationRepository.save(referralReportingLocation)
+    // Update our referral entity with name fetched from nDelius
+    referral.referralReportingLocationEntity = savedEntity
+    referral.personName = personalDetails.name.getNameAsString()
+    referralRepository.save(referral)
+  }
+
+  private fun getPersonalDetails(crn: String) = when (val result = ndeliusIntegrationApiClient.getPersonalDetails(crn)) {
+    is ClientResult.Success -> result.body
+    else -> null
+  }
 }

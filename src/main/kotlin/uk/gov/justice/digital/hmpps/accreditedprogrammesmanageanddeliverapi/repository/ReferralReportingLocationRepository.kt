@@ -6,5 +6,5 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import java.util.UUID
 
 interface ReferralReportingLocationRepository : JpaRepository<ReferralReportingLocationEntity, ReferralEntity> {
-  fun findFirstByReferralId(referralId: UUID): ReferralReportingLocationEntity?
+  fun findByReferralId(referralId: UUID?): ReferralReportingLocationEntity?
 }
