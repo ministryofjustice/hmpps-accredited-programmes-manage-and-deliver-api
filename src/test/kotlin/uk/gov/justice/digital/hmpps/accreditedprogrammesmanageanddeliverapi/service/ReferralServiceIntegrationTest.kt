@@ -515,7 +515,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
       assertThat(savedReferral.personName).isEqualTo(personalDetails.name.getNameAsString())
-      assertThat(savedReferral.referralReportingLocationEntity?.pduName).isEqualTo(personalDetails.probationDeliveryUnit?.description)
+      assertThat(savedReferral.referralReportingLocationEntity?.pduName).isEqualTo(personalDetails.probationDeliveryUnit.description)
       assertThat(savedReferral.referralReportingLocationEntity?.reportingTeam).isEqualTo(personalDetails.team.description)
     }
   }

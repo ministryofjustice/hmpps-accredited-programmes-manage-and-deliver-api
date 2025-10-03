@@ -96,7 +96,7 @@ class ReferralService(
     val referralEntity = findAndReferReferralDetails.toReferralEntity(
       statusHistories = mutableListOf(),
       cohort = cohort,
-      personalDetails,
+      personalDetails = personalDetails,
     )
 
     log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort")
@@ -117,13 +117,15 @@ class ReferralService(
       mutableSetOf(ReferralLdcHistoryEntity(hasLdc = hasLdc, referral = referralEntity, createdBy = "SYSTEM"))
     referralEntity.referralLdcHistories = referralLdcHistories
 
-    val referralReportingLocation = ReferralReportingLocationEntity(
-      referral = referral,
-      pduName = personalDetails?.probationDeliveryUnit?.description ?: "UNKNOWN_PDU_NAME",
-      reportingTeam = personalDetails?.team?.description ?: "UNKNOWN_REPORTING_TEAM",
-    )
-    referralReportingLocationRepository.save(referralReportingLocation)
-    referralEntity.referralReportingLocationEntity = referralReportingLocation
+    personalDetails?.let {
+      val referralReportingLocation = ReferralReportingLocationEntity(
+        referral = referral,
+        pduName = personalDetails.probationDeliveryUnit.description,
+        reportingTeam = personalDetails.team.description,
+      )
+      referralReportingLocationRepository.save(referralReportingLocation)
+      referralEntity.referralReportingLocationEntity = referralReportingLocation
+    }
 
     log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort and Ldc status: '$hasLdc'")
     referralRepository.save(referralEntity)
