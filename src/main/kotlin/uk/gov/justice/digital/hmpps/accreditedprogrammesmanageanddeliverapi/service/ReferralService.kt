@@ -19,6 +19,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.hasLdc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.toPniScore
@@ -280,6 +281,7 @@ class ReferralService(
   fun getStatusHistory(referralId: UUID): List<ReferralStatusHistory> = referralStatusHistoryRepository.findAllByReferralId(referralId).sortedBy { it.createdAt }.map { it.toApi() }
 
   fun updateReferralReportingLocation(referral: ReferralEntity, personalDetails: NDeliusPersonalDetails) {
+    // If there is already a row in the db then update it otherwise create a new one
     val referralReportingLocation = referralReportingLocationRepository.findByReferralId(referral.id)
       ?.apply {
         pduName = personalDetails.team.description
@@ -291,7 +293,11 @@ class ReferralService(
         reportingTeam = personalDetails.team.description,
       )
 
-    referralReportingLocationRepository.save(referralReportingLocation)
+    val savedEntity = referralReportingLocationRepository.save(referralReportingLocation)
+    // Update our referral entity with name fetched from nDelius
+    referral.referralReportingLocationEntity = savedEntity
+    referral.personName = personalDetails.name.getNameAsString()
+    referralRepository.save(referral)
   }
 
   private fun getPersonalDetails(crn: String) = when (val result = ndeliusIntegrationApiClient.getPersonalDetails(crn)) {
