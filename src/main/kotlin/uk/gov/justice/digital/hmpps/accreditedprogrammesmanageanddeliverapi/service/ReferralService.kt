@@ -64,6 +64,8 @@ class ReferralService(
     }
     val referralLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.hasLdc
     val personalDetails = serviceUserService.getPersonalDetailsByIdentifier(referral.crn)
+    updateReferralReportingLocation(referral, personalDetails)
+
     return ReferralDetails.toModel(referral, personalDetails, referralLdc)
   }
 
@@ -274,6 +276,21 @@ class ReferralService(
   }
 
   fun getStatusHistory(referralId: UUID): List<ReferralStatusHistory> = referralStatusHistoryRepository.findAllByReferralId(referralId).sortedBy { it.createdAt }.map { it.toApi() }
+
+  fun updateReferralReportingLocation(referral: ReferralEntity, personalDetails: NDeliusPersonalDetails) {
+    val referralReportingLocation = referralReportingLocationRepository.findByReferralId(referral.id)
+      ?.apply {
+        pduName = personalDetails.team.description
+        reportingTeam = personalDetails.probationDeliveryUnit.description
+      }
+      ?: ReferralReportingLocationEntity(
+        referral = referral,
+        pduName = personalDetails.probationDeliveryUnit.description,
+        reportingTeam = personalDetails.team.description,
+      )
+
+    referralReportingLocationRepository.save(referralReportingLocation)
+  }
 
   private fun getPersonalDetails(crn: String) = when (val result = ndeliusIntegrationApiClient.getPersonalDetails(crn)) {
     is ClientResult.Success -> result.body

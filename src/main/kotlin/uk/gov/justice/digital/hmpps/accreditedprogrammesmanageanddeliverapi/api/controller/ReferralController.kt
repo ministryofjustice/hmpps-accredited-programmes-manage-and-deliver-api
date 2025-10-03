@@ -306,7 +306,7 @@ class ReferralController(
       required = true,
     ) @RequestBody updateReferralStatus: CreateReferralStatusHistory,
   ): ResponseEntity<ReferralStatusHistory> {
-    val referral = referralService.getReferralById(id) ?: throw NotFoundException("Referral with id $id not found")
+    val referral = referralService.getReferralById(id)
 
     val result = referralService.updateStatus(
       referral,

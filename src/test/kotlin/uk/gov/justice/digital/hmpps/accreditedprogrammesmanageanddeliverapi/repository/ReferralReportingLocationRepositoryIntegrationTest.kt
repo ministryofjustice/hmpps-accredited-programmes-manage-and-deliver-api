@@ -46,7 +46,7 @@ class ReferralReportingLocationRepositoryIntegrationTest : IntegrationTestBase()
     testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
     testDataGenerator.createReferralWithReportingLocation(referralReportingLocationEntity)
 
-    val savedEntity = repo.findFirstByReferralId(referralEntity.id!!)!!
+    val savedEntity = repo.findByReferralId(referralEntity.id!!)!!
 
     assertThat(savedEntity).isNotNull
     assertThat(savedEntity.pduName).isEqualTo("PDU_1")
