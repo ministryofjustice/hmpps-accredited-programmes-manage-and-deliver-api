@@ -32,14 +32,14 @@ class ReferralCaseListItemService(
     cohort: String?,
     status: String?,
     pdu: String?,
-    reportingTeam: List<String>?,
+    reportingTeams: List<String>?,
   ): Page<ReferralCaseListItem> {
     val username = authenticationHolder.username
       ?: throw AuthenticationCredentialsNotFoundException("No authenticated user found")
 
     val possibleStatuses = referralStatusService.getOpenOrClosedStatusesDescriptions(openOrClosed)
 
-    val baseSpec = getReferralCaseListItemSpecification(possibleStatuses, crnOrPersonName, cohort, status, pdu, reportingTeam)
+    val baseSpec = getReferralCaseListItemSpecification(possibleStatuses, crnOrPersonName, cohort, status, pdu, reportingTeams)
     val crns = referralCaseListItemRepository.findAllCrns(baseSpec)
 
     if (crns.isEmpty()) {
