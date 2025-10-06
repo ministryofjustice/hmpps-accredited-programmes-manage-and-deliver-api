@@ -383,6 +383,57 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `getCaseListItems returns matching referrals when pdu is used as part of request`() {
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?pdu=PDU1",
+        object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+      )
+      val referralCaseListItems = response.content
+
+      assertThat(response).isNotNull
+      assertThat(response.totalElements).isEqualTo(3)
+
+      assertThat(referralCaseListItems)
+        .allSatisfy { item ->
+          assertThat(item.pdu).isEqualTo("PDU1")
+        }
+
+      referralCaseListItems.forEach { item ->
+        assertThat(item).hasFieldOrProperty("crn")
+        assertThat(item).hasFieldOrProperty("personName")
+        assertThat(item).hasFieldOrProperty("referralStatus")
+        assertThat(item).hasFieldOrProperty("pdu")
+      }
+    }
+
+    @Test
+    fun `getCaseListItems returns matching referrals when reporting team is used as part of request`() {
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?pdu=PDU1&reportingTeam=reportingTeam1",
+        object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+      )
+      val referralCaseListItems = response.content
+
+      assertThat(response).isNotNull
+      assertThat(response.totalElements).isEqualTo(2)
+
+      assertThat(referralCaseListItems)
+        .allSatisfy { item ->
+          assertThat(item.reportingTeam).isEqualTo("reportingTeam1")
+        }
+
+      referralCaseListItems.forEach { item ->
+        assertThat(item).hasFieldOrProperty("crn")
+        assertThat(item).hasFieldOrProperty("personName")
+        assertThat(item).hasFieldOrProperty("referralStatus")
+        assertThat(item).hasFieldOrProperty("pdu")
+        assertThat(item).hasFieldOrProperty("reportingTeam")
+      }
+    }
+
+    @Test
     fun `getCaseListItems should only return referrals with a matching status when supplied`() {
       // When
       val response = performRequestAndExpectOk(
