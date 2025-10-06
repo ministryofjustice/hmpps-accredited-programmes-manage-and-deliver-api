@@ -66,12 +66,12 @@ fun getReferralCaseListItemSpecification(
   }
 
   reportingTeam?.let {
-    //There must be a PDU for a reporting team to be provided
+    // There must be a PDU for a reporting team to be provided
     pdu?.let {
       predicates.add(
         criteriaBuilder.equal(
           root.get<String>("reportingTeam"),
-          reportingTeam
+          reportingTeam,
         ),
       )
     }
