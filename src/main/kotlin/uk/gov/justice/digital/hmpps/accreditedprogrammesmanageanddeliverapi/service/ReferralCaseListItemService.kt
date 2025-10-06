@@ -32,7 +32,7 @@ class ReferralCaseListItemService(
     cohort: String?,
     status: String?,
     pdu: String?,
-    reportingTeam: String?,
+    reportingTeam: List<String>?,
   ): Page<ReferralCaseListItem> {
     val username = authenticationHolder.username
       ?: throw AuthenticationCredentialsNotFoundException("No authenticated user found")
