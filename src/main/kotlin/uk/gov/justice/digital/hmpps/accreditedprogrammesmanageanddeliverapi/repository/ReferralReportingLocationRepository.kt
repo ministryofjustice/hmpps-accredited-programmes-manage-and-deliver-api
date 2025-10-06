@@ -9,7 +9,6 @@ import java.util.UUID
 
 interface ReferralReportingLocationRepository : JpaRepository<ReferralReportingLocationEntity, ReferralEntity> {
   fun findByReferralId(referralId: UUID?): ReferralReportingLocationEntity?
-  fun findFirstByReferralId(referralId: UUID): ReferralReportingLocationEntity?
 
   @Query("SELECT r.pduName, r.reportingTeam FROM ReferralReportingLocationEntity r GROUP BY r.pduName, r.reportingTeam")
   fun getPdusAndReportingTeams(): List<PduReportingLocation>

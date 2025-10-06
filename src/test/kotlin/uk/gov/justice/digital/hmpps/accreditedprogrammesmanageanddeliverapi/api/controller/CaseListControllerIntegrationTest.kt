@@ -174,12 +174,6 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
         .produce(referral6, awaitingAssessmentStatusDescription)
-//      val referralReportingLocation6 = ReferralReportingLocationFactory(referral6)
-//        .withPduName("PDU2")
-//        .withReportingTeam("reportingTeam2")
-//        .produce()
-//
-//      referral6.referralReportingLocationEntity = referralReportingLocation6
 
       testDataGenerator.createReferralWithStatusHistory(referral6, statusHistory6)
 
