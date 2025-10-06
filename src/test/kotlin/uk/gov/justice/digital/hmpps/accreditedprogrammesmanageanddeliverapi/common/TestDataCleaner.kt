@@ -22,6 +22,7 @@ class TestDataCleaner(
       createNativeQuery("TRUNCATE TABLE preferred_delivery_location_probation_delivery_unit CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE preferred_delivery_location CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE delivery_location_preferences CASCADE").executeUpdate()
+      createNativeQuery("TRUNCATE TABLE referral_reporting_location CASCADE").executeUpdate()
 
       // Add additional tables here as the data model grows
     }

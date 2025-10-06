@@ -83,6 +83,12 @@ class TestDataGenerator {
     entityManager.persist(referralReportingLocationEntity)
   }
 
+  fun createReferralWithReportingLocationAndStatusHistory(referralEntity: ReferralEntity, referralStatusHistoryEntity: ReferralStatusHistoryEntity, referralReportingLocationEntity: ReferralReportingLocationEntity) {
+    entityManager.persist(referralEntity)
+    entityManager.persist(referralStatusHistoryEntity)
+    entityManager.persist(referralReportingLocationEntity)
+  }
+
   fun createReferralStatusHistory(
     referralStatusHistoryEntity: ReferralStatusHistoryEntity,
   ) {

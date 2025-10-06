@@ -7,10 +7,12 @@ import org.springframework.security.authentication.AuthenticationCredentialsNotF
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller.OpenOrClosed
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.LocationFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.StatusFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getReferralCaseListItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withAllowedCrns
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
@@ -21,6 +23,7 @@ class ReferralCaseListItemService(
   private val serviceUserService: ServiceUserService,
   private val authenticationHolder: HmppsAuthenticationHolder,
   private val referralStatusService: ReferralStatusService,
+  private val referralReportingLocationRepository: ReferralReportingLocationRepository,
 ) {
   fun getReferralCaseListItemServiceByCriteria(
     pageable: Pageable,
@@ -60,6 +63,11 @@ class ReferralCaseListItemService(
 
     val statusesToCount = if (openOrClosed == OpenOrClosed.OPEN) closed else open
     val otherReferralsCount = referralCaseListItemRepository.countAllByStatusIn(statusesToCount.map { it.description })
+    val referralReportingLocations = referralReportingLocationRepository.getPdusAndReportingTeams()
+    val pdusWithReportingTeams = referralReportingLocations.groupBy { it.pduName }
+      .map { (pduName, reportingTeams) ->
+        LocationFilterValues(pduName = pduName, reportingTeams = reportingTeams.map { it.reportingTeam }.distinct())
+      }
 
     val statusFilterValues = StatusFilterValues(
       open = open.map { it.description },
@@ -68,6 +76,7 @@ class ReferralCaseListItemService(
 
     return CaseListFilterValues(
       statusFilterValues = statusFilterValues,
+      locationFilterValues = pdusWithReportingTeams,
       otherReferralsCount = otherReferralsCount,
     )
   }

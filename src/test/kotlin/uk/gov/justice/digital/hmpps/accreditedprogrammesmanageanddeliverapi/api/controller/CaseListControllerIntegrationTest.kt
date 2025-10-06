@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.RestResponsePage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
@@ -35,7 +36,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     @BeforeEach
     fun beforeEach() {
       testDataCleaner.cleanAllTables()
-      createReferralsWithStatusHistory()
+      createReferralsWithStatusHistoryAndReportingLocations()
       testDataGenerator.refreshReferralCaseListItemView()
       stubAuthTokenEndpoint()
       nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
@@ -51,8 +52,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       )
     }
 
-    private fun createReferralsWithStatusHistory() {
-      // Create referrals with associated status history
+    private fun createReferralsWithStatusHistoryAndReportingLocations() {
+      // Create referrals with associated status history and reporting locations
       val awaitingAssessmentStatusDescription =
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
       val programmeCompleteStatusDescription =
@@ -65,13 +66,20 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
 
+      val referralReportingLocation1 = ReferralReportingLocationFactory(referral1)
+        .withPduName("PDU1")
+        .withReportingTeam("reportingTeam1")
+        .produce()
+
+      referral1.referralReportingLocationEntity = referralReportingLocation1
+
       val statusHistory1 = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
         .produce(referral1, awaitingAssessmentStatusDescription)
 
-      testDataGenerator.createReferralWithStatusHistory(referral1, statusHistory1)
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral1, statusHistory1, referralReportingLocation1)
 
       val referral2 = ReferralEntityFactory()
         .withPersonName("Alex River")
@@ -80,13 +88,20 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withCohort(OffenceCohort.SEXUAL_OFFENCE)
         .produce()
 
+      val referralReportingLocation2 = ReferralReportingLocationFactory(referral2)
+        .withPduName("PDU1")
+        .withReportingTeam("reportingTeam2")
+        .produce()
+
+      referral2.referralReportingLocationEntity = referralReportingLocation2
+
       val statusHistory2 = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
         .produce(referral2, awaitingAssessmentStatusDescription)
 
-      testDataGenerator.createReferralWithStatusHistory(referral2, statusHistory2)
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral2, statusHistory2, referralReportingLocation2)
 
       val referral3 = ReferralEntityFactory()
         .withPersonName("Jane Adams")
@@ -99,7 +114,14 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
         .produce(referral3, awaitingAssessmentStatusDescription)
-      testDataGenerator.createReferralWithStatusHistory(referral3, statusHistory3)
+      val referralReportingLocation3 = ReferralReportingLocationFactory(referral3)
+        .withPduName("PDU2")
+        .withReportingTeam("reportingTeam1")
+        .produce()
+
+      referral3.referralReportingLocationEntity = referralReportingLocation3
+
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral3, statusHistory3, referralReportingLocation3)
 
       val referral4 = ReferralEntityFactory()
         .withPersonName("Pete Grims")
@@ -112,7 +134,14 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
         .produce(referral4, awaitingAssessmentStatusDescription)
-      testDataGenerator.createReferralWithStatusHistory(referral4, statusHistory4)
+      val referralReportingLocation4 = ReferralReportingLocationFactory(referral4)
+        .withPduName("PDU1")
+        .withReportingTeam("reportingTeam1")
+        .produce()
+
+      referral4.referralReportingLocationEntity = referralReportingLocation4
+
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral4, statusHistory4, referralReportingLocation4)
 
       val referral5 = ReferralEntityFactory()
         .withPersonName("James Hayden")
@@ -125,7 +154,14 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.parse("2025-07-10T00:00:00"))
         .produce(referral5, awaitingAssessmentStatusDescription)
-      testDataGenerator.createReferralWithStatusHistory(referral5, statusHistory5)
+      val referralReportingLocation5 = ReferralReportingLocationFactory(referral5)
+        .withPduName("PDU3")
+        .withReportingTeam("reportingTeam1")
+        .produce()
+
+      referral5.referralReportingLocationEntity = referralReportingLocation5
+
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral5, statusHistory5, referralReportingLocation5)
 
       val referral6 = ReferralEntityFactory()
         .withPersonName("Andrew Crosforth")
@@ -138,6 +174,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
         .produce(referral6, awaitingAssessmentStatusDescription)
+
       testDataGenerator.createReferralWithStatusHistory(referral6, statusHistory6)
 
       val referral7 = ReferralEntityFactory()
@@ -151,7 +188,14 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
         .produce(referral7, programmeCompleteStatusDescription)
-      testDataGenerator.createReferralWithStatusHistory(referral7, statusHistory7)
+      val referralReportingLocation7 = ReferralReportingLocationFactory(referral7)
+        .withPduName("PDU2")
+        .withReportingTeam("reportingTeam2")
+        .produce()
+
+      referral7.referralReportingLocationEntity = referralReportingLocation7
+
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral7, statusHistory7, referralReportingLocation7)
     }
 
     @Test
@@ -372,7 +416,9 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(referralCaseListItems.map { it.crn })
         .containsExactlyInAnyOrder("X7182552", "CRN-999999", "CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555")
 
-      assertThat(referralCaseListItems)
+      val referralsWithUnknownReportingLocation = referralCaseListItems.filter { it.crn == "CRN-555555" }
+
+      assertThat(referralsWithUnknownReportingLocation)
         .allSatisfy { item ->
           assertThat(item.reportingTeam).isEqualTo("UNKNOWN_REPORTING_TEAM")
           assertThat(item.pdu).isEqualTo("UNKNOWN_PDU_NAME")
@@ -383,7 +429,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     @DisplayName("Get Case List Filter Data")
     inner class GetCaseListFilterData {
       @Test
-      fun `getCaseListFilterData should return status filters for OPEN cases`() {
+      fun `getCaseListFilterData should return status and location filters for OPEN cases`() {
         // When
         val response = performRequestAndExpectOk(
           HttpMethod.GET,
@@ -394,16 +440,22 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         // Then
         assertThat(response).isNotNull
         assertThat(response).hasFieldOrProperty("statusFilterValues")
+        assertThat(response).hasFieldOrProperty("locationFilterValues")
         assertThat(response).hasFieldOrProperty("otherReferralsCount")
         assertThat(response.otherReferralsCount).isEqualTo(1)
-        val (statusFilters) = response
+        val (statusFilters, locationFilters) = response
 
         assertThat(statusFilters.open).hasSize(10)
         assertThat(statusFilters.closed).hasSize(2)
+        assertThat(locationFilters).hasSize(3)
+        assertThat(locationFilters.find { it.pduName == "PDU1" }?.reportingTeams?.containsAll(mutableListOf("reportingTeam1", "reportingTeam2")))
+        // Check duplicate has been removed
+        assertThat(locationFilters.find { it.pduName == "PDU1" }?.reportingTeams).hasSize(2)
+        assertThat(locationFilters.find { it.pduName == "PDU2" }?.reportingTeams?.containsAll(mutableListOf("reportingTeam1", "reportingTeam2")))
       }
 
       @Test
-      fun `getCaseListFilterData should return status filters for CLOSED cases`() {
+      fun `getCaseListFilterData should return status and locations filters for CLOSED cases`() {
         // When
         val response = performRequestAndExpectOk(
           HttpMethod.GET,
@@ -414,12 +466,18 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         // Then
         assertThat(response).isNotNull
         assertThat(response).hasFieldOrProperty("statusFilterValues")
+        assertThat(response).hasFieldOrProperty("locationFilterValues")
         assertThat(response).hasFieldOrProperty("otherReferralsCount")
         assertThat(response.otherReferralsCount).isEqualTo(6)
-        val (statusFilters) = response
+        val (statusFilters, locationFilters) = response
 
         assertThat(statusFilters.open).hasSize(10)
         assertThat(statusFilters.closed).hasSize(2)
+        assertThat(locationFilters).hasSize(3)
+        assertThat(locationFilters.find { it.pduName == "PDU1" }?.reportingTeams?.containsAll(mutableListOf("reportingTeam1", "reportingTeam2")))
+        // Check duplicate has been removed
+        assertThat(locationFilters.find { it.pduName == "PDU1" }?.reportingTeams).hasSize(2)
+        assertThat(locationFilters.find { it.pduName == "PDU2" }?.reportingTeams?.containsAll(mutableListOf("reportingTeam1", "reportingTeam2")))
       }
     }
   }

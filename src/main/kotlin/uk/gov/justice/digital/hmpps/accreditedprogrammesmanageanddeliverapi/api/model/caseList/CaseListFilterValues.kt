@@ -13,6 +13,13 @@ data class CaseListFilterValues(
 
   @Schema(
     required = true,
+    description = "Contains pdu's with a list of their reporting teams",
+  )
+  @get:JsonProperty("locationFilters", required = true)
+  val locationFilterValues: List<LocationFilterValues>,
+
+  @Schema(
+    required = true,
     description = "A count of the referrals for the opposite caselist tab you are in",
   )
   @get:JsonProperty("otherReferralsCount", required = true)
@@ -34,4 +41,26 @@ data class StatusFilterValues(
   )
   @get:JsonProperty("closed", required = true)
   val closed: List<String>,
+)
+
+data class LocationFilterValues(
+  @Schema(
+    required = true,
+    description = "The name of a pdu",
+    examples = ["London"],
+  )
+  @get:JsonProperty("pduName", required = true)
+  val pduName: String,
+  @Schema(
+    required = true,
+    description = "List of the reporting teams for a specific pdu",
+    examples = ["Team 1", "Team 2"],
+  )
+  @get:JsonProperty("reportingTeams", required = true)
+  val reportingTeams: List<String>,
+)
+
+data class PduReportingLocation(
+  val pduName: String,
+  val reportingTeam: String,
 )
