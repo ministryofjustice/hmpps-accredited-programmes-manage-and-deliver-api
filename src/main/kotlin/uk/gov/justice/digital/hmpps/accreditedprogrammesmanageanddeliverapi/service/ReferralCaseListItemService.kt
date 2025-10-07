@@ -71,8 +71,13 @@ class ReferralCaseListItemService(
         LocationFilterValues(pduName = pduName, reportingTeams = reportingTeams.map { it.reportingTeam }.distinct())
       }
 
+    // For this instance of displaying the status' on the front end, the description of "Breach (non-attendance)" needs to be changed.
+    val openDescriptions = open.map {
+      if (it.description == "Breach (non-attendance)") "Breach" else it.description
+    }
+
     val statusFilterValues = StatusFilterValues(
-      open = open.map { it.description },
+      open = openDescriptions,
       closed = closed.map { it.description },
     )
 
