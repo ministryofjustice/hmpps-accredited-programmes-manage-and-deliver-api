@@ -91,7 +91,7 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/caselist/filters/", produces = [MediaType.APPLICATION_JSON_VALUE])
+  @GetMapping("/bff/caselist/filters", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getCaseListFilterData(): ResponseEntity<CaseListFilterValues> = ResponseEntity.ok().body(referralCaseListItemService.getCaseListFilterData())
 }
 
