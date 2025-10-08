@@ -33,16 +33,21 @@ class ReferralReportingLocationRepositoryIntegrationTest : IntegrationTestBase()
   @Transactional
   fun `retrieve reporting locations for a referral`() {
     val referralEntity = ReferralEntityFactory().produce()
+
     val referralReportingLocationEntity = ReferralReportingLocationFactory()
       .withPduName("PDU_1")
+      .withRegionName("REGION_1")
       .withReportingTeam("REPORTING_TEAM_1")
-      .withReferral(referralEntity).produce()
+      .withReferral(referralEntity)
+      .produce()
+
     val statusHistory = ReferralStatusHistoryEntityFactory()
       .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
       .produce(
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
+
     testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
     testDataGenerator.createReferralWithReportingLocation(referralReportingLocationEntity)
 
@@ -50,6 +55,7 @@ class ReferralReportingLocationRepositoryIntegrationTest : IntegrationTestBase()
 
     assertThat(savedEntity).isNotNull
     assertThat(savedEntity.pduName).isEqualTo("PDU_1")
+    assertThat(savedEntity.regionName).isEqualTo("REGION_1")
     assertThat(savedEntity.reportingTeam).isEqualTo("REPORTING_TEAM_1")
   }
 }

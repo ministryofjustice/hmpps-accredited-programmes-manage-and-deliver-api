@@ -33,6 +33,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.util.UUID
@@ -45,6 +46,9 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
+
+  @Autowired
+  private lateinit var reportingLocationRepository: ReferralReportingLocationRepository
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
@@ -359,9 +363,16 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
   inner class CreateReferral {
 
     @Test
-    fun `createReferral should create a Referral, its Status History`() {
+    fun `createReferral should create a Referral, its Status History, and Reporting Location`() {
       //    Given
       oasysApiStubs.stubSuccessfulPniResponse("CRN-12345")
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory()
+          .withProbationDeliveryUnit(CodeDescription("PDU001", "Primary PDU"))
+          .withRegion(CodeDescription("REGION-FOR-TEST", "THE REGION DESCRIPTION"))
+          .withTeam(CodeDescription("TEAM-CODE", "The test reporting team"))
+          .produce(),
+      )
 
       //    When
       val referral = referralService.createReferral(
@@ -382,6 +393,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       val referralFromRepo =
         referralRepository.findByCrn("CRN-12345").firstOrNull() ?: throw NotFoundException("Referral with CRN-12345")
 
+      val reportingLocation = reportingLocationRepository.findByReferralId(referral.id)
+
       assertThat(referralFromRepo.id).isEqualTo(referral.id)
       assertThat(referralFromRepo.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(referralFromRepo.interventionType).isEqualTo(InterventionType.TOOLKITS)
@@ -389,6 +402,11 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(referralFromRepo.setting).isEqualTo(SettingType.COMMUNITY)
       assertThat(referralFromRepo.statusHistories).hasSize(1)
       assertThat(referralFromRepo.statusHistories.firstOrNull()?.referralStatusDescription?.description).isEqualTo("Awaiting assessment")
+
+      assertThat(reportingLocation).isNotNull()
+      assertThat(reportingLocation!!.regionName).isEqualTo("THE REGION DESCRIPTION")
+      assertThat(reportingLocation!!.pduName).isEqualTo("Primary PDU")
+      assertThat(reportingLocation!!.reportingTeam).isEqualTo("The test reporting team")
     }
 
     @Test

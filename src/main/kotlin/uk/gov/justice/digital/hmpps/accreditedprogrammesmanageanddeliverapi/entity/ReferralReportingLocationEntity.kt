@@ -26,6 +26,11 @@ open class ReferralReportingLocationEntity(
   open var referral: ReferralEntity,
 
   @NotNull
+  @ColumnDefault("UNKNOWN_REGION_NAME")
+  @Column(name = "region_name")
+  open var regionName: String,
+
+  @NotNull
   @ColumnDefault("UNKNOWN_PDU_NAME")
   @Column(name = "pdu_name")
   open var pduName: String,
