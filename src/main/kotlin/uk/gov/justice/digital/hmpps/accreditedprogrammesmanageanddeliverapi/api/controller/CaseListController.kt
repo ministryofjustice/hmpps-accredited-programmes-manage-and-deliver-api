@@ -38,7 +38,7 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
       ApiResponse(
         responseCode = "200",
         description = "Paged list of all open/closed referrals for a PDU",
-        content = [Content(schema = Schema(implementation = ReferralCaseListItem::class))],
+        content = [Content(schema = Schema(implementation = CaseListReferrals::class))],
       ),
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
