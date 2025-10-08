@@ -60,12 +60,22 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
       value = "status",
       required = false,
     ) status: String?,
+    @Parameter(description = "Filter by the pdu of the referral") @RequestParam(
+      value = "pdu",
+      required = false,
+    ) pdu: String?,
+    @Parameter(description = "Filter by the reporting team of the referral") @RequestParam(
+      value = "reportingTeam",
+      required = false,
+    ) reportingTeams: List<String>?,
   ): Page<ReferralCaseListItem> = referralCaseListItemService.getReferralCaseListItemServiceByCriteria(
     pageable = pageable,
     openOrClosed = openOrClosed,
     crnOrPersonName = crnOrPersonName,
     cohort = cohort?.name,
     status = if (status.isNullOrEmpty()) null else URLDecoder.decode(status, "UTF-8"),
+    pdu = pdu,
+    reportingTeams = reportingTeams,
   )
 
   @Operation(
