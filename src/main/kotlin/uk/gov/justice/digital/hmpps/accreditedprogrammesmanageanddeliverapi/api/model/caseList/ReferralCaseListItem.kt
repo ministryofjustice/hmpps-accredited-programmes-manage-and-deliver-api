@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList
 
+import org.springframework.data.domain.Page
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
 import java.util.UUID
@@ -24,4 +25,9 @@ fun ReferralCaseListItemViewEntity.toApi() = ReferralCaseListItem(
   hasLdc = hasLdc,
   pdu = pduName,
   reportingTeam = reportingTeam,
+)
+
+data class CaseListReferrals(
+  val pagedReferrals: Page<ReferralCaseListItem>,
+  val otherTabTotal: Int,
 )

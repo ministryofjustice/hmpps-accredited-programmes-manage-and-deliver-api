@@ -7,10 +7,11 @@ import org.springframework.security.authentication.AuthenticationCredentialsNotF
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller.OpenOrClosed
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListReferrals
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.LocationFilterValues
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.StatusFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.toApi
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getReferralCaseListItemSpecification
@@ -33,13 +34,46 @@ class ReferralCaseListItemService(
     status: String?,
     pdu: String?,
     reportingTeams: List<String>?,
-  ): Page<ReferralCaseListItem> {
+  ): CaseListReferrals {
+    val referralsToReturn = getReferralCaseList(
+      pageable = pageable,
+      openOrClosed = openOrClosed,
+      crnOrPersonName = crnOrPersonName,
+      cohort = cohort,
+      status = status,
+      pdu = pdu,
+      reportingTeams = reportingTeams,
+    ).map { it.toApi() }
+
+    val otherTabCount = getReferralCaseList(
+      pageable = pageable,
+      openOrClosed = if (openOrClosed == OpenOrClosed.OPEN) OpenOrClosed.CLOSED else OpenOrClosed.OPEN,
+      crnOrPersonName = crnOrPersonName,
+      cohort = cohort,
+      status = status,
+      pdu = pdu,
+      reportingTeams = reportingTeams,
+    ).totalElements
+
+    return CaseListReferrals(referralsToReturn, otherTabCount.toInt())
+  }
+
+  private fun getReferralCaseList(
+    pageable: Pageable,
+    openOrClosed: OpenOrClosed,
+    crnOrPersonName: String?,
+    cohort: String?,
+    status: String?,
+    pdu: String?,
+    reportingTeams: List<String>?,
+  ): Page<ReferralCaseListItemViewEntity> {
     val username = authenticationHolder.username
       ?: throw AuthenticationCredentialsNotFoundException("No authenticated user found")
 
     val possibleStatuses = referralStatusService.getOpenOrClosedStatusesDescriptions(openOrClosed)
 
-    val baseSpec = getReferralCaseListItemSpecification(possibleStatuses, crnOrPersonName, cohort, status, pdu, reportingTeams)
+    val baseSpec =
+      getReferralCaseListItemSpecification(possibleStatuses, crnOrPersonName, cohort, status, pdu, reportingTeams)
     val crns = referralCaseListItemRepository.findAllCrns(baseSpec)
 
     if (crns.isEmpty()) {
@@ -53,18 +87,14 @@ class ReferralCaseListItemService(
     }
 
     val restrictedSpec = withAllowedCrns(baseSpec, allowedCrns)
-    val pagedEntities = referralCaseListItemRepository.findAll(restrictedSpec, pageable)
-
-    return pagedEntities.map { it.toApi() }
+    return referralCaseListItemRepository.findAll(restrictedSpec, pageable)
   }
 
-  fun getCaseListFilterData(openOrClosed: OpenOrClosed): CaseListFilterValues {
+  fun getCaseListFilterData(): CaseListFilterValues {
     val allStatuses = referralStatusService.getAllStatuses()
 
     val (closed, open) = allStatuses.partition { it.isClosed }
 
-    val statusesToCount = if (openOrClosed == OpenOrClosed.OPEN) closed else open
-    val otherReferralsCount = referralCaseListItemRepository.countAllByStatusIn(statusesToCount.map { it.description })
     val referralReportingLocations = referralReportingLocationRepository.getPdusAndReportingTeams()
     val pdusWithReportingTeams = referralReportingLocations.groupBy { it.pduName }
       .map { (pduName, reportingTeams) ->
@@ -84,7 +114,6 @@ class ReferralCaseListItemService(
     return CaseListFilterValues(
       statusFilterValues = statusFilterValues,
       locationFilterValues = pdusWithReportingTeams,
-      otherReferralsCount = otherReferralsCount,
     )
   }
 }
