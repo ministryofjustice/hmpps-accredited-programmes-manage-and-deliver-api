@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.MediaType
@@ -19,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListReferrals
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralCaseListItemService
 import java.net.URLDecoder
 
@@ -38,7 +37,7 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
       ApiResponse(
         responseCode = "200",
         description = "Paged list of all open/closed referrals for a PDU",
-        content = [Content(schema = Schema(implementation = ReferralCaseListItem::class))],
+        content = [Content(schema = Schema(implementation = CaseListReferrals::class))],
       ),
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
@@ -68,7 +67,7 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
       value = "reportingTeam",
       required = false,
     ) reportingTeams: List<String>?,
-  ): Page<ReferralCaseListItem> = referralCaseListItemService.getReferralCaseListItemServiceByCriteria(
+  ): CaseListReferrals = referralCaseListItemService.getReferralCaseListItemServiceByCriteria(
     pageable = pageable,
     openOrClosed = openOrClosed,
     crnOrPersonName = crnOrPersonName,
@@ -91,13 +90,8 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/caselist/filters/{openOrClosed}", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun getCaseListFilterData(
-    @PathVariable(
-      name = "openOrClosed",
-      required = true,
-    ) openOrClosed: OpenOrClosed,
-  ): ResponseEntity<CaseListFilterValues> = ResponseEntity.ok().body(referralCaseListItemService.getCaseListFilterData(openOrClosed))
+  @GetMapping("/bff/caselist/filters", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getCaseListFilterData(): ResponseEntity<CaseListFilterValues> = ResponseEntity.ok().body(referralCaseListItemService.getCaseListFilterData())
 }
 
 enum class OpenOrClosed {

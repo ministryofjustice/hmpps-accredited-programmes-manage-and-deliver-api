@@ -18,3 +18,9 @@ data class RestResponsePage<T>(
   @JsonProperty("sort") val sort: Map<String, Any>,
   @JsonProperty("empty") val empty: Boolean,
 )
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class PagedCaseListReferrals<T>(
+  val pagedReferrals: RestResponsePage<T>,
+  val otherTabTotal: Int,
+)

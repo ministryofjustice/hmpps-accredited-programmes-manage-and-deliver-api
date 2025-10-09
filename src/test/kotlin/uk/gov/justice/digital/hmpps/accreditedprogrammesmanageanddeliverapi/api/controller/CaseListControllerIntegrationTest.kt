@@ -14,7 +14,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.RestResponsePage
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedCaseListReferrals
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
@@ -203,12 +203,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/pages/caselist/open",
-        object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
-      val referralCaseListItems = response.content
+      val referralCaseListItems = response.pagedReferrals.content
 
       assertThat(response).isNotNull
-      assertThat(response.totalElements).isEqualTo(6)
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(6)
       assertThat(referralCaseListItems.map { it.crn })
         .containsExactlyInAnyOrder("X7182552", "CRN-999999", "CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555")
 
@@ -219,6 +219,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
       }
+      assertThat(response.otherTabTotal).isEqualTo(1)
     }
 
     @Test
@@ -226,12 +227,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/pages/caselist/closed",
-        object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
-      val referralCaseListItems = response.content
+      val referralCaseListItems = response.pagedReferrals.content
 
       assertThat(response).isNotNull
-      assertThat(response.totalElements).isEqualTo(1)
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
       assertThat(referralCaseListItems.map { it.crn })
         .containsExactlyInAnyOrder("CRN-111111")
 
@@ -242,6 +243,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
       }
+      assertThat(response.otherTabTotal).isEqualTo(6)
     }
 
     @Test
@@ -249,19 +251,20 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/pages/caselist/open",
-        object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
-      val referralCaseListItems = response.content
+      val pagedReferralCaseListItems = response.pagedReferrals.content
 
       assertThat(response).isNotNull
-      assertThat(response.totalElements).isEqualTo(6)
-      assertThat(referralCaseListItems.map { it.crn })
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(6)
+      assertThat(pagedReferralCaseListItems.map { it.crn })
         .containsExactlyInAnyOrder("X7182552", "CRN-999999", "CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555")
 
-      assertThat(referralCaseListItems)
+      assertThat(pagedReferralCaseListItems)
         .allSatisfy { item ->
           assertThat(item.hasLdc).isFalse
         }
+      assertThat(response.otherTabTotal).isEqualTo(1)
     }
 
     @Test
@@ -295,12 +298,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/pages/caselist/open?crnOrPersonName=CRN-888888",
-        object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
-      val referralCaseListItems = response.content
+      val referralCaseListItems = response.pagedReferrals.content
 
       assertThat(response).isNotNull
-      assertThat(response.totalElements).isEqualTo(1)
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
       assertThat(referralCaseListItems.first().crn).isEqualTo("CRN-888888")
 
       assertThat(referralCaseListItems)
@@ -314,6 +317,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
       }
+      assertThat(response.otherTabTotal).isEqualTo(0)
     }
 
     @Test
@@ -321,12 +325,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/pages/caselist/open?crnOrPersonName=Alex River",
-        object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
-      val referralCaseListItems = response.content
+      val referralCaseListItems = response.pagedReferrals.content
 
       assertThat(response).isNotNull
-      assertThat(response.totalElements).isEqualTo(1)
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
       assertThat(referralCaseListItems.first().personName).isEqualTo("Alex River")
 
       referralCaseListItems.forEach { item ->
@@ -336,6 +340,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
       }
+      assertThat(response.otherTabTotal).isEqualTo(0)
     }
 
     @Test
@@ -343,18 +348,19 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/pages/caselist/open?crnOrPersonName=Alex River&cohort=SEXUAL_OFFENCE",
-        object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
-      val referralCaseListItems = response.content
+      val referralCaseListItems = response.pagedReferrals.content
 
       assertThat(response).isNotNull
-      assertThat(response.totalElements).isEqualTo(1)
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
 
       val referral = referralCaseListItems[0]
       assertThat(referral.personName).isEqualTo("Alex River")
       assertThat(referral.crn).isEqualTo("CRN-999999")
       assertThat(referral.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(referral.referralStatus).isEqualTo("Awaiting assessment")
+      assertThat(response.otherTabTotal).isEqualTo(0)
     }
 
     @Test
@@ -362,12 +368,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/pages/caselist/open?cohort=GENERAL_OFFENCE",
-        object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
-      val referralCaseListItems = response.content
+      val referralCaseListItems = response.pagedReferrals.content
 
       assertThat(response).isNotNull
-      assertThat(response.totalElements).isEqualTo(5)
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(5)
 
       assertThat(referralCaseListItems)
         .allSatisfy { item ->
@@ -380,6 +386,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("referralStatus")
         assertThat(item).hasFieldOrProperty("cohort")
       }
+      assertThat(response.otherTabTotal).isEqualTo(1)
     }
 
     @Test
@@ -387,12 +394,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/pages/caselist/open?pdu=PDU1",
-        object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
-      val referralCaseListItems = response.content
+      val referralCaseListItems = response.pagedReferrals.content
 
       assertThat(response).isNotNull
-      assertThat(response.totalElements).isEqualTo(3)
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(3)
 
       assertThat(referralCaseListItems)
         .allSatisfy { item ->
@@ -405,6 +412,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("referralStatus")
         assertThat(item).hasFieldOrProperty("pdu")
       }
+      assertThat(response.otherTabTotal).isEqualTo(0)
     }
 
     @Test
@@ -412,12 +420,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/pages/caselist/open?pdu=PDU1&reportingTeam=reportingTeam1",
-        object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
-      val referralCaseListItems = response.content
+      val referralCaseListItems = response.pagedReferrals.content
 
       assertThat(response).isNotNull
-      assertThat(response.totalElements).isEqualTo(2)
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(2)
 
       assertThat(referralCaseListItems)
         .allSatisfy { item ->
@@ -431,6 +439,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("pdu")
         assertThat(item).hasFieldOrProperty("reportingTeam")
       }
+      assertThat(response.otherTabTotal).isEqualTo(0)
     }
 
     @Test
@@ -438,12 +447,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/pages/caselist/open?pdu=PDU1&reportingTeam=reportingTeam1&reportingTeam=reportingTeam2",
-        object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
-      val referralCaseListItems = response.content
+      val referralCaseListItems = response.pagedReferrals.content
 
       assertThat(response).isNotNull
-      assertThat(response.totalElements).isEqualTo(3)
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(3)
 
       assertThat(referralCaseListItems)
         .allSatisfy { item ->
@@ -457,6 +466,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("pdu")
         assertThat(item).hasFieldOrProperty("reportingTeam")
       }
+      assertThat(response.otherTabTotal).isEqualTo(0)
     }
 
     @Test
@@ -465,9 +475,9 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/pages/caselist/open?status=Awaiting%20assessment",
-        object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
-      val referralCaseListItems = response.content
+      val referralCaseListItems = response.pagedReferrals.content
 
       // Then
       assertThat(response).isNotNull
@@ -477,6 +487,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .allSatisfy { item ->
           assertThat(item.referralStatus).isEqualTo("Awaiting assessment")
         }
+      assertThat(response.otherTabTotal).isEqualTo(0)
     }
 
     @Test
@@ -484,22 +495,23 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/pages/caselist/open",
-        object : ParameterizedTypeReference<RestResponsePage<ReferralCaseListItem>>() {},
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
-      val referralCaseListItems = response.content
+      val referralCaseListItems = response.pagedReferrals
 
       assertThat(response).isNotNull
-      assertThat(response.totalElements).isEqualTo(6)
-      assertThat(referralCaseListItems.map { it.crn })
+      assertThat(referralCaseListItems.totalElements).isEqualTo(6)
+      assertThat(referralCaseListItems.content.map { it.crn })
         .containsExactlyInAnyOrder("X7182552", "CRN-999999", "CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555")
 
-      val referralsWithUnknownReportingLocation = referralCaseListItems.filter { it.crn == "CRN-555555" }
+      val referralsWithUnknownReportingLocation = referralCaseListItems.content.filter { it.crn == "CRN-555555" }
 
       assertThat(referralsWithUnknownReportingLocation)
         .allSatisfy { item ->
           assertThat(item.reportingTeam).isEqualTo("UNKNOWN_REPORTING_TEAM")
           assertThat(item.pdu).isEqualTo("UNKNOWN_PDU_NAME")
         }
+      assertThat(response.otherTabTotal).isEqualTo(1)
     }
 
     @Nested
@@ -510,7 +522,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         // When
         val response = performRequestAndExpectOk(
           HttpMethod.GET,
-          "/bff/caselist/filters/OPEN",
+          "/bff/caselist/filters",
           object : ParameterizedTypeReference<CaseListFilterValues>() {},
         )
 
@@ -518,8 +530,6 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(response).isNotNull
         assertThat(response).hasFieldOrProperty("statusFilterValues")
         assertThat(response).hasFieldOrProperty("locationFilterValues")
-        assertThat(response).hasFieldOrProperty("otherReferralsCount")
-        assertThat(response.otherReferralsCount).isEqualTo(1)
         val (statusFilters, locationFilters) = response
 
         assertThat(statusFilters.open).hasSize(10)
@@ -536,7 +546,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         // When
         val response = performRequestAndExpectOk(
           HttpMethod.GET,
-          "/bff/caselist/filters/CLOSED",
+          "/bff/caselist/filters",
           object : ParameterizedTypeReference<CaseListFilterValues>() {},
         )
 
@@ -544,8 +554,6 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(response).isNotNull
         assertThat(response).hasFieldOrProperty("statusFilterValues")
         assertThat(response).hasFieldOrProperty("locationFilterValues")
-        assertThat(response).hasFieldOrProperty("otherReferralsCount")
-        assertThat(response.otherReferralsCount).isEqualTo(6)
         val (statusFilters, locationFilters) = response
 
         assertThat(statusFilters.open).hasSize(10)
