@@ -2,8 +2,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.com
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
-import org.springframework.data.domain.Page
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
 
 // This required to map our Page<> Concrete type so that jackson can deserialize when checking our api responses.
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -20,7 +18,6 @@ data class RestResponsePage<T>(
   @JsonProperty("sort") val sort: Map<String, Any>,
   @JsonProperty("empty") val empty: Boolean,
 )
-
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class PagedCaseListReferrals<T>(
