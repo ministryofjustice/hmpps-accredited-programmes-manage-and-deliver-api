@@ -123,6 +123,7 @@ class ReferralService(
         referral = referral,
         pduName = personalDetails.probationDeliveryUnit.description,
         reportingTeam = personalDetails.team.description,
+        regionName = personalDetails.region.description,
       )
       referralReportingLocationRepository.save(referralReportingLocation)
       referralEntity.referralReportingLocationEntity = referralReportingLocation
@@ -291,6 +292,7 @@ class ReferralService(
         referral = referral,
         pduName = personalDetails.probationDeliveryUnit.description,
         reportingTeam = personalDetails.team.description,
+        regionName = personalDetails.region.description,
       )
 
     val savedEntity = referralReportingLocationRepository.save(referralReportingLocation)
