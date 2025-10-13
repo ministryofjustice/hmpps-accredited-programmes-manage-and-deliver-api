@@ -285,8 +285,8 @@ class ReferralService(
     // If there is already a row in the db then update it otherwise create a new one
     val referralReportingLocation = referralReportingLocationRepository.findByReferralId(referral.id)
       ?.apply {
-        pduName = personalDetails.team.description
-        reportingTeam = personalDetails.probationDeliveryUnit.description
+        pduName = personalDetails.probationDeliveryUnit.description
+        reportingTeam = personalDetails.team.description
       }
       ?: ReferralReportingLocationEntity(
         referral = referral,
