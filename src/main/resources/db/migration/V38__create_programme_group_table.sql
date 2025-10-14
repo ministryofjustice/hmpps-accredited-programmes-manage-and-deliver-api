@@ -9,6 +9,8 @@ CREATE TABLE programme_group (
                          deleted_by_username TEXT
 );
 
+CREATE INDEX idx_programme_group_code ON programme_group (code);
+
 COMMENT ON TABLE programme_group IS 'contains information about a group';
 COMMENT ON COLUMN programme_group.id IS 'Unique identifier for a referral''s delivery location preferences';
 COMMENT ON COLUMN programme_group.code IS 'The code used to identify the group';
