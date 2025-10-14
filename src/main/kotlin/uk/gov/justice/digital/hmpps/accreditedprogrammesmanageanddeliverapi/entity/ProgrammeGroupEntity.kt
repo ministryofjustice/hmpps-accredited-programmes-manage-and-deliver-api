@@ -13,8 +13,8 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 @Entity
-@Table(name = "groups")
-class GroupsEntity(
+@Table(name = "programme_group")
+class ProgrammeGroupEntity(
   @Id
   @GeneratedValue
   @Column(name = "id")
@@ -38,7 +38,7 @@ class GroupsEntity(
   var updatedAt: LocalDateTime? = null,
 
   @Column(name = "updated_by_username")
-  var udpatedByUsername: String? = null,
+  var updatedByUsername: String? = null,
 
   @Column(name = "deleted_at")
   var deletedAt: LocalDateTime? = null,

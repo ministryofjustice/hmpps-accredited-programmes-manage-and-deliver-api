@@ -7,17 +7,17 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.GroupsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupsRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 
-class GroupsServiceTest : IntegrationTestBase() {
-
-  @Autowired
-  private lateinit var groupsService: GroupsService
+class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
   @Autowired
-  private lateinit var groupsRepository: GroupsRepository
+  private lateinit var programmeGroupService: ProgrammeGroupService
+
+  @Autowired
+  private lateinit var programmeGroupRepository: ProgrammeGroupRepository
 
   @BeforeEach
   override fun beforeEach() {
@@ -32,8 +32,8 @@ class GroupsServiceTest : IntegrationTestBase() {
   @Test
   fun `createGroup can successfully create a new group`() {
     val groupCode = "AAA111"
-    groupsService.createGroup(groupCode)
-    val createdGroup = groupsRepository.findByCode(groupCode)
+    programmeGroupService.createGroup(groupCode)
+    val createdGroup = programmeGroupRepository.findByCode(groupCode)
     assertThat { createdGroup }.isNotNull
     assertThat(createdGroup?.code).isEqualTo(groupCode)
   }
@@ -41,9 +41,9 @@ class GroupsServiceTest : IntegrationTestBase() {
   @Test
   fun `createGroup throws an error if a group already exists`() {
     val groupCode = "AAA111"
-    val existingGroup = GroupsFactory().withCode(groupCode).produce()
+    val existingGroup = ProgrammeGroupFactory().withCode(groupCode).produce()
     testDataGenerator.createGroup(existingGroup)
 
-    assertThrows<ConflictException> { groupsService.createGroup(groupCode) }
+    assertThrows<ConflictException> { programmeGroupService.createGroup(groupCode) }
   }
 }

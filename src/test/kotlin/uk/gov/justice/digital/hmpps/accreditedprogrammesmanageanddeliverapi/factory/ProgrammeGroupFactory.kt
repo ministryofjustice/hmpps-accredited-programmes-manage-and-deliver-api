@@ -1,10 +1,10 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
 
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.GroupsEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import java.time.LocalDateTime
 import java.util.UUID
 
-class GroupsFactory {
+class ProgrammeGroupFactory {
   private var id: UUID? = null
   private var code: String = "AAA111"
   private var createdAt: LocalDateTime = LocalDateTime.now()
@@ -22,13 +22,13 @@ class GroupsFactory {
   fun withDeletedAt(deletedAt: LocalDateTime) = apply { this.deletedAt = deletedAt }
   fun withDeletedByUsername(deletedByUsername: String) = apply { this.deletedByUsername = deletedByUsername }
 
-  fun produce(): GroupsEntity = GroupsEntity(
+  fun produce(): ProgrammeGroupEntity = ProgrammeGroupEntity(
     id = this.id,
     code = this.code,
     createdAt = this.createdAt,
     createdByUsername = this.createdByUsername,
     updatedAt = this.updatedAt,
-    udpatedByUsername = this.updatedByUsername,
+    updatedByUsername = this.updatedByUsername,
     deletedAt = this.deletedAt,
     deletedByByUsername = this.deletedByUsername,
   )
