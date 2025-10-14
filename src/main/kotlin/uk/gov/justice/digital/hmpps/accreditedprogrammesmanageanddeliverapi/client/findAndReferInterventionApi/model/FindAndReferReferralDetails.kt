@@ -10,6 +10,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.toLocalDate
 import java.util.UUID
 
 @Schema(description = "Full details of the Referral")
@@ -60,5 +61,6 @@ fun FindAndReferReferralDetails.toReferralEntity(
   sourcedFrom = sourcedFromReferenceType,
   eventId = sourcedFromReference,
   eventNumber = eventNumber,
-
+  sex = personalDetails?.sex?.description,
+  dateOfBirth = personalDetails?.dateOfBirth?.toLocalDate(),
 )

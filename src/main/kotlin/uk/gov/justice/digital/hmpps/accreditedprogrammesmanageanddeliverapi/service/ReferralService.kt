@@ -65,7 +65,7 @@ class ReferralService(
     }
     val referralLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.hasLdc
     val personalDetails = serviceUserService.getPersonalDetailsByIdentifier(referral.crn)
-    updateReferralReportingLocation(referral, personalDetails)
+    updateReferralDetails(referral, personalDetails)
 
     return ReferralDetails.toModel(referral, personalDetails, referralLdc)
   }
@@ -281,7 +281,7 @@ class ReferralService(
 
   fun getStatusHistory(referralId: UUID): List<ReferralStatusHistory> = referralStatusHistoryRepository.findAllByReferralId(referralId).sortedBy { it.createdAt }.map { it.toApi() }
 
-  fun updateReferralReportingLocation(referral: ReferralEntity, personalDetails: NDeliusPersonalDetails) {
+  fun updateReferralDetails(referral: ReferralEntity, personalDetails: NDeliusPersonalDetails) {
     // If there is already a row in the db then update it otherwise create a new one
     val referralReportingLocation = referralReportingLocationRepository.findByReferralId(referral.id)
       ?.apply {
@@ -296,9 +296,11 @@ class ReferralService(
       )
 
     val savedEntity = referralReportingLocationRepository.save(referralReportingLocation)
-    // Update our referral entity with name fetched from nDelius
+    // Update our referral entity with details fetched from nDelius
     referral.referralReportingLocationEntity = savedEntity
     referral.personName = personalDetails.name.getNameAsString()
+    referral.sex = personalDetails.sex.description
+    referral.dateOfBirth = personalDetails.dateOfBirth.toLocalDate()
     referralRepository.save(referral)
   }
 
