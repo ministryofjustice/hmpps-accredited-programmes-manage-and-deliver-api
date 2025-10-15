@@ -1,5 +1,4 @@
 ALTER TABLE referral
-    -- TODO Change these to sensible defaults
     ADD COLUMN sentence_end_date DATE NULL,
     ADD COLUMN sex               TEXT NULL,
     ADD COLUMN date_of_birth     DATE NULL;
@@ -32,7 +31,8 @@ SELECT r.id,
        COALESCE(lds.has_ldc, false)                           as has_ldc,
        -- Default values if there are no entries in the referral_reporting_location table for this referral yet
        COALESCE(rrl.pdu_name, 'UNKNOWN_PDU_NAME')             as pdu_name,
-       COALESCE(rrl.reporting_team, 'UNKNOWN_REPORTING_TEAM') as reporting_team
+       COALESCE(rrl.reporting_team, 'UNKNOWN_REPORTING_TEAM') as reporting_team,
+       COALESCE(rrl.region_name, 'UNKNOWN_REGION_NAME')       as region_name
 
 FROM referral r
          JOIN latest_status ls ON r.id = ls.referral_id AND ls.rn = 1
@@ -51,3 +51,4 @@ CREATE INDEX idx_referral_sentence_end_date ON referral_caselist_item_view (sent
 CREATE INDEX idx_referral_status ON referral_caselist_item_view (status);
 CREATE INDEX idx_referral_cohort ON referral_caselist_item_view (cohort);
 CREATE INDEX idx_referral_has_ldc ON referral_caselist_item_view (has_ldc);
+CREATE INDEX idx_referral_region_name ON referral_caselist_item_view (region_name);

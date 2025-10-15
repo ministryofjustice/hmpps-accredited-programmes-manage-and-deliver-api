@@ -34,6 +34,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -51,6 +52,7 @@ class ReferralService(
   private val referralLdcHistoryRepository: ReferralLdcHistoryRepository,
   private val ldcService: LdcService,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
+  private val sentenceService: SentenceService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -65,7 +67,12 @@ class ReferralService(
     }
     val referralLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.hasLdc
     val personalDetails = serviceUserService.getPersonalDetailsByIdentifier(referral.crn)
-    updateReferralDetails(referral, personalDetails)
+    val sentenceEndDate = sentenceService.getSentenceEndDate(
+      referral.crn,
+      referral.eventNumber,
+      referral.sourcedFrom,
+    )
+    updateReferralDetails(referral, personalDetails, sentenceEndDate)
 
     return ReferralDetails.toModel(referral, personalDetails, referralLdc)
   }
@@ -85,6 +92,11 @@ class ReferralService(
 
   fun createReferral(findAndReferReferralDetails: FindAndReferReferralDetails): ReferralEntity {
     val pniCalculation = getPni(findAndReferReferralDetails)
+    val sentenceEndDate = sentenceService.getSentenceEndDate(
+      findAndReferReferralDetails.personReference,
+      findAndReferReferralDetails.eventNumber,
+      findAndReferReferralDetails.sourcedFromReferenceType,
+    )
 
     val cohort =
       pniCalculation?.let { cohortService.determineOffenceCohort(it.toPniScore()) } ?: OffenceCohort.GENERAL_OFFENCE
@@ -98,6 +110,7 @@ class ReferralService(
       statusHistories = mutableListOf(),
       cohort = cohort,
       personalDetails = personalDetails,
+      sentenceEndDate = sentenceEndDate,
     )
 
     log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort")
@@ -281,7 +294,11 @@ class ReferralService(
 
   fun getStatusHistory(referralId: UUID): List<ReferralStatusHistory> = referralStatusHistoryRepository.findAllByReferralId(referralId).sortedBy { it.createdAt }.map { it.toApi() }
 
-  fun updateReferralDetails(referral: ReferralEntity, personalDetails: NDeliusPersonalDetails) {
+  fun updateReferralDetails(
+    referral: ReferralEntity,
+    personalDetails: NDeliusPersonalDetails,
+    sentenceEndDate: LocalDate?,
+  ) {
     // If there is already a row in the db then update it otherwise create a new one
     val referralReportingLocation = referralReportingLocationRepository.findByReferralId(referral.id)
       ?.apply {
@@ -301,6 +318,7 @@ class ReferralService(
     referral.personName = personalDetails.name.getNameAsString()
     referral.sex = personalDetails.sex.description
     referral.dateOfBirth = personalDetails.dateOfBirth.toLocalDate()
+    referral.sentenceEndDate = sentenceEndDate
     referralRepository.save(referral)
   }
 

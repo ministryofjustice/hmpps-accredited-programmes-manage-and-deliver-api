@@ -11,6 +11,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.toLocalDate
+import java.time.LocalDate
 import java.util.UUID
 
 @Schema(description = "Full details of the Referral")
@@ -50,6 +51,7 @@ fun FindAndReferReferralDetails.toReferralEntity(
   statusHistories: MutableList<ReferralStatusHistoryEntity>,
   cohort: OffenceCohort,
   personalDetails: NDeliusPersonalDetails?,
+  sentenceEndDate: LocalDate?,
 ) = ReferralEntity(
   crn = if (personReferenceType == PersonReferenceType.CRN) personReference else "UNKNOWN",
   interventionType = interventionType,
@@ -63,4 +65,5 @@ fun FindAndReferReferralDetails.toReferralEntity(
   eventNumber = eventNumber,
   sex = personalDetails?.sex?.description,
   dateOfBirth = personalDetails?.dateOfBirth?.toLocalDate(),
+  sentenceEndDate = sentenceEndDate,
 )

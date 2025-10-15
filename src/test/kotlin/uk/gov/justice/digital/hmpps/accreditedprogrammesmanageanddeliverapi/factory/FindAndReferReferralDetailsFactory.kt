@@ -25,11 +25,13 @@ class FindAndReferReferralDetailsFactory {
   fun withInterventionName(interventionName: String) = apply { this.interventionName = interventionName }
   fun withPersonReference(personReference: String) = apply { this.personReference = personReference }
   fun withPersonReferenceType(personReferenceType: PersonReferenceType) = apply { this.personReferenceType = personReferenceType }
+
   fun withSourcedFromReferenceType(value: ReferralEntitySourcedFrom) = apply { this.sourcedFromReferenceType = value }
   fun withSourcedFromReference(value: String) = apply { this.sourcedFromReference = value }
 
   fun withReferralId(referralId: UUID) = apply { this.referralId = referralId }
   fun withSetting(setting: SettingType) = apply { this.setting = setting }
+  fun withEventNumber(eventNumber: Int) = apply { this.eventNumber = eventNumber }
 
   fun produce() = FindAndReferReferralDetails(
     interventionType = this.interventionType,

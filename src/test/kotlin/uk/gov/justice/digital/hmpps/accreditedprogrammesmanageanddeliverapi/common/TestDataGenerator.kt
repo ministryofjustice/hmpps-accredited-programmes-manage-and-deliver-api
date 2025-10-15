@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.com
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
 import jakarta.transaction.Transactional
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
@@ -15,6 +16,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.util.UUID
 
 @Transactional
@@ -22,6 +25,9 @@ import java.util.UUID
 class TestDataGenerator {
   @PersistenceContext
   private lateinit var entityManager: EntityManager
+
+  @Autowired
+  private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
 
   @Deprecated("Use createReferralWithStatusHistory")
   fun createReferral(referralEntity: ReferralEntity) {
@@ -75,10 +81,18 @@ class TestDataGenerator {
 
   fun createReferralWithStatusHistory(
     referralEntity: ReferralEntity,
-    referralStatusHistoryEntity: ReferralStatusHistoryEntity,
+    referralStatusHistoryEntity: ReferralStatusHistoryEntity? = null,
   ) {
+    var statusHistory = referralStatusHistoryEntity
+    if (referralStatusHistoryEntity == null) {
+      statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+    }
+
     entityManager.persist(referralEntity)
-    entityManager.persist(referralStatusHistoryEntity)
+    entityManager.persist(statusHistory)
   }
 
   fun createGroupMembership(
@@ -91,7 +105,11 @@ class TestDataGenerator {
     entityManager.persist(referralReportingLocationEntity)
   }
 
-  fun createReferralWithReportingLocationAndStatusHistory(referralEntity: ReferralEntity, referralStatusHistoryEntity: ReferralStatusHistoryEntity, referralReportingLocationEntity: ReferralReportingLocationEntity) {
+  fun createReferralWithReportingLocationAndStatusHistory(
+    referralEntity: ReferralEntity,
+    referralStatusHistoryEntity: ReferralStatusHistoryEntity,
+    referralReportingLocationEntity: ReferralReportingLocationEntity,
+  ) {
     entityManager.persist(referralEntity)
     entityManager.persist(referralStatusHistoryEntity)
     entityManager.persist(referralReportingLocationEntity)
