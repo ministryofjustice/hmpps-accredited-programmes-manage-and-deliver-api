@@ -59,6 +59,9 @@ class ReferralServiceTest {
   @Mock
   private lateinit var referralReportingLocationRepository: ReferralReportingLocationRepository
 
+  @Mock
+  private lateinit var sentenceService: SentenceService
+
   @InjectMocks
   private lateinit var referralService: ReferralService
 
