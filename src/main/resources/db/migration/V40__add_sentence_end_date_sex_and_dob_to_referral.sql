@@ -23,8 +23,6 @@ SELECT r.id,
        r.crn,
        r.person_name,
        r.cohort,
-       r.sex,
-       r.date_of_birth,
        r.sentence_end_date,
        rsd.description_text                                   as status,
        -- Default to false if there are no entries in the referral_ldc_history_table
@@ -45,8 +43,6 @@ FROM referral r
 CREATE UNIQUE INDEX idx_referral_id ON referral_caselist_item_view (id);
 CREATE INDEX idx_referral_crn ON referral_caselist_item_view (crn);
 CREATE INDEX idx_referral_person_name ON referral_caselist_item_view (person_name);
-CREATE INDEX idx_referral_sex ON referral_caselist_item_view (sex);
-CREATE INDEX idx_referral_date_of_birth ON referral_caselist_item_view (date_of_birth);
 CREATE INDEX idx_referral_sentence_end_date ON referral_caselist_item_view (sentence_end_date);
 CREATE INDEX idx_referral_status ON referral_caselist_item_view (status);
 CREATE INDEX idx_referral_cohort ON referral_caselist_item_view (cohort);

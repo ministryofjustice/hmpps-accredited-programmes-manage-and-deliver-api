@@ -19,6 +19,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomDateOfBirth
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
@@ -36,6 +38,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.LocalDate
 import java.util.UUID
 
@@ -99,7 +102,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
   }
 
   @Nested
-  @DisplayName("attemptToFindManagerForReferral")
+  @DisplayName("AttemptToFindManagerForReferral")
   inner class AttemptToFindManagerForReferral {
     @Test
     fun `attemptToFindManagerForReferral should return manager when requirement endpoint returns 200`() {
@@ -364,7 +367,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
   }
 
   @Nested
-  @DisplayName("createReferral")
+  @DisplayName("CreateReferral")
   inner class CreateReferral {
 
     val referralDetails = FindAndReferReferralDetailsFactory()
@@ -616,6 +619,41 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
       assertThat(savedReferral.sex).isEqualTo("Male")
       assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2026-04-26"))
+    }
+  }
+
+  @Nested
+  @DisplayName("GetReferralDetails")
+  @WithMockAuthUser("TEST_USER")
+  inner class GetReferralDetails {
+    @Test
+    fun `retrieve referralDetails when referral exists and update referral values from nDelius and Oasys responses`() {
+      val referral = ReferralEntityFactory().produce()
+      val name = randomFullName()
+      val dateOfBirth = randomDateOfBirth()
+      testDataGenerator.createReferralWithStatusHistory(referral)
+      oasysApiStubs.stubSuccessfulPniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory()
+          .withName(name)
+          .withDateOfBirth(dateOfBirth)
+          .produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      val referralDetails = referralService.getReferralDetails(referral.id!!)!!
+
+      assertThat(referralDetails.id).isEqualTo(referral.id!!)
+      assertThat(referralDetails.crn).isEqualTo(referral.crn)
+      assertThat(referralDetails.personName).isEqualTo(name.getNameAsString())
+      assertThat(referralDetails.interventionName).isEqualTo(referral.interventionName)
+      assertThat(referralDetails.createdAt).isEqualTo(referral.createdAt.toLocalDate())
+      assertThat(referralDetails.dateOfBirth).isEqualTo(dateOfBirth)
     }
   }
 }
