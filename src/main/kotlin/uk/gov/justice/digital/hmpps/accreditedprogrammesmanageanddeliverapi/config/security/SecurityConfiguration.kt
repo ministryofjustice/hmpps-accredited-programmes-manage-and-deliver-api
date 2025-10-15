@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.con
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.scheduling.annotation.EnableAsync
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
@@ -10,6 +11,7 @@ import uk.gov.justice.hmpps.kotlin.auth.AuthAwareTokenConverter
 
 @Configuration
 @EnableMethodSecurity
+@EnableAsync
 class SecurityConfiguration {
 
   @Bean

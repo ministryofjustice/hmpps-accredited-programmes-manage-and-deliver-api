@@ -56,7 +56,7 @@ class ReferralService(
     private val log = LoggerFactory.getLogger(this::class.java)
   }
 
-  fun getReferralDetails(referralId: UUID): ReferralDetails? {
+  fun refreshPersonalDetailsForReferral(referralId: UUID): ReferralDetails? {
     val referral = referralRepository.findByIdOrNull(referralId) ?: return null
     // Ensure the current LDC status from Oasys is always returned from the API, updating the LDC status associated with the referral.
     val hasLdc = pniService.getPniCalculation(referral.crn).hasLdc()

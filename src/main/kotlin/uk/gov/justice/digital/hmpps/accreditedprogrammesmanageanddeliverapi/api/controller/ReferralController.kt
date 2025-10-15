@@ -84,7 +84,7 @@ class ReferralController(
   fun getReferralDetailsById(
     @Parameter(description = "The id (UUID) of a referral", required = true)
     @PathVariable("id") id: UUID,
-  ): ResponseEntity<ReferralDetails> = referralService.getReferralDetails(id)?.let {
+  ): ResponseEntity<ReferralDetails> = referralService.refreshPersonalDetailsForReferral(id)?.let {
     ResponseEntity.ok(it)
   } ?: throw NotFoundException("Referral with id $id not found")
 
