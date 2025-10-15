@@ -31,6 +31,6 @@ class ProgrammeGroupFactory {
     updatedAt = this.updatedAt,
     updatedByUsername = this.updatedByUsername,
     deletedAt = this.deletedAt,
-    deletedByByUsername = this.deletedByUsername,
+    deletedByUsername = this.deletedByUsername,
   )
 }

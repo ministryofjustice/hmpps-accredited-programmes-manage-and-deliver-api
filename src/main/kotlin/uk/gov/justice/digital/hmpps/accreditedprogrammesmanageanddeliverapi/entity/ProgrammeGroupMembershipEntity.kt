@@ -47,5 +47,5 @@ class ProgrammeGroupMembershipEntity(
   var deletedAt: LocalDateTime? = null,
 
   @Column(name = "deleted_by_username")
-  var deletedByByUsername: String? = null,
+  var deletedByUsername: String? = null,
 )

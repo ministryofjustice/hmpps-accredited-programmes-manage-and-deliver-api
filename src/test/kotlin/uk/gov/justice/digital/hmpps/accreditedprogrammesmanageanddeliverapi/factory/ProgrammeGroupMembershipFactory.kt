@@ -33,7 +33,7 @@ class ProgrammeGroupMembershipFactory(
     createdAt = this.createdAt,
     createdByUsername = this.createdByUsername,
     deletedAt = this.deletedAt,
-    deletedByByUsername = this.deletedByUsername,
+    deletedByUsername = this.deletedByUsername,
   )
 
   fun produceSet(): MutableSet<ProgrammeGroupMembershipEntity> = mutableSetOf(produce())
