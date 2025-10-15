@@ -38,6 +38,14 @@
           "probationDeliveryUnit": {
             "code": "LON",
             "description": "London"
+          },
+          "team": {
+            "code": "TEAM01",
+            "description": "Wiremocked Team"
+          },
+          "region": {
+            "code": "wiremocked_region_code",
+            "description": "Wiremocked Region Name"
           }
         }
       }
@@ -244,6 +252,34 @@
               "mainCategoryDescription": "Abandoning children under two years",
               "subCategoryCode": "00",
               "subCategoryDescription": "Abandoning children under two years - contrary to section 27 of the Offences against the person Act 1861"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/user/.*/teams"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "teams": [
+            {
+              "code": "TEAM01",
+              "description": "Wiremocked Team",
+              "pdu": {
+                "code": "PDU01",
+                "description": "Wiremocked PDU"
+              },
+              "region": {
+                "code": "wiremocked_region_code",
+                "description": "Wiremocked Region Name"
+              }
             }
           ]
         }

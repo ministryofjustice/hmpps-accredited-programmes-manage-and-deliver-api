@@ -20,8 +20,8 @@ import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListReferrals
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.JpaAuditConfig
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralCaseListItemService
+import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.net.URLDecoder
 
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
@@ -30,7 +30,10 @@ import java.net.URLDecoder
   name = "Caselist",
   description = "The endpoint fetches the referrals details for the case list view",
 )
-class CaseListController(private val referralCaseListItemService: ReferralCaseListItemService) {
+class CaseListController(
+  private val referralCaseListItemService: ReferralCaseListItemService,
+  private val authenticationHolder: HmppsAuthenticationHolder,
+) {
   @Operation(
     tags = ["Caselist"],
     summary = "Get all referrals for the case list view",
@@ -70,8 +73,10 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
       required = false,
     ) reportingTeams: List<String>?,
   ): CaseListReferrals {
-    val username = JpaAuditConfig().auditorAware().currentAuditor.orElseThrow {
-      AuthenticationCredentialsNotFoundException("No authenticated user found")
+    val username = authenticationHolder.username
+
+    if (username == null || username.isBlank()) {
+      throw AuthenticationCredentialsNotFoundException("No authenticated user found")
     }
 
     return referralCaseListItemService.getReferralCaseListItemServiceByCriteria(
