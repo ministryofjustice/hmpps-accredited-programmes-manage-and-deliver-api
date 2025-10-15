@@ -224,4 +224,19 @@ class NDeliusApiStubs(
         ),
     )
   }
+
+  fun stubUserTeamsResponse(
+    username: String,
+    userTeams: uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams,
+  ) {
+    wiremock.stubFor(
+      get(urlEqualTo("/user/$username/teams"))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(objectMapper.writeValueAsString(userTeams)),
+        ),
+    )
+  }
 }
