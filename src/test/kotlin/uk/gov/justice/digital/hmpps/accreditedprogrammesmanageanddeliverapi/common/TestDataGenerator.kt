@@ -9,6 +9,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnitEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
@@ -78,6 +79,12 @@ class TestDataGenerator {
   ) {
     entityManager.persist(referralEntity)
     entityManager.persist(referralStatusHistoryEntity)
+  }
+
+  fun createGroupMembership(
+    programmeGroupMembership: ProgrammeGroupMembershipEntity,
+  ) {
+    entityManager.persist(programmeGroupMembership)
   }
 
   fun createReferralWithReportingLocation(referralReportingLocationEntity: ReferralReportingLocationEntity) {
