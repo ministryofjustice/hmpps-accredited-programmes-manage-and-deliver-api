@@ -8,6 +8,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentlyAllocatedGroup
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.mostRecentStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -27,7 +28,7 @@ class ProgrammeGroupMembershipService(
       throw BusinessException("Cannot assign referral to group as referral with id ${referral.id} is in a closed state")
     }
 
-    if (referral.programmeGroupMemberships.any { it.programmeGroup == group }) {
+    if (referral.currentlyAllocatedGroup() != null) {
       throw ConflictException("Referral with id ${referral.id} is already allocated to group ${group.code}")
     }
 

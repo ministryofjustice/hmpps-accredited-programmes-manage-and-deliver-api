@@ -119,7 +119,7 @@ fun ReferralEntity.mostRecentStatus(): ReferralStatusDescriptionEntity {
 }
 
 // There should only be one active group membership at any given time
-fun ReferralEntity.currentlyAllocatedGroup(): ProgrammeGroupMembershipEntity = this.programmeGroupMemberships.filter { it.deletedAt == null }[0]
+fun ReferralEntity.currentlyAllocatedGroup(): ProgrammeGroupMembershipEntity? = this.programmeGroupMemberships.firstOrNull { it.deletedAt == null }
 
 enum class ReferralEntitySourcedFrom {
   REQUIREMENT,
