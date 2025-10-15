@@ -10,6 +10,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegistrations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
 
 private const val N_DELIUS_INTEGRATION_API = "NDelius Integration API"
@@ -65,5 +66,16 @@ class NDeliusIntegrationApiClient(
    */
   fun getLicenceConditionManagerDetails(crn: String, licenceConditionId: String) = getRequest<NDeliusCaseRequirementOrLicenceConditionResponse>(N_DELIUS_INTEGRATION_API) {
     path = "/case/$crn/licence-conditions/$licenceConditionId"
+  }
+
+  /**
+   * Fetch the teams associated with a given user from nDelius.
+   * This is used to determine which regions a user has access to.
+   *
+   * @param username - The hmpps-auth username of the user
+   * @return List of teams with their associated regions
+   */
+  fun getTeamsForUser(username: String) = getRequest<NDeliusUserTeams>(N_DELIUS_INTEGRATION_API) {
+    path = "/user/$username/teams"
   }
 }

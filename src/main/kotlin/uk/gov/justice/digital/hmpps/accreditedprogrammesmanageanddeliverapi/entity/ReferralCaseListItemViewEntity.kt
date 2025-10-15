@@ -44,4 +44,8 @@ class ReferralCaseListItemViewEntity(
   @NotNull
   @Column(name = "reporting_team")
   var reportingTeam: String,
+
+  @NotNull
+  @Column(name = "region_name")
+  var regionName: String,
 )
