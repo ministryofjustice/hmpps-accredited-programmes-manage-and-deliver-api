@@ -12,6 +12,7 @@ import org.springframework.data.web.PageableDefault
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListReferrals
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.JpaAuditConfig
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralCaseListItemService
 import java.net.URLDecoder
 
@@ -67,15 +69,22 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
       value = "reportingTeam",
       required = false,
     ) reportingTeams: List<String>?,
-  ): CaseListReferrals = referralCaseListItemService.getReferralCaseListItemServiceByCriteria(
-    pageable = pageable,
-    openOrClosed = openOrClosed,
-    crnOrPersonName = crnOrPersonName,
-    cohort = cohort?.name,
-    status = if (status.isNullOrEmpty()) null else URLDecoder.decode(status, "UTF-8"),
-    pdu = pdu,
-    reportingTeams = reportingTeams,
-  )
+  ): CaseListReferrals {
+    val username = JpaAuditConfig().auditorAware().currentAuditor.orElseThrow {
+      AuthenticationCredentialsNotFoundException("No authenticated user found")
+    }
+
+    return referralCaseListItemService.getReferralCaseListItemServiceByCriteria(
+      pageable = pageable,
+      openOrClosed = openOrClosed,
+      username = username,
+      crnOrPersonName = crnOrPersonName,
+      cohort = cohort?.name,
+      status = if (status.isNullOrEmpty()) null else URLDecoder.decode(status, "UTF-8"),
+      pdu = pdu,
+      reportingTeams = reportingTeams,
+    )
+  }
 
   @Operation(
     tags = ["Caselist"],

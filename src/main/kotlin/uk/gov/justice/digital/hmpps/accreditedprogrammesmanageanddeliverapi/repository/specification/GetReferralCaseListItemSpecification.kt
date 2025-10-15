@@ -85,3 +85,12 @@ fun withAllowedCrns(
   val crnPredicate = root.get<String>("crn").`in`(allowedCrns)
   builder.and(basePredicate, crnPredicate)
 }
+
+fun withRegionNames(
+  baseSpec: Specification<ReferralCaseListItemViewEntity>,
+  regionNames: Collection<String>,
+): Specification<ReferralCaseListItemViewEntity> = Specification { root, query, builder ->
+  val basePredicate = baseSpec.toPredicate(root, query, builder)
+  val regionPredicate = root.get<String>("regionName").`in`(regionNames)
+  builder.and(basePredicate, regionPredicate)
+}
