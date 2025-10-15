@@ -103,6 +103,13 @@ class ReferralEntity(
   )
   var referralReportingLocationEntity: ReferralReportingLocationEntity? = null,
 
+  @OneToMany(
+    fetch = FetchType.LAZY,
+    cascade = [CascadeType.ALL],
+    mappedBy = "referral",
+  )
+  var programmeGroupMemberships: MutableSet<ProgrammeGroupMembershipEntity> = mutableSetOf(),
+
 )
 
 fun ReferralEntity.mostRecentStatus(): ReferralStatusDescriptionEntity {
@@ -110,6 +117,9 @@ fun ReferralEntity.mostRecentStatus(): ReferralStatusDescriptionEntity {
 
   return mostRecentStatus
 }
+
+// There should only be one active group membership at any given time
+fun ReferralEntity.currentlyAllocatedGroup(): ProgrammeGroupMembershipEntity? = this.programmeGroupMemberships.firstOrNull { it.deletedAt == null }
 
 enum class ReferralEntitySourcedFrom {
   REQUIREMENT,
