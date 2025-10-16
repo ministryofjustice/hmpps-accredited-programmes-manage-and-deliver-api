@@ -22,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.DomainEventsMessageFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
@@ -30,9 +31,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.hmpps.sqs.countMessagesOnQueue
 import java.time.Duration.ofSeconds
+import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.UUID
 
+// TODO remove this suppression when this issue is fixed
+// https://youtrack.jetbrains.com/issue/KT-78352/False-positive-IDENTITYSENSITIVEOPERATIONSWITHVALUETYPE-when-comparing-with-equality-operator
+@Suppress("IDENTITY_SENSITIVE_OPERATIONS_WITH_VALUE_TYPE")
 class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
 
   companion object {
@@ -57,14 +62,18 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     stubAuthTokenEndpoint()
     log.info("Setting up ReferralDetails with id: $sourceReferralId")
 
+    val crn = "X123456"
+    val eventNumber = 1
+
     val findAndReferReferralDetails = FindAndReferReferralDetailsFactory()
       .withInterventionName("Test Intervention")
       .withInterventionType(InterventionType.ACP)
       .withReferralId(sourceReferralId)
-      .withPersonReference("X123456")
+      .withPersonReference(crn)
       .withPersonReferenceType(PersonReferenceType.CRN)
       .withSourcedFromReferenceType(ReferralEntitySourcedFrom.LICENCE_CONDITION)
       .withSourcedFromReference("LIC-12345")
+      .withEventNumber(eventNumber)
       .produce()
 
     wiremock.stubFor(
@@ -89,7 +98,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
           surname = "Doe",
         ),
       )
-      .withCrn("X123456")
+      .withCrn(crn)
+      .withSex(CodeDescription("M", "Male"))
+      .withDateOfBirth(LocalDate.parse("2000-10-01"))
       .withTeam(
         CodeDescription(
           code = "1234",
@@ -110,6 +121,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       )
       .produce()
     nDeliusApiStubs.stubPersonalDetailsResponse(personalDetails)
+    val sentenceInformation =
+      NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2025-10-01")).produce()
+    nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(crn, eventNumber, sentenceInformation)
   }
 
   @Test
@@ -192,9 +206,13 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.interventionType == InterventionType.ACP
       it.sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION
       it.eventId == "LIC-12345"
-      it.personName == ("John Alex Doe")
+      it.personName == "John Alex Doe"
+      it.sex == "Male"
+      it.dateOfBirth == LocalDate.parse("2000-10-01")
       it.referralReportingLocationEntity!!.reportingTeam == "TEAM_1"
       it.referralReportingLocationEntity!!.pduName == "PDU_1"
+      it.referralReportingLocationEntity!!.regionName == "REGION_1"
+      it.sentenceEndDate!! == LocalDate.parse("2025-10-01")
     }
 
     messageHistoryRepository.findAll().first().let {
@@ -244,10 +262,13 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.statusHistories.first().referralStatusDescription.description == "Awaiting assessment"
       it.sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION
       it.eventId == "LIC-12345"
+      it.personName == "John Alex Doe"
+      it.sex == "Male"
+      it.dateOfBirth == LocalDate.parse("2000-10-01")
       it.referralLdcHistories.first().hasLdc
-      it.personName == ("John Alex Doe")
       it.referralReportingLocationEntity!!.reportingTeam == "TEAM_1"
       it.referralReportingLocationEntity!!.pduName == "PDU_1"
+      it.sentenceEndDate!! == LocalDate.parse("2025-10-01")
     }
 
     messageHistoryRepository.findAll().first().let {
@@ -297,11 +318,14 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.statusHistories.first().referralStatusDescription.description == "Awaiting assessment"
       it.sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION
       it.eventId == "LIC-12345"
+      it.sex == "Male"
+      it.dateOfBirth == LocalDate.parse("2000-10-01")
       !it.referralLdcHistories.first().hasLdc
       it.referralLdcHistories.first().createdBy == "SYSTEM"
-      it.personName == ("John Alex Doe")
+      it.personName == "John Alex Doe"
       it.referralReportingLocationEntity!!.reportingTeam == "TEAM_1"
       it.referralReportingLocationEntity!!.pduName == "PDU_1"
+      it.sentenceEndDate!! == LocalDate.parse("2025-10-01")
     }
 
     messageHistoryRepository.findAll().first().let {
@@ -348,11 +372,14 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.statusHistories.first().referralStatusDescription.description == "Awaiting assessment"
       it.sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION
       it.eventId == "LIC-12345"
+      it.sex == "Male"
+      it.dateOfBirth == LocalDate.parse("2000-10-01")
       !it.referralLdcHistories.first().hasLdc
       it.referralLdcHistories.first().createdBy == "SYSTEM"
-      it.personName == ("John Alex Doe")
+      it.personName == "John Alex Doe"
       it.referralReportingLocationEntity!!.reportingTeam == "TEAM_1"
       it.referralReportingLocationEntity!!.pduName == "PDU_1"
+      it.sentenceEndDate!! == LocalDate.parse("2025-10-01")
     }
 
     messageHistoryRepository.findAll().first().let {

@@ -18,6 +18,7 @@ import org.springframework.data.annotation.CreatedDate
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -81,6 +82,18 @@ class ReferralEntity(
   @Nullable
   @Column("event_number")
   val eventNumber: Int? = null,
+
+  @Nullable
+  @Column("sentence_end_date")
+  var sentenceEndDate: LocalDate? = null,
+
+  @Nullable
+  @Column("sex")
+  var sex: String? = null,
+
+  @Nullable
+  @Column("date_of_birth")
+  var dateOfBirth: LocalDate? = null,
 
   @Nullable
   @OneToOne(

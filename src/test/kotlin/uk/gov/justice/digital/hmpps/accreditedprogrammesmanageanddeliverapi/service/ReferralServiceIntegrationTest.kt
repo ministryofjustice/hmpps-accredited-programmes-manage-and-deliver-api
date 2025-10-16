@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.FindAndReferReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiOfficeLocation
@@ -20,6 +19,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomDateOfBirth
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
@@ -27,6 +28,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
@@ -36,6 +38,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
+import java.time.LocalDate
 import java.util.UUID
 
 class ReferralServiceIntegrationTest : IntegrationTestBase() {
@@ -65,6 +69,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       ),
     )
     .withCrn("X123456")
+    .withDateOfBirth(LocalDate.parse("2010-10-01"))
+    .withSex(CodeDescription("M", "Male"))
     .withTeam(
       CodeDescription(
         code = "1234",
@@ -96,7 +102,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
   }
 
   @Nested
-  @DisplayName("attemptToFindManagerForReferral")
+  @DisplayName("AttemptToFindManagerForReferral")
   inner class AttemptToFindManagerForReferral {
     @Test
     fun `attemptToFindManagerForReferral should return manager when requirement endpoint returns 200`() {
@@ -110,7 +116,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
 
-      testDataGenerator.createReferral(referralEntity)
+      testDataGenerator.createReferralWithStatusHistory(referralEntity)
       val savedReferral = referralRepository.findByCrn(crn)[0]
       val referralId = savedReferral.id!!.toString()
 
@@ -270,124 +276,134 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
       assertThat(exception.message).isEqualTo("Referral with id: $referralId exists, but has no eventId")
     }
+  }
 
-    @Nested
-    @DisplayName(value = "GetStatusHistoryIntegrationTests for Delius")
-    inner class GetStatusHistoryIntegrationTest {
-      @Test
-      fun `getStatusHistoryIntegration should return status records when they exist`() {
-        // Given
-        val theCrnNumber = randomUppercaseString()
-        val awaitingAllocation = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
-        oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+  @Nested
+  @DisplayName(value = "GetStatusHistoryIntegrationTests for Delius")
+  inner class GetStatusHistoryIntegrationTest {
+    @Test
+    fun `getStatusHistoryIntegration should return status records when they exist`() {
+      // Given
+      val theCrnNumber = randomUppercaseString()
+      val awaitingAllocation = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
+      oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
 
-        val referral =
-          referralService.createReferral(
-            FindAndReferReferralDetailsFactory().withPersonReference(theCrnNumber).produce(),
-          )
-
-        // When
-        referralService.updateStatus(referral, awaitingAllocation.id, "Additional Details", "The User's name")
-        val getResult = referralService.getStatusHistory(referral.id!!)
-
-        // Then
-        assertThat(getResult).hasSize(2)
-
-        assertThat(getResult[0].referralStatusDescriptionName).isEqualTo("Awaiting assessment")
-        assertThat(getResult[0].updatedBy).isEqualTo("SYSTEM")
-        assertThat(getResult[0].additionalDetails).isEqualTo(null)
-        assertThat(getResult[0].tagColour).isEqualTo("purple")
-
-        assertThat(getResult[1].referralStatusDescriptionName).isEqualTo("Awaiting allocation")
-        assertThat(getResult[1].updatedBy).isEqualTo("The User's name")
-        assertThat(getResult[1].additionalDetails).isEqualTo("Additional Details")
-        assertThat(getResult[1].tagColour).isEqualTo("light-blue")
-      }
-    }
-
-    @Nested
-    @DisplayName("UpdateStatusIntegrationTests")
-    inner class UpdateStatusIntegrationTests {
-      @Test
-      fun `updateStatus should create a new entry in the ReferralStatusHistory log`() {
-        // Given
-        val theCrnNumber = randomUppercaseString()
-        oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
-        val referral =
-          referralService.createReferral(
-            FindAndReferReferralDetailsFactory().withPersonReference(theCrnNumber).produce(),
-          )
-
-        // When
-        val result = referralService.updateStatus(
-          referral,
-          UUID.fromString("76b2f8d8-260c-4766-a716-de9325292609"),
-          "Additional details string",
-          createdBy = "THE_USER_ID",
+      val referral =
+        referralService.createReferral(
+          FindAndReferReferralDetailsFactory().withPersonReference(theCrnNumber).withEventNumber(1).produce(),
         )
 
-        // Then
-        val foundReferral = referralRepository.findByCrn(theCrnNumber).firstOrNull()
-          ?: throw NotFoundException("No Referral found for crn: $theCrnNumber")
+      // When
+      referralService.updateStatus(referral, awaitingAllocation.id, "Additional Details", "The User's name")
+      val getResult = referralService.getStatusHistory(referral.id!!)
 
-        assertThat(result.referralStatusDescriptionId).isEqualTo(UUID.fromString("76b2f8d8-260c-4766-a716-de9325292609"))
-        assertThat(result.referralStatusDescriptionName).isEqualTo("Awaiting assessment")
+      // Then
+      assertThat(getResult).hasSize(2)
 
-        assertThat(foundReferral.statusHistories).hasSize(2)
-        assertThat(foundReferral.statusHistories.first().createdBy).isEqualTo("THE_USER_ID")
-        assertThat(foundReferral.statusHistories.first().id).isEqualTo(result.id)
-        assertThat(foundReferral.statusHistories.first().additionalDetails).isEqualTo("Additional details string")
-      }
+      assertThat(getResult[0].referralStatusDescriptionName).isEqualTo("Awaiting assessment")
+      assertThat(getResult[0].updatedBy).isEqualTo("SYSTEM")
+      assertThat(getResult[0].additionalDetails).isEqualTo(null)
+      assertThat(getResult[0].tagColour).isEqualTo("purple")
 
-      @Test
-      fun `updateStatus should throw a NotFoundError if the ReferralStatusDescription does not exist`() {
-        // Given
-        val aRandomUuid = UUID.randomUUID()
-        val referral = ReferralEntityFactory().produce()
-        testDataGenerator.createReferral(referral)
-
-        // When/Then
-        assertThrows<NotFoundException> {
-          referralService.updateStatus(
-            referral,
-            aRandomUuid,
-            createdBy = "DOES NOT MATTER",
-          )
-        } shouldHaveMessage "Unable to find Referral Status Description with ID $aRandomUuid"
-      }
+      assertThat(getResult[1].referralStatusDescriptionName).isEqualTo("Awaiting allocation")
+      assertThat(getResult[1].updatedBy).isEqualTo("The User's name")
+      assertThat(getResult[1].additionalDetails).isEqualTo("Additional Details")
+      assertThat(getResult[1].tagColour).isEqualTo("light-blue")
     }
   }
 
   @Nested
-  @DisplayName("createReferral")
+  @DisplayName("UpdateStatusIntegrationTests")
+  inner class UpdateStatusIntegrationTests {
+    @Test
+    fun `updateStatus should create a new entry in the ReferralStatusHistory log`() {
+      // Given
+      val theCrnNumber = randomUppercaseString()
+      oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
+      val referral =
+        referralService.createReferral(
+          FindAndReferReferralDetailsFactory().withPersonReference(theCrnNumber).withEventNumber(1).produce(),
+        )
+
+      // When
+      val result = referralService.updateStatus(
+        referral,
+        UUID.fromString("76b2f8d8-260c-4766-a716-de9325292609"),
+        "Additional details string",
+        createdBy = "THE_USER_ID",
+      )
+
+      // Then
+      val foundReferral = referralRepository.findByCrn(theCrnNumber).firstOrNull()
+        ?: throw NotFoundException("No Referral found for crn: $theCrnNumber")
+
+      assertThat(result.referralStatusDescriptionId).isEqualTo(UUID.fromString("76b2f8d8-260c-4766-a716-de9325292609"))
+      assertThat(result.referralStatusDescriptionName).isEqualTo("Awaiting assessment")
+
+      assertThat(foundReferral.statusHistories).hasSize(2)
+      assertThat(foundReferral.statusHistories.first().createdBy).isEqualTo("THE_USER_ID")
+      assertThat(foundReferral.statusHistories.first().id).isEqualTo(result.id)
+      assertThat(foundReferral.statusHistories.first().additionalDetails).isEqualTo("Additional details string")
+    }
+
+    @Test
+    fun `updateStatus should throw a NotFoundError if the ReferralStatusDescription does not exist`() {
+      // Given
+      val aRandomUuid = UUID.randomUUID()
+      val referral = ReferralEntityFactory().produce()
+      testDataGenerator.createReferral(referral)
+
+      // When/Then
+      assertThrows<NotFoundException> {
+        referralService.updateStatus(
+          referral,
+          aRandomUuid,
+          createdBy = "DOES NOT MATTER",
+        )
+      } shouldHaveMessage "Unable to find Referral Status Description with ID $aRandomUuid"
+    }
+  }
+
+  @Nested
+  @DisplayName("CreateReferral")
   inner class CreateReferral {
+
+    val referralDetails = FindAndReferReferralDetailsFactory()
+      .withInterventionType(InterventionType.TOOLKITS)
+      .withInterventionName("The Intervention Name")
+      .withPersonReference("CRN-12345")
+      .withPersonReferenceType(PersonReferenceType.CRN)
+      .withReferralId(UUID.randomUUID())
+      .withSetting(SettingType.COMMUNITY)
+      .withSourcedFromReference("LICENCE-12345")
+      .withSourcedFromReferenceType(ReferralEntitySourcedFrom.LICENCE_CONDITION)
+      .withEventNumber(1)
+      .produce()
 
     @Test
     fun `createReferral should create a Referral, its Status History, and Reporting Location`() {
       //    Given
+
       oasysApiStubs.stubSuccessfulPniResponse("CRN-12345")
       nDeliusApiStubs.stubPersonalDetailsResponse(
         NDeliusPersonalDetailsFactory()
+          .withDateOfBirth(LocalDate.parse("2010-10-01"))
+          .withSex(CodeDescription("M", "Male"))
           .withProbationDeliveryUnit(CodeDescription("PDU001", "Primary PDU"))
           .withRegion(CodeDescription("REGION-FOR-TEST", "THE REGION DESCRIPTION"))
           .withTeam(CodeDescription("TEAM-CODE", "The test reporting team"))
           .produce(),
       )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        "CRN-12345",
+        1,
+        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+      )
 
       //    When
-      val referral = referralService.createReferral(
-        FindAndReferReferralDetails(
-          interventionType = InterventionType.TOOLKITS,
-          interventionName = "The Intervention Name",
-          personReference = "CRN-12345",
-          personReferenceType = PersonReferenceType.CRN,
-          referralId = UUID.randomUUID(),
-          setting = SettingType.COMMUNITY,
-          sourcedFromReferenceType = ReferralEntitySourcedFrom.LICENCE_CONDITION,
-          sourcedFromReference = "LICENCE-12345",
-          eventNumber = 1,
-        ),
-      )
+      val referral = referralService.createReferral(referralDetails)
 
       //    Then
       val referralFromRepo =
@@ -402,17 +418,19 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(referralFromRepo.setting).isEqualTo(SettingType.COMMUNITY)
       assertThat(referralFromRepo.statusHistories).hasSize(1)
       assertThat(referralFromRepo.statusHistories.firstOrNull()?.referralStatusDescription?.description).isEqualTo("Awaiting assessment")
+      assertThat(referralFromRepo.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
+      assertThat(referralFromRepo.sex).isEqualTo("Male")
+      assertThat(referralFromRepo.sentenceEndDate).isEqualTo(LocalDate.parse("2027-11-02"))
 
       assertThat(reportingLocation).isNotNull()
       assertThat(reportingLocation!!.regionName).isEqualTo("THE REGION DESCRIPTION")
-      assertThat(reportingLocation!!.pduName).isEqualTo("Primary PDU")
-      assertThat(reportingLocation!!.reportingTeam).isEqualTo("The test reporting team")
+      assertThat(reportingLocation.pduName).isEqualTo("Primary PDU")
+      assertThat(reportingLocation.reportingTeam).isEqualTo("The test reporting team")
     }
 
     @Test
     fun `createReferral should save referral and add status history and determine ldc status true when score greater than or equal to 3`() {
       // Given
-      val referralDetails = FindAndReferReferralDetailsFactory().produce()
       val cohort = OffenceCohort.SEXUAL_OFFENCE
       val ldcResponse = Ldc(
         score = 4,
@@ -421,6 +439,11 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       val pniAssessment = PniAssessmentFactory().withLdc(ldcResponse).produce()
       val pniResponse = PniResponseFactory().withAssessment(pniAssessment).produce()
       oasysApiStubs.stubSuccessfulPniResponse(referralDetails.personReference, pniResponse)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referralDetails.personReference,
+        1,
+        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+      )
 
       // When
       referralService.createReferral(referralDetails)
@@ -435,12 +458,14 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isTrue
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
+      assertThat(savedReferral.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
+      assertThat(savedReferral.sex).isEqualTo("Male")
+      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2027-11-02"))
     }
 
     @Test
     fun `createReferral should save referral and add status history and determine ldc status false when score less than 3`() {
       // Given
-      val referralDetails = FindAndReferReferralDetailsFactory().produce()
       val cohort = OffenceCohort.SEXUAL_OFFENCE
       val ldcResponse = Ldc(
         score = 2,
@@ -449,6 +474,11 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       val pniAssessment = PniAssessmentFactory().withLdc(ldcResponse).produce()
       val pniResponse = PniResponseFactory().withAssessment(pniAssessment).produce()
       oasysApiStubs.stubSuccessfulPniResponse(referralDetails.personReference, pniResponse)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referralDetails.personReference,
+        1,
+        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+      )
 
       // When
       referralService.createReferral(referralDetails)
@@ -463,17 +493,24 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
+      assertThat(savedReferral.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
+      assertThat(savedReferral.sex).isEqualTo("Male")
+      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2027-11-02"))
     }
 
     @Test
     fun `createReferral should save referral and add status history and determine ldc status = false when ldc is null from pni`() {
       // Given
-      val referralDetails = FindAndReferReferralDetailsFactory().produce()
       val cohort = OffenceCohort.SEXUAL_OFFENCE
 
       val pniAssessment = PniAssessmentFactory().withLdc(null).produce()
       val pniResponse = PniResponseFactory().withAssessment(pniAssessment).produce()
       oasysApiStubs.stubSuccessfulPniResponse(referralDetails.personReference, pniResponse)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referralDetails.personReference,
+        1,
+        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+      )
 
       // When
       referralService.createReferral(referralDetails)
@@ -488,14 +525,21 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
+      assertThat(savedReferral.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
+      assertThat(savedReferral.sex).isEqualTo("Male")
+      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2027-11-02"))
     }
 
     @Test
     fun `createReferral should save referral and add status history with ldc status as false and cohort as general offence a when no data found from PNI`() {
       // Given
-      val referralDetails = FindAndReferReferralDetailsFactory().produce()
 
       oasysApiStubs.stubNotFoundPniResponse(referralDetails.personReference)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referralDetails.personReference,
+        1,
+        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+      )
 
       // When
       referralService.createReferral(referralDetails)
@@ -515,9 +559,13 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     @Test
     fun `createReferral should save referral and add name reporting locations`() {
       // Given
-      val referralDetails = FindAndReferReferralDetailsFactory().produce()
 
       oasysApiStubs.stubNotFoundPniResponse(referralDetails.personReference)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referralDetails.personReference,
+        1,
+        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+      )
 
       // When
       referralService.createReferral(referralDetails)
@@ -535,6 +583,77 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.personName).isEqualTo(personalDetails.name.getNameAsString())
       assertThat(savedReferral.referralReportingLocationEntity?.pduName).isEqualTo(personalDetails.probationDeliveryUnit.description)
       assertThat(savedReferral.referralReportingLocationEntity?.reportingTeam).isEqualTo(personalDetails.team.description)
+      assertThat(savedReferral.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
+      assertThat(savedReferral.sex).isEqualTo("Male")
+      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2027-11-02"))
+    }
+
+    @Test
+    fun `createReferral should save referral and use expected end date for Community Order type`() {
+      // Given
+
+      oasysApiStubs.stubNotFoundPniResponse(referralDetails.personReference)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referralDetails.personReference,
+        1,
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2026-04-26")).produce(),
+      )
+
+      // When
+      val referralDetailsOrder = referralDetails.copy(sourcedFromReferenceType = ReferralEntitySourcedFrom.REQUIREMENT)
+      referralService.createReferral(referralDetailsOrder)
+
+      val savedReferral = referralRepository.findByCrn(referralDetails.personReference).first()
+
+      // Then
+      assertThat(savedReferral.crn).isEqualTo(referralDetails.personReference)
+      assertThat(savedReferral.interventionType).isEqualTo(referralDetails.interventionType)
+      assertThat(savedReferral.interventionName).isEqualTo(referralDetails.interventionName)
+      assertThat(savedReferral.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+      assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
+      assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
+      assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
+      assertThat(savedReferral.personName).isEqualTo(personalDetails.name.getNameAsString())
+      assertThat(savedReferral.referralReportingLocationEntity?.pduName).isEqualTo(personalDetails.probationDeliveryUnit.description)
+      assertThat(savedReferral.referralReportingLocationEntity?.reportingTeam).isEqualTo(personalDetails.team.description)
+      assertThat(savedReferral.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
+      assertThat(savedReferral.sex).isEqualTo("Male")
+      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2026-04-26"))
+    }
+  }
+
+  @Nested
+  @DisplayName("GetReferralDetails")
+  @WithMockAuthUser("TEST_USER")
+  inner class GetReferralDetails {
+    @Test
+    fun `retrieve referralDetails when referral exists and update referral values from nDelius and Oasys responses`() {
+      val referral = ReferralEntityFactory().produce()
+      val name = randomFullName()
+      val dateOfBirth = randomDateOfBirth()
+      testDataGenerator.createReferralWithStatusHistory(referral)
+      oasysApiStubs.stubSuccessfulPniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory()
+          .withName(name)
+          .withDateOfBirth(dateOfBirth)
+          .produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      val referralDetails = referralService.getReferralDetails(referral.id!!)!!
+
+      assertThat(referralDetails.id).isEqualTo(referral.id!!)
+      assertThat(referralDetails.crn).isEqualTo(referral.crn)
+      assertThat(referralDetails.personName).isEqualTo(name.getNameAsString())
+      assertThat(referralDetails.interventionName).isEqualTo(referral.interventionName)
+      assertThat(referralDetails.createdAt).isEqualTo(referral.createdAt.toLocalDate())
+      assertThat(referralDetails.dateOfBirth).isEqualTo(dateOfBirth)
     }
   }
 }
