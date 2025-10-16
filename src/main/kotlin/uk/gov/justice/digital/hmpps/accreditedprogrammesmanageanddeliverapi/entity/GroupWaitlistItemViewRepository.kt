@@ -3,4 +3,4 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ent
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
-interface GroupWaitlistItemViewEntityRepository : JpaRepository<GroupWaitlistItemViewEntity, UUID>
+interface GroupWaitlistItemViewRepository : JpaRepository<GroupWaitlistItemViewEntity, UUID>

@@ -2,6 +2,8 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ent
 
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
@@ -28,6 +30,11 @@ class GroupWaitlistItemViewEntity(
   @NotNull
   @Column(name = "sentence_end_date")
   var sentenceEndDate: LocalDate,
+
+  @NotNull
+  @Enumerated(EnumType.STRING)
+  @Column(name = "sourced_from")
+  var sourcedFrom: ReferralEntitySourcedFrom,
 
   @NotNull
   @Column(name = "cohort")
