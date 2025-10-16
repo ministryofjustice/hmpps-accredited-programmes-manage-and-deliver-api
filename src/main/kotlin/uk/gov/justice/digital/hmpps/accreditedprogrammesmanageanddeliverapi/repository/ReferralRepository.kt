@@ -12,6 +12,9 @@ interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
   @Query("SELECT r FROM ReferralEntity r LEFT JOIN FETCH r.statusHistories WHERE r.id = :id")
   fun findByIdWithStatusHistories(id: UUID): ReferralEntity?
 
+  @Query("SELECT id from ReferralEntity")
+  fun getAllIds(): List<UUID>
+
   @EntityGraph(attributePaths = ["statusHistories"])
   override fun findById(id: UUID): Optional<ReferralEntity?>
 
