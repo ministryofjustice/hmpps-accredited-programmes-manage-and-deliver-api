@@ -60,9 +60,11 @@ class ReferralService(
     val referral = referralRepository.findByIdOrNull(referralId) ?: return null
     // Ensure the current LDC status from Oasys is always returned from the API, updating the LDC status associated with the referral.
     val hasLdc = pniService.getPniCalculation(referral.crn).hasLdc()
+
     if (!ldcService.hasOverriddenLdcStatus(referralId)) {
       ldcService.updateLdcStatusForReferral(referral, UpdateLdc(hasLdc))
     }
+
     val referralLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.hasLdc
     val personalDetails = serviceUserService.getPersonalDetailsByIdentifier(referral.crn)
     updateReferralReportingLocation(referral, personalDetails)

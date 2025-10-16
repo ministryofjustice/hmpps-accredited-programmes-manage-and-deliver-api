@@ -35,7 +35,7 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
       expectedResponseStatus = 200,
     )
 
-//    Then
+    //    Then
     assertEquals(response.ids, listOf("*"))
   }
 
