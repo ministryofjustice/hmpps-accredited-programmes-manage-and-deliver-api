@@ -1,36 +1,40 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import java.time.LocalDateTime
 import java.util.UUID
 
-class ProgrammeGroupFactory {
+class ProgrammeGroupMembershipFactory(
+  referral: ReferralEntity? = null,
+  programmeGroup: ProgrammeGroupEntity? = null,
+) {
   private var id: UUID? = null
-  private var code: String = "AAA111"
+  private var referral: ReferralEntity = referral ?: ReferralEntityFactory().produce()
+  private var programmeGroup: ProgrammeGroupEntity = programmeGroup ?: ProgrammeGroupFactory().produce()
   private var createdAt: LocalDateTime = LocalDateTime.now()
   private var createdByUsername: String = "APerson"
-  private var updatedAt: LocalDateTime? = null
-  private var updatedByUsername: String? = null
   private var deletedAt: LocalDateTime? = null
   private var deletedByUsername: String? = null
 
   fun withId(id: UUID) = apply { this.id = id }
-  fun withCode(code: String) = apply { this.code = code }
+  fun withReferral(referral: ReferralEntity) = apply { this.referral = referral }
+  fun withProgrammeGroup(programmeGroup: ProgrammeGroupEntity) = apply { this.programmeGroup = programmeGroup }
   fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
   fun withCreatedByUsername(createdByUsername: String) = apply { this.createdByUsername = createdByUsername }
-  fun withUpdatedAt(updatedAt: LocalDateTime) = apply { this.updatedAt = updatedAt }
-  fun withUpdatedByUsername(updatedByUsername: String) = apply { this.updatedByUsername = updatedByUsername }
   fun withDeletedAt(deletedAt: LocalDateTime) = apply { this.deletedAt = deletedAt }
   fun withDeletedByUsername(deletedByUsername: String) = apply { this.deletedByUsername = deletedByUsername }
 
-  fun produce(): ProgrammeGroupEntity = ProgrammeGroupEntity(
+  fun produce(): ProgrammeGroupMembershipEntity = ProgrammeGroupMembershipEntity(
     id = this.id,
-    code = this.code,
+    referral = this.referral,
+    programmeGroup = this.programmeGroup,
     createdAt = this.createdAt,
     createdByUsername = this.createdByUsername,
-    updatedAt = this.updatedAt,
-    updatedByUsername = this.updatedByUsername,
     deletedAt = this.deletedAt,
     deletedByUsername = this.deletedByUsername,
   )
+
+  fun produceSet(): MutableSet<ProgrammeGroupMembershipEntity> = mutableSetOf(produce())
 }

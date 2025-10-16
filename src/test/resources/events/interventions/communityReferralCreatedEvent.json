@@ -3,7 +3,7 @@
   "MessageId": "ba0cd0f0-887b-4a97-b502-41bdf32aa27c",
   "Token": null,
   "TopicArn": "arn:aws:sns:eu-west-2:000000000000:hmpps-domain",
-  "Message": "{\"eventType\":\"interventions.community-referral.created\",\"version\":1,\"detailUrl\":\"https://find-and-refer-intervention-api-dev.hmpps.service.justice.gov.uk/referral/3e759ff8-d2f1-43cb-9e19-bd2006e841d8\",\"occurredAt\":\"2025-07-02T14:14:17.51815+01:00\",\"description\":\"An Interventions referral in community has been created.\",\"additionalInformation\":{},\"personReference\":{\"identifiers\":[{\"type\":\"CRN\",\"value\":\"X928972\"}]}}",
+  "Message": "{\"eventType\":\"interventions.community-referral.created\",\"version\":1,\"detailUrl\":\"https://find-and-refer-intervention-api-dev.hmpps.service.justice.gov.uk/referral/3e759ff8-d2f1-43cb-9e19-bd2006e841d8\",\"occurredAt\":\"2025-07-02T14:14:17.51815+01:00\",\"description\":\"An Interventions referral in community has been created.\",\"additionalInformation\":{},\"personReference\":{\"identifiers\":[{\"type\":\"CRN\",\"value\":\"X945794\"}]}}",
   "SubscribeURL": null,
   "Timestamp": "2021-10-21T06:27:57.028Z",
   "SignatureVersion": "1",

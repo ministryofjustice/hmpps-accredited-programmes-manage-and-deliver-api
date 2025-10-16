@@ -14,6 +14,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedCaseListReferrals
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
@@ -40,6 +43,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       testDataGenerator.refreshReferralCaseListItemView()
       stubAuthTokenEndpoint()
       nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
+
+      // Grant permission to all of the following (fake) CRNs
       nDeliusApiStubs.stubAccessCheck(
         true,
         "X7182552",
@@ -49,6 +54,20 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         "CRN-66666",
         "CRN-555555",
         "CRN-111111",
+      )
+
+      nDeliusApiStubs.stubUserTeamsResponse(
+        "AUTH_ADM",
+        NDeliusUserTeams(
+          teams = listOf(
+            NDeliusUserTeam(
+              code = "TEAM001",
+              description = "Test Team 1",
+              pdu = CodeDescription("PDU001", "Test PDU 1"),
+              region = CodeDescription("REGION001", "WIREMOCKED REGION"),
+            ),
+          ),
+        ),
       )
     }
 
@@ -65,21 +84,16 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withInterventionName("Horizon")
         .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
-
       val referralReportingLocation1 = ReferralReportingLocationFactory(referral1)
         .withPduName("PDU1")
         .withReportingTeam("reportingTeam1")
+        .withRegionName("WIREMOCKED REGION")
         .produce()
-
-      referral1.referralReportingLocationEntity = referralReportingLocation1
-
       val statusHistory1 = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
         .produce(referral1, awaitingAssessmentStatusDescription)
-
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral1, statusHistory1, referralReportingLocation1)
 
       val referral2 = ReferralEntityFactory()
         .withPersonName("Alex River")
@@ -87,21 +101,16 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withInterventionName("Building Choices")
         .withCohort(OffenceCohort.SEXUAL_OFFENCE)
         .produce()
-
       val referralReportingLocation2 = ReferralReportingLocationFactory(referral2)
         .withPduName("PDU1")
         .withReportingTeam("reportingTeam2")
+        .withRegionName("WIREMOCKED REGION")
         .produce()
-
-      referral2.referralReportingLocationEntity = referralReportingLocation2
-
       val statusHistory2 = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
         .produce(referral2, awaitingAssessmentStatusDescription)
-
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral2, statusHistory2, referralReportingLocation2)
 
       val referral3 = ReferralEntityFactory()
         .withPersonName("Jane Adams")
@@ -117,11 +126,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val referralReportingLocation3 = ReferralReportingLocationFactory(referral3)
         .withPduName("PDU2")
         .withReportingTeam("reportingTeam1")
+        .withRegionName("WIREMOCKED REGION")
         .produce()
-
-      referral3.referralReportingLocationEntity = referralReportingLocation3
-
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral3, statusHistory3, referralReportingLocation3)
 
       val referral4 = ReferralEntityFactory()
         .withPersonName("Pete Grims")
@@ -137,11 +143,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val referralReportingLocation4 = ReferralReportingLocationFactory(referral4)
         .withPduName("PDU1")
         .withReportingTeam("reportingTeam1")
+        .withRegionName("WIREMOCKED REGION")
         .produce()
-
-      referral4.referralReportingLocationEntity = referralReportingLocation4
-
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral4, statusHistory4, referralReportingLocation4)
 
       val referral5 = ReferralEntityFactory()
         .withPersonName("James Hayden")
@@ -155,13 +158,10 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withStartDate(LocalDateTime.parse("2025-07-10T00:00:00"))
         .produce(referral5, awaitingAssessmentStatusDescription)
       val referralReportingLocation5 = ReferralReportingLocationFactory(referral5)
-        .withPduName("PDU3")
+        .withPduName("PDU2")
         .withReportingTeam("reportingTeam1")
+        .withRegionName("WIREMOCKED REGION")
         .produce()
-
-      referral5.referralReportingLocationEntity = referralReportingLocation5
-
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral5, statusHistory5, referralReportingLocation5)
 
       val referral6 = ReferralEntityFactory()
         .withPersonName("Andrew Crosforth")
@@ -174,8 +174,11 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
         .produce(referral6, awaitingAssessmentStatusDescription)
-
-      testDataGenerator.createReferralWithStatusHistory(referral6, statusHistory6)
+      val referralReportingLocation6 = ReferralReportingLocationFactory(referral6)
+        .withPduName("UNKNOWN_PDU_NAME")
+        .withReportingTeam("UNKNOWN_REPORTING_TEAM")
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
 
       val referral7 = ReferralEntityFactory()
         .withPersonName("James Mars")
@@ -191,10 +194,23 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val referralReportingLocation7 = ReferralReportingLocationFactory(referral7)
         .withPduName("PDU2")
         .withReportingTeam("reportingTeam2")
+        .withRegionName("WIREMOCKED REGION")
         .produce()
 
+      referral1.referralReportingLocationEntity = referralReportingLocation1
+      referral2.referralReportingLocationEntity = referralReportingLocation2
+      referral3.referralReportingLocationEntity = referralReportingLocation3
+      referral4.referralReportingLocationEntity = referralReportingLocation4
+      referral5.referralReportingLocationEntity = referralReportingLocation5
+      referral6.referralReportingLocationEntity = referralReportingLocation6
       referral7.referralReportingLocationEntity = referralReportingLocation7
 
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral1, statusHistory1, referralReportingLocation1)
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral2, statusHistory2, referralReportingLocation2)
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral3, statusHistory3, referralReportingLocation3)
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral4, statusHistory4, referralReportingLocation4)
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral5, statusHistory5, referralReportingLocation5)
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral6, statusHistory6, referralReportingLocation6)
       testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral7, statusHistory7, referralReportingLocation7)
     }
 

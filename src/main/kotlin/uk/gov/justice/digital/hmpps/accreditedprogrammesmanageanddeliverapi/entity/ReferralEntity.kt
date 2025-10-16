@@ -18,6 +18,7 @@ import org.springframework.data.annotation.CreatedDate
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -83,6 +84,18 @@ class ReferralEntity(
   val eventNumber: Int? = null,
 
   @Nullable
+  @Column("sentence_end_date")
+  var sentenceEndDate: LocalDate? = null,
+
+  @Nullable
+  @Column("sex")
+  var sex: String? = null,
+
+  @Nullable
+  @Column("date_of_birth")
+  var dateOfBirth: LocalDate? = null,
+
+  @Nullable
   @OneToOne(
     fetch = FetchType.LAZY,
     mappedBy = "referral",
@@ -103,6 +116,13 @@ class ReferralEntity(
   )
   var referralReportingLocationEntity: ReferralReportingLocationEntity? = null,
 
+  @OneToMany(
+    fetch = FetchType.LAZY,
+    cascade = [CascadeType.ALL],
+    mappedBy = "referral",
+  )
+  var programmeGroupMemberships: MutableSet<ProgrammeGroupMembershipEntity> = mutableSetOf(),
+
 )
 
 fun ReferralEntity.mostRecentStatus(): ReferralStatusDescriptionEntity {
@@ -110,6 +130,9 @@ fun ReferralEntity.mostRecentStatus(): ReferralStatusDescriptionEntity {
 
   return mostRecentStatus
 }
+
+// There should only be one active group membership at any given time
+fun ReferralEntity.currentlyAllocatedGroup(): ProgrammeGroupMembershipEntity? = this.programmeGroupMemberships.firstOrNull { it.deletedAt == null }
 
 enum class ReferralEntitySourcedFrom {
   REQUIREMENT,

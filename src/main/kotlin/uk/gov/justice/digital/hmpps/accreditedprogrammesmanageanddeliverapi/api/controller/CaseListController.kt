@@ -12,6 +12,7 @@ import org.springframework.data.web.PageableDefault
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
@@ -20,6 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListReferrals
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralCaseListItemService
+import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.net.URLDecoder
 
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
@@ -28,7 +30,10 @@ import java.net.URLDecoder
   name = "Caselist",
   description = "The endpoint fetches the referrals details for the case list view",
 )
-class CaseListController(private val referralCaseListItemService: ReferralCaseListItemService) {
+class CaseListController(
+  private val referralCaseListItemService: ReferralCaseListItemService,
+  private val authenticationHolder: HmppsAuthenticationHolder,
+) {
   @Operation(
     tags = ["Caselist"],
     summary = "Get all referrals for the case list view",
@@ -67,15 +72,24 @@ class CaseListController(private val referralCaseListItemService: ReferralCaseLi
       value = "reportingTeam",
       required = false,
     ) reportingTeams: List<String>?,
-  ): CaseListReferrals = referralCaseListItemService.getReferralCaseListItemServiceByCriteria(
-    pageable = pageable,
-    openOrClosed = openOrClosed,
-    crnOrPersonName = crnOrPersonName,
-    cohort = cohort?.name,
-    status = if (status.isNullOrEmpty()) null else URLDecoder.decode(status, "UTF-8"),
-    pdu = pdu,
-    reportingTeams = reportingTeams,
-  )
+  ): CaseListReferrals {
+    val username = authenticationHolder.username
+
+    if (username == null || username.isBlank()) {
+      throw AuthenticationCredentialsNotFoundException("No authenticated user found")
+    }
+
+    return referralCaseListItemService.getReferralCaseListItemServiceByCriteria(
+      pageable = pageable,
+      openOrClosed = openOrClosed,
+      username = username,
+      crnOrPersonName = crnOrPersonName,
+      cohort = cohort?.name,
+      status = if (status.isNullOrEmpty()) null else URLDecoder.decode(status, "UTF-8"),
+      pdu = pdu,
+      reportingTeams = reportingTeams,
+    )
+  }
 
   @Operation(
     tags = ["Caselist"],

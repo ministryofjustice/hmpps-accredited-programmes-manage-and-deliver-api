@@ -23,7 +23,7 @@ class NDeliusSentenceResponseFactory {
 
   fun withDescription(description: String?) = apply { this.description = description }
   fun withStartDate(startDate: LocalDate) = apply { this.startDate = startDate }
-  fun withExpectedEndDate(expectedEndDate: LocalDate) = apply { this.expectedEndDate = startDate }
+  fun withExpectedEndDate(expectedEndDate: LocalDate) = apply { this.expectedEndDate = expectedEndDate }
   fun withLicenceExpiryDate(licenceExpiryDate: LocalDate?) = apply { this.licenceExpiryDate = licenceExpiryDate }
   fun withPostSentenceSupervisionEndDate(postSentenceSupervisionEndDate: LocalDate?) = apply { this.postSentenceSupervisionEndDate = postSentenceSupervisionEndDate }
 
