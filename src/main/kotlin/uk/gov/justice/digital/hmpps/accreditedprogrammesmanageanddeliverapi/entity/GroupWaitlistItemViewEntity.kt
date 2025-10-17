@@ -17,7 +17,7 @@ import java.util.UUID
 class GroupWaitlistItemViewEntity(
   @NotNull
   @Id
-  @Column(name = "id") var id: UUID,
+  @Column(name = "referral_id") var referralId: UUID,
 
   @NotNull
   @Column(name = "crn")
@@ -63,4 +63,8 @@ class GroupWaitlistItemViewEntity(
   @NotNull
   @Column(name = "reporting_team")
   var reportingTeam: String,
+
+  @NotNull
+  @Column(name = "active_programme_group_id")
+  var activeProgrammeGroupId: UUID,
 )

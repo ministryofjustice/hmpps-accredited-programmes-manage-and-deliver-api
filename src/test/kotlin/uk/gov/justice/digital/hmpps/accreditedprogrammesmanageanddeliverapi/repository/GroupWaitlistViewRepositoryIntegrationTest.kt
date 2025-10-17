@@ -5,18 +5,30 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.repository.findByIdOrNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
 import java.time.LocalDateTime
 
 class GroupWaitlistViewRepositoryIntegrationTest(@Autowired private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository) : IntegrationTestBase() {
 
   @Autowired
   private lateinit var repo: GroupWaitlistItemViewRepository
+
+  @Autowired
+  private lateinit var programmeGroupRepository: ProgrammeGroupRepository
+
+  @Autowired
+  private lateinit var programmeGroupService: ProgrammeGroupService
+
+  @Autowired
+  private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
 
   @BeforeEach
   override fun beforeEach() {
@@ -36,7 +48,7 @@ class GroupWaitlistViewRepositoryIntegrationTest(@Autowired private val referral
     assertThat(waitlistItems.size).isEqualTo(3)
     assertThat(waitlistItems).allSatisfy { item ->
       assertThat(item)
-        .hasFieldOrProperty("id")
+        .hasFieldOrProperty("referralId")
         .hasFieldOrProperty("crn")
         .hasFieldOrProperty("personName")
         .hasFieldOrProperty("sentenceEndDate")
@@ -48,7 +60,20 @@ class GroupWaitlistViewRepositoryIntegrationTest(@Autowired private val referral
         .hasFieldOrProperty("status")
         .hasFieldOrProperty("pduName")
         .hasFieldOrProperty("reportingTeam")
+        .hasFieldOrProperty("activeProgrammeGroupId")
     }
+  }
+
+  @Test
+  fun `retrieve latest active_programme_group_id`() {
+    val waitlistItems = repo.findAll()
+    val referralId = waitlistItems.first().referralId
+    val group = programmeGroupService.createGroup("BCCD1")!!
+    programmeGroupMembershipService.allocateReferralToGroup(referralId, group.id!!)
+
+    val allocatedReferral = repo.findByIdOrNull(referralId)!!
+
+    assertThat(allocatedReferral.activeProgrammeGroupId).isEqualTo(group.id)
   }
 
   private fun createReferralsWithStatusHistoryAndReportingLocations() {
