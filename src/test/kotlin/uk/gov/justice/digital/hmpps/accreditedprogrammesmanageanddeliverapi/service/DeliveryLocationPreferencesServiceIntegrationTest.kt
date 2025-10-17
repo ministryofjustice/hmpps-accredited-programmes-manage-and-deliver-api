@@ -56,7 +56,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
       .withCohort(OffenceCohort.GENERAL_OFFENCE)
       .produce()
 
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
     // Create existing delivery location preferences
     val pdu = PreferredDeliveryLocationProbationDeliveryUnitEntityFactory()
@@ -181,7 +181,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
       .withCohort(OffenceCohort.GENERAL_OFFENCE)
       .produce()
 
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
     // Mock NDelius responses
     val personalDetails = NDeliusPersonalDetailsFactory()
@@ -258,7 +258,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
       .withCohort(OffenceCohort.SEXUAL_OFFENCE)
       .produce()
 
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
     // Mock NDelius responses
     val personalDetails = NDeliusPersonalDetailsFactory()
@@ -329,7 +329,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
       .withCohort(OffenceCohort.GENERAL_OFFENCE)
       .produce()
 
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
     val personalDetails = NDeliusPersonalDetailsFactory()
       .withCrn(crn)
