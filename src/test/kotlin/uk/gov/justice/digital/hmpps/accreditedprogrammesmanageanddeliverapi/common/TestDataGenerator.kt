@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.util.UUID
@@ -80,18 +81,17 @@ class TestDataGenerator {
   }
 
   fun createReferralWithStatusHistory(
-    referralEntity: ReferralEntity,
+    referralEntity: ReferralEntity? = null,
     referralStatusHistoryEntity: ReferralStatusHistoryEntity? = null,
   ) {
-    var statusHistory = referralStatusHistoryEntity
-    if (referralStatusHistoryEntity == null) {
-      statusHistory = ReferralStatusHistoryEntityFactory().produce(
-        referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
-      )
-    }
+    val referral = referralEntity ?: ReferralEntityFactory().produce()
 
-    entityManager.persist(referralEntity)
+    val statusHistory = referralStatusHistoryEntity ?: ReferralStatusHistoryEntityFactory().produce(
+      referral,
+      referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+    )
+
+    entityManager.persist(referral)
     entityManager.persist(statusHistory)
   }
 

@@ -12,6 +12,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -30,6 +31,9 @@ class ReferralEntityFactory {
   private var cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE
   private var deliveryLocationPreferences: DeliveryLocationPreferenceEntity? = null
   private var referralLdcHistories: MutableSet<ReferralLdcHistoryEntity> = mutableSetOf()
+  private var sentenceEndDate: LocalDate? = null
+  private var sex: String? = null
+  private var dateOfBirth: LocalDate? = null
 
   fun withId(id: UUID?) = apply { this.id = id }
   fun withPersonName(personName: String?) = apply { this.personName = personName }
@@ -49,6 +53,10 @@ class ReferralEntityFactory {
   fun withDeliveryLocationPreferences(deliveryLocationPreferences: DeliveryLocationPreferenceEntity) = apply { this.deliveryLocationPreferences = deliveryLocationPreferences }
 
   fun withLdcHistories(ldcHistories: MutableSet<ReferralLdcHistoryEntity>) = apply { this.referralLdcHistories = ldcHistories }
+
+  fun withSentenceEndDate(sentenceEndDate: LocalDate) = apply { this.sentenceEndDate = sentenceEndDate }
+  fun withSex(sex: String) = apply { this.sex = sex }
+  fun withDateOfBirth(dateOfBirth: LocalDate) = apply { this.dateOfBirth = dateOfBirth }
 
   fun produce() = ReferralEntity(
     id = this.id,

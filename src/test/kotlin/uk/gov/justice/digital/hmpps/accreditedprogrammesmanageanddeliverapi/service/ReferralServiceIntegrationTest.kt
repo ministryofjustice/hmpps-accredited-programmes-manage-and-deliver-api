@@ -646,7 +646,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       )
       nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
-      val referralDetails = referralService.getReferralDetails(referral.id!!)!!
+      val referralDetails = referralService.refreshPersonalDetailsForReferral(referral.id!!)!!
 
       assertThat(referralDetails.id).isEqualTo(referral.id!!)
       assertThat(referralDetails.crn).isEqualTo(referral.crn)

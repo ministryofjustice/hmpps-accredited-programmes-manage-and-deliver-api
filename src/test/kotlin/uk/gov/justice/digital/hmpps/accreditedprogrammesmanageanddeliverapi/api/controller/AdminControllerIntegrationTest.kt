@@ -6,8 +6,8 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.PopulatePersonalDetailsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 
@@ -16,15 +16,18 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
   @Autowired
   private lateinit var referralService: ReferralService
 
+  private lateinit var nDeliusApiStubs: NDeliusApiStubs
+
   @BeforeEach
   fun setup() {
     testDataCleaner.cleanAllTables()
+    nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
   }
 
   @Test
   fun `Refreshing all Personal Details (for every referral) happens with the wildcard`() {
     // Given
-    referralService.createReferral(findAndReferReferralDetails = FindAndReferReferralDetailsFactory().produce())
+    testDataGenerator.createReferralWithStatusHistory()
 
     // When
     val response = performRequestAndExpectStatusWithBody<PopulatePersonalDetailsResponse>(
