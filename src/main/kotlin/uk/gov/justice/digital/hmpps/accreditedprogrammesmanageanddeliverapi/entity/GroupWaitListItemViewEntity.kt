@@ -14,7 +14,7 @@ import java.util.UUID
 @Entity
 @Immutable
 @Table(name = "group_waitlist_item_view")
-class GroupWaitlistItemViewEntity(
+class GroupWaitListItemViewEntity(
   @NotNull
   @Id
   @Column(name = "referral_id") var referralId: UUID,

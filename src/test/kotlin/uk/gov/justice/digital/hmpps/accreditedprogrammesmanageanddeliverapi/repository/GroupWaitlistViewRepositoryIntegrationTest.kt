@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.repository.findByIdOrNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
@@ -19,7 +18,7 @@ import java.time.LocalDateTime
 class GroupWaitlistViewRepositoryIntegrationTest(@Autowired private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository) : IntegrationTestBase() {
 
   @Autowired
-  private lateinit var repo: GroupWaitlistItemViewRepository
+  private lateinit var repo: GroupWaitListItemViewRepository
 
   @Autowired
   private lateinit var programmeGroupRepository: ProgrammeGroupRepository
