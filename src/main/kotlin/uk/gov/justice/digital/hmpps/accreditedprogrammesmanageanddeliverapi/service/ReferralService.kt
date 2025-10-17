@@ -1,5 +1,8 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -58,25 +61,39 @@ class ReferralService(
     private val log = LoggerFactory.getLogger(this::class.java)
   }
 
-  fun refreshPersonalDetailsForReferral(referralId: UUID): ReferralDetails? {
-    val referral = referralRepository.findByIdOrNull(referralId) ?: return null
-    // Ensure the current LDC status from Oasys is always returned from the API, updating the LDC status associated with the referral.
-    val hasLdc = pniService.getPniCalculation(referral.crn).hasLdc()
+  suspend fun refreshPersonalDetailsForReferral(referralId: UUID): ReferralDetails? = coroutineScope {
+    val referral = referralRepository.findByIdOrNull(referralId) ?: return@coroutineScope null
+
+    val hasLdcDeferred = async(Dispatchers.IO) {
+      pniService.getPniCalculation(referral.crn).hasLdc()
+    }
+
+    val personalDetailsDeferred = async(Dispatchers.IO) {
+      serviceUserService.getPersonalDetailsByIdentifier(referral.crn)
+    }
+
+    val sentenceEndDateDeferred = async(Dispatchers.IO) {
+      sentenceService.getSentenceEndDate(
+        referral.crn,
+        referral.eventNumber,
+        referral.sourcedFrom,
+      )
+    }
+
+    val hasLdc = hasLdcDeferred.await()
 
     if (!ldcService.hasOverriddenLdcStatus(referralId)) {
       ldcService.updateLdcStatusForReferral(referral, UpdateLdc(hasLdc))
     }
 
-    val referralLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.hasLdc
-    val personalDetails = serviceUserService.getPersonalDetailsByIdentifier(referral.crn)
-    val sentenceEndDate = sentenceService.getSentenceEndDate(
-      referral.crn,
-      referral.eventNumber,
-      referral.sourcedFrom,
-    )
+    val personalDetails = personalDetailsDeferred.await()
+    val sentenceEndDate = sentenceEndDateDeferred.await()
+
     updateReferralDetails(referral, personalDetails, sentenceEndDate)
 
-    return ReferralDetails.toModel(referral, personalDetails, referralLdc)
+    val referralLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.hasLdc
+
+    ReferralDetails.toModel(referral, personalDetails, referralLdc)
   }
 
   fun getFindAndReferReferralDetails(referralId: UUID): FindAndReferReferralDetails {

@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.slf4j.LoggerFactory
-import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.util.UUID
@@ -27,8 +26,7 @@ class AdminService(
    *
    * @param referralIds List of referral UUIDs to refresh personal details for
    */
-  @Async
-  fun refreshPersonalDetailsForReferrals(referralIds: List<UUID>) {
+  suspend fun refreshPersonalDetailsForReferrals(referralIds: List<UUID>) {
     log.info("Starting refresh of personal details for {} referrals", referralIds.size)
     referralIds.forEachIndexed { index, id ->
       log.info("[{}/{}] Refreshing Personal Details for Referral with id {}...", index + 1, referralIds.size, id)
@@ -43,8 +41,7 @@ class AdminService(
    * This method is designed to run as a long-running process after the HTTP response
    * has been sent to the client.
    */
-  @Async
-  fun refreshPersonalDetailsForAllReferrals() {
+  suspend fun refreshPersonalDetailsForAllReferrals() {
     log.info("Starting refresh of personal details for all referrals")
     val ids = referralRepository.getAllIds()
     refreshPersonalDetailsForReferrals(ids)
