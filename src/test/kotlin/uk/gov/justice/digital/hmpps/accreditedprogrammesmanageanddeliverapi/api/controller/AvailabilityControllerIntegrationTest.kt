@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNull
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
@@ -21,20 +20,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateAvailability
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AvailabilityService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.DefaultAvailabilityConfigService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.toAvailabilityOptions
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.util.UUID
 
 class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
-
-  @Autowired
-  private lateinit var availabilityService: AvailabilityService
-
-  @Autowired
-  private lateinit var defaultAvailabilityConfigService: DefaultAvailabilityConfigService
 
   @BeforeEach
   fun setup() {
@@ -59,7 +50,7 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `Default availability is returned when referral with no availability exists`() {
     val referralEntity = ReferralEntityFactory().produce()
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
     val availability = performRequestAndExpectOk(
       HttpMethod.GET,
@@ -105,7 +96,7 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `Create availability is successful`() {
     val referralEntity = ReferralEntityFactory().produce()
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
     val otherDetails = "Available remotely"
     val lastModifiedBy = "AUTH_ADM"
@@ -161,7 +152,7 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
     val endDate: LocalDate = LocalDate.now().plusDays(10)
 
     val referralEntity = ReferralEntityFactory().produce()
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
     val createdAvailability = createAvailability(referralEntity, startDate, endDate, otherDetails)
 
@@ -179,7 +170,7 @@ class AvailabilityControllerIntegrationTest : IntegrationTestBase() {
     val endDate: LocalDate = LocalDate.now().plusDays(10)
 
     val referralEntity = ReferralEntityFactory().produce()
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
     val createAvailability =
       createAvailability(referralEntity, startDate, endDate, otherDetails, HttpStatus.CREATED.value())

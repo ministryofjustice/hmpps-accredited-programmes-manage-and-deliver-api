@@ -26,7 +26,7 @@ class LdcControllerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `update the LDC status for a referral when valid request sent and no existing ldc status`() {
     val referralEntity = ReferralEntityFactory().produce()
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
     val updateLdc = UpdateLdc(
       hasLdc = true,
@@ -51,7 +51,7 @@ class LdcControllerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `should return bad request if missing hasLdc property`() {
     val referralEntity = ReferralEntityFactory().produce()
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
     assertThat(referralLdcHistoryRepository.count()).isZero
 

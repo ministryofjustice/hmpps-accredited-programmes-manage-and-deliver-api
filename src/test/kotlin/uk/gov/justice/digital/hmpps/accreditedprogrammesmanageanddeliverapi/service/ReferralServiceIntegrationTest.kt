@@ -170,7 +170,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
 
-      testDataGenerator.createReferral(referralEntity)
+      testDataGenerator.createReferralWithStatusHistory(referralEntity)
       val savedReferral = referralRepository.findByCrn(crn)[0]
       val referralId = savedReferral.id!!.toString()
 
@@ -225,7 +225,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
 
-      testDataGenerator.createReferral(referralEntity)
+      testDataGenerator.createReferralWithStatusHistory(referralEntity)
       val savedReferral = referralRepository.findByCrn(crn)[0]
 
       // Stub both endpoints to return 404
@@ -264,7 +264,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
 
-      testDataGenerator.createReferral(referralEntity)
+      testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
       val savedReferral = referralRepository.findByCrn(crn)[0]
       val referralId = savedReferral.id!!.toString()
@@ -353,7 +353,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       // Given
       val aRandomUuid = UUID.randomUUID()
       val referral = ReferralEntityFactory().produce()
-      testDataGenerator.createReferral(referral)
+      testDataGenerator.createReferralWithStatusHistory(referral)
 
       // When/Then
       assertThrows<NotFoundException> {
