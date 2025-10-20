@@ -44,7 +44,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.PreferredDeliveryLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.Utils.createCodeDescriptionList
@@ -53,9 +52,6 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 class ReferralControllerIntegrationTest : IntegrationTestBase() {
-
-  @Autowired
-  private lateinit var preferredDeliveryLocationRepository: PreferredDeliveryLocationRepository
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
@@ -287,6 +283,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
       oasysApiStubs.stubSuccessfulPniResponseWithLdc(referralEntity.crn)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(referralEntity.crn, referralEntity.eventNumber)
 
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
@@ -475,7 +472,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.gender).isEqualTo(nDeliusPersonalDetails.sex.description)
       assertThat(response.setting).isEqualTo(referralEntity.setting)
       assertThat(response.probationDeliveryUnit)
-        .isEqualTo(nDeliusPersonalDetails.probationDeliveryUnit!!.description)
+        .isEqualTo(nDeliusPersonalDetails.probationDeliveryUnit.description)
     }
 
     @Test
@@ -518,7 +515,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.gender).isEqualTo(nDeliusPersonalDetails.sex.description)
       assertThat(response.setting).isEqualTo(referralEntity.setting)
       assertThat(response.probationDeliveryUnit)
-        .isEqualTo(nDeliusPersonalDetails.probationDeliveryUnit!!.description)
+        .isEqualTo(nDeliusPersonalDetails.probationDeliveryUnit.description)
     }
 
     @Test

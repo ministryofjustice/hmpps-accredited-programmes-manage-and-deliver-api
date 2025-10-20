@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import io.kotest.matchers.throwable.shouldHaveMessage
+import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -627,7 +628,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
   @WithMockAuthUser("TEST_USER")
   inner class GetReferralDetails {
     @Test
-    fun `retrieve referralDetails when referral exists and update referral values from nDelius and Oasys responses`() {
+    fun `retrieve referralDetails when referral exists and update referral values from nDelius and Oasys responses`() = runTest {
       val referral = ReferralEntityFactory().produce()
       val name = randomFullName()
       val dateOfBirth = randomDateOfBirth()
