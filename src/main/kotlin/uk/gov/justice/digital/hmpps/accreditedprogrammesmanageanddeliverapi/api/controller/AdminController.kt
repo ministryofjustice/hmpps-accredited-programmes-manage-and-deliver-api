@@ -6,8 +6,10 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
-import org.springframework.core.task.TaskExecutor
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -28,7 +30,7 @@ data class PopulatePersonalDetailsResponse(val ids: List<String>)
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
 class AdminController(
   private val adminService: AdminService,
-  private val taskExecutor: TaskExecutor,
+  private val backgroundScope: CoroutineScope = CoroutineScope(Dispatchers.Default),
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -60,7 +62,7 @@ class AdminController(
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @PostMapping("/admin/populate-personal-details", consumes = [MediaType.APPLICATION_JSON_VALUE])
-  fun populatePersonalDetails(
+  suspend fun populatePersonalDetails(
     @Parameter(
       description = """IDs of the Referrals to process.  Use "*" in the list to process all referrals.""",
       required = true,
@@ -80,10 +82,10 @@ class AdminController(
         }
       }
     } else {
-      emptyList<UUID>()
+      emptyList()
     }
 
-    taskExecutor.execute {
+    backgroundScope.launch {
       try {
         if (containsWildcard) {
           log.info("Processing all referrals")

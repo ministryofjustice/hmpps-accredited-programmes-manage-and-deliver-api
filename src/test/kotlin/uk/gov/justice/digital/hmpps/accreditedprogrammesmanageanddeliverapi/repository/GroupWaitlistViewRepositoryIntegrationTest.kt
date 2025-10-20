@@ -45,7 +45,7 @@ class GroupWaitlistViewRepositoryIntegrationTest(@Autowired private val referral
   fun `retrieve group wait list items`() {
     val waitlistItems = repo.findAll()
 
-    assertThat(waitlistItems.size).isEqualTo(3)
+    assertThat(waitlistItems.size).isEqualTo(4)
     assertThat(waitlistItems).allSatisfy { item ->
       assertThat(item)
         .hasFieldOrProperty("referralId")

@@ -81,7 +81,7 @@ class ReferralController(
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @GetMapping("/referral-details/{id}", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun getReferralDetailsById(
+  suspend fun getReferralDetailsById(
     @Parameter(description = "The id (UUID) of a referral", required = true)
     @PathVariable("id") id: UUID,
   ): ResponseEntity<ReferralDetails> = referralService.refreshPersonalDetailsForReferral(id)?.let {
