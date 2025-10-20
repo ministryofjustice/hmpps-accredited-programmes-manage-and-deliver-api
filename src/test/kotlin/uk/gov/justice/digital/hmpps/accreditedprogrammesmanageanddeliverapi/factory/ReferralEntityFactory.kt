@@ -71,6 +71,9 @@ class ReferralEntityFactory {
     eventId = this.eventId,
     eventNumber = this.eventNumber,
     cohort = this.cohort,
+    sentenceEndDate = this.sentenceEndDate,
+    sex = this.sex,
+    dateOfBirth = this.dateOfBirth,
     referralLdcHistories = referralLdcHistories,
   )
 }
