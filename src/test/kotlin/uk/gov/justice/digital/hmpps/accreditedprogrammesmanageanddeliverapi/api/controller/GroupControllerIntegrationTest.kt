@@ -68,14 +68,14 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}?allocationAndWaitlistTab=WAITLIST&page=0&size=10",
+        "/bff/group/${group.id}/WAITLIST?page=0&size=10",
         object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
       )
       // Then
       assertThat(response).isNotNull
       assertThat(response.group.code).isEqualTo("TEST001")
       assertThat(response.group.regionName).isEqualTo("TODO: Region mapping to be implemented")
-      assertThat(response.allocationAndWaitlistData.counts.waitlist).isGreaterThanOrEqualTo(0)
+      assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(0)
       assertThat(response.allocationAndWaitlistData.filters).isNotNull
       assertThat(response.allocationAndWaitlistData.filters.sex).containsExactly("Male", "Female")
       assertThat(response.allocationAndWaitlistData.filters.cohort).containsExactlyInAnyOrder(*OffenceCohort.entries.toTypedArray())
@@ -91,7 +91,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       // When & Then
       performRequestAndExpectStatus(
         HttpMethod.GET,
-        "/bff/group/$nonExistentGroupId?allocationAndWaitlistTab=WAITLIST&page=0&size=10",
+        "/bff/group/$nonExistentGroupId/WAITLIST?page=0&size=10",
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.NOT_FOUND.value(),
       )
@@ -116,14 +116,14 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       // When - Filter by Male
       val maleResponse = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}?allocationAndWaitlistTab=WAITLIST&sex=Male&page=0&size=10",
+        "/bff/group/${group.id}/WAITLIST?sex=Male&page=0&size=10",
         object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
       )
 
       // When - Filter by Female
       val femaleResponse = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}?allocationAndWaitlistTab=WAITLIST&sex=Female&page=0&size=10",
+        "/bff/group/${group.id}/WAITLIST?sex=Female&page=0&size=10",
         object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
       )
 
@@ -133,109 +133,6 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       }
       femaleResponse.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
         assertThat(item.sex).isEqualTo("Female")
-      }
-    }
-
-    @Test
-    fun `getGroupDetails filters by cohort correctly`() {
-      // Given
-      stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST003").produce()
-      testDataGenerator.createGroup(group)
-
-      val referrals = createTestWaitlistData()
-      referrals.forEach { (referral, statusHistory, reportingLocation) ->
-        testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
-          referral,
-          statusHistory,
-          reportingLocation,
-        )
-      }
-
-      // When - Filter by SEXUAL_OFFENCE
-      val sexualOffenceResponse = performRequestAndExpectOk(
-        HttpMethod.GET,
-        "/bff/group/${group.id}?allocationAndWaitlistTab=WAITLIST&cohort=SEXUAL_OFFENCE&page=0&size=10",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
-      )
-      // When - Filter by GENERAL_OFFENCE
-      val generalOffenceResponse = performRequestAndExpectOk(
-        HttpMethod.GET,
-        "/bff/group/${group.id}?allocationAndWaitlistTab=WAITLIST&cohort=GENERAL_OFFENCE&page=0&size=10",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
-      )
-
-      // Then
-      sexualOffenceResponse.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
-        assertThat(item.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
-      }
-      generalOffenceResponse.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
-        assertThat(item.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
-      }
-    }
-
-    @Test
-    fun `getGroupDetails filters by nameOrCRN correctly`() {
-      // Given
-      stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST004").produce()
-      testDataGenerator.createGroup(group)
-
-      val referrals = createTestWaitlistData()
-      referrals.forEach { (referral, statusHistory, reportingLocation) ->
-        testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
-          referral,
-          statusHistory,
-          reportingLocation,
-        )
-      }
-
-      // When - Search by name
-      val nameSearchResponse = performRequestAndExpectOk(
-        HttpMethod.GET,
-        "/bff/group/${group.id}?allocationAndWaitlistTab=WAITLIST&nameOrCRN=john&page=0&size=10",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
-      )
-      // When - Search by CRN
-      val crnSearchResponse = performRequestAndExpectOk(
-        HttpMethod.GET,
-        "/bff/group/${group.id}?allocationAndWaitlistTab=WAITLIST&nameOrCRN=CRN001&page=0&size=10",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
-      )
-
-      // Then
-      nameSearchResponse.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
-        assertThat(item.personName.lowercase()).contains("john")
-      }
-      crnSearchResponse.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
-        assertThat(item.crn.lowercase()).contains("crn001")
-      }
-    }
-
-    @Test
-    fun `getGroupDetails filters by pdu correctly`() {
-      // Given
-      stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST005").produce()
-      testDataGenerator.createGroup(group)
-
-      val referrals = createTestWaitlistData()
-      referrals.forEach { (referral, statusHistory, reportingLocation) ->
-        testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
-          referral,
-          statusHistory,
-          reportingLocation,
-        )
-      }
-      // When
-      val response = performRequestAndExpectOk(
-        HttpMethod.GET,
-        "/bff/group/${group.id}?allocationAndWaitlistTab=WAITLIST&pdu=Test PDU 1&page=0&size=10",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
-      )
-      // Then
-      response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
-        assertThat(item.pdu).isEqualTo("Test PDU 1")
       }
     }
 
@@ -259,13 +156,13 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       // When - Get first page
       val firstPageResponse = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}?allocationAndWaitlistTab=WAITLIST&page=0&size=2",
+        "/bff/group/${group.id}/WAITLIST?page=0&size=2",
         object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
       )
       // When - Get second page
       val secondPageResponse = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}?allocationAndWaitlistTab=WAITLIST&page=1&size=2",
+        "/bff/group/${group.id}/WAITLIST?page=1&size=2",
         object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
       )
 
@@ -303,7 +200,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}?allocationAndWaitlistTab=WAITLIST&sex=Male&cohort=SEXUAL_OFFENCE&pdu=Test PDU 1&page=0&size=10",
+        "/bff/group/${group.id}/WAITLIST?sex=Male&cohort=SEXUAL_OFFENCE&pdu=Test PDU 1&page=0&size=10",
         object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
       )
 
@@ -325,7 +222,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       // When & Then
       performRequestAndExpectStatus(
         HttpMethod.GET,
-        "/bff/group/${group.id}?allocationAndWaitlistTab=ALLOCATED&page=0&size=10",
+        "/bff/group/${group.id}/ALLOCATED?page=0&size=10",
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.INTERNAL_SERVER_ERROR.value(),
       )
@@ -340,7 +237,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       // When & Then
       webTestClient
         .method(HttpMethod.GET)
-        .uri("/bff/group/${group.id}?allocationAndWaitlistTab=WAITLIST&page=0&size=10")
+        .uri("/bff/group/${group.id}/WAITLIST?page=0&size=10")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .accept(MediaType.APPLICATION_JSON)
@@ -378,7 +275,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
 
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referral,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
       )
 
       val reportingLocation = ReferralReportingLocationFactory()

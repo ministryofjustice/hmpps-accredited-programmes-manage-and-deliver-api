@@ -7,7 +7,8 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
+import org.springframework.data.web.PageableDefault
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -61,29 +62,25 @@ class GroupController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/group/{groupId}", produces = [MediaType.APPLICATION_JSON_VALUE])
+  @GetMapping("/bff/group/{groupId}/{selectedTab}", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getGroupDetails(
+    @PageableDefault(page = 0, size = 10, sort = ["personName"]) pageable: Pageable,
     @Parameter(description = "The id (UUID) of a group", required = true)
     @PathVariable("groupId") groupId: UUID,
-    @Parameter(description = "View referrals allocated to a group or are in waitlist to a group")
-    @RequestParam(name = "allocationAndWaitlistTab", required = true) allocationAndWaitlistTab: AllocatedOrWaitlist,
+    @Parameter(description = "Return table data for either the allocated tab or the waitlist tab")
+    @PathVariable("selectedTab") selectedTab: AllocatedOrWaitlist,
     @Parameter(description = "Filter by the sex of the person in the referral")
     @RequestParam(name = "sex", required = false) sex: String?,
     @Parameter(description = "Filter by the cohort of the referral Eg: SEXUAL_OFFENCE or GENERAL_OFFENCE")
     @RequestParam(name = "cohort", required = false) cohort: OffenceCohort?,
     @Parameter(description = "Search by the name or the CRN of the offender in the referral")
     @RequestParam(name = "nameOrCRN", required = false) nameOrCRN: String?,
-    @Parameter(description = "Filter by the pdu of the referral")
+    @Parameter(description = "Filter by the human readable pdu of the referral, i.e. 'All London'")
     @RequestParam(name = "pdu", required = false) pdu: String?,
-    @Parameter(description = "Page number (0-based)")
-    @RequestParam(name = "page", defaultValue = "0") page: Int,
-    @Parameter(description = "Page size")
-    @RequestParam(name = "size", defaultValue = "20") size: Int,
   ): ResponseEntity<ProgrammeGroupDetails> {
     val groupEntity = programmeGroupService.getGroupById(groupId)
-    val pageable = PageRequest.of(page, size)
 
-    val allocationAndWaitlistData = if (allocationAndWaitlistTab == AllocatedOrWaitlist.WAITLIST) {
+    val allocationAndWaitlistData = if (selectedTab == AllocatedOrWaitlist.WAITLIST) {
       val pagedWaitlistData = programmeGroupService.getGroupWaitlistData(
         groupId = groupId,
         sex = sex,
@@ -94,10 +91,10 @@ class GroupController(
       )
 
       ProgrammeGroupDetails.AllocationAndWaitlistData(
-        counts = ProgrammeGroupDetails.Counts(waitlist = pagedWaitlistData.totalElements.toInt()),
+        counts = ProgrammeGroupDetails.Counts(waitlist = pagedWaitlistData.content.count { it.status == "Awaiting allocation" }),
         filters = programmeGroupService.getGroupFilters(),
         pagination = ProgrammeGroupDetails.Pagination(page = pagedWaitlistData.number, size = pagedWaitlistData.size),
-        paginatedWaitlistData = pagedWaitlistData.content,
+        paginatedWaitlistData = pagedWaitlistData.content.filter { it.status == "Awaiting allocation" },
       )
     } else {
       throw NotImplementedError("Allocated view not yet implemented")

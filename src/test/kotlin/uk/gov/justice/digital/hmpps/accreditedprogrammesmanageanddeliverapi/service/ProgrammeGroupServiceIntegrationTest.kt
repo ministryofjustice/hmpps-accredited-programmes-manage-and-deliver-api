@@ -220,59 +220,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     assertThat(pduResults.content).allMatch { it.pdu == "Test PDU 1" }
   }
 
-  @Test
-  fun `getGroupWaitlistData handles pagination correctly`() {
-    // Given
-    val group = setupGroupWaitListItemTestData()
-
-    // When
-    val firstPage = programmeGroupService.getGroupWaitlistData(
-      groupId = group.id!!,
-      sex = null,
-      cohort = null,
-      nameOrCRN = null,
-      pdu = null,
-      pageable = PageRequest.of(0, 2),
-    )
-
-    val secondPage = programmeGroupService.getGroupWaitlistData(
-      groupId = group.id!!,
-      sex = null,
-      cohort = null,
-      nameOrCRN = null,
-      pdu = null,
-      pageable = PageRequest.of(1, 2),
-    )
-
-    // THen
-    assertThat(firstPage.content).hasSize(2)
-    assertThat(secondPage.content).hasSize(2)
-    assertThat(firstPage.totalElements).isGreaterThanOrEqualTo(4)
-    assertThat(firstPage.content).doesNotContainAnyElementsOf(secondPage.content)
-  }
-
-  @Test
-  fun `getGroupWaitlistData combines multiple filters correctly`() {
-    // Given
-    val group = setupGroupWaitListItemTestData()
-    val pageable = PageRequest.of(0, 10)
-
-    // When
-    val combinedResults = programmeGroupService.getGroupWaitlistData(
-      groupId = group.id!!,
-      sex = "Male",
-      cohort = OffenceCohort.SEXUAL_OFFENCE,
-      nameOrCRN = null,
-      pdu = "Test PDU 1",
-      pageable = pageable,
-    )
-
-    // Then
-    assertThat(combinedResults.content).allMatch {
-      it.sex == "Male" && it.cohort == OffenceCohort.SEXUAL_OFFENCE && it.pdu == "Test PDU 1"
-    }
-  }
-
   private fun setupGroupWaitListItemTestData(): ProgrammeGroupEntity {
     val group = ProgrammeGroupFactory().withCode("TEST002").produce()
     testDataGenerator.createGroup(group)
