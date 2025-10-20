@@ -37,7 +37,7 @@ class DeliveryLocationPreferencesControllerIntegrationTest : IntegrationTestBase
   fun `create delivery preferences for referral that exists and does not have existing locations or pdus`() {
     val referralEntity = ReferralEntityFactory().produce()
     val createDeliveryLocationPreferences = CreateDeliveryLocationPreferencesFactory().produce()
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
     assertThat(deliveryLocationProbationDeliveryUnitRepository.count()).isZero
 
@@ -144,7 +144,7 @@ class DeliveryLocationPreferencesControllerIntegrationTest : IntegrationTestBase
   @Test
   fun `create delivery preferences for referral when no deliveryLocations are passed`() {
     val referralEntity = ReferralEntityFactory().produce()
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
     assertThat(deliveryLocationProbationDeliveryUnitRepository.count()).isZero
 
@@ -169,7 +169,7 @@ class DeliveryLocationPreferencesControllerIntegrationTest : IntegrationTestBase
   @Test
   fun `when cannotAttendText is empty string convert to null and create Delivery Location Preferences`() {
     val referralEntity = ReferralEntityFactory().produce()
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
     val createDeliveryLocationPreferences = CreateDeliveryLocationPreferencesFactory()
       .withCannotAttendText("")
       .produce()
@@ -189,7 +189,7 @@ class DeliveryLocationPreferencesControllerIntegrationTest : IntegrationTestBase
   @Test
   fun `should return bad request when preferredLocations - pduCode is null or blank`() {
     val referralEntity = ReferralEntityFactory().produce()
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
     val preferredDeliveryLocations = mutableSetOf(
       PreferredDeliveryLocationsFactory().withPduCode("").produce(),
@@ -212,7 +212,7 @@ class DeliveryLocationPreferencesControllerIntegrationTest : IntegrationTestBase
   @Test
   fun `should return bad request when preferredLocations - pduDescription is null or blank`() {
     val referralEntity = ReferralEntityFactory().produce()
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
     val preferredDeliveryLocations = mutableSetOf(
       PreferredDeliveryLocationsFactory().withPduDescription("").produce(),
@@ -463,7 +463,7 @@ class DeliveryLocationPreferencesControllerIntegrationTest : IntegrationTestBase
   fun `should return 404 when updating delivery preferences that do not exist for referral`() {
     // Given
     val referralEntity = ReferralEntityFactory().produce()
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
     val updateDeliveryLocationPreferences = CreateDeliveryLocationPreferencesFactory().produce()
 

@@ -33,7 +33,7 @@ class ReferralLdcHistoryRepositoryIntegrationTest : IntegrationTestBase() {
     val referralEntity = ReferralEntityFactory().produce()
     val ldcEntity1 = ReferralLdcHistoryFactory().withReferral(referralEntity).withHasLdc(true).produce()
     val ldcEntity2 = ReferralLdcHistoryFactory().withReferral(referralEntity).withHasLdc(false).produce()
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
     testDataGenerator.createLdcHistoryForAReferral(ldcEntity1)
     testDataGenerator.createLdcHistoryForAReferral(ldcEntity2)
 

@@ -30,11 +30,6 @@ class TestDataGenerator {
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
 
-  @Deprecated("Use createReferralWithStatusHistory")
-  fun createReferral(referralEntity: ReferralEntity) {
-    entityManager.persist(referralEntity)
-  }
-
   fun createPreferredDeliveryLocationProbationDeliveryUnit(preferredDeliveryLocationProbationDeliveryUnit: PreferredDeliveryLocationProbationDeliveryUnitEntity) {
     entityManager.persist(preferredDeliveryLocationProbationDeliveryUnit)
   }
@@ -53,7 +48,7 @@ class TestDataGenerator {
     preferredDeliveryLocation: PreferredDeliveryLocationEntity? = null,
     deliveryLocationPreference: DeliveryLocationPreferenceEntity? = null,
   ) {
-    createReferral(referralEntity)
+    createReferralWithStatusHistory(referralEntity)
     pdu?.let { createPreferredDeliveryLocationProbationDeliveryUnit(pdu) }
     preferredDeliveryLocation?.let { createPreferredDeliveryLocation(preferredDeliveryLocation) }
     deliveryLocationPreference?.let { createDeliveryLocationPreference(deliveryLocationPreference) }

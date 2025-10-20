@@ -32,7 +32,7 @@ class DeliveryLocationPreferencesRepositoryIntegrationTest : IntegrationTestBase
   @WithMockAuthUser("PROB_PRACTITIONER_1")
   fun `should retrieve a delivery location preference for a referral`() {
     val referralEntity = ReferralEntityFactory().produce()
-    testDataGenerator.createReferral(referralEntity)
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
 
     val preferredDeliveryLocationProbationDeliveryUnit = PreferredDeliveryLocationProbationDeliveryUnitEntity(
       deliusCode = "THE-PDU-CODE",
