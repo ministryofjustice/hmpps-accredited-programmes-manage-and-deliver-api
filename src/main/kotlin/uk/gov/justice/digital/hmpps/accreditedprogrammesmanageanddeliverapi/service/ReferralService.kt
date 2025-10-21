@@ -48,7 +48,7 @@ class ReferralService(
   private val ndeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val referralRepository: ReferralRepository,
   private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
-  private val serviceUserService: ServiceUserService,
+  private val userService: UserService,
   private val cohortService: CohortService,
   private val pniService: PniService,
   private val referralStatusHistoryRepository: ReferralStatusHistoryRepository,
@@ -69,7 +69,7 @@ class ReferralService(
     }
 
     val personalDetailsDeferred = async(Dispatchers.IO) {
-      serviceUserService.getPersonalDetailsByIdentifier(referral.crn)
+      userService.getPersonalDetailsByIdentifier(referral.crn)
     }
 
     val sentenceEndDateDeferred = async(Dispatchers.IO) {

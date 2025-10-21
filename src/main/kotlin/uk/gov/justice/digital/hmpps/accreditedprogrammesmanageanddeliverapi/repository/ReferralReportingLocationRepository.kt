@@ -10,6 +10,6 @@ import java.util.UUID
 interface ReferralReportingLocationRepository : JpaRepository<ReferralReportingLocationEntity, ReferralEntity> {
   fun findByReferralId(referralId: UUID?): ReferralReportingLocationEntity?
 
-  @Query("SELECT r.pduName, r.reportingTeam FROM ReferralReportingLocationEntity r GROUP BY r.pduName, r.reportingTeam")
+  @Query("SELECT DISTINCT r.pduName, r.reportingTeam FROM ReferralReportingLocationEntity r")
   fun getPdusAndReportingTeams(): List<PduReportingLocation>
 }

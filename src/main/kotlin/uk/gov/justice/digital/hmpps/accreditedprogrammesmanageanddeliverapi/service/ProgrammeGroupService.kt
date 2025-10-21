@@ -57,12 +57,10 @@ class ProgrammeGroupService(
 
   fun getGroupFilters(): ProgrammeGroupDetails.Filters {
     val referralReportingLocations = referralReportingLocationRepository.getPdusAndReportingTeams()
-    val distinctPDUs = referralReportingLocations.map { it.pduName }.distinct()
-    val distinctReportingTeams = referralReportingLocations.map { it.reportingTeam }.distinct()
 
     return ProgrammeGroupDetails.Filters(
-      pduNames = distinctPDUs,
-      reportingTeams = distinctReportingTeams,
+      pduNames = referralReportingLocations.map { it.pduName }.distinct(),
+      reportingTeams = referralReportingLocations.map { it.reportingTeam }.distinct(),
     )
   }
 }
