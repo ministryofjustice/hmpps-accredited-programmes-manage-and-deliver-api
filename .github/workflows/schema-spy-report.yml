@@ -3,7 +3,7 @@ name: Database schema report
 on:
   push:
     branches:
-      - 'main'
+      - '**'
   workflow_dispatch:
     inputs:
       java_options:
@@ -16,7 +16,7 @@ on:
 jobs:
   database_report:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    #    if: github.ref == 'refs/heads/main'
     name: Generate Database Schema Report
     steps:
       - name: Checkout code
