@@ -11,8 +11,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.LocationFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.StatusFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.toApi
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
@@ -23,10 +21,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 @Service
 class ReferralCaseListItemService(
   private val referralCaseListItemRepository: ReferralCaseListItemRepository,
-  private val serviceUserService: ServiceUserService,
+  private val userService: UserService,
   private val referralStatusService: ReferralStatusService,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
-  private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
+
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
   fun getReferralCaseListItemServiceByCriteria(
@@ -74,7 +72,7 @@ class ReferralCaseListItemService(
     pdu: String?,
     reportingTeams: List<String>?,
   ): Page<ReferralCaseListItemViewEntity> {
-    val userRegions = getUserRegions(username)
+    val userRegions = userService.getUserRegions(username)
 
     val possibleStatuses = referralStatusService.getOpenOrClosedStatusesDescriptions(openOrClosed)
 
@@ -95,7 +93,7 @@ class ReferralCaseListItemService(
       return PageImpl(emptyList(), pageable, 0)
     }
 
-    val allowedCrns = serviceUserService.getAccessibleOffenders(username, crns)
+    val allowedCrns = userService.getAccessibleOffenders(username, crns)
 
     if (allowedCrns.isEmpty()) {
       log.warn("No CRNs are allowed for user: $username. Returning empty list for ReferralCaseList.")
@@ -104,28 +102,6 @@ class ReferralCaseListItemService(
 
     val restrictedSpec = withAllowedCrns(specWithRegions, allowedCrns)
     return referralCaseListItemRepository.findAll(restrictedSpec, pageable)
-  }
-
-  /**
-   * Fetches the list of region names that the given user has access to via their teams in nDelius.
-   *
-   * @param username The username to fetch regions for
-   * @return List of region names (descriptions) the user has access to
-   */
-  private fun getUserRegions(username: String): List<String> = when (val result = nDeliusIntegrationApiClient.getTeamsForUser(username)) {
-    is ClientResult.Success -> {
-      val regionNames = result.body.teams.map { it.region.description }.distinct()
-      if (regionNames.isEmpty()) {
-        log.warn("User $username has teams but no regions associated with them")
-      } else {
-        log.debug("User $username has access to regions: ${regionNames.joinToString(", ")}")
-      }
-      regionNames
-    }
-    is ClientResult.Failure -> {
-      log.error("Failed to fetch teams for user $username: ${result.toException().message}")
-      emptyList()
-    }
   }
 
   fun getCaseListFilterData(): CaseListFilterValues {

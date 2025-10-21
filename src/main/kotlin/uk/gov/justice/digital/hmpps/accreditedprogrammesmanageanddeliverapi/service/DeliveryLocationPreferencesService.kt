@@ -30,7 +30,7 @@ import java.util.UUID
 class DeliveryLocationPreferencesService(
   private val deliveryLocationPreferenceRepository: DeliveryLocationPreferenceRepository,
   private val referralService: ReferralService,
-  private val serviceUserService: ServiceUserService,
+  private val userService: UserService,
   private val preferredDeliveryLocationProbationDeliveryUnitRepository: PreferredDeliveryLocationProbationDeliveryUnitRepository,
   private val preferredDeliveryLocationRepository: PreferredDeliveryLocationRepository,
   private val referralRepository: ReferralRepository,
@@ -110,7 +110,7 @@ class DeliveryLocationPreferencesService(
 
     val referral = referralService.getReferralById(referralId)
 
-    val personalDetails = serviceUserService.getPersonalDetailsByIdentifier(referral.crn)
+    val personalDetails = userService.getPersonalDetailsByIdentifier(referral.crn)
 
     val existingPreferences = deliveryLocationPreferenceRepository.findByReferralId(referralId)
 

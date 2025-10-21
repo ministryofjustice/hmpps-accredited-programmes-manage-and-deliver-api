@@ -36,14 +36,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.OffenceService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SentenceService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ServiceUserService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import java.util.UUID
 
 @RestController
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
 class ReferralController(
   private val referralService: ReferralService,
-  private val serviceUserService: ServiceUserService,
+  private val userService: UserService,
   private val offenceService: OffenceService,
   private val sentenceService: SentenceService,
   private val deliveryLocationPreferencesService: DeliveryLocationPreferencesService,
@@ -123,7 +123,7 @@ class ReferralController(
     @PathVariable("id") id: UUID,
   ): ResponseEntity<PersonalDetails> {
     val referral = referralService.getReferralById(id)
-    return serviceUserService.getPersonalDetailsByIdentifier(referral.crn).let {
+    return userService.getPersonalDetailsByIdentifier(referral.crn).let {
       ResponseEntity.ok(it.toModel(referral.setting))
     } ?: throw NotFoundException("Personal details not found for crn ${referral.crn} not found")
   }

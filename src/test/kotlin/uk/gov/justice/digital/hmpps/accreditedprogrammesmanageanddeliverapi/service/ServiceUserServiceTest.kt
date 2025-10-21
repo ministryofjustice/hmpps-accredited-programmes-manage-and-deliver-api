@@ -26,7 +26,7 @@ class ServiceUserServiceTest {
 
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient = mockk()
   private val hmppsAuthenticationHolder: HmppsAuthenticationHolder = mockk()
-  private val service = ServiceUserService(nDeliusIntegrationApiClient, hmppsAuthenticationHolder)
+  private val service = UserService(nDeliusIntegrationApiClient, hmppsAuthenticationHolder)
 
   @BeforeEach
   fun setUp() {

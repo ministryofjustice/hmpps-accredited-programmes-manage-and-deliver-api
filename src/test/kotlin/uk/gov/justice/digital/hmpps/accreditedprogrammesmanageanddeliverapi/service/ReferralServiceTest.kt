@@ -42,7 +42,7 @@ class ReferralServiceTest {
   private lateinit var referralStatusHistoryRepository: ReferralStatusHistoryRepository
 
   @Mock
-  private lateinit var serviceUserService: ServiceUserService
+  private lateinit var userService: UserService
 
   @Mock
   private lateinit var ldcService: LdcService
