@@ -34,10 +34,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import java.time.LocalDate
 import java.util.UUID
 
-class GroupControllerIntegrationTest : IntegrationTestBase() {
-
-  @Autowired
-  private lateinit var referralRepository: ReferralRepository
+class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralRepository: ReferralRepository) : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository

@@ -10,12 +10,14 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
@@ -24,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toAllocatedItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
@@ -36,10 +39,11 @@ import java.util.UUID
 )
 @RestController
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
-class GroupController(
+class ProgrammeGroupController(
   private val programmeGroupService: ProgrammeGroupService,
   private val userService: UserService,
   private val authenticationHolder: HmppsAuthenticationHolder,
+  private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
 ) {
 
   @Operation(
@@ -109,6 +113,26 @@ class GroupController(
         allocationAndWaitlistData = allocationAndWaitlistData,
       ),
     )
+  }
+
+  @PostMapping(
+    "/group/{groupId}/allocate/{referralId}",
+    consumes = [MediaType.APPLICATION_JSON_VALUE],
+  )
+  fun allocateToProgrammeGroup(
+    @Parameter(
+      description = "The group_id (UUID) of the group to allocate to",
+      required = true,
+    )
+    @PathVariable("groupId") groupId: UUID,
+    @Parameter(
+      description = "The referralId (UUID) of a referral",
+      required = true,
+    )
+    @PathVariable("referralId") referralId: UUID,
+  ): ResponseEntity<Void> {
+    programmeGroupMembershipService.allocateReferralToGroup(referralId, groupId)
+    return ResponseEntity.status(HttpStatus.OK).build()
   }
 
   private fun buildAllocationAndWaitlistData(
