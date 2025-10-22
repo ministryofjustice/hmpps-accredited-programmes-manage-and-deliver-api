@@ -296,9 +296,21 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       .produce()
 
     // Persist test data
-    testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral1, statusHistory1, reportingLocation1)
-    testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral2, statusHistory2, reportingLocation2)
-    testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral3, statusHistory3, reportingLocation3)
+    testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+      referral1,
+      statusHistory1,
+      reportingLocation1,
+    )
+    testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+      referral2,
+      statusHistory2,
+      reportingLocation2,
+    )
+    testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+      referral3,
+      statusHistory3,
+      reportingLocation3,
+    )
 
     // When
     val filters = programmeGroupService.getGroupFilters()
@@ -334,7 +346,11 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         .withReportingTeam(reportingTeam)
         .produce()
 
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral, statusHistory, reportingLocation)
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+        referral,
+        statusHistory,
+        reportingLocation,
+      )
     }
 
     // When

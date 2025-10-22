@@ -29,3 +29,10 @@ fun GroupWaitlistItemViewEntity.toApi() = GroupWaitlistItem(
   reportingTeam = reportingTeam,
   status = status,
 )
+
+fun GroupWaitlistItem.toAllocatedItem() = GroupAllocatedItem(
+  crn = crn,
+  personName = personName,
+  sentenceEndDate = sentenceEndDate,
+  status = status,
+)
