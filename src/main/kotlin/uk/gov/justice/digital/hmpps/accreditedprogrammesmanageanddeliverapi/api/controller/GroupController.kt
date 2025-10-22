@@ -115,8 +115,7 @@ class GroupController(
     selectedTab: GroupPageTab,
     pagedWaitlistData: Page<GroupWaitlistItem>,
   ): ProgrammeGroupDetails.AllocationAndWaitlistData {
-    val waitlistItems = pagedWaitlistData.content.filter { isAwaitingAllocation(it) }
-    val allocatedItems = pagedWaitlistData.content.filter { !isAwaitingAllocation(it) }
+    val (waitlistItems, allocatedItems) = pagedWaitlistData.content.partition { isAwaitingAllocation(it) }
 
     return when (selectedTab) {
       GroupPageTab.WAITLIST -> createWaitlistTabData(waitlistItems, allocatedItems, pagedWaitlistData)
