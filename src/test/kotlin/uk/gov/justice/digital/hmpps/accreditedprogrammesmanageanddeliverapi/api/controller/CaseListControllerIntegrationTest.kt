@@ -205,13 +205,41 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       referral6.referralReportingLocationEntity = referralReportingLocation6
       referral7.referralReportingLocationEntity = referralReportingLocation7
 
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral1, statusHistory1, referralReportingLocation1)
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral2, statusHistory2, referralReportingLocation2)
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral3, statusHistory3, referralReportingLocation3)
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral4, statusHistory4, referralReportingLocation4)
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral5, statusHistory5, referralReportingLocation5)
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral6, statusHistory6, referralReportingLocation6)
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(referral7, statusHistory7, referralReportingLocation7)
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+        referral1,
+        statusHistory1,
+        referralReportingLocation1,
+      )
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+        referral2,
+        statusHistory2,
+        referralReportingLocation2,
+      )
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+        referral3,
+        statusHistory3,
+        referralReportingLocation3,
+      )
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+        referral4,
+        statusHistory4,
+        referralReportingLocation4,
+      )
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+        referral5,
+        statusHistory5,
+        referralReportingLocation5,
+      )
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+        referral6,
+        statusHistory6,
+        referralReportingLocation6,
+      )
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+        referral7,
+        statusHistory7,
+        referralReportingLocation7,
+      )
     }
 
     @Test

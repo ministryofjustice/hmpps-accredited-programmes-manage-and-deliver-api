@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
@@ -25,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import java.time.LocalDate
 import java.util.UUID
@@ -196,19 +198,45 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `getGroupDetails returns 500 for ALLOCATED tab as it is not implemented`() {
+  fun `getGroupDetails returns 200 for ALLOCATED tab with all data when no filters are provided`() {
     // Given
+    testDataCleaner.cleanAllTables()
     val group = ProgrammeGroupFactory().withCode("TEST008").produce()
     testDataGenerator.createGroup(group)
     stubAuthTokenEndpoint()
 
-    // When & Then
-    performRequestAndExpectStatus(
+    val allocatedListData = createTestAllocatedListData()
+    allocatedListData.forEach { (referral, statusHistory, reportingLocation) ->
+      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+        referral,
+        statusHistory,
+        reportingLocation,
+      )
+    }
+    allocatedListData.forEach { programmeGroupMembershipService.allocateReferralToGroup(it.first.id!!, group.id!!) }
+
+    // When
+    val response = performRequestAndExpectOk(
       HttpMethod.GET,
-      "/bff/group/${group.id}/ALLOCATED?page=0&size=10",
-      object : ParameterizedTypeReference<ErrorResponse>() {},
-      HttpStatus.INTERNAL_SERVER_ERROR.value(),
+      "/bff/group/${group.id}/ALLOCATED",
+      object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
     )
+
+    // Then
+    assertThat(response).isNotNull
+    assertThat(response.group.code).isEqualTo("TEST008")
+    assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
+    assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(0)
+    assertThat(response.allocationAndWaitlistData.counts.allocated).isEqualTo(6)
+    assertThat(response.allocationAndWaitlistData.filters).isNotNull
+    assertThat(response.allocationAndWaitlistData.filters.sex).containsExactly("Male", "Female")
+    assertThat(response.allocationAndWaitlistData.filters.cohort).containsExactlyInAnyOrder(*OffenceCohort.entries.toTypedArray())
+    assertThat(response.allocationAndWaitlistData.pagination.size).isEqualTo(10)
+    assertThat(response.allocationAndWaitlistData.pagination.page).isEqualTo(0)
+    assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isEmpty()
+    assertThat(response.allocationAndWaitlistData.paginatedAllocationData).isNotEmpty
+    assertThat(response.allocationAndWaitlistData.paginatedAllocationData).hasSize(6)
+    assertThat(response.allocationAndWaitlistData.paginatedAllocationData).noneMatch { it.status == ReferralStatusType.AWAITING_ALLOCATION.description }
   }
 
   @Test
@@ -231,11 +259,20 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
   }
 
   private fun createTestWaitlistData() = listOf(
-    createReferralWithWaitlistStatus("CRN001", "John Smith", "Male", "Sexual offence", "Test PDU 1", "Team A"),
-    createReferralWithWaitlistStatus("CRN002", "Jane Doe", "Female", "General offence", "Test PDU 2", "Team B"),
-    createReferralWithWaitlistStatus("CRN003", "John Brown", "Male", "Sexual offence", "Test PDU 1", "Team A"),
-    createReferralWithWaitlistStatus("CRN004", "Mary Johnson", "Female", "General offence", "Test PDU 2", "Team B"),
-    createReferralWithWaitlistStatus("CRN005", "Bob Wilson", "Male", "General offence", "Test PDU 1", "Team C"),
+    createReferralWithWaitlistStatus("CRN001", "John Smith", "Male", "Sexual offence", "Test PDU 1", "Team A", ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription),
+    createReferralWithWaitlistStatus("CRN002", "Jane Doe", "Female", "General offence", "Test PDU 2", "Team B", ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription),
+    createReferralWithWaitlistStatus("CRN003", "John Brown", "Male", "Sexual offence", "Test PDU 1", "Team A", ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription),
+    createReferralWithWaitlistStatus("CRN004", "Mary Johnson", "Female", "General offence", "Test PDU 2", "Team B", ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription),
+    createReferralWithWaitlistStatus("CRN005", "Bob Wilson", "Male", "General offence", "Test PDU 1", "Team C", ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription),
+  )
+
+  private fun createTestAllocatedListData() = listOf(
+    createReferralWithWaitlistStatus("CRN006", "John Smith", "Male", "Sexual offence", "Test PDU 1", "Team A", ReferralStatusDescriptionRepository::getOnProgrammeStatusDescription),
+    createReferralWithWaitlistStatus("CRN007", "Jane Doe", "Female", "General offence", "Test PDU 2", "Team B", ReferralStatusDescriptionRepository::getAwaitingAssessmentStatusDescription),
+    createReferralWithWaitlistStatus("CRN008", "John Brown", "Male", "Sexual offence", "Test PDU 1", "Team A", ReferralStatusDescriptionRepository::getScheduledStatusDescription),
+    createReferralWithWaitlistStatus("CRN009", "Mary Doe", "Female", "General offence", "Test PDU 3", "Team B", ReferralStatusDescriptionRepository::getOnProgrammeStatusDescription),
+    createReferralWithWaitlistStatus("CRN010", "Bob Wilson", "Male", "General offence", "Test PDU 1", "Team C", ReferralStatusDescriptionRepository::getReturnToCourtStatusDescription),
+    createReferralWithWaitlistStatus("CRN011", "John Doe", "Male", "General offence", "Test PDU 2", "Team C", ReferralStatusDescriptionRepository::getOnProgrammeStatusDescription),
   )
 
   private fun createReferralWithWaitlistStatus(
@@ -245,6 +282,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
     cohort: String,
     pduName: String,
     reportingTeam: String,
+    getReferralStatusDescriptionFunction: (ReferralStatusDescriptionRepository) -> ReferralStatusDescriptionEntity,
   ): Triple<ReferralEntity, ReferralStatusHistoryEntity, ReferralReportingLocationEntity> {
     val referral = ReferralEntityFactory()
       .withCrn(crn)
@@ -258,7 +296,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
 
     val statusHistory = ReferralStatusHistoryEntityFactory().produce(
       referral,
-      referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+      getReferralStatusDescriptionFunction.invoke(referralStatusDescriptionRepository),
     )
 
     val reportingLocation = ReferralReportingLocationFactory()
