@@ -32,7 +32,7 @@ dependencies {
   // security
   implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.6")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client:3.5.6")
-  implementation("org.springframework.security:spring-security-crypto:6.5.5")
+  implementation("org.springframework.security:spring-security-crypto:6.5.6")
   implementation("com.nimbusds:oauth2-oidc-sdk:11.30")
 
   testImplementation("org.wiremock:wiremock-standalone:3.13.1")
