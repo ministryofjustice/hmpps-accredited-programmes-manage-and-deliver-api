@@ -115,6 +115,39 @@ class ProgrammeGroupController(
     )
   }
 
+  @Operation(
+    tags = ["Programme Group controller"],
+    summary = "Allocate a referral to a programme group",
+    operationId = "allocateToProgrammeGroup",
+    description = "Allocate a referral to a specific programme group",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Referral successfully allocated to the programme group",
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid request format or invalid UUID format",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden. The client is not authorised to allocate to this group.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The group or referral does not exist",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
   @PostMapping(
     "/group/{groupId}/allocate/{referralId}",
     consumes = [MediaType.APPLICATION_JSON_VALUE],
