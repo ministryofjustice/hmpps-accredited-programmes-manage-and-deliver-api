@@ -7,7 +7,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.mostRecentStatus
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import java.time.LocalDate
 import java.util.UUID
 
@@ -116,6 +116,7 @@ data class ReferralDetails(
       referral: ReferralEntity,
       nDeliusPersonalDetails: NDeliusPersonalDetails,
       hasLdc: Boolean? = false,
+      latestReferralStatus: ReferralStatusDescriptionEntity,
     ): ReferralDetails = ReferralDetails(
       id = referral.id!!,
       crn = referral.crn,
@@ -128,7 +129,7 @@ data class ReferralDetails(
       cohort = referral.cohort,
       hasLdc = LdcStatus.fromBoolean(hasLdc).value,
       hasLdcDisplayText = LdcStatus.getDisplayText(hasLdc),
-      currentStatusDescription = referral.mostRecentStatus().description,
+      currentStatusDescription = latestReferralStatus.description,
     )
   }
 }

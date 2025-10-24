@@ -90,6 +90,19 @@ class TestDataGenerator {
     entityManager.persist(statusHistory)
   }
 
+  fun createReferralWithStatusHistory(
+    referralEntity: ReferralEntity? = null,
+    statusDescriptionList: List<ReferralStatusDescriptionEntity>,
+  ) {
+    val referral = referralEntity ?: ReferralEntityFactory().produce()
+    entityManager.persist(referral)
+
+    statusDescriptionList.forEach {
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(referral, it)
+      entityManager.persist(statusHistory)
+    }
+  }
+
   fun createGroupMembership(
     programmeGroupMembership: ProgrammeGroupMembershipEntity,
   ) {

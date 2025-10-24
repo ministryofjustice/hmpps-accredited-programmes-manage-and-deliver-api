@@ -5,7 +5,9 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
 
 class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase() {
 
@@ -99,5 +101,29 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
   fun `getWithdrawnStatusDescription returns a Referral Status Description`() {
     val result = repository.getWithdrawnStatusDescription()
     assertThat(result.description).isEqualTo("Withdrawn")
+  }
+
+  @Test
+  fun `findMostRecentStatusByReferralId returns most recent associated referral status history record`() {
+    // Given
+    val referral = ReferralEntityFactory().produce()
+    testDataGenerator.createReferralWithStatusHistory(
+      referral,
+      listOf(
+        repository.getAwaitingAssessmentStatusDescription(),
+        repository.getSuitableButNotReadyStatusDescription(),
+        repository.getDeprioritisedStatusDescription(),
+        repository.getRecallStatusDescription(),
+        repository.getOnProgrammeStatusDescription(),
+        repository.getProgrammeCompleteStatusDescription(),
+      ),
+    )
+
+    // When
+    val latestStatus = repository.findMostRecentStatusByReferralId(referral.id!!)
+
+    // Then
+    assertThat(latestStatus).isNotNull
+    assertThat(latestStatus?.description).isEqualTo(ReferralStatusType.PROGRAMME_COMPLETE.description)
   }
 }

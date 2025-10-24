@@ -52,4 +52,16 @@ interface ReferralStatusDescriptionRepository : JpaRepository<ReferralStatusDesc
   @Override()
   fun save(entity: ReferralStatusDescriptionEntity): Unit = throw NotImplementedError("Not implemented yet")
   fun findAllByIsClosed(isClosed: Boolean): MutableList<ReferralStatusDescriptionEntity>
+
+  @Query(
+    """
+        SELECT rsd FROM ReferralEntity r 
+        JOIN r.statusHistories sh 
+        JOIN sh.referralStatusDescription rsd 
+        WHERE r.id = :referralId 
+        ORDER BY sh.createdAt DESC 
+        LIMIT 1
+    """,
+  )
+  fun findMostRecentStatusByReferralId(referralId: UUID): ReferralStatusDescriptionEntity?
 }
