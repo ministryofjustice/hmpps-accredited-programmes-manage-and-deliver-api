@@ -10,9 +10,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentlyAllocatedGroup
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.mostRecentStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.util.UUID
 
 @Service
@@ -20,6 +20,7 @@ import java.util.UUID
 class ProgrammeGroupMembershipService(
   private val programmeGroupRepository: ProgrammeGroupRepository,
   private val referralRepository: ReferralRepository,
+  private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -29,7 +30,8 @@ class ProgrammeGroupMembershipService(
     val group =
       programmeGroupRepository.findByIdOrNull(groupId) ?: throw NotFoundException("Group with id $groupId not found")
 
-    if (referral.mostRecentStatus().isClosed) {
+    val latestStatus = referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId)
+    if (latestStatus?.isClosed == true) {
       throw BusinessException("Cannot assign referral to group as referral with id ${referral.id} is in a closed state")
     }
 

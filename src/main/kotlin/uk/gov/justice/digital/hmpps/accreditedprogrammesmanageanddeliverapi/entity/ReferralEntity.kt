@@ -122,14 +122,7 @@ class ReferralEntity(
     mappedBy = "referral",
   )
   var programmeGroupMemberships: MutableSet<ProgrammeGroupMembershipEntity> = mutableSetOf(),
-
 )
-
-fun ReferralEntity.mostRecentStatus(): ReferralStatusDescriptionEntity {
-  val mostRecentStatus = this.statusHistories.maxBy { it.createdAt }.referralStatusDescription
-
-  return mostRecentStatus
-}
 
 // There should only be one active group membership at any given time
 fun ReferralEntity.currentlyAllocatedGroup(): ProgrammeGroupMembershipEntity? = this.programmeGroupMemberships.firstOrNull { it.deletedAt == null }

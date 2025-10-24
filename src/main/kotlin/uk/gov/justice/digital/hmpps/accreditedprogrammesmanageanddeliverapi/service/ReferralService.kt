@@ -92,8 +92,8 @@ class ReferralService(
     updateReferralDetails(referral, personalDetails, sentenceEndDate)
 
     val referralLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.hasLdc
-
-    ReferralDetails.toModel(referral, personalDetails, referralLdc)
+    val latestReferralStatus = referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId)
+    ReferralDetails.toModel(referral, personalDetails, referralLdc, latestReferralStatus!!)
   }
 
   fun getFindAndReferReferralDetails(referralId: UUID): FindAndReferReferralDetails {
