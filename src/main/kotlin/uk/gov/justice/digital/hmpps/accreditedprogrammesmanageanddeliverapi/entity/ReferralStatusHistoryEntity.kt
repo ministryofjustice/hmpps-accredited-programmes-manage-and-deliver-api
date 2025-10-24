@@ -11,7 +11,7 @@ import jakarta.persistence.Table
 import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
 import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
 
 @Entity
 @Table(name = "referral_status_history")
@@ -25,7 +25,7 @@ class ReferralStatusHistoryEntity(
   @JoinColumn(name = "referral_id")
   val referral: ReferralEntity,
 
-  @ManyToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = "referral_status_description_id")
   val referralStatusDescription: ReferralStatusDescriptionEntity,
 
