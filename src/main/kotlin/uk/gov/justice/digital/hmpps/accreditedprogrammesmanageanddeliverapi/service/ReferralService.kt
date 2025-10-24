@@ -2,7 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -61,8 +61,8 @@ class ReferralService(
     private val log = LoggerFactory.getLogger(this::class.java)
   }
 
-  suspend fun refreshPersonalDetailsForReferral(referralId: UUID): ReferralDetails? = withContext(Dispatchers.IO) {
-    val referral = referralRepository.findByIdOrNull(referralId) ?: return@withContext null
+  suspend fun refreshPersonalDetailsForReferral(referralId: UUID): ReferralDetails? = coroutineScope {
+    val referral = referralRepository.findByIdOrNull(referralId) ?: return@coroutineScope null
 
     val hasLdcDeferred = async(Dispatchers.IO) {
       pniService.getPniCalculation(referral.crn).hasLdc()
