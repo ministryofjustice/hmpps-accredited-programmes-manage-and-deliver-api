@@ -61,7 +61,7 @@ class ReferralEntity(
 
   @OneToMany(
     mappedBy = "referral",
-    fetch = FetchType.LAZY,
+    fetch = FetchType.EAGER,
     cascade = [CascadeType.ALL],
     orphanRemoval = true,
   )
