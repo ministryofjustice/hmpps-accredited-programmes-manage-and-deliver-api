@@ -1,10 +1,10 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "9.1.3"
-  kotlin("plugin.spring") version "2.2.20"
-  kotlin("plugin.jpa") version "2.2.20"
-  kotlin("plugin.allopen") version "2.2.20"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "9.1.4"
+  kotlin("plugin.spring") version "2.2.21"
+  kotlin("plugin.jpa") version "2.2.21"
+  kotlin("plugin.allopen") version "2.2.21"
 }
 
 configurations {
@@ -25,13 +25,13 @@ dependencies {
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 
   // AWS
-  implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:5.5.0")
+  implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:5.6.0")
 
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:1.7.0")
 
   // security
-  implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.6")
-  implementation("org.springframework.boot:spring-boot-starter-oauth2-client:3.5.6")
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.7")
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-client:3.5.7")
   implementation("org.springframework.security:spring-security-crypto:6.5.6")
   implementation("com.nimbusds:oauth2-oidc-sdk:11.30")
 
