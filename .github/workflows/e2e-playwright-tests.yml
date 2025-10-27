@@ -1,0 +1,54 @@
+name: e2e-tests.yml
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  MANAGE_AND_DELIVER_URL: https://accredited-programmes-manage-and-deliver-dev.hmpps.service.justice.gov.uk/
+  HMPPS_COMMUNITY_AUTH_USERNAME: ${{ secrets.HMPPS_COMMUNITY_AUTH_USERNAME }}
+  HMPPS_COMMUNITY_AUTH_PASSWORD: ${{ secrets.HMPPS_COMMUNITY_AUTH_PASSWORD }}
+
+jobs:
+  e2e-tests:
+    timeout-minutes: 60
+    runs-on: [ self-hosted, Linux, X64, hmpps-github-actions-runner ]
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v5
+
+      - name: Checkout e2e tests repo
+        uses: actions/checkout@v5
+        with:
+          repository: ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-e2e-tests
+          path: hmpps-accredited-programmes-manage-and-deliver-e2e-tests
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install dependencies
+        working-directory: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests
+        run: npm ci
+
+      - name: restore cache
+        id: restore-cache
+        uses: actions/cache/restore@v4
+        env:
+          cache-name: node-modules
+        with:
+          path: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests/node_modules
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Run Playwright tests
+        working-directory: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests
+        run: npx playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: hmpps-accredited-programmes-manage-and-deliver-e2e-tests/playwright-report/
+          retention-days: 30
