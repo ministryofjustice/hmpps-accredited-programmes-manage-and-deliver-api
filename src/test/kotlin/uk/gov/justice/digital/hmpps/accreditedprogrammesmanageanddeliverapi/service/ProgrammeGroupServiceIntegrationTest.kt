@@ -8,6 +8,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
@@ -76,6 +77,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     // When
     val result = programmeGroupService.getGroupWaitlistData(
+      selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = null,
@@ -98,6 +100,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     // When & Then
     assertThrows<NotFoundException> {
       programmeGroupService.getGroupWaitlistData(
+        selectedTab = GroupPageTab.WAITLIST,
         groupId = nonExistentGroupId,
         sex = null,
         cohort = null,
@@ -116,6 +119,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     // When
     val maleResults = programmeGroupService.getGroupWaitlistData(
+      selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = "Male",
       cohort = null,
@@ -125,6 +129,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     )
 
     val femaleResults = programmeGroupService.getGroupWaitlistData(
+      selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = "Female",
       cohort = null,
@@ -146,6 +151,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     // When
     val sexualOffenceResults = programmeGroupService.getGroupWaitlistData(
+      selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = OffenceCohort.SEXUAL_OFFENCE,
@@ -155,6 +161,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     )
 
     val generalOffenceResults = programmeGroupService.getGroupWaitlistData(
+      selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = OffenceCohort.GENERAL_OFFENCE,
@@ -176,6 +183,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     // When
     val nameResults = programmeGroupService.getGroupWaitlistData(
+      selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = null,
@@ -185,6 +193,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     )
 
     val crnResults = programmeGroupService.getGroupWaitlistData(
+      selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = null,
@@ -210,6 +219,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     // When
     val pduResults = programmeGroupService.getGroupWaitlistData(
+      selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = null,
@@ -358,7 +368,14 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     // Then
     assertThat(filters.pduNames).containsExactlyInAnyOrder("North PDU", "South PDU", "East PDU", "West PDU")
-    assertThat(filters.reportingTeams).containsExactlyInAnyOrder("North Team A", "South Team B", "East Team C", "West Team D", "North Team B", "South Team A")
+    assertThat(filters.reportingTeams).containsExactlyInAnyOrder(
+      "North Team A",
+      "South Team B",
+      "East Team C",
+      "West Team D",
+      "North Team B",
+      "South Team A",
+    )
     assertThat(filters.sex).containsExactly("Male", "Female")
     assertThat(filters.cohort).containsExactlyInAnyOrder(*OffenceCohort.entries.toTypedArray())
   }
