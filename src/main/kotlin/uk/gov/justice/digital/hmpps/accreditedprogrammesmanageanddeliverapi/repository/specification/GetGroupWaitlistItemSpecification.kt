@@ -19,7 +19,7 @@ fun getGroupWaitlistItemSpecification(
 
   /**
    * ALLOCATED tab - look for referrals which are assigned to our group id
-   * WAITLIST tab - look for ALL referrals which have the correct status and are NOT part of a group
+   * WAITLIST tab - look for ALL referrals which are NOT part of a group
    */
   when (selectedTab) {
     GroupPageTab.ALLOCATED -> predicates.add(criteriaBuilder.equal(root.get<UUID>("activeProgrammeGroupId"), groupId))
