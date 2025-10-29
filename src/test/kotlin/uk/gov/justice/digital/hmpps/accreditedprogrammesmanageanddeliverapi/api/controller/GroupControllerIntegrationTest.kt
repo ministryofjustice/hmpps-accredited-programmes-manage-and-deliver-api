@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
@@ -314,7 +315,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Nested
-  @DisplayName("Allocate to Programme Group")
+  @DisplayName("Allocate to Programme group")
   inner class AllocateToProgrammeGroup {
     @Test
     fun `allocateReferralToGroup can successfully allocate a referral to a group`() {
@@ -418,6 +419,50 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
         expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
       )
       assertThat(exception.userMessage).isEqualTo("Bad request: Cannot assign referral to group as referral with id ${referral.id} is in a closed state")
+    }
+  }
+
+  @Nested
+  @DisplayName("Create a Programme group")
+  inner class CreateProgrammeGroup {
+    @Test
+    fun `create group with code and return 200 when it doesn't already exist`() {
+      val group = ProgrammeGroupFactory().withCode("TEST_GROUP").produce()
+      val createdGroup = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/create/${group.code}",
+        object : ParameterizedTypeReference<ProgrammeGroupEntity>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+      assertThat(createdGroup.code).isEqualTo(group.code)
+      assertThat(createdGroup.id).isNotNull
+    }
+
+    @Test
+    fun `create group with code and return CONFLICT when it already exists`() {
+      val group = ProgrammeGroupFactory().withCode("TEST_GROUP").produce()
+      testDataGenerator.createGroup(group)
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/create/${group.code}",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.CONFLICT.value(),
+      )
+      assertThat(response.userMessage).isEqualTo("Conflict: Programme group with code TEST_GROUP already exists")
+    }
+
+    @Test
+    fun `return 401 when unauthorised`() {
+      webTestClient
+        .method(HttpMethod.POST)
+        .uri("/group/create/BCDD1")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
     }
   }
 

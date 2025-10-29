@@ -27,6 +27,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toAllocatedItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
@@ -71,6 +72,11 @@ class ProgrammeGroupController(
       ApiResponse(
         responseCode = "404",
         description = "The group does not exist",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "409",
+        description = "The group already exists",
         content = [Content(schema = Schema(implementation = ErrorResponse::class))],
       ),
     ],
@@ -178,6 +184,46 @@ class ProgrammeGroupController(
   ): ResponseEntity<Void> {
     programmeGroupMembershipService.allocateReferralToGroup(referralId, groupId)
     return ResponseEntity.status(HttpStatus.OK).build()
+  }
+
+  @Operation(
+    tags = ["Programme Group controller"],
+    summary = "Create a new programme group",
+    operationId = "createProgrammeGroup",
+    description = "Create a new programme group with the specified group code",
+    responses = [
+      ApiResponse(
+        responseCode = "201",
+        description = "Programme group successfully created",
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid request format or group code",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden. The client is not authorised to create groups.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PostMapping("/group/create/{groupCode}", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun createProgrammeGroup(
+    @Parameter(
+      description = "The group code for the new programme group",
+      required = true,
+    )
+    @PathVariable("groupCode") groupCode: String,
+  ): ResponseEntity<ProgrammeGroupEntity> {
+    val programmeGroup = programmeGroupService.createGroup(groupCode)
+    return ResponseEntity.status(HttpStatus.CREATED).body(programmeGroup)
   }
 
   private fun buildAllocationAndWaitlistData(
