@@ -36,6 +36,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffenceFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralLdcHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
@@ -99,6 +101,13 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
 
       testDataGenerator.createReferralStatusHistory(secondStatus)
 
+      val groupCode = "AAA111"
+      val group = ProgrammeGroupFactory().withCode(groupCode).produce()
+      testDataGenerator.createGroup(group)
+
+      val groupMembership = ProgrammeGroupMembershipFactory().withReferral(referralEntity).withProgrammeGroup(group).produce()
+      testDataGenerator.createGroupMembership(groupMembership)
+
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
@@ -129,6 +138,8 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       assertThat(response.probationPractitionerEmail)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
+      assertThat(response.currentlyAllocatedGroupCode).isEqualTo(groupCode)
+      assertThat(response.currentlyAllocatedGroupId).isEqualTo(group.id)
     }
 
     @Test
@@ -174,6 +185,8 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
       assertThat(response.hasLdc).isEqualTo(LdcStatus.NO_LDC.value)
       assertThat(response.hasLdcDisplayText).isEqualTo(LdcStatus.NO_LDC.displayText)
+      assertThat(response.currentlyAllocatedGroupId).isNull()
+      assertThat(response.currentlyAllocatedGroupCode).isNull()
     }
 
     @Test
@@ -226,6 +239,8 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
       assertThat(response.hasLdc).isEqualTo(LdcStatus.HAS_LDC.value)
       assertThat(response.hasLdcDisplayText).isEqualTo(LdcStatus.HAS_LDC.displayText)
+      assertThat(response.currentlyAllocatedGroupId).isNull()
+      assertThat(response.currentlyAllocatedGroupCode).isNull()
     }
 
     @Test
@@ -270,6 +285,8 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       assertThat(response.probationPractitionerEmail)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
+      assertThat(response.currentlyAllocatedGroupId).isNull()
+      assertThat(response.currentlyAllocatedGroupCode).isNull()
     }
 
     @Test
