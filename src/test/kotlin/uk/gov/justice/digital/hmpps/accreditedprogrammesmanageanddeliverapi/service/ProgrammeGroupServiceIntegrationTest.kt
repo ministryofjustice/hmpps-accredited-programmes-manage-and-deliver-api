@@ -8,6 +8,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -24,7 +25,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.time.LocalDate
-import java.util.UUID
+import java.util.*
 
 class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
@@ -154,7 +155,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
-      cohort = OffenceCohort.SEXUAL_OFFENCE,
+      cohort = ProgrammeGroupCohort.SEXUAL,
       nameOrCRN = null,
       pdu = null,
       pageable = pageable,
@@ -164,7 +165,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
-      cohort = OffenceCohort.GENERAL_OFFENCE,
+      cohort = ProgrammeGroupCohort.GENERAL,
       nameOrCRN = null,
       pdu = null,
       pageable = pageable,
@@ -264,7 +265,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     assertThat(filters.pduNames).isEmpty()
     assertThat(filters.reportingTeams).isEmpty()
     assertThat(filters.sex).containsExactly("Male", "Female")
-    assertThat(filters.cohort).containsExactlyInAnyOrder(*OffenceCohort.entries.toTypedArray())
   }
 
   @Test
@@ -329,7 +329,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     assertThat(filters.pduNames).containsExactlyInAnyOrder("PDU Alpha", "PDU Beta")
     assertThat(filters.reportingTeams).containsExactlyInAnyOrder("Team 1", "Team 2")
     assertThat(filters.sex).containsExactly("Male", "Female")
-    assertThat(filters.cohort).containsExactlyInAnyOrder(*OffenceCohort.entries.toTypedArray())
   }
 
   @Test
@@ -377,7 +376,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       "South Team A",
     )
     assertThat(filters.sex).containsExactly("Male", "Female")
-    assertThat(filters.cohort).containsExactlyInAnyOrder(*OffenceCohort.entries.toTypedArray())
   }
 
   private fun createReferralWithWaitlistStatus(

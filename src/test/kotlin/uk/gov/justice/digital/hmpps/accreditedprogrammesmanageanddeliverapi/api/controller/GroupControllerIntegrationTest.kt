@@ -105,10 +105,27 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
       assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(4)
       assertThat(response.allocationAndWaitlistData.counts.allocated).isEqualTo(1)
-      assertThat(response.allocationAndWaitlistData.filters).isNotNull
-      assertThat(response.allocationAndWaitlistData.filters.sex).containsExactly("Male", "Female")
-      assertThat(response.allocationAndWaitlistData.filters.cohort).containsExactlyInAnyOrder(*OffenceCohort.entries.toTypedArray())
       assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotNull
+    }
+
+    @Test
+    fun `getGroupDetails contains a list of filter`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val group = ProgrammeGroupFactory().withCode("TEST001").produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val body = performRequestAndExpectStatusAndReturnBody(
+        HttpMethod.GET,
+        "/bff/group/${group.id}/WAITLIST?page=0&size=10",
+        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        HttpStatus.OK.value(),
+      )
+
+      body.jsonPath("allocationAndWaitlistData.filters").exists()
+      body.jsonPath("allocationAndWaitlistData.filters.sex").isEqualTo(listOf("Male", "Female"))
+      body.jsonPath("allocationAndWaitlistData.filters.cohort").isEqualTo(listOf("General Offence", "General Offence - LDC", "Sexual Offence", "Sexual Offence - LDC"))
     }
 
     @Test
@@ -131,7 +148,6 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(5)
       assertThat(response.allocationAndWaitlistData.filters).isNotNull
       assertThat(response.allocationAndWaitlistData.filters.sex).containsExactly("Male", "Female")
-      assertThat(response.allocationAndWaitlistData.filters.cohort).containsExactlyInAnyOrder(*OffenceCohort.entries.toTypedArray())
       assertThat(response.allocationAndWaitlistData.pagination.size).isEqualTo(10)
       assertThat(response.allocationAndWaitlistData.pagination.page).isEqualTo(0)
       assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotNull
@@ -198,7 +214,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?sex=Male&cohort=SEXUAL_OFFENCE&pdu=Test PDU 1&page=0&size=10",
+        "/bff/group/${group.id}/WAITLIST?sex=Male&cohort=Sexual Offence&pdu=Test PDU 1&page=0&size=10",
         object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
       )
 
@@ -243,7 +259,6 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.allocationAndWaitlistData.counts.allocated).isEqualTo(6)
       assertThat(response.allocationAndWaitlistData.filters).isNotNull
       assertThat(response.allocationAndWaitlistData.filters.sex).containsExactly("Male", "Female")
-      assertThat(response.allocationAndWaitlistData.filters.cohort).containsExactlyInAnyOrder(*OffenceCohort.entries.toTypedArray())
       assertThat(response.allocationAndWaitlistData.pagination.size).isEqualTo(10)
       assertThat(response.allocationAndWaitlistData.pagination.page).isEqualTo(0)
       assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isEmpty()

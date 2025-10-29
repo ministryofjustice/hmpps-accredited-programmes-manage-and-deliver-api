@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.GroupWaitlistItem
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toAllocatedItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
@@ -84,19 +84,20 @@ class ProgrammeGroupController(
     @PathVariable("selectedTab") selectedTab: GroupPageTab,
     @Parameter(description = "Filter by the sex of the person in the referral")
     @RequestParam(name = "sex", required = false) sex: String?,
-    @Parameter(description = "Filter by the cohort of the referral Eg: SEXUAL_OFFENCE or GENERAL_OFFENCE")
-    @RequestParam(name = "cohort", required = false) cohort: OffenceCohort?,
+    @Parameter(description = "Filter by the cohort of the referral Eg: 'Sexual Offence' or 'General Offence - LDC")
+    @RequestParam(name = "cohort", required = false) cohort: String?,
     @Parameter(description = "Search by the name or the CRN of the offender in the referral")
     @RequestParam(name = "nameOrCRN", required = false) nameOrCRN: String?,
     @Parameter(description = "Filter by the human readable pdu of the referral, i.e. 'All London'")
     @RequestParam(name = "pdu", required = false) pdu: String?,
   ): ResponseEntity<ProgrammeGroupDetails> {
     val groupEntity = programmeGroupService.getGroupById(groupId)
+    val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
     val pagedWaitlistData = programmeGroupService.getGroupWaitlistData(
       selectedTab,
       groupId,
       sex,
-      cohort,
+      cohort = groupCohort,
       nameOrCRN,
       pdu,
       pageable,
@@ -106,7 +107,7 @@ class ProgrammeGroupController(
       selectedTab = if (selectedTab == GroupPageTab.ALLOCATED) GroupPageTab.WAITLIST else GroupPageTab.ALLOCATED,
       groupId,
       sex,
-      cohort,
+      cohort = groupCohort,
       nameOrCRN,
       pdu,
     )
