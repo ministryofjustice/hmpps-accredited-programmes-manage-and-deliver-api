@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity
 
+import com.fasterxml.jackson.annotation.JsonFormat
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
@@ -27,6 +28,7 @@ class ProgrammeGroupEntity(
   @NotNull
   @Column(name = "created_at")
   @CreatedDate
+  @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
   var createdAt: LocalDateTime = LocalDateTime.now(),
 
   @NotNull
@@ -35,12 +37,14 @@ class ProgrammeGroupEntity(
   var createdByUsername: String? = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
 
   @Column(name = "updated_at")
+  @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
   var updatedAt: LocalDateTime? = null,
 
   @Column(name = "updated_by_username")
   var updatedByUsername: String? = null,
 
   @Column(name = "deleted_at")
+  @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
   var deletedAt: LocalDateTime? = null,
 
   @Column(name = "deleted_by_username")
