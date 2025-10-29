@@ -9,6 +9,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.GroupWaitlistItemViewRepository
@@ -26,7 +27,8 @@ class ProgrammeGroupService(
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
 ) {
   fun createGroup(groupCode: String): ProgrammeGroupEntity? {
-    programmeGroupRepository.findByCode(groupCode)?.let { throw ConflictException("Programme group with code $groupCode already exists") }
+    programmeGroupRepository.findByCode(groupCode)
+      ?.let { throw ConflictException("Programme group with code $groupCode already exists") }
 
     return programmeGroupRepository.save(
       ProgrammeGroupEntity(
@@ -39,6 +41,7 @@ class ProgrammeGroupService(
     ?: throw NotFoundException("Programme group with id $groupId not found")
 
   fun getGroupWaitlistData(
+    selectedTab: GroupPageTab,
     groupId: UUID,
     sex: String?,
     cohort: OffenceCohort?,
@@ -49,10 +52,26 @@ class ProgrammeGroupService(
     // Verify the group exists first
     getGroupById(groupId)
 
-    val specification = getGroupWaitlistItemSpecification(groupId, sex, cohort, nameOrCRN, pdu)
+    val specification = getGroupWaitlistItemSpecification(selectedTab, groupId, sex, cohort, nameOrCRN, pdu)
 
     return groupWaitlistItemViewRepository.findAll(specification, pageable)
       .map { it.toApi() }
+  }
+
+  fun getGroupWaitlistCount(
+    selectedTab: GroupPageTab,
+    groupId: UUID,
+    sex: String?,
+    cohort: OffenceCohort?,
+    nameOrCRN: String?,
+    pdu: String?,
+  ): Int {
+    // Verify the group exists first
+    getGroupById(groupId)
+
+    val specification = getGroupWaitlistItemSpecification(selectedTab, groupId, sex, cohort, nameOrCRN, pdu)
+
+    return groupWaitlistItemViewRepository.count(specification).toInt()
   }
 
   fun getGroupFilters(): ProgrammeGroupDetails.Filters {

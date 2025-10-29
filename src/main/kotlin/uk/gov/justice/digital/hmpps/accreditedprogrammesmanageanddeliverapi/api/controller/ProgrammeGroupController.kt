@@ -93,15 +93,25 @@ class ProgrammeGroupController(
   ): ResponseEntity<ProgrammeGroupDetails> {
     val groupEntity = programmeGroupService.getGroupById(groupId)
     val pagedWaitlistData = programmeGroupService.getGroupWaitlistData(
-      groupId = groupId,
-      sex = sex,
-      cohort = cohort,
-      nameOrCRN = nameOrCRN,
-      pdu = pdu,
-      pageable = pageable,
+      selectedTab,
+      groupId,
+      sex,
+      cohort,
+      nameOrCRN,
+      pdu,
+      pageable,
     )
 
-    val allocationAndWaitlistData = buildAllocationAndWaitlistData(selectedTab, pagedWaitlistData)
+    val otherTabCount = programmeGroupService.getGroupWaitlistCount(
+      selectedTab = if (selectedTab == GroupPageTab.ALLOCATED) GroupPageTab.WAITLIST else GroupPageTab.ALLOCATED,
+      groupId,
+      sex,
+      cohort,
+      nameOrCRN,
+      pdu,
+    )
+
+    val allocationAndWaitlistData = buildAllocationAndWaitlistData(selectedTab, pagedWaitlistData, otherTabCount)
     val userRegion = getUserRegion()
 
     return ResponseEntity.ok(
@@ -171,23 +181,24 @@ class ProgrammeGroupController(
   private fun buildAllocationAndWaitlistData(
     selectedTab: GroupPageTab,
     pagedWaitlistData: Page<GroupWaitlistItem>,
+    otherTabCount: Int,
   ): ProgrammeGroupDetails.AllocationAndWaitlistData {
     val (waitlistItems, allocatedItems) = pagedWaitlistData.content.partition { isAwaitingAllocation(it) }
 
     return when (selectedTab) {
-      GroupPageTab.WAITLIST -> createWaitlistTabData(waitlistItems, allocatedItems, pagedWaitlistData)
-      GroupPageTab.ALLOCATED -> createAllocatedTabData(waitlistItems, allocatedItems, pagedWaitlistData)
+      GroupPageTab.WAITLIST -> createWaitlistTabData(waitlistItems, pagedWaitlistData, otherTabCount)
+      GroupPageTab.ALLOCATED -> createAllocatedTabData(allocatedItems, pagedWaitlistData, otherTabCount)
     }
   }
 
   private fun createWaitlistTabData(
     waitlistItems: List<GroupWaitlistItem>,
-    allocatedItems: List<GroupWaitlistItem>,
     pagedData: Page<GroupWaitlistItem>,
+    otherTabCount: Int,
   ): ProgrammeGroupDetails.AllocationAndWaitlistData = ProgrammeGroupDetails.AllocationAndWaitlistData(
     counts = ProgrammeGroupDetails.Counts(
       waitlist = waitlistItems.size,
-      allocated = allocatedItems.size,
+      allocated = otherTabCount,
     ),
     filters = programmeGroupService.getGroupFilters(),
     pagination = ProgrammeGroupDetails.Pagination(page = pagedData.number, size = pagedData.size),
@@ -195,18 +206,17 @@ class ProgrammeGroupController(
   )
 
   private fun createAllocatedTabData(
-    waitlistItems: List<GroupWaitlistItem>,
     allocatedItems: List<GroupWaitlistItem>,
     pagedData: Page<GroupWaitlistItem>,
+    otherTabCount: Int,
   ): ProgrammeGroupDetails.AllocationAndWaitlistData = ProgrammeGroupDetails.AllocationAndWaitlistData(
     counts = ProgrammeGroupDetails.Counts(
-      waitlist = waitlistItems.size,
+      waitlist = otherTabCount,
       allocated = allocatedItems.size,
     ),
     filters = programmeGroupService.getGroupFilters(),
     pagination = ProgrammeGroupDetails.Pagination(page = pagedData.number, size = pagedData.size),
     paginatedAllocationData = allocatedItems.map(GroupWaitlistItem::toAllocatedItem),
-    paginatedWaitlistData = waitlistItems,
   )
 
   private fun isAwaitingAllocation(item: GroupWaitlistItem): Boolean = item.status == ReferralStatusType.AWAITING_ALLOCATION.description

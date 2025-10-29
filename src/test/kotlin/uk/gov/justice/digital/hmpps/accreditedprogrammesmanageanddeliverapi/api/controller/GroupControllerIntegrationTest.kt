@@ -89,6 +89,10 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       val group = ProgrammeGroupFactory().withCode("TEST001").produce()
       testDataGenerator.createGroup(group)
 
+      // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+      val (referral) = referrals.first()
+      programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!)
+
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
@@ -99,7 +103,8 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).isNotNull
       assertThat(response.group.code).isEqualTo("TEST001")
       assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
-      assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(0)
+      assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(4)
+      assertThat(response.allocationAndWaitlistData.counts.allocated).isEqualTo(1)
       assertThat(response.allocationAndWaitlistData.filters).isNotNull
       assertThat(response.allocationAndWaitlistData.filters.sex).containsExactly("Male", "Female")
       assertThat(response.allocationAndWaitlistData.filters.cohort).containsExactlyInAnyOrder(*OffenceCohort.entries.toTypedArray())
@@ -112,7 +117,6 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       stubAuthTokenEndpoint()
       val group = ProgrammeGroupFactory().withCode("TEST001").produce()
       testDataGenerator.createGroup(group)
-      referrals.forEach { programmeGroupMembershipService.allocateReferralToGroup(it.first.id!!, group.id!!) }
 
       // When
       val response = performRequestAndExpectOk(
@@ -155,8 +159,6 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       stubAuthTokenEndpoint()
       val group = ProgrammeGroupFactory().withCode("TEST006").produce()
       testDataGenerator.createGroup(group)
-
-      referrals.forEach { programmeGroupMembershipService.allocateReferralToGroup(it.first.id!!, group.id!!) }
 
       // When - Get first page
       val firstPageResponse = performRequestAndExpectOk(
