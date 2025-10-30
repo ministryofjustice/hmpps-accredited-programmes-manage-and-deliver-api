@@ -67,7 +67,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock"
 
   wiremock:
-    image: wiremock/wiremock:3.13.0
+    image: wiremock/wiremock:3.13.1
     networks:
       - hmpps
     restart: always
