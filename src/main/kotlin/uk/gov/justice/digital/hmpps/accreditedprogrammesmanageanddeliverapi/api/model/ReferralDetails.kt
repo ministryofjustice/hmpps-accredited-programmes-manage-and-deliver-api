@@ -8,6 +8,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentlyAllocatedGroup
 import java.time.LocalDate
 import java.util.UUID
 
@@ -110,6 +111,21 @@ data class ReferralDetails(
   @get:JsonProperty("currentStatusDescription", required = true)
   val currentStatusDescription: String,
 
+  @Schema(
+    example = "ABC111",
+    required = false,
+    description = "The code of the currently allocated group",
+  )
+  @get:JsonProperty("currentlyAllocatedGroupCode", required = false)
+  val currentlyAllocatedGroupCode: String?,
+
+  @Schema(
+    example = "c98151f4-4081-4c65-9f98-54e63a328c8d",
+    required = false,
+    description = "The unique code of the currently allocated group",
+  )
+  @get:JsonProperty("currentlyAllocatedGroupId", required = false)
+  val currentlyAllocatedGroupId: UUID?,
 ) {
   companion object {
     fun toModel(
@@ -130,6 +146,8 @@ data class ReferralDetails(
       hasLdc = LdcStatus.fromBoolean(hasLdc).value,
       hasLdcDisplayText = LdcStatus.getDisplayText(hasLdc),
       currentStatusDescription = latestReferralStatus.description,
+      currentlyAllocatedGroupCode = referral.currentlyAllocatedGroup()?.programmeGroup?.code,
+      currentlyAllocatedGroupId = referral.currentlyAllocatedGroup()?.programmeGroup?.id,
     )
   }
 }
