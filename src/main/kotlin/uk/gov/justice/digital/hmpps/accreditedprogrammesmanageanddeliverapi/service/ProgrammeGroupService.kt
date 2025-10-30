@@ -6,7 +6,7 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.GroupWaitlistItem
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
@@ -44,7 +44,7 @@ class ProgrammeGroupService(
     selectedTab: GroupPageTab,
     groupId: UUID,
     sex: String?,
-    cohort: OffenceCohort?,
+    cohort: ProgrammeGroupCohort?,
     nameOrCRN: String?,
     pdu: String?,
     pageable: Pageable,
@@ -62,7 +62,7 @@ class ProgrammeGroupService(
     selectedTab: GroupPageTab,
     groupId: UUID,
     sex: String?,
-    cohort: OffenceCohort?,
+    cohort: ProgrammeGroupCohort?,
     nameOrCRN: String?,
     pdu: String?,
   ): Int {

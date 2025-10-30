@@ -2,7 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.rep
 
 import jakarta.persistence.criteria.Predicate
 import org.springframework.data.jpa.domain.Specification
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.GroupWaitlistItemViewEntity
 import java.util.UUID
@@ -11,7 +11,7 @@ fun getGroupWaitlistItemSpecification(
   selectedTab: GroupPageTab,
   groupId: UUID,
   sex: String?,
-  cohort: OffenceCohort?,
+  cohort: ProgrammeGroupCohort?,
   nameOrCRN: String?,
   pdu: String?,
 ): Specification<GroupWaitlistItemViewEntity> = Specification<GroupWaitlistItemViewEntity> { root, _, criteriaBuilder ->
@@ -31,7 +31,9 @@ fun getGroupWaitlistItemSpecification(
   }
 
   cohort?.let {
-    predicates.add(criteriaBuilder.equal(root.get<String>("cohort"), it.name))
+    val (offenceType, hasLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(it)
+    predicates.add(criteriaBuilder.equal(root.get<String>("cohort"), offenceType.name))
+    predicates.add(criteriaBuilder.equal(root.get<Boolean>("hasLdc"), hasLdc))
   }
 
   nameOrCRN?.let { search ->

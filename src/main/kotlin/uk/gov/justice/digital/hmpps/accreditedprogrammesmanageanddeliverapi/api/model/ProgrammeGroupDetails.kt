@@ -9,7 +9,7 @@ data class ProgrammeGroupDetails(
   data class Pagination(val size: Int, val page: Int)
   data class Filters(
     val sex: List<String> = listOf("Male", "Female"),
-    val cohort: List<OffenceCohort> = OffenceCohort.entries,
+    val cohort: List<String> = ProgrammeGroupCohort.entries.map { it.label },
     val pduNames: List<String> = emptyList(),
     val reportingTeams: List<String> = emptyList(),
   )
