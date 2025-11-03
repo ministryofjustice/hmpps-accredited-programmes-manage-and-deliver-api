@@ -55,6 +55,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
   override fun beforeEach() {
     testDataCleaner.cleanAllTables()
     nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
+
     nDeliusApiStubs.stubUserTeamsResponse(
       "AUTH_ADM",
       NDeliusUserTeams(
@@ -155,6 +156,29 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `items in the WAITLIST are sorted by the sentenceEndDate`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val group = ProgrammeGroupFactory().withCode("TEST001").produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectStatusAndReturnBody(
+        HttpMethod.GET,
+        "/bff/group/${group.id}/WAITLIST",
+        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        HttpStatus.OK.value(),
+      )
+
+      // Then
+      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[0].sentenceEndDate").isEqualTo("1 January 2030")
+      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[1].sentenceEndDate").isEqualTo("2 February 2031")
+      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[2].sentenceEndDate").isEqualTo("3 March 2032")
+      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[3].sentenceEndDate").isEqualTo("4 April 2033")
+      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[4].sentenceEndDate").isEqualTo("5 May 2034")
+    }
+
+    @Test
     fun `getGroupDetails returns 404 for non-existent group`() {
       // Given
       val nonExistentGroupId = UUID.randomUUID()
@@ -223,6 +247,8 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item.sex).isEqualTo("Male")
         assertThat(item.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
         assertThat(item.pdu).isEqualTo("Test PDU 1")
+        assertThat(item.referralId).isNotNull
+        assertThat(item.sourcedFrom).isNotNull
       }
     }
 
@@ -404,6 +430,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       "Test PDU 1",
       "Team A",
       ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription,
+      LocalDate.of(2030, 1, 1),
     ),
     createReferralWithWaitlistStatus(
       "CRN002",
@@ -413,6 +440,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       "Test PDU 2",
       "Team B",
       ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription,
+      LocalDate.of(2031, 2, 2),
     ),
     createReferralWithWaitlistStatus(
       "CRN003",
@@ -422,6 +450,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       "Test PDU 1",
       "Team A",
       ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription,
+      LocalDate.of(2032, 3, 3),
     ),
     createReferralWithWaitlistStatus(
       "CRN004",
@@ -431,6 +460,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       "Test PDU 2",
       "Team B",
       ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription,
+      LocalDate.of(2033, 4, 4),
     ),
     createReferralWithWaitlistStatus(
       "CRN005",
@@ -440,6 +470,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       "Test PDU 1",
       "Team C",
       ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription,
+      LocalDate.of(2034, 5, 5),
     ),
   )
 
@@ -508,8 +539,9 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
     pduName: String,
     reportingTeam: String,
     getReferralStatusDescriptionFunction: (ReferralStatusDescriptionRepository) -> ReferralStatusDescriptionEntity,
+    sentenceEndDate: LocalDate? = null,
   ): Triple<ReferralEntity, ReferralStatusHistoryEntity, ReferralReportingLocationEntity> {
-    val referral = ReferralEntityFactory()
+    val referralFactory = ReferralEntityFactory()
       .withCrn(crn)
       .withPersonName(personName)
       .withSex(sex)
@@ -517,7 +549,12 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       .withSentenceEndDate(LocalDate.now().plusYears(2))
       .withDateOfBirth(LocalDate.now().minusYears(30))
       .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
-      .produce()
+
+    if (sentenceEndDate != null) {
+      referralFactory.withSentenceEndDate(sentenceEndDate)
+    }
+
+    val referral = referralFactory.produce()
 
     val statusHistory = ReferralStatusHistoryEntityFactory().produce(
       referral,

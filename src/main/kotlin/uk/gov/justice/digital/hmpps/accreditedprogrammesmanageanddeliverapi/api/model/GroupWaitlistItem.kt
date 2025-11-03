@@ -4,10 +4,26 @@ import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.GroupWaitlistItemViewEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import java.time.LocalDate
 import java.time.Period
+import java.util.UUID
 
 data class GroupWaitlistItem(
+  @Schema(
+    example = "1ff57cea-352c-4a99-8f66-3e626aac3265",
+    required = true,
+    description = "The UUID of the referral.",
+  )
+  @get:JsonProperty("referralId", required = true)
+  val referralId: UUID,
+  @Schema(
+    example = "REQUIREMENT",
+    required = true,
+    description = "The entity (Licence Condition or Requirement) that caused the Referral to be created in our system",
+  )
+  @get:JsonProperty("sourcedFrom", required = true)
+  val sourcedFrom: String,
   @Schema(
     example = "X933590",
     required = true,
@@ -82,6 +98,8 @@ data class GroupWaitlistItem(
 )
 
 fun GroupWaitlistItemViewEntity.toApi() = GroupWaitlistItem(
+  referralId = referralId,
+  sourcedFrom = if (sourcedFrom.equals(ReferralEntitySourcedFrom.REQUIREMENT)) "Requirement" else "Licence Condition",
   crn = crn,
   personName = personName,
   sentenceEndDate = sentenceEndDate,
@@ -95,8 +113,10 @@ fun GroupWaitlistItemViewEntity.toApi() = GroupWaitlistItem(
 )
 
 fun GroupWaitlistItem.toAllocatedItem() = GroupAllocatedItem(
+  referralId = referralId,
   crn = crn,
   personName = personName,
   sentenceEndDate = sentenceEndDate,
   status = status,
+  sourcedFrom = sourcedFrom,
 )
