@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroup
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -25,7 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.time.LocalDate
-import java.util.*
+import java.util.UUID
 
 class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
@@ -53,11 +54,11 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `createGroup can successfully create a new group`() {
-    val groupCode = "AAA111"
-    programmeGroupService.createGroup(groupCode)
-    val createdGroup = programmeGroupRepository.findByCode(groupCode)
+    val group = ProgrammeGroupFactory().toCreateGroup()
+    programmeGroupService.createGroup(group)
+    val createdGroup = programmeGroupRepository.findByCode(group.groupCode)
     assertThat { createdGroup }.isNotNull
-    assertThat(createdGroup?.code).isEqualTo(groupCode)
+    assertThat(createdGroup?.code).isEqualTo(group.groupCode)
   }
 
   @Test
@@ -66,7 +67,15 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     val existingGroup = ProgrammeGroupFactory().withCode(groupCode).produce()
     testDataGenerator.createGroup(existingGroup)
 
-    assertThrows<ConflictException> { programmeGroupService.createGroup(groupCode) }
+    assertThrows<ConflictException> {
+      programmeGroupService.createGroup(
+        CreateGroup(
+          existingGroup.code,
+          ProgrammeGroupCohort.from(existingGroup.cohort, existingGroup.isLdc),
+          existingGroup.sex,
+        ),
+      )
+    }
   }
 
   @Test
