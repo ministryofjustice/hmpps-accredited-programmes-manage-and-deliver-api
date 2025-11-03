@@ -49,7 +49,12 @@ class ReferralStatusControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response).hasSize(4)
-      assertThat(response.map { it.status }).containsExactlyInAnyOrder("Awaiting assessment", "Deprioritised", "Recall", "Return to court")
+      assertThat(response.map { it.status }).containsExactlyInAnyOrder(
+        "Awaiting assessment",
+        "Deprioritised",
+        "Recall",
+        "Return to court",
+      )
       assertThat(response.map { it.transitionDescription }).containsExactlyInAnyOrder(
         "The person’s suitability or readiness has changed. The programme team will reassess them.",
         "The person is suitable but does not meet the prioritisation criteria. The referral will be paused in case they are reprioritised.",

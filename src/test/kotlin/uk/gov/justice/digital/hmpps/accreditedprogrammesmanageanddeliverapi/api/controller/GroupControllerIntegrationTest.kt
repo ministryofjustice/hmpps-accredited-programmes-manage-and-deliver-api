@@ -13,7 +13,10 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroup
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSex
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
@@ -127,7 +130,8 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
 
       body.jsonPath("allocationAndWaitlistData.filters").exists()
       body.jsonPath("allocationAndWaitlistData.filters.sex").isEqualTo(listOf("Male", "Female"))
-      body.jsonPath("allocationAndWaitlistData.filters.cohort").isEqualTo(listOf("General Offence", "General Offence - LDC", "Sexual Offence", "Sexual Offence - LDC"))
+      body.jsonPath("allocationAndWaitlistData.filters.cohort")
+        .isEqualTo(listOf("General Offence", "General Offence - LDC", "Sexual Offence", "Sexual Offence - LDC"))
     }
 
     @Test
@@ -427,25 +431,48 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
   inner class CreateProgrammeGroup {
     @Test
     fun `create group with code and return 200 when it doesn't already exist`() {
-      val group = ProgrammeGroupFactory().withCode("TEST_GROUP").produce()
-      val createdGroup = performRequestAndExpectStatus(
+      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSex.MALE)
+      val createdGroup = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
-        uri = "/group/create/${group.code}",
-        object : ParameterizedTypeReference<ProgrammeGroupEntity>() {},
+        uri = "/group",
+        returnType = object : ParameterizedTypeReference<ProgrammeGroupEntity>() {},
+        body = body,
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
-      assertThat(createdGroup.code).isEqualTo(group.code)
+      assertThat(createdGroup.code).isEqualTo(body.groupCode)
       assertThat(createdGroup.id).isNotNull
+      assertThat(createdGroup.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+      assertThat(createdGroup.isLdc).isFalse
+      assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSex.MALE)
+    }
+
+    @Test
+    fun `create group and assign correct cohort and sex and return 200 when it doesn't already exist`() {
+      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.SEXUAL_LDC, ProgrammeGroupSex.FEMALE)
+      val createdGroup = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        returnType = object : ParameterizedTypeReference<ProgrammeGroupEntity>() {},
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+      assertThat(createdGroup.code).isEqualTo(body.groupCode)
+      assertThat(createdGroup.id).isNotNull
+      assertThat(createdGroup.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
+      assertThat(createdGroup.isLdc).isTrue
+      assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSex.MALE)
     }
 
     @Test
     fun `create group with code and return CONFLICT when it already exists`() {
       val group = ProgrammeGroupFactory().withCode("TEST_GROUP").produce()
       testDataGenerator.createGroup(group)
-      val response = performRequestAndExpectStatus(
+      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSex.MALE)
+      val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
-        uri = "/group/create/${group.code}",
-        object : ParameterizedTypeReference<ErrorResponse>() {},
+        uri = "/group",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        body = body,
         expectedResponseStatus = HttpStatus.CONFLICT.value(),
       )
       assertThat(response.userMessage).isEqualTo("Conflict: Programme group with code TEST_GROUP already exists")
@@ -453,12 +480,14 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `return 401 when unauthorised`() {
+      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSex.MALE)
       webTestClient
         .method(HttpMethod.POST)
-        .uri("/group/create/BCDD1")
+        .uri("/group")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .accept(MediaType.APPLICATION_JSON)
+        .bodyValue(body)
         .exchange()
         .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})

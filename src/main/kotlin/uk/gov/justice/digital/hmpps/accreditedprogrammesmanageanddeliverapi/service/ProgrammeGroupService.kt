@@ -8,6 +8,8 @@ import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.GroupWaitlistItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroup
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
@@ -26,15 +28,11 @@ class ProgrammeGroupService(
   private val groupWaitlistItemViewRepository: GroupWaitlistItemViewRepository,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
 ) {
-  fun createGroup(groupCode: String): ProgrammeGroupEntity? {
-    programmeGroupRepository.findByCode(groupCode)
-      ?.let { throw ConflictException("Programme group with code $groupCode already exists") }
+  fun createGroup(createGroup: CreateGroup): ProgrammeGroupEntity? {
+    programmeGroupRepository.findByCode(createGroup.groupCode)
+      ?.let { throw ConflictException("Programme group with code ${createGroup.groupCode} already exists") }
 
-    return programmeGroupRepository.save(
-      ProgrammeGroupEntity(
-        code = groupCode,
-      ),
-    )
+    return programmeGroupRepository.save(createGroup.toEntity())
   }
 
   fun getGroupById(groupId: UUID): ProgrammeGroupEntity = programmeGroupRepository.findByIdOrNull(groupId)

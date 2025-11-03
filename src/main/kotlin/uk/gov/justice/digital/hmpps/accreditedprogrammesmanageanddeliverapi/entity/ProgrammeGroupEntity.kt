@@ -3,6 +3,8 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ent
 import com.fasterxml.jackson.annotation.JsonFormat
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.Table
@@ -10,6 +12,8 @@ import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.security.core.context.SecurityContextHolder
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSex
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -24,6 +28,20 @@ class ProgrammeGroupEntity(
   @NotNull
   @Column(name = "code")
   var code: String,
+
+  @NotNull
+  @Column(name = "cohort")
+  @Enumerated(EnumType.STRING)
+  var cohort: OffenceCohort,
+
+  @NotNull
+  @Column("sex")
+  @Enumerated(EnumType.STRING)
+  var sex: ProgrammeGroupSex,
+
+  @NotNull
+  @Column(name = "is_ldc")
+  var isLdc: Boolean,
 
   @NotNull
   @Column(name = "created_at")
