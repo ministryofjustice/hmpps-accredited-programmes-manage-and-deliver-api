@@ -39,13 +39,14 @@ data class GroupWaitlistItem(
   @get:JsonProperty("personName", required = true)
   val personName: String,
   @Schema(
-    example = "15 March 1985",
+    example = "1 January 2030",
     required = true,
     description = "The end date of the person's sentence.",
   )
-  @get:JsonProperty("sentenceEndDate", required = true)
+  @get:JsonProperty("sentenceEndDate", required = false)
   @JsonFormat(pattern = "d MMMM yyyy")
-  val sentenceEndDate: LocalDate,
+  val sentenceEndDate: LocalDate?,
+
   @Schema(
     example = "SEXUAL_OFFENCE",
     required = true,
