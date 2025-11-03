@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -77,7 +78,7 @@ class ProgrammeGroupController(
   )
   @GetMapping("/bff/group/{groupId}/{selectedTab}", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getGroupDetails(
-    @PageableDefault(page = 0, size = 10, sort = ["personName"]) pageable: Pageable,
+    @PageableDefault(page = 0, size = 10, sort = ["sentenceEndDate"], direction = Sort.Direction.ASC) pageable: Pageable,
     @Parameter(description = "The id (UUID) of a group", required = true)
     @PathVariable("groupId") groupId: UUID,
     @Parameter(description = "Return table data for either the allocated tab or the waitlist tab")
