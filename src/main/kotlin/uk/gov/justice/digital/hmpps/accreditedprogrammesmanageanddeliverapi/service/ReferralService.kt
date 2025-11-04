@@ -62,7 +62,7 @@ class ReferralService(
   }
 
   suspend fun refreshPersonalDetailsForReferral(referralId: UUID): ReferralDetails? = coroutineScope {
-    val referral = referralRepository.findByIdOrNull(referralId) ?: return@coroutineScope null
+    val referral = referralRepository.findByIdWithMemberships(referralId) ?: return@coroutineScope null
 
     val hasLdcDeferred = async(Dispatchers.IO) {
       pniService.getPniCalculation(referral.crn).hasLdc()
