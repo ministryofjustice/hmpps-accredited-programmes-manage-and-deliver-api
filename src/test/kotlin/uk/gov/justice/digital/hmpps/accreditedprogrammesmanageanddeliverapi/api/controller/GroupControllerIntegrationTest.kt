@@ -176,8 +176,10 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[0].sentenceEndDate").isEqualTo("1 January 2030")
-      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[1].sentenceEndDate").isEqualTo("2 February 2031")
+      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[0].sentenceEndDate")
+        .isEqualTo("1 January 2030")
+      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[1].sentenceEndDate")
+        .isEqualTo("2 February 2031")
       response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[2].sentenceEndDate").isEqualTo("3 March 2032")
       response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[3].sentenceEndDate").isEqualTo("4 April 2033")
       response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[4].sentenceEndDate").isEqualTo("5 May 2034")
@@ -460,7 +462,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(createdGroup.id).isNotNull
       assertThat(createdGroup.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(createdGroup.isLdc).isTrue
-      assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSex.MALE)
+      assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSex.FEMALE)
     }
 
     @Test
