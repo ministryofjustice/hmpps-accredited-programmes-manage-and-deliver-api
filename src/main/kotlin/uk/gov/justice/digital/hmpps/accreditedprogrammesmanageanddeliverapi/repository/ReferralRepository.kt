@@ -8,9 +8,8 @@ import java.util.Optional
 import java.util.UUID
 
 interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
-
-  @Query("SELECT r FROM ReferralEntity r LEFT JOIN FETCH r.statusHistories WHERE r.id = :id")
-  fun findByIdWithStatusHistories(id: UUID): ReferralEntity?
+  @Query("SELECT r FROM ReferralEntity r LEFT JOIN FETCH r.programmeGroupMemberships WHERE r.id = :id")
+  fun findByIdWithMemberships(id: UUID): ReferralEntity?
 
   @Query("SELECT id from ReferralEntity")
   fun getAllIds(): List<UUID>
