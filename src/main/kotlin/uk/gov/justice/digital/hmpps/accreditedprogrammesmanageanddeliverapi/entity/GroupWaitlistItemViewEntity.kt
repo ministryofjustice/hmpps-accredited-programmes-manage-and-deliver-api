@@ -29,9 +29,9 @@ class GroupWaitlistItemViewEntity(
   @Column(name = "person_name")
   var personName: String,
 
-  @NotNull
+  @Nullable
   @Column(name = "sentence_end_date")
-  var sentenceEndDate: LocalDate,
+  var sentenceEndDate: LocalDate? = null,
 
   @Nullable
   @Enumerated(EnumType.STRING)
@@ -46,13 +46,13 @@ class GroupWaitlistItemViewEntity(
   @Column(name = "has_ldc")
   var hasLdc: Boolean,
 
-  @NotNull
+  @Nullable
   @Column(name = "date_of_birth")
-  var dateOfBirth: LocalDate,
+  var dateOfBirth: LocalDate? = null,
 
-  @NotNull
+  @Nullable
   @Column(name = "sex")
-  var sex: String,
+  var sex: String? = null,
 
   @NotNull
   @Column(name = "status")
@@ -66,7 +66,7 @@ class GroupWaitlistItemViewEntity(
   @Column(name = "reporting_team")
   var reportingTeam: String,
 
-  @NotNull
+  @Nullable
   @Column(name = "active_programme_group_id")
-  var activeProgrammeGroupId: UUID,
+  var activeProgrammeGroupId: UUID? = null,
 )

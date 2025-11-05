@@ -107,7 +107,7 @@ INSERT INTO referral_status_history (id,
                                      start_date)
 VALUES ('85b59ec2-bd8f-43c4-90f5-3d55b39331b2',
         '39fde7e8-d2e3-472b-8364-5848bf673aa6',
-        '76b2f8d8-260c-4766-a716-de9325292609',
+        'bb1e8c72-cf52-4297-94a4-3745c2a25178',
         now(),
         'USER_ID_12345',
         now()),
