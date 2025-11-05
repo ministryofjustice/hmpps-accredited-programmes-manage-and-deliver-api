@@ -198,7 +198,7 @@ class ProgrammeGroupController(
     tags = ["Programme Group controller"],
     summary = "Create a new programme group",
     operationId = "createProgrammeGroup",
-    description = "Create a new programme group with the specified group code",
+    description = "Create a new programme group",
     responses = [
       ApiResponse(
         responseCode = "201",
@@ -207,7 +207,7 @@ class ProgrammeGroupController(
       ),
       ApiResponse(
         responseCode = "400",
-        description = "Invalid request format or group code",
+        description = "Invalid request body",
         content = [Content(schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
