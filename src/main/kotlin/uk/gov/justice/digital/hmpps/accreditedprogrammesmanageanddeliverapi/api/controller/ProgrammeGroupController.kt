@@ -87,7 +87,12 @@ class ProgrammeGroupController(
   )
   @GetMapping("/bff/group/{groupId}/{selectedTab}", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getGroupDetails(
-    @PageableDefault(page = 0, size = 10, sort = ["sentenceEndDate"], direction = Sort.Direction.ASC) pageable: Pageable,
+    @PageableDefault(
+      page = 0,
+      size = 10,
+      sort = ["sentenceEndDate"],
+      direction = Sort.Direction.ASC,
+    ) pageable: Pageable,
     @Parameter(description = "The id (UUID) of a group", required = true)
     @PathVariable("groupId") groupId: UUID,
     @Parameter(description = "Return table data for either the allocated tab or the waitlist tab")
@@ -198,6 +203,7 @@ class ProgrammeGroupController(
       ApiResponse(
         responseCode = "201",
         description = "Programme group successfully created",
+        content = [Content(schema = Schema(implementation = ProgrammeGroupEntity::class))],
       ),
       ApiResponse(
         responseCode = "400",
