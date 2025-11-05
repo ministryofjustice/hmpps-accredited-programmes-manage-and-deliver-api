@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
@@ -19,12 +20,14 @@ import org.springframework.security.authentication.AuthenticationCredentialsNotF
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.GroupWaitlistItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroup
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toAllocatedItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
@@ -73,12 +76,22 @@ class ProgrammeGroupController(
         description = "The group does not exist",
         content = [Content(schema = Schema(implementation = ErrorResponse::class))],
       ),
+      ApiResponse(
+        responseCode = "409",
+        description = "The group already exists",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @GetMapping("/bff/group/{groupId}/{selectedTab}", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getGroupDetails(
-    @PageableDefault(page = 0, size = 10, sort = ["sentenceEndDate"], direction = Sort.Direction.ASC) pageable: Pageable,
+    @PageableDefault(
+      page = 0,
+      size = 10,
+      sort = ["sentenceEndDate"],
+      direction = Sort.Direction.ASC,
+    ) pageable: Pageable,
     @Parameter(description = "The id (UUID) of a group", required = true)
     @PathVariable("groupId") groupId: UUID,
     @Parameter(description = "Return table data for either the allocated tab or the waitlist tab")
@@ -178,6 +191,48 @@ class ProgrammeGroupController(
   ): ResponseEntity<Void> {
     programmeGroupMembershipService.allocateReferralToGroup(referralId, groupId)
     return ResponseEntity.status(HttpStatus.OK).build()
+  }
+
+  @Operation(
+    tags = ["Programme Group controller"],
+    summary = "Create a new programme group",
+    operationId = "createProgrammeGroup",
+    description = "Create a new programme group",
+    responses = [
+      ApiResponse(
+        responseCode = "201",
+        description = "Programme group successfully created",
+        content = [Content(schema = Schema(implementation = Void::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid request body",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden. The client is not authorised to create groups.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PostMapping(
+    "/group",
+    consumes = [MediaType.APPLICATION_JSON_VALUE],
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+  )
+  fun createProgrammeGroup(
+    @Valid
+    @RequestBody createGroup: CreateGroup,
+  ): ResponseEntity<Void> {
+    programmeGroupService.createGroup(createGroup)
+    return ResponseEntity.status(HttpStatus.CREATED).build()
   }
 
   private fun buildAllocationAndWaitlistData(

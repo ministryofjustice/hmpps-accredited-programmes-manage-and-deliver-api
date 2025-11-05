@@ -1,7 +1,10 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity
 
+import com.fasterxml.jackson.annotation.JsonFormat
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.Table
@@ -9,6 +12,8 @@ import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.security.core.context.SecurityContextHolder
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -25,8 +30,23 @@ class ProgrammeGroupEntity(
   var code: String,
 
   @NotNull
+  @Column(name = "cohort")
+  @Enumerated(EnumType.STRING)
+  var cohort: OffenceCohort,
+
+  @NotNull
+  @Column("sex")
+  @Enumerated(EnumType.STRING)
+  var sex: ProgrammeGroupSexEnum,
+
+  @NotNull
+  @Column(name = "is_ldc")
+  var isLdc: Boolean,
+
+  @NotNull
   @Column(name = "created_at")
   @CreatedDate
+  @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
   var createdAt: LocalDateTime = LocalDateTime.now(),
 
   @NotNull
@@ -35,12 +55,14 @@ class ProgrammeGroupEntity(
   var createdByUsername: String? = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
 
   @Column(name = "updated_at")
+  @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
   var updatedAt: LocalDateTime? = null,
 
   @Column(name = "updated_by_username")
   var updatedByUsername: String? = null,
 
   @Column(name = "deleted_at")
+  @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
   var deletedAt: LocalDateTime? = null,
 
   @Column(name = "deleted_by_username")

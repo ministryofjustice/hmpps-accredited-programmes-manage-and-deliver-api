@@ -8,24 +8,18 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.repository.findByIdOrNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.GroupWaitlistItemViewRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
 import java.time.LocalDateTime
 
 class GroupWaitlistViewRepositoryIntegrationTest(@Autowired private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository) : IntegrationTestBase() {
 
   @Autowired
-  private lateinit var repo: GroupWaitlistItemViewRepository
-
-  @Autowired
-  private lateinit var programmeGroupRepository: ProgrammeGroupRepository
-
-  @Autowired
-  private lateinit var programmeGroupService: ProgrammeGroupService
+  private lateinit var groupWaitListRepo: GroupWaitlistItemViewRepository
 
   @Autowired
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
@@ -43,7 +37,7 @@ class GroupWaitlistViewRepositoryIntegrationTest(@Autowired private val referral
 
   @Test
   fun `retrieve group wait list items`() {
-    val waitlistItems = repo.findAll()
+    val waitlistItems = groupWaitListRepo.findAll()
 
     assertThat(waitlistItems.size).isEqualTo(4)
     assertThat(waitlistItems).allSatisfy { item ->
@@ -66,12 +60,13 @@ class GroupWaitlistViewRepositoryIntegrationTest(@Autowired private val referral
 
   @Test
   fun `retrieve latest active_programme_group_id`() {
-    val waitlistItems = repo.findAll()
+    val waitlistItems = groupWaitListRepo.findAll()
     val referralId = waitlistItems.first().referralId
-    val group = programmeGroupService.createGroup("BCCD1")!!
+    val group = ProgrammeGroupFactory().produce()
+    testDataGenerator.createGroup(group)
     programmeGroupMembershipService.allocateReferralToGroup(referralId, group.id!!)
 
-    val allocatedReferral = repo.findByIdOrNull(referralId)!!
+    val allocatedReferral = groupWaitListRepo.findByIdOrNull(referralId)!!
 
     assertThat(allocatedReferral.activeProgrammeGroupId).isEqualTo(group.id)
   }

@@ -13,7 +13,10 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroup
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
@@ -29,6 +32,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
@@ -37,6 +41,9 @@ import java.time.LocalDate
 import java.util.UUID
 
 class GroupControllerIntegrationTest : IntegrationTestBase() {
+
+  @Autowired
+  private lateinit var programmeGroupRepository: ProgrammeGroupRepository
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
@@ -126,7 +133,8 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
 
       body.jsonPath("allocationAndWaitlistData.filters").exists()
       body.jsonPath("allocationAndWaitlistData.filters.sex").isEqualTo(listOf("Male", "Female"))
-      body.jsonPath("allocationAndWaitlistData.filters.cohort").isEqualTo(listOf("General Offence", "General Offence - LDC", "Sexual Offence", "Sexual Offence - LDC"))
+      body.jsonPath("allocationAndWaitlistData.filters.cohort")
+        .isEqualTo(listOf("General Offence", "General Offence - LDC", "Sexual Offence", "Sexual Offence - LDC"))
     }
 
     @Test
@@ -171,8 +179,10 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[0].sentenceEndDate").isEqualTo("1 January 2030")
-      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[1].sentenceEndDate").isEqualTo("2 February 2031")
+      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[0].sentenceEndDate")
+        .isEqualTo("1 January 2030")
+      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[1].sentenceEndDate")
+        .isEqualTo("2 February 2031")
       response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[2].sentenceEndDate").isEqualTo("3 March 2032")
       response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[3].sentenceEndDate").isEqualTo("4 April 2033")
       response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[4].sentenceEndDate").isEqualTo("5 May 2034")
@@ -314,7 +324,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Nested
-  @DisplayName("Allocate to Programme Group")
+  @DisplayName("Allocate to Programme group")
   inner class AllocateToProgrammeGroup {
     @Test
     fun `allocateReferralToGroup can successfully allocate a referral to a group`() {
@@ -418,6 +428,77 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
         expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
       )
       assertThat(exception.userMessage).isEqualTo("Bad request: Cannot assign referral to group as referral with id ${referral.id} is in a closed state")
+    }
+  }
+
+  @Nested
+  @DisplayName("Create a Programme group")
+  inner class CreateProgrammeGroup {
+    @Test
+    fun `create group with code and return 200 when it doesn't already exist`() {
+      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE)
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
+      assertThat(createdGroup.code).isEqualTo(body.groupCode)
+      assertThat(createdGroup.id).isNotNull
+      assertThat(createdGroup.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+      assertThat(createdGroup.isLdc).isFalse
+      assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.MALE)
+    }
+
+    @Test
+    fun `create group and assign correct cohort and sex and return 200 when it doesn't already exist`() {
+      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.SEXUAL_LDC, ProgrammeGroupSexEnum.FEMALE)
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
+      assertThat(createdGroup.code).isEqualTo(body.groupCode)
+      assertThat(createdGroup.id).isNotNull
+      assertThat(createdGroup.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
+      assertThat(createdGroup.isLdc).isTrue
+      assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.FEMALE)
+    }
+
+    @Test
+    fun `create group with code and return CONFLICT when it already exists`() {
+      val group = ProgrammeGroupFactory().withCode("TEST_GROUP").produce()
+      testDataGenerator.createGroup(group)
+      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE)
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        body = body,
+        expectedResponseStatus = HttpStatus.CONFLICT.value(),
+      )
+      assertThat(response.userMessage).isEqualTo("Conflict: Programme group with code TEST_GROUP already exists")
+    }
+
+    @Test
+    fun `return 401 when unauthorised`() {
+      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE)
+      webTestClient
+        .method(HttpMethod.POST)
+        .uri("/group")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .accept(MediaType.APPLICATION_JSON)
+        .bodyValue(body)
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
     }
   }
 
