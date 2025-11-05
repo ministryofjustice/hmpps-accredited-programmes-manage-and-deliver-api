@@ -23,7 +23,7 @@ data class GroupWaitlistItem(
     description = "A human-readable string describing the entity (Licence Condition or Requirement) that caused the Referral to be created in our system",
   )
   @get:JsonProperty("sourcedFrom", required = true)
-  val sourcedFrom: String,
+  val sourcedFrom: String? = null,
 
   @Schema(
     example = "X933590",
@@ -101,7 +101,7 @@ data class GroupWaitlistItem(
 
 fun GroupWaitlistItemViewEntity.toApi() = GroupWaitlistItem(
   referralId = referralId,
-  sourcedFrom = if (sourcedFrom.equals(ReferralEntitySourcedFrom.REQUIREMENT)) "Order end date" else "Licence end date",
+  sourcedFrom = sourcedFrom?.let { if (sourcedFrom?.equals(ReferralEntitySourcedFrom.REQUIREMENT) == true) "Order end date" else "Licence end date" },
   crn = crn,
   personName = personName,
   sentenceEndDate = sentenceEndDate,

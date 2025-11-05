@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity
 
+import jakarta.annotation.Nullable
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -17,7 +18,8 @@ import java.util.UUID
 class GroupWaitlistItemViewEntity(
   @NotNull
   @Id
-  @Column(name = "referral_id") var referralId: UUID,
+  @Column(name = "referral_id")
+  var referralId: UUID,
 
   @NotNull
   @Column(name = "crn")
@@ -31,10 +33,10 @@ class GroupWaitlistItemViewEntity(
   @Column(name = "sentence_end_date")
   var sentenceEndDate: LocalDate,
 
-  @NotNull
+  @Nullable
   @Enumerated(EnumType.STRING)
   @Column(name = "sourced_from")
-  var sourcedFrom: ReferralEntitySourcedFrom,
+  var sourcedFrom: ReferralEntitySourcedFrom? = null,
 
   @NotNull
   @Column(name = "cohort")

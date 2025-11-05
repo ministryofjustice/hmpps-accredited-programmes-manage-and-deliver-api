@@ -20,7 +20,7 @@ data class GroupAllocatedItem(
     description = "The entity (Licence Condition or Requirement) that caused the Referral to be created in our system",
   )
   @get:JsonProperty("sourcedFrom", required = true)
-  val sourcedFrom: String,
+  val sourcedFrom: String? = null,
   @Schema(
     example = "X933590",
     required = true,
