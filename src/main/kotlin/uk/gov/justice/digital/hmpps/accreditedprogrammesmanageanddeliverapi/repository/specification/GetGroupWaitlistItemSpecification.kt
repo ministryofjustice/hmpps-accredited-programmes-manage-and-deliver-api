@@ -14,6 +14,7 @@ fun getGroupWaitlistItemSpecification(
   cohort: ProgrammeGroupCohort?,
   nameOrCRN: String?,
   pdu: String?,
+  reportingTeam: String?,
 ): Specification<GroupWaitlistItemViewEntity> = Specification<GroupWaitlistItemViewEntity> { root, _, criteriaBuilder ->
   val predicates = mutableListOf<Predicate>()
 
@@ -48,6 +49,10 @@ fun getGroupWaitlistItemSpecification(
 
   pdu?.let {
     predicates.add(criteriaBuilder.equal(root.get<String>("pduName"), it))
+  }
+
+  reportingTeam?.let {
+    predicates.add(criteriaBuilder.equal(root.get<String>("reportingTeam"), it))
   }
 
   criteriaBuilder.and(*predicates.toTypedArray())

@@ -51,11 +51,12 @@ class ProgrammeGroupService(
     nameOrCRN: String?,
     pdu: String?,
     pageable: Pageable,
+    reportingTeam: String?,
   ): Page<GroupWaitlistItem> {
     // Verify the group exists first
     getGroupById(groupId)
 
-    val specification = getGroupWaitlistItemSpecification(selectedTab, groupId, sex, cohort, nameOrCRN, pdu)
+    val specification = getGroupWaitlistItemSpecification(selectedTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeam)
 
     return groupWaitlistItemViewRepository.findAll(specification, pageable)
       .map { it.toApi() }
@@ -68,11 +69,12 @@ class ProgrammeGroupService(
     cohort: ProgrammeGroupCohort?,
     nameOrCRN: String?,
     pdu: String?,
+    reportingTeam: String?,
   ): Int {
     // Verify the group exists first
     getGroupById(groupId)
 
-    val specification = getGroupWaitlistItemSpecification(selectedTab, groupId, sex, cohort, nameOrCRN, pdu)
+    val specification = getGroupWaitlistItemSpecification(selectedTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeam)
 
     return groupWaitlistItemViewRepository.count(specification).toInt()
   }

@@ -104,6 +104,8 @@ class ProgrammeGroupController(
     @RequestParam(name = "nameOrCRN", required = false) nameOrCRN: String?,
     @Parameter(description = "Filter by the human readable pdu of the referral, i.e. 'All London'")
     @RequestParam(name = "pdu", required = false) pdu: String?,
+    @Parameter(description = "Filter by the reporting team")
+    @RequestParam(name = "reportingTeam", required = false) reportingTeam: String?,
   ): ResponseEntity<ProgrammeGroupDetails> {
     val groupEntity = programmeGroupService.getGroupById(groupId)
     val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
@@ -115,6 +117,7 @@ class ProgrammeGroupController(
       nameOrCRN,
       pdu,
       pageable,
+      reportingTeam,
     )
 
     val otherTabCount = programmeGroupService.getGroupWaitlistCount(
@@ -124,6 +127,7 @@ class ProgrammeGroupController(
       cohort = groupCohort,
       nameOrCRN,
       pdu,
+      reportingTeam,
     )
 
     val allocationAndWaitlistData = buildAllocationAndWaitlistData(selectedTab, pagedWaitlistData, otherTabCount)
