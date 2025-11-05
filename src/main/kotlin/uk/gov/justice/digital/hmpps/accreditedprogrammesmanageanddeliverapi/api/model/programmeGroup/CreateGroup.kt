@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSex
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 
 data class CreateGroup(
@@ -25,9 +25,9 @@ data class CreateGroup(
   @Schema(
     enumAsRef = true,
     description = "Sex that the group is being run for",
-    implementation = ProgrammeGroupSex::class,
+    implementation = ProgrammeGroupSexEnum::class,
   )
-  var sex: ProgrammeGroupSex,
+  var sex: ProgrammeGroupSexEnum,
 )
 
 fun CreateGroup.toEntity(): ProgrammeGroupEntity {

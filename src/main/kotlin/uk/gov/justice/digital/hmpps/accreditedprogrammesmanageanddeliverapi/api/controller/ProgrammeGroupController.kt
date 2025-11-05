@@ -30,7 +30,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroup
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toAllocatedItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
@@ -203,7 +202,7 @@ class ProgrammeGroupController(
       ApiResponse(
         responseCode = "201",
         description = "Programme group successfully created",
-        content = [Content(schema = Schema(implementation = ProgrammeGroupEntity::class))],
+        content = [Content(schema = Schema(implementation = Void::class))],
       ),
       ApiResponse(
         responseCode = "400",
@@ -231,9 +230,9 @@ class ProgrammeGroupController(
   fun createProgrammeGroup(
     @Valid
     @RequestBody createGroup: CreateGroup,
-  ): ResponseEntity<ProgrammeGroupEntity> {
-    val programmeGroup = programmeGroupService.createGroup(createGroup)
-    return ResponseEntity.status(HttpStatus.CREATED).body(programmeGroup)
+  ): ResponseEntity<Void> {
+    programmeGroupService.createGroup(createGroup)
+    return ResponseEntity.status(HttpStatus.CREATED).build()
   }
 
   private fun buildAllocationAndWaitlistData(

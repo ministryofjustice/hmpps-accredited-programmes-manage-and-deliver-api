@@ -16,11 +16,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroup
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSex
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
@@ -33,6 +32,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
@@ -41,6 +41,9 @@ import java.time.LocalDate
 import java.util.UUID
 
 class GroupControllerIntegrationTest : IntegrationTestBase() {
+
+  @Autowired
+  private lateinit var programmeGroupRepository: ProgrammeGroupRepository
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
@@ -433,43 +436,45 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
   inner class CreateProgrammeGroup {
     @Test
     fun `create group with code and return 200 when it doesn't already exist`() {
-      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSex.MALE)
-      val createdGroup = performRequestAndExpectStatusWithBody(
+      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE)
+      performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
-        returnType = object : ParameterizedTypeReference<ProgrammeGroupEntity>() {},
         body = body,
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
+
+      val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
       assertThat(createdGroup.code).isEqualTo(body.groupCode)
       assertThat(createdGroup.id).isNotNull
       assertThat(createdGroup.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
       assertThat(createdGroup.isLdc).isFalse
-      assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSex.MALE)
+      assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.MALE)
     }
 
     @Test
     fun `create group and assign correct cohort and sex and return 200 when it doesn't already exist`() {
-      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.SEXUAL_LDC, ProgrammeGroupSex.FEMALE)
-      val createdGroup = performRequestAndExpectStatusWithBody(
+      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.SEXUAL_LDC, ProgrammeGroupSexEnum.FEMALE)
+      performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
-        returnType = object : ParameterizedTypeReference<ProgrammeGroupEntity>() {},
         body = body,
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
+
+      val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
       assertThat(createdGroup.code).isEqualTo(body.groupCode)
       assertThat(createdGroup.id).isNotNull
       assertThat(createdGroup.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(createdGroup.isLdc).isTrue
-      assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSex.FEMALE)
+      assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.FEMALE)
     }
 
     @Test
     fun `create group with code and return CONFLICT when it already exists`() {
       val group = ProgrammeGroupFactory().withCode("TEST_GROUP").produce()
       testDataGenerator.createGroup(group)
-      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSex.MALE)
+      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE)
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -482,7 +487,7 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `return 401 when unauthorised`() {
-      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSex.MALE)
+      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE)
       webTestClient
         .method(HttpMethod.POST)
         .uri("/group")
