@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
@@ -28,9 +29,13 @@ class ProgrammeGroupService(
   private val groupWaitlistItemViewRepository: GroupWaitlistItemViewRepository,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
 ) {
+  private val log = LoggerFactory.getLogger(this::class.java)
+
   fun createGroup(createGroup: CreateGroup): ProgrammeGroupEntity? {
     programmeGroupRepository.findByCode(createGroup.groupCode)
       ?.let { throw ConflictException("Programme group with code ${createGroup.groupCode} already exists") }
+
+    log.info("Group created with code: ${createGroup.groupCode}")
 
     return programmeGroupRepository.save(createGroup.toEntity())
   }
