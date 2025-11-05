@@ -15,7 +15,7 @@ class ReferralCaseListItemViewEntity(
   @NotNull
   @Id
   @Column(name = "id")
-  val referralId: UUID,
+  var referralId: UUID,
 
   @NotNull
   @Column(name = "crn")
