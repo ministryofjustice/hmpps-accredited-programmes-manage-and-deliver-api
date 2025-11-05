@@ -90,6 +90,16 @@ class TestDataGenerator {
     entityManager.persist(statusHistory)
   }
 
+  fun <T> createReferralWithFields(
+    referralEntity: ReferralEntity? = null,
+    fields: List<T>,
+  ) {
+    entityManager.persist(referralEntity)
+    for (field in fields) {
+      entityManager.persist(field)
+    }
+  }
+
   fun createReferralWithStatusHistory(
     referralEntity: ReferralEntity? = null,
     statusDescriptionList: List<ReferralStatusDescriptionEntity>,

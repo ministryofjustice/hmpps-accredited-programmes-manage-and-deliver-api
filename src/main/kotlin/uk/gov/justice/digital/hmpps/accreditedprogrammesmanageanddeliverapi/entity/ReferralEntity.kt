@@ -122,6 +122,13 @@ class ReferralEntity(
     mappedBy = "referral",
   )
   var programmeGroupMemberships: MutableSet<ProgrammeGroupMembershipEntity> = mutableSetOf(),
+
+  @Nullable
+  @OneToOne(
+    fetch = FetchType.LAZY,
+    mappedBy = "referral",
+  )
+  var referralMotivationBackgroundAndNonAssociations: ReferralMotivationBackgroundAndNonAssociationsEntity? = null,
 )
 
 // There should only be one active group membership at any given time
