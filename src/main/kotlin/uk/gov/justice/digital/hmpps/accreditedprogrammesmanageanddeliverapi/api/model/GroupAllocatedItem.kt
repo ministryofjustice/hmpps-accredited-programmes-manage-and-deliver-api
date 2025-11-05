@@ -52,4 +52,12 @@ data class GroupAllocatedItem(
   )
   @get:JsonProperty("status", required = true)
   val status: String,
+
+  @Schema(
+    example = "56470228-3893-450f-b4bc-97b21e18b887",
+    required = true,
+    description = "The unique Id of the group that the referral is assigned to.",
+  )
+  @get:JsonProperty("activeProgrammeGroupId", required = true)
+  val activeProgrammeGroupId: UUID? = null,
 )

@@ -244,7 +244,7 @@ class ProgrammeGroupController(
     pagedWaitlistData: Page<GroupWaitlistItem>,
     otherTabCount: Int,
   ): ProgrammeGroupDetails.AllocationAndWaitlistData {
-    val (waitlistItems, allocatedItems) = pagedWaitlistData.content.partition { isAwaitingAllocation(it) }
+    val (waitlistItems, allocatedItems) = pagedWaitlistData.content.partition { isAwaitingAllocation(it) && it.activeProgrammeGroupId == null }
 
     return when (selectedTab) {
       GroupPageTab.WAITLIST -> createWaitlistTabData(waitlistItems, pagedWaitlistData, otherTabCount)
