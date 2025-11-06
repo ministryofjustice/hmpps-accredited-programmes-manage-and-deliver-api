@@ -10,7 +10,8 @@ CREATE TABLE referral_motivation_background_and_non_associations
     created_at              TIMESTAMP NOT NULL,
     last_updated_by         TEXT,
     last_updated_at         TIMESTAMP,
-    CONSTRAINT fk_referral FOREIGN KEY (referral_id) REFERENCES referral (id)
+    CONSTRAINT fk_referral FOREIGN KEY (referral_id) REFERENCES referral (id),
+    CONSTRAINT unique_referral_motivation_background_and_non_associations_referral_id UNIQUE (referral_id)
 );
 
 COMMENT ON TABLE referral_motivation_background_and_non_associations IS 'This table holds a data on motivations, background, and non-associations for a referral.';

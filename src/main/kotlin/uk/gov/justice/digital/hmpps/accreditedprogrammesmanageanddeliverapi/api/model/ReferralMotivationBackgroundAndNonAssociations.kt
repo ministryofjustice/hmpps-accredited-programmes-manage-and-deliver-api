@@ -42,9 +42,9 @@ data class ReferralMotivationBackgroundAndNonAssociations(
   val motivations: String,
 
   @Schema(
-    example = "Should not be in a group with a person who has a history of reoffending on a previous accredited programme.",
+    example = "Other information relevant to the referral.",
     required = true,
-    description = "Information on any non-associations relevant to the referral.",
+    description = "Any other relevant information that should be considered.",
   )
   @get:JsonProperty("otherConsiderations", required = true)
   val otherConsiderations: String,

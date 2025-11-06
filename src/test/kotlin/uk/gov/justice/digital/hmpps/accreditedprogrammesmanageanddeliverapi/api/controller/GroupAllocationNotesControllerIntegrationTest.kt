@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.produce
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateOrUpdateReferralMotivationBackgroundAndNonAssociations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.time.LocalDateTime
 import java.util.UUID
@@ -81,6 +82,100 @@ class GroupAllocationNotesControllerIntegrationTest : IntegrationTestBase() {
         uri = "/referral/${UUID.randomUUID()}/motivation-background-non-associations",
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.NOT_FOUND.value(),
+      )
+    }
+  }
+
+  @Nested
+  @DisplayName("Create or update referral motivation, background and non-associations")
+  inner class CreateOrUpdateMotivationBackgroundAndNonAssociationsForReferral {
+    @Test
+    fun `should update motivation background and non-associations for a referral`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+      val motivationBackgroundAndNonAssociations = ReferralMotivationBackgroundAndNonAssociationsFactory().produce(referral = referralEntity)
+      referralEntity.referralMotivationBackgroundAndNonAssociations = motivationBackgroundAndNonAssociations
+      testDataGenerator.createReferralWithFields(referralEntity, listOf(statusHistory, motivationBackgroundAndNonAssociations))
+
+      val update = CreateOrUpdateReferralMotivationBackgroundAndNonAssociations(
+        maintainsInnocence = false,
+        motivations = "updated motivations.",
+        otherConsiderations = "updated considerations.",
+        nonAssociations = "updated non-associations.",
+      )
+
+      // When
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.PUT,
+        uri = "/referral/${referralEntity.id}/motivation-background-non-associations",
+        body = update,
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      val referral = testDataGenerator.getReferralById(referralEntity.id!!)
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations).isNotNull
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.maintainsInnocence).isFalse
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.motivations).isEqualTo(update.motivations)
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.otherConsiderations).isEqualTo(update.otherConsiderations)
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.nonAssociations).isEqualTo(update.nonAssociations)
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.createdBy).isEqualTo(motivationBackgroundAndNonAssociations.createdBy)
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.createdAt).isNotNull
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.lastUpdatedBy).isEqualTo("AUTH_ADM")
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.lastUpdatedAt).isNotNull
+    }
+
+    @Test
+    fun `should create motivation background and non-associations for a referral`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+
+      // When
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.PUT,
+        uri = "/referral/${referralEntity.id}/motivation-background-non-associations",
+        body = CreateOrUpdateReferralMotivationBackgroundAndNonAssociations(
+          maintainsInnocence = true,
+          motivations = "Motivated to change and improve life circumstances.",
+          otherConsiderations = "Other information relevant to the referral.",
+          nonAssociations = "Should not be in a group with a person who has a history of reoffending on a previous accredited programme.",
+        ),
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      val referral = testDataGenerator.getReferralById(referralEntity.id!!)
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations).isNotNull
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.maintainsInnocence).isTrue
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.motivations).isEqualTo("Motivated to change and improve life circumstances.")
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.otherConsiderations).isEqualTo("Other information relevant to the referral.")
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.nonAssociations).isEqualTo("Should not be in a group with a person who has a history of reoffending on a previous accredited programme.")
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.createdBy).isEqualTo("AUTH_ADM")
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.createdAt).isNotNull
+    }
+
+    @Test
+    fun `should throw 404 if referral does not exist when trying to create motivation background and non-associations`() {
+      // When
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.PUT,
+        uri = "/referral/${UUID.randomUUID()}/motivation-background-non-associations",
+        body = CreateOrUpdateReferralMotivationBackgroundAndNonAssociations(
+          maintainsInnocence = true,
+          motivations = "Motivated to change and improve life circumstances.",
+          otherConsiderations = "Other information relevant to the referral.",
+          nonAssociations = "Should not be in a group with a person who has a history of reoffending on a previous accredited programme.",
+        ),
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
       )
     }
   }
