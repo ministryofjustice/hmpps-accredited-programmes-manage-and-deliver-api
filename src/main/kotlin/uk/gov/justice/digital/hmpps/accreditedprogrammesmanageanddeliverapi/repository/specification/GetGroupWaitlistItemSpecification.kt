@@ -51,8 +51,12 @@ fun getGroupWaitlistItemSpecification(
     predicates.add(criteriaBuilder.equal(root.get<String>("pduName"), it))
   }
 
-  if (!reportingTeams.isNullOrEmpty()) {
-    predicates.add(root.get<String>("reportingTeam").`in`(reportingTeams))
+  reportingTeams?.let {
+    pdu?.let {
+      predicates.add(
+        root.get<String>("reportingTeam").`in`(reportingTeams),
+      )
+    }
   }
 
   criteriaBuilder.and(*predicates.toTypedArray())

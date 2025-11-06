@@ -272,7 +272,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?reportingTeam=Team A&reportingTeam=Team C",
+        "/bff/group/${group.id}/WAITLIST?pdu=Test PDU 1&reportingTeam=Team A&reportingTeam=Team C",
         object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
       )
 
@@ -281,6 +281,28 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).hasSize(3)
       response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
         assertThat(item.reportingTeam).isIn("Team A", "Team C")
+      }
+    }
+
+    @Test
+    fun `getGroupDetails should ignore reportingTeam if PDU is not also present`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val group = ProgrammeGroupFactory().withCode("TEST006").produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/group/${group.id}/WAITLIST?reportingTeam=Team A&reportingTeam=Team C",
+        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+      )
+
+      // Then
+      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotEmpty
+      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).hasSize(5)
+      response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
+        assertThat(item.reportingTeam).isIn("Team A", "Team B", "Team C")
       }
     }
 
