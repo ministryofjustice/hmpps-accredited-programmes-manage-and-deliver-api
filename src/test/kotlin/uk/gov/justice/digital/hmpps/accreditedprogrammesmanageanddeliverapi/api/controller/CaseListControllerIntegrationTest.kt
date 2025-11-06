@@ -22,7 +22,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.time.LocalDateTime
 
@@ -30,8 +29,6 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
-
-  private lateinit var nDeliusApiStubs: NDeliusApiStubs
 
   @Nested
   @DisplayName("GetCaseListReferrals")
@@ -42,7 +39,6 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       createReferralsWithStatusHistoryAndReportingLocations()
       testDataGenerator.refreshReferralCaseListItemView()
       stubAuthTokenEndpoint()
-      nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
 
       // Grant permission to all of the following (fake) CRNs
       nDeliusApiStubs.stubAccessCheck(
@@ -579,10 +575,24 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(statusFilters.open).hasSize(10)
         assertThat(statusFilters.closed).hasSize(2)
         assertThat(locationFilters).hasSize(3)
-        assertThat(locationFilters.find { it.pduName == "PDU1" }?.reportingTeams?.containsAll(mutableListOf("reportingTeam1", "reportingTeam2")))
+        assertThat(
+          locationFilters.find { it.pduName == "PDU1" }?.reportingTeams?.containsAll(
+            mutableListOf(
+              "reportingTeam1",
+              "reportingTeam2",
+            ),
+          ),
+        )
         // Check duplicate has been removed
         assertThat(locationFilters.find { it.pduName == "PDU1" }?.reportingTeams).hasSize(2)
-        assertThat(locationFilters.find { it.pduName == "PDU2" }?.reportingTeams?.containsAll(mutableListOf("reportingTeam1", "reportingTeam2")))
+        assertThat(
+          locationFilters.find { it.pduName == "PDU2" }?.reportingTeams?.containsAll(
+            mutableListOf(
+              "reportingTeam1",
+              "reportingTeam2",
+            ),
+          ),
+        )
       }
 
       @Test
@@ -603,10 +613,24 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(statusFilters.open).hasSize(10)
         assertThat(statusFilters.closed).hasSize(2)
         assertThat(locationFilters).hasSize(3)
-        assertThat(locationFilters.find { it.pduName == "PDU1" }?.reportingTeams?.containsAll(mutableListOf("reportingTeam1", "reportingTeam2")))
+        assertThat(
+          locationFilters.find { it.pduName == "PDU1" }?.reportingTeams?.containsAll(
+            mutableListOf(
+              "reportingTeam1",
+              "reportingTeam2",
+            ),
+          ),
+        )
         // Check duplicate has been removed
         assertThat(locationFilters.find { it.pduName == "PDU1" }?.reportingTeams).hasSize(2)
-        assertThat(locationFilters.find { it.pduName == "PDU2" }?.reportingTeams?.containsAll(mutableListOf("reportingTeam1", "reportingTeam2")))
+        assertThat(
+          locationFilters.find { it.pduName == "PDU2" }?.reportingTeams?.containsAll(
+            mutableListOf(
+              "reportingTeam1",
+              "reportingTeam2",
+            ),
+          ),
+        )
       }
     }
   }

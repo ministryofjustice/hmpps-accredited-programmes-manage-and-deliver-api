@@ -1,16 +1,14 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration
 
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.github.tomakehurst.wiremock.WireMockServer
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.ExtendWith
-import org.junit.jupiter.api.extension.RegisterExtension
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
+import org.springframework.context.annotation.Import
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
@@ -25,25 +23,22 @@ import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.containers.localstack.LocalStackContainer.Service
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
-import software.amazon.awssdk.services.sqs.model.PurgeQueueRequest
-import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.DomainEventsQueueConfig
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.DomainEventsMessage
-import uk.gov.justice.hmpps.sqs.HmppsQueue
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.CreateReferralHelper
 import uk.gov.justice.hmpps.sqs.HmppsQueueService
-import uk.gov.justice.hmpps.sqs.MissingQueueException
-import uk.gov.justice.hmpps.sqs.MissingTopicException
-import uk.gov.justice.hmpps.sqs.countAllMessagesOnQueue
-import uk.gov.justice.hmpps.sqs.publish
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 
 @Testcontainers
 @ExtendWith(HmppsAuthApiExtension::class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @ActiveProfiles("test")
+@Import(CreateReferralHelper::class, DomainEventsQueueConfig::class)
 abstract class IntegrationTestBase {
 
   @Autowired
@@ -61,34 +56,24 @@ abstract class IntegrationTestBase {
   @Autowired
   lateinit var hmppsQueueService: HmppsQueueService
 
-  val objectMapper = jacksonObjectMapper().apply {
-    registerModule(JavaTimeModule())
-  }
+  @Autowired
+  lateinit var oasysApiStubs: OasysApiStubs
 
-  val domainEventQueue by lazy {
-    hmppsQueueService.findByQueueId("hmppsdomaineventsqueue")
-      ?: throw MissingQueueException("HmppsQueue hmppsdomaineventsqueue not found")
-  }
-  val domainEventQueueDlqClient by lazy { domainEventQueue.sqsDlqClient }
-  val domainEventQueueClient by lazy { domainEventQueue.sqsClient }
+  @Autowired
+  lateinit var nDeliusApiStubs: NDeliusApiStubs
 
-  val domainEventsTopic by lazy {
-    hmppsQueueService.findByTopicId("hmppsdomaineventstopic")
-      ?: throw MissingTopicException("hmppsdomaineventstopic not found")
-  }
+  @Autowired
+  lateinit var wiremock: WireMockServer
 
-  internal fun sendDomainEvent(event: DomainEventsMessage) {
-    domainEventsTopic.publish(event.eventType, objectMapper.writeValueAsString(event))
-  }
+  @Autowired
+  lateinit var objectMapper: ObjectMapper
 
-  internal fun HmppsQueue.countAllMessagesOnQueue() = sqsClient.countAllMessagesOnQueue(queueUrl).get()
-
-  internal fun HmppsQueue.receiveMessageOnQueue() = sqsClient.receiveMessage(ReceiveMessageRequest.builder().queueUrl(queueUrl).build()).get().messages().single()
+  @Autowired
+  lateinit var domainEventsQueueConfig: DomainEventsQueueConfig
 
   @BeforeEach
   fun beforeEach() {
-    domainEventQueueClient.purgeQueue(PurgeQueueRequest.builder().queueUrl(domainEventQueue.queueUrl).build()).get()
-    domainEventQueueDlqClient!!.purgeQueue(PurgeQueueRequest.builder().queueUrl(domainEventQueue.dlqUrl).build()).get()
+    domainEventsQueueConfig.purgeAllQueues()
   }
 
   companion object {
@@ -108,13 +93,6 @@ abstract class IntegrationTestBase {
         withPassword("admin_password")
         withReuse(true)
       }
-
-    @JvmStatic
-    @RegisterExtension
-    var wiremock: WireMockExtension = WireMockExtension.newInstance()
-      .options(wireMockConfig().port(8095))
-      .failOnUnmatchedRequests(true)
-      .build()
 
     @BeforeAll
     @JvmStatic

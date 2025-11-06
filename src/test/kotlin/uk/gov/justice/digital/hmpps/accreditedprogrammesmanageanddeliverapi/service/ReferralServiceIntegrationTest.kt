@@ -34,8 +34,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -44,10 +42,6 @@ import java.time.LocalDate
 import java.util.UUID
 
 class ReferralServiceIntegrationTest : IntegrationTestBase() {
-
-  private lateinit var oasysApiStubs: OasysApiStubs
-
-  private lateinit var nDeliusApiStubs: NDeliusApiStubs
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
@@ -95,8 +89,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
   @BeforeEach
   fun setup() {
     testDataCleaner.cleanAllTables()
-    nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
-    oasysApiStubs = OasysApiStubs(wiremock, objectMapper)
+
     stubAuthTokenEndpoint()
 
     nDeliusApiStubs.stubPersonalDetailsResponse(personalDetails)

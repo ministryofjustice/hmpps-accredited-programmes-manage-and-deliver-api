@@ -40,21 +40,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRoshFullFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysThinkingAndBehaviourFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 import java.time.LocalDateTime
 
 class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
 
-  private lateinit var oasysApiStubs: OasysApiStubs
-
-  private lateinit var nDeliusApiStubs: NDeliusApiStubs
-
   @BeforeEach
   fun setup() {
     testDataCleaner.cleanAllTables()
-    oasysApiStubs = OasysApiStubs(wiremock, objectMapper)
-    nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
+
     stubAuthTokenEndpoint()
   }
 

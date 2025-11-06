@@ -1,10 +1,12 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.TestComponent
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAccommodation
@@ -42,11 +44,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRoshSummaryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysThinkingAndBehaviourFactory
 
-class OasysApiStubs(
-  val wiremock: WireMockExtension,
-  val objectMapper: ObjectMapper,
-) {
+@TestComponent
+class OasysApiStubs {
 
+  @Autowired
+  private lateinit var wiremock: WireMockServer
+
+  @Autowired
+  private lateinit var objectMapper: ObjectMapper
   fun stubSuccessfulPniResponse(crn: String, pniResponse: PniResponse = PniResponseFactory().produce()) {
     wiremock.stubFor(
       get(urlEqualTo("/assessments/pni/$crn?community=true"))

@@ -31,7 +31,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -54,14 +53,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   @Autowired
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
 
-  private lateinit var nDeliusApiStubs: NDeliusApiStubs
-
   private lateinit var referrals: List<Triple<ReferralEntity, ReferralStatusHistoryEntity, ReferralReportingLocationEntity>>
 
   @BeforeEach
   override fun beforeEach() {
     testDataCleaner.cleanAllTables()
-    nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
 
     nDeliusApiStubs.stubUserTeamsResponse(
       "AUTH_ADM",

@@ -1,8 +1,8 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model.FindAndReferReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomNumberAsInt
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomSentence
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
@@ -12,8 +12,8 @@ import java.util.UUID
 
 class FindAndReferReferralDetailsFactory {
   private var interventionType: InterventionType = InterventionType.ACP
-  private var interventionName: String = randomSentence(wordRange = 1..3)
-  private var personReference: String = randomUppercaseString(6)
+  private var interventionName: String = "Building Choices"
+  private var personReference: String = randomCrn()
   private var personReferenceType: PersonReferenceType = PersonReferenceType.CRN
   private var referralId: UUID = UUID.randomUUID()
   private var setting: SettingType = SettingType.COMMUNITY

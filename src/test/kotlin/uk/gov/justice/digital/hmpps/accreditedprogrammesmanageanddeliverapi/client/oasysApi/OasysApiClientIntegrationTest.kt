@@ -20,18 +20,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysHealthFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysLearningFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 
 class OasysApiClientIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var oasysApiClient: OasysApiClient
 
-  private lateinit var oasysApiStubs: OasysApiStubs
-
   @BeforeEach
   fun setup() {
-    oasysApiStubs = OasysApiStubs(wiremock, objectMapper)
   }
 
   @Test
@@ -55,6 +51,7 @@ class OasysApiClientIntegrationTest : IntegrationTestBase() {
         assertThat(pniResponse.assessment?.questions?.hostileOrientation?.score).isEqualTo(ScoredAnswer.Problem.SOME.score)
         assertThat(pniResponse.assessment?.questions?.sexualPreOccupation?.score).isEqualTo(ScoredAnswer.Problem.SIGNIFICANT.score)
       }
+
       is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")
       is ClientResult.Failure.StatusCode<*> -> {
         val message = """
@@ -116,6 +113,7 @@ class OasysApiClientIntegrationTest : IntegrationTestBase() {
         assertThat(oasysLearning.crn).isEqualTo("X123456")
         assertThat(oasysLearning.eTEIssuesDetails).isEqualTo("ete issues")
       }
+
       is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")
       is ClientResult.Failure.StatusCode<*> -> {
         val message = """
@@ -174,6 +172,7 @@ class OasysApiClientIntegrationTest : IntegrationTestBase() {
         assertThat(oasysHealth.crn).isEqualTo("X123456")
         assertThat(oasysHealth.generalHeathSpecify).isEqualTo("All is well")
       }
+
       is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")
       is ClientResult.Failure.StatusCode<*> -> {
         val message = """
@@ -224,6 +223,7 @@ class OasysApiClientIntegrationTest : IntegrationTestBase() {
         val oasysAccommodation = response.body as OasysAccommodation
         assertThat(oasysAccommodation.noFixedAbodeOrTransient).isEqualTo("Yes")
       }
+
       is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")
       is ClientResult.Failure.StatusCode<*> -> {
         val message = """
@@ -280,6 +280,7 @@ class OasysApiClientIntegrationTest : IntegrationTestBase() {
         assertThat(oasysAttitude.motivationToAddressBehaviour).isEqualTo("Low motivation")
         assertThat(oasysAttitude.hostileOrientation).isEqualTo("Hostile towards supervision")
       }
+
       is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")
       is ClientResult.Failure.StatusCode<*> -> fail("Unexpected status: ${response.status}")
     }

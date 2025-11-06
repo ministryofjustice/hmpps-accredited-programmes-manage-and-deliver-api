@@ -14,15 +14,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniRiskLevel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.SaraRisk
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 
 class PniControllerIntegrationTest : IntegrationTestBase() {
 
-  private lateinit var oasysApiStubs: OasysApiStubs
-
   @BeforeEach
   fun setup() {
-    oasysApiStubs = OasysApiStubs(wiremock, objectMapper)
   }
 
   @Test

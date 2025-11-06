@@ -142,9 +142,8 @@ class ReferralService(
       additionalDetails = null,
       createdBy = "SYSTEM",
     )
-
+    referralEntity.statusHistories = mutableListOf(statusHistoryEntity)
     log.info("Inserting the default ReferralStatusHistory row for newly created Referral with id ${referral.id!!}")
-    referralStatusHistoryRepository.save(statusHistoryEntity)
 
     val referralLdcHistories =
       mutableSetOf(ReferralLdcHistoryEntity(hasLdc = hasLdc, referral = referralEntity, createdBy = "SYSTEM"))

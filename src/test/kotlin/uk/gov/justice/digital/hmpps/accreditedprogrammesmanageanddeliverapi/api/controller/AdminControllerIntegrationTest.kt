@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.PopulatePersonalDetailsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 
@@ -16,12 +15,9 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
   @Autowired
   private lateinit var referralService: ReferralService
 
-  private lateinit var nDeliusApiStubs: NDeliusApiStubs
-
   @BeforeEach
   fun setup() {
     testDataCleaner.cleanAllTables()
-    nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
   }
 
   @Test

@@ -42,8 +42,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralLdcHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -57,8 +55,6 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
-  private lateinit var nDeliusApiStubs: NDeliusApiStubs
-  private lateinit var oasysApiStubs: OasysApiStubs
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
@@ -66,8 +62,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
   @BeforeEach
   fun setup() {
     testDataCleaner.cleanAllTables()
-    nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
-    oasysApiStubs = OasysApiStubs(wiremock, objectMapper)
+
     stubAuthTokenEndpoint()
   }
 
@@ -105,7 +100,8 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       val group = ProgrammeGroupFactory().withCode(groupCode).produce()
       testDataGenerator.createGroup(group)
 
-      val groupMembership = ProgrammeGroupMembershipFactory().withReferral(referralEntity).withProgrammeGroup(group).produce()
+      val groupMembership =
+        ProgrammeGroupMembershipFactory().withReferral(referralEntity).withProgrammeGroup(group).produce()
       testDataGenerator.createGroupMembership(groupMembership)
 
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
