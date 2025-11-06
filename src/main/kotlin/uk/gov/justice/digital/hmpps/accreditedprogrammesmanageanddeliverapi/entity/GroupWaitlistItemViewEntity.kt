@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity
 
+import jakarta.annotation.Nullable
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -17,7 +18,8 @@ import java.util.UUID
 class GroupWaitlistItemViewEntity(
   @NotNull
   @Id
-  @Column(name = "referral_id") var referralId: UUID,
+  @Column(name = "referral_id")
+  var referralId: UUID,
 
   @NotNull
   @Column(name = "crn")
@@ -27,14 +29,14 @@ class GroupWaitlistItemViewEntity(
   @Column(name = "person_name")
   var personName: String,
 
-  @NotNull
+  @Nullable
   @Column(name = "sentence_end_date")
-  var sentenceEndDate: LocalDate,
+  var sentenceEndDate: LocalDate? = null,
 
-  @NotNull
+  @Nullable
   @Enumerated(EnumType.STRING)
   @Column(name = "sourced_from")
-  var sourcedFrom: ReferralEntitySourcedFrom,
+  var sourcedFrom: ReferralEntitySourcedFrom? = null,
 
   @NotNull
   @Column(name = "cohort")
@@ -44,13 +46,13 @@ class GroupWaitlistItemViewEntity(
   @Column(name = "has_ldc")
   var hasLdc: Boolean,
 
-  @NotNull
+  @Nullable
   @Column(name = "date_of_birth")
-  var dateOfBirth: LocalDate,
+  var dateOfBirth: LocalDate? = null,
 
-  @NotNull
+  @Nullable
   @Column(name = "sex")
-  var sex: String,
+  var sex: String? = null,
 
   @NotNull
   @Column(name = "status")
@@ -64,7 +66,7 @@ class GroupWaitlistItemViewEntity(
   @Column(name = "reporting_team")
   var reportingTeam: String,
 
-  @NotNull
+  @Nullable
   @Column(name = "active_programme_group_id")
-  var activeProgrammeGroupId: UUID,
+  var activeProgrammeGroupId: UUID? = null,
 )

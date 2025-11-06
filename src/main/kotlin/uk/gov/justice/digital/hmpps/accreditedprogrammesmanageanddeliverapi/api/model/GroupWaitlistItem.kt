@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model
 
 import com.fasterxml.jackson.annotation.JsonFormat
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.GroupWaitlistItemViewEntity
@@ -9,6 +10,7 @@ import java.time.LocalDate
 import java.time.Period
 import java.util.UUID
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class GroupWaitlistItem(
   @Schema(
     example = "1ff57cea-352c-4a99-8f66-3e626aac3265",
@@ -23,7 +25,7 @@ data class GroupWaitlistItem(
     description = "A human-readable string describing the entity (Licence Condition or Requirement) that caused the Referral to be created in our system",
   )
   @get:JsonProperty("sourcedFrom", required = true)
-  val sourcedFrom: String,
+  val sourcedFrom: String? = null,
 
   @Schema(
     example = "X933590",
@@ -68,14 +70,14 @@ data class GroupWaitlistItem(
     description = "The age of the person.",
   )
   @get:JsonProperty("age", required = true)
-  val age: Int,
+  val age: Int? = null,
   @Schema(
     example = "Male",
     required = true,
     description = "The sex of the person.",
   )
   @get:JsonProperty("sex", required = true)
-  val sex: String,
+  val sex: String? = null,
   @Schema(
     example = "Durham",
     required = true,
@@ -97,21 +99,29 @@ data class GroupWaitlistItem(
   )
   @get:JsonProperty("status", required = true)
   val status: String,
+  @Schema(
+    example = "56470228-3893-450f-b4bc-97b21e18b887",
+    required = true,
+    description = "The unique Id of the group that the referral is assigned to.",
+  )
+  @get:JsonProperty("activeProgrammeGroupId", required = true)
+  val activeProgrammeGroupId: UUID? = null,
 )
 
 fun GroupWaitlistItemViewEntity.toApi() = GroupWaitlistItem(
   referralId = referralId,
-  sourcedFrom = if (sourcedFrom.equals(ReferralEntitySourcedFrom.REQUIREMENT)) "Order end date" else "Licence end date",
+  sourcedFrom = sourcedFrom?.let { if (sourcedFrom?.equals(ReferralEntitySourcedFrom.REQUIREMENT) == true) "Order end date" else "Licence end date" },
   crn = crn,
   personName = personName,
   sentenceEndDate = sentenceEndDate,
   cohort = OffenceCohort.fromDisplayName(cohort),
   hasLdc = hasLdc,
-  age = Period.between(dateOfBirth, LocalDate.now()).years,
+  age = dateOfBirth?.let { Period.between(dateOfBirth, LocalDate.now()).years },
   sex = sex,
   pdu = pduName,
   reportingTeam = reportingTeam,
   status = status,
+  activeProgrammeGroupId = activeProgrammeGroupId,
 )
 
 fun GroupWaitlistItem.toAllocatedItem() = GroupAllocatedItem(
@@ -121,4 +131,5 @@ fun GroupWaitlistItem.toAllocatedItem() = GroupAllocatedItem(
   sentenceEndDate = sentenceEndDate,
   status = status,
   sourcedFrom = sourcedFrom,
+  activeProgrammeGroupId = activeProgrammeGroupId,
 )
