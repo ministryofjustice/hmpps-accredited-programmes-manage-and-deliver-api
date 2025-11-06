@@ -33,7 +33,7 @@ class GroupAllocationNotesController(
   private val log = LoggerFactory.getLogger(this::class.java)
 
   @Operation(
-    tags = ["Referrals"],
+    tags = ["GroupAllocationNotesController"],
     summary = "Retrieve motivations background and non-associations of a referral",
     operationId = "getReferralMotivationBackgroundAndNonAssociationsByReferralId",
     description = """""",
@@ -71,10 +71,10 @@ class GroupAllocationNotesController(
     } ?: throw NotFoundException("No motivation, background and non-associations information found for referral id: $id")
 
   @Operation(
-    tags = ["Referrals"],
-    summary = "Update the Status of a Referral",
-    operationId = "updateStatusForReferral",
-    description = """Updates the Status of a Referral, by creating a new entry in the log of Referral Statuses""",
+    tags = ["GroupAllocationNotesController"],
+    summary = "Create or update the motivation background and non-associations of a referral",
+    operationId = "createOrUpdateReferralMotivationBackgroundAndNonAssociations",
+    description = """Create or update the motivation background and non-associations of a referral""",
     responses = [
       ApiResponse(
         responseCode = "201",
@@ -100,7 +100,7 @@ class GroupAllocationNotesController(
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @PutMapping("/referral/{id}/motivation-background-non-associations", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun createReferralMotivationBackgroundAndNonAssociations(
+  fun createOrUpdateReferralMotivationBackgroundAndNonAssociations(
     @Parameter(
       description = "The id (UUID) of a Referral",
       required = true,
