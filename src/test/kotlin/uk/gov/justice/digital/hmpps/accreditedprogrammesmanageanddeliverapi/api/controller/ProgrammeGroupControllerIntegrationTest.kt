@@ -40,7 +40,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import java.time.LocalDate
 import java.util.UUID
 
-class GroupControllerIntegrationTest : IntegrationTestBase() {
+class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var programmeGroupRepository: ProgrammeGroupRepository
@@ -259,6 +259,73 @@ class GroupControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item.pdu).isEqualTo("Test PDU 1")
         assertThat(item.referralId).isNotNull
         assertThat(item.sourcedFrom).isNotNull
+      }
+    }
+
+    @Test
+    fun `getGroupDetails filters by multiple reportingTeams on WAITLIST tab`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val group = ProgrammeGroupFactory().withCode("TEST006").produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/group/${group.id}/WAITLIST?pdu=Test PDU 1&reportingTeam=Team A&reportingTeam=Team C",
+        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+      )
+
+      // Then
+      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotEmpty
+      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).hasSize(3)
+      response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
+        assertThat(item.reportingTeam).isIn("Team A", "Team C")
+      }
+    }
+
+    @Test
+    fun `getGroupDetails should ignore reportingTeam if PDU is not also present`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val group = ProgrammeGroupFactory().withCode("TEST006").produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/group/${group.id}/WAITLIST?reportingTeam=Team A&reportingTeam=Team C",
+        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+      )
+
+      // Then
+      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotEmpty
+      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).hasSize(5)
+      response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
+        assertThat(item.reportingTeam).isIn("Team A", "Team B", "Team C")
+      }
+    }
+
+    @Test
+    fun `getGroupDetails filters by reportingTeam and pdu together`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val group = ProgrammeGroupFactory().withCode("TEST006B").produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/group/${group.id}/WAITLIST?pdu=Test PDU 1&reportingTeam=Team A",
+        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+      )
+
+      // Then
+      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotEmpty
+      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).hasSize(2)
+      response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
+        assertThat(item.pdu).isEqualTo("Test PDU 1")
+        assertThat(item.reportingTeam).isEqualTo("Team A")
       }
     }
 
