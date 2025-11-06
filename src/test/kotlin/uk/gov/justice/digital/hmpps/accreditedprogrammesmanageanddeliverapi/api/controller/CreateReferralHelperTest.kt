@@ -12,8 +12,13 @@ class CreateReferralHelperTest : IntegrationTestBase() {
 
   @Test
   fun `test referral creation helper`() {
-    stubAuthTokenEndpoint()
     val referral = createReferralHelper.createReferral()
     assertThat(referral).isNotNull
+  }
+
+  @Test
+  fun `test Referral creation with 'Awaiting allocation' status`() {
+    val awaitingAllocationReferral = createReferralHelper.createReferralWithStatus()
+    assertThat(awaitingAllocationReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting allocation")
   }
 }
