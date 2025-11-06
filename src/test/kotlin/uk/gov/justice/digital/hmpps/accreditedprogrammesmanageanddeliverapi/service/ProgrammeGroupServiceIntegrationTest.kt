@@ -94,7 +94,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       nameOrCRN = null,
       pdu = null,
       pageable = pageable,
-      reportingTeam = null,
+      reportingTeams = null,
     )
 
     // Then
@@ -118,7 +118,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         nameOrCRN = null,
         pdu = null,
         pageable = pageable,
-        reportingTeam = null,
+        reportingTeams = null,
       )
     }
   }
@@ -138,7 +138,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       nameOrCRN = null,
       pdu = null,
       pageable = pageable,
-      reportingTeam = null,
+      reportingTeams = null,
     )
 
     val femaleResults = programmeGroupService.getGroupWaitlistData(
@@ -149,7 +149,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       nameOrCRN = null,
       pdu = null,
       pageable = pageable,
-      reportingTeam = null,
+      reportingTeams = null,
     )
 
     // Then
@@ -172,7 +172,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       nameOrCRN = null,
       pdu = null,
       pageable = pageable,
-      reportingTeam = null,
+      reportingTeams = null,
     )
 
     val generalOffenceResults = programmeGroupService.getGroupWaitlistData(
@@ -183,7 +183,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       nameOrCRN = null,
       pdu = null,
       pageable = pageable,
-      reportingTeam = null,
+      reportingTeams = null,
     )
 
     // Then
@@ -206,7 +206,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       nameOrCRN = "john",
       pdu = null,
       pageable = pageable,
-      reportingTeam = null,
+      reportingTeams = null,
     )
 
     val crnResults = programmeGroupService.getGroupWaitlistData(
@@ -217,7 +217,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       nameOrCRN = "CRN001",
       pdu = null,
       pageable = pageable,
-      reportingTeam = null,
+      reportingTeams = null,
     )
 
     // Then
@@ -244,7 +244,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       nameOrCRN = null,
       pdu = "Test PDU 1",
       pageable = pageable,
-      reportingTeam = null,
+      reportingTeams = null,
     )
 
     // Then

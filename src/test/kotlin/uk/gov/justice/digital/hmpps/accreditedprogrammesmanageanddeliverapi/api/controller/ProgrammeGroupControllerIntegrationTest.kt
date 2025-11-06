@@ -263,7 +263,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getGroupDetails filters by reportingTeam on WAITLIST tab`() {
+    fun `getGroupDetails filters by multiple reportingTeams on WAITLIST tab`() {
       // Given
       stubAuthTokenEndpoint()
       val group = ProgrammeGroupFactory().withCode("TEST006").produce()
@@ -272,15 +272,15 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?reportingTeam=Team A",
+        "/bff/group/${group.id}/WAITLIST?reportingTeam=Team A&reportingTeam=Team C",
         object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
       )
 
       // Then
       assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotEmpty
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).hasSize(2)
+      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).hasSize(3)
       response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
-        assertThat(item.reportingTeam).isEqualTo("Team A")
+        assertThat(item.reportingTeam).isIn("Team A", "Team C")
       }
     }
 
