@@ -9,6 +9,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralMotivationBackgroundAndNonAssociationsEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
@@ -34,6 +35,7 @@ class ReferralEntityFactory {
   private var sentenceEndDate: LocalDate? = null
   private var sex: String? = null
   private var dateOfBirth: LocalDate? = null
+  private var motivationBackgroundAndNonAssociations: ReferralMotivationBackgroundAndNonAssociationsEntity? = null
 
   fun withId(id: UUID?) = apply { this.id = id }
   fun withPersonName(personName: String?) = apply { this.personName = personName }
@@ -57,6 +59,8 @@ class ReferralEntityFactory {
   fun withSentenceEndDate(sentenceEndDate: LocalDate) = apply { this.sentenceEndDate = sentenceEndDate }
   fun withSex(sex: String) = apply { this.sex = sex }
   fun withDateOfBirth(dateOfBirth: LocalDate) = apply { this.dateOfBirth = dateOfBirth }
+
+  fun withMotivation(motivationBackgroundAndNonAssociations: ReferralMotivationBackgroundAndNonAssociationsEntity = ReferralMotivationBackgroundAndNonAssociationsFactory().produce()) = apply { this.motivationBackgroundAndNonAssociations = motivationBackgroundAndNonAssociations }
 
   fun produce() = ReferralEntity(
     id = this.id,

@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralMotivationBackgroundAndNonAssociationsEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
@@ -88,6 +89,31 @@ class TestDataGenerator {
 
     entityManager.persist(referral)
     entityManager.persist(statusHistory)
+  }
+
+  fun <T> createReferralWithFields(
+    referralEntity: ReferralEntity? = null,
+    fields: List<T>,
+  ) {
+    validateFields(fields)
+
+    entityManager.persist(referralEntity)
+    for (field in fields) {
+      entityManager.persist(field)
+    }
+  }
+  private fun <T> validateFields(fields: List<T>) {
+    // Add to this as we add more fields to the ReferralEntity that want to be persisted through createReferralWithFields.
+    val acceptableFieldTypes = listOf(
+      ReferralEntity::class.java,
+      ReferralStatusHistoryEntity::class.java,
+      ReferralMotivationBackgroundAndNonAssociationsEntity::class.java,
+    )
+    fields.forEach {
+      if (!acceptableFieldTypes.contains(it!!::class.java)) {
+        throw IllegalArgumentException("Invalid field type for createReferralWithFields method: ${it::class.java}")
+      }
+    }
   }
 
   fun createReferralWithStatusHistory(

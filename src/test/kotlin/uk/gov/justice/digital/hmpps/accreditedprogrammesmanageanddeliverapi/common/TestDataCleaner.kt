@@ -25,6 +25,7 @@ class TestDataCleaner(
       createNativeQuery("TRUNCATE TABLE referral_reporting_location CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE programme_group CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE programme_group_membership CASCADE").executeUpdate()
+      createNativeQuery("TRUNCATE TABLE referral_motivation_background_and_non_associations CASCADE").executeUpdate()
 
       // Add additional tables here as the data model grows
     }
