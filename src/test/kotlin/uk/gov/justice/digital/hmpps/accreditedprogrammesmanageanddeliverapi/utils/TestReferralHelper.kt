@@ -5,6 +5,9 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
 import org.awaitility.kotlin.await
 import org.awaitility.kotlin.matches
 import org.awaitility.kotlin.untilCallTo
@@ -73,34 +76,69 @@ class TestReferralHelper {
     reportingPdu: String? = "Test PDU 1",
     reportingTeam: String? = "Team A",
   ): ReferralEntity {
-    val crn = crn ?: randomCrn()
-    val referralId = referralId ?: UUID.randomUUID()
-    val sourcedFrom = sourcedFrom ?: ReferralEntitySourcedFrom.LICENCE_CONDITION
+    val actualCrn = sendReferralEvent(crn, referralId, sourcedFrom, reportingPdu, reportingTeam)
+    waitForQueueToEmpty()
+    return referralRepository.findByCrn(actualCrn).first()
+  }
+
+  fun createMultipleReferrals(numReferrals: Int): List<ReferralEntity> = runBlocking {
+    // Send all events concurrently
+    val crns = (1..numReferrals).map {
+      async { sendReferralEvent() }
+    }.awaitAll()
+
+    waitForQueueToEmpty()
+
+    crns.map { crn ->
+      referralRepository.findByCrn(crn).first()
+    }
+  }
+
+  fun createReferralWithStatus(statusEntity: ReferralStatusDescriptionEntity? = null): ReferralEntity {
+    val status = statusEntity ?: referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    val referral = createReferral()
+    referralService.updateStatus(referral, status.id, null, "AUTH_USER")
+
+    return referralRepository.findByIdOrNull(referral.id!!)!!
+  }
+
+  private fun sendReferralEvent(
+    crn: String? = null,
+    referralId: UUID? = null,
+    sourcedFrom: ReferralEntitySourcedFrom? = null,
+    reportingPdu: String? = "Test PDU 1",
+    reportingTeam: String? = "Team A",
+  ): String {
+    val actualCrn = crn ?: randomCrn()
+    val actualReferralId = referralId ?: UUID.randomUUID()
+    val actualSourcedFrom = sourcedFrom ?: ReferralEntitySourcedFrom.LICENCE_CONDITION
+
     val findAndReferReferralDetails = FindAndReferReferralDetailsFactory()
       .withInterventionName("Test Intervention")
       .withInterventionType(InterventionType.ACP)
-      .withReferralId(referralId)
-      .withPersonReference(crn)
+      .withReferralId(actualReferralId)
+      .withPersonReference(actualCrn)
       .withPersonReferenceType(PersonReferenceType.CRN)
-      .withSourcedFromReferenceType(sourcedFrom)
+      .withSourcedFromReferenceType(actualSourcedFrom)
       .withSourcedFromReference("LIC-12345")
       .withEventNumber(1)
       .produce()
-    oasysApiStubs.stubSuccessfulPniResponse(crn)
+
+    oasysApiStubs.stubSuccessfulPniResponse(actualCrn)
     nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
-      crn,
+      actualCrn,
       findAndReferReferralDetails.eventNumber,
-      sourcedFrom = sourcedFrom,
+      sourcedFrom = actualSourcedFrom,
     )
     nDeliusApiStubs.stubPersonalDetailsResponse(
-      NDeliusPersonalDetailsFactory().withCrn(crn)
+      NDeliusPersonalDetailsFactory().withCrn(actualCrn)
         .withProbationDeliveryUnit(CodeDescription(randomUppercaseString(), reportingPdu!!))
         .withTeam(CodeDescription(randomUppercaseString(), reportingTeam!!))
         .produce(),
     )
     hmppsAuth.stubGrantToken()
     wiremock.stubFor(
-      get(urlEqualTo("/referral/$referralId"))
+      get(urlEqualTo("/referral/$actualReferralId"))
         .willReturn(
           aResponse()
             .withStatus(200)
@@ -111,22 +149,21 @@ class TestReferralHelper {
 
     val eventType = "interventions.community-referral.created"
     val domainEventsMessage = DomainEventsMessageFactory()
-      .withDetailUrl("/referral/$referralId")
+      .withDetailUrl("/referral/$actualReferralId")
       .withEventType(eventType)
-      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", crn))))
+      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", actualCrn))))
       .produce()
 
     domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
-    await withPollDelay ofSeconds(1) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
-    return referralRepository.findByCrn(crn).first()
+    return actualCrn
   }
 
-  fun createReferralWithStatus(statusEntity: ReferralStatusDescriptionEntity? = null): ReferralEntity {
-    val status = statusEntity ?: referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
-    val referral = createReferral()
-    referralService.updateStatus(referral, status.id, null, "AUTH_USER")
-
-    return referralRepository.findByIdOrNull(referral.id!!)!!
+  private fun waitForQueueToEmpty() {
+    await withPollDelay ofSeconds(1) untilCallTo {
+      with(domainEventsQueueConfig) {
+        domainEventQueue.countAllMessagesOnQueue()
+      }
+    } matches { it == 0 }
   }
 }

@@ -1,10 +1,13 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils
 
 import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.measureTimedValue
 
 class TestReferralHelperTest : IntegrationTestBase() {
 
@@ -31,5 +34,34 @@ class TestReferralHelperTest : IntegrationTestBase() {
     val referral = testReferralHelper.createReferralWithStatus(referralStatusDescription)
     Assertions.assertThat(referral.statusHistories.first().referralStatusDescription.description)
       .isEqualTo("Programme complete")
+  }
+
+  @Test
+  fun `create multiple referrals`() {
+    val numReferrals = 100
+
+    val (referrals, timeTaken) = measureTimedValue {
+      testReferralHelper.createMultipleReferrals(numReferrals)
+    }
+
+    // Compute derived metrics
+    val avgTime = timeTaken / numReferrals
+    val throughput = numReferrals / timeTaken.inWholeSeconds.toDouble()
+
+    println(
+      """
+        |===============================
+        | Performance Test Results
+        |===============================
+        | Referrals Created : $numReferrals
+        | Total Time        : $timeTaken
+        | Average per Item  : $avgTime
+        | Throughput        : ${"%.2f".format(throughput)} referrals/sec
+        |===============================
+      """.trimMargin(),
+    )
+
+    assertThat(referrals).hasSize(numReferrals)
+    assertThat(timeTaken).isLessThan(100.seconds)
   }
 }
