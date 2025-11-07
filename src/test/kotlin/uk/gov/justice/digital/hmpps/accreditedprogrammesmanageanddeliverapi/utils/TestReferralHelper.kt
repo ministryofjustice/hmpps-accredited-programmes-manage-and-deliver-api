@@ -14,7 +14,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestComponent
 import org.springframework.context.annotation.Import
 import org.springframework.data.repository.findByIdOrNull
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.DomainEventsQueueConfig
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
@@ -23,6 +25,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.DomainEventsMessageFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
@@ -37,7 +40,7 @@ import java.util.UUID
 @TestComponent
 @ExtendWith(HmppsAuthApiExtension::class)
 @Import(OasysApiStubs::class, NDeliusApiStubs::class, DomainEventsQueueConfig::class)
-class CreateReferralHelper {
+class TestReferralHelper {
 
   @Autowired
   private lateinit var referralService: ReferralService
@@ -63,22 +66,38 @@ class CreateReferralHelper {
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
 
-  fun createReferral(): ReferralEntity {
-    val crn = randomCrn()
-    val referralId = UUID.randomUUID()
+  fun createReferral(
+    crn: String? = null,
+    referralId: UUID? = null,
+    sourcedFrom: ReferralEntitySourcedFrom? = null,
+    reportingPdu: String? = "Test PDU 1",
+    reportingTeam: String? = "Team A",
+  ): ReferralEntity {
+    val crn = crn ?: randomCrn()
+    val referralId = referralId ?: UUID.randomUUID()
+    val sourcedFrom = sourcedFrom ?: ReferralEntitySourcedFrom.LICENCE_CONDITION
     val findAndReferReferralDetails = FindAndReferReferralDetailsFactory()
       .withInterventionName("Test Intervention")
       .withInterventionType(InterventionType.ACP)
       .withReferralId(referralId)
       .withPersonReference(crn)
       .withPersonReferenceType(PersonReferenceType.CRN)
-      .withSourcedFromReferenceType(ReferralEntitySourcedFrom.LICENCE_CONDITION)
+      .withSourcedFromReferenceType(sourcedFrom)
       .withSourcedFromReference("LIC-12345")
       .withEventNumber(1)
       .produce()
     oasysApiStubs.stubSuccessfulPniResponse(crn)
-    nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(crn, findAndReferReferralDetails.eventNumber)
-    nDeliusApiStubs.stubPersonalDetailsResponse()
+    nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+      crn,
+      findAndReferReferralDetails.eventNumber,
+      sourcedFrom = sourcedFrom,
+    )
+    nDeliusApiStubs.stubPersonalDetailsResponse(
+      NDeliusPersonalDetailsFactory().withCrn(crn)
+        .withProbationDeliveryUnit(CodeDescription(randomUppercaseString(), reportingPdu!!))
+        .withTeam(CodeDescription(randomUppercaseString(), reportingTeam!!))
+        .produce(),
+    )
     hmppsAuth.stubGrantToken()
     wiremock.stubFor(
       get(urlEqualTo("/referral/$referralId"))
@@ -97,10 +116,8 @@ class CreateReferralHelper {
       .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", crn))))
       .produce()
 
-    // When
     domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
-    // Then
     await withPollDelay ofSeconds(1) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
     return referralRepository.findByCrn(crn).first()
   }

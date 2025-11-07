@@ -18,6 +18,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
@@ -118,8 +119,10 @@ class NDeliusApiStubs {
   fun stubSuccessfulSentenceInformationResponse(
     crn: String,
     eventNumber: Int?,
-    nDeliusSentenceResponse: NDeliusSentenceResponse = NDeliusSentenceResponseFactory().produce(),
+    nDeliusSentenceResponse: NDeliusSentenceResponse? = null,
+    sourcedFrom: ReferralEntitySourcedFrom? = null,
   ) {
+    val nDeliusSentenceResponse = nDeliusSentenceResponse ?: NDeliusSentenceResponseFactory(sourcedFrom).produce()
     wiremock.stubFor(
       get(urlPathTemplate("/case/$crn/sentence/$eventNumber"))
         .willReturn(

@@ -9,7 +9,6 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.UpdateLdc
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 
@@ -25,14 +24,11 @@ class LdcControllerIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `update the LDC status for a referral when valid request sent and no existing ldc status`() {
-    val referralEntity = ReferralEntityFactory().produce()
-    testDataGenerator.createReferralWithStatusHistory(referralEntity)
+    val referralEntity = testReferralHelper.createReferral()
+    val updateLdc = UpdateLdc(hasLdc = true)
 
-    val updateLdc = UpdateLdc(
-      hasLdc = true,
-    )
-
-    assertThat(referralLdcHistoryRepository.count()).isZero
+    assertThat(referralLdcHistoryRepository.count()).isOne
+    assertThat(referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralEntity.id!!)!!.hasLdc).isFalse
 
     performRequestAndExpectStatus(
       httpMethod = HttpMethod.POST,
@@ -41,19 +37,18 @@ class LdcControllerIntegrationTest : IntegrationTestBase() {
       expectedResponseStatus = HttpStatus.OK.value(),
     )
 
-    assertThat(referralLdcHistoryRepository.count()).isOne
+    assertThat(referralLdcHistoryRepository.count()).isEqualTo(2)
     val savedHistory =
-      referralLdcHistoryRepository.findAll().first()
+      referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralEntity.id!!)!!
     assertThat(savedHistory.hasLdc).isTrue
     assertThat(savedHistory.referral.id).isEqualTo(referralEntity.id)
   }
 
   @Test
   fun `should return bad request if missing hasLdc property`() {
-    val referralEntity = ReferralEntityFactory().produce()
-    testDataGenerator.createReferralWithStatusHistory(referralEntity)
+    val referralEntity = testReferralHelper.createReferral()
 
-    assertThat(referralLdcHistoryRepository.count()).isZero
+    assertThat(referralLdcHistoryRepository.count()).isOne
 
     performRequestAndExpectStatusWithBody(
       httpMethod = HttpMethod.POST,
@@ -63,6 +58,6 @@ class LdcControllerIntegrationTest : IntegrationTestBase() {
       expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
     )
 
-    assertThat(referralLdcHistoryRepository.count()).isZero
+    assertThat(referralLdcHistoryRepository.count()).isOne
   }
 }
