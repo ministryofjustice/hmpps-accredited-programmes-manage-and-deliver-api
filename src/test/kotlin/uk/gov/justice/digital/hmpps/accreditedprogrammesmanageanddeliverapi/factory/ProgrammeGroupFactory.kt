@@ -2,7 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroup
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import java.time.LocalDateTime
@@ -47,8 +47,8 @@ class ProgrammeGroupFactory {
     deletedByUsername = this.deletedByUsername,
   )
 
-  fun toCreateGroup(): CreateGroup {
+  fun toCreateGroup(): CreateGroupRequest {
     val group = produce()
-    return CreateGroup(group.code, ProgrammeGroupCohort.from(group.cohort, group.isLdc), group.sex)
+    return CreateGroupRequest(group.code, ProgrammeGroupCohort.from(group.cohort, group.isLdc), group.sex)
   }
 }

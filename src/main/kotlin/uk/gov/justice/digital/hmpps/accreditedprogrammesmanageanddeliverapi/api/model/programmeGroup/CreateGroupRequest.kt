@@ -8,7 +8,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 
-data class CreateGroup(
+data class CreateGroupRequest(
   @NotBlank(message = "groupCode must not be null")
   @get:JsonProperty("groupCode", required = true)
   var groupCode: String,
@@ -30,7 +30,7 @@ data class CreateGroup(
   var sex: ProgrammeGroupSexEnum,
 )
 
-fun CreateGroup.toEntity(): ProgrammeGroupEntity {
+fun CreateGroupRequest.toEntity(): ProgrammeGroupEntity {
   val (cohort, isLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(cohort)
   return ProgrammeGroupEntity(
     code = groupCode,

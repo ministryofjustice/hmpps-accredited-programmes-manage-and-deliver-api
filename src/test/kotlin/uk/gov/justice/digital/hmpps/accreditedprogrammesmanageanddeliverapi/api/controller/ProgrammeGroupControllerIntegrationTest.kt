@@ -15,7 +15,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupDetails
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroup
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
@@ -503,7 +503,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   inner class CreateProgrammeGroup {
     @Test
     fun `create group with code and return 200 when it doesn't already exist`() {
-      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE)
+      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE)
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -521,7 +521,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `create group and assign correct cohort and sex and return 200 when it doesn't already exist`() {
-      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.SEXUAL_LDC, ProgrammeGroupSexEnum.FEMALE)
+      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.SEXUAL_LDC, ProgrammeGroupSexEnum.FEMALE)
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -541,7 +541,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `create group with code and return CONFLICT when it already exists`() {
       val group = ProgrammeGroupFactory().withCode("TEST_GROUP").produce()
       testDataGenerator.createGroup(group)
-      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE)
+      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE)
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -554,7 +554,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `return 401 when unauthorised`() {
-      val body = CreateGroup("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE)
+      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE)
       webTestClient
         .method(HttpMethod.POST)
         .uri("/group")
