@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.GroupWaitlistItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupDetails
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroup
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
@@ -31,13 +31,13 @@ class ProgrammeGroupService(
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  fun createGroup(createGroup: CreateGroup): ProgrammeGroupEntity? {
-    programmeGroupRepository.findByCode(createGroup.groupCode)
-      ?.let { throw ConflictException("Programme group with code ${createGroup.groupCode} already exists") }
+  fun createGroup(createGroupRequest: CreateGroupRequest): ProgrammeGroupEntity? {
+    programmeGroupRepository.findByCode(createGroupRequest.groupCode)
+      ?.let { throw ConflictException("Programme group with code ${createGroupRequest.groupCode} already exists") }
 
-    log.info("Group created with code: ${createGroup.groupCode}")
+    log.info("Group created with code: ${createGroupRequest.groupCode}")
 
-    return programmeGroupRepository.save(createGroup.toEntity())
+    return programmeGroupRepository.save(createGroupRequest.toEntity())
   }
 
   fun getGroupById(groupId: UUID): ProgrammeGroupEntity = programmeGroupRepository.findByIdOrNull(groupId)
@@ -56,7 +56,8 @@ class ProgrammeGroupService(
     // Verify the group exists first
     getGroupById(groupId)
 
-    val specification = getGroupWaitlistItemSpecification(selectedTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeams)
+    val specification =
+      getGroupWaitlistItemSpecification(selectedTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeams)
 
     return groupWaitlistItemViewRepository.findAll(specification, pageable)
       .map { it.toApi() }
@@ -74,7 +75,8 @@ class ProgrammeGroupService(
     // Verify the group exists first
     getGroupById(groupId)
 
-    val specification = getGroupWaitlistItemSpecification(selectedTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeams)
+    val specification =
+      getGroupWaitlistItemSpecification(selectedTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeams)
 
     return groupWaitlistItemViewRepository.count(specification).toInt()
   }
