@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomPrisonNumber
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
@@ -195,11 +196,29 @@ class EntityFactoriesTest {
   }
 
   @Test
-  fun `NDeliusSentenceResponseFactory should create entity with default values`() {
+  fun `NDeliusSentenceResponseFactory should create entity with community order values`() {
     val sentenceResponse = NDeliusSentenceResponseFactory().produce()
 
     assertThat(sentenceResponse.description).isNotNull()
     assertThat(sentenceResponse.startDate).isNotNull()
+    assertThat(sentenceResponse.expectedEndDate).isNotNull
+    assertThat(sentenceResponse.licenceExpiryDate).isNull()
+    assertThat(sentenceResponse.postSentenceSupervisionEndDate).isNotNull()
+    assertThat(sentenceResponse.twoThirdsSupervisionDate).isNotNull()
+    assertThat(sentenceResponse.custodial).isNotNull()
+    assertThat(sentenceResponse.releaseType).isNotNull()
+    assertThat(sentenceResponse.licenceConditions).isNotEmpty
+    assertThat(sentenceResponse.requirements).isNotEmpty
+    assertThat(sentenceResponse.postSentenceSupervisionRequirements).isNotEmpty
+  }
+
+  @Test
+  fun `NDeliusSentenceResponseFactory should create entity with licence condition values`() {
+    val sentenceResponse = NDeliusSentenceResponseFactory(ReferralEntitySourcedFrom.LICENCE_CONDITION).produce()
+
+    assertThat(sentenceResponse.description).isNotNull()
+    assertThat(sentenceResponse.startDate).isNotNull()
+    assertThat(sentenceResponse.expectedEndDate).isNull()
     assertThat(sentenceResponse.licenceExpiryDate).isNotNull()
     assertThat(sentenceResponse.postSentenceSupervisionEndDate).isNotNull()
     assertThat(sentenceResponse.twoThirdsSupervisionDate).isNotNull()
