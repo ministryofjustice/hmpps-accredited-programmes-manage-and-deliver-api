@@ -59,6 +59,10 @@ class GroupWaitlistItemViewEntity(
   var status: String,
 
   @NotNull
+  @Column(name = "status_colour")
+  var statusColour: String,
+
+  @NotNull
   @Column(name = "pdu_name")
   var pduName: String,
 

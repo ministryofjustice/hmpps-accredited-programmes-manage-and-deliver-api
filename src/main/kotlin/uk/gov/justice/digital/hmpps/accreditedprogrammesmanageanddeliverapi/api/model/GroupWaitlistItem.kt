@@ -100,6 +100,13 @@ data class GroupWaitlistItem(
   @get:JsonProperty("status", required = true)
   val status: String,
   @Schema(
+    example = "purple",
+    required = true,
+    description = "The colour label for the current Status",
+  )
+  @get:JsonProperty("statusColour", required = true)
+  val statusColour: String,
+  @Schema(
     example = "56470228-3893-450f-b4bc-97b21e18b887",
     required = true,
     description = "The unique Id of the group that the referral is assigned to.",
@@ -121,6 +128,7 @@ fun GroupWaitlistItemViewEntity.toApi() = GroupWaitlistItem(
   pdu = pduName,
   reportingTeam = reportingTeam,
   status = status,
+  statusColour = statusColour,
   activeProgrammeGroupId = activeProgrammeGroupId,
 )
 
@@ -130,6 +138,7 @@ fun GroupWaitlistItem.toAllocatedItem() = GroupAllocatedItem(
   personName = personName,
   sentenceEndDate = sentenceEndDate,
   status = status,
+  statusColour = statusColour,
   sourcedFrom = sourcedFrom,
   activeProgrammeGroupId = activeProgrammeGroupId,
 )

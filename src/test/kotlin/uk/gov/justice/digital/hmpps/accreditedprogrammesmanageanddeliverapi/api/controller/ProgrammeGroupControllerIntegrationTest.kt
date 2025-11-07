@@ -114,6 +114,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(4)
       assertThat(response.allocationAndWaitlistData.counts.allocated).isEqualTo(1)
       assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotNull
+      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData.map { it.statusColour }).isNotEmpty
     }
 
     @Test
