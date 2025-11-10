@@ -13,13 +13,14 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedProgrammeDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
@@ -115,16 +116,16 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST?page=0&size=10",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
       // Then
       assertThat(response).isNotNull
       assertThat(response.group.code).isEqualTo("TEST001")
       assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
-      assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(5)
-      assertThat(response.allocationAndWaitlistData.counts.allocated).isEqualTo(1)
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotNull
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData.map { it.statusColour }).isNotEmpty
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(5)
+      assertThat(response.otherTabTotal).isEqualTo(5)
+      assertThat(response.pagedGroupData).isNotNull
+      assertThat(response.pagedGroupData.content.map { it.statusColour }).isNotEmpty
     }
 
     @Test
@@ -138,7 +139,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val body = performRequestAndExpectStatusAndReturnBody(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST?page=0&size=10",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
         HttpStatus.OK.value(),
       )
 
@@ -159,19 +160,18 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
       // Then
       assertThat(response).isNotNull
       assertThat(response.group.code).isEqualTo("TEST001")
       assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
-      assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(6)
-      assertThat(response.allocationAndWaitlistData.filters).isNotNull
-      assertThat(response.allocationAndWaitlistData.filters.sex).containsExactly("Male", "Female")
-      assertThat(response.allocationAndWaitlistData.pagination.size).isEqualTo(10)
-      assertThat(response.allocationAndWaitlistData.pagination.page).isEqualTo(0)
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotNull
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData.size).isEqualTo(6)
+      assertThat(response.pagedGroupData.content.size).isEqualTo(6)
+      assertThat(response.filters).isNotNull
+      assertThat(response.filters.sex).containsExactly("Male", "Female")
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(6)
+      assertThat(response.pagedGroupData.number).isEqualTo(0)
+      assertThat(response.pagedGroupData).isNotNull
     }
 
     @Test
@@ -185,14 +185,12 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val response = performRequestAndExpectStatus(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
         HttpStatus.OK.value(),
       )
 
       // Then
-      response.allocationAndWaitlistData.paginatedWaitlistData
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData)
-        .extracting("sentenceEndDate", LocalDate::class.java)
+      assertThat(response.pagedGroupData.content).extracting("sentenceEndDate", LocalDate::class.java)
         .isSortedAccordingTo(naturalOrder<LocalDate>())
     }
 
@@ -222,28 +220,28 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val firstPageResponse = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST?page=0&size=2",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
       // When - Get second page
       val secondPageResponse = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST?page=1&size=2",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
       // Then
-      assertThat(firstPageResponse.allocationAndWaitlistData.pagination.page).isEqualTo(0)
-      assertThat(secondPageResponse.allocationAndWaitlistData.pagination.page).isEqualTo(1)
+      assertThat(firstPageResponse.pagedGroupData.number).isEqualTo(0)
+      assertThat(secondPageResponse.pagedGroupData.number).isEqualTo(1)
 
-      assertThat(firstPageResponse.allocationAndWaitlistData.pagination.size).isEqualTo(2)
-      assertThat(secondPageResponse.allocationAndWaitlistData.pagination.size).isEqualTo(2)
+      assertThat(firstPageResponse.pagedGroupData.size).isEqualTo(2)
+      assertThat(secondPageResponse.pagedGroupData.size).isEqualTo(2)
 
-      val firstPageData = firstPageResponse.allocationAndWaitlistData.paginatedWaitlistData
-      val secondPageData = secondPageResponse.allocationAndWaitlistData.paginatedWaitlistData
+      val firstPageData = firstPageResponse.pagedGroupData
+      val secondPageData = secondPageResponse.pagedGroupData
 
-      assertThat(firstPageData).hasSize(2)
-      assertThat(secondPageData).hasSize(2)
-      assertThat(firstPageData).doesNotContainAnyElementsOf(secondPageData)
+      assertThat(firstPageData.size).isEqualTo(2)
+      assertThat(secondPageData.size).isEqualTo(2)
+      assertThat(firstPageData.content).doesNotContainAnyElementsOf(secondPageData.content)
     }
 
     @Test
@@ -257,11 +255,11 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST?sex=Male&cohort=Sexual Offence&pdu=Test PDU 1&page=0&size=10",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
       // Then
-      response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
+      response.pagedGroupData.content.forEach { item ->
         assertThat(item.sex).isEqualTo("Male")
         assertThat(item.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
         assertThat(item.pdu).isEqualTo("Test PDU 1")
@@ -281,13 +279,13 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST?pdu=PDU 1&reportingTeam=Team A&reportingTeam=Team C",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
       // Then
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotEmpty
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).hasSize(3)
-      response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
+      assertThat(response.pagedGroupData.content).isNotEmpty
+      assertThat(response.pagedGroupData.content).hasSize(3)
+      response.pagedGroupData.content.forEach { item ->
         assertThat(item.reportingTeam).isIn("Team A", "Team C")
       }
     }
@@ -303,13 +301,13 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST?reportingTeam=Team A&reportingTeam=Team C",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
       // Then
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotEmpty
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).hasSize(6)
-      response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
+      assertThat(response.pagedGroupData.content).isNotEmpty
+      assertThat(response.pagedGroupData.content).hasSize(6)
+      response.pagedGroupData.content.forEach { item ->
         assertThat(item.reportingTeam).isIn("Team A", "Team B", "Team C")
       }
     }
@@ -325,13 +323,13 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST?pdu=PDU 1&reportingTeam=Team A",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
       // Then
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotEmpty
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).hasSize(2)
-      response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
+      assertThat(response.pagedGroupData.content).isNotEmpty
+      assertThat(response.pagedGroupData.content).hasSize(2)
+      response.pagedGroupData.content.forEach { item ->
         assertThat(item.pdu).isEqualTo("PDU 1")
         assertThat(item.reportingTeam).isEqualTo("Team A")
       }
@@ -359,23 +357,23 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/group/${group.id}/ALLOCATED",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
       // Then
       assertThat(response).isNotNull
       assertThat(response.group.code).isEqualTo("TEST008")
       assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
-      assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(0)
-      assertThat(response.allocationAndWaitlistData.counts.allocated).isEqualTo(6)
-      assertThat(response.allocationAndWaitlistData.filters).isNotNull
-      assertThat(response.allocationAndWaitlistData.filters.sex).containsExactly("Male", "Female")
-      assertThat(response.allocationAndWaitlistData.pagination.size).isEqualTo(10)
-      assertThat(response.allocationAndWaitlistData.pagination.page).isEqualTo(0)
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isEmpty()
-      assertThat(response.allocationAndWaitlistData.paginatedAllocationData).isNotEmpty
-      assertThat(response.allocationAndWaitlistData.paginatedAllocationData).hasSize(6)
-      assertThat(response.allocationAndWaitlistData.paginatedAllocationData).noneMatch { it.status == ReferralStatusType.AWAITING_ALLOCATION.description }
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(6)
+      assertThat(response.otherTabTotal).isEqualTo(6)
+      assertThat(response.filters).isNotNull
+      assertThat(response.filters.sex).containsExactly("Male", "Female")
+      assertThat(response.pagedGroupData.size).isEqualTo(10)
+      assertThat(response.pagedGroupData.number).isEqualTo(0)
+      assertThat(response.pagedGroupData.content).isEmpty()
+      assertThat(response.pagedGroupData.content).isNotEmpty
+      assertThat(response.pagedGroupData.content).hasSize(6)
+      assertThat(response.pagedGroupData.content).noneMatch { it.status == ReferralStatusType.AWAITING_ALLOCATION.description }
     }
 
     @Test
@@ -576,59 +574,6 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
         .returnResult().responseBody!!
     }
   }
-
-  private fun createTestWaitlistData() = listOf(
-    createReferralWithWaitlistStatus(
-      "CRN001",
-      "John Smith",
-      "Male",
-      "Sexual offence",
-      "Test PDU 1",
-      "Team A",
-      ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription,
-      LocalDate.of(2030, 1, 1),
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN002",
-      "Jane Doe",
-      "Female",
-      "General offence",
-      "Test PDU 2",
-      "Team B",
-      ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription,
-      LocalDate.of(2031, 2, 2),
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN003",
-      "John Brown",
-      "Male",
-      "Sexual offence",
-      "Test PDU 1",
-      "Team A",
-      ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription,
-      LocalDate.of(2032, 3, 3),
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN004",
-      "Mary Johnson",
-      "Female",
-      "General offence",
-      "Test PDU 2",
-      "Team B",
-      ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription,
-      LocalDate.of(2033, 4, 4),
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN005",
-      "Bob Wilson",
-      "Male",
-      "General offence",
-      "Test PDU 1",
-      "Team C",
-      ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription,
-      LocalDate.of(2034, 5, 5),
-    ),
-  )
 
   private fun createTestAllocatedListData() = listOf(
     createReferralWithWaitlistStatus(

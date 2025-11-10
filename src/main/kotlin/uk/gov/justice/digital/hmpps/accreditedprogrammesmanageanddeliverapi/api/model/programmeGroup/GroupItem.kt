@@ -1,9 +1,10 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup
 
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.GroupWaitlistItemViewEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import java.time.LocalDate
@@ -11,7 +12,7 @@ import java.time.Period
 import java.util.UUID
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-data class GroupWaitlistItem(
+data class GroupItem(
   @Schema(
     example = "1ff57cea-352c-4a99-8f66-3e626aac3265",
     required = true,
@@ -56,14 +57,14 @@ data class GroupWaitlistItem(
     description = "The offence cohort this referral is classified as.",
   )
   @get:JsonProperty("cohort", required = true)
-  val cohort: OffenceCohort,
+  val cohort: OffenceCohort? = null,
   @Schema(
     example = "True",
     required = true,
     description = "Does the person this referral is associated with have LDC needs.",
   )
   @get:JsonProperty("hasLdc", required = true)
-  val hasLdc: Boolean,
+  val hasLdc: Boolean? = null,
   @Schema(
     example = "43",
     required = true,
@@ -84,14 +85,14 @@ data class GroupWaitlistItem(
     description = "The PDU this referral is associated with.",
   )
   @get:JsonProperty("pdu", required = true)
-  val pdu: String,
+  val pdu: String? = null,
   @Schema(
     example = "Durham Team 1",
     required = true,
     description = "The reporting team this referral is associated with.",
   )
   @get:JsonProperty("reportingTeam", required = true)
-  val reportingTeam: String,
+  val reportingTeam: String? = null,
   @Schema(
     example = "Awaiting assessment",
     required = true,
@@ -115,13 +116,13 @@ data class GroupWaitlistItem(
   val activeProgrammeGroupId: UUID? = null,
 )
 
-fun GroupWaitlistItemViewEntity.toApi() = GroupWaitlistItem(
+fun GroupWaitlistItemViewEntity.toApi() = GroupItem(
   referralId = referralId,
   sourcedFrom = sourcedFrom?.let { if (sourcedFrom?.equals(ReferralEntitySourcedFrom.REQUIREMENT) == true) "Order end date" else "Licence end date" },
   crn = crn,
   personName = personName,
   sentenceEndDate = sentenceEndDate,
-  cohort = OffenceCohort.fromDisplayName(cohort),
+  cohort = OffenceCohort.Companion.fromDisplayName(cohort),
   hasLdc = hasLdc,
   age = dateOfBirth?.let { Period.between(dateOfBirth, LocalDate.now()).years },
   sex = sex,
@@ -129,16 +130,5 @@ fun GroupWaitlistItemViewEntity.toApi() = GroupWaitlistItem(
   reportingTeam = reportingTeam,
   status = status,
   statusColour = statusColour,
-  activeProgrammeGroupId = activeProgrammeGroupId,
-)
-
-fun GroupWaitlistItem.toAllocatedItem() = GroupAllocatedlistItem(
-  referralId = referralId,
-  crn = crn,
-  personName = personName,
-  sentenceEndDate = sentenceEndDate,
-  status = status,
-  statusColour = statusColour,
-  sourcedFrom = sourcedFrom,
   activeProgrammeGroupId = activeProgrammeGroupId,
 )
