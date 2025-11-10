@@ -20,11 +20,14 @@ fun getGroupWaitlistItemSpecification(
 
   /**
    * ALLOCATED tab - look for referrals which are assigned to our group id
-   * WAITLIST tab - look for ALL referrals which are NOT part of a group
+   * WAITLIST tab - look for ALL referrals which are NOT part of a group and have "Awaiting allocation" status
    */
   when (selectedTab) {
     GroupPageTab.ALLOCATED -> predicates.add(criteriaBuilder.equal(root.get<UUID>("activeProgrammeGroupId"), groupId))
-    GroupPageTab.WAITLIST -> predicates.add(criteriaBuilder.isNull(root.get<UUID>("activeProgrammeGroupId")))
+    GroupPageTab.WAITLIST -> {
+      predicates.add(criteriaBuilder.equal(root.get<String>("status"), "Awaiting allocation"))
+      predicates.add(criteriaBuilder.isNull(root.get<UUID>("activeProgrammeGroupId")))
+    }
   }
 
   sex?.let {

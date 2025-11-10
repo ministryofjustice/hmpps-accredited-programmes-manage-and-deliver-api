@@ -132,7 +132,7 @@ fun GroupWaitlistItemViewEntity.toApi() = GroupWaitlistItem(
   activeProgrammeGroupId = activeProgrammeGroupId,
 )
 
-fun GroupWaitlistItem.toAllocatedItem() = GroupAllocatedItem(
+fun GroupWaitlistItem.toAllocatedItem() = GroupAllocatedlistItem(
   referralId = referralId,
   crn = crn,
   personName = personName,

@@ -30,7 +30,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toAllocatedItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
@@ -177,10 +176,7 @@ class ProgrammeGroupController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @PostMapping(
-    "/group/{groupId}/allocate/{referralId}",
-    consumes = [MediaType.APPLICATION_JSON_VALUE],
-  )
+  @PostMapping("/group/{groupId}/allocate/{referralId}")
   fun allocateToProgrammeGroup(
     @Parameter(
       description = "The group_id (UUID) of the group to allocate to",
@@ -244,7 +240,7 @@ class ProgrammeGroupController(
     pagedWaitlistData: Page<GroupWaitlistItem>,
     otherTabCount: Int,
   ): ProgrammeGroupDetails.AllocationAndWaitlistData {
-    val (waitlistItems, allocatedItems) = pagedWaitlistData.content.partition { isAwaitingAllocation(it) && it.activeProgrammeGroupId == null }
+    val (waitlistItems, allocatedItems) = pagedWaitlistData.content.partition { it.activeProgrammeGroupId == null }
 
     return when (selectedTab) {
       GroupPageTab.WAITLIST -> createWaitlistTabData(waitlistItems, pagedWaitlistData, otherTabCount)
@@ -279,8 +275,6 @@ class ProgrammeGroupController(
     pagination = ProgrammeGroupDetails.Pagination(page = pagedData.number, size = pagedData.size),
     paginatedAllocationData = allocatedItems.map(GroupWaitlistItem::toAllocatedItem),
   )
-
-  private fun isAwaitingAllocation(item: GroupWaitlistItem): Boolean = item.status == ReferralStatusType.AWAITING_ALLOCATION.description
 
   private fun getUserRegion(): String {
     val username = authenticationHolder.username

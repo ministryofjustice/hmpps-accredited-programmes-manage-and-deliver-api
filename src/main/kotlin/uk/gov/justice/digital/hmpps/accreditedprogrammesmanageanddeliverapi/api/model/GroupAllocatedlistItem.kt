@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 import java.util.UUID
 
-data class GroupAllocatedItem(
+data class GroupAllocatedlistItem(
   @Schema(
     example = "1ff57cea-352c-4a99-8f66-3e626aac3265",
     required = true,

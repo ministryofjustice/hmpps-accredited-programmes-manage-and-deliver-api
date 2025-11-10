@@ -18,7 +18,7 @@ data class ProgrammeGroupDetails(
     val counts: Counts,
     val pagination: Pagination,
     val filters: Filters,
-    val paginatedAllocationData: List<GroupAllocatedItem> = emptyList(),
+    val paginatedAllocationData: List<GroupAllocatedlistItem> = emptyList(),
     val paginatedWaitlistData: List<GroupWaitlistItem> = emptyList(),
   )
 }

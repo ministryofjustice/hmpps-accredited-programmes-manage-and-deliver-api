@@ -36,10 +36,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import java.time.LocalDate
 import java.util.UUID
 
-class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
+class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralService: ReferralService) : IntegrationTestBase() {
 
   @Autowired
   private lateinit var programmeGroupRepository: ProgrammeGroupRepository
@@ -53,7 +55,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   @Autowired
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
 
-  private lateinit var referrals: List<Triple<ReferralEntity, ReferralStatusHistoryEntity, ReferralReportingLocationEntity>>
+  private lateinit var referrals: List<ReferralEntity>
 
   @BeforeEach
   override fun beforeEach() {
@@ -72,15 +74,27 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         ),
       ),
     )
-
-    referrals = createTestWaitlistData()
-    referrals.forEach { (referral, statusHistory, reportingLocation) ->
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
-        referral,
-        statusHistory,
-        reportingLocation,
+    referrals = testReferralHelper.createReferrals(
+      referralConfigs =
+      listOf(
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team C"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 2", reportingTeam = "Team B"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 2", reportingTeam = "Team C"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 3", reportingTeam = "Team B"),
+      ),
+    )
+    // Update all referrals to 'Awaiting Allocation status'
+    val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    referrals.map {
+      referralService.updateStatus(
+        it,
+        status.id,
+        createdBy = "AUTH_USER",
       )
     }
+    referrals = referralRepository.findAll()
   }
 
   @Nested
@@ -94,7 +108,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createGroup(group)
 
       // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
-      val (referral) = referrals.first()
+      val referral = referrals.first()
       programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!)
 
       // When
@@ -107,7 +121,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).isNotNull
       assertThat(response.group.code).isEqualTo("TEST001")
       assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
-      assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(4)
+      assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(5)
       assertThat(response.allocationAndWaitlistData.counts.allocated).isEqualTo(1)
       assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotNull
       assertThat(response.allocationAndWaitlistData.paginatedWaitlistData.map { it.statusColour }).isNotEmpty
@@ -151,13 +165,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).isNotNull
       assertThat(response.group.code).isEqualTo("TEST001")
       assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
-      assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(5)
+      assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(6)
       assertThat(response.allocationAndWaitlistData.filters).isNotNull
       assertThat(response.allocationAndWaitlistData.filters.sex).containsExactly("Male", "Female")
       assertThat(response.allocationAndWaitlistData.pagination.size).isEqualTo(10)
       assertThat(response.allocationAndWaitlistData.pagination.page).isEqualTo(0)
       assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotNull
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData.size).isEqualTo(5)
+      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData.size).isEqualTo(6)
     }
 
     @Test
@@ -168,7 +182,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createGroup(group)
 
       // When
-      val response = performRequestAndExpectStatusAndReturnBody(
+      val response = performRequestAndExpectStatus(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST",
         object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
@@ -176,13 +190,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[0].sentenceEndDate")
-        .isEqualTo("1 January 2030")
-      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[1].sentenceEndDate")
-        .isEqualTo("2 February 2031")
-      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[2].sentenceEndDate").isEqualTo("3 March 2032")
-      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[3].sentenceEndDate").isEqualTo("4 April 2033")
-      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[4].sentenceEndDate").isEqualTo("5 May 2034")
+      response.allocationAndWaitlistData.paginatedWaitlistData
+      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData)
+        .extracting("sentenceEndDate", LocalDate::class.java)
+        .isSortedAccordingTo(naturalOrder<LocalDate>())
     }
 
     @Test
@@ -269,7 +280,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?pdu=Test PDU 1&reportingTeam=Team A&reportingTeam=Team C",
+        "/bff/group/${group.id}/WAITLIST?pdu=PDU 1&reportingTeam=Team A&reportingTeam=Team C",
         object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
       )
 
@@ -297,7 +308,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotEmpty
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).hasSize(5)
+      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).hasSize(6)
       response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
         assertThat(item.reportingTeam).isIn("Team A", "Team B", "Team C")
       }
@@ -313,7 +324,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?pdu=Test PDU 1&reportingTeam=Team A",
+        "/bff/group/${group.id}/WAITLIST?pdu=PDU 1&reportingTeam=Team A",
         object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
       )
 
@@ -321,7 +332,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotEmpty
       assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).hasSize(2)
       response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
-        assertThat(item.pdu).isEqualTo("Test PDU 1")
+        assertThat(item.pdu).isEqualTo("PDU 1")
         assertThat(item.reportingTeam).isEqualTo("Team A")
       }
     }
