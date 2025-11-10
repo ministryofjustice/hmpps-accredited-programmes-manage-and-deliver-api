@@ -23,7 +23,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.deliveryLocationPreferences.PreferredDeliveryLocationEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.deliveryLocationPreferences.PreferredDeliveryLocationProbationDeliveryUnitEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.LocalDate
 import java.util.UUID
@@ -31,15 +30,13 @@ import java.util.UUID
 @WithMockAuthUser("PROB_PRACTITIONER_1")
 class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() {
 
-  private lateinit var nDeliusApiStubs: NDeliusApiStubs
-
   @Autowired
   private lateinit var deliveryLocationPreferencesService: DeliveryLocationPreferencesService
 
   @BeforeEach
   fun setup() {
     testDataCleaner.cleanAllTables()
-    nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
+
     stubAuthTokenEndpoint()
   }
 

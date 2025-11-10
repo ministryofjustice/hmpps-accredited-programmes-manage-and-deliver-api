@@ -3,15 +3,23 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomSentence
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.Utils.createCodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.Utils.createCodeDescriptionList
 import java.time.LocalDate
 
-class NDeliusSentenceResponseFactory {
+class NDeliusSentenceResponseFactory(sourcedFrom: ReferralEntitySourcedFrom? = null) {
   private var description: String? = randomSentence(wordRange = 2..5)
   private var startDate: LocalDate = LocalDate.now().minusYears(1)
-  private var expectedEndDate: LocalDate = LocalDate.now()
-  private var licenceExpiryDate: LocalDate? = LocalDate.now().plusYears(2)
+  private var expectedEndDate: LocalDate? =
+    if (sourcedFrom === ReferralEntitySourcedFrom.REQUIREMENT || sourcedFrom == null) {
+      LocalDate.now()
+        .plusYears(2)
+    } else {
+      null
+    }
+  private var licenceExpiryDate: LocalDate? =
+    if (sourcedFrom === ReferralEntitySourcedFrom.LICENCE_CONDITION) LocalDate.now().plusYears(2) else null
   private var postSentenceSupervisionEndDate: LocalDate? = LocalDate.now().plusYears(3)
   private var twoThirdsSupervisionDate: LocalDate? = LocalDate.now().plusMonths(18)
   private var custodial: Boolean = true

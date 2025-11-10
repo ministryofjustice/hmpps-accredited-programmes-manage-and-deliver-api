@@ -24,8 +24,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.PersonReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -51,8 +49,6 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   lateinit var referralRepository: ReferralRepository
 
   lateinit var sourceReferralId: UUID
-  lateinit var oasysApiStubs: OasysApiStubs
-  lateinit var nDeliusApiStubs: NDeliusApiStubs
 
   @BeforeEach
   fun setUp() {
@@ -86,10 +82,8 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
         ),
     )
 
-    oasysApiStubs = OasysApiStubs(wiremock, objectMapper)
     oasysApiStubs.stubSuccessfulPniResponse("X123456")
 
-    nDeliusApiStubs = NDeliusApiStubs(wiremock, objectMapper)
     val personalDetails = NDeliusPersonalDetailsFactory()
       .withName(
         FullName(
@@ -137,10 +131,10 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .produce()
 
     // When
-    sendDomainEvent(domainEventsMessage)
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
     // Then
-    await withPollDelay ofSeconds(1) untilCallTo { domainEventQueue.countAllMessagesOnQueue() } matches { it == 0 }
+    await withPollDelay ofSeconds(1) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
     await untilCallTo {
       messageHistoryRepository.findAll().firstOrNull()
     } matches { it != null }
@@ -170,11 +164,13 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .produce()
 
     // When
-    sendDomainEvent(domainEventsMessage)
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
     // Then
     await withPollDelay ofSeconds(1) untilCallTo {
-      domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
+      with(domainEventsQueueConfig) {
+        domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
+      }
     } matches { it == 0 }
 
     assertThat(referralRepository.count()).isEqualTo(0)
@@ -189,11 +185,13 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .produce()
 
     // When
-    sendDomainEvent(domainEventsMessage)
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
     // Then
     await withPollDelay ofSeconds(1) untilCallTo {
-      domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
+      with(domainEventsQueueConfig) {
+        domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
+      }
     } matches { it == 0 }
 
     await withPollDelay ofSeconds(1) untilCallTo {
@@ -244,11 +242,13 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .produce()
 
     // When
-    sendDomainEvent(domainEventsMessage)
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
     // Then
     await withPollDelay ofSeconds(1) untilCallTo {
-      domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
+      with(domainEventsQueueConfig) {
+        domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
+      }
     } matches { it == 0 }
 
     await untilCallTo {
@@ -300,11 +300,13 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .produce()
 
     // When
-    sendDomainEvent(domainEventsMessage)
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
     // Then
     await withPollDelay ofSeconds(1) untilCallTo {
-      domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
+      with(domainEventsQueueConfig) {
+        domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
+      }
     } matches { it == 0 }
 
     await untilCallTo {
@@ -354,11 +356,13 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .produce()
 
     // When
-    sendDomainEvent(domainEventsMessage)
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
     // Then
     await withPollDelay ofSeconds(1) untilCallTo {
-      domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
+      with(domainEventsQueueConfig) {
+        domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
+      }
     } matches { it == 0 }
 
     await untilCallTo {
@@ -403,7 +407,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     val domainEventsMessage = DomainEventsMessageFactory().withEventType(eventType).produce()
 
     // When
-    sendDomainEvent(domainEventsMessage)
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
     // Then
     await withPollDelay ofSeconds(1) untilCallTo {

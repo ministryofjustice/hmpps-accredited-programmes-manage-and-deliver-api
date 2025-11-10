@@ -1,13 +1,15 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathTemplate
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.TestComponent
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
@@ -16,15 +18,21 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.NDeliusRegistrationsFactory
 
-class NDeliusApiStubs(
-  val wiremock: WireMockExtension,
-  val objectMapper: ObjectMapper,
-) {
+@TestComponent
+class NDeliusApiStubs {
+
+  @Autowired
+  private lateinit var wiremock: WireMockServer
+
+  @Autowired
+  private lateinit var objectMapper: ObjectMapper
+
   fun stubAccessCheck(granted: Boolean, vararg crns: String) {
     val response = LimitedAccessOffenderCheckResponse(
       crns.map { crn ->
@@ -111,8 +119,10 @@ class NDeliusApiStubs(
   fun stubSuccessfulSentenceInformationResponse(
     crn: String,
     eventNumber: Int?,
-    nDeliusSentenceResponse: NDeliusSentenceResponse = NDeliusSentenceResponseFactory().produce(),
+    nDeliusSentenceResponse: NDeliusSentenceResponse? = null,
+    sourcedFrom: ReferralEntitySourcedFrom? = null,
   ) {
+    val nDeliusSentenceResponse = nDeliusSentenceResponse ?: NDeliusSentenceResponseFactory(sourcedFrom).produce()
     wiremock.stubFor(
       get(urlPathTemplate("/case/$crn/sentence/$eventNumber"))
         .willReturn(

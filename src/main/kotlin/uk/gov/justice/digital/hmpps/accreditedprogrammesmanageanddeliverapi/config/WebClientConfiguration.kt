@@ -1,7 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config
 
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.netty.channel.ChannelOption
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
@@ -31,9 +29,6 @@ class WebClientConfiguration(
   // HMPPS Auth health ping is required if your service calls HMPPS Auth to get a token to call other services
   @Bean
   fun hmppsAuthHealthWebClient(builder: WebClient.Builder): WebClient = builder.healthWebClient(hmppsAuthBaseUri, healthTimeout)
-
-  @Bean
-  fun objectMapper() = jacksonObjectMapper().apply { registerModule(JavaTimeModule()) }
 
   @Bean
   fun authorizedClientManager(clients: ClientRegistrationRepository): OAuth2AuthorizedClientManager {
