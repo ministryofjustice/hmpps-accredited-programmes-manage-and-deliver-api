@@ -2,7 +2,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.fail
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
@@ -25,10 +24,6 @@ class OasysApiClientIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var oasysApiClient: OasysApiClient
-
-  @BeforeEach
-  fun setup() {
-  }
 
   @Test
   fun `should return a pni calculation for known crn`() {

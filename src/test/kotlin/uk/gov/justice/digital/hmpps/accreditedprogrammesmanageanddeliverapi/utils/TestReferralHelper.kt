@@ -82,7 +82,6 @@ class TestReferralHelper {
   }
 
   fun createMultipleReferrals(numReferrals: Int): List<ReferralEntity> = runBlocking {
-    // Send all events concurrently
     val crns = (1..numReferrals).map {
       async { sendReferralEvent() }
     }.awaitAll()
