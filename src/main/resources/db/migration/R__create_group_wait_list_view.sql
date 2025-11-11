@@ -29,6 +29,7 @@ SELECT r.id                                                   as referral_id,
        rsd.description_text                                   as status,
        rsd.label_colour                                       as status_colour,
        -- Default values if there are no entries in the referral_reporting_location table for this referral yet
+       COALESCE(rrl.region_name, 'UNKNOWN_REGION_NAME')       as region_name,
        COALESCE(rrl.pdu_name, 'UNKNOWN_PDU_NAME')             as pdu_name,
        COALESCE(rrl.reporting_team, 'UNKNOWN_REPORTING_TEAM') as reporting_team,
        pgm.programme_group_id                                 as active_programme_group_id
@@ -38,7 +39,9 @@ FROM referral r
          JOIN referral_status_description rsd ON ls.referral_status_description_id = rsd.id
          LEFT JOIN latest_ldc_status lds ON r.id = lds.referral_id and lds.rn = 1
          LEFT JOIN referral_reporting_location rrl on r.id = rrl.referral_id
-         LEFT JOIN active_group_membership pgm on r.id = pgm.referral_id;
+         LEFT JOIN active_group_membership pgm on r.id = pgm.referral_id
+WHERE pgm IS NOT NULL
+   OR rsd.description_text = 'Awaiting allocation';
 
 -- Need unique index to be able to refresh view.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_group_wait_list_id ON group_waitlist_item_view (referral_id);
@@ -54,6 +57,7 @@ CREATE INDEX IF NOT EXISTS idx_group_wait_list_status ON group_waitlist_item_vie
 CREATE INDEX IF NOT EXISTS idx_group_wait_list_status ON group_waitlist_item_view (status_colour);
 CREATE INDEX IF NOT EXISTS idx_group_wait_list_pdu_name ON group_waitlist_item_view (pdu_name);
 CREATE INDEX IF NOT EXISTS idx_group_wait_list_reporting_team ON group_waitlist_item_view (reporting_team);
+CREATE INDEX IF NOT EXISTS idx_group_wait_list_region_name ON group_waitlist_item_view (region_name);
 CREATE INDEX IF NOT EXISTS idx_group_wait_list_latest_group ON group_waitlist_item_view (active_programme_group_id);
 
 

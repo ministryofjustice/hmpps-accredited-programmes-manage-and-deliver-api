@@ -8,9 +8,12 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
@@ -45,6 +48,20 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
   @BeforeEach
   override fun beforeEach() {
     testDataCleaner.cleanAllTables()
+    stubAuthTokenEndpoint()
+    nDeliusApiStubs.stubUserTeamsResponse(
+      "AUTH_ADM",
+      NDeliusUserTeams(
+        teams = listOf(
+          NDeliusUserTeam(
+            code = "TEAM001",
+            description = "Test Team 1",
+            pdu = CodeDescription("PDU001", "Test PDU 1"),
+            region = CodeDescription("REGION001", "WIREMOCKED REGION"),
+          ),
+        ),
+      ),
+    )
   }
 
   @AfterEach
@@ -55,7 +72,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
   @Test
   fun `createGroup can successfully create a new group`() {
     val group = ProgrammeGroupFactory().toCreateGroup()
-    programmeGroupService.createGroup(group)
+    programmeGroupService.createGroup(group, "AUTH_ADM")
     val createdGroup = programmeGroupRepository.findByCode(group.groupCode)
     assertThat { createdGroup }.isNotNull
     assertThat(createdGroup?.code).isEqualTo(group.groupCode)
@@ -73,7 +90,9 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           existingGroup.code,
           ProgrammeGroupCohort.from(existingGroup.cohort, existingGroup.isLdc),
           existingGroup.sex,
+
         ),
+        username = "AUTH_ADM",
       )
     }
   }
@@ -86,20 +105,20 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     val pageable = PageRequest.of(0, 10)
 
     // When
-    val result = programmeGroupService.getGroupWaitlistData(
+    val result = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = null,
       nameOrCRN = null,
       pdu = null,
-      pageable = pageable,
       reportingTeams = null,
     )
 
     // Then
     assertThat(result).isNotNull
-    assertThat(result.content).isEmpty()
+    assertThat(result.pagedGroupData.content).isEmpty()
   }
 
   @Test
@@ -110,14 +129,14 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     // When & Then
     assertThrows<NotFoundException> {
-      programmeGroupService.getGroupWaitlistData(
+      programmeGroupService.getGroupWaitlistDataByCriteria(
+        pageable = pageable,
         selectedTab = GroupPageTab.WAITLIST,
         groupId = nonExistentGroupId,
         sex = null,
         cohort = null,
         nameOrCRN = null,
         pdu = null,
-        pageable = pageable,
         reportingTeams = null,
       )
     }
@@ -130,31 +149,31 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     val pageable = PageRequest.of(0, 10)
 
     // When
-    val maleResults = programmeGroupService.getGroupWaitlistData(
+    val maleResults = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = "Male",
       cohort = null,
       nameOrCRN = null,
       pdu = null,
-      pageable = pageable,
       reportingTeams = null,
     )
 
-    val femaleResults = programmeGroupService.getGroupWaitlistData(
+    val femaleResults = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = "Female",
       cohort = null,
       nameOrCRN = null,
       pdu = null,
-      pageable = pageable,
       reportingTeams = null,
     )
 
     // Then
-    assertThat(maleResults.content).allMatch { it.sex == "Male" }
-    assertThat(femaleResults.content).allMatch { it.sex == "Female" }
+    assertThat(maleResults.pagedGroupData.content).allMatch { it.sex == "Male" }
+    assertThat(femaleResults.pagedGroupData.content).allMatch { it.sex == "Female" }
   }
 
   @Test
@@ -164,31 +183,31 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     val pageable = PageRequest.of(0, 10)
 
     // When
-    val sexualOffenceResults = programmeGroupService.getGroupWaitlistData(
+    val sexualOffenceResults = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = ProgrammeGroupCohort.SEXUAL,
       nameOrCRN = null,
       pdu = null,
-      pageable = pageable,
       reportingTeams = null,
     )
 
-    val generalOffenceResults = programmeGroupService.getGroupWaitlistData(
+    val generalOffenceResults = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = ProgrammeGroupCohort.GENERAL,
       nameOrCRN = null,
       pdu = null,
-      pageable = pageable,
       reportingTeams = null,
     )
 
     // Then
-    assertThat(sexualOffenceResults.content).allMatch { it.cohort == OffenceCohort.SEXUAL_OFFENCE }
-    assertThat(generalOffenceResults.content).allMatch { it.cohort == OffenceCohort.GENERAL_OFFENCE }
+    assertThat(sexualOffenceResults.pagedGroupData.content).allMatch { it.cohort == OffenceCohort.SEXUAL_OFFENCE }
+    assertThat(generalOffenceResults.pagedGroupData.content).allMatch { it.cohort == OffenceCohort.GENERAL_OFFENCE }
   }
 
   @Test
@@ -198,33 +217,33 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     val pageable = PageRequest.of(0, 10)
 
     // When
-    val nameResults = programmeGroupService.getGroupWaitlistData(
+    val nameResults = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = null,
       nameOrCRN = "john",
       pdu = null,
-      pageable = pageable,
       reportingTeams = null,
     )
 
-    val crnResults = programmeGroupService.getGroupWaitlistData(
+    val crnResults = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = null,
       nameOrCRN = "CRN001",
       pdu = null,
-      pageable = pageable,
       reportingTeams = null,
     )
 
     // Then
-    assertThat(nameResults.content).allMatch {
+    assertThat(nameResults.pagedGroupData.content).allMatch {
       it.personName.contains("John", ignoreCase = true)
     }
-    assertThat(crnResults.content).allMatch {
+    assertThat(crnResults.pagedGroupData.content).allMatch {
       it.crn.contains("CRN001", ignoreCase = true)
     }
   }
@@ -236,19 +255,19 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     val pageable = PageRequest.of(0, 10)
 
     // When
-    val pduResults = programmeGroupService.getGroupWaitlistData(
+    val pduResults = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = null,
       nameOrCRN = null,
       pdu = "Test PDU 1",
-      pageable = pageable,
       reportingTeams = null,
     )
 
     // Then
-    assertThat(pduResults.content).allMatch { it.pdu == "Test PDU 1" }
+    assertThat(pduResults.pagedGroupData.content).allMatch { it.pdu == "Test PDU 1" }
   }
 
   private fun setupGroupWaitListItemTestData(): ProgrammeGroupEntity {

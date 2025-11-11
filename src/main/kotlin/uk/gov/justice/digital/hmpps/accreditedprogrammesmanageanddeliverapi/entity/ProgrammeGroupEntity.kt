@@ -67,4 +67,8 @@ class ProgrammeGroupEntity(
 
   @Column(name = "deleted_by_username")
   var deletedByUsername: String? = null,
+
+  @NotNull
+  @Column(name = "region_name")
+  var regionName: String,
 )

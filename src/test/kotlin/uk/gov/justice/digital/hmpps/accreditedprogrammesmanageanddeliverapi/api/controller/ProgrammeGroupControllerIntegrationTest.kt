@@ -13,33 +13,30 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedProgrammeDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import java.time.LocalDate
 import java.util.UUID
 
-class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
+class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralService: ReferralService) : IntegrationTestBase() {
 
   @Autowired
   private lateinit var programmeGroupRepository: ProgrammeGroupRepository
@@ -53,7 +50,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   @Autowired
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
 
-  private lateinit var referrals: List<Triple<ReferralEntity, ReferralStatusHistoryEntity, ReferralReportingLocationEntity>>
+  private lateinit var referrals: List<ReferralEntity>
 
   @BeforeEach
   override fun beforeEach() {
@@ -72,15 +69,27 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         ),
       ),
     )
-
-    referrals = createTestWaitlistData()
-    referrals.forEach { (referral, statusHistory, reportingLocation) ->
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
-        referral,
-        statusHistory,
-        reportingLocation,
+    referrals = testReferralHelper.createReferrals(
+      referralConfigs =
+      listOf(
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team C"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 2", reportingTeam = "Team B"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 2", reportingTeam = "Team C"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 3", reportingTeam = "Team B"),
+      ),
+    )
+    // Update all referrals to 'Awaiting Allocation status'
+    val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    referrals.map {
+      referralService.updateStatus(
+        it,
+        status.id,
+        createdBy = "AUTH_USER",
       )
     }
+    referrals = referralRepository.findAll()
   }
 
   @Nested
@@ -90,74 +99,80 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `getGroupDetails returns 200 with valid group and waitlist data`() {
       // Given
       stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST001").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST001").withRegionName("TEST REGION").produce()
       testDataGenerator.createGroup(group)
 
       // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
-      val (referral) = referrals.first()
+      val referral = referrals.first()
       programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!)
 
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST?page=0&size=10",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
       // Then
       assertThat(response).isNotNull
       assertThat(response.group.code).isEqualTo("TEST001")
-      assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
-      assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(4)
-      assertThat(response.allocationAndWaitlistData.counts.allocated).isEqualTo(1)
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotNull
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData.map { it.statusColour }).isNotEmpty
+      assertThat(response.group.regionName).isEqualTo("TEST REGION")
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(5)
+      assertThat(response.otherTabTotal).isEqualTo(1)
+      assertThat(response.pagedGroupData).isNotNull
+      assertThat(response.pagedGroupData.content.map { it.statusColour }).isNotEmpty
     }
 
     @Test
-    fun `getGroupDetails contains a list of filter`() {
+    fun `getGroupDetails contains a list of filters`() {
       // Given
       stubAuthTokenEndpoint()
       val group = ProgrammeGroupFactory().withCode("TEST001").produce()
       testDataGenerator.createGroup(group)
 
       // When
-      val body = performRequestAndExpectStatusAndReturnBody(
+      val body = performRequestAndExpectStatus(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST?page=0&size=10",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
         HttpStatus.OK.value(),
       )
 
-      body.jsonPath("allocationAndWaitlistData.filters").exists()
-      body.jsonPath("allocationAndWaitlistData.filters.sex").isEqualTo(listOf("Male", "Female"))
-      body.jsonPath("allocationAndWaitlistData.filters.cohort")
-        .isEqualTo(listOf("General Offence", "General Offence - LDC", "Sexual Offence", "Sexual Offence - LDC"))
+      assertThat(body.filters).isNotNull
+      assertThat(body.filters.sex).isEqualTo(listOf("Male", "Female"))
+      assertThat(body.filters.cohort).isEqualTo(
+        listOf(
+          "General Offence",
+          "General Offence - LDC",
+          "Sexual Offence",
+          "Sexual Offence - LDC",
+        ),
+      )
     }
 
     @Test
     fun `getGroupDetails returns 200 and uses default filters if none are provided`() {
       // Given
       stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST001").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST001").withRegionName("TEST REGION").produce()
       testDataGenerator.createGroup(group)
 
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
       // Then
       assertThat(response).isNotNull
       assertThat(response.group.code).isEqualTo("TEST001")
-      assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
-      assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(5)
-      assertThat(response.allocationAndWaitlistData.filters).isNotNull
-      assertThat(response.allocationAndWaitlistData.filters.sex).containsExactly("Male", "Female")
-      assertThat(response.allocationAndWaitlistData.pagination.size).isEqualTo(10)
-      assertThat(response.allocationAndWaitlistData.pagination.page).isEqualTo(0)
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotNull
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData.size).isEqualTo(5)
+      assertThat(response.group.regionName).isEqualTo("TEST REGION")
+      assertThat(response.pagedGroupData.content.size).isEqualTo(6)
+      assertThat(response.filters).isNotNull
+      assertThat(response.filters.sex).containsExactly("Male", "Female")
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(6)
+      assertThat(response.pagedGroupData.number).isEqualTo(0)
+      assertThat(response.pagedGroupData).isNotNull
+      assertThat(response.otherTabTotal).isZero
     }
 
     @Test
@@ -168,21 +183,16 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createGroup(group)
 
       // When
-      val response = performRequestAndExpectStatusAndReturnBody(
+      val response = performRequestAndExpectStatus(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
         HttpStatus.OK.value(),
       )
 
       // Then
-      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[0].sentenceEndDate")
-        .isEqualTo("1 January 2030")
-      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[1].sentenceEndDate")
-        .isEqualTo("2 February 2031")
-      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[2].sentenceEndDate").isEqualTo("3 March 2032")
-      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[3].sentenceEndDate").isEqualTo("4 April 2033")
-      response.jsonPath("allocationAndWaitlistData.paginatedWaitlistData[4].sentenceEndDate").isEqualTo("5 May 2034")
+      assertThat(response.pagedGroupData.content).extracting("sentenceEndDate", LocalDate::class.java)
+        .isSortedAccordingTo(naturalOrder<LocalDate>())
     }
 
     @Test
@@ -211,28 +221,28 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val firstPageResponse = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST?page=0&size=2",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
       // When - Get second page
       val secondPageResponse = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST?page=1&size=2",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
       // Then
-      assertThat(firstPageResponse.allocationAndWaitlistData.pagination.page).isEqualTo(0)
-      assertThat(secondPageResponse.allocationAndWaitlistData.pagination.page).isEqualTo(1)
+      assertThat(firstPageResponse.pagedGroupData.number).isEqualTo(0)
+      assertThat(secondPageResponse.pagedGroupData.number).isEqualTo(1)
 
-      assertThat(firstPageResponse.allocationAndWaitlistData.pagination.size).isEqualTo(2)
-      assertThat(secondPageResponse.allocationAndWaitlistData.pagination.size).isEqualTo(2)
+      assertThat(firstPageResponse.pagedGroupData.size).isEqualTo(2)
+      assertThat(secondPageResponse.pagedGroupData.size).isEqualTo(2)
 
-      val firstPageData = firstPageResponse.allocationAndWaitlistData.paginatedWaitlistData
-      val secondPageData = secondPageResponse.allocationAndWaitlistData.paginatedWaitlistData
+      val firstPageData = firstPageResponse.pagedGroupData
+      val secondPageData = secondPageResponse.pagedGroupData
 
-      assertThat(firstPageData).hasSize(2)
-      assertThat(secondPageData).hasSize(2)
-      assertThat(firstPageData).doesNotContainAnyElementsOf(secondPageData)
+      assertThat(firstPageData.content.size).isEqualTo(2)
+      assertThat(secondPageData.content.size).isEqualTo(2)
+      assertThat(firstPageData.content).doesNotContainAnyElementsOf(secondPageData.content)
     }
 
     @Test
@@ -246,11 +256,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST?sex=Male&cohort=Sexual Offence&pdu=Test PDU 1&page=0&size=10",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
       // Then
-      response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
+      response.pagedGroupData.content.forEach { item ->
         assertThat(item.sex).isEqualTo("Male")
         assertThat(item.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
         assertThat(item.pdu).isEqualTo("Test PDU 1")
@@ -269,16 +279,18 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?pdu=Test PDU 1&reportingTeam=Team A&reportingTeam=Team C",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        "/bff/group/${group.id}/WAITLIST?pdu=PDU 1&reportingTeam=Team A&reportingTeam=Team C",
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
       // Then
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotEmpty
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).hasSize(3)
-      response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
-        assertThat(item.reportingTeam).isIn("Team A", "Team C")
-      }
+      assertThat(response.pagedGroupData.content).isNotEmpty
+      assertThat(response.pagedGroupData.content).hasSize(3)
+      assertThat(
+        response.pagedGroupData.content.all {
+          it.reportingTeam in listOf("Team A", "Team C")
+        },
+      ).isTrue()
     }
 
     @Test
@@ -292,15 +304,17 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST?reportingTeam=Team A&reportingTeam=Team C",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
       // Then
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotEmpty
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).hasSize(5)
-      response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
-        assertThat(item.reportingTeam).isIn("Team A", "Team B", "Team C")
-      }
+      assertThat(response.pagedGroupData.content).isNotEmpty
+      assertThat(response.pagedGroupData.content).hasSize(6)
+      assertThat(
+        response.pagedGroupData.content.all {
+          it.reportingTeam in listOf("Team A", "Team B", "Team C")
+        },
+      ).isTrue()
     }
 
     @Test
@@ -313,15 +327,16 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?pdu=Test PDU 1&reportingTeam=Team A",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        "/bff/group/${group.id}/WAITLIST?pdu=PDU 1&reportingTeam=Team A",
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
       // Then
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isNotEmpty
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).hasSize(2)
-      response.allocationAndWaitlistData.paginatedWaitlistData.forEach { item ->
-        assertThat(item.pdu).isEqualTo("Test PDU 1")
+      assertThat(response.pagedGroupData.content).isNotEmpty
+      assertThat(response.pagedGroupData.content).hasSize(2)
+
+      response.pagedGroupData.content.forEach { item ->
+        assertThat(item.pdu).isEqualTo("PDU 1")
         assertThat(item.reportingTeam).isEqualTo("Team A")
       }
     }
@@ -329,42 +344,32 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `getGroupDetails returns 200 for ALLOCATED tab with all data when no filters are provided`() {
       // Given
-      testDataCleaner.cleanAllTables()
-      val group = ProgrammeGroupFactory().withCode("TEST008").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST008").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
       stubAuthTokenEndpoint()
 
-      val allocatedListData = createTestAllocatedListData()
-      allocatedListData.forEach { (referral, statusHistory, reportingLocation) ->
-        testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
-          referral,
-          statusHistory,
-          reportingLocation,
-        )
-      }
-      allocatedListData.forEach { programmeGroupMembershipService.allocateReferralToGroup(it.first.id!!, group.id!!) }
-
+      // Allocate all our referrals to a group
+      referrals.forEach { programmeGroupMembershipService.allocateReferralToGroup(it.id!!, group.id!!) }
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/group/${group.id}/ALLOCATED",
-        object : ParameterizedTypeReference<ProgrammeGroupDetails>() {},
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
       // Then
       assertThat(response).isNotNull
       assertThat(response.group.code).isEqualTo("TEST008")
       assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
-      assertThat(response.allocationAndWaitlistData.counts.waitlist).isEqualTo(0)
-      assertThat(response.allocationAndWaitlistData.counts.allocated).isEqualTo(6)
-      assertThat(response.allocationAndWaitlistData.filters).isNotNull
-      assertThat(response.allocationAndWaitlistData.filters.sex).containsExactly("Male", "Female")
-      assertThat(response.allocationAndWaitlistData.pagination.size).isEqualTo(10)
-      assertThat(response.allocationAndWaitlistData.pagination.page).isEqualTo(0)
-      assertThat(response.allocationAndWaitlistData.paginatedWaitlistData).isEmpty()
-      assertThat(response.allocationAndWaitlistData.paginatedAllocationData).isNotEmpty
-      assertThat(response.allocationAndWaitlistData.paginatedAllocationData).hasSize(6)
-      assertThat(response.allocationAndWaitlistData.paginatedAllocationData).noneMatch { it.status == ReferralStatusType.AWAITING_ALLOCATION.description }
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(6)
+      assertThat(response.otherTabTotal).isEqualTo(0)
+      assertThat(response.filters).isNotNull
+      assertThat(response.filters.sex).containsExactly("Male", "Female")
+      assertThat(response.pagedGroupData.size).isEqualTo(10)
+      assertThat(response.pagedGroupData.number).isEqualTo(0)
+      assertThat(response.pagedGroupData.content).isNotEmpty
+      assertThat(response.pagedGroupData.content).hasSize(6)
+      assertThat(response.pagedGroupData.content).allMatch { it.activeProgrammeGroupId !== null }
     }
 
     @Test
@@ -514,6 +519,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(createdGroup.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
       assertThat(createdGroup.isLdc).isFalse
       assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.MALE)
+      assertThat(createdGroup.regionName).isEqualTo("WIREMOCKED REGION")
     }
 
     @Test
@@ -525,13 +531,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         body = body,
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
-
       val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
       assertThat(createdGroup.code).isEqualTo(body.groupCode)
       assertThat(createdGroup.id).isNotNull
       assertThat(createdGroup.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(createdGroup.isLdc).isTrue
       assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.FEMALE)
+      assertThat(createdGroup.regionName).isEqualTo("WIREMOCKED REGION")
     }
 
     @Test
@@ -564,154 +570,5 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
     }
-  }
-
-  private fun createTestWaitlistData() = listOf(
-    createReferralWithWaitlistStatus(
-      "CRN001",
-      "John Smith",
-      "Male",
-      "Sexual offence",
-      "Test PDU 1",
-      "Team A",
-      ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription,
-      LocalDate.of(2030, 1, 1),
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN002",
-      "Jane Doe",
-      "Female",
-      "General offence",
-      "Test PDU 2",
-      "Team B",
-      ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription,
-      LocalDate.of(2031, 2, 2),
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN003",
-      "John Brown",
-      "Male",
-      "Sexual offence",
-      "Test PDU 1",
-      "Team A",
-      ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription,
-      LocalDate.of(2032, 3, 3),
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN004",
-      "Mary Johnson",
-      "Female",
-      "General offence",
-      "Test PDU 2",
-      "Team B",
-      ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription,
-      LocalDate.of(2033, 4, 4),
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN005",
-      "Bob Wilson",
-      "Male",
-      "General offence",
-      "Test PDU 1",
-      "Team C",
-      ReferralStatusDescriptionRepository::getAwaitingAllocationStatusDescription,
-      LocalDate.of(2034, 5, 5),
-    ),
-  )
-
-  private fun createTestAllocatedListData() = listOf(
-    createReferralWithWaitlistStatus(
-      "CRN006",
-      "John Smith",
-      "Male",
-      "Sexual offence",
-      "Test PDU 1",
-      "Team A",
-      ReferralStatusDescriptionRepository::getOnProgrammeStatusDescription,
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN007",
-      "Jane Doe",
-      "Female",
-      "General offence",
-      "Test PDU 2",
-      "Team B",
-      ReferralStatusDescriptionRepository::getAwaitingAssessmentStatusDescription,
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN008",
-      "John Brown",
-      "Male",
-      "Sexual offence",
-      "Test PDU 1",
-      "Team A",
-      ReferralStatusDescriptionRepository::getScheduledStatusDescription,
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN009",
-      "Mary Doe",
-      "Female",
-      "General offence",
-      "Test PDU 3",
-      "Team B",
-      ReferralStatusDescriptionRepository::getOnProgrammeStatusDescription,
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN010",
-      "Bob Wilson",
-      "Male",
-      "General offence",
-      "Test PDU 1",
-      "Team C",
-      ReferralStatusDescriptionRepository::getReturnToCourtStatusDescription,
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN011",
-      "John Doe",
-      "Male",
-      "General offence",
-      "Test PDU 2",
-      "Team C",
-      ReferralStatusDescriptionRepository::getOnProgrammeStatusDescription,
-    ),
-  )
-
-  private fun createReferralWithWaitlistStatus(
-    crn: String,
-    personName: String,
-    sex: String,
-    cohort: String,
-    pduName: String,
-    reportingTeam: String,
-    getReferralStatusDescriptionFunction: (ReferralStatusDescriptionRepository) -> ReferralStatusDescriptionEntity,
-    sentenceEndDate: LocalDate? = null,
-  ): Triple<ReferralEntity, ReferralStatusHistoryEntity, ReferralReportingLocationEntity> {
-    val referralFactory = ReferralEntityFactory()
-      .withCrn(crn)
-      .withPersonName(personName)
-      .withSex(sex)
-      .withCohort(OffenceCohort.fromDisplayName(cohort))
-      .withSentenceEndDate(LocalDate.now().plusYears(2))
-      .withDateOfBirth(LocalDate.now().minusYears(30))
-      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
-
-    if (sentenceEndDate != null) {
-      referralFactory.withSentenceEndDate(sentenceEndDate)
-    }
-
-    val referral = referralFactory.produce()
-
-    val statusHistory = ReferralStatusHistoryEntityFactory().produce(
-      referral,
-      getReferralStatusDescriptionFunction.invoke(referralStatusDescriptionRepository),
-    )
-
-    val reportingLocation = ReferralReportingLocationFactory()
-      .withReferral(referral)
-      .withPduName(pduName)
-      .withReportingTeam(reportingTeam)
-      .produce()
-
-    return Triple(referral, statusHistory, reportingLocation)
   }
 }

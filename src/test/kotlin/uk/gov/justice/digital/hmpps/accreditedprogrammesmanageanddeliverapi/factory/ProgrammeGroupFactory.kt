@@ -1,8 +1,8 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import java.time.LocalDateTime
@@ -20,6 +20,7 @@ class ProgrammeGroupFactory {
   private var updatedByUsername: String? = null
   private var deletedAt: LocalDateTime? = null
   private var deletedByUsername: String? = null
+  private var regionName: String = "TEST REGION"
 
   fun withId(id: UUID) = apply { this.id = id }
   fun withCode(code: String) = apply { this.code = code }
@@ -32,6 +33,7 @@ class ProgrammeGroupFactory {
   fun withUpdatedByUsername(updatedByUsername: String) = apply { this.updatedByUsername = updatedByUsername }
   fun withDeletedAt(deletedAt: LocalDateTime) = apply { this.deletedAt = deletedAt }
   fun withDeletedByUsername(deletedByUsername: String) = apply { this.deletedByUsername = deletedByUsername }
+  fun withRegionName(regionName: String) = apply { this.regionName = regionName }
 
   fun produce(): ProgrammeGroupEntity = ProgrammeGroupEntity(
     id = this.id,
@@ -45,6 +47,7 @@ class ProgrammeGroupFactory {
     updatedByUsername = this.updatedByUsername,
     deletedAt = this.deletedAt,
     deletedByUsername = this.deletedByUsername,
+    regionName = this.regionName,
   )
 
   fun toCreateGroup(): CreateGroupRequest {

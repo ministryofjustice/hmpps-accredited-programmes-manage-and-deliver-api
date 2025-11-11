@@ -6,12 +6,12 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.GroupWaitlistItem
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -28,42 +28,23 @@ class ProgrammeGroupService(
   private val programmeGroupRepository: ProgrammeGroupRepository,
   private val groupWaitlistItemViewRepository: GroupWaitlistItemViewRepository,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
+  private val userService: UserService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  fun createGroup(createGroupRequest: CreateGroupRequest): ProgrammeGroupEntity? {
+  fun createGroup(createGroupRequest: CreateGroupRequest, username: String): ProgrammeGroupEntity? {
     programmeGroupRepository.findByCode(createGroupRequest.groupCode)
       ?.let { throw ConflictException("Programme group with code ${createGroupRequest.groupCode} already exists") }
 
+    val (userRegion) = userService.getUserRegions(username)
+
     log.info("Group created with code: ${createGroupRequest.groupCode}")
 
-    return programmeGroupRepository.save(createGroupRequest.toEntity())
+    return programmeGroupRepository.save(createGroupRequest.toEntity(userRegion))
   }
 
-  fun getGroupById(groupId: UUID): ProgrammeGroupEntity = programmeGroupRepository.findByIdOrNull(groupId)
-    ?: throw NotFoundException("Programme group with id $groupId not found")
-
-  fun getGroupWaitlistData(
-    selectedTab: GroupPageTab,
-    groupId: UUID,
-    sex: String?,
-    cohort: ProgrammeGroupCohort?,
-    nameOrCRN: String?,
-    pdu: String?,
+  fun getGroupWaitlistDataByCriteria(
     pageable: Pageable,
-    reportingTeams: List<String>?,
-  ): Page<GroupWaitlistItem> {
-    // Verify the group exists first
-    getGroupById(groupId)
-
-    val specification =
-      getGroupWaitlistItemSpecification(selectedTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeams)
-
-    return groupWaitlistItemViewRepository.findAll(specification, pageable)
-      .map { it.toApi() }
-  }
-
-  fun getGroupWaitlistCount(
     selectedTab: GroupPageTab,
     groupId: UUID,
     sex: String?,
@@ -71,14 +52,33 @@ class ProgrammeGroupService(
     nameOrCRN: String?,
     pdu: String?,
     reportingTeams: List<String>?,
-  ): Int {
+  ): ProgrammeGroupDetails {
     // Verify the group exists first
-    getGroupById(groupId)
+    val group = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Programme group with id $groupId not found")
 
-    val specification =
+    val otherTab = if (selectedTab === GroupPageTab.WAITLIST) GroupPageTab.ALLOCATED else GroupPageTab.WAITLIST
+
+    val activeSpecification =
       getGroupWaitlistItemSpecification(selectedTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeams)
 
-    return groupWaitlistItemViewRepository.count(specification).toInt()
+    val nonActiveSpecification =
+      getGroupWaitlistItemSpecification(otherTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeams)
+
+    val grouplistDataToReturn: Page<GroupItem> =
+      groupWaitlistItemViewRepository.findAll(activeSpecification, pageable).map { it.toApi() }
+
+    val otherTabCount: Int = groupWaitlistItemViewRepository.count(nonActiveSpecification).toInt()
+
+    return ProgrammeGroupDetails(
+      group = ProgrammeGroupDetails.Group(
+        code = group.code,
+        regionName = group.regionName,
+      ),
+      filters = getGroupFilters(),
+      pagedGroupData = grouplistDataToReturn,
+      otherTabTotal = otherTabCount,
+    )
   }
 
   fun getGroupFilters(): ProgrammeGroupDetails.Filters {
