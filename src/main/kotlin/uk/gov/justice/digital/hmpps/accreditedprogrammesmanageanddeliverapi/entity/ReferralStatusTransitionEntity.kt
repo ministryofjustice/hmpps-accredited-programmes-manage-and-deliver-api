@@ -27,6 +27,9 @@ class ReferralStatusTransitionEntity(
   @Column(name = "description")
   val description: String?,
 
+  @Column(name = "is_continuing")
+  val isContinuing: Boolean = false,
+
   @Column(name = "created_at")
   val createdAt: LocalDateTime? = null,
 
