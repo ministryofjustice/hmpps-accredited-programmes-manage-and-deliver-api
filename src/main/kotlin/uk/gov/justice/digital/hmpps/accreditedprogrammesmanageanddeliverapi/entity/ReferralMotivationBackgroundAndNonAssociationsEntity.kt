@@ -29,21 +29,17 @@ class ReferralMotivationBackgroundAndNonAssociationsEntity(
   @JoinColumn(name = "referral_id")
   open var referral: ReferralEntity,
 
-  @NotNull
   @Column(name = "maintains_innocence")
-  var maintainsInnocence: Boolean,
+  var maintainsInnocence: Boolean? = null,
 
-  @NotNull
   @Column(name = "motivations")
-  var motivations: String,
+  var motivations: String? = null,
 
-  @NotNull
   @Column(name = "non_associations")
-  var nonAssociations: String,
+  var nonAssociations: String? = null,
 
-  @NotNull
   @Column(name = "other_considerations")
-  var otherConsiderations: String,
+  var otherConsiderations: String? = null,
 
   @NotNull
   @Column(name = "created_by")
