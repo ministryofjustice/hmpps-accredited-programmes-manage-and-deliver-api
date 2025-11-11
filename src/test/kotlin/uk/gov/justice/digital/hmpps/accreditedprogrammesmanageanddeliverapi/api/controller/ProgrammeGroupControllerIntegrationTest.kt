@@ -30,7 +30,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
@@ -100,7 +99,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
     fun `getGroupDetails returns 200 with valid group and waitlist data`() {
       // Given
       stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST001").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST001").withRegionName("TEST REGION").produce()
       testDataGenerator.createGroup(group)
 
       // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
@@ -116,15 +115,15 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       // Then
       assertThat(response).isNotNull
       assertThat(response.group.code).isEqualTo("TEST001")
-      assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
+      assertThat(response.group.regionName).isEqualTo("TEST REGION")
       assertThat(response.pagedGroupData.totalElements).isEqualTo(5)
-      assertThat(response.otherTabTotal).isEqualTo(5)
+      assertThat(response.otherTabTotal).isEqualTo(1)
       assertThat(response.pagedGroupData).isNotNull
       assertThat(response.pagedGroupData.content.map { it.statusColour }).isNotEmpty
     }
 
     @Test
-    fun `getGroupDetails contains a list of filter`() {
+    fun `getGroupDetails contains a list of filters`() {
       // Given
       stubAuthTokenEndpoint()
       val group = ProgrammeGroupFactory().withCode("TEST001").produce()
@@ -154,7 +153,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
     fun `getGroupDetails returns 200 and uses default filters if none are provided`() {
       // Given
       stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST001").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST001").withRegionName("TEST REGION").produce()
       testDataGenerator.createGroup(group)
 
       // When
@@ -166,13 +165,14 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       // Then
       assertThat(response).isNotNull
       assertThat(response.group.code).isEqualTo("TEST001")
-      assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
+      assertThat(response.group.regionName).isEqualTo("TEST REGION")
       assertThat(response.pagedGroupData.content.size).isEqualTo(6)
       assertThat(response.filters).isNotNull
       assertThat(response.filters.sex).containsExactly("Male", "Female")
       assertThat(response.pagedGroupData.totalElements).isEqualTo(6)
       assertThat(response.pagedGroupData.number).isEqualTo(0)
       assertThat(response.pagedGroupData).isNotNull
+      assertThat(response.otherTabTotal).isZero
     }
 
     @Test
@@ -240,8 +240,8 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val firstPageData = firstPageResponse.pagedGroupData
       val secondPageData = secondPageResponse.pagedGroupData
 
-      assertThat(firstPageData.size).isEqualTo(2)
-      assertThat(secondPageData.size).isEqualTo(2)
+      assertThat(firstPageData.content.size).isEqualTo(2)
+      assertThat(secondPageData.content.size).isEqualTo(2)
       assertThat(firstPageData.content).doesNotContainAnyElementsOf(secondPageData.content)
     }
 
@@ -286,9 +286,11 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       // Then
       assertThat(response.pagedGroupData.content).isNotEmpty
       assertThat(response.pagedGroupData.content).hasSize(3)
-      response.pagedGroupData.content.forEach { item ->
-        assertThat(item.reportingTeam).isIn("Team A", "Team C")
-      }
+      assertThat(
+        response.pagedGroupData.content.all {
+          it.reportingTeam in listOf("Team A", "Team C")
+        },
+      ).isTrue()
     }
 
     @Test
@@ -308,9 +310,11 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       // Then
       assertThat(response.pagedGroupData.content).isNotEmpty
       assertThat(response.pagedGroupData.content).hasSize(6)
-      response.pagedGroupData.content.forEach { item ->
-        assertThat(item.reportingTeam).isIn("Team A", "Team B", "Team C")
-      }
+      assertThat(
+        response.pagedGroupData.content.all {
+          it.reportingTeam in listOf("Team A", "Team B", "Team C")
+        },
+      ).isTrue()
     }
 
     @Test
@@ -330,6 +334,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       // Then
       assertThat(response.pagedGroupData.content).isNotEmpty
       assertThat(response.pagedGroupData.content).hasSize(2)
+
       response.pagedGroupData.content.forEach { item ->
         assertThat(item.pdu).isEqualTo("PDU 1")
         assertThat(item.reportingTeam).isEqualTo("Team A")
@@ -339,7 +344,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
     @Test
     fun `getGroupDetails returns 200 for ALLOCATED tab with all data when no filters are provided`() {
       // Given
-      val group = ProgrammeGroupFactory().withCode("TEST008").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST008").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
       stubAuthTokenEndpoint()
 
@@ -357,14 +362,14 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       assertThat(response.group.code).isEqualTo("TEST008")
       assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
       assertThat(response.pagedGroupData.totalElements).isEqualTo(6)
-      assertThat(response.otherTabTotal).isEqualTo(6)
+      assertThat(response.otherTabTotal).isEqualTo(0)
       assertThat(response.filters).isNotNull
       assertThat(response.filters.sex).containsExactly("Male", "Female")
       assertThat(response.pagedGroupData.size).isEqualTo(10)
       assertThat(response.pagedGroupData.number).isEqualTo(0)
       assertThat(response.pagedGroupData.content).isNotEmpty
       assertThat(response.pagedGroupData.content).hasSize(6)
-      assertThat(response.pagedGroupData.content).noneMatch { it.status == ReferralStatusType.AWAITING_ALLOCATION.description }
+      assertThat(response.pagedGroupData.content).allMatch { it.activeProgrammeGroupId !== null }
     }
 
     @Test

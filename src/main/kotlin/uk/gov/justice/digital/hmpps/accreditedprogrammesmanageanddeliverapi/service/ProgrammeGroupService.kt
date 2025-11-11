@@ -71,12 +71,10 @@ class ProgrammeGroupService(
 
     val otherTabCount: Int = groupWaitlistItemViewRepository.count(nonActiveSpecification).toInt()
 
-    val (userRegion) = userService.getUserRegions(username)
-
     return ProgrammeGroupDetails(
       group = ProgrammeGroupDetails.Group(
         code = group.code,
-        regionName = userRegion,
+        regionName = group.regionName,
       ),
       filters = getGroupFilters(),
       pagedGroupData = grouplistDataToReturn,

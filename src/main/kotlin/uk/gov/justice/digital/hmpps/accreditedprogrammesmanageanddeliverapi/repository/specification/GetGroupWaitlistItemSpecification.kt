@@ -35,16 +35,17 @@ fun getGroupWaitlistItemSpecification(
         val (offenceType, hasLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(it)
         predicates.add(criteriaBuilder.equal(root.get<String>("cohort"), offenceType.name))
         predicates.add(criteriaBuilder.equal(root.get<Boolean>("hasLdc"), hasLdc))
-        pdu?.let {
-          predicates.add(criteriaBuilder.equal(root.get<String>("pduName"), it))
-        }
+      }
 
-        reportingTeams?.let {
-          pdu?.let {
-            predicates.add(
-              root.get<String>("reportingTeam").`in`(reportingTeams),
-            )
-          }
+      pdu?.let {
+        predicates.add(criteriaBuilder.equal(root.get<String>("pduName"), it))
+      }
+
+      reportingTeams?.let {
+        pdu?.let {
+          predicates.add(
+            root.get<String>("reportingTeam").`in`(reportingTeams),
+          )
         }
       }
     }
