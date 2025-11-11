@@ -11,6 +11,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
@@ -45,6 +48,20 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
   @BeforeEach
   override fun beforeEach() {
     testDataCleaner.cleanAllTables()
+    stubAuthTokenEndpoint()
+    nDeliusApiStubs.stubUserTeamsResponse(
+      "AUTH_ADM",
+      NDeliusUserTeams(
+        teams = listOf(
+          NDeliusUserTeam(
+            code = "TEAM001",
+            description = "Test Team 1",
+            pdu = CodeDescription("PDU001", "Test PDU 1"),
+            region = CodeDescription("REGION001", "WIREMOCKED REGION"),
+          ),
+        ),
+      ),
+    )
   }
 
   @AfterEach
@@ -55,7 +72,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
   @Test
   fun `createGroup can successfully create a new group`() {
     val group = ProgrammeGroupFactory().toCreateGroup()
-    programmeGroupService.createGroup(group, "AUTH_USER")
+    programmeGroupService.createGroup(group, "AUTH_ADM")
     val createdGroup = programmeGroupRepository.findByCode(group.groupCode)
     assertThat { createdGroup }.isNotNull
     assertThat(createdGroup?.code).isEqualTo(group.groupCode)
@@ -75,7 +92,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           existingGroup.sex,
 
         ),
-        username = "AUTH_USER",
+        username = "AUTH_ADM",
       )
     }
   }
@@ -90,7 +107,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     // When
     val result = programmeGroupService.getGroupWaitlistDataByCriteria(
       pageable = pageable,
-      username = "AUTH_USER",
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
@@ -115,7 +131,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     assertThrows<NotFoundException> {
       programmeGroupService.getGroupWaitlistDataByCriteria(
         pageable = pageable,
-        username = "AUTH_USER",
         selectedTab = GroupPageTab.WAITLIST,
         groupId = nonExistentGroupId,
         sex = null,
@@ -136,7 +151,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     // When
     val maleResults = programmeGroupService.getGroupWaitlistDataByCriteria(
       pageable = pageable,
-      username = "AUTH_USER",
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = "Male",
@@ -148,7 +162,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     val femaleResults = programmeGroupService.getGroupWaitlistDataByCriteria(
       pageable = pageable,
-      username = "AUTH_USER",
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = "Female",
@@ -172,7 +185,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     // When
     val sexualOffenceResults = programmeGroupService.getGroupWaitlistDataByCriteria(
       pageable = pageable,
-      username = "AUTH_USER",
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
@@ -184,7 +196,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     val generalOffenceResults = programmeGroupService.getGroupWaitlistDataByCriteria(
       pageable = pageable,
-      username = "AUTH_USER",
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
@@ -208,7 +219,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     // When
     val nameResults = programmeGroupService.getGroupWaitlistDataByCriteria(
       pageable = pageable,
-      username = "AUTH_USER",
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
@@ -220,7 +230,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     val crnResults = programmeGroupService.getGroupWaitlistDataByCriteria(
       pageable = pageable,
-      username = "AUTH_USER",
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
@@ -248,7 +257,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     // When
     val pduResults = programmeGroupService.getGroupWaitlistDataByCriteria(
       pageable = pageable,
-      username = "AUTH_USER",
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,

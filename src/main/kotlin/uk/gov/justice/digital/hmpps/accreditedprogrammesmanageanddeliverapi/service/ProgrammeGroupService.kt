@@ -45,7 +45,6 @@ class ProgrammeGroupService(
 
   fun getGroupWaitlistDataByCriteria(
     pageable: Pageable,
-    username: String,
     selectedTab: GroupPageTab,
     groupId: UUID,
     sex: String?,

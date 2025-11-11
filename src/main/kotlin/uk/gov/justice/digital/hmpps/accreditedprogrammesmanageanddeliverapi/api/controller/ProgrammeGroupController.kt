@@ -110,7 +110,6 @@ class ProgrammeGroupController(
 
     val programmeDetails = programmeGroupService.getGroupWaitlistDataByCriteria(
       pageable,
-      username,
       selectedTab,
       groupId,
       sex,
