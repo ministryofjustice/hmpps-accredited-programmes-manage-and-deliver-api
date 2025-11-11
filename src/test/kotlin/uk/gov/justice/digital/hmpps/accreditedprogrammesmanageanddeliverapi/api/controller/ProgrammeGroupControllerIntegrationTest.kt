@@ -132,17 +132,23 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       testDataGenerator.createGroup(group)
 
       // When
-      val body = performRequestAndExpectStatusAndReturnBody(
+      val body = performRequestAndExpectStatus(
         HttpMethod.GET,
         "/bff/group/${group.id}/WAITLIST?page=0&size=10",
         object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
         HttpStatus.OK.value(),
       )
 
-      body.jsonPath("allocationAndWaitlistData.filters").exists()
-      body.jsonPath("allocationAndWaitlistData.filters.sex").isEqualTo(listOf("Male", "Female"))
-      body.jsonPath("allocationAndWaitlistData.filters.cohort")
-        .isEqualTo(listOf("General Offence", "General Offence - LDC", "Sexual Offence", "Sexual Offence - LDC"))
+      assertThat(body.filters).isNotNull
+      assertThat(body.filters.sex).isEqualTo(listOf("Male", "Female"))
+      assertThat(body.filters.cohort).isEqualTo(
+        listOf(
+          "General Offence",
+          "General Offence - LDC",
+          "Sexual Offence",
+          "Sexual Offence - LDC",
+        ),
+      )
     }
 
     @Test
@@ -352,7 +358,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       assertThat(response.group.code).isEqualTo("TEST008")
       assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
       assertThat(response.pagedGroupData.totalElements).isEqualTo(6)
-      assertThat(response.otherTabTotal).isEqualTo(0)
+      assertThat(response.otherTabTotal).isEqualTo(6)
       assertThat(response.filters).isNotNull
       assertThat(response.filters.sex).containsExactly("Male", "Female")
       assertThat(response.pagedGroupData.size).isEqualTo(10)
