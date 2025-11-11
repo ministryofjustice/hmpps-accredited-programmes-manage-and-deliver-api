@@ -29,6 +29,7 @@ SELECT r.id                                                   as referral_id,
        rsd.description_text                                   as status,
        rsd.label_colour                                       as status_colour,
        -- Default values if there are no entries in the referral_reporting_location table for this referral yet
+       COALESCE(rrl.region_name, 'UNKNOWN_REGION_NAME')       as region_name,
        COALESCE(rrl.pdu_name, 'UNKNOWN_PDU_NAME')             as pdu_name,
        COALESCE(rrl.reporting_team, 'UNKNOWN_REPORTING_TEAM') as reporting_team,
        pgm.programme_group_id                                 as active_programme_group_id
@@ -56,6 +57,7 @@ CREATE INDEX IF NOT EXISTS idx_group_wait_list_status ON group_waitlist_item_vie
 CREATE INDEX IF NOT EXISTS idx_group_wait_list_status ON group_waitlist_item_view (status_colour);
 CREATE INDEX IF NOT EXISTS idx_group_wait_list_pdu_name ON group_waitlist_item_view (pdu_name);
 CREATE INDEX IF NOT EXISTS idx_group_wait_list_reporting_team ON group_waitlist_item_view (reporting_team);
+CREATE INDEX IF NOT EXISTS idx_group_wait_list_region_name ON group_waitlist_item_view (region_name);
 CREATE INDEX IF NOT EXISTS idx_group_wait_list_latest_group ON group_waitlist_item_view (active_programme_group_id);
 
 

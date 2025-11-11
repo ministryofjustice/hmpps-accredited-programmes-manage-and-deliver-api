@@ -29,12 +29,13 @@ data class CreateGroupRequest(
   var sex: ProgrammeGroupSexEnum,
 )
 
-fun CreateGroupRequest.toEntity(): ProgrammeGroupEntity {
+fun CreateGroupRequest.toEntity(region: String): ProgrammeGroupEntity {
   val (cohort, isLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(cohort)
   return ProgrammeGroupEntity(
     code = groupCode,
     cohort = cohort,
     sex = sex,
     isLdc = isLdc,
+    regionName = region,
   )
 }

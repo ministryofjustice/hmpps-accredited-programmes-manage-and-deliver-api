@@ -109,15 +109,15 @@ class ProgrammeGroupController(
     val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
 
     val programmeDetails = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable,
+      username,
       selectedTab,
       groupId,
       sex,
       groupCohort,
       nameOrCRN,
       pdu,
-      pageable,
       reportingTeams,
-      username,
     )
 
     return ResponseEntity.ok(programmeDetails)
@@ -211,7 +211,11 @@ class ProgrammeGroupController(
     @Valid
     @RequestBody createGroupRequest: CreateGroupRequest,
   ): ResponseEntity<Void> {
-    programmeGroupService.createGroup(createGroupRequest)
+    val username = authenticationHolder.username
+    if (username == null || username.isBlank()) {
+      throw AuthenticationCredentialsNotFoundException("No authenticated user found")
+    }
+    programmeGroupService.createGroup(createGroupRequest, username)
     return ResponseEntity.status(HttpStatus.CREATED).build()
   }
 }

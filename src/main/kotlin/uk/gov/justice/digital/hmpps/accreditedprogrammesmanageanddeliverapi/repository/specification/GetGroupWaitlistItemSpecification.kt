@@ -27,19 +27,30 @@ fun getGroupWaitlistItemSpecification(
     GroupPageTab.WAITLIST -> {
       predicates.add(criteriaBuilder.equal(root.get<String>("status"), "Awaiting allocation"))
       predicates.add(criteriaBuilder.isNull(root.get<UUID>("activeProgrammeGroupId")))
+      sex?.let {
+        predicates.add(criteriaBuilder.equal(root.get<String>("sex"), it))
+      }
+
+      cohort?.let {
+        val (offenceType, hasLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(it)
+        predicates.add(criteriaBuilder.equal(root.get<String>("cohort"), offenceType.name))
+        predicates.add(criteriaBuilder.equal(root.get<Boolean>("hasLdc"), hasLdc))
+        pdu?.let {
+          predicates.add(criteriaBuilder.equal(root.get<String>("pduName"), it))
+        }
+
+        reportingTeams?.let {
+          pdu?.let {
+            predicates.add(
+              root.get<String>("reportingTeam").`in`(reportingTeams),
+            )
+          }
+        }
+      }
     }
   }
 
-  sex?.let {
-    predicates.add(criteriaBuilder.equal(root.get<String>("sex"), it))
-  }
-
-  cohort?.let {
-    val (offenceType, hasLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(it)
-    predicates.add(criteriaBuilder.equal(root.get<String>("cohort"), offenceType.name))
-    predicates.add(criteriaBuilder.equal(root.get<Boolean>("hasLdc"), hasLdc))
-  }
-
+  // This filter is present on both tabs
   nameOrCRN?.let { search ->
     val searchTerm = "%${search.lowercase()}%"
     predicates.add(
@@ -48,18 +59,6 @@ fun getGroupWaitlistItemSpecification(
         criteriaBuilder.like(criteriaBuilder.lower(root.get("crn")), searchTerm),
       ),
     )
-  }
-
-  pdu?.let {
-    predicates.add(criteriaBuilder.equal(root.get<String>("pduName"), it))
-  }
-
-  reportingTeams?.let {
-    pdu?.let {
-      predicates.add(
-        root.get<String>("reportingTeam").`in`(reportingTeams),
-      )
-    }
   }
 
   criteriaBuilder.and(*predicates.toTypedArray())

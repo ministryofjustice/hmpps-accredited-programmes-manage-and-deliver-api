@@ -70,6 +70,10 @@ class GroupWaitlistItemViewEntity(
   @Column(name = "reporting_team")
   var reportingTeam: String,
 
+  @NotNull
+  @Column(name = "region_name")
+  var regionName: String,
+
   @Nullable
   @Column(name = "active_programme_group_id")
   var activeProgrammeGroupId: UUID? = null,

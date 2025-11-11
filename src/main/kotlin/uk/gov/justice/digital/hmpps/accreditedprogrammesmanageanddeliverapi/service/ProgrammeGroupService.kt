@@ -32,38 +32,46 @@ class ProgrammeGroupService(
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  fun createGroup(createGroupRequest: CreateGroupRequest): ProgrammeGroupEntity? {
+  fun createGroup(createGroupRequest: CreateGroupRequest, username: String): ProgrammeGroupEntity? {
     programmeGroupRepository.findByCode(createGroupRequest.groupCode)
       ?.let { throw ConflictException("Programme group with code ${createGroupRequest.groupCode} already exists") }
 
+    val (userRegion) = userService.getUserRegions(username)
+
     log.info("Group created with code: ${createGroupRequest.groupCode}")
 
-    return programmeGroupRepository.save(createGroupRequest.toEntity())
+    return programmeGroupRepository.save(createGroupRequest.toEntity(userRegion))
   }
 
   fun getGroupWaitlistDataByCriteria(
+    pageable: Pageable,
+    username: String,
     selectedTab: GroupPageTab,
     groupId: UUID,
     sex: String?,
     cohort: ProgrammeGroupCohort?,
     nameOrCRN: String?,
     pdu: String?,
-    pageable: Pageable,
     reportingTeams: List<String>?,
-    username: String,
   ): ProgrammeGroupDetails {
     // Verify the group exists first
-    val group = getGroupById(groupId)
+    val group = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Programme group with id $groupId not found")
 
-    val specification =
+    val otherTab = if (selectedTab === GroupPageTab.WAITLIST) GroupPageTab.ALLOCATED else GroupPageTab.WAITLIST
+
+    val activeSpecification =
       getGroupWaitlistItemSpecification(selectedTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeams)
 
+    val nonActiveSpecification =
+      getGroupWaitlistItemSpecification(otherTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeams)
+
     val grouplistDataToReturn: Page<GroupItem> =
-      groupWaitlistItemViewRepository.findAll(specification, pageable).map { it.toApi() }
+      groupWaitlistItemViewRepository.findAll(activeSpecification, pageable).map { it.toApi() }
 
-    val otherTabCount: Int = groupWaitlistItemViewRepository.count(specification).toInt()
+    val otherTabCount: Int = groupWaitlistItemViewRepository.count(nonActiveSpecification).toInt()
 
-    val userRegion = getUserRegion(username)
+    val (userRegion) = userService.getUserRegions(username)
 
     return ProgrammeGroupDetails(
       group = ProgrammeGroupDetails.Group(
@@ -83,13 +91,5 @@ class ProgrammeGroupService(
       pduNames = referralReportingLocations.map { it.pduName }.distinct(),
       reportingTeams = referralReportingLocations.map { it.reportingTeam }.distinct(),
     )
-  }
-
-  private fun getGroupById(groupId: UUID): ProgrammeGroupEntity = programmeGroupRepository.findByIdOrNull(groupId)
-    ?: throw NotFoundException("Programme group with id $groupId not found")
-
-  private fun getUserRegion(username: String): String {
-    val userRegions = userService.getUserRegions(username)
-    return if (userRegions.isNotEmpty()) userRegions.first() else "Region not found"
   }
 }

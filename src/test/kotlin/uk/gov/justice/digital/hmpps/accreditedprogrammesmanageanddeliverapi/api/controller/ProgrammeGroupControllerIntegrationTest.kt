@@ -37,7 +37,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.util
 import java.time.LocalDate
 import java.util.UUID
 
-// TODO FOR TOMORROW LOOK AT TESTS THAT GENERATED ALLOCATED DATA PLS
 class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralService: ReferralService) : IntegrationTestBase() {
 
   @Autowired
@@ -515,6 +514,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       assertThat(createdGroup.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
       assertThat(createdGroup.isLdc).isFalse
       assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.MALE)
+      assertThat(createdGroup.regionName).isEqualTo("WIREMOCKED REGION")
     }
 
     @Test
@@ -526,13 +526,13 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
         body = body,
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
-
       val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
       assertThat(createdGroup.code).isEqualTo(body.groupCode)
       assertThat(createdGroup.id).isNotNull
       assertThat(createdGroup.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(createdGroup.isLdc).isTrue
       assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.FEMALE)
+      assertThat(createdGroup.regionName).isEqualTo("WIREMOCKED REGION")
     }
 
     @Test

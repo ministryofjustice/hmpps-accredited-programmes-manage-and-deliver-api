@@ -55,7 +55,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
   @Test
   fun `createGroup can successfully create a new group`() {
     val group = ProgrammeGroupFactory().toCreateGroup()
-    programmeGroupService.createGroup(group)
+    programmeGroupService.createGroup(group, "AUTH_USER")
     val createdGroup = programmeGroupRepository.findByCode(group.groupCode)
     assertThat { createdGroup }.isNotNull
     assertThat(createdGroup?.code).isEqualTo(group.groupCode)
@@ -73,7 +73,9 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           existingGroup.code,
           ProgrammeGroupCohort.from(existingGroup.cohort, existingGroup.isLdc),
           existingGroup.sex,
+
         ),
+        username = "AUTH_USER",
       )
     }
   }
@@ -87,15 +89,15 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     // When
     val result = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
+      username = "AUTH_USER",
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = null,
       nameOrCRN = null,
       pdu = null,
-      pageable = pageable,
       reportingTeams = null,
-      username = "AUTH_USER",
     )
 
     // Then
@@ -112,15 +114,15 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     // When & Then
     assertThrows<NotFoundException> {
       programmeGroupService.getGroupWaitlistDataByCriteria(
+        pageable = pageable,
+        username = "AUTH_USER",
         selectedTab = GroupPageTab.WAITLIST,
         groupId = nonExistentGroupId,
         sex = null,
         cohort = null,
         nameOrCRN = null,
         pdu = null,
-        pageable = pageable,
         reportingTeams = null,
-        username = "AUTH_USER",
       )
     }
   }
@@ -133,27 +135,27 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     // When
     val maleResults = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
+      username = "AUTH_USER",
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = "Male",
       cohort = null,
       nameOrCRN = null,
       pdu = null,
-      pageable = pageable,
       reportingTeams = null,
-      username = "AUTH_USER",
     )
 
     val femaleResults = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
+      username = "AUTH_USER",
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = "Female",
       cohort = null,
       nameOrCRN = null,
       pdu = null,
-      pageable = pageable,
       reportingTeams = null,
-      username = "AUTH_USER",
     )
 
     // Then
@@ -169,27 +171,27 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     // When
     val sexualOffenceResults = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
+      username = "AUTH_USER",
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = ProgrammeGroupCohort.SEXUAL,
       nameOrCRN = null,
       pdu = null,
-      pageable = pageable,
       reportingTeams = null,
-      username = "AUTH_USER",
     )
 
     val generalOffenceResults = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
+      username = "AUTH_USER",
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = ProgrammeGroupCohort.GENERAL,
       nameOrCRN = null,
       pdu = null,
-      pageable = pageable,
       reportingTeams = null,
-      username = "AUTH_USER",
     )
 
     // Then
@@ -205,27 +207,27 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     // When
     val nameResults = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
+      username = "AUTH_USER",
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = null,
       nameOrCRN = "john",
       pdu = null,
-      pageable = pageable,
       reportingTeams = null,
-      username = "AUTH_USER",
     )
 
     val crnResults = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
+      username = "AUTH_USER",
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = null,
       nameOrCRN = "CRN001",
       pdu = null,
-      pageable = pageable,
       reportingTeams = null,
-      username = "AUTH_USER",
     )
 
     // Then
@@ -245,15 +247,15 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     // When
     val pduResults = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
+      username = "AUTH_USER",
       selectedTab = GroupPageTab.WAITLIST,
       groupId = group.id!!,
       sex = null,
       cohort = null,
       nameOrCRN = null,
       pdu = "Test PDU 1",
-      pageable = pageable,
       reportingTeams = null,
-      username = "AUTH_USER",
     )
 
     // Then
