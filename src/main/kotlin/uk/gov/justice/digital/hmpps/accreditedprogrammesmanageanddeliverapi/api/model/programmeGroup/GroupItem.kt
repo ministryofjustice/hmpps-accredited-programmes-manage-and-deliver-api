@@ -56,42 +56,42 @@ data class GroupItem(
     required = true,
     description = "The offence cohort this referral is classified as.",
   )
-  @get:JsonProperty("cohort", required = true)
+  @get:JsonProperty("cohort", required = false)
   val cohort: OffenceCohort? = null,
   @Schema(
     example = "True",
     required = true,
     description = "Does the person this referral is associated with have LDC needs.",
   )
-  @get:JsonProperty("hasLdc", required = true)
+  @get:JsonProperty("hasLdc", required = false)
   val hasLdc: Boolean? = null,
   @Schema(
     example = "43",
     required = true,
     description = "The age of the person.",
   )
-  @get:JsonProperty("age", required = true)
+  @get:JsonProperty("age", required = false)
   val age: Int? = null,
   @Schema(
     example = "Male",
     required = true,
     description = "The sex of the person.",
   )
-  @get:JsonProperty("sex", required = true)
+  @get:JsonProperty("sex", required = false)
   val sex: String? = null,
   @Schema(
     example = "Durham",
     required = true,
     description = "The PDU this referral is associated with.",
   )
-  @get:JsonProperty("pdu", required = true)
+  @get:JsonProperty("pdu", required = false)
   val pdu: String? = null,
   @Schema(
     example = "Durham Team 1",
     required = true,
     description = "The reporting team this referral is associated with.",
   )
-  @get:JsonProperty("reportingTeam", required = true)
+  @get:JsonProperty("reportingTeam", required = false)
   val reportingTeam: String? = null,
   @Schema(
     example = "Awaiting assessment",
@@ -112,7 +112,7 @@ data class GroupItem(
     required = true,
     description = "The unique Id of the group that the referral is assigned to.",
   )
-  @get:JsonProperty("activeProgrammeGroupId", required = true)
+  @get:JsonProperty("activeProgrammeGroupId", required = false)
   val activeProgrammeGroupId: UUID? = null,
 )
 
@@ -122,7 +122,7 @@ fun GroupWaitlistItemViewEntity.toApi() = GroupItem(
   crn = crn,
   personName = personName,
   sentenceEndDate = sentenceEndDate,
-  cohort = OffenceCohort.Companion.fromDisplayName(cohort),
+  cohort = OffenceCohort.fromDisplayName(cohort),
   hasLdc = hasLdc,
   age = dateOfBirth?.let { Period.between(dateOfBirth, LocalDate.now()).years },
   sex = sex,
