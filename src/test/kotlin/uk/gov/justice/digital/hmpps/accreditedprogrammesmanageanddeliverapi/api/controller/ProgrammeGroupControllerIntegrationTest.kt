@@ -22,14 +22,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedProgrammeDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
@@ -42,6 +37,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.util
 import java.time.LocalDate
 import java.util.UUID
 
+// TODO FOR TOMORROW LOOK AT TESTS THAT GENERATED ALLOCATED DATA PLS
 class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralService: ReferralService) : IntegrationTestBase() {
 
   @Autowired
@@ -338,21 +334,12 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
     @Test
     fun `getGroupDetails returns 200 for ALLOCATED tab with all data when no filters are provided`() {
       // Given
-      testDataCleaner.cleanAllTables()
       val group = ProgrammeGroupFactory().withCode("TEST008").produce()
       testDataGenerator.createGroup(group)
       stubAuthTokenEndpoint()
 
-      val allocatedListData = createTestAllocatedListData()
-      allocatedListData.forEach { (referral, statusHistory, reportingLocation) ->
-        testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
-          referral,
-          statusHistory,
-          reportingLocation,
-        )
-      }
-      allocatedListData.forEach { programmeGroupMembershipService.allocateReferralToGroup(it.first.id!!, group.id!!) }
-
+      // Allocate all our referrals to a group
+      referrals.forEach { programmeGroupMembershipService.allocateReferralToGroup(it.id!!, group.id!!) }
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
@@ -365,12 +352,11 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       assertThat(response.group.code).isEqualTo("TEST008")
       assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
       assertThat(response.pagedGroupData.totalElements).isEqualTo(6)
-      assertThat(response.otherTabTotal).isEqualTo(6)
+      assertThat(response.otherTabTotal).isEqualTo(0)
       assertThat(response.filters).isNotNull
       assertThat(response.filters.sex).containsExactly("Male", "Female")
       assertThat(response.pagedGroupData.size).isEqualTo(10)
       assertThat(response.pagedGroupData.number).isEqualTo(0)
-      assertThat(response.pagedGroupData.content).isEmpty()
       assertThat(response.pagedGroupData.content).isNotEmpty
       assertThat(response.pagedGroupData.content).hasSize(6)
       assertThat(response.pagedGroupData.content).noneMatch { it.status == ReferralStatusType.AWAITING_ALLOCATION.description }
@@ -573,101 +559,5 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
     }
-  }
-
-  private fun createTestAllocatedListData() = listOf(
-    createReferralWithWaitlistStatus(
-      "CRN006",
-      "John Smith",
-      "Male",
-      "Sexual offence",
-      "Test PDU 1",
-      "Team A",
-      ReferralStatusDescriptionRepository::getOnProgrammeStatusDescription,
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN007",
-      "Jane Doe",
-      "Female",
-      "General offence",
-      "Test PDU 2",
-      "Team B",
-      ReferralStatusDescriptionRepository::getAwaitingAssessmentStatusDescription,
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN008",
-      "John Brown",
-      "Male",
-      "Sexual offence",
-      "Test PDU 1",
-      "Team A",
-      ReferralStatusDescriptionRepository::getScheduledStatusDescription,
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN009",
-      "Mary Doe",
-      "Female",
-      "General offence",
-      "Test PDU 3",
-      "Team B",
-      ReferralStatusDescriptionRepository::getOnProgrammeStatusDescription,
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN010",
-      "Bob Wilson",
-      "Male",
-      "General offence",
-      "Test PDU 1",
-      "Team C",
-      ReferralStatusDescriptionRepository::getReturnToCourtStatusDescription,
-    ),
-    createReferralWithWaitlistStatus(
-      "CRN011",
-      "John Doe",
-      "Male",
-      "General offence",
-      "Test PDU 2",
-      "Team C",
-      ReferralStatusDescriptionRepository::getOnProgrammeStatusDescription,
-    ),
-  )
-
-  private fun createReferralWithWaitlistStatus(
-    crn: String,
-    personName: String,
-    sex: String,
-    cohort: String,
-    pduName: String,
-    reportingTeam: String,
-    getReferralStatusDescriptionFunction: (ReferralStatusDescriptionRepository) -> ReferralStatusDescriptionEntity,
-    sentenceEndDate: LocalDate? = null,
-  ): Triple<ReferralEntity, ReferralStatusHistoryEntity, ReferralReportingLocationEntity> {
-    val referralFactory = ReferralEntityFactory()
-      .withCrn(crn)
-      .withPersonName(personName)
-      .withSex(sex)
-      .withCohort(OffenceCohort.fromDisplayName(cohort))
-      .withSentenceEndDate(LocalDate.now().plusYears(2))
-      .withDateOfBirth(LocalDate.now().minusYears(30))
-      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
-
-    if (sentenceEndDate != null) {
-      referralFactory.withSentenceEndDate(sentenceEndDate)
-    }
-
-    val referral = referralFactory.produce()
-
-    val statusHistory = ReferralStatusHistoryEntityFactory().produce(
-      referral,
-      getReferralStatusDescriptionFunction.invoke(referralStatusDescriptionRepository),
-    )
-
-    val reportingLocation = ReferralReportingLocationFactory()
-      .withReferral(referral)
-      .withPduName(pduName)
-      .withReportingTeam(reportingTeam)
-      .produce()
-
-    return Triple(referral, statusHistory, reportingLocation)
   }
 }
