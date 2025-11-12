@@ -1,7 +1,7 @@
 name: E2E UI Playwright Tests
 on:
   push:
-    branches: [ main ]
+#    branches: [ main ]
 
 env:
   MANAGE_AND_DELIVER_URL: https://accredited-programmes-manage-and-deliver-dev.hmpps.service.justice.gov.uk/
@@ -41,6 +41,9 @@ jobs:
           path: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests/node_modules
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
 
+      - name: Install Playwright Browsers
+        run: npx playwright install
+
       - name: Run Playwright tests
         id: playwright-tests
         working-directory: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests
@@ -57,8 +60,10 @@ jobs:
         if: steps.playwright-tests.outcome == 'failure' && env.ALERTS_SLACK_CHANNEL != 'NO_SLACK'
         uses: slackapi/slack-github-action@v2.1.1
         with:
+          method: chat.postMessage
+          token: ${{ secrets.HMPPS_SRE_SLACK_BOT_TOKEN }}
           payload: |
-            channel: ${{ env.ALERTS_SLACK_CHANNEL }}
+            channel: hmpps_accredited_programmes_manage_and_deliver_alerts
             text: "E2E Tests Failed"
             blocks:
               - type: "section"
