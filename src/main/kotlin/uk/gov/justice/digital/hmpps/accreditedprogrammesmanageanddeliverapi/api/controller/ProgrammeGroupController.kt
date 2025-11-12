@@ -168,7 +168,11 @@ class ProgrammeGroupController(
     )
     @PathVariable("referralId") referralId: UUID,
   ): ResponseEntity<Void> {
-    programmeGroupMembershipService.allocateReferralToGroup(referralId, groupId)
+    programmeGroupMembershipService.allocateReferralToGroup(
+      referralId,
+      groupId,
+      authenticationHolder.username ?: "SYSTEM",
+    )
     return ResponseEntity.status(HttpStatus.OK).build()
   }
 

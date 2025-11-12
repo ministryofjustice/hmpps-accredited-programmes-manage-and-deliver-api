@@ -104,7 +104,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
 
       // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
       val referral = referrals.first()
-      programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!)
+      programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!, "SYSTEM")
 
       // When
       val response = performRequestAndExpectOk(
@@ -349,7 +349,13 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       stubAuthTokenEndpoint()
 
       // Allocate all our referrals to a group
-      referrals.forEach { programmeGroupMembershipService.allocateReferralToGroup(it.id!!, group.id!!) }
+      referrals.forEach {
+        programmeGroupMembershipService.allocateReferralToGroup(
+          it.id!!,
+          group.id!!,
+          "SYSTEM",
+        )
+      }
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,

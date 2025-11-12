@@ -8,6 +8,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
@@ -55,13 +56,15 @@ class ProgrammeGroupMembershipServiceIntegrationTest : IntegrationTestBase() {
     testDataGenerator.createReferralWithStatusHistory(referral, statusHistory)
 
     // Given
-    val result = programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!)
+    val result = programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!, "SYSTEM")
 
     // Then
     assertThat(result).isNotNull
     assertThat(result?.id).isEqualTo(referral.id)
     assertThat(result?.programmeGroupMemberships).hasSize(1)
     assertThat(result!!.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
+    assertThat(result.statusHistories).hasSize(2)
+    assertThat(result.currentStatusHistory()!!.referralStatusDescription.id).isEqualTo(referralStatusDescriptionRepository.getScheduledStatusDescription().id)
   }
 
   @Test
@@ -71,7 +74,13 @@ class ProgrammeGroupMembershipServiceIntegrationTest : IntegrationTestBase() {
     val group = ProgrammeGroupFactory().withCode(groupCode).produce()
     testDataGenerator.createGroup(group)
 
-    val exception = assertThrows<NotFoundException> { programmeGroupMembershipService.allocateReferralToGroup(referralId, group.id!!) }
+    val exception = assertThrows<NotFoundException> {
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referralId,
+        group.id!!,
+        "SYSTEM",
+      )
+    }
     assertThat(exception.message).isEqualTo("Referral with id $referralId not found")
   }
 
@@ -83,7 +92,13 @@ class ProgrammeGroupMembershipServiceIntegrationTest : IntegrationTestBase() {
     val statusHistory = ReferralStatusHistoryEntityFactory().produce(referral, referralStatusDescriptionEntity)
     testDataGenerator.createReferralWithStatusHistory(referral, statusHistory)
 
-    val exception = assertThrows<NotFoundException> { programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, groupId) }
+    val exception = assertThrows<NotFoundException> {
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        groupId,
+        "SYSTEM",
+      )
+    }
     assertThat(exception.message).isEqualTo("Group with id $groupId not found")
   }
 
@@ -98,7 +113,13 @@ class ProgrammeGroupMembershipServiceIntegrationTest : IntegrationTestBase() {
     val statusHistory = ReferralStatusHistoryEntityFactory().produce(referral, referralStatusDescriptionEntity)
     testDataGenerator.createReferralWithStatusHistory(referral, statusHistory)
 
-    val exception = assertThrows<BusinessException> { programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!) }
+    val exception = assertThrows<BusinessException> {
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+      )
+    }
     assertThat(exception.message).isEqualTo("Cannot assign referral to group as referral with id ${referral.id} is in a closed state")
   }
 
@@ -115,7 +136,13 @@ class ProgrammeGroupMembershipServiceIntegrationTest : IntegrationTestBase() {
     val groupMembership = ProgrammeGroupMembershipFactory().withReferral(referral).withProgrammeGroup(group).produce()
     testDataGenerator.createGroupMembership(groupMembership)
 
-    val exception = assertThrows<BusinessException> { programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!) }
+    val exception = assertThrows<BusinessException> {
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+      )
+    }
     assertThat(exception.message).isEqualTo("Cannot assign referral to group as referral with id ${referral.id} is in a closed state")
   }
 }
