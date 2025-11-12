@@ -10,7 +10,7 @@ data class CreateOrUpdateReferralMotivationBackgroundAndNonAssociations(
     description = "Boolean value indicating whether the referral maintains innocence.",
   )
   @get:JsonProperty("maintainsInnocence", required = true)
-  val maintainsInnocence: Boolean,
+  val maintainsInnocence: Boolean? = null,
 
   @Schema(
     example = "Motivated to change and improve life circumstances.",
@@ -18,7 +18,7 @@ data class CreateOrUpdateReferralMotivationBackgroundAndNonAssociations(
     description = "Information on the motivation to participate in an accredited programme.",
   )
   @get:JsonProperty("motivations", required = true)
-  val motivations: String,
+  val motivations: String? = null,
 
   @Schema(
     example = "Other information relevant to the referral.",
@@ -26,7 +26,7 @@ data class CreateOrUpdateReferralMotivationBackgroundAndNonAssociations(
     description = "Any other relevant information that should be considered.",
   )
   @get:JsonProperty("otherConsiderations", required = true)
-  val otherConsiderations: String,
+  val otherConsiderations: String? = null,
 
   @Schema(
     example = "Should not be in a group with a person who has a history of reoffending on a previous accredited programme.",
@@ -34,5 +34,5 @@ data class CreateOrUpdateReferralMotivationBackgroundAndNonAssociations(
     description = "Information on any non-associations relevant to the referral.",
   )
   @get:JsonProperty("nonAssociations", required = true)
-  val nonAssociations: String,
+  val nonAssociations: String? = null,
 )

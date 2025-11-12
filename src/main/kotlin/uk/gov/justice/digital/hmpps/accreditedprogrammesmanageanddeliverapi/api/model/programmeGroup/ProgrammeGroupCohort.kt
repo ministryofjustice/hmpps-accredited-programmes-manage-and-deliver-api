@@ -1,4 +1,6 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup
+
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 
 enum class ProgrammeGroupCohort(val label: String) {
   GENERAL("General Offence"),

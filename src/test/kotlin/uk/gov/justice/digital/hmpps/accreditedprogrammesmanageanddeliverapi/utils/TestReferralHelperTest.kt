@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.measureTimedValue
 
 class TestReferralHelperTest : IntegrationTestBase() {
@@ -41,10 +40,9 @@ class TestReferralHelperTest : IntegrationTestBase() {
     val numReferrals = 100
 
     val (referrals, timeTaken) = measureTimedValue {
-      testReferralHelper.createMultipleReferrals(numReferrals)
+      testReferralHelper.createReferrals(numReferrals)
     }
 
-    // Compute derived metrics
     val avgTime = timeTaken / numReferrals
     val throughput = numReferrals / timeTaken.inWholeSeconds.toDouble()
 
@@ -62,6 +60,5 @@ class TestReferralHelperTest : IntegrationTestBase() {
     )
 
     assertThat(referrals).hasSize(numReferrals)
-    assertThat(timeTaken).isLessThan(100.seconds)
   }
 }

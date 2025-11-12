@@ -2,7 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.rep
 
 import jakarta.persistence.criteria.Predicate
 import org.springframework.data.jpa.domain.Specification
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.GroupWaitlistItemViewEntity
 import java.util.UUID
@@ -20,23 +20,38 @@ fun getGroupWaitlistItemSpecification(
 
   /**
    * ALLOCATED tab - look for referrals which are assigned to our group id
-   * WAITLIST tab - look for ALL referrals which are NOT part of a group
+   * WAITLIST tab - look for ALL referrals which are NOT part of a group and have "Awaiting allocation" status
    */
   when (selectedTab) {
     GroupPageTab.ALLOCATED -> predicates.add(criteriaBuilder.equal(root.get<UUID>("activeProgrammeGroupId"), groupId))
-    GroupPageTab.WAITLIST -> predicates.add(criteriaBuilder.isNull(root.get<UUID>("activeProgrammeGroupId")))
+    GroupPageTab.WAITLIST -> {
+      predicates.add(criteriaBuilder.equal(root.get<String>("status"), "Awaiting allocation"))
+      predicates.add(criteriaBuilder.isNull(root.get<UUID>("activeProgrammeGroupId")))
+      sex?.let {
+        predicates.add(criteriaBuilder.equal(root.get<String>("sex"), it))
+      }
+
+      cohort?.let {
+        val (offenceType, hasLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(it)
+        predicates.add(criteriaBuilder.equal(root.get<String>("cohort"), offenceType.name))
+        predicates.add(criteriaBuilder.equal(root.get<Boolean>("hasLdc"), hasLdc))
+      }
+
+      pdu?.let {
+        predicates.add(criteriaBuilder.equal(root.get<String>("pduName"), it))
+      }
+
+      reportingTeams?.let {
+        pdu?.let {
+          predicates.add(
+            root.get<String>("reportingTeam").`in`(reportingTeams),
+          )
+        }
+      }
+    }
   }
 
-  sex?.let {
-    predicates.add(criteriaBuilder.equal(root.get<String>("sex"), it))
-  }
-
-  cohort?.let {
-    val (offenceType, hasLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(it)
-    predicates.add(criteriaBuilder.equal(root.get<String>("cohort"), offenceType.name))
-    predicates.add(criteriaBuilder.equal(root.get<Boolean>("hasLdc"), hasLdc))
-  }
-
+  // This filter is present on both tabs
   nameOrCRN?.let { search ->
     val searchTerm = "%${search.lowercase()}%"
     predicates.add(
@@ -45,18 +60,6 @@ fun getGroupWaitlistItemSpecification(
         criteriaBuilder.like(criteriaBuilder.lower(root.get("crn")), searchTerm),
       ),
     )
-  }
-
-  pdu?.let {
-    predicates.add(criteriaBuilder.equal(root.get<String>("pduName"), it))
-  }
-
-  reportingTeams?.let {
-    pdu?.let {
-      predicates.add(
-        root.get<String>("reportingTeam").`in`(reportingTeams),
-      )
-    }
   }
 
   criteriaBuilder.and(*predicates.toTypedArray())

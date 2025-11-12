@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
@@ -24,16 +23,12 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.GroupWaitlistItem
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toAllocatedItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.util.UUID
 
@@ -45,7 +40,6 @@ import java.util.UUID
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
 class ProgrammeGroupController(
   private val programmeGroupService: ProgrammeGroupService,
-  private val userService: UserService,
   private val authenticationHolder: HmppsAuthenticationHolder,
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
 ) {
@@ -107,41 +101,25 @@ class ProgrammeGroupController(
     @Parameter(description = "Filter by one or more reporting teams. Repeat the parameter to include multiple teams.")
     @RequestParam(name = "reportingTeam", required = false) reportingTeams: List<String>?,
   ): ResponseEntity<ProgrammeGroupDetails> {
-    val groupEntity = programmeGroupService.getGroupById(groupId)
+    val username = authenticationHolder.username
+
+    if (username == null || username.isBlank()) {
+      throw AuthenticationCredentialsNotFoundException("No authenticated user found")
+    }
     val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
-    val pagedWaitlistData = programmeGroupService.getGroupWaitlistData(
+
+    val programmeDetails = programmeGroupService.getGroupWaitlistDataByCriteria(
+      pageable,
       selectedTab,
       groupId,
       sex,
-      cohort = groupCohort,
-      nameOrCRN,
-      pdu,
-      pageable,
-      reportingTeams,
-    )
-
-    val otherTabCount = programmeGroupService.getGroupWaitlistCount(
-      selectedTab = if (selectedTab == GroupPageTab.ALLOCATED) GroupPageTab.WAITLIST else GroupPageTab.ALLOCATED,
-      groupId,
-      sex,
-      cohort = groupCohort,
+      groupCohort,
       nameOrCRN,
       pdu,
       reportingTeams,
     )
 
-    val allocationAndWaitlistData = buildAllocationAndWaitlistData(selectedTab, pagedWaitlistData, otherTabCount)
-    val userRegion = getUserRegion()
-
-    return ResponseEntity.ok(
-      ProgrammeGroupDetails(
-        group = ProgrammeGroupDetails.Group(
-          code = groupEntity.code,
-          regionName = userRegion,
-        ),
-        allocationAndWaitlistData = allocationAndWaitlistData,
-      ),
-    )
+    return ResponseEntity.ok(programmeDetails)
   }
 
   @Operation(
@@ -177,10 +155,7 @@ class ProgrammeGroupController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @PostMapping(
-    "/group/{groupId}/allocate/{referralId}",
-    consumes = [MediaType.APPLICATION_JSON_VALUE],
-  )
+  @PostMapping("/group/{groupId}/allocate/{referralId}")
   fun allocateToProgrammeGroup(
     @Parameter(
       description = "The group_id (UUID) of the group to allocate to",
@@ -235,59 +210,11 @@ class ProgrammeGroupController(
     @Valid
     @RequestBody createGroupRequest: CreateGroupRequest,
   ): ResponseEntity<Void> {
-    programmeGroupService.createGroup(createGroupRequest)
-    return ResponseEntity.status(HttpStatus.CREATED).build()
-  }
-
-  private fun buildAllocationAndWaitlistData(
-    selectedTab: GroupPageTab,
-    pagedWaitlistData: Page<GroupWaitlistItem>,
-    otherTabCount: Int,
-  ): ProgrammeGroupDetails.AllocationAndWaitlistData {
-    val (waitlistItems, allocatedItems) = pagedWaitlistData.content.partition { isAwaitingAllocation(it) && it.activeProgrammeGroupId == null }
-
-    return when (selectedTab) {
-      GroupPageTab.WAITLIST -> createWaitlistTabData(waitlistItems, pagedWaitlistData, otherTabCount)
-      GroupPageTab.ALLOCATED -> createAllocatedTabData(allocatedItems, pagedWaitlistData, otherTabCount)
-    }
-  }
-
-  private fun createWaitlistTabData(
-    waitlistItems: List<GroupWaitlistItem>,
-    pagedData: Page<GroupWaitlistItem>,
-    otherTabCount: Int,
-  ): ProgrammeGroupDetails.AllocationAndWaitlistData = ProgrammeGroupDetails.AllocationAndWaitlistData(
-    counts = ProgrammeGroupDetails.Counts(
-      waitlist = waitlistItems.size,
-      allocated = otherTabCount,
-    ),
-    filters = programmeGroupService.getGroupFilters(),
-    pagination = ProgrammeGroupDetails.Pagination(page = pagedData.number, size = pagedData.size),
-    paginatedWaitlistData = waitlistItems,
-  )
-
-  private fun createAllocatedTabData(
-    allocatedItems: List<GroupWaitlistItem>,
-    pagedData: Page<GroupWaitlistItem>,
-    otherTabCount: Int,
-  ): ProgrammeGroupDetails.AllocationAndWaitlistData = ProgrammeGroupDetails.AllocationAndWaitlistData(
-    counts = ProgrammeGroupDetails.Counts(
-      waitlist = otherTabCount,
-      allocated = allocatedItems.size,
-    ),
-    filters = programmeGroupService.getGroupFilters(),
-    pagination = ProgrammeGroupDetails.Pagination(page = pagedData.number, size = pagedData.size),
-    paginatedAllocationData = allocatedItems.map(GroupWaitlistItem::toAllocatedItem),
-  )
-
-  private fun isAwaitingAllocation(item: GroupWaitlistItem): Boolean = item.status == ReferralStatusType.AWAITING_ALLOCATION.description
-
-  private fun getUserRegion(): String {
     val username = authenticationHolder.username
-    if (username.isNullOrBlank()) {
+    if (username == null || username.isBlank()) {
       throw AuthenticationCredentialsNotFoundException("No authenticated user found")
     }
-    val userRegions = userService.getUserRegions(username)
-    return if (userRegions.isNotEmpty()) userRegions.first() else "Region not found"
+    programmeGroupService.createGroup(createGroupRequest, username)
+    return ResponseEntity.status(HttpStatus.CREATED).build()
   }
 }

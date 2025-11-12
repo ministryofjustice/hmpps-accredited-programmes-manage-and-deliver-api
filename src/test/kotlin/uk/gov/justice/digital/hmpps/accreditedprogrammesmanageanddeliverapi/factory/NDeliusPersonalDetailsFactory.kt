@@ -37,6 +37,7 @@ class NDeliusPersonalDetailsFactory {
 
   fun withTeam(team: CodeDescription) = apply { this.team = team }
   fun withRegion(region: CodeDescription) = apply { this.region = region }
+  fun withRegionStrings(code: String = randomUppercaseString(2), description: String) = withRegion(CodeDescription(code, description))
 
   fun withAge(age: String) = apply { this.age = age }
 
