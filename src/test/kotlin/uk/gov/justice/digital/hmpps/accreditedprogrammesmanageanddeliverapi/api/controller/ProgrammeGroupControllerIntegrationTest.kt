@@ -147,6 +147,18 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
           "Sexual Offence - LDC",
         ),
       )
+      val expectedTeams = mapOf(
+        "PDU 1" to listOf("Team A", "Team C"),
+        "PDU 2" to listOf("Team B", "Team C"),
+        "PDU 3" to listOf("Team B", "Team B"),
+      )
+
+      assertThat(body.filters.locationFilterValues)
+        .allMatch { location ->
+          expectedTeams[location.pduName]?.let { teams ->
+            location.reportingTeams.containsAll(teams)
+          } ?: true
+        }
     }
 
     @Test
