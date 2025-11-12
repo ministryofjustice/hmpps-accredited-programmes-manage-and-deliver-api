@@ -29,7 +29,7 @@ class ProgrammeGroupMembershipService(
     referralId: UUID,
     groupId: UUID,
     allocatedToGroupBy: String,
-  ): ReferralEntity? {
+  ): ReferralEntity {
     val referral = referralService.getReferralById(referralId)
     val group =
       programmeGroupRepository.findByIdOrNull(groupId) ?: throw NotFoundException("Group with id $groupId not found")

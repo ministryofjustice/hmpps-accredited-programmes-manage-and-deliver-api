@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
@@ -167,13 +169,20 @@ class ProgrammeGroupController(
       required = true,
     )
     @PathVariable("referralId") referralId: UUID,
-  ): ResponseEntity<Void> {
-    programmeGroupMembershipService.allocateReferralToGroup(
+    @Valid
+    @RequestBody allocateToGroupRequest: AllocateToGroupRequest,
+  ): ResponseEntity<AllocateToGroupResponse> {
+    val referral = programmeGroupMembershipService.allocateReferralToGroup(
       referralId,
       groupId,
       authenticationHolder.username ?: "SYSTEM",
     )
-    return ResponseEntity.status(HttpStatus.OK).build()
+
+    val response = AllocateToGroupResponse(
+      message = "${referral.personName} was added to this group. Their referral status is now Scheduled.",
+    )
+
+    return ResponseEntity.status(HttpStatus.OK).body(response)
   }
 
   @Operation(
