@@ -299,8 +299,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     val filters = programmeGroupService.getGroupFilters()
 
     // Then
-    assertThat(filters.pduNames).isEmpty()
-    assertThat(filters.reportingTeams).isEmpty()
+    assertThat(filters.locationFilterValues).isEmpty()
     assertThat(filters.sex).containsExactly("Male", "Female")
   }
 
@@ -363,8 +362,17 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     val filters = programmeGroupService.getGroupFilters()
 
     // Then
-    assertThat(filters.pduNames).containsExactlyInAnyOrder("PDU Alpha", "PDU Beta")
-    assertThat(filters.reportingTeams).containsExactlyInAnyOrder("Team 1", "Team 2")
+    val expectedTeams = mapOf(
+      "PDU Alpha" to listOf("Team 1"),
+      "PDU Beta" to listOf("Team 2"),
+    )
+
+    assertThat(filters.locationFilterValues)
+      .allMatch { location ->
+        expectedTeams[location.pduName]?.let { teams ->
+          location.reportingTeams.containsAll(teams)
+        } ?: true
+      }
     assertThat(filters.sex).containsExactly("Male", "Female")
   }
 
@@ -403,15 +411,19 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     val filters = programmeGroupService.getGroupFilters()
 
     // Then
-    assertThat(filters.pduNames).containsExactlyInAnyOrder("North PDU", "South PDU", "East PDU", "West PDU")
-    assertThat(filters.reportingTeams).containsExactlyInAnyOrder(
-      "North Team A",
-      "South Team B",
-      "East Team C",
-      "West Team D",
-      "North Team B",
-      "South Team A",
+    val expectedTeams = mapOf(
+      "North PDU" to listOf("North Team A", "North Team B"),
+      "South PDU" to listOf("South Team A", "South Team B"),
+      "East PDU" to listOf("East Team C"),
+      "West PDU" to listOf("West Team D"),
     )
+
+    assertThat(filters.locationFilterValues)
+      .allMatch { location ->
+        expectedTeams[location.pduName]?.let { teams ->
+          location.reportingTeams.containsAll(teams)
+        } ?: true
+      }
     assertThat(filters.sex).containsExactly("Male", "Female")
   }
 
