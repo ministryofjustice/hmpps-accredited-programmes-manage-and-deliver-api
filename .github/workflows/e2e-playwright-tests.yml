@@ -1,7 +1,7 @@
 name: E2E UI Playwright Tests
 on:
   push:
-#    branches: [ main ]
+    branches: [ main ]
 
 env:
   MANAGE_AND_DELIVER_URL: https://accredited-programmes-manage-and-deliver-dev.hmpps.service.justice.gov.uk/
