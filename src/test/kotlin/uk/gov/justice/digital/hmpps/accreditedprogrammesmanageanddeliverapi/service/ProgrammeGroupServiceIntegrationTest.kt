@@ -287,7 +287,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       if (referral.third != null) {
         testDataGenerator.createReferralWithReportingLocation(referral.third!!)
       }
-      programmeGroupMembershipService.allocateReferralToGroup(referral.first.id!!, group.id!!)
+      programmeGroupMembershipService.allocateReferralToGroup(referral.first.id!!, group.id!!, "SYSTEM")
     }
 
     return group

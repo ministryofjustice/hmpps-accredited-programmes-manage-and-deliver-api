@@ -61,7 +61,7 @@ class GroupWaitlistViewRepositoryIntegrationTest(@Autowired private val referral
     val referralId = waitlistItems.first().referralId
     val group = ProgrammeGroupFactory().produce()
     testDataGenerator.createGroup(group)
-    programmeGroupMembershipService.allocateReferralToGroup(referralId, group.id!!)
+    programmeGroupMembershipService.allocateReferralToGroup(referralId, group.id!!, "SYSTEM")
 
     val allocatedReferral = groupWaitListRepo.findByIdOrNull(referralId)!!
 

@@ -9,10 +9,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentlyAllocatedGroup
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import java.util.UUID
 
 @Service
@@ -21,10 +23,15 @@ class ProgrammeGroupMembershipService(
   private val programmeGroupRepository: ProgrammeGroupRepository,
   private val referralRepository: ReferralRepository,
   private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
+  private val referralStatusHistoryRepository: ReferralStatusHistoryRepository,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  fun allocateReferralToGroup(referralId: UUID, groupId: UUID): ReferralEntity? {
+  fun allocateReferralToGroup(
+    referralId: UUID,
+    groupId: UUID,
+    allocatedToGroupBy: String,
+  ): ReferralEntity? {
     val referral =
       referralRepository.findByIdOrNull(referralId) ?: throw NotFoundException("Referral with id $referralId not found")
     val group =
@@ -40,7 +47,19 @@ class ProgrammeGroupMembershipService(
     }
 
     log.info("Adding referral with id: $referralId to group with id: $groupId and groupCode: ${group.code}")
+
     referral.programmeGroupMemberships.add(ProgrammeGroupMembershipEntity(referral = referral, programmeGroup = group))
+
+    val statusHistory =
+      ReferralStatusHistoryEntity(
+        referral = referral,
+        referralStatusDescription = referralStatusDescriptionRepository.getScheduledStatusDescription(),
+        additionalDetails = "Allocated to group ${group.code}",
+        createdBy = allocatedToGroupBy,
+      )
+
+    referral.statusHistories.add(statusHistory)
+
     return referralRepository.save(referral)
   }
 }

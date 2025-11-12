@@ -26,17 +26,21 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.hasLdc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.toPniScore
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentlyAllocatedGroup
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -48,6 +52,7 @@ class ReferralService(
   private val ndeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val referralRepository: ReferralRepository,
   private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
+  private val referralStatusTransitionRepository: ReferralStatusTransitionRepository,
   private val userService: UserService,
   private val cohortService: CohortService,
   private val pniService: PniService,
@@ -56,6 +61,7 @@ class ReferralService(
   private val ldcService: LdcService,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
   private val sentenceService: SentenceService,
+  private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -291,17 +297,41 @@ class ReferralService(
     additionalDetails: String? = null,
     createdBy: String,
   ): ReferralStatusHistory {
-    val referralStatusDescription = referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId)
+    val incomingReferralStatusDescription = referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId)
 
-    if (referralStatusDescription == null) {
+    if (incomingReferralStatusDescription == null) {
       log.warn("Unable to find Referral Status Description with ID $referralStatusDescriptionId")
       throw NotFoundException("Unable to find Referral Status Description with ID $referralStatusDescriptionId")
+    }
+
+    val currentReferralStatusHistory = referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referral.id!!)
+
+    if (currentReferralStatusHistory == null) {
+      log.error("Referral with id ${referral.id} does not have a current status history")
+      throw BusinessException("Referral with id ${referral.id} does not have a current status history")
+    }
+
+    val transition = referralStatusTransitionRepository.findByFromStatusIdAndToStatusId(
+      currentReferralStatusHistory.referralStatusDescription.id,
+      incomingReferralStatusDescription.id,
+    )
+
+    val activeGroupMembership = referral.currentlyAllocatedGroup()
+
+    if (
+      (transition == null || !transition.isContinuing) &&
+      activeGroupMembership != null
+    ) {
+      log.info("Status transition from '$currentReferralStatusHistory' to '${incomingReferralStatusDescription.description}' has is_continuing=false. Deleting group membership with id ${activeGroupMembership.id}")
+      activeGroupMembership.deletedAt = LocalDateTime.now()
+      activeGroupMembership.deletedByUsername = createdBy
+      programmeGroupMembershipRepository.save(activeGroupMembership)
     }
 
     val historyEntry = referralStatusHistoryRepository.save(
       ReferralStatusHistoryEntity(
         referral = referral,
-        referralStatusDescription = referralStatusDescription,
+        referralStatusDescription = incomingReferralStatusDescription,
         additionalDetails = additionalDetails,
         createdBy = createdBy,
       ),

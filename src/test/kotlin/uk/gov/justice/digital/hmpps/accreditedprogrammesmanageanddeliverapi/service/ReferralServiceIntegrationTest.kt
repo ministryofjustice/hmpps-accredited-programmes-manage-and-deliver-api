@@ -24,6 +24,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentStatusHistory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentlyAllocatedGroup
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
@@ -32,6 +34,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
@@ -54,6 +57,9 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralService: ReferralService
+
+  @Autowired
+  private lateinit var membershipService: ProgrammeGroupMembershipService
 
   val personalDetails = NDeliusPersonalDetailsFactory()
     .withName(
@@ -314,14 +320,19 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     fun `updateStatus should create a new entry in the ReferralStatusHistory log`() {
       // Given
       val theCrnNumber = randomUppercaseString()
+      val theGroup = testDataGenerator.createGroup(ProgrammeGroupFactory().withCode("GROUP-001").produce())
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
+
       val referral =
         referralService.createReferral(
           FindAndReferReferralDetailsFactory().withPersonReference(theCrnNumber).withEventNumber(1).produce(),
         )
 
+      val referralFromAllocateToGroup = membershipService.allocateReferralToGroup(referral.id!!, theGroup.id!!, "THE_USER_WHO_ADDED_TO_GROUP")
+
       // When
+      val numberOfHistoriesBeforeUpdate = referralFromAllocateToGroup?.statusHistories?.size ?: 0
       val result = referralService.updateStatus(
         referral,
         UUID.fromString("76b2f8d8-260c-4766-a716-de9325292609"),
@@ -336,7 +347,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(result.referralStatusDescriptionId).isEqualTo(UUID.fromString("76b2f8d8-260c-4766-a716-de9325292609"))
       assertThat(result.referralStatusDescriptionName).isEqualTo("Awaiting assessment")
 
-      assertThat(foundReferral.statusHistories).hasSize(2)
+      assertThat(foundReferral.statusHistories).hasSize(numberOfHistoriesBeforeUpdate + 1)
+      assertThat(foundReferral.currentlyAllocatedGroup()).isNotNull()
       assertThat(foundReferral.statusHistories.first().createdBy).isEqualTo("THE_USER_ID")
       assertThat(foundReferral.statusHistories.first().id).isEqualTo(result.id)
       assertThat(foundReferral.statusHistories.first().additionalDetails).isEqualTo("Additional details string")
@@ -357,6 +369,36 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
           createdBy = "DOES NOT MATTER",
         )
       } shouldHaveMessage "Unable to find Referral Status Description with ID $aRandomUuid"
+    }
+
+    @Test
+    fun `updateStatus should remove Group Membership if the transition is not "continuing"`() {
+      // Given
+      val theGroup = testDataGenerator.createGroup(ProgrammeGroupFactory().produce())
+
+      val theCrnNumber = randomUppercaseString()
+      oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
+
+      val recallStatusDescription = referralStatusDescriptionRepository.getRecallStatusDescription()
+
+      val theReferral =
+        referralService.createReferral(
+          FindAndReferReferralDetailsFactory().withPersonReference(theCrnNumber).withEventNumber(1).produce(),
+        )
+
+      membershipService.allocateReferralToGroup(theReferral.id!!, theGroup.id!!, "SYSTEM")
+
+      val theReferralWithGroup = referralRepository.findByCrn(theCrnNumber).first()
+
+      // When
+      assertThat(theReferralWithGroup.currentlyAllocatedGroup()).isNotNull()
+      referralService.updateStatus(theReferralWithGroup, recallStatusDescription.id, createdBy = "SYSTEM")
+
+      // Then
+      val theUpdatedReferral = referralRepository.findByCrn(theCrnNumber).first()
+      assertThat(theUpdatedReferral.currentlyAllocatedGroup()).isNull()
+      assertThat(theUpdatedReferral.currentStatusHistory()?.referralStatusDescription?.description).isEqualTo("Recall")
     }
   }
 
