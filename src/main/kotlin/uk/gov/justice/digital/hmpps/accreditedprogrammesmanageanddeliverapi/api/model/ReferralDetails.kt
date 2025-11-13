@@ -148,7 +148,7 @@ data class ReferralDetails(
       hasLdcDisplayText = LdcStatus.getDisplayText(hasLdc),
       currentStatusDescription = latestReferralStatus.description,
       currentlyAllocatedGroupCode = allocatedGroup?.programmeGroup?.code,
-      currentlyAllocatedGroupId = allocatedGroup?.id,
+      currentlyAllocatedGroupId = allocatedGroup?.programmeGroup?.id,
     )
   }
 }

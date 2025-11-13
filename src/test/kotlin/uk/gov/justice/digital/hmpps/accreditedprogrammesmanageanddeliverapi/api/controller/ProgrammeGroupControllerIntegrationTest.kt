@@ -455,7 +455,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
         expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
       )
 
-      assertThat(exception.userMessage).isEqualTo("Not Found: Referral with id $referralId not found")
+      assertThat(exception.userMessage).isEqualTo("Not Found: No Referral found for id: $referralId")
     }
 
     @Test

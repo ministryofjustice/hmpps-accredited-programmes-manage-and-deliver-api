@@ -74,7 +74,7 @@ class ProgrammeGroupMembershipServiceIntegrationTest : IntegrationTestBase() {
         "SYSTEM",
       )
     }
-    assertThat(exception.message).isEqualTo("Referral with id $referralId not found")
+    assertThat(exception.message).isEqualTo("No Referral found for id: $referralId")
   }
 
   @Test
