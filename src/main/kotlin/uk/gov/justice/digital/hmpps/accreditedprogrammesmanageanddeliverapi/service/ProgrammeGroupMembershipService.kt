@@ -29,6 +29,7 @@ class ProgrammeGroupMembershipService(
     referralId: UUID,
     groupId: UUID,
     allocatedToGroupBy: String,
+    additionalDetails: String,
   ): ReferralEntity {
     val referral = referralService.getReferralById(referralId)
     val group =
@@ -50,7 +51,7 @@ class ProgrammeGroupMembershipService(
       ReferralStatusHistoryEntity(
         referral = referral,
         referralStatusDescription = referralStatusDescriptionRepository.getScheduledStatusDescription(),
-        additionalDetails = "Allocated to group ${group.code}",
+        additionalDetails = additionalDetails,
         createdBy = allocatedToGroupBy,
       )
 

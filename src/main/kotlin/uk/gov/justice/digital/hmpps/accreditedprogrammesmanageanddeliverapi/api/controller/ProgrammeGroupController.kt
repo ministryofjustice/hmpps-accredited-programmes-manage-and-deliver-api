@@ -176,6 +176,7 @@ class ProgrammeGroupController(
       referralId,
       groupId,
       authenticationHolder.username ?: "SYSTEM",
+      allocateToGroupRequest.additionalDetails,
     )
 
     val response = AllocateToGroupResponse(

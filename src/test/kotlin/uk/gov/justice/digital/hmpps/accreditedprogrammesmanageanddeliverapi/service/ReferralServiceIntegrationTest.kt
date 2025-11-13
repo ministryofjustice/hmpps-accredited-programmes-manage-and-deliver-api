@@ -328,7 +328,12 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         )
 
       val referralFromAllocateToGroup =
-        membershipService.allocateReferralToGroup(referral.id!!, theGroup.id!!, "THE_USER_WHO_ADDED_TO_GROUP")
+        membershipService.allocateReferralToGroup(
+        referral.id!!,
+        theGroup.id!!,
+        "THE_USER_WHO_ADDED_TO_GROUP",
+        "",
+      )
 
       // When
       val numberOfHistoriesBeforeUpdate = referralFromAllocateToGroup?.statusHistories?.size ?: 0
@@ -386,7 +391,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
           FindAndReferReferralDetailsFactory().withPersonReference(theCrnNumber).withEventNumber(1).produce(),
         )
 
-      membershipService.allocateReferralToGroup(theReferral.id!!, theGroup.id!!, "SYSTEM")
+      membershipService.allocateReferralToGroup(theReferral.id!!, theGroup.id!!, "SYSTEM", "")
 
       val theReferralWithGroup = referralRepository.findByCrn(theCrnNumber).first()
 

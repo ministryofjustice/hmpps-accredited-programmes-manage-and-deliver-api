@@ -47,17 +47,23 @@ class ProgrammeGroupMembershipServiceIntegrationTest : IntegrationTestBase() {
     testDataGenerator.createReferralWithStatusHistory(referral, statusHistory)
 
     // Given
-    val result = programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!, "SYSTEM")
+    val referralFromAllocate = programmeGroupMembershipService.allocateReferralToGroup(
+      referral.id!!,
+      group.id!!,
+      "SYSTEM",
+      additionalDetails = "The additional details",
+    )
 
     // Then
-    assertThat(result).isNotNull
-    assertThat(result?.id).isEqualTo(referral.id)
-    assertThat(result?.programmeGroupMemberships).hasSize(1)
-    assertThat(result!!.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
-    assertThat(result.statusHistories).hasSize(2)
-    assertThat(result.statusHistories.maxByOrNull { it.createdAt }!!.referralStatusDescription.id).isEqualTo(
-      referralStatusDescriptionRepository.getScheduledStatusDescription().id,
-    )
+    assertThat(referralFromAllocate).isNotNull
+    assertThat(referralFromAllocate.id).isEqualTo(referral.id)
+    assertThat(referralFromAllocate.programmeGroupMemberships).hasSize(1)
+    assertThat(referralFromAllocate.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
+
+    assertThat(referralFromAllocate.statusHistories).hasSize(2)
+    val currentStatusHistory = referralFromAllocate.currentStatusHistory()
+    assertThat(currentStatusHistory!!.referralStatusDescription.id).isEqualTo(referralStatusDescriptionRepository.getScheduledStatusDescription().id)
+    assertThat(currentStatusHistory.additionalDetails).isEqualTo("The additional details")
   }
 
   @Test
@@ -72,6 +78,7 @@ class ProgrammeGroupMembershipServiceIntegrationTest : IntegrationTestBase() {
         referralId,
         group.id!!,
         "SYSTEM",
+        "",
       )
     }
     assertThat(exception.message).isEqualTo("No Referral found for id: $referralId")
@@ -90,6 +97,7 @@ class ProgrammeGroupMembershipServiceIntegrationTest : IntegrationTestBase() {
         referral.id!!,
         groupId,
         "SYSTEM",
+        "",
       )
     }
     assertThat(exception.message).isEqualTo("Group with id $groupId not found")
@@ -111,6 +119,7 @@ class ProgrammeGroupMembershipServiceIntegrationTest : IntegrationTestBase() {
         referral.id!!,
         group.id!!,
         "SYSTEM",
+        "",
       )
     }
     assertThat(exception.message).isEqualTo("Cannot assign referral to group as referral with id ${referral.id} is in a closed state")
@@ -134,6 +143,7 @@ class ProgrammeGroupMembershipServiceIntegrationTest : IntegrationTestBase() {
         referral.id!!,
         group.id!!,
         "SYSTEM",
+        "",
       )
     }
     assertThat(exception.message).isEqualTo("Cannot assign referral to group as referral with id ${referral.id} is in a closed state")
