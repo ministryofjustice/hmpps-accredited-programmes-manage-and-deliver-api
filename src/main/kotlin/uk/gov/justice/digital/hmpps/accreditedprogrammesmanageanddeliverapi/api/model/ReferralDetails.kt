@@ -133,7 +133,7 @@ data class ReferralDetails(
       nDeliusPersonalDetails: NDeliusPersonalDetails,
       hasLdc: Boolean? = false,
       latestReferralStatus: ReferralStatusDescriptionEntity,
-      allocatedGroup: ProgrammeGroupMembershipEntity?,
+      currentlyAllocatedGroup: ProgrammeGroupMembershipEntity?,
     ): ReferralDetails = ReferralDetails(
       id = referral.id!!,
       crn = referral.crn,
@@ -147,8 +147,8 @@ data class ReferralDetails(
       hasLdc = LdcStatus.fromBoolean(hasLdc).value,
       hasLdcDisplayText = LdcStatus.getDisplayText(hasLdc),
       currentStatusDescription = latestReferralStatus.description,
-      currentlyAllocatedGroupCode = allocatedGroup?.programmeGroup?.code,
-      currentlyAllocatedGroupId = allocatedGroup?.programmeGroup?.id,
+      currentlyAllocatedGroupCode = currentlyAllocatedGroup?.programmeGroup?.code,
+      currentlyAllocatedGroupId = currentlyAllocatedGroup?.programmeGroup?.id,
     )
   }
 }

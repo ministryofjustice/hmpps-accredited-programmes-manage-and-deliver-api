@@ -373,7 +373,7 @@ class ReferralService(
     referralRepository.save(referral)
   }
 
-  fun getCurrentlyAllocatedGroup(referral: ReferralEntity): ProgrammeGroupMembershipEntity? = referral.programmeGroupMemberships.firstOrNull { it.deletedAt == null }
+  fun getCurrentlyAllocatedGroup(referral: ReferralEntity): ProgrammeGroupMembershipEntity? = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referral.id!!)
 
   fun getCurrentStatusHistory(referral: ReferralEntity): ReferralStatusHistoryEntity? = referral.statusHistories.maxByOrNull { it.createdAt }
 
