@@ -131,8 +131,6 @@ class ReferralEntity(
   var referralMotivationBackgroundAndNonAssociations: ReferralMotivationBackgroundAndNonAssociationsEntity? = null,
 )
 
-fun ReferralEntity.currentStatusHistory(): ReferralStatusHistoryEntity? = this.statusHistories.maxByOrNull { it.createdAt }
-
 enum class ReferralEntitySourcedFrom {
   REQUIREMENT,
   LICENCE_CONDITION,

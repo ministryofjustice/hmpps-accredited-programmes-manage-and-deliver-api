@@ -24,7 +24,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
@@ -401,7 +400,9 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(referralService.getCurrentStatusHistory(theUpdatedReferral)!!.referralStatusDescription.description).isEqualTo(
         "Recall",
       )
-      assertThat(theUpdatedReferral.currentStatusHistory()?.referralStatusDescription?.description).isEqualTo("Recall")
+      assertThat(theUpdatedReferral.statusHistories.maxByOrNull { it.createdAt }?.referralStatusDescription?.description).isEqualTo(
+        "Recall",
+      )
     }
   }
 
