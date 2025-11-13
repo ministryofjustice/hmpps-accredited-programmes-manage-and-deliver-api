@@ -13,15 +13,21 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedProgrammeDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
@@ -104,7 +110,12 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
 
       // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
       val referral = referrals.first()
-      programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!, "SYSTEM")
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
 
       // When
       val response = performRequestAndExpectOk(
@@ -366,6 +377,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
           it.id!!,
           group.id!!,
           "SYSTEM",
+          "",
         )
       }
       // When
@@ -416,29 +428,52 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
     @Test
     fun `allocateReferralToGroup can successfully allocate a referral to a group`() {
       // Given
+      val theCrnNumber = randomUppercaseString()
       val groupCode = "AAA111"
       val group = ProgrammeGroupFactory().withCode(groupCode).produce()
       testDataGenerator.createGroup(group)
 
-      val referralStatusDescriptionEntity = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
-      val referral = ReferralEntityFactory().produce()
-      val statusHistory = ReferralStatusHistoryEntityFactory().produce(referral, referralStatusDescriptionEntity)
-      testDataGenerator.createReferralWithStatusHistory(referral, statusHistory)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory().withName(
+          FullName(
+            forename = "the-forename",
+            middleNames = null,
+            surname = "the-surname",
+          ),
+        ).produce(),
+      )
+      oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+
+      val referral = referralService.createReferral(
+        FindAndReferReferralDetailsFactory()
+          .withPersonReference(theCrnNumber)
+          .withEventNumber(1)
+          .produce(),
+      )
+
+      val allocateToGroupRequest = AllocateToGroupRequest(
+        additionalDetails = "The additional details for the test",
+      )
 
       // When
-      performRequestAndExpectStatusNoBody(
+      val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group/${group.id}/allocate/${referral.id}",
         expectedResponseStatus = HttpStatus.OK.value(),
+        body = allocateToGroupRequest,
+        returnType = object : ParameterizedTypeReference<AllocateToGroupResponse>() {},
       )
 
-      val result = referralRepository.findByIdOrNull(referral.id!!)!!
+      val foundRepository = referralRepository.findByIdOrNull(referral.id!!)!!
 
       // Then
-      assertThat(result).isNotNull
-      assertThat(result.id).isEqualTo(referral.id)
-      assertThat(result.programmeGroupMemberships).hasSize(1)
-      assertThat(result.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
+      assertThat(response.message).isEqualTo("the-forename the-surname was added to this group. Their referral status is now Scheduled.")
+
+      assertThat(foundRepository).isNotNull
+      assertThat(foundRepository.id).isEqualTo(referral.id)
+      assertThat(foundRepository.programmeGroupMemberships).hasSize(1)
+      assertThat(foundRepository.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
     }
 
     @Test
@@ -448,11 +483,12 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val group = ProgrammeGroupFactory().withCode(groupCode).produce()
       testDataGenerator.createGroup(group)
 
-      val exception = performRequestAndExpectStatus(
+      val exception = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group/${group.id}/allocate/$referralId",
         returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
         expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        body = AllocateToGroupRequest("Empty additional details"),
       )
 
       assertThat(exception.userMessage).isEqualTo("Not Found: No Referral found for id: $referralId")
@@ -466,11 +502,12 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(referral, referralStatusDescriptionEntity)
       testDataGenerator.createReferralWithStatusHistory(referral, statusHistory)
 
-      val exception = performRequestAndExpectStatus(
+      val exception = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group/$groupId/allocate/${referral.id}",
         returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
         expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        body = AllocateToGroupRequest("Empty additional details"),
       )
       assertThat(exception.userMessage).isEqualTo("Not Found: Group with id $groupId not found")
     }
@@ -486,11 +523,12 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(referral, referralStatusDescriptionEntity)
       testDataGenerator.createReferralWithStatusHistory(referral, statusHistory)
 
-      val exception = performRequestAndExpectStatus(
+      val exception = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group/${group.id}/allocate/${referral.id}",
         returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
         expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+        body = AllocateToGroupRequest("Empty additional details"),
       )
       assertThat(exception.userMessage).isEqualTo("Bad request: Cannot assign referral to group as referral with id ${referral.id} is in a closed state")
     }
@@ -508,11 +546,12 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val groupMembership = ProgrammeGroupMembershipFactory().withReferral(referral).withProgrammeGroup(group).produce()
       testDataGenerator.createGroupMembership(groupMembership)
 
-      val exception = performRequestAndExpectStatus(
+      val exception = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group/${group.id}/allocate/${referral.id}",
         returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
         expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+        body = AllocateToGroupRequest("Empty additional details"),
       )
       assertThat(exception.userMessage).isEqualTo("Bad request: Cannot assign referral to group as referral with id ${referral.id} is in a closed state")
     }

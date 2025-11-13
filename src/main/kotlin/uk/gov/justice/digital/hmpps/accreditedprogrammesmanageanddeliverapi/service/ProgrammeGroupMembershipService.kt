@@ -29,7 +29,8 @@ class ProgrammeGroupMembershipService(
     referralId: UUID,
     groupId: UUID,
     allocatedToGroupBy: String,
-  ): ReferralEntity? {
+    additionalDetails: String,
+  ): ReferralEntity {
     val referral = referralService.getReferralById(referralId)
     val group =
       programmeGroupRepository.findByIdOrNull(groupId) ?: throw NotFoundException("Group with id $groupId not found")
@@ -50,7 +51,7 @@ class ProgrammeGroupMembershipService(
       ReferralStatusHistoryEntity(
         referral = referral,
         referralStatusDescription = referralStatusDescriptionRepository.getScheduledStatusDescription(),
-        additionalDetails = "Allocated to group ${group.code}",
+        additionalDetails = additionalDetails,
         createdBy = allocatedToGroupBy,
       )
 
