@@ -24,8 +24,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentStatusHistory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentlyAllocatedGroup
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
@@ -329,7 +327,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
           FindAndReferReferralDetailsFactory().withPersonReference(theCrnNumber).withEventNumber(1).produce(),
         )
 
-      val referralFromAllocateToGroup = membershipService.allocateReferralToGroup(referral.id!!, theGroup.id!!, "THE_USER_WHO_ADDED_TO_GROUP")
+      val referralFromAllocateToGroup =
+        membershipService.allocateReferralToGroup(referral.id!!, theGroup.id!!, "THE_USER_WHO_ADDED_TO_GROUP")
 
       // When
       val numberOfHistoriesBeforeUpdate = referralFromAllocateToGroup?.statusHistories?.size ?: 0
@@ -348,7 +347,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(result.referralStatusDescriptionName).isEqualTo("Awaiting assessment")
 
       assertThat(foundReferral.statusHistories).hasSize(numberOfHistoriesBeforeUpdate + 1)
-      assertThat(foundReferral.currentlyAllocatedGroup()).isNotNull()
+      assertThat(foundReferral.programmeGroupMemberships).isNotNull()
       assertThat(foundReferral.statusHistories.first().createdBy).isEqualTo("THE_USER_ID")
       assertThat(foundReferral.statusHistories.first().id).isEqualTo(result.id)
       assertThat(foundReferral.statusHistories.first().additionalDetails).isEqualTo("Additional details string")
@@ -372,7 +371,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `updateStatus should remove Group Membership if the transition is not "continuing"`() {
+    fun `updateStatus should remove Group Membership if the transition is not 'continuing'`() {
       // Given
       val theGroup = testDataGenerator.createGroup(ProgrammeGroupFactory().produce())
 
@@ -392,13 +391,18 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       val theReferralWithGroup = referralRepository.findByCrn(theCrnNumber).first()
 
       // When
-      assertThat(theReferralWithGroup.currentlyAllocatedGroup()).isNotNull()
+      assertThat(theReferralWithGroup.programmeGroupMemberships.find { it.programmeGroup.id == theGroup.id }).isNotNull()
       referralService.updateStatus(theReferralWithGroup, recallStatusDescription.id, createdBy = "SYSTEM")
 
       // Then
       val theUpdatedReferral = referralRepository.findByCrn(theCrnNumber).first()
-      assertThat(theUpdatedReferral.currentlyAllocatedGroup()).isNull()
-      assertThat(theUpdatedReferral.currentStatusHistory()?.referralStatusDescription?.description).isEqualTo("Recall")
+      assertThat(referralService.getCurrentlyAllocatedGroup(theUpdatedReferral)).isNull()
+      assertThat(referralService.getCurrentStatusHistory(theUpdatedReferral)!!.referralStatusDescription.description).isEqualTo(
+        "Recall",
+      )
+      assertThat(theUpdatedReferral.statusHistories.maxByOrNull { it.createdAt }?.referralStatusDescription?.description).isEqualTo(
+        "Recall",
+      )
     }
   }
 

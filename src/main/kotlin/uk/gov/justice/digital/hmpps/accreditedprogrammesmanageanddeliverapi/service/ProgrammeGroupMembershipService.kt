@@ -10,11 +10,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentlyAllocatedGroup
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import java.util.UUID
 
 @Service
@@ -23,7 +21,7 @@ class ProgrammeGroupMembershipService(
   private val programmeGroupRepository: ProgrammeGroupRepository,
   private val referralRepository: ReferralRepository,
   private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
-  private val referralStatusHistoryRepository: ReferralStatusHistoryRepository,
+  private val referralService: ReferralService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -32,8 +30,7 @@ class ProgrammeGroupMembershipService(
     groupId: UUID,
     allocatedToGroupBy: String,
   ): ReferralEntity? {
-    val referral =
-      referralRepository.findByIdOrNull(referralId) ?: throw NotFoundException("Referral with id $referralId not found")
+    val referral = referralService.getReferralById(referralId)
     val group =
       programmeGroupRepository.findByIdOrNull(groupId) ?: throw NotFoundException("Group with id $groupId not found")
 
@@ -42,9 +39,8 @@ class ProgrammeGroupMembershipService(
       throw BusinessException("Cannot assign referral to group as referral with id ${referral.id} is in a closed state")
     }
 
-    if (referral.currentlyAllocatedGroup() != null) {
-      throw ConflictException("Referral with id ${referral.id} is already allocated to group ${group.code}")
-    }
+    referralService.getCurrentlyAllocatedGroup(referral)
+      ?.let { throw ConflictException("Referral with id ${referral.id} is already allocated to group ${group.code}") }
 
     log.info("Adding referral with id: $referralId to group with id: $groupId and groupCode: ${group.code}")
 

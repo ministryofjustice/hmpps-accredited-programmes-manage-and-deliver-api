@@ -28,12 +28,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.toPniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentlyAllocatedGroup
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
@@ -99,7 +99,8 @@ class ReferralService(
 
     val referralLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.hasLdc
     val latestReferralStatus = referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId)
-    ReferralDetails.toModel(referral, personalDetails, referralLdc, latestReferralStatus!!)
+    val allocatedGroup = getCurrentlyAllocatedGroup(referral)
+    ReferralDetails.toModel(referral, personalDetails, referralLdc, latestReferralStatus!!, allocatedGroup)
   }
 
   fun getFindAndReferReferralDetails(referralId: UUID): FindAndReferReferralDetails {
@@ -297,14 +298,16 @@ class ReferralService(
     additionalDetails: String? = null,
     createdBy: String,
   ): ReferralStatusHistory {
-    val incomingReferralStatusDescription = referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId)
+    val incomingReferralStatusDescription =
+      referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId)
 
     if (incomingReferralStatusDescription == null) {
       log.warn("Unable to find Referral Status Description with ID $referralStatusDescriptionId")
       throw NotFoundException("Unable to find Referral Status Description with ID $referralStatusDescriptionId")
     }
 
-    val currentReferralStatusHistory = referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referral.id!!)
+    val currentReferralStatusHistory =
+      referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referral.id!!)
 
     if (currentReferralStatusHistory == null) {
       log.error("Referral with id ${referral.id} does not have a current status history")
@@ -316,7 +319,7 @@ class ReferralService(
       incomingReferralStatusDescription.id,
     )
 
-    val activeGroupMembership = referral.currentlyAllocatedGroup()
+    val activeGroupMembership = getCurrentlyAllocatedGroup(referral)
 
     if (
       (transition == null || !transition.isContinuing) &&
@@ -369,6 +372,10 @@ class ReferralService(
     referral.sentenceEndDate = sentenceEndDate
     referralRepository.save(referral)
   }
+
+  fun getCurrentlyAllocatedGroup(referral: ReferralEntity): ProgrammeGroupMembershipEntity? = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referral.id!!)
+
+  fun getCurrentStatusHistory(referral: ReferralEntity): ReferralStatusHistoryEntity? = referral.statusHistories.maxByOrNull { it.createdAt }
 
   private fun getPersonalDetails(crn: String) = when (val result = ndeliusIntegrationApiClient.getPersonalDetails(crn)) {
     is ClientResult.Success -> result.body
