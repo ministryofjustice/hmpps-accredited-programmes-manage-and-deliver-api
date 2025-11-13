@@ -3,7 +3,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller.OpenOrClosed
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusFormData
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toCurrentStatus
@@ -20,9 +19,6 @@ class ReferralStatusService(
   private val referralStatusHistoryRepository: ReferralStatusHistoryRepository,
   private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
 ) {
-
-  fun getReferralStatusTransitionsForReferralStatusDescriptionId(fromStatusId: UUID): List<ReferralStatus> = referralStatusTransitionRepository.findByFromStatusId(fromStatusId)
-    .map { it.toStatus.toApi(it.description!!) }
 
   fun getReferralStatusFormDataFromReferralId(referralId: UUID): ReferralStatusFormData? {
     val currentStatus =
