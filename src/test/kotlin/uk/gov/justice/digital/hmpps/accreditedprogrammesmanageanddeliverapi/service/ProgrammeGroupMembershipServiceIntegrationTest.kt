@@ -16,7 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.util.UUID
 
-class ProgrammeGroupMembershipServiceIntegrationTest : IntegrationTestBase() {
+class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val referralService: ReferralService) : IntegrationTestBase() {
 
   @Autowired
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
@@ -61,7 +61,7 @@ class ProgrammeGroupMembershipServiceIntegrationTest : IntegrationTestBase() {
     assertThat(referralFromAllocate.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
 
     assertThat(referralFromAllocate.statusHistories).hasSize(2)
-    val currentStatusHistory = referralFromAllocate.currentStatusHistory()
+    val currentStatusHistory = referralService.getCurrentStatusHistory(referralFromAllocate)
     assertThat(currentStatusHistory!!.referralStatusDescription.id).isEqualTo(referralStatusDescriptionRepository.getScheduledStatusDescription().id)
     assertThat(currentStatusHistory.additionalDetails).isEqualTo("The additional details")
   }

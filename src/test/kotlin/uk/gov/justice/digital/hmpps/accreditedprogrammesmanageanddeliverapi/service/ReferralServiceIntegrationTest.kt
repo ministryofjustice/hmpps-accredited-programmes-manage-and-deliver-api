@@ -329,14 +329,14 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
       val referralFromAllocateToGroup =
         membershipService.allocateReferralToGroup(
-        referral.id!!,
-        theGroup.id!!,
-        "THE_USER_WHO_ADDED_TO_GROUP",
-        "",
-      )
+          referral.id!!,
+          theGroup.id!!,
+          "THE_USER_WHO_ADDED_TO_GROUP",
+          "",
+        )
 
       // When
-      val numberOfHistoriesBeforeUpdate = referralFromAllocateToGroup?.statusHistories?.size ?: 0
+      val numberOfHistoriesBeforeUpdate = referralFromAllocateToGroup.statusHistories.size
       val result = referralService.updateStatus(
         referral,
         UUID.fromString("76b2f8d8-260c-4766-a716-de9325292609"),

@@ -341,7 +341,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 //      )
 
       referrals.forEach { referral ->
-        programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!, "SYSTEM")
+        programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!, "SYSTEM", "")
       }
 
       return group
