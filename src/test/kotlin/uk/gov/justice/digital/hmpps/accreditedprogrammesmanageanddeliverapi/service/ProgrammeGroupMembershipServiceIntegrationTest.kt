@@ -8,14 +8,11 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.util.UUID
 
@@ -23,12 +20,6 @@ class ProgrammeGroupMembershipServiceIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
-
-  @Autowired
-  private lateinit var programmeGroupRepository: ProgrammeGroupRepository
-
-  @Autowired
-  private lateinit var referralRepository: ReferralRepository
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
@@ -64,7 +55,9 @@ class ProgrammeGroupMembershipServiceIntegrationTest : IntegrationTestBase() {
     assertThat(result?.programmeGroupMemberships).hasSize(1)
     assertThat(result!!.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
     assertThat(result.statusHistories).hasSize(2)
-    assertThat(result.currentStatusHistory()!!.referralStatusDescription.id).isEqualTo(referralStatusDescriptionRepository.getScheduledStatusDescription().id)
+    assertThat(result.statusHistories.maxByOrNull { it.createdAt }!!.referralStatusDescription.id).isEqualTo(
+      referralStatusDescriptionRepository.getScheduledStatusDescription().id,
+    )
   }
 
   @Test

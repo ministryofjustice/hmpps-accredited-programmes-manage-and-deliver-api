@@ -6,9 +6,9 @@ import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.LdcStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentlyAllocatedGroup
 import java.time.LocalDate
 import java.util.UUID
 
@@ -133,6 +133,7 @@ data class ReferralDetails(
       nDeliusPersonalDetails: NDeliusPersonalDetails,
       hasLdc: Boolean? = false,
       latestReferralStatus: ReferralStatusDescriptionEntity,
+      allocatedGroup: ProgrammeGroupMembershipEntity?,
     ): ReferralDetails = ReferralDetails(
       id = referral.id!!,
       crn = referral.crn,
@@ -146,8 +147,8 @@ data class ReferralDetails(
       hasLdc = LdcStatus.fromBoolean(hasLdc).value,
       hasLdcDisplayText = LdcStatus.getDisplayText(hasLdc),
       currentStatusDescription = latestReferralStatus.description,
-      currentlyAllocatedGroupCode = referral.currentlyAllocatedGroup()?.programmeGroup?.code,
-      currentlyAllocatedGroupId = referral.currentlyAllocatedGroup()?.programmeGroup?.id,
+      currentlyAllocatedGroupCode = allocatedGroup?.programmeGroup?.code,
+      currentlyAllocatedGroupId = allocatedGroup?.id,
     )
   }
 }

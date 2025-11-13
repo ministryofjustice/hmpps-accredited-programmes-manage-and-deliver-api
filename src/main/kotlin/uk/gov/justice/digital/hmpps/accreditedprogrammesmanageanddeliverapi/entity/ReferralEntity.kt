@@ -131,9 +131,6 @@ class ReferralEntity(
   var referralMotivationBackgroundAndNonAssociations: ReferralMotivationBackgroundAndNonAssociationsEntity? = null,
 )
 
-// There should only be one active group membership at any given time
-fun ReferralEntity.currentlyAllocatedGroup(): ProgrammeGroupMembershipEntity? = this.programmeGroupMemberships.firstOrNull { it.deletedAt == null }
-
 fun ReferralEntity.currentStatusHistory(): ReferralStatusHistoryEntity? = this.statusHistories.maxByOrNull { it.createdAt }
 
 enum class ReferralEntitySourcedFrom {
