@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralMotivationBackgroundAndNonAssociations
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateOrUpdateReferralMotivationBackgroundAndNonAssociations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.GroupAllocationNotesService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
@@ -65,10 +64,10 @@ class GroupAllocationNotesController(
   fun getReferralMotivationBackgroundAndNonAssociationsByReferralId(
     @Parameter(description = "The id (UUID) of a referral", required = true)
     @PathVariable("id") id: UUID,
-  ): ResponseEntity<ReferralMotivationBackgroundAndNonAssociations> = groupAllocationNotesService.getReferralMotivationBackgroundAndNonAssociationsByReferralId(id)
+  ): ResponseEntity<ReferralMotivationBackgroundAndNonAssociations?> = groupAllocationNotesService.getReferralMotivationBackgroundAndNonAssociationsByReferralId(id)
     .let {
       ResponseEntity.ok(it)
-    } ?: throw NotFoundException("No motivation, background and non-associations information found for referral id: $id")
+    }
 
   @Operation(
     tags = ["GroupAllocationNotesController"],
