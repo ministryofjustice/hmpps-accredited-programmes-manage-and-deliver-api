@@ -25,6 +25,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusTransitions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
@@ -35,6 +36,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.DeliveryLocationPreferencesService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.OffenceService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralStatusService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SentenceService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import java.util.UUID
@@ -47,6 +49,7 @@ class ReferralController(
   private val offenceService: OffenceService,
   private val sentenceService: SentenceService,
   private val deliveryLocationPreferencesService: DeliveryLocationPreferencesService,
+  private val referralStatusService: ReferralStatusService,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -437,4 +440,37 @@ class ReferralController(
     val deliveryLocationPreferences = deliveryLocationPreferencesService.getPreferredDeliveryLocationsForReferral(id)
     return ResponseEntity.ok().body(deliveryLocationPreferences)
   }
+
+  @Operation(
+    tags = ["Referrals"],
+    summary = "Retrieve status transition data for a referral.",
+    operationId = "getStatusTransitionsForReferral",
+    description = "Returns all possible data for the update referral status form based on the referral id",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Data for update referral status form",
+        content = [Content(array = ArraySchema(schema = Schema(implementation = ReferralStatusTransitions::class)))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden. The client is not authorised to access this resource.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/bff/status-transitions/referral/{referralId}", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getStatusTransitionsForReferral(
+    @Parameter(description = "The id (UUID) of a referral status description", required = true)
+    @PathVariable referralId: UUID,
+  ): ResponseEntity<ReferralStatusTransitions> = referralStatusService.getStatusTransitionsForReferral(referralId)
+    ?.let {
+      ResponseEntity.ok(it)
+    } ?: throw NotFoundException("Referral status history for referral with id $referralId not found")
 }
