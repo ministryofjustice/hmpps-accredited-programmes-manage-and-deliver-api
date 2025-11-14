@@ -13,7 +13,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusFormData
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
@@ -627,43 +626,6 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
         .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
-    }
-  }
-
-  @Nested
-  @DisplayName("Remove from a group")
-  inner class RemoveFromAGroup {
-    @Nested
-    @DisplayName("Get possible transitions endpoint")
-    inner class GetReferralStatusForm {
-      @Test
-      fun `should return the status data for the ui form based on a referral id`() {
-        // When
-        val response = performRequestAndExpectOk(
-          httpMethod = HttpMethod.GET,
-          uri = "/bff/remove-from-group/${referrals.first().id}",
-          returnType = object : ParameterizedTypeReference<ReferralStatusFormData>() {},
-        )
-
-        // Then
-        assertThat(response).isNotNull
-        assertThat(response.currentStatus.title).isEqualTo("Awaiting allocation")
-        assertThat(response.availableStatuses).isNotEmpty
-      }
-
-      @Test
-      fun `should return empty list when referral status description does not exist`() {
-        // Given
-        val nonExistentId = UUID.randomUUID()
-
-        // When
-        performRequestAndExpectStatus(
-          httpMethod = HttpMethod.GET,
-          uri = "/bff/referral-status-form/$nonExistentId",
-          returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-          expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
-        )
-      }
     }
   }
 }

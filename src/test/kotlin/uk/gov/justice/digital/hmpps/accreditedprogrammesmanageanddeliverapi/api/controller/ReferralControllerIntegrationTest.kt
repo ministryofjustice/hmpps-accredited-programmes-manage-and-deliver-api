@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusTransitions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.LdcStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
@@ -1123,6 +1124,47 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(result.cannotAttendLocations).isNull()
       assertThat(result.canAttendLocations).isEmpty()
       assertThat(result.lastUpdatedAt).isNull()
+    }
+  }
+
+  @Nested
+  @DisplayName("Get possible transitions endpoint")
+  inner class GetStatusTransitionsForReferral {
+    @Test
+    fun `should return the status data for the ui form based on a referral id`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/status-transitions/referral/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ReferralStatusTransitions>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.currentStatus.title).isEqualTo("Awaiting assessment")
+      assertThat(response.availableStatuses).isNotEmpty
+    }
+
+    @Test
+    fun `should return empty list when referral status description does not exist`() {
+      // Given
+      val nonExistentId = UUID.randomUUID()
+
+      // When
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "bff/status-transitions/referral/$nonExistentId",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
     }
   }
 }

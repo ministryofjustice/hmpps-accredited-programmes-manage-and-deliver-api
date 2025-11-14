@@ -2,7 +2,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
-import io.swagger.v3.oas.annotations.media.ArraySchema
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -24,14 +23,12 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusFormData
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralStatusService
@@ -236,37 +233,4 @@ class ProgrammeGroupController(
     programmeGroupService.createGroup(createGroupRequest, username)
     return ResponseEntity.status(HttpStatus.CREATED).build()
   }
-
-  @Operation(
-    tags = ["Programme Group controller"],
-    summary = "Retrieve data for updating referral status form",
-    operationId = "getReferralStatusForm",
-    description = "Returns all possible data for the update referral status form based on the referral id",
-    responses = [
-      ApiResponse(
-        responseCode = "200",
-        description = "Data for update referral status form",
-        content = [Content(array = ArraySchema(schema = Schema(implementation = ReferralStatusFormData::class)))],
-      ),
-      ApiResponse(
-        responseCode = "401",
-        description = "The request was unauthorised",
-        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-      ),
-      ApiResponse(
-        responseCode = "403",
-        description = "Forbidden. The client is not authorised to access this resource.",
-        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-      ),
-    ],
-    security = [SecurityRequirement(name = "bearerAuth")],
-  )
-  @GetMapping("/bff/remove-from-group/{referralId}", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun getReferralStatusForm(
-    @Parameter(description = "The id (UUID) of a referral status description", required = true)
-    @PathVariable referralId: UUID,
-  ): ResponseEntity<ReferralStatusFormData> = referralStatusService.getReferralStatusFormDataFromReferralId(referralId)
-    ?.let {
-      ResponseEntity.ok(it)
-    } ?: throw NotFoundException("Referral status history for referral with id $referralId not found")
 }
