@@ -96,14 +96,8 @@ jobs:
         working-directory: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests
         run: npm ci
 
-      - name: restore cache
-        id: restore-cache
-        uses: actions/cache/restore@v4
-        env:
-          cache-name: node-modules
-        with:
-          path: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests/node_modules
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+      - name: Install Playwright Browsers
+        run: npx playwright install
 
       - name: Run Playwright tests
         id: playwright-tests
@@ -145,7 +139,7 @@ jobs:
     needs:
       - build
       - deploy_dev
-      - e2e-tests  # Added dependency on E2E tests
+      - e2e-tests
     uses: ministryofjustice/hmpps-github-actions/.github/workflows/deploy_env.yml@v2 # WORKFLOW_VERSION
     secrets: inherit
     with:
