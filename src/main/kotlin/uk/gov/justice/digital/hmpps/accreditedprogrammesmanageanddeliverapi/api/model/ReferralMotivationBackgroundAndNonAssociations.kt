@@ -11,34 +11,34 @@ import java.util.UUID
 data class ReferralMotivationBackgroundAndNonAssociations(
   @Schema(
     example = "c98151f4-4081-4c65-9f98-54e63a328c8d",
-    required = true,
+    required = false,
     description = "The unique id of the ReferralMotivationBackgroundAndNonAssociations information.",
   )
-  @get:JsonProperty("id", required = true)
+  @get:JsonProperty("id", required = false)
   val id: UUID? = null,
 
   @Schema(
     example = "c98151f4-4081-4c65-9f98-54e63a328c8d",
-    required = true,
+    required = false,
     description = "The unique id of this referral.",
   )
-  @get:JsonProperty("referralId", required = true)
+  @get:JsonProperty("referralId", required = false)
   val referralId: UUID? = null,
 
   @Schema(
     example = "true",
-    required = true,
+    required = false,
     description = "Boolean value indicating whether the referral maintains innocence.",
   )
-  @get:JsonProperty("maintainsInnocence", required = true)
+  @get:JsonProperty("maintainsInnocence", required = false)
   val maintainsInnocence: Boolean? = null,
 
   @Schema(
     example = "Motivated to change and improve life circumstances.",
-    required = true,
+    required = false,
     description = "Information on the motivation to participate in an accredited programme.",
   )
-  @get:JsonProperty("motivations", required = true)
+  @get:JsonProperty("motivations", required = false)
   val motivations: String? = null,
 
   @Schema(
@@ -51,19 +51,19 @@ data class ReferralMotivationBackgroundAndNonAssociations(
 
   @Schema(
     example = "Should not be in a group with a person who has a history of reoffending on a previous accredited programme.",
-    required = true,
+    required = false,
     description = "Information on any non-associations relevant to the referral.",
   )
-  @get:JsonProperty("nonAssociations", required = true)
+  @get:JsonProperty("nonAssociations", required = false)
   val nonAssociations: String? = null,
 
   @Schema(
     example = "11 June 2023",
-    required = true,
+    required = false,
     description = "Timestamp of when this referral was created.",
   )
   @JsonFormat(pattern = "d MMMM yyyy")
-  @get:JsonProperty("createdAt", required = true)
+  @get:JsonProperty("createdAt", required = false)
   val createdAt: LocalDate? = null,
 
   @get:JsonProperty("createdBy")
@@ -72,7 +72,7 @@ data class ReferralMotivationBackgroundAndNonAssociations(
 
   @Schema(
     example = "11 June 2023",
-    required = true,
+    required = false,
     description = "Timestamp of when this referral was created.",
   )
   @JsonFormat(pattern = "d MMMM yyyy")

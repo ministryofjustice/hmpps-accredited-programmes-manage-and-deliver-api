@@ -64,7 +64,7 @@ class GroupAllocationNotesController(
   fun getReferralMotivationBackgroundAndNonAssociationsByReferralId(
     @Parameter(description = "The id (UUID) of a referral", required = true)
     @PathVariable("id") id: UUID,
-  ): ResponseEntity<ReferralMotivationBackgroundAndNonAssociations?> = groupAllocationNotesService.getReferralMotivationBackgroundAndNonAssociationsByReferralId(id)
+  ): ResponseEntity<ReferralMotivationBackgroundAndNonAssociations> = groupAllocationNotesService.getReferralMotivationBackgroundAndNonAssociationsByReferralId(id)
     .let {
       ResponseEntity.ok(it)
     }
