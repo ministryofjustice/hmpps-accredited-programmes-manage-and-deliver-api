@@ -93,6 +93,7 @@ jobs:
           node-version: lts/*
 
       - name: Install dependencies
+        working-directory: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests
         run: npm ci
 
       - name: Install Playwright Browsers
@@ -100,6 +101,7 @@ jobs:
 
       - name: Run Playwright tests
         id: playwright-tests
+        working-directory: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests
         run: npx playwright test
 
       - uses: actions/upload-artifact@v5
