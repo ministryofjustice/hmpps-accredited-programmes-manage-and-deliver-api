@@ -31,7 +31,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralStatusService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.util.UUID
 
@@ -45,7 +44,6 @@ class ProgrammeGroupController(
   private val programmeGroupService: ProgrammeGroupService,
   private val authenticationHolder: HmppsAuthenticationHolder,
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
-  private val referralStatusService: ReferralStatusService,
 ) {
 
   @Operation(

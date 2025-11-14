@@ -7,7 +7,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import java.time.LocalDate
 import java.util.UUID
 
-@Schema(description = "Form data for the update status form in the M&D UI")
+@Schema(description = "Status transition information for the update status form in the M&D UI")
 data class ReferralStatusTransitions(
   @field:Schema(description = "The current status information")
   @get:JsonProperty("currentStatus", required = true)

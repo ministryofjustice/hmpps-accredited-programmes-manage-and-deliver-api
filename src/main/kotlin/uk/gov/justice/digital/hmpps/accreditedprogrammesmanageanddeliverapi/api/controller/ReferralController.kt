@@ -443,7 +443,7 @@ class ReferralController(
 
   @Operation(
     tags = ["Referrals"],
-    summary = "Retrieve data for updating referral status form",
+    summary = "Retrieve status transition data for a referral.",
     operationId = "getStatusTransitionsForReferral",
     description = "Returns all possible data for the update referral status form based on the referral id",
     responses = [
