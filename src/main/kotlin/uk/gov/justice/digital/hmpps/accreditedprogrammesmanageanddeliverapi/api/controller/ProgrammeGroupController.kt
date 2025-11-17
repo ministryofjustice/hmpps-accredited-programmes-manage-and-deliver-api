@@ -248,11 +248,6 @@ class ProgrammeGroupController(
         content = [Content(schema = Schema(implementation = Group::class))],
       ),
       ApiResponse(
-        responseCode = "200",
-        description = "Returns empty body if programme group does not exist",
-        content = [Content(schema = Schema(implementation = Void::class))],
-      ),
-      ApiResponse(
         responseCode = "400",
         description = "Invalid request body",
         content = [Content(schema = Schema(implementation = ErrorResponse::class))],
