@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.LocationFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
@@ -72,7 +73,7 @@ class ProgrammeGroupService(
     val otherTabCount: Int = groupWaitlistItemViewRepository.count(nonActiveSpecification).toInt()
 
     return ProgrammeGroupDetails(
-      group = ProgrammeGroupDetails.Group(
+      group = Group(
         code = group.code,
         regionName = group.regionName,
       ),
@@ -81,6 +82,8 @@ class ProgrammeGroupService(
       otherTabTotal = otherTabCount,
     )
   }
+
+  fun getGroupInRegion(groupCode: String, regionName: String): ProgrammeGroupEntity? = programmeGroupRepository.findByCodeAndRegionName(groupCode, regionName)
 
   fun getGroupFilters(): ProgrammeGroupDetails.Filters {
     val referralReportingLocations = referralReportingLocationRepository.getPdusAndReportingTeams()

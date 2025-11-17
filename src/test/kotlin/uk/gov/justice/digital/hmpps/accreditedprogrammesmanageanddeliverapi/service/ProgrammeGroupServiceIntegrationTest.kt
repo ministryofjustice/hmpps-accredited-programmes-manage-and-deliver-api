@@ -19,10 +19,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
@@ -31,7 +27,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
-import java.time.LocalDate
 import java.util.UUID
 
 class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
@@ -479,38 +474,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           } ?: true
         }
       assertThat(filters.sex).containsExactly("Male", "Female")
-    }
-
-    private fun createReferralWithWaitlistStatus(
-      crn: String,
-      personName: String,
-      sex: String,
-      cohort: String,
-      pduName: String,
-      reportingTeam: String,
-    ): Triple<ReferralEntity, ReferralStatusHistoryEntity, ReferralReportingLocationEntity?> {
-      val referral = ReferralEntityFactory()
-        .withCrn(crn)
-        .withPersonName(personName)
-        .withSex(sex)
-        .withCohort(OffenceCohort.fromDisplayName(cohort))
-        .withSentenceEndDate(LocalDate.now().plusYears(2))
-        .withDateOfBirth(LocalDate.now().minusYears(30))
-        .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
-        .produce()
-
-      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
-        referral,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
-      )
-
-      val reportingLocation = ReferralReportingLocationFactory()
-        .withReferral(referral)
-        .withPduName(pduName)
-        .withReportingTeam(reportingTeam)
-        .produce()
-
-      return Triple(referral, statusHistory, reportingLocation)
     }
   }
 }
