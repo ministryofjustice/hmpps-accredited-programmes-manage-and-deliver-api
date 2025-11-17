@@ -160,6 +160,7 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
       assertThat(exception.message).isEqualTo("Cannot assign referral to group as referral with id ${referral.id} is in a closed state")
     }
   }
+}
 
   @Nested
   @DisplayName("removeReferralFromGroup")
