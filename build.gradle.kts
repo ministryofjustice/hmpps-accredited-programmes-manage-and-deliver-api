@@ -35,11 +35,11 @@ dependencies {
   implementation("org.springframework.security:spring-security-crypto:6.5.6")
   implementation("com.nimbusds:oauth2-oidc-sdk:11.30.1")
 
-  testImplementation("org.wiremock:wiremock-standalone:3.13.1")
+  testImplementation("org.wiremock:wiremock-standalone:3.13.2")
   testImplementation("io.swagger.parser.v3:swagger-parser:2.1.35") {
     exclude(group = "io.swagger.core.v3")
   }
-  testImplementation("org.testcontainers:testcontainers:2.0.1")
+  testImplementation("org.testcontainers:testcontainers:2.0.2")
   testImplementation("org.testcontainers:localstack:1.21.3")
   testImplementation("org.testcontainers:postgresql:1.21.3")
   testImplementation("org.testcontainers:junit-jupiter:1.21.3")
