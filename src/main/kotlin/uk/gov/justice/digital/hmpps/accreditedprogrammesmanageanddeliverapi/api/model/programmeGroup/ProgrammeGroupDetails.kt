@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import org.springframework.data.domain.Page
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.LocationFilterValues
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(description = "Details of a Programme Group including filters and paginated group data.")
@@ -80,19 +81,10 @@ data class ProgrammeGroupDetails(
     val cohort: List<String> = ProgrammeGroupCohort.entries.map { it.label },
 
     @Schema(
-      example = "[\"Durham\", \"Leeds\", \"Manchester\"]",
-      required = false,
-      description = "The list of PDU (Probation Delivery Unit) names that can be used for filtering.",
+      required = true,
+      description = "Contains pdu's with a list of their reporting teams",
     )
-    @get:JsonProperty("pduNames", required = false)
-    val pduNames: List<String> = emptyList(),
-
-    @Schema(
-      example = "[\"Durham Team 1\", \"Durham Team 2\"]",
-      required = false,
-      description = "The list of reporting teams that can be used for filtering.",
-    )
-    @get:JsonProperty("reportingTeams", required = false)
-    val reportingTeams: List<String> = emptyList(),
+    @get:JsonProperty("locationFilters", required = true)
+    val locationFilterValues: List<LocationFilterValues>,
   )
 }

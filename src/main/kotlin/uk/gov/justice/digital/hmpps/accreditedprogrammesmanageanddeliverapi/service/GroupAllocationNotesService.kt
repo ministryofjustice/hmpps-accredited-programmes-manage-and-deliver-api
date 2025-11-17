@@ -4,7 +4,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralMotivationBackgroundAndNonAssociations
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralMotivationBackgroundAndNonAssociationsEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateOrUpdateReferralMotivationBackgroundAndNonAssociations
@@ -23,7 +22,6 @@ class GroupAllocationNotesService(
 
   fun getReferralMotivationBackgroundAndNonAssociationsByReferralId(referralId: UUID): ReferralMotivationBackgroundAndNonAssociations {
     val motivationBackgroundAndNonAssociations = referralMotivationBackgroundAndNonAssociationsRepository.findByReferralId(referralId)
-      ?: throw NotFoundException("No motivation, background and non-associations information found for referral id: $referralId")
 
     return ReferralMotivationBackgroundAndNonAssociations.toApi(motivationBackgroundAndNonAssociations)
   }

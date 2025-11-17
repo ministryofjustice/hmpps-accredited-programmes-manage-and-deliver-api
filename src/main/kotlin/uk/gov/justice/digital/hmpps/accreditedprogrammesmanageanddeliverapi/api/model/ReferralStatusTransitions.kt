@@ -5,10 +5,10 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import java.time.LocalDate
-import java.util.*
+import java.util.UUID
 
-@Schema(description = "Form data for the update status form in the M&D UI")
-data class ReferralStatusFormData(
+@Schema(description = "Status transition information for the update status form in the M&D UI")
+data class ReferralStatusTransitions(
   @field:Schema(description = "The current status information")
   @get:JsonProperty("currentStatus", required = true)
   val currentStatus: CurrentStatus,

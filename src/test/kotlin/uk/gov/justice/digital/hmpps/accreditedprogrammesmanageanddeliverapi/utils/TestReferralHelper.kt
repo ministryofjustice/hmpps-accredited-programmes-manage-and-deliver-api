@@ -14,8 +14,13 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestComponent
 import org.springframework.context.annotation.Import
 import org.springframework.data.repository.findByIdOrNull
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toFullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Osp
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.RiskScoreLevel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.DomainEventsQueueConfig
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
@@ -26,6 +31,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.DomainEventsMessageFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
@@ -99,20 +106,27 @@ class TestReferralHelper {
    * 4. Retrieves and returns the created referral entity
    *
    * @param crn The Case Reference Number. If null, a random CRN is generated.
+   * @param personName The full name of the person being referred. Defaults to a random full name.
    * @param referralId The referral UUID. If null, a random UUID is generated.
    * @param sourcedFrom The source of the referral. Defaults to LICENCE_CONDITION.
-   * @param reportingPdu The reporting Probation Delivery Unit name. Defaults to "Test PDU 1".
+   * @param reportingPdu The reporting Probation Delivery Unit name. Defaults to "PDU 1".
    * @param reportingTeam The reporting team name. Defaults to "Team A".
+   * @param sex The sex of the person. Defaults to "Male".
+   * @param cohort The offence cohort for the referral. Defaults to GENERAL_OFFENCE.
    * @return The created [ReferralEntity]
    */
   fun createReferral(
-    crn: String? = null,
-    referralId: UUID? = null,
-    sourcedFrom: ReferralEntitySourcedFrom? = null,
-    reportingPdu: String? = "Test PDU 1",
-    reportingTeam: String? = "Team A",
+    crn: String = randomCrn(),
+    personName: String = randomFullName().toString(),
+    referralId: UUID = UUID.randomUUID(),
+    sourcedFrom: ReferralEntitySourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION,
+    reportingPdu: String = "PDU 1",
+    reportingTeam: String = "Team A",
+    sex: String = "Male",
+    cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE,
   ): ReferralEntity {
-    val actualCrn = sendReferralEvent(crn, referralId, sourcedFrom, reportingPdu, reportingTeam)
+    val actualCrn =
+      sendReferralEvent(crn, personName, referralId, sourcedFrom, reportingPdu, reportingTeam, sex, cohort)
     waitForQueueToEmpty()
     return referralRepository.findByCrn(actualCrn).first()
   }
@@ -159,11 +173,14 @@ class TestReferralHelper {
 
     val crns = configs.map { config ->
       sendReferralEvent(
-        config.crn,
-        config.referralId,
-        config.sourcedFrom,
-        config.reportingPdu,
-        config.reportingTeam,
+        crn = config.crn,
+        personName = config.personName,
+        referralId = config.referralId,
+        sourcedFrom = config.sourcedFrom,
+        reportingPdu = config.reportingPdu,
+        reportingTeam = config.reportingTeam,
+        sex = config.sex,
+        cohort = config.cohort,
       )
     }
 
@@ -202,46 +219,76 @@ class TestReferralHelper {
    * - Stubbing OASys, NDelius, and HMPPS Auth API responses
    * - Sending the domain event to the queue
    *
+   * @param crn The Case Reference Number. Defaults to a random CRN.
+   * @param personName The full name of the person being referred. Defaults to a random full name.
+   * @param referralId The referral UUID. Defaults to a random UUID.
+   * @param sourcedFrom The source of the referral. Defaults to LICENCE_CONDITION.
+   * @param reportingPdu The reporting Probation Delivery Unit name. Defaults to "PDU 1".
+   * @param reportingTeam The reporting team name. Defaults to "Team A".
+   * @param sex The sex of the person. Defaults to "Male".
+   * @param cohort The offence cohort for the referral. Defaults to GENERAL_OFFENCE.
    * @return The CRN used for the referral
    */
   private fun sendReferralEvent(
-    crn: String? = null,
-    referralId: UUID? = null,
-    sourcedFrom: ReferralEntitySourcedFrom? = null,
-    reportingPdu: String? = "Test PDU 1",
-    reportingTeam: String? = "Team A",
+    crn: String = randomCrn(),
+    personName: String = randomFullName().toString(),
+    referralId: UUID = UUID.randomUUID(),
+    sourcedFrom: ReferralEntitySourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION,
+    reportingPdu: String = "PDU 1",
+    reportingTeam: String = "Team A",
+    sex: String = "Male",
+    cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE,
   ): String {
-    val actualCrn = crn ?: randomCrn()
-    val actualReferralId = referralId ?: UUID.randomUUID()
-    val actualSourcedFrom = sourcedFrom ?: ReferralEntitySourcedFrom.LICENCE_CONDITION
-
     val findAndReferReferralDetails = FindAndReferReferralDetailsFactory()
       .withInterventionName("Test Intervention")
       .withInterventionType(InterventionType.ACP)
-      .withReferralId(actualReferralId)
-      .withPersonReference(actualCrn)
+      .withReferralId(referralId)
+      .withPersonReference(crn)
       .withPersonReferenceType(PersonReferenceType.CRN)
-      .withSourcedFromReferenceType(actualSourcedFrom)
+      .withSourcedFromReferenceType(sourcedFrom)
       .withSourcedFromReference("LIC-12345")
       .withEventNumber(1)
       .produce()
 
-    oasysApiStubs.stubSuccessfulPniResponse(actualCrn)
+    // Sets the values for our PNI calculation if the cohort should be SEXUAL OFFENCE
+    val pniResponse = PniResponseFactory().withAssessment(
+      PniAssessmentFactory().also {
+        if (cohort == OffenceCohort.SEXUAL_OFFENCE) {
+          it.withOsp(
+            Osp(
+              RiskScoreLevel.HIGH,
+              RiskScoreLevel.HIGH,
+            ),
+          )
+        } else {
+          it.withOsp(
+            Osp(
+              RiskScoreLevel.NOT_APPLICABLE,
+              RiskScoreLevel.NOT_APPLICABLE,
+            ),
+          )
+        }
+      }.produce(),
+    ).produce()
+    oasysApiStubs.stubSuccessfulPniResponse(crn, pniResponse)
     nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
-      actualCrn,
+      crn,
       findAndReferReferralDetails.eventNumber,
-      sourcedFrom = actualSourcedFrom,
+      sourcedFrom = sourcedFrom,
     )
     nDeliusApiStubs.stubPersonalDetailsResponseForCrn(
-      actualCrn,
-      NDeliusPersonalDetailsFactory().withCrn(actualCrn)
-        .withProbationDeliveryUnit(CodeDescription(randomUppercaseString(), reportingPdu!!))
-        .withTeam(CodeDescription(randomUppercaseString(), reportingTeam!!))
+      crn,
+      NDeliusPersonalDetailsFactory()
+        .withCrn(crn)
+        .withSex(CodeDescription(randomUppercaseString(), sex))
+        .withName(personName.toFullName())
+        .withProbationDeliveryUnit(CodeDescription(randomUppercaseString(), reportingPdu))
+        .withTeam(CodeDescription(randomUppercaseString(), reportingTeam))
         .produce(),
     )
     hmppsAuth.stubGrantToken()
     wiremock.stubFor(
-      get(urlEqualTo("/referral/$actualReferralId"))
+      get(urlEqualTo("/referral/$referralId"))
         .willReturn(
           aResponse()
             .withStatus(200)
@@ -252,14 +299,14 @@ class TestReferralHelper {
 
     val eventType = "interventions.community-referral.created"
     val domainEventsMessage = DomainEventsMessageFactory()
-      .withDetailUrl("/referral/$actualReferralId")
+      .withDetailUrl("/referral/$referralId")
       .withEventType(eventType)
-      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", actualCrn))))
+      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", crn))))
       .produce()
 
     domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
-    return actualCrn
+    return crn
   }
 
   /**
@@ -279,17 +326,23 @@ class TestReferralHelper {
   /**
    * Configuration for creating a referral via domain event.
    *
-   * @property crn The Case Reference Number. If null, a random CRN is generated.
-   * @property referralId The referral UUID. If null, a random UUID is generated.
+   * @property crn The Case Reference Number. Defaults to a random CRN.
+   * @property personName The full name of the person being referred. Defaults to a random full name.
+   * @property referralId The referral UUID. Defaults to a random UUID.
    * @property sourcedFrom The source of the referral. Defaults to LICENCE_CONDITION.
-   * @property reportingPdu The reporting Probation Delivery Unit name.
-   * @property reportingTeam The reporting team name.
+   * @property reportingPdu The reporting Probation Delivery Unit name. Defaults to "PDU 1".
+   * @property reportingTeam The reporting team name. Defaults to "Team A".
+   * @property sex The sex of the person. Defaults to "Male".
+   * @property cohort The offence cohort for the referral. Defaults to GENERAL_OFFENCE.
    */
   data class ReferralConfig(
-    val crn: String? = null,
-    val referralId: UUID? = null,
-    val sourcedFrom: ReferralEntitySourcedFrom? = null,
-    val reportingPdu: String? = "Test PDU 1",
-    val reportingTeam: String? = "Team A",
+    val crn: String = randomCrn(),
+    val personName: String = randomFullName().toString(),
+    val referralId: UUID = UUID.randomUUID(),
+    val sourcedFrom: ReferralEntitySourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION,
+    val reportingPdu: String = "PDU 1",
+    val reportingTeam: String = "Team A",
+    val sex: String = "Male",
+    val cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE,
   )
 }

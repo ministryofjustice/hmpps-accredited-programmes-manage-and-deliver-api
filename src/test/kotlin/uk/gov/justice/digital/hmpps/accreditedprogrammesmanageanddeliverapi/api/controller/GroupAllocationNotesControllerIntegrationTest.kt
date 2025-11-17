@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralMotivationBackgroundAndNonAssociations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
@@ -76,13 +75,25 @@ class GroupAllocationNotesControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should return 404 when no motivation background or non-association is not found`() {
-      performRequestAndExpectStatus(
+    fun `returns null values when no motivation background or non-association is not found`() {
+      val referral = testReferralHelper.createReferral()
+
+      val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/referral/${UUID.randomUUID()}/motivation-background-non-associations",
-        object : ParameterizedTypeReference<ErrorResponse>() {},
-        HttpStatus.NOT_FOUND.value(),
+        uri = "/referral/${referral.id}/motivation-background-non-associations",
+        object : ParameterizedTypeReference<ReferralMotivationBackgroundAndNonAssociations>() {},
       )
+
+      assertThat(response.referralId).isNull()
+      assertThat(response.id).isNull()
+      assertThat(response.maintainsInnocence).isNull()
+      assertThat(response.motivations).isNull()
+      assertThat(response.nonAssociations).isNull()
+      assertThat(response.otherConsiderations).isNull()
+      assertThat(response.createdAt).isNull()
+      assertThat(response.createdBy).isNull()
+      assertThat(response.lastUpdatedAt).isNull()
+      assertThat(response.lastUpdatedBy).isNull()
     }
   }
 

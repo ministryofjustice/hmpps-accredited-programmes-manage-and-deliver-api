@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.LocationFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
@@ -83,10 +84,13 @@ class ProgrammeGroupService(
 
   fun getGroupFilters(): ProgrammeGroupDetails.Filters {
     val referralReportingLocations = referralReportingLocationRepository.getPdusAndReportingTeams()
+    val pdusWithReportingTeams = referralReportingLocations.groupBy { it.pduName }
+      .map { (pduName, reportingTeams) ->
+        LocationFilterValues(pduName = pduName, reportingTeams = reportingTeams.map { it.reportingTeam }.distinct())
+      }
 
     return ProgrammeGroupDetails.Filters(
-      pduNames = referralReportingLocations.map { it.pduName }.distinct(),
-      reportingTeams = referralReportingLocations.map { it.reportingTeam }.distinct(),
+      locationFilterValues = pdusWithReportingTeams,
     )
   }
 }

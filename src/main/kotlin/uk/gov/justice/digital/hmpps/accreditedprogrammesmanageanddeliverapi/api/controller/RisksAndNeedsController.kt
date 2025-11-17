@@ -40,7 +40,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsService) {
 
   @Operation(
-    tags = ["Oasys Integration"],
     summary = "Risks details as held by Oasys",
     operationId = "getRisksByCrn",
     description = """""",
@@ -91,7 +90,6 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
   ): ResponseEntity<Risks> = ResponseEntity.ok(risksAndNeedsService.getRisksByCrn(crn))
 
   @Operation(
-    tags = ["Oasys Integration"],
     summary = "Retrieve a person's Learning needs as held in Oasys",
     operationId = "getLearningNeeds",
     description = "",
@@ -142,7 +140,6 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
   ): ResponseEntity<LearningNeeds> = ResponseEntity.ok(risksAndNeedsService.getLearningNeedsForCrn(crn))
 
   @Operation(
-    tags = ["Oasys Integration"],
     summary = "Health details as held by Oasys",
     operationId = "getHealth",
     description = """""",
@@ -197,7 +194,6 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     )
 
   @Operation(
-    tags = ["Oasys Integration"],
     summary = "Retrieve a person's relationship details as held in Oasys",
     operationId = "getRelationships",
     responses = [
@@ -247,7 +243,6 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
   ): ResponseEntity<Relationships> = ResponseEntity.ok(risksAndNeedsService.getRelationshipsForCrn(crn))
 
   @Operation(
-    tags = ["Oasys Integration"],
     summary = "ROSH details as held by Oasys",
     operationId = "getRoshAnalysisByCrn",
     description = """""",
@@ -298,7 +293,6 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
   ): ResponseEntity<RoshAnalysis> = ResponseEntity.ok(risksAndNeedsService.getRoshFullForCrn(crn))
 
   @Operation(
-    tags = ["Oasys Integration"],
     summary = "Offence Analysis details as held by Oasys",
     operationId = "getOffenceAnalysisByCrn",
     description = """""",
@@ -349,7 +343,6 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
   ): ResponseEntity<OffenceAnalysis> = ResponseEntity.ok(risksAndNeedsService.getOffenceAnalysis(crn))
 
   @Operation(
-    tags = ["Oasys Integration"],
     summary = "Get drug details as held by Oasys",
     operationId = "getDrugDetails",
     description = """""",
@@ -404,7 +397,6 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     )
 
   @Operation(
-    tags = ["Oasys Integration"],
     summary = "Lifestyle and Associate details as held by Oasys",
     operationId = "getLifestyleAndAssociates",
     description = """""",
@@ -459,7 +451,6 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     )
 
   @Operation(
-    tags = ["Oasys Integration"],
     summary = "Get alcohol misuse details as held by Oasys",
     operationId = "getAlcoholMisuseDetails",
     responses = [
@@ -510,7 +501,6 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     .ok(risksAndNeedsService.getAlcoholMisuseDetails(crn))
 
   @Operation(
-    tags = ["Oasys Integration"],
     summary = "Get emotional wellbeing details as held by Oasys",
     operationId = "getEmotionalWellbeing",
     description = """Fetch emotional needs of the person based on crn""",
@@ -565,7 +555,6 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     )
 
   @Operation(
-    tags = ["Oasys Integration"],
     summary = "Get thinking and behaviour details as held by Oasys",
     operationId = "getThinkingAndBehaviourDetails",
     description = """Fetch thinking and behaviour data """,
@@ -620,7 +609,6 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     )
 
   @Operation(
-    tags = ["Oasys Integration"],
     summary = "Get attitude details as held by Oasys",
     operationId = "getAttitude",
     description = """Fetch attitude data""",

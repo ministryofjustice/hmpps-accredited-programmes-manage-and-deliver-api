@@ -161,7 +161,8 @@ class TestDataGenerator {
 
   fun createGroup(
     group: ProgrammeGroupEntity,
-  ) {
+  ): ProgrammeGroupEntity {
     entityManager.persist(group)
+    return group
   }
 }
