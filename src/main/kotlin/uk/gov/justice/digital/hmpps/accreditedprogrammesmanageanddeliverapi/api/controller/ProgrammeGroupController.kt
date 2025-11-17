@@ -33,7 +33,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.util.UUID
 
@@ -47,7 +46,6 @@ class ProgrammeGroupController(
   private val programmeGroupService: ProgrammeGroupService,
   private val authenticationHolder: HmppsAuthenticationHolder,
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
-  private val userService: UserService,
 ) {
 
   @Operation(
@@ -271,7 +269,6 @@ class ProgrammeGroupController(
     if (username == null || username.isBlank()) {
       throw AuthenticationCredentialsNotFoundException("No authenticated user found")
     }
-    val (userRegion) = userService.getUserRegions(username)
-    return ResponseEntity.ok(programmeGroupService.getGroupInRegion(groupCode, userRegion)?.toApi())
+    return ResponseEntity.ok(programmeGroupService.getGroupInRegion(groupCode, username)?.toApi())
   }
 }

@@ -82,7 +82,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     @Test
     fun `createGroup throws an error if a group already exists`() {
       val groupCode = "AAA111"
-      val existingGroup = ProgrammeGroupFactory().withCode(groupCode).produce()
+      val existingGroup = ProgrammeGroupFactory().withCode(groupCode).withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(existingGroup)
 
       assertThrows<ConflictException> {
@@ -91,7 +91,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
             existingGroup.code,
             ProgrammeGroupCohort.from(existingGroup.cohort, existingGroup.isLdc),
             existingGroup.sex,
-
           ),
           username = "AUTH_ADM",
         )

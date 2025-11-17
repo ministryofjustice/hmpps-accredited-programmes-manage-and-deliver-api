@@ -601,8 +601,8 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
     }
 
     @Test
-    fun `create group with code and return CONFLICT when it already exists`() {
-      val group = ProgrammeGroupFactory().withCode("TEST_GROUP").produce()
+    fun `create group with code and return CONFLICT when it already exists within the region`() {
+      val group = ProgrammeGroupFactory().withCode("TEST_GROUP").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
       val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE)
       val response = performRequestAndExpectStatusWithBody(
@@ -612,7 +612,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
         body = body,
         expectedResponseStatus = HttpStatus.CONFLICT.value(),
       )
-      assertThat(response.userMessage).isEqualTo("Conflict: Programme group with code TEST_GROUP already exists")
+      assertThat(response.userMessage).isEqualTo("Conflict: Programme group with code TEST_GROUP already exists in region")
     }
 
     @Test
