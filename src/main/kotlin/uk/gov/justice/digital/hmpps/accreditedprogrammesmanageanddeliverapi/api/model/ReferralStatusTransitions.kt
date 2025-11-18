@@ -18,6 +18,24 @@ data class ReferralStatusTransitions(
   val availableStatuses: List<ReferralStatus>,
 )
 
+@Schema(description = "Status transition information for the Remove Referral from Group form in the M&D UI")
+data class RemoveReferralFromGroupStatusTransitions(
+  @field:Schema(description = "The current status information")
+  @get:JsonProperty("currentStatus", required = true)
+  val currentStatus: CurrentStatus,
+
+  @field:Schema(description = "List of transition statuses")
+  @get:JsonProperty("availableStatuses", required = true)
+  val availableStatuses: List<ReferralStatus>,
+) {
+  companion object {
+    fun from(referralStatusTransitions: ReferralStatusTransitions): RemoveReferralFromGroupStatusTransitions = RemoveReferralFromGroupStatusTransitions(
+      currentStatus = referralStatusTransitions.currentStatus,
+      availableStatuses = referralStatusTransitions.availableStatuses,
+    )
+  }
+}
+
 @Schema(description = "Form data for the update status form in the M&D UI")
 data class CurrentStatus(
   @field:Schema(description = "The id of the status description")
