@@ -32,20 +32,20 @@ dependencies {
   // security
   implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.7")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client:3.5.7")
-  implementation("org.springframework.security:spring-security-crypto:6.5.6")
+  implementation("org.springframework.security:spring-security-crypto:6.5.7")
   implementation("com.nimbusds:oauth2-oidc-sdk:11.30.1")
 
-  testImplementation("org.wiremock:wiremock-standalone:3.13.1")
+  testImplementation("org.wiremock:wiremock-standalone:3.13.2")
   testImplementation("io.swagger.parser.v3:swagger-parser:2.1.35") {
     exclude(group = "io.swagger.core.v3")
   }
-  testImplementation("org.testcontainers:testcontainers:2.0.1")
+  testImplementation("org.testcontainers:testcontainers:2.0.2")
   testImplementation("org.testcontainers:localstack:1.21.3")
   testImplementation("org.testcontainers:postgresql:1.21.3")
   testImplementation("org.testcontainers:junit-jupiter:1.21.3")
   testImplementation("org.awaitility:awaitility-kotlin")
   testImplementation("com.ninja-squad:springmockk:4.0.2")
-  testImplementation("io.kotest:kotest-assertions-core:6.0.4")
+  testImplementation("io.kotest:kotest-assertions-core:6.0.5")
   testImplementation("io.mockk:mockk:1.14.6")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")

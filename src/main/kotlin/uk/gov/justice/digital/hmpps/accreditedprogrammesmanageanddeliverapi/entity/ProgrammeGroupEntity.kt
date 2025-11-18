@@ -83,5 +83,5 @@ class ProgrammeGroupEntity(
   var earliestPossibleStartDate: LocalDate? = null,
 
   @Column(name = "started_at_date")
-  var startedAt: LocalDate? = null,
+  var startedAtDate: LocalDate? = null,
 )

@@ -40,10 +40,9 @@ class ProgrammeGroupService(
   private val log = LoggerFactory.getLogger(this::class.java)
 
   fun createGroup(createGroupRequest: CreateGroupRequest, username: String): ProgrammeGroupEntity? {
-    programmeGroupRepository.findByCode(createGroupRequest.groupCode)
-      ?.let { throw ConflictException("Programme group with code ${createGroupRequest.groupCode} already exists") }
-
     val (userRegion) = userService.getUserRegions(username)
+    programmeGroupRepository.findByCodeAndRegionName(createGroupRequest.groupCode, userRegion)
+      ?.let { throw ConflictException("Programme group with code ${createGroupRequest.groupCode} already exists in region") }
 
     log.info("Group created with code: ${createGroupRequest.groupCode}")
 
@@ -86,6 +85,11 @@ class ProgrammeGroupService(
       pagedGroupData = groupListDataToReturn,
       otherTabTotal = otherTabCount,
     )
+  }
+
+  fun getGroupInRegion(groupCode: String, username: String): ProgrammeGroupEntity? {
+    val (userRegion) = userService.getUserRegions(username)
+    return programmeGroupRepository.findByCodeAndRegionName(groupCode, userRegion)
   }
 
   fun getGroupFilters(): ProgrammeGroupDetails.Filters {

@@ -17,19 +17,19 @@ class NDeliusUserTeamsFactory {
   fun withTeams(teams: List<NDeliusUserTeam>) = apply { this.teams = teams }
 
   fun withSingleTeam(
-    code: String = "TEAM001",
-    description: String = "Test Team",
-    pduCode: String = "PDU001",
-    pduDescription: String = "Test PDU",
-    regionCode: String = "REGION001",
-    regionDescription: String = "Test Region",
+    code: String? = "TEAM001",
+    description: String? = "Test Team",
+    pduCode: String? = "PDU001",
+    pduDescription: String? = "Test PDU",
+    regionCode: String? = "REGION001",
+    regionDescription: String? = "Test Region",
   ) = apply {
     this.teams = listOf(
       NDeliusUserTeam(
-        code = code,
-        description = description,
-        pdu = CodeDescription(pduCode, pduDescription),
-        region = CodeDescription(regionCode, regionDescription),
+        code = code!!,
+        description = description!!,
+        pdu = CodeDescription(pduCode!!, pduDescription!!),
+        region = CodeDescription(regionCode!!, regionDescription!!),
       ),
     )
   }

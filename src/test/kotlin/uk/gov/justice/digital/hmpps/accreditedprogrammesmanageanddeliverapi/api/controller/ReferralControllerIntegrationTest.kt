@@ -16,6 +16,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusTransitions
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RemoveReferralFromGroupStatusTransitions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.LdcStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
@@ -46,12 +48,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.Utils.createCodeDescriptionList
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
-class ReferralControllerIntegrationTest : IntegrationTestBase() {
+class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMembershipService: ProgrammeGroupMembershipService) : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
@@ -1123,6 +1126,75 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(result.cannotAttendLocations).isNull()
       assertThat(result.canAttendLocations).isEmpty()
       assertThat(result.lastUpdatedAt).isNull()
+    }
+  }
+
+  @Nested
+  @DisplayName("Get possible transitions endpoint")
+  inner class GetStatusTransitionsForReferral {
+    @Test
+    fun `should return the status data for the ui form based on a referral id`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/status-transitions/referral/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ReferralStatusTransitions>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.currentStatus.title).isEqualTo("Awaiting assessment")
+      assertThat(response.availableStatuses).isNotEmpty
+    }
+
+    @Test
+    fun `should return empty list when referral status description does not exist`() {
+      // Given
+      val nonExistentId = UUID.randomUUID()
+
+      // When
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "bff/status-transitions/referral/$nonExistentId",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+    }
+  }
+
+  @Nested
+  @DisplayName("Get possible transitions endpoint for Remove from Group form")
+  inner class GetRemoveFromGroupStatusTransitions {
+    @Test
+    fun `should return the status data for the ui form based on a referral id`() {
+      // Given
+      val theGroup = testDataGenerator.createGroup(ProgrammeGroupFactory().withCode("AAA111").produce())
+
+      val referralEntity = testReferralHelper.createReferralWithStatus(
+        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+      )
+
+      programmeGroupMembershipService.allocateReferralToGroup(referralEntity.id!!, theGroup.id!!, "", "")
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/remove-from-group/${referralEntity.id}",
+        returnType = object : ParameterizedTypeReference<RemoveReferralFromGroupStatusTransitions>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.currentStatus.title).isEqualTo("Scheduled")
+      assertThat(response.availableStatuses).isNotEmpty
     }
   }
 }

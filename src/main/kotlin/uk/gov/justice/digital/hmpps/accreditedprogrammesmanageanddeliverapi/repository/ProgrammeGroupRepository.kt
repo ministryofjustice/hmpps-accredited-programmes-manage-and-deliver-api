@@ -10,4 +10,5 @@ interface ProgrammeGroupRepository :
   JpaSpecificationExecutor<ProgrammeGroupEntity> {
 
   fun findByCode(code: String): ProgrammeGroupEntity?
+  fun findByCodeAndRegionName(code: String, regionName: String): ProgrammeGroupEntity?
 }

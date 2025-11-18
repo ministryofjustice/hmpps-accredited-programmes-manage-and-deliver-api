@@ -22,7 +22,7 @@ class ProgrammeGroupFactory {
   private var deletedAt: LocalDateTime? = null
   private var deletedByUsername: String? = null
   private var regionName: String = "TEST REGION"
-  private var startedAt: LocalDate? = null
+  private var startedAtDate: LocalDate? = null
 
   fun withId(id: UUID) = apply { this.id = id }
   fun withCode(code: String) = apply { this.code = code }
@@ -36,7 +36,7 @@ class ProgrammeGroupFactory {
   fun withDeletedAt(deletedAt: LocalDateTime) = apply { this.deletedAt = deletedAt }
   fun withDeletedByUsername(deletedByUsername: String) = apply { this.deletedByUsername = deletedByUsername }
   fun withRegionName(regionName: String) = apply { this.regionName = regionName }
-  fun withStartedAt(startedAt: LocalDate) = apply { this.startedAt = startedAt }
+  fun withStartedAt(startedAt: LocalDate) = apply { this.startedAtDate = startedAt }
 
   fun produce(): ProgrammeGroupEntity = ProgrammeGroupEntity(
     id = this.id,
@@ -51,11 +51,11 @@ class ProgrammeGroupFactory {
     deletedAt = this.deletedAt,
     deletedByUsername = this.deletedByUsername,
     regionName = this.regionName,
-    startedAt = this.startedAt,
+    startedAtDate = this.startedAtDate,
   )
 
   fun toCreateGroup(): CreateGroupRequest {
     val group = produce()
-    return CreateGroupRequest(group.code, ProgrammeGroupCohort.from(group.cohort, group.isLdc), group.sex)
+    return CreateGroupRequest(group.code, ProgrammeGroupCohort.from(group.cohort, group.isLdc), group.sex, LocalDate.parse("2025-01-01"))
   }
 }
