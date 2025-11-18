@@ -19,4 +19,13 @@ interface ProgrammeGroupMembershipRepository : JpaRepository<ProgrammeGroupMembe
 """,
   )
   fun findCurrentGroupByReferralId(referralId: UUID): ProgrammeGroupMembershipEntity?
+
+  @Query(
+    """
+    SELECT pgm FROM ProgrammeGroupMembershipEntity pgm
+    WHERE pgm.referral.id = :referralId
+    AND pgm.programmeGroup.id = :programmeGroupId
+    """,
+  )
+  fun findByReferralAndProgrammeGroup(referralId: UUID, programmeGroupId: UUID): ProgrammeGroupMembershipEntity?
 }
