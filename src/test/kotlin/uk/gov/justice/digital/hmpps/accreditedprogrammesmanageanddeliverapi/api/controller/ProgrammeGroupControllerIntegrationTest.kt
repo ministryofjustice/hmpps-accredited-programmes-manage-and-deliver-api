@@ -19,6 +19,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
@@ -674,6 +676,61 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
         body = AllocateToGroupRequest("Empty additional details"),
       )
       assertThat(exception.userMessage).isEqualTo("Bad request: Cannot assign referral to group as referral with id ${referral.id} is in a closed state")
+    }
+  }
+
+  @Nested
+  @DisplayName("Remove from Programme group")
+  inner class RemoveFromProgrammeGroup {
+    @Test
+    fun `removeReferralFromGroup can successfully remove a referral from a group`() {
+      // Given
+      val groupCode = "AAA111"
+      val group = ProgrammeGroupFactory().withCode(groupCode).produce()
+      testDataGenerator.createGroup(group)
+
+      val referral = testReferralHelper.createReferralWithStatus(
+        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+      )
+
+      // Allocate the referral to the group first
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "THE_ALLOCATED_TO_GROUP_BY_ID",
+        "any additional details",
+      )
+
+      val removeFromGroupRequest = RemoveFromGroupRequest(
+        referralStatusDescriptionId = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription().id,
+        additionalDetails = "The additional details for the removal",
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/remove/${referral.id}",
+        expectedResponseStatus = HttpStatus.OK.value(),
+        body = removeFromGroupRequest,
+        returnType = object : ParameterizedTypeReference<RemoveFromGroupResponse>() {},
+      )
+
+      val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
+
+      // Then
+      assertThat(response.message).contains("was removed from this group")
+      assertThat(response.message).contains("Awaiting allocation")
+
+      assertThat(foundReferral).isNotNull
+      assertThat(foundReferral.id).isEqualTo(referral.id)
+
+      val currentlyAllocatedGroup = programmeGroupMembershipService.getCurrentlyAllocatedGroup(foundReferral)
+      assertThat(currentlyAllocatedGroup).isNull()
+
+      val currentStatusHistory = referralService.getCurrentStatusHistory(foundReferral)
+      assertThat(currentStatusHistory).isNotNull
+      assertThat(currentStatusHistory!!.referralStatusDescription.description).isEqualTo("Awaiting allocation")
+      assertThat(currentStatusHistory.additionalDetails).isEqualTo("The additional details for the removal")
     }
   }
 

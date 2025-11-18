@@ -30,6 +30,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
@@ -256,6 +258,69 @@ class ProgrammeGroupController(
 
     val response = AllocateToGroupResponse(
       message = "${referral.personName} was added to this group. Their referral status is now Scheduled.",
+    )
+
+    return ResponseEntity.status(HttpStatus.OK).body(response)
+  }
+
+  @Operation(
+    tags = ["Programme Group controller"],
+    summary = "Remove a referral from a programme group",
+    operationId = "removeFromProgrammeGroup",
+    description = "Remove a referral from a specific programme group and update its status",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Referral successfully removed from the programme group",
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid request format or invalid UUID format",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden. The client is not authorised to remove from this group.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The group, referral, or status description does not exist",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PostMapping("/group/{groupId}/remove/{referralId}")
+  fun removeFromProgrammeGroup(
+    @Parameter(
+      description = "The group_id (UUID) of the group to remove from",
+      required = true,
+    )
+    @PathVariable("groupId") groupId: UUID,
+    @Parameter(
+      description = "The referralId (UUID) of a referral",
+      required = true,
+    )
+    @PathVariable("referralId") referralId: UUID,
+    @Valid
+    @RequestBody removeFromGroupRequest: RemoveFromGroupRequest,
+  ): ResponseEntity<RemoveFromGroupResponse> {
+    val referral = programmeGroupMembershipService.removeReferralFromGroup(
+      referralId,
+      groupId,
+      authenticationHolder.username ?: "SYSTEM",
+      removeFromGroupRequest.additionalDetails,
+      removeFromGroupRequest.referralStatusDescriptionId,
+    )
+
+    val response = RemoveFromGroupResponse(
+      message = "${referral.personName} was removed from this group. Their referral status is now ${referral.statusHistories.maxByOrNull { it.createdAt }?.referralStatusDescription?.description}.",
     )
 
     return ResponseEntity.status(HttpStatus.OK).body(response)

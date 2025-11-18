@@ -76,7 +76,7 @@ class ProgrammeGroupMembershipService(
     referralId: UUID,
     groupId: UUID,
     removedFromGroupBy: String,
-    additionalDetails: String,
+    additionalDetails: String?,
     newStatusDescriptionId: UUID,
   ): ReferralEntity {
     log.info("Attempting to remove Referral with id: $referralId from group with id: $groupId...")
