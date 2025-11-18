@@ -14,9 +14,9 @@ data class RemoveFromGroupRequest(
   val referralStatusDescriptionId: UUID,
   @Schema(
     example = "Alex has been removed from the group due to conflicting commitments",
-    required = true,
+    required = false,
     description = "Arbitrary text that will be added to the Status History of the Referral",
   )
-  @get:JsonProperty("additionalDetails", required = true)
-  val additionalDetails: String,
+  @get:JsonProperty("additionalDetails", required = false)
+  val additionalDetails: String?,
 )
