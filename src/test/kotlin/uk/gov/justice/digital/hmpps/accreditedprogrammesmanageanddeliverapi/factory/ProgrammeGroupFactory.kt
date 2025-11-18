@@ -5,6 +5,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -21,6 +22,7 @@ class ProgrammeGroupFactory {
   private var deletedAt: LocalDateTime? = null
   private var deletedByUsername: String? = null
   private var regionName: String = "TEST REGION"
+  private var startedAtDate: LocalDate? = null
 
   fun withId(id: UUID) = apply { this.id = id }
   fun withCode(code: String) = apply { this.code = code }
@@ -48,10 +50,11 @@ class ProgrammeGroupFactory {
     deletedAt = this.deletedAt,
     deletedByUsername = this.deletedByUsername,
     regionName = this.regionName,
+    startedAtDate = this.startedAtDate,
   )
 
   fun toCreateGroup(): CreateGroupRequest {
     val group = produce()
-    return CreateGroupRequest(group.code, ProgrammeGroupCohort.from(group.cohort, group.isLdc), group.sex)
+    return CreateGroupRequest(group.code, ProgrammeGroupCohort.from(group.cohort, group.isLdc), group.sex, LocalDate.parse("2025-01-01"))
   }
 }

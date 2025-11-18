@@ -26,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusTransitions
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RemoveReferralFromGroupStatusTransitions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
@@ -473,4 +474,38 @@ class ReferralController(
     ?.let {
       ResponseEntity.ok(it)
     } ?: throw NotFoundException("Referral status history for referral with id $referralId not found")
+
+  @Operation(
+    tags = ["Referrals"],
+    summary = "Retrieve status transition data for a referral, in the context of removing it from a Group",
+    operationId = "getRemoveFromGroupStatusTransitions",
+    description = "Returns all possible data for the update referral status form based on the referral id",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Data for Remove Referral from Groupform",
+        content = [Content(array = ArraySchema(schema = Schema(implementation = ReferralStatusTransitions::class)))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden. The client is not authorised to access this resource.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/bff/remove-from-group/{referralId}", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getRemoveFromGroupStatusTransitions(
+    @Parameter(description = "The id (UUID) of a referral status description", required = true)
+    @PathVariable referralId: UUID,
+  ): ResponseEntity<RemoveReferralFromGroupStatusTransitions> {
+    val data = referralStatusService.getStatusTransitionsForReferral(referralId) ?: throw NotFoundException("Referral status history for referral with id $referralId not found")
+    val removeReferralFromGroupStatusTransitions = RemoveReferralFromGroupStatusTransitions.from(data)
+    return ResponseEntity.ok(removeReferralFromGroupStatusTransitions)
+  }
 }

@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
@@ -28,6 +29,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
@@ -39,6 +41,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
+import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.LocalDate
 import java.util.UUID
 
@@ -562,7 +565,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
   inner class CreateProgrammeGroup {
     @Test
     fun `create group with code and return 200 when it doesn't already exist`() {
-      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE)
+      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"))
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -577,11 +580,12 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       assertThat(createdGroup.isLdc).isFalse
       assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.MALE)
       assertThat(createdGroup.regionName).isEqualTo("WIREMOCKED REGION")
+      assertThat(createdGroup.startedAtDate).isEqualTo(LocalDate.parse("2025-01-01"))
     }
 
     @Test
     fun `create group and assign correct cohort and sex and return 200 when it doesn't already exist`() {
-      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.SEXUAL_LDC, ProgrammeGroupSexEnum.FEMALE)
+      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.SEXUAL_LDC, ProgrammeGroupSexEnum.FEMALE, LocalDate.parse("2025-01-01"))
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -595,13 +599,14 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       assertThat(createdGroup.isLdc).isTrue
       assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.FEMALE)
       assertThat(createdGroup.regionName).isEqualTo("WIREMOCKED REGION")
+      assertThat(createdGroup.startedAtDate).isEqualTo(LocalDate.parse("2025-01-01"))
     }
 
     @Test
-    fun `create group with code and return CONFLICT when it already exists`() {
-      val group = ProgrammeGroupFactory().withCode("TEST_GROUP").produce()
+    fun `create group with code and return CONFLICT when it already exists within the region`() {
+      val group = ProgrammeGroupFactory().withCode("TEST_GROUP").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
-      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE)
+      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"))
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -609,15 +614,73 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
         body = body,
         expectedResponseStatus = HttpStatus.CONFLICT.value(),
       )
-      assertThat(response.userMessage).isEqualTo("Conflict: Programme group with code TEST_GROUP already exists")
+      assertThat(response.userMessage).isEqualTo("Conflict: Programme group with code TEST_GROUP already exists in region")
     }
 
     @Test
     fun `return 401 when unauthorised`() {
-      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE)
+      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"))
       webTestClient
         .method(HttpMethod.POST)
         .uri("/group")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .accept(MediaType.APPLICATION_JSON)
+        .bodyValue(body)
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+  }
+
+  @Nested
+  @DisplayName("Get group by region")
+  @WithMockAuthUser("TEST_USER")
+  inner class GetGroupInRegion {
+    @Test
+    fun `return 200 and group when exists in region`() {
+      val groupCode = "AAA111"
+      val groupRegion = "WIREMOCKED REGION"
+      val group = ProgrammeGroupFactory().withCode(groupCode).withRegionName(groupRegion).produce()
+      testDataGenerator.createGroup(group)
+
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/group/${group.code}/details",
+        returnType = object : ParameterizedTypeReference<Group>() {},
+      )
+
+      assertThat(response.code).isEqualTo(groupCode)
+      assertThat(response.regionName).isEqualTo(groupRegion)
+    }
+
+    @Test
+    fun `return 200 and empty body when group does not exist in region`() {
+      val groupCode = "AAA111"
+      val groupRegion = "TEST REGION"
+      nDeliusApiStubs.stubUserTeamsResponse(
+        "TEST_USER",
+        NDeliusUserTeamsFactory().withSingleTeam(
+          regionDescription = "OTHER REGION",
+        ).produce(),
+      )
+      val group = ProgrammeGroupFactory().withCode(groupCode).withRegionName(groupRegion).produce()
+      testDataGenerator.createGroup(group)
+
+      performRequestAndExpectStatusNoBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/group/${group.code}/details",
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+    }
+
+    @Test
+    fun `return 401 when unauthorised`() {
+      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"))
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/group/TEST/details")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .accept(MediaType.APPLICATION_JSON)

@@ -41,26 +41,6 @@ data class ProgrammeGroupDetails(
 ) {
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  @Schema(description = "Information identifying the group.")
-  data class Group(
-    @Schema(
-      example = "AP_BIRMINGHAM_NORTH",
-      required = true,
-      description = "A unique code identifying the programme group.",
-    )
-    @get:JsonProperty("code", required = true)
-    val code: String,
-
-    @Schema(
-      example = "West Midlands",
-      required = true,
-      description = "The region name the group belongs to.",
-    )
-    @get:JsonProperty("regionName", required = true)
-    val regionName: String,
-  )
-
-  @JsonInclude(JsonInclude.Include.NON_NULL)
   @Schema(description = "Available filter options for viewing programme group data.")
   data class Filters(
 

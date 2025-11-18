@@ -16,23 +16,23 @@ WITH latest_status AS (SELECT referral_id,
                                  from programme_group_membership
                                  WHERE deleted_at IS null)
 
-SELECT r.id                                                   as referral_id,
+SELECT r.id                                           as referral_id,
        r.crn,
        r.person_name,
        r.sentence_end_date,
        r.sourced_from,
        r.cohort,
        -- Default to false if there are no entries in the referral_ldc_history_table
-       COALESCE(lds.has_ldc, false)                           as has_ldc,
+       COALESCE(lds.has_ldc, false)                   as has_ldc,
        r.date_of_birth,
        r.sex,
-       rsd.description_text                                   as status,
-       rsd.label_colour                                       as status_colour,
+       rsd.description_text                           as status,
+       rsd.label_colour                               as status_colour,
        -- Default values if there are no entries in the referral_reporting_location table for this referral yet
-       COALESCE(rrl.region_name, 'UNKNOWN_REGION_NAME')       as region_name,
-       COALESCE(rrl.pdu_name, 'UNKNOWN_PDU_NAME')             as pdu_name,
-       COALESCE(rrl.reporting_team, 'UNKNOWN_REPORTING_TEAM') as reporting_team,
-       pgm.programme_group_id                                 as active_programme_group_id
+       COALESCE(rrl.region_name, 'No information')    as region_name,
+       COALESCE(rrl.pdu_name, 'No information')       as pdu_name,
+       COALESCE(rrl.reporting_team, 'No information') as reporting_team,
+       pgm.programme_group_id                         as active_programme_group_id
 
 FROM referral r
          JOIN latest_status ls ON r.id = ls.referral_id AND ls.rn = 1

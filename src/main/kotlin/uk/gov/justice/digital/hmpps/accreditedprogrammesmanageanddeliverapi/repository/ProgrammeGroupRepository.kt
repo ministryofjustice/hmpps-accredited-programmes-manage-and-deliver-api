@@ -7,4 +7,5 @@ import java.util.UUID
 interface ProgrammeGroupRepository : JpaRepository<ProgrammeGroupEntity, UUID> {
 
   fun findByCode(code: String): ProgrammeGroupEntity?
+  fun findByCodeAndRegionName(code: String, regionName: String): ProgrammeGroupEntity?
 }

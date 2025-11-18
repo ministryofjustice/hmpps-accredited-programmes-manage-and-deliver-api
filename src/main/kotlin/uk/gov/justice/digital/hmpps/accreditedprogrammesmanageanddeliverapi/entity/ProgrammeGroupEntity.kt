@@ -14,6 +14,7 @@ import org.springframework.data.annotation.CreatedDate
 import org.springframework.security.core.context.SecurityContextHolder
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -71,4 +72,7 @@ class ProgrammeGroupEntity(
   @NotNull
   @Column(name = "region_name")
   var regionName: String,
+
+  @Column(name = "started_at_date")
+  var startedAtDate: LocalDate? = null,
 )
