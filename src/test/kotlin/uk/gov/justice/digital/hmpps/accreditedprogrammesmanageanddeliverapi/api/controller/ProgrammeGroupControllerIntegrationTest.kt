@@ -436,16 +436,16 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
 
       val region = "North East"
       // Create 3 groups not started, 2 groups started in same region, plus one in another region
-      val group1 = ProgrammeGroupFactory().withCode("REG-A-NS-1").withRegionName(region).produce()
-      val group2 = ProgrammeGroupFactory().withCode("REG-A-NS-2").withRegionName(region).produce()
-      val group3 = ProgrammeGroupFactory().withCode("REG-A-NS-3").withRegionName(region).produce()
+      val group1 = ProgrammeGroupFactory().withCode("GROUP-A-NS-1").withRegionName(region).produce()
+      val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2").withRegionName(region).produce()
+      val group3 = ProgrammeGroupFactory().withCode("GROUP-A-NS-3").withRegionName(region).produce()
 
-      val group4 = ProgrammeGroupFactory().withCode("REG-A-S-1").withRegionName(region)
+      val group4 = ProgrammeGroupFactory().withCode("GROUP-A-S-1").withRegionName(region)
         .withStartedAt(LocalDate.now().minusDays(5)).produce()
-      val group5 = ProgrammeGroupFactory().withCode("REG-A-S-2").withRegionName(region)
+      val group5 = ProgrammeGroupFactory().withCode("GROUP-A-S-2").withRegionName(region)
         .withStartedAt(LocalDate.now().minusDays(1)).produce()
 
-      val groupInOtherRegion = ProgrammeGroupFactory().withCode("REG-B-NS-1").withRegionName("South West").produce()
+      val groupInOtherRegion = ProgrammeGroupFactory().withCode("GROUP-B-NS-1").withRegionName("South West").produce()
 
       listOf(group1, group2, group3, group4, group5, groupInOtherRegion).forEach { testDataGenerator.createGroup(it) }
 
@@ -459,7 +459,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       // Then
       assertThat(response.pagedGroupData.totalElements).isEqualTo(3)
       val codes = response.pagedGroupData.content.map { it.code }
-      assertThat(codes).containsExactlyInAnyOrder("REG-A-NS-1", "REG-A-NS-2", "REG-A-NS-3")
+      assertThat(codes).containsExactlyInAnyOrder("GROUP-A-NS-1", "GROUP-A-NS-2", "GROUP-A-NS-3")
       // otherTabTotal should be count of started groups in the region (2)
       assertThat(response.otherTabTotal).isEqualTo(2)
     }
@@ -470,12 +470,15 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       stubAuthTokenEndpoint()
 
       val region = "North East"
-      val ns1 = ProgrammeGroupFactory().withCode("REG-A-NS-1").withRegionName(region).produce()
-      val ns2 = ProgrammeGroupFactory().withCode("REG-A-NS-2").withRegionName(region).produce()
-      val st1 = ProgrammeGroupFactory().withCode("REG-A-S-1").withRegionName(region).produce().apply { startedAt = LocalDate.now().minusDays(3) }
-      val st2 = ProgrammeGroupFactory().withCode("REG-A-S-2").withRegionName(region).produce().apply { startedAt = LocalDate.now().minusDays(2) }
+      val group1 = ProgrammeGroupFactory().withCode("GROUP-A-NS-1").withRegionName(region).produce()
+      val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2").withRegionName(region).produce()
 
-      listOf(ns1, ns2, st1, st2).forEach { testDataGenerator.createGroup(it) }
+      val group3 = ProgrammeGroupFactory().withCode("GROUP-A-S-1").withRegionName(region)
+        .withStartedAt(LocalDate.now().minusDays(3)).produce()
+      val group4 = ProgrammeGroupFactory().withCode("GROUP-A-S-2").withRegionName(region)
+        .withStartedAt(LocalDate.now().minusDays(2)).produce()
+
+      listOf(group1, group2, group3, group4).forEach { testDataGenerator.createGroup(it) }
 
       // When
       val response = performRequestAndExpectOk(
@@ -487,7 +490,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       // Then: should contain only started groups
       assertThat(response.pagedGroupData.totalElements).isEqualTo(2)
       val codes = response.pagedGroupData.content.map { it.code }
-      assertThat(codes).containsExactlyInAnyOrder("REG-A-S-1", "REG-A-S-2")
+      assertThat(codes).containsExactlyInAnyOrder("GROUP-A-S-1", "GROUP-A-S-2")
       // otherTabTotal should be count of not-started groups (2)
       assertThat(response.otherTabTotal).isEqualTo(2)
     }
@@ -497,10 +500,10 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       // Given
       stubAuthTokenEndpoint()
       val region = "North East"
-      val ns1 = ProgrammeGroupFactory().withCode("REG-A-NS-1").withRegionName(region).produce()
-      val ns2 = ProgrammeGroupFactory().withCode("REG-A-NS-2").withRegionName(region).produce()
-      val ns3 = ProgrammeGroupFactory().withCode("REG-A-NS-3").withRegionName(region).produce()
-      listOf(ns1, ns2, ns3).forEach { testDataGenerator.createGroup(it) }
+      val group1 = ProgrammeGroupFactory().withCode("GROUP-A-NS-1").withRegionName(region).produce()
+      val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2").withRegionName(region).produce()
+      val group3 = ProgrammeGroupFactory().withCode("GROUP-A-NS-3").withRegionName(region).produce()
+      listOf(group1, group2, group3).forEach { testDataGenerator.createGroup(it) }
 
       // When fetch size=1 page=0
       val page0 = performRequestAndExpectOk(

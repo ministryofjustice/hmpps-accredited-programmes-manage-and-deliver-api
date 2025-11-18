@@ -129,8 +129,8 @@ class ProgrammeGroupService(
     // Apply tab-specific startedAt filter
     val startedAtSpec = Specification<ProgrammeGroupEntity> { root, _, cb ->
       when (selectedTab) {
-        GroupPageByRegionTab.NOT_STARTED -> cb.isNull(root.get<LocalDate>("startedAt"))
-        GroupPageByRegionTab.IN_PROGRESS_OR_COMPLETE -> cb.isNotNull(root.get<LocalDate>("startedAt"))
+        GroupPageByRegionTab.NOT_STARTED -> cb.isNull(root.get<LocalDate>("startedAtDate"))
+        GroupPageByRegionTab.IN_PROGRESS_OR_COMPLETE -> cb.isNotNull(root.get<LocalDate>("startedAtDate"))
       }
     }
 

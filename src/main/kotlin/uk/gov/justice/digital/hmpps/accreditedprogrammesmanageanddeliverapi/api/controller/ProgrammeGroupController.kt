@@ -162,7 +162,7 @@ class ProgrammeGroupController(
     @PageableDefault(
       page = 0,
       size = 10,
-      sort = ["startedAt"],
+      sort = ["startedAtDate"],
       direction = Sort.Direction.ASC,
     ) pageable: Pageable,
     @Parameter(description = "The region that the group belongs to, i.e. 'West Midlands'")
