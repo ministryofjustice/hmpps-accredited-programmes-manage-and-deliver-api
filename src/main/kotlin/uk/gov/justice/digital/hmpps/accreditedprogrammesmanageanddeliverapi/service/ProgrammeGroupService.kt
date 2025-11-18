@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.LocationFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
@@ -34,10 +35,9 @@ class ProgrammeGroupService(
   private val log = LoggerFactory.getLogger(this::class.java)
 
   fun createGroup(createGroupRequest: CreateGroupRequest, username: String): ProgrammeGroupEntity? {
-    programmeGroupRepository.findByCode(createGroupRequest.groupCode)
-      ?.let { throw ConflictException("Programme group with code ${createGroupRequest.groupCode} already exists") }
-
     val (userRegion) = userService.getUserRegions(username)
+    programmeGroupRepository.findByCodeAndRegionName(createGroupRequest.groupCode, userRegion)
+      ?.let { throw ConflictException("Programme group with code ${createGroupRequest.groupCode} already exists in region") }
 
     log.info("Group created with code: ${createGroupRequest.groupCode}")
 
@@ -72,7 +72,7 @@ class ProgrammeGroupService(
     val otherTabCount: Int = groupWaitlistItemViewRepository.count(nonActiveSpecification).toInt()
 
     return ProgrammeGroupDetails(
-      group = ProgrammeGroupDetails.Group(
+      group = Group(
         code = group.code,
         regionName = group.regionName,
       ),
@@ -80,6 +80,11 @@ class ProgrammeGroupService(
       pagedGroupData = grouplistDataToReturn,
       otherTabTotal = otherTabCount,
     )
+  }
+
+  fun getGroupInRegion(groupCode: String, username: String): ProgrammeGroupEntity? {
+    val (userRegion) = userService.getUserRegions(username)
+    return programmeGroupRepository.findByCodeAndRegionName(groupCode, userRegion)
   }
 
   fun getGroupFilters(): ProgrammeGroupDetails.Filters {

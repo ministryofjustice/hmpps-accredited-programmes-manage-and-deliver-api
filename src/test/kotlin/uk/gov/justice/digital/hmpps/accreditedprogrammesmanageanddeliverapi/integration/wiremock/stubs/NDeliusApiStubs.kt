@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.NDeliusRegistrationsFactory
 
@@ -238,7 +239,7 @@ class NDeliusApiStubs {
 
   fun stubUserTeamsResponse(
     username: String,
-    userTeams: NDeliusUserTeams,
+    userTeams: NDeliusUserTeams? = NDeliusUserTeamsFactory().produce(),
   ) {
     wiremock.stubFor(
       get(urlEqualTo("/user/$username/teams"))
