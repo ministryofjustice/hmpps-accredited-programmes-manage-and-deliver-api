@@ -5,6 +5,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -21,6 +22,7 @@ class ProgrammeGroupFactory {
   private var deletedAt: LocalDateTime? = null
   private var deletedByUsername: String? = null
   private var regionName: String = "TEST REGION"
+  private var startedAt: LocalDate? = null
 
   fun withId(id: UUID) = apply { this.id = id }
   fun withCode(code: String) = apply { this.code = code }
@@ -34,6 +36,7 @@ class ProgrammeGroupFactory {
   fun withDeletedAt(deletedAt: LocalDateTime) = apply { this.deletedAt = deletedAt }
   fun withDeletedByUsername(deletedByUsername: String) = apply { this.deletedByUsername = deletedByUsername }
   fun withRegionName(regionName: String) = apply { this.regionName = regionName }
+  fun withStartedAt(startedAt: LocalDate) = apply { this.startedAt = startedAt }
 
   fun produce(): ProgrammeGroupEntity = ProgrammeGroupEntity(
     id = this.id,
@@ -48,6 +51,7 @@ class ProgrammeGroupFactory {
     deletedAt = this.deletedAt,
     deletedByUsername = this.deletedByUsername,
     regionName = this.regionName,
+    startedAt = this.startedAt,
   )
 
   fun toCreateGroup(): CreateGroupRequest {

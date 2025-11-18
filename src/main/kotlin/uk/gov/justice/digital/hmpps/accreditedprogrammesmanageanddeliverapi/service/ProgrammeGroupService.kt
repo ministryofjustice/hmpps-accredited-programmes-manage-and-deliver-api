@@ -3,16 +3,20 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.data.jpa.domain.Specification
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.LocationFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -21,6 +25,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
+import java.time.LocalDate
 import java.util.UUID
 
 @Service
@@ -66,18 +72,18 @@ class ProgrammeGroupService(
     val nonActiveSpecification =
       getGroupWaitlistItemSpecification(otherTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeams)
 
-    val grouplistDataToReturn: Page<GroupItem> =
+    val groupListDataToReturn: Page<GroupItem> =
       groupWaitlistItemViewRepository.findAll(activeSpecification, pageable).map { it.toApi() }
 
     val otherTabCount: Int = groupWaitlistItemViewRepository.count(nonActiveSpecification).toInt()
 
     return ProgrammeGroupDetails(
-      group = ProgrammeGroupDetails.Group(
+      group = Group(
         code = group.code,
         regionName = group.regionName,
       ),
       filters = getGroupFilters(),
-      pagedGroupData = grouplistDataToReturn,
+      pagedGroupData = groupListDataToReturn,
       otherTabTotal = otherTabCount,
     )
   }
@@ -91,6 +97,48 @@ class ProgrammeGroupService(
 
     return ProgrammeGroupDetails.Filters(
       locationFilterValues = pdusWithReportingTeams,
+    )
+  }
+
+  fun getProgrammeGroupsForRegion(
+    pageable: Pageable,
+    groupCode: String?,
+    pdu: String?,
+    deliveryLocation: String?,
+    cohort: String?,
+    sex: String?,
+    regionName: String?,
+    selectedTab: GroupPageByRegionTab,
+  ): GroupsByRegion {
+    val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
+
+    // Base spec without startedAt filter (used for total count)
+    val baseSpec = getProgrammeGroupsSpecification(
+      groupCode = groupCode,
+      pdu = pdu,
+      deliveryLocation = deliveryLocation,
+      cohort = groupCohort,
+      sex = sex,
+      regionName = regionName,
+    )
+
+    // Apply tab-specific startedAt filter
+    val startedAtSpec = Specification<ProgrammeGroupEntity> { root, _, cb ->
+      when (selectedTab) {
+        GroupPageByRegionTab.NOT_STARTED -> cb.isNull(root.get<LocalDate>("startedAt"))
+        GroupPageByRegionTab.IN_PROGRESS_OR_COMPLETE -> cb.isNotNull(root.get<LocalDate>("startedAt"))
+      }
+    }
+
+    val activeSpec = baseSpec.and(startedAtSpec)
+    val pagedData: Page<Group> = programmeGroupRepository.findAll(activeSpec, pageable).map { it.toApi() }
+
+    val totalForAllTabs: Long = programmeGroupRepository.count(baseSpec)
+    val otherTabTotal: Int = (totalForAllTabs - pagedData.totalElements).toInt()
+
+    return GroupsByRegion(
+      pagedGroupData = pagedData,
+      otherTabTotal = otherTabTotal,
     )
   }
 }
