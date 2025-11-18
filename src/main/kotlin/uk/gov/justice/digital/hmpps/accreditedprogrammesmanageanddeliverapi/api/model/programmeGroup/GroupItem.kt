@@ -20,6 +20,7 @@ data class GroupItem(
   )
   @get:JsonProperty("referralId", required = true)
   val referralId: UUID,
+
   @Schema(
     example = "Order end date",
     required = true,
@@ -35,6 +36,7 @@ data class GroupItem(
   )
   @get:JsonProperty("crn", required = true)
   val crn: String,
+
   @Schema(
     example = "John Doe",
     required = true,
@@ -42,6 +44,7 @@ data class GroupItem(
   )
   @get:JsonProperty("personName", required = true)
   val personName: String,
+
   @Schema(
     example = "1 January 2030",
     required = true,
@@ -58,6 +61,7 @@ data class GroupItem(
   )
   @get:JsonProperty("cohort", required = false)
   val cohort: OffenceCohort? = null,
+
   @Schema(
     example = "True",
     required = true,
@@ -65,6 +69,7 @@ data class GroupItem(
   )
   @get:JsonProperty("hasLdc", required = false)
   val hasLdc: Boolean? = null,
+
   @Schema(
     example = "43",
     required = true,
@@ -72,6 +77,7 @@ data class GroupItem(
   )
   @get:JsonProperty("age", required = false)
   val age: Int? = null,
+
   @Schema(
     example = "Male",
     required = true,
@@ -79,6 +85,7 @@ data class GroupItem(
   )
   @get:JsonProperty("sex", required = false)
   val sex: String? = null,
+
   @Schema(
     example = "Durham",
     required = true,
@@ -86,6 +93,7 @@ data class GroupItem(
   )
   @get:JsonProperty("pdu", required = false)
   val pdu: String? = null,
+
   @Schema(
     example = "Durham Team 1",
     required = true,
@@ -93,6 +101,7 @@ data class GroupItem(
   )
   @get:JsonProperty("reportingTeam", required = false)
   val reportingTeam: String? = null,
+
   @Schema(
     example = "Awaiting assessment",
     required = true,
@@ -100,6 +109,7 @@ data class GroupItem(
   )
   @get:JsonProperty("status", required = true)
   val status: String,
+
   @Schema(
     example = "purple",
     required = true,
@@ -107,6 +117,7 @@ data class GroupItem(
   )
   @get:JsonProperty("statusColour", required = true)
   val statusColour: String,
+
   @Schema(
     example = "56470228-3893-450f-b4bc-97b21e18b887",
     required = true,
@@ -118,13 +129,13 @@ data class GroupItem(
 
 fun GroupWaitlistItemViewEntity.toApi() = GroupItem(
   referralId = referralId,
-  sourcedFrom = sourcedFrom?.let { if (sourcedFrom?.equals(ReferralEntitySourcedFrom.REQUIREMENT) == true) "Order end date" else "Licence end date" },
+  sourcedFrom = sourcedFrom?.toDisplayString(),
   crn = crn,
   personName = personName,
   sentenceEndDate = sentenceEndDate,
-  cohort = OffenceCohort.fromDisplayName(cohort),
+  cohort = cohort.let { OffenceCohort.fromDisplayName(it) },
   hasLdc = hasLdc,
-  age = dateOfBirth?.let { Period.between(dateOfBirth, LocalDate.now()).years },
+  age = dateOfBirth?.calculateAge(),
   sex = sex,
   pdu = pduName,
   reportingTeam = reportingTeam,
@@ -132,3 +143,10 @@ fun GroupWaitlistItemViewEntity.toApi() = GroupItem(
   statusColour = statusColour,
   activeProgrammeGroupId = activeProgrammeGroupId,
 )
+
+private fun ReferralEntitySourcedFrom.toDisplayString(): String = when (this) {
+  ReferralEntitySourcedFrom.REQUIREMENT -> "Order end date"
+  ReferralEntitySourcedFrom.LICENCE_CONDITION -> "Licence end date"
+}
+
+private fun LocalDate.calculateAge(): Int = Period.between(this, LocalDate.now()).years
