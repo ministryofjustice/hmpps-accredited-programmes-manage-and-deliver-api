@@ -491,7 +491,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
         body = AllocateToGroupRequest("Empty additional details"),
       )
 
-      assertThat(exception.userMessage).isEqualTo("Not Found: No Referral found for id: $referralId")
+      assertThat(exception.userMessage).isEqualTo("Not Found: Referral with id $referralId not found")
     }
 
     @Test

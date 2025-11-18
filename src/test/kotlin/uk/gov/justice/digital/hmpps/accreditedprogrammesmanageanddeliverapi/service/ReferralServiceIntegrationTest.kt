@@ -319,13 +319,11 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       // Given
       val theCrnNumber = randomUppercaseString()
       val theGroup = testDataGenerator.createGroup(ProgrammeGroupFactory().withCode("GROUP-001").produce())
+      val onProgrammeStatusDescriptionId = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
 
-      val referral =
-        referralService.createReferral(
-          FindAndReferReferralDetailsFactory().withPersonReference(theCrnNumber).withEventNumber(1).produce(),
-        )
+      val referral = testReferralHelper.createReferral(crn = theCrnNumber)
 
       val referralFromAllocateToGroup =
         membershipService.allocateReferralToGroup(
@@ -339,7 +337,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       val numberOfHistoriesBeforeUpdate = referralFromAllocateToGroup.statusHistories.size
       val result = referralService.updateStatus(
         referral,
-        UUID.fromString("76b2f8d8-260c-4766-a716-de9325292609"),
+        onProgrammeStatusDescriptionId,
         "Additional details string",
         createdBy = "THE_USER_ID",
       )
@@ -348,8 +346,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       val foundReferral = referralRepository.findByCrn(theCrnNumber).firstOrNull()
         ?: throw NotFoundException("No Referral found for crn: $theCrnNumber")
 
-      assertThat(result.referralStatusDescriptionId).isEqualTo(UUID.fromString("76b2f8d8-260c-4766-a716-de9325292609"))
-      assertThat(result.referralStatusDescriptionName).isEqualTo("Awaiting assessment")
+      assertThat(result.referralStatusDescriptionId).isEqualTo(onProgrammeStatusDescriptionId)
+      assertThat(result.referralStatusDescriptionName).isEqualTo("On programme")
 
       assertThat(foundReferral.statusHistories).hasSize(numberOfHistoriesBeforeUpdate + 1)
       assertThat(foundReferral.programmeGroupMemberships).isNotNull()
@@ -386,10 +384,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
       val recallStatusDescription = referralStatusDescriptionRepository.getRecallStatusDescription()
 
-      val theReferral =
-        referralService.createReferral(
-          FindAndReferReferralDetailsFactory().withPersonReference(theCrnNumber).withEventNumber(1).produce(),
-        )
+      val theReferral = testReferralHelper.createReferral(crn = theCrnNumber)
 
       membershipService.allocateReferralToGroup(theReferral.id!!, theGroup.id!!, "SYSTEM", "")
 
@@ -401,7 +396,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
       // Then
       val theUpdatedReferral = referralRepository.findByCrn(theCrnNumber).first()
-      assertThat(referralService.getCurrentlyAllocatedGroup(theUpdatedReferral)).isNull()
+      assertThat(membershipService.getCurrentlyAllocatedGroup(theUpdatedReferral)).isNull()
       assertThat(referralService.getCurrentStatusHistory(theUpdatedReferral)!!.referralStatusDescription.description).isEqualTo(
         "Recall",
       )
