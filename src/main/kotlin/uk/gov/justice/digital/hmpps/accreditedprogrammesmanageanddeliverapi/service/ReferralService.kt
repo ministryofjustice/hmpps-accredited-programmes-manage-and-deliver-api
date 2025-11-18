@@ -28,13 +28,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.toPniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -43,7 +41,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.UUID
+import java.util.*
 
 @Service
 @Transactional
@@ -61,7 +59,7 @@ class ReferralService(
   private val ldcService: LdcService,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
   private val sentenceService: SentenceService,
-  private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
+  private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -99,7 +97,7 @@ class ReferralService(
 
     val referralLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.hasLdc
     val latestReferralStatus = referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId)
-    val allocatedGroup = getCurrentlyAllocatedGroup(referral)
+    val allocatedGroup = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
     ReferralDetails.toModel(referral, personalDetails, referralLdc, latestReferralStatus!!, allocatedGroup)
   }
 
@@ -319,16 +317,13 @@ class ReferralService(
       incomingReferralStatusDescription.id,
     )
 
-    val activeGroupMembership = getCurrentlyAllocatedGroup(referral)
+    val activeGroupMembership = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
 
     if (
       (transition == null || !transition.isContinuing) &&
       activeGroupMembership != null
     ) {
-      log.info("Status transition from '$currentReferralStatusHistory' to '${incomingReferralStatusDescription.description}' has is_continuing=false. Deleting group membership with id ${activeGroupMembership.id}")
-      activeGroupMembership.deletedAt = LocalDateTime.now()
-      activeGroupMembership.deletedByUsername = createdBy
-      programmeGroupMembershipRepository.save(activeGroupMembership)
+      programmeGroupMembershipService.deleteGroupMembershipForReferralAndGroup(referral.id!!, activeGroupMembership.programmeGroup.id!!, createdBy)
     }
 
     val historyEntry = referralStatusHistoryRepository.save(
@@ -372,8 +367,6 @@ class ReferralService(
     referral.sentenceEndDate = sentenceEndDate
     referralRepository.save(referral)
   }
-
-  fun getCurrentlyAllocatedGroup(referral: ReferralEntity): ProgrammeGroupMembershipEntity? = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referral.id!!)
 
   fun getCurrentStatusHistory(referral: ReferralEntity): ReferralStatusHistoryEntity? = referral.statusHistories.maxByOrNull { it.createdAt }
 

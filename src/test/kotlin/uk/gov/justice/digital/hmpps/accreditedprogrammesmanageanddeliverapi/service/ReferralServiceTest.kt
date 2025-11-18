@@ -70,6 +70,9 @@ class ReferralServiceTest {
   @Mock
   private lateinit var sentenceService: SentenceService
 
+  @Mock
+  private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
+
   @InjectMocks
   private lateinit var referralService: ReferralService
 
