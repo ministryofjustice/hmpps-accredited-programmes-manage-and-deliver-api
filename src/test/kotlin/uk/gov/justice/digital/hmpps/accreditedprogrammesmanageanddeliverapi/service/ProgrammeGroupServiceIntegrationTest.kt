@@ -27,6 +27,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
+import java.time.LocalDate
 import java.util.UUID
 
 class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
@@ -91,6 +92,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
             existingGroup.code,
             ProgrammeGroupCohort.from(existingGroup.cohort, existingGroup.isLdc),
             existingGroup.sex,
+            LocalDate.parse("2025-01-01"),
           ),
           username = "AUTH_ADM",
         )

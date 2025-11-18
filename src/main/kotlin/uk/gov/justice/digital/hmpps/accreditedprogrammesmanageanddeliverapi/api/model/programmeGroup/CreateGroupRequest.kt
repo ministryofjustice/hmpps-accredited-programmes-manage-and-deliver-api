@@ -1,16 +1,20 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup
 
+import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import java.time.LocalDate
 
 data class CreateGroupRequest(
   @NotBlank(message = "groupCode must not be null")
   @get:JsonProperty("groupCode", required = true)
+  @Schema(description = "The code for the group")
   var groupCode: String,
+
   @NotNull(message = "cohort must not be null")
   @get:JsonProperty("cohort", required = true)
   @Schema(
@@ -19,6 +23,7 @@ data class CreateGroupRequest(
     implementation = ProgrammeGroupCohort::class,
   )
   var cohort: ProgrammeGroupCohort,
+
   @NotNull(message = "sex must not be null")
   @get:JsonProperty("sex", required = true)
   @Schema(
@@ -27,6 +32,11 @@ data class CreateGroupRequest(
     implementation = ProgrammeGroupSexEnum::class,
   )
   var sex: ProgrammeGroupSexEnum,
+
+  @get:JsonProperty("startedAtDate", required = true)
+  @Schema(description = "The date the group started")
+  @JsonFormat(pattern = "d/M/yyyy")
+  var startedAtDate: LocalDate,
 )
 
 fun CreateGroupRequest.toEntity(region: String): ProgrammeGroupEntity {
@@ -37,5 +47,6 @@ fun CreateGroupRequest.toEntity(region: String): ProgrammeGroupEntity {
     sex = sex,
     isLdc = isLdc,
     regionName = region,
+    startedAtDate = startedAtDate,
   )
 }
