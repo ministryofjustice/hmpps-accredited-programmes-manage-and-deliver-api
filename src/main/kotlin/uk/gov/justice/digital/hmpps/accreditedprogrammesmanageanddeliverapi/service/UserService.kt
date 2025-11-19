@@ -5,6 +5,7 @@ import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
@@ -39,6 +40,7 @@ class UserService(
         .map { it.crn }
         .toSet()
     }
+
     is ClientResult.Failure -> result.throwException()
   }
 
@@ -46,18 +48,20 @@ class UserService(
    * Fetches the list of region names that the given user has access to via their teams in nDelius.
    *
    * @param username The username to fetch regions for
-   * @return List of region names (descriptions) the user has access to
+   * @return List of region codes and names (descriptions) the user has access to
    */
-  fun getUserRegions(username: String): List<String> = when (val result = nDeliusIntegrationApiClient.getTeamsForUser(username)) {
+  fun getUserRegions(username: String): List<CodeDescription> = when (val result = nDeliusIntegrationApiClient.getTeamsForUser(username)) {
     is ClientResult.Success -> {
-      val regionNames = result.body.teams.map { it.region.description }.distinct()
+      val regionNames = result.body.teams.map { it.region }
       if (regionNames.isEmpty()) {
         log.warn("User $username has teams but no regions associated with them")
+        emptyList()
       } else {
         log.debug("User $username has access to regions: ${regionNames.joinToString(", ")}")
+        regionNames
       }
-      regionNames
     }
+
     is ClientResult.Failure -> {
       log.error("Failed to fetch teams for user $username: ${result.toException().message}")
       emptyList()

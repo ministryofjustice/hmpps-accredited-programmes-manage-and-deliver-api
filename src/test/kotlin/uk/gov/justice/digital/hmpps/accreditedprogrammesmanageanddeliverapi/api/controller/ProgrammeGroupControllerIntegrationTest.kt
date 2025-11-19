@@ -33,7 +33,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusRegionWithMembersFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupMembershipFactory
@@ -873,6 +875,39 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .accept(MediaType.APPLICATION_JSON)
         .bodyValue(body)
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+  }
+
+  @Nested
+  @DisplayName("Get Pdus in User region")
+  inner class GetPduInUserRegion {
+    @Test
+    fun `return 200 and list of pdus when exist in region`() {
+      val pdu = NDeliusPduWithTeamFactory().produce()
+      val members = NDeliusRegionWithMembersFactory().produce(pdus = listOf(pdu, pdu))
+
+      nDeliusApiStubs.stubRegionWithMembersResponse("REGION001", members)
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/create-a-group/pdus-for-user-region",
+        returnType = object : ParameterizedTypeReference<List<String>>() {},
+      )
+
+      assertThat(response).hasSize(2)
+      assertThat(response.first()).isEqualTo(pdu.description)
+    }
+
+    @Test
+    fun `return 401 when unauthorised`() {
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/create-a-group/pdus-for-user-region")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .exchange()
         .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
