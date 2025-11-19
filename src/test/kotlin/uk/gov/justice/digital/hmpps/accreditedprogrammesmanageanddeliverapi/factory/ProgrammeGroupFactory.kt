@@ -2,9 +2,11 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -24,6 +26,7 @@ class ProgrammeGroupFactory {
   private var regionName: String = "TEST REGION"
   private var startedAtDate: LocalDate? = null
   private var earliestStartDate: LocalDate? = null
+  private var programmeGroupSessionSlots: MutableSet<ProgrammeGroupSessionSlotEntity> = mutableSetOf()
 
   fun withId(id: UUID) = apply { this.id = id }
   fun withCode(code: String) = apply { this.code = code }
@@ -39,6 +42,7 @@ class ProgrammeGroupFactory {
   fun withRegionName(regionName: String) = apply { this.regionName = regionName }
   fun withStartedAt(startedAt: LocalDate) = apply { this.startedAtDate = startedAt }
   fun withEarliestStartDate(earliestStartDate: LocalDate) = apply { this.earliestStartDate = earliestStartDate }
+  fun withSessionSlots(programmeGroupSessionSlots: MutableSet<ProgrammeGroupSessionSlotEntity>) = apply { this.programmeGroupSessionSlots = programmeGroupSessionSlots }
 
   fun produce(): ProgrammeGroupEntity = ProgrammeGroupEntity(
     id = this.id,
@@ -55,10 +59,11 @@ class ProgrammeGroupFactory {
     regionName = this.regionName,
     startedAtDate = this.startedAtDate,
     earliestPossibleStartDate = this.earliestStartDate,
+    programmeGroupSessionSlots = this.programmeGroupSessionSlots,
   )
 
-  fun toCreateGroup(): CreateGroupRequest {
+  fun toCreateGroup(programmeGroupSessionSlots: Set<CreateGroupSessionSlot> = setOf()): CreateGroupRequest {
     val group = produce()
-    return CreateGroupRequest(group.code, ProgrammeGroupCohort.from(group.cohort, group.isLdc), group.sex, LocalDate.parse("2025-01-01"))
+    return CreateGroupRequest(group.code, ProgrammeGroupCohort.from(group.cohort, group.isLdc), group.sex, LocalDate.parse("2025-01-01"), programmeGroupSessionSlots)
   }
 }

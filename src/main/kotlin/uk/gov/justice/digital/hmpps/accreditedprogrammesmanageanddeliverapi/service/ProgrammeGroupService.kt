@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.LocationFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
@@ -22,11 +23,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
 import java.time.LocalDate
+import java.time.DayOfWeek
+import java.time.LocalTime
 import java.util.UUID
 
 @Service
@@ -46,7 +50,25 @@ class ProgrammeGroupService(
 
     log.info("Group created with code: ${createGroupRequest.groupCode}")
 
-    return programmeGroupRepository.save(createGroupRequest.toEntity(userRegion))
+    val programmeGroup = createGroupRequest.toEntity(userRegion)
+    val slots = createSessionSlots(createGroupRequest.createGroupSessionSlot, programmeGroup)
+
+    programmeGroup.programmeGroupSessionSlots.addAll(slots)
+    return programmeGroupRepository.save(programmeGroup)
+  }
+
+  private fun createSessionSlots(slotData: Set<CreateGroupSessionSlot>, programmeGroup: ProgrammeGroupEntity): List<ProgrammeGroupSessionSlotEntity> = slotData.map { item ->
+    val hour = when {
+      item.amOrPm.lowercase() == "pm" && item.hour < 12 -> item.hour + 12
+      item.amOrPm.lowercase() == "am" && item.hour == 12 -> 0
+      else -> item.hour
+    }
+    val startTime = LocalTime.of(hour, item.minutes)
+    ProgrammeGroupSessionSlotEntity(
+      programmeGroup = programmeGroup,
+      dayOfWeek = DayOfWeek.valueOf(item.dayOfWeek),
+      startTime = startTime,
+    )
   }
 
   fun getGroupWaitlistDataByCriteria(

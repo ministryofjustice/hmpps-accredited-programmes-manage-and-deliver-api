@@ -37,6 +37,10 @@ data class CreateGroupRequest(
   @Schema(description = "The date the group started")
   @JsonFormat(pattern = "d/M/yyyy")
   var startedAtDate: LocalDate,
+
+  @get:JsonProperty("createGroupSessionSlot", required = true)
+  @Schema(description = "A list of session slots for the group")
+  var createGroupSessionSlot: Set<CreateGroupSessionSlot>,
 )
 
 fun CreateGroupRequest.toEntity(region: String): ProgrammeGroupEntity {

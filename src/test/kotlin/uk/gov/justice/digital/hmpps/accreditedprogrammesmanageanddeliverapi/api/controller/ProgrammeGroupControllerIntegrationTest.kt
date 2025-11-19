@@ -47,6 +47,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.util
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.LocalDate
 import java.util.UUID
+import kotlin.collections.listOf
 
 class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralService: ReferralService) : IntegrationTestBase() {
 
@@ -742,7 +743,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
   inner class CreateProgrammeGroup {
     @Test
     fun `create group with code and return 200 when it doesn't already exist`() {
-      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"))
+      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"), setOf())
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -762,7 +763,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
 
     @Test
     fun `create group and assign correct cohort and sex and return 200 when it doesn't already exist`() {
-      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.SEXUAL_LDC, ProgrammeGroupSexEnum.FEMALE, LocalDate.parse("2025-01-01"))
+      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.SEXUAL_LDC, ProgrammeGroupSexEnum.FEMALE, LocalDate.parse("2025-01-01"), setOf())
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -783,7 +784,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
     fun `create group with code and return CONFLICT when it already exists within the region`() {
       val group = ProgrammeGroupFactory().withCode("TEST_GROUP").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
-      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"))
+      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"), setOf())
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -796,7 +797,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
 
     @Test
     fun `return 401 when unauthorised`() {
-      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"))
+      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"), setOf())
       webTestClient
         .method(HttpMethod.POST)
         .uri("/group")
@@ -854,7 +855,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
 
     @Test
     fun `return 401 when unauthorised`() {
-      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"))
+      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"), setOf())
       webTestClient
         .method(HttpMethod.GET)
         .uri("/group/TEST/details")

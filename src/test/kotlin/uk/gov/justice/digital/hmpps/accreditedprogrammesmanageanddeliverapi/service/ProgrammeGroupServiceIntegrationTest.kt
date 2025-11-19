@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
@@ -27,7 +28,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.UUID
 
 class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
@@ -73,11 +76,23 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
   inner class CreateGroup {
     @Test
     fun `createGroup can successfully create a new group`() {
-      val group = ProgrammeGroupFactory().toCreateGroup()
+      val slots = setOf(
+        CreateGroupSessionSlot("MONDAY", 1, 1, "am"),
+        CreateGroupSessionSlot("TUESDAY", 1, 1, "pm"),
+      )
+
+      val group = ProgrammeGroupFactory().toCreateGroup(slots)
+
       programmeGroupService.createGroup(group, "AUTH_ADM")
       val createdGroup = programmeGroupRepository.findByCode(group.groupCode)
       assertThat { createdGroup }.isNotNull
       assertThat(createdGroup?.code).isEqualTo(group.groupCode)
+      assertThat(createdGroup?.programmeGroupSessionSlots).size().isEqualTo(2)
+
+      assertThat(createdGroup?.programmeGroupSessionSlots).allMatch {
+        (it.dayOfWeek == DayOfWeek.MONDAY && it.startTime.equals(LocalTime.of(1, 1))) ||
+          (it.dayOfWeek == DayOfWeek.TUESDAY && it.startTime.equals(LocalTime.of(13, 1)))
+      }
     }
 
     @Test
@@ -93,6 +108,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
             ProgrammeGroupCohort.from(existingGroup.cohort, existingGroup.isLdc),
             existingGroup.sex,
             LocalDate.parse("2025-01-01"),
+            setOf(),
           ),
           username = "AUTH_ADM",
         )

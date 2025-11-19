@@ -6,11 +6,11 @@ import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
-import jakarta.persistence.OneToOne
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
-import java.sql.Time
 import java.time.DayOfWeek
+import java.time.LocalTime
 import java.util.UUID
 
 @Entity
@@ -22,7 +22,7 @@ class ProgrammeGroupSessionSlotEntity(
   var id: UUID? = null,
 
   @NotNull
-  @OneToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "programme_group_id")
   var programmeGroup: ProgrammeGroupEntity,
 
@@ -32,5 +32,5 @@ class ProgrammeGroupSessionSlotEntity(
 
   @NotNull
   @Column(name = "start_time")
-  var startTime: Time,
+  var startTime: LocalTime,
 )
