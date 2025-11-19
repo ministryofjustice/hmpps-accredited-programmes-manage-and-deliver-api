@@ -437,7 +437,7 @@ class ProgrammeGroupController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/create-a-group/pdus-for-user-region")
+  @GetMapping("/bff/pdus-for-user-region")
   fun getPdusInUserRegion(): ResponseEntity<List<String>> {
     val username = authenticationHolder.username
     if (username == null || username.isBlank()) {

@@ -15,6 +15,7 @@ class DeliveryLocationService(private val nDeliusApiIntegrationApiClient: NDeliu
   fun getPdusForRegion(regionCode: String): List<NDeliusRegionWithMembers.NDeliusPduWithTeam> = when (val result = nDeliusApiIntegrationApiClient.getPdusForRegion(regionCode)) {
     is ClientResult.Success -> {
       val pduNames = result.body.pdus
+      log.debug("Region code: {} returned pduNames: {}", regionCode, pduNames)
       pduNames.ifEmpty {
         log.warn("No PDU's returned for regionCode: $regionCode")
         emptyList()
@@ -22,6 +23,7 @@ class DeliveryLocationService(private val nDeliusApiIntegrationApiClient: NDeliu
     }
 
     is ClientResult.Failure -> {
+      log.error("Failed to fetch PDU's for regionCode: $regionCode:  ${result.toException().message}")
       emptyList()
     }
   }

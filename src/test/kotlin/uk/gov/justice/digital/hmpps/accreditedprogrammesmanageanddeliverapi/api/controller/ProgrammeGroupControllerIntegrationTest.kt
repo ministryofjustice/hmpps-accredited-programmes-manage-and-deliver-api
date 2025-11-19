@@ -893,7 +893,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       nDeliusApiStubs.stubRegionWithMembersResponse("REGION001", members)
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/create-a-group/pdus-for-user-region",
+        uri = "/bff/pdus-for-user-region",
         returnType = object : ParameterizedTypeReference<List<String>>() {},
       )
 
@@ -905,7 +905,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
     fun `return 401 when unauthorised`() {
       webTestClient
         .method(HttpMethod.GET)
-        .uri("/bff/create-a-group/pdus-for-user-region")
+        .uri("/bff/pdus-for-user-region")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .exchange()
