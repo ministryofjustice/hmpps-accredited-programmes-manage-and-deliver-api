@@ -9,10 +9,10 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -138,26 +138,31 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
 
     @Test
     fun `throws an error if referral already allocated to a group`() {
-      val groupCode = "AAA111"
-      val group = ProgrammeGroupFactory().withCode(groupCode).produce()
-      testDataGenerator.createGroup(group)
+      val firstGroup = ProgrammeGroupFactory().withCode("AAA111").produce()
+      val secondGroup = ProgrammeGroupFactory().withCode("BBB222").produce()
+      testDataGenerator.createGroup(firstGroup)
+      testDataGenerator.createGroup(secondGroup)
 
-      val referralStatusDescriptionEntity = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
-      val referral = ReferralEntityFactory().produce()
-      val statusHistory = ReferralStatusHistoryEntityFactory().produce(referral, referralStatusDescriptionEntity)
-      testDataGenerator.createReferralWithStatusHistory(referral, statusHistory)
-      val groupMembership = ProgrammeGroupMembershipFactory().withReferral(referral).withProgrammeGroup(group).produce()
-      testDataGenerator.createGroupMembership(groupMembership)
+      val referral = testReferralHelper.createReferralWithStatus(
+        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+      )
 
-      val exception = assertThrows<BusinessException> {
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        firstGroup.id!!,
+        "SYSTEM",
+        "",
+      )
+
+      val exception = assertThrows<ConflictException> {
         programmeGroupMembershipService.allocateReferralToGroup(
           referral.id!!,
-          group.id!!,
+          secondGroup.id!!,
           "SYSTEM",
           "",
         )
       }
-      assertThat(exception.message).isEqualTo("Cannot assign referral to group as referral with id ${referral.id} is in a closed state")
+      assertThat(exception.message).isEqualTo("Referral with id ${referral.id} is already allocated to group BBB222")
     }
   }
 
@@ -226,6 +231,22 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
       assertThat(updatedReferral.programmeGroupMemberships.none { it.deletedAt === null }).isTrue
       assertThat(updatedReferral.programmeGroupMemberships).hasSize(1)
       assertThat(result.statusHistories.size).isEqualTo(updatedReferral.statusHistories.size)
+
+      // When again
+      programmeGroupMembershipService.allocateReferralToGroup(
+        theReferral.id!!,
+        theGroup.id!!,
+        "SECOND_ALLOCATION_TO_GROUP",
+        "Another set of addditional details",
+      )
+
+      programmeGroupMembershipService.removeReferralFromGroup(
+        theReferral.id!!,
+        theGroup.id!!,
+        "REMOVED_FROM_GROUP_BY_ID",
+        "the additional details",
+        awaitingAllocationStatusDescriptionId,
+      )
     }
 
     @Test
