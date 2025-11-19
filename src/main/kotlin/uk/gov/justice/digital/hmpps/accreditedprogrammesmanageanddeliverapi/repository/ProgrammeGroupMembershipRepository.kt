@@ -25,7 +25,8 @@ interface ProgrammeGroupMembershipRepository : JpaRepository<ProgrammeGroupMembe
     SELECT pgm FROM ProgrammeGroupMembershipEntity pgm
     WHERE pgm.referral.id = :referralId
     AND pgm.programmeGroup.id = :programmeGroupId
+    AND pgm.deletedAt IS NULL
     """,
   )
-  fun findByReferralAndProgrammeGroup(referralId: UUID, programmeGroupId: UUID): ProgrammeGroupMembershipEntity?
+  fun findNonDeletedByReferralAndGroupIds(referralId: UUID, programmeGroupId: UUID): ProgrammeGroupMembershipEntity?
 }
