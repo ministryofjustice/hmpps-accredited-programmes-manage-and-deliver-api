@@ -45,19 +45,22 @@ class ProgrammeGroupService(
 
   fun createGroup(createGroupRequest: CreateGroupRequest, username: String): ProgrammeGroupEntity? {
     val (userRegion) = userService.getUserRegions(username)
-    programmeGroupRepository.findByCodeAndRegionName(createGroupRequest.groupCode, userRegion)
+    programmeGroupRepository.findByCodeAndRegionName(createGroupRequest.groupCode, userRegion.description)
       ?.let { throw ConflictException("Programme group with code ${createGroupRequest.groupCode} already exists in region") }
 
     log.info("Group created with code: ${createGroupRequest.groupCode}")
 
-    val programmeGroup = createGroupRequest.toEntity(userRegion)
+    val programmeGroup = createGroupRequest.toEntity(userRegion.description)
     val slots = createSessionSlots(createGroupRequest.createGroupSessionSlot, programmeGroup)
 
     programmeGroup.programmeGroupSessionSlots.addAll(slots)
     return programmeGroupRepository.save(programmeGroup)
   }
 
-  private fun createSessionSlots(slotData: Set<CreateGroupSessionSlot>, programmeGroup: ProgrammeGroupEntity): List<ProgrammeGroupSessionSlotEntity> = slotData.map { item ->
+  private fun createSessionSlots(
+    slotData: Set<CreateGroupSessionSlot>,
+    programmeGroup: ProgrammeGroupEntity,
+  ): List<ProgrammeGroupSessionSlotEntity> = slotData.map { item ->
     val hour = when {
       item.amOrPm == AmOrPm.PM && item.hour < 12 -> item.hour + 12
       item.amOrPm == AmOrPm.AM && item.hour == 12 -> 0
@@ -111,7 +114,7 @@ class ProgrammeGroupService(
 
   fun getGroupInRegion(groupCode: String, username: String): ProgrammeGroupEntity? {
     val (userRegion) = userService.getUserRegions(username)
-    return programmeGroupRepository.findByCodeAndRegionName(groupCode, userRegion)
+    return programmeGroupRepository.findByCodeAndRegionName(groupCode, userRegion.description)
   }
 
   fun getGroupFilters(): ProgrammeGroupDetails.Filters {
@@ -147,7 +150,7 @@ class ProgrammeGroupService(
       deliveryLocation = deliveryLocation,
       cohort = groupCohort,
       sex = sex,
-      regionName = userRegion,
+      regionName = userRegion.description,
     )
 
     // Apply tab-specific date filter
@@ -158,6 +161,7 @@ class ProgrammeGroupService(
           cb.isNull(datePath),
           cb.greaterThan(datePath, LocalDate.now()),
         )
+
         GroupPageByRegionTab.IN_PROGRESS_OR_COMPLETE -> cb.lessThanOrEqualTo(datePath, LocalDate.now())
       }
     }

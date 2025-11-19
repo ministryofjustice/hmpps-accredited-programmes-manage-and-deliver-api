@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.media.ArraySchema
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -35,8 +36,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.DeliveryLocationService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.util.UUID
 
@@ -50,6 +53,8 @@ class ProgrammeGroupController(
   private val programmeGroupService: ProgrammeGroupService,
   private val authenticationHolder: HmppsAuthenticationHolder,
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
+  private val userService: UserService,
+  private val deliveryLocationService: DeliveryLocationService,
 ) {
 
   @Operation(
@@ -373,7 +378,7 @@ class ProgrammeGroupController(
   @Operation(
     tags = ["Programme Group controller"],
     summary = "Get group by GroupCode",
-    operationId = "getGroupInRegion",
+    operationId = "getGroupInUserRegion",
     description = "Get group by GroupCode and in User region",
     responses = [
       ApiResponse(
@@ -406,5 +411,40 @@ class ProgrammeGroupController(
       throw AuthenticationCredentialsNotFoundException("No authenticated user found")
     }
     return ResponseEntity.ok(programmeGroupService.getGroupInRegion(groupCode, username)?.toApi())
+  }
+
+  @Operation(
+    tags = ["Programme Group controller"],
+    summary = "BFF endpoint to get a list of PDUs for the user region.",
+    operationId = "getPdusInRegion",
+    description = "BFF endpoint to retrieve a list of PDUs for the region the logged in user is in.",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Returns a list of PDUs",
+        content = [Content(array = ArraySchema(schema = Schema(implementation = String::class)))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden. The client is not authorised to retrieve pdus.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/bff/pdus-for-user-region")
+  fun getPdusInUserRegion(): ResponseEntity<List<String>> {
+    val username = authenticationHolder.username
+    if (username == null || username.isBlank()) {
+      throw AuthenticationCredentialsNotFoundException("No authenticated user found")
+    }
+    val (userRegion) = userService.getUserRegions(username)
+    val pdusForRegion = deliveryLocationService.getPdusForRegion(userRegion.code).map { it.description }
+    return ResponseEntity.ok(pdusForRegion)
   }
 }

@@ -8,6 +8,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegionWithMembers
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegistrations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
@@ -77,5 +78,15 @@ class NDeliusIntegrationApiClient(
    */
   fun getTeamsForUser(username: String) = getRequest<NDeliusUserTeams>(N_DELIUS_INTEGRATION_API) {
     path = "/user/$username/teams"
+  }
+
+  /**
+   * Fetch the pdus, teams and members of that team in a region.
+   *
+   * @param regionCode - The code of the region in Ndelius.
+   * @return List of pdus with their associated teams and members
+   */
+  fun getPdusForRegion(regionCode: String) = getRequest<NDeliusRegionWithMembers>(N_DELIUS_INTEGRATION_API) {
+    path = "/regions/$regionCode/members"
   }
 }
