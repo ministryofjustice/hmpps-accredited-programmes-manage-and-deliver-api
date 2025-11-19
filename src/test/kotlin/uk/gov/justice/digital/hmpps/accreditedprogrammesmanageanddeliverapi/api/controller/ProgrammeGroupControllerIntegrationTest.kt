@@ -15,7 +15,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
@@ -45,7 +47,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.UUID
 import kotlin.collections.listOf
 
@@ -743,7 +747,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
   inner class CreateProgrammeGroup {
     @Test
     fun `create group with code and return 200 when it doesn't already exist`() {
-      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"), setOf())
+      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"), setOf(CreateGroupSessionSlot(DayOfWeek.MONDAY, 1, 1, AmOrPm.AM)))
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -759,11 +763,14 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.MALE)
       assertThat(createdGroup.regionName).isEqualTo("WIREMOCKED REGION")
       assertThat(createdGroup.startedAtDate).isEqualTo(LocalDate.parse("2025-01-01"))
+      assertThat(createdGroup.programmeGroupSessionSlots).hasSize(1)
+      assertThat(createdGroup.programmeGroupSessionSlots.first().dayOfWeek).isEqualTo(DayOfWeek.MONDAY)
+      assertThat(createdGroup.programmeGroupSessionSlots.first().startTime).isEqualTo(LocalTime.of(1, 1))
     }
 
     @Test
     fun `create group and assign correct cohort and sex and return 200 when it doesn't already exist`() {
-      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.SEXUAL_LDC, ProgrammeGroupSexEnum.FEMALE, LocalDate.parse("2025-01-01"), setOf())
+      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.SEXUAL_LDC, ProgrammeGroupSexEnum.FEMALE, LocalDate.parse("2025-01-01"), setOf(CreateGroupSessionSlot(DayOfWeek.MONDAY, 1, 1, AmOrPm.PM)))
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -778,6 +785,9 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.FEMALE)
       assertThat(createdGroup.regionName).isEqualTo("WIREMOCKED REGION")
       assertThat(createdGroup.startedAtDate).isEqualTo(LocalDate.parse("2025-01-01"))
+      assertThat(createdGroup.programmeGroupSessionSlots).hasSize(1)
+      assertThat(createdGroup.programmeGroupSessionSlots.first().dayOfWeek).isEqualTo(DayOfWeek.MONDAY)
+      assertThat(createdGroup.programmeGroupSessionSlots.first().startTime).isEqualTo(LocalTime.of(13, 1))
     }
 
     @Test
