@@ -26,11 +26,11 @@ fun getProgrammeGroupsSpecification(
   }
 
   pdu?.let {
-    predicates.add(cb.equal(root.get<String>("probationDeliveryUnit"), it))
+    predicates.add(cb.equal(root.get<String>("probationDeliveryUnitName"), it))
   }
 
   deliveryLocation?.let {
-    predicates.add(cb.equal(root.get<String>("deliveryLocation"), it))
+    predicates.add(cb.equal(root.get<String>("deliveryLocationName"), it))
   }
 
   cohort?.let {

@@ -49,7 +49,7 @@ data class Group(
 
   @Schema(
     example = "County Durham Probation Office",
-    description = "The location Where the group programme will be delivered.",
+    description = "The location description where the group programme will be delivered.",
   )
   @get:JsonProperty("deliveryLocation")
   val deliveryLocation: String? = null,
@@ -70,19 +70,6 @@ data class Group(
   @get:JsonProperty("sex")
   val sex: ProgrammeGroupSexEnum? = null,
 
-  @Schema(
-    example = "10",
-    description = "The total group capacity.",
-  )
-  @get:JsonProperty("capacity")
-  val capacity: Int? = null,
-
-  @Schema(
-    example = "8",
-    description = "The number of people currently allocated to the group.",
-  )
-  @get:JsonProperty("allocated")
-  val allocated: Int? = null,
 )
 
 fun ProgrammeGroupEntity.toApi(): Group = Group(
@@ -90,12 +77,10 @@ fun ProgrammeGroupEntity.toApi(): Group = Group(
   regionName = this.regionName,
   earliestStartDate = this.earliestPossibleStartDate,
   startDate = startedAtDate,
-  pduName = this.probationDeliveryUnit,
-  deliveryLocation = this.deliveryLocation,
+  pduName = this.probationDeliveryUnitName,
+  deliveryLocation = this.deliveryLocationName,
   cohort = this.let { entity ->
     ProgrammeGroupCohort.from(entity.cohort, entity.isLdc)
   },
   sex = this.sex,
-  capacity = null,
-  allocated = null,
 )

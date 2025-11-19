@@ -111,10 +111,12 @@ class ProgrammeGroupService(
     deliveryLocation: String?,
     cohort: String?,
     sex: String?,
-    regionName: String?,
     selectedTab: GroupPageByRegionTab,
+    username: String,
   ): GroupsByRegion {
     val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
+
+    val (userRegion) = userService.getUserRegions(username)
 
     // Base spec without startedAt filter (used for total count)
     val baseSpec = getProgrammeGroupsSpecification(
@@ -123,14 +125,18 @@ class ProgrammeGroupService(
       deliveryLocation = deliveryLocation,
       cohort = groupCohort,
       sex = sex,
-      regionName = regionName,
+      regionName = userRegion,
     )
 
-    // Apply tab-specific startedAt filter
+    // Apply tab-specific date filter
     val startedAtSpec = Specification<ProgrammeGroupEntity> { root, _, cb ->
+      val datePath = root.get<LocalDate>("earliestPossibleStartDate")
       when (selectedTab) {
-        GroupPageByRegionTab.NOT_STARTED -> cb.isNull(root.get<LocalDate>("startedAtDate"))
-        GroupPageByRegionTab.IN_PROGRESS_OR_COMPLETE -> cb.isNotNull(root.get<LocalDate>("startedAtDate"))
+        GroupPageByRegionTab.NOT_STARTED -> cb.or(
+          cb.isNull(datePath),
+          cb.greaterThan(datePath, LocalDate.now()),
+        )
+        GroupPageByRegionTab.IN_PROGRESS_OR_COMPLETE -> cb.lessThanOrEqualTo(datePath, LocalDate.now())
       }
     }
 

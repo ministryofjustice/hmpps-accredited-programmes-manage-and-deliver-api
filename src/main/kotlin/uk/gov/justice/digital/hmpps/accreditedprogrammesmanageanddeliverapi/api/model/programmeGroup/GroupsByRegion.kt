@@ -15,7 +15,7 @@ data class GroupsByRegion(
   @Schema(
     example = "12",
     required = true,
-    description = "The total number of records in the 'Other' tab.",
+    description = "The total number of records in the other tab, such as the Not started tab.",
   )
   @get:JsonProperty("otherTabTotal", required = true)
   val otherTabTotal: Int,

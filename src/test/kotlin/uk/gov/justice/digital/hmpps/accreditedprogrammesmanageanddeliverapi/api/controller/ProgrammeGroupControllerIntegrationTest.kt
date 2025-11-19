@@ -436,16 +436,19 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       // Given
       stubAuthTokenEndpoint()
 
-      val region = "North East"
-      // Create 3 groups not started, 2 groups started in same region, plus one in another region
-      val group1 = ProgrammeGroupFactory().withCode("GROUP-A-NS-1").withRegionName(region).produce()
-      val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2").withRegionName(region).produce()
-      val group3 = ProgrammeGroupFactory().withCode("GROUP-A-NS-3").withRegionName(region).produce()
+      val region = "WIREMOCKED REGION"
+      // Create 3 not started groups, 2 started groups in the same region, plus one in another region
+      val group1 = ProgrammeGroupFactory().withCode("GROUP-A-NS-1")
+        .withRegionName(region).withEarliestStartDate(LocalDate.now().plusDays(5)).produce()
+      val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2")
+        .withRegionName(region).withEarliestStartDate(LocalDate.now().plusDays(5)).produce()
+      val group3 = ProgrammeGroupFactory().withCode("GROUP-A-NS-3")
+        .withRegionName(region).withEarliestStartDate(LocalDate.now().plusDays(5)).produce()
 
       val group4 = ProgrammeGroupFactory().withCode("GROUP-A-S-1").withRegionName(region)
-        .withStartedAt(LocalDate.now().minusDays(5)).produce()
+        .withEarliestStartDate(LocalDate.now().minusDays(5)).produce()
       val group5 = ProgrammeGroupFactory().withCode("GROUP-A-S-2").withRegionName(region)
-        .withStartedAt(LocalDate.now().minusDays(1)).produce()
+        .withEarliestStartDate(LocalDate.now().minusDays(1)).produce()
 
       val groupInOtherRegion = ProgrammeGroupFactory().withCode("GROUP-B-NS-1").withRegionName("South West").produce()
 
@@ -454,7 +457,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/region/$region/NOT_STARTED?page=0&size=10",
+        "/bff/groups/region/NOT_STARTED?page=0&size=10",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
@@ -471,21 +474,21 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       // Given
       stubAuthTokenEndpoint()
 
-      val region = "North East"
+      val region = "WIREMOCKED REGION"
       val group1 = ProgrammeGroupFactory().withCode("GROUP-A-NS-1").withRegionName(region).produce()
       val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2").withRegionName(region).produce()
 
-      val group3 = ProgrammeGroupFactory().withCode("GROUP-A-S-1").withRegionName(region)
-        .withStartedAt(LocalDate.now().minusDays(3)).produce()
+      val group3 = ProgrammeGroupFactory().withCode("GROUP-A-S-1")
+        .withRegionName(region).withEarliestStartDate(LocalDate.now().minusDays(5)).produce()
       val group4 = ProgrammeGroupFactory().withCode("GROUP-A-S-2").withRegionName(region)
-        .withStartedAt(LocalDate.now().minusDays(2)).produce()
+        .withRegionName(region).withEarliestStartDate(LocalDate.now().minusDays(2)).produce()
 
       listOf(group1, group2, group3, group4).forEach { testDataGenerator.createGroup(it) }
 
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/region/$region/IN_PROGRESS_OR_COMPLETE?page=0&size=10",
+        "/bff/groups/region/IN_PROGRESS_OR_COMPLETE?page=0&size=10",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
@@ -501,21 +504,21 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
     fun `should paginate results`() {
       // Given
       stubAuthTokenEndpoint()
-      val region = "North East"
+      val region = "WIREMOCKED REGION"
       val group1 = ProgrammeGroupFactory().withCode("GROUP-A-NS-1").withRegionName(region).produce()
       val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2").withRegionName(region).produce()
       val group3 = ProgrammeGroupFactory().withCode("GROUP-A-NS-3").withRegionName(region).produce()
       listOf(group1, group2, group3).forEach { testDataGenerator.createGroup(it) }
 
-      // When fetch size=1 page=0
+      // When
       val page0 = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/region/$region/NOT_STARTED?page=0&size=1",
+        "/bff/groups/region/NOT_STARTED?page=0&size=1",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
       val page1 = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/region/$region/NOT_STARTED?page=1&size=1",
+        "/bff/groups/region/NOT_STARTED?page=1&size=1",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
@@ -533,7 +536,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       // When & Then
       webTestClient
         .method(HttpMethod.GET)
-        .uri("/bff/groups/region/$region/NOT_STARTED?page=0&size=1)")
+        .uri("/bff/groups/region/NOT_STARTED?page=0&size=1)")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .accept(MediaType.APPLICATION_JSON)

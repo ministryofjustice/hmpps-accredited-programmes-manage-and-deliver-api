@@ -159,16 +159,14 @@ class ProgrammeGroupController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/groups/region/{regionName}/{selectedTab}", produces = [MediaType.APPLICATION_JSON_VALUE])
+  @GetMapping("/bff/groups/region/{selectedTab}", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getProgrammeGroupsByRegion(
     @PageableDefault(
       page = 0,
-      size = 10,
+      size = 50,
       sort = ["startedAtDate"],
       direction = Sort.Direction.ASC,
     ) pageable: Pageable,
-    @Parameter(description = "The region that the group belongs to, i.e. 'West Midlands'")
-    @PathVariable("regionName") regionName: String,
     @Parameter(description = "Return table data for either the Not started tab or the In progress/Completed tab")
     @PathVariable("selectedTab") selectedTab: GroupPageByRegionTab,
     @Parameter(description = "Filter by the unique group code")
@@ -194,8 +192,8 @@ class ProgrammeGroupController(
       deliveryLocation = deliveryLocation,
       cohort = cohort,
       sex = sex,
-      regionName = regionName,
       selectedTab = selectedTab,
+      username,
     )
 
     return ResponseEntity.ok(groups)

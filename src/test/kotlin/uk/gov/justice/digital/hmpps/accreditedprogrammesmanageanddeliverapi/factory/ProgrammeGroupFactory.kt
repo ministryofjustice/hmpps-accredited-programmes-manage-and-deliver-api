@@ -23,6 +23,7 @@ class ProgrammeGroupFactory {
   private var deletedByUsername: String? = null
   private var regionName: String = "TEST REGION"
   private var startedAtDate: LocalDate? = null
+  private var earliestStartDate: LocalDate? = null
 
   fun withId(id: UUID) = apply { this.id = id }
   fun withCode(code: String) = apply { this.code = code }
@@ -37,6 +38,7 @@ class ProgrammeGroupFactory {
   fun withDeletedByUsername(deletedByUsername: String) = apply { this.deletedByUsername = deletedByUsername }
   fun withRegionName(regionName: String) = apply { this.regionName = regionName }
   fun withStartedAt(startedAt: LocalDate) = apply { this.startedAtDate = startedAt }
+  fun withEarliestStartDate(earliestStartDate: LocalDate) = apply { this.earliestStartDate = earliestStartDate }
 
   fun produce(): ProgrammeGroupEntity = ProgrammeGroupEntity(
     id = this.id,
@@ -52,6 +54,7 @@ class ProgrammeGroupFactory {
     deletedByUsername = this.deletedByUsername,
     regionName = this.regionName,
     startedAtDate = this.startedAtDate,
+    earliestPossibleStartDate = this.earliestStartDate,
   )
 
   fun toCreateGroup(): CreateGroupRequest {

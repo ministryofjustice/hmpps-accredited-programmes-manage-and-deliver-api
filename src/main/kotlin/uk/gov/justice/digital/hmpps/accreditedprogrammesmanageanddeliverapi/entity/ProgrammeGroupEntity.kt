@@ -73,11 +73,11 @@ class ProgrammeGroupEntity(
   @Column(name = "region_name")
   var regionName: String,
 
-  @Column(name = "delivery_location")
-  var deliveryLocation: String? = null,
+  @Column(name = "delivery_location_name")
+  var deliveryLocationName: String? = null,
 
-  @Column(name = "probation_delivery_unit")
-  var probationDeliveryUnit: String? = null,
+  @Column(name = "probation_delivery_unit_name")
+  var probationDeliveryUnitName: String? = null,
 
   @Column(name = "earliest_possible_start_date")
   var earliestPossibleStartDate: LocalDate? = null,
