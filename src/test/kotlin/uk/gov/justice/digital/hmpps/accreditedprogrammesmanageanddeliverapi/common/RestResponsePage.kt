@@ -34,3 +34,9 @@ data class PagedProgrammeDetails<T>(
   val pagedGroupData: RestResponsePage<T>,
   val otherTabTotal: Int,
 )
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class GroupsByRegionResponse<T>(
+  val pagedGroupData: RestResponsePage<T>,
+  val otherTabTotal: Int,
+)

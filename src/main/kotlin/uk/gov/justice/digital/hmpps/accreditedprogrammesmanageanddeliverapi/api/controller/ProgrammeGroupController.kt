@@ -27,11 +27,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
@@ -126,6 +128,75 @@ class ProgrammeGroupController(
     )
 
     return ResponseEntity.ok(programmeDetails)
+  }
+
+  @Operation(
+    tags = ["Programme Group controller"],
+    summary = "Get programme groups by region",
+    operationId = "getProgrammeGroupsByRegion",
+    description = "Retrieve a paged list of programme groups for a specified region",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Programme groups retrieved successfully",
+        content = [Content(schema = Schema(implementation = GroupsByRegion::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden. The client is not authorised to access this resource.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "No groups found for the specified region",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/bff/groups/region/{selectedTab}", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getProgrammeGroupsByRegion(
+    @PageableDefault(
+      page = 0,
+      size = 50,
+      sort = ["startedAtDate"],
+      direction = Sort.Direction.ASC,
+    ) pageable: Pageable,
+    @Parameter(description = "Return table data for either the Not started tab or the In progress/Completed tab")
+    @PathVariable("selectedTab") selectedTab: GroupPageByRegionTab,
+    @Parameter(description = "Filter by the unique group code")
+    @RequestParam(name = "groupCode", required = false) groupCode: String?,
+    @Parameter(description = "Filter by the human readable pdu of the group, i.e. 'All London'")
+    @RequestParam(name = "pdu", required = false) pdu: String?,
+    @Parameter(description = "Filter by the delivery location name")
+    @RequestParam(name = "deliveryLocation", required = false) deliveryLocation: String?,
+    @Parameter(description = "Filter by the cohort of the group Eg: 'Sexual Offence' or 'General Offence - LDC")
+    @RequestParam(name = "cohort", required = false) cohort: String?,
+    @Parameter(description = "Filter by the sex that the group is being run for: 'Male', 'Female' or 'Mixed'")
+    @RequestParam(name = "sex", required = false) sex: String?,
+  ): ResponseEntity<GroupsByRegion> {
+    val username = authenticationHolder.username
+    if (username == null || username.isBlank()) {
+      throw AuthenticationCredentialsNotFoundException("No authenticated user found")
+    }
+
+    val groups = programmeGroupService.getProgrammeGroupsForRegion(
+      pageable = pageable,
+      groupCode = groupCode,
+      pdu = pdu,
+      deliveryLocation = deliveryLocation,
+      cohort = cohort,
+      sex = sex,
+      selectedTab = selectedTab,
+      username,
+    )
+
+    return ResponseEntity.ok(groups)
   }
 
   @Operation(

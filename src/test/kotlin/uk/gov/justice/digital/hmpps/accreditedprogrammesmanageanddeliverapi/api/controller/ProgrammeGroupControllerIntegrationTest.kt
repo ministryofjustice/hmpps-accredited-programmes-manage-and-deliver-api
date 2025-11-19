@@ -26,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.GroupsByRegionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedProgrammeDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
@@ -417,6 +418,125 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       webTestClient
         .method(HttpMethod.GET)
         .uri("/bff/group/${group.id}/WAITLIST?page=0&size=10")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+  }
+
+  @Nested
+  @DisplayName("Get programme groups by region")
+  inner class GetProgrammeGroupsByRegionTests {
+    @Test
+    fun `should return NOT_STARTED groups only with correct otherTabTotal`() {
+      // Given
+      stubAuthTokenEndpoint()
+
+      val region = "WIREMOCKED REGION"
+      // Create 3 not started groups, 2 started groups in the same region, plus one in another region
+      val group1 = ProgrammeGroupFactory().withCode("GROUP-A-NS-1")
+        .withRegionName(region).withEarliestStartDate(LocalDate.now().plusDays(5)).produce()
+      val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2")
+        .withRegionName(region).withEarliestStartDate(LocalDate.now().plusDays(5)).produce()
+      val group3 = ProgrammeGroupFactory().withCode("GROUP-A-NS-3")
+        .withRegionName(region).withEarliestStartDate(LocalDate.now().plusDays(5)).produce()
+
+      val group4 = ProgrammeGroupFactory().withCode("GROUP-A-S-1").withRegionName(region)
+        .withEarliestStartDate(LocalDate.now().minusDays(5)).produce()
+      val group5 = ProgrammeGroupFactory().withCode("GROUP-A-S-2").withRegionName(region)
+        .withEarliestStartDate(LocalDate.now().minusDays(1)).produce()
+
+      val groupInOtherRegion = ProgrammeGroupFactory().withCode("GROUP-B-NS-1").withRegionName("South West").produce()
+
+      listOf(group1, group2, group3, group4, group5, groupInOtherRegion).forEach { testDataGenerator.createGroup(it) }
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/region/NOT_STARTED?page=0&size=10",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+
+      // Then
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(3)
+      val codes = response.pagedGroupData.content.map { it.code }
+      assertThat(codes).containsExactlyInAnyOrder("GROUP-A-NS-1", "GROUP-A-NS-2", "GROUP-A-NS-3")
+      // otherTabTotal should be count of started groups in the region (2)
+      assertThat(response.otherTabTotal).isEqualTo(2)
+    }
+
+    @Test
+    fun `should return IN_PROGRESS_OR_COMPLETE groups only with correct otherTabTotal`() {
+      // Given
+      stubAuthTokenEndpoint()
+
+      val region = "WIREMOCKED REGION"
+      val group1 = ProgrammeGroupFactory().withCode("GROUP-A-NS-1").withRegionName(region).produce()
+      val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2").withRegionName(region).produce()
+
+      val group3 = ProgrammeGroupFactory().withCode("GROUP-A-S-1")
+        .withRegionName(region).withEarliestStartDate(LocalDate.now().minusDays(5)).produce()
+      val group4 = ProgrammeGroupFactory().withCode("GROUP-A-S-2").withRegionName(region)
+        .withRegionName(region).withEarliestStartDate(LocalDate.now().minusDays(2)).produce()
+
+      listOf(group1, group2, group3, group4).forEach { testDataGenerator.createGroup(it) }
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/region/IN_PROGRESS_OR_COMPLETE?page=0&size=10",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+
+      // Then: should contain only started groups
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(2)
+      val codes = response.pagedGroupData.content.map { it.code }
+      assertThat(codes).containsExactlyInAnyOrder("GROUP-A-S-1", "GROUP-A-S-2")
+      // otherTabTotal should be count of not-started groups (2)
+      assertThat(response.otherTabTotal).isEqualTo(2)
+    }
+
+    @Test
+    fun `should paginate results`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val region = "WIREMOCKED REGION"
+      val group1 = ProgrammeGroupFactory().withCode("GROUP-A-NS-1").withRegionName(region).produce()
+      val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2").withRegionName(region).produce()
+      val group3 = ProgrammeGroupFactory().withCode("GROUP-A-NS-3").withRegionName(region).produce()
+      listOf(group1, group2, group3).forEach { testDataGenerator.createGroup(it) }
+
+      // When
+      val page0 = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/region/NOT_STARTED?page=0&size=1",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+      val page1 = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/region/NOT_STARTED?page=1&size=1",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+
+      // Then
+      assertThat(page0.pagedGroupData.size).isEqualTo(1)
+      assertThat(page0.pagedGroupData.totalElements).isEqualTo(3)
+      assertThat(page1.pagedGroupData.size).isEqualTo(1)
+      assertThat(page1.pagedGroupData.totalElements).isEqualTo(3)
+    }
+
+    @Test
+    fun `should return 401 when not authorized`() {
+      val region = "North East"
+
+      // When & Then
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/groups/region/NOT_STARTED?page=0&size=1)")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .accept(MediaType.APPLICATION_JSON)
