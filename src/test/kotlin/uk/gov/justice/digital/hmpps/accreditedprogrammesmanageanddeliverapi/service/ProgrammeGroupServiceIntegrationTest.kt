@@ -10,6 +10,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
@@ -77,8 +78,8 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     @Test
     fun `createGroup can successfully create a new group`() {
       val slots = setOf(
-        CreateGroupSessionSlot("MONDAY", 1, 1, "am"),
-        CreateGroupSessionSlot("TUESDAY", 1, 1, "pm"),
+        CreateGroupSessionSlot(DayOfWeek.MONDAY, 1, 1, AmOrPm.AM),
+        CreateGroupSessionSlot(DayOfWeek.TUESDAY, 1, 1, AmOrPm.PM),
       )
 
       val group = ProgrammeGroupFactory().toCreateGroup(slots)

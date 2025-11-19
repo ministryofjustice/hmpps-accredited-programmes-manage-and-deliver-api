@@ -8,6 +8,7 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.LocationFilterValues
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
@@ -29,7 +30,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
 import java.time.LocalDate
-import java.time.DayOfWeek
 import java.time.LocalTime
 import java.util.UUID
 
@@ -59,14 +59,14 @@ class ProgrammeGroupService(
 
   private fun createSessionSlots(slotData: Set<CreateGroupSessionSlot>, programmeGroup: ProgrammeGroupEntity): List<ProgrammeGroupSessionSlotEntity> = slotData.map { item ->
     val hour = when {
-      item.amOrPm.lowercase() == "pm" && item.hour < 12 -> item.hour + 12
-      item.amOrPm.lowercase() == "am" && item.hour == 12 -> 0
+      item.amOrPm == AmOrPm.PM && item.hour < 12 -> item.hour + 12
+      item.amOrPm == AmOrPm.AM && item.hour == 12 -> 0
       else -> item.hour
     }
     val startTime = LocalTime.of(hour, item.minutes)
     ProgrammeGroupSessionSlotEntity(
       programmeGroup = programmeGroup,
-      dayOfWeek = DayOfWeek.valueOf(item.dayOfWeek),
+      dayOfWeek = item.dayOfWeek,
       startTime = startTime,
     )
   }
