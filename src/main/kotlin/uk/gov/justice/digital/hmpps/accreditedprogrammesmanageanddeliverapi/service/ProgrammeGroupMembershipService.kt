@@ -108,7 +108,7 @@ class ProgrammeGroupMembershipService(
     groupId: UUID,
     deletedByUsername: String,
   ): ProgrammeGroupMembershipEntity {
-    val groupMembership = programmeGroupMembershipRepository.findByReferralAndProgrammeGroup(referralId, groupId) ?: throw NotFoundException(
+    val groupMembership = programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referralId, groupId) ?: throw NotFoundException(
       "No active Membership found for Referral ($referralId) and Group ($groupId)",
     )
 
