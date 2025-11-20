@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiOfficeLocation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
@@ -129,8 +128,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
           description = "(Wiremocked) London PDU",
         ),
         officeLocations = listOf(
-          NDeliusApiOfficeLocation(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
-          NDeliusApiOfficeLocation(code = "OFF002", description = "(Wiremocked) Victoria Office"),
+          CodeDescription(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
+          CodeDescription(code = "OFF002", description = "(Wiremocked) Victoria Office"),
         ),
       )
 
@@ -183,7 +182,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
           description = "Unallocated Level 2(N03)",
         ),
         officeLocations = listOf(
-          NDeliusApiOfficeLocation(code = "N03ANPS", description = "All Location"),
+          CodeDescription(code = "N03ANPS", description = "All Location"),
         ),
       )
 

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.BaseHMPPSClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnitWithOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegionWithMembers
@@ -83,10 +84,20 @@ class NDeliusIntegrationApiClient(
   /**
    * Fetch the pdus, teams and members of that team in a region.
    *
-   * @param regionCode - The code of the region in Ndelius.
+   * @param regionCode - The code of the region in NDelius.
    * @return List of pdus with their associated teams and members
    */
   fun getPdusForRegion(regionCode: String) = getRequest<NDeliusRegionWithMembers>(N_DELIUS_INTEGRATION_API) {
     path = "/regions/$regionCode/members"
+  }
+
+  /**
+   * Fetch the Office locations for a PDU from NDelius.
+   *
+   * @param pduCode - The code of the PDU in NDelius.
+   * @return List of office locations for a PDU.
+   */
+  fun getOfficeLocationsForPdu(pduCode: String) = getRequest<NDeliusApiProbationDeliveryUnitWithOfficeLocations>(N_DELIUS_INTEGRATION_API) {
+    path = "regions/pdu/$pduCode/office-locations"
   }
 }

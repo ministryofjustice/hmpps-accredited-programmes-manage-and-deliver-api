@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegionWithMembers
 
 @Service
@@ -24,6 +25,22 @@ class DeliveryLocationService(private val nDeliusApiIntegrationApiClient: NDeliu
 
     is ClientResult.Failure -> {
       log.error("Failed to fetch PDU's for regionCode: $regionCode:  ${result.toException().message}")
+      emptyList()
+    }
+  }
+
+  fun getOfficeLocationsForPdu(pduCode: String): List<CodeDescription> = when (val result = nDeliusApiIntegrationApiClient.getOfficeLocationsForPdu(pduCode)) {
+    is ClientResult.Success -> {
+      val officeNames = result.body.officeLocations
+      log.debug("Pdu code: {} returned officeNames: {}", pduCode, officeNames)
+      officeNames.ifEmpty {
+        log.warn("No office location's returned for pduCode: $pduCode")
+        emptyList()
+      }
+    }
+
+    is ClientResult.Failure -> {
+      log.error("Failed to fetch office location's for pduCode: $pduCode:  ${result.toException().message}")
       emptyList()
     }
   }
