@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
@@ -46,19 +47,28 @@ class RegionService(private val nDeliusApiIntegrationApiClient: NDeliusIntegrati
     }
   }
 
-  fun getTeamMembersForPdu(regionCode: String, pduCode: String): List<CodeDescription> = when (val result = nDeliusApiIntegrationApiClient.getPdusForRegion(regionCode)) {
-    is ClientResult.Success -> {
-      val pdu: NDeliusRegionWithMembers.NDeliusPduWithTeam? = result.body.pdus.find { it.code == pduCode }
-      if (pdu == null) {
-        log.warn("No pdu found in region: $regionCode for pduCode: $pduCode")
-        emptyList<CodeDescription>()
+  fun getTeamMembersForPdu(regionCode: String, pduCode: String): List<UserTeamMember> {
+    when (val result = nDeliusApiIntegrationApiClient.getPdusForRegion(regionCode)) {
+      is ClientResult.Success -> {
+        val pdu: NDeliusRegionWithMembers.NDeliusPduWithTeam? = result.body.pdus.find { it.code == pduCode }
+        if (pdu == null) {
+          log.warn("No pdu found in region: $regionCode for pduCode: $pduCode")
+          return emptyList()
+        }
+        return pdu.team.flatMap {
+          it.members.map { member ->
+            UserTeamMember(
+              member.code,
+              member.name.getNameAsString(),
+            )
+          }
+        }
       }
-      pdu!!.team.flatMap { it.members.map { member -> CodeDescription(member.code, member.name.getNameAsString()) } }
-    }
 
-    is ClientResult.Failure -> {
-      log.error("Failed to fetch team members for region: $regionCode and pdu: $pduCode:  ${result.toException().message}")
-      emptyList()
+      is ClientResult.Failure -> {
+        log.error("Failed to fetch team members for region: $regionCode and pdu: $pduCode:  ${result.toException().message}")
+        return emptyList()
+      }
     }
   }
 }
