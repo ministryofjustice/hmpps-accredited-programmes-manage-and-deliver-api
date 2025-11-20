@@ -753,6 +753,10 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
         ProgrammeGroupSexEnum.MALE,
         LocalDate.parse("2025-01-01"),
         setOf(CreateGroupSessionSlot(DayOfWeek.MONDAY, 1, 1, AmOrPm.AM)),
+        "TEST_PDU",
+        "CODE_PDU",
+        "TEST_LOCATION",
+        "CODE_LOCATION",
       )
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
@@ -782,6 +786,10 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
         ProgrammeGroupSexEnum.FEMALE,
         LocalDate.parse("2025-01-01"),
         setOf(CreateGroupSessionSlot(DayOfWeek.MONDAY, 1, 1, AmOrPm.PM)),
+        "TEST_PDU",
+        "CODE_PDU",
+        "TEST_LOCATION",
+        "CODE_LOCATION",
       )
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
@@ -812,6 +820,10 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
         ProgrammeGroupSexEnum.MALE,
         LocalDate.parse("2025-01-01"),
         setOf(),
+        "TEST_PDU",
+        "CODE_PDU",
+        "TEST_LOCATION",
+        "CODE_LOCATION",
       )
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
@@ -831,6 +843,10 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
         ProgrammeGroupSexEnum.MALE,
         LocalDate.parse("2025-01-01"),
         setOf(),
+        "TEST_PDU",
+        "CODE_PDU",
+        "TEST_LOCATION",
+        "CODE_LOCATION",
       )
       webTestClient
         .method(HttpMethod.POST)
@@ -895,6 +911,10 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
         ProgrammeGroupSexEnum.MALE,
         LocalDate.parse("2025-01-01"),
         setOf(),
+        "TEST_PDU",
+        "CODE_PDU",
+        "TEST_LOCATION",
+        "CODE_LOCATION",
       )
       webTestClient
         .method(HttpMethod.GET)
