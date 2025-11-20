@@ -15,7 +15,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiOfficeLocation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnitWithOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
@@ -277,8 +276,8 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
         team = CodeDescription(code = "TEAM001", description = "TeamDescription"),
         probationDeliveryUnit = NDeliusApiProbationDeliveryUnit(code = "PDU001", description = "North London PDU"),
         officeLocations = listOf(
-          NDeliusApiOfficeLocation(code = "OFF001", description = "OfficeOne"),
-          NDeliusApiOfficeLocation(code = "OFF002", description = "OfficeTwo"),
+          CodeDescription(code = "OFF001", description = "OfficeOne"),
+          CodeDescription(code = "OFF002", description = "OfficeTwo"),
         ),
       ),
       probationDeliveryUnits = listOf(
@@ -286,15 +285,15 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
           code = "NON-PRIMARY-PDU-CODE",
           description = "Non-Primary PDU Description",
           officeLocations = listOf(
-            NDeliusApiOfficeLocation(code = "LOC001", description = "Location 001"),
-            NDeliusApiOfficeLocation(code = "LOC002", description = "Location 002"),
+            CodeDescription(code = "LOC001", description = "Location 001"),
+            CodeDescription(code = "LOC002", description = "Location 002"),
           ),
         ),
         NDeliusApiProbationDeliveryUnitWithOfficeLocations(
           code = "PDU002",
           description = "NON-PRIMARY-PDU-CODE-2",
           officeLocations = listOf(
-            NDeliusApiOfficeLocation(code = "LOC003", description = "Location 003"),
+            CodeDescription(code = "LOC003", description = "Location 003"),
           ),
         ),
       ),

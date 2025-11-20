@@ -23,7 +23,7 @@ data class RequirementOrLicenceConditionManager(
   val staff: RequirementStaff,
   val team: CodeDescription,
   val probationDeliveryUnit: NDeliusApiProbationDeliveryUnit,
-  val officeLocations: List<NDeliusApiOfficeLocation>,
+  val officeLocations: List<CodeDescription>,
 )
 
 /**

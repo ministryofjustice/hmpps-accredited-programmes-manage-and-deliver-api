@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiOfficeLocation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnitWithOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
@@ -94,11 +93,11 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     )
 
     val primaryOffices = listOf(
-      NDeliusApiOfficeLocation(
+      CodeDescription(
         code = "OFFICE-001",
         description = "Brighton and Hove: Probation Office",
       ),
-      NDeliusApiOfficeLocation(
+      CodeDescription(
         code = "OFFICE-002",
         description = "Eastbourne: Probation Office",
       ),
@@ -119,7 +118,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
         code = "PDU002",
         description = "West Sussex",
         officeLocations = listOf(
-          NDeliusApiOfficeLocation(
+          CodeDescription(
             code = "OFFICE-003",
             description = "Guildford: Office Name",
           ),
@@ -198,7 +197,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     )
 
     val primaryOffices = listOf(
-      NDeliusApiOfficeLocation(
+      CodeDescription(
         code = "OFFICE-CODE-123",
         description = "Brighton and Hove: Probation Office",
       ),

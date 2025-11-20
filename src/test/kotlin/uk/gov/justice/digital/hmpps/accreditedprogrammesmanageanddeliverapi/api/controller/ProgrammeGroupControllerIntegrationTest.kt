@@ -41,6 +41,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.NDeliusApiProbationDeliveryUnitWithOfficeLocationsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -53,7 +54,6 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
-import kotlin.collections.listOf
 
 class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralService: ReferralService) : IntegrationTestBase() {
 
@@ -538,8 +538,6 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
 
     @Test
     fun `should return 401 when not authorized`() {
-      val region = "North East"
-
       // When & Then
       webTestClient
         .method(HttpMethod.GET)
@@ -749,7 +747,13 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
   inner class CreateProgrammeGroup {
     @Test
     fun `create group with code and return 200 when it doesn't already exist`() {
-      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"), setOf(CreateGroupSessionSlot(DayOfWeek.MONDAY, 1, 1, AmOrPm.AM)))
+      val body = CreateGroupRequest(
+        "TEST_GROUP",
+        ProgrammeGroupCohort.GENERAL,
+        ProgrammeGroupSexEnum.MALE,
+        LocalDate.parse("2025-01-01"),
+        setOf(CreateGroupSessionSlot(DayOfWeek.MONDAY, 1, 1, AmOrPm.AM)),
+      )
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -772,7 +776,13 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
 
     @Test
     fun `create group and assign correct cohort and sex and return 200 when it doesn't already exist`() {
-      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.SEXUAL_LDC, ProgrammeGroupSexEnum.FEMALE, LocalDate.parse("2025-01-01"), setOf(CreateGroupSessionSlot(DayOfWeek.MONDAY, 1, 1, AmOrPm.PM)))
+      val body = CreateGroupRequest(
+        "TEST_GROUP",
+        ProgrammeGroupCohort.SEXUAL_LDC,
+        ProgrammeGroupSexEnum.FEMALE,
+        LocalDate.parse("2025-01-01"),
+        setOf(CreateGroupSessionSlot(DayOfWeek.MONDAY, 1, 1, AmOrPm.PM)),
+      )
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -796,7 +806,13 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
     fun `create group with code and return CONFLICT when it already exists within the region`() {
       val group = ProgrammeGroupFactory().withCode("TEST_GROUP").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
-      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"), setOf())
+      val body = CreateGroupRequest(
+        "TEST_GROUP",
+        ProgrammeGroupCohort.GENERAL,
+        ProgrammeGroupSexEnum.MALE,
+        LocalDate.parse("2025-01-01"),
+        setOf(),
+      )
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -809,7 +825,13 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
 
     @Test
     fun `return 401 when unauthorised`() {
-      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"), setOf())
+      val body = CreateGroupRequest(
+        "TEST_GROUP",
+        ProgrammeGroupCohort.GENERAL,
+        ProgrammeGroupSexEnum.MALE,
+        LocalDate.parse("2025-01-01"),
+        setOf(),
+      )
       webTestClient
         .method(HttpMethod.POST)
         .uri("/group")
@@ -867,7 +889,13 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
 
     @Test
     fun `return 401 when unauthorised`() {
-      val body = CreateGroupRequest("TEST_GROUP", ProgrammeGroupCohort.GENERAL, ProgrammeGroupSexEnum.MALE, LocalDate.parse("2025-01-01"), setOf())
+      val body = CreateGroupRequest(
+        "TEST_GROUP",
+        ProgrammeGroupCohort.GENERAL,
+        ProgrammeGroupSexEnum.MALE,
+        LocalDate.parse("2025-01-01"),
+        setOf(),
+      )
       webTestClient
         .method(HttpMethod.GET)
         .uri("/group/TEST/details")
@@ -894,11 +922,12 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/bff/pdus-for-user-region",
-        returnType = object : ParameterizedTypeReference<List<String>>() {},
+        returnType = object : ParameterizedTypeReference<List<CodeDescription>>() {},
       )
 
       assertThat(response).hasSize(2)
-      assertThat(response.first()).isEqualTo(pdu.description)
+      assertThat(response.first().description).isEqualTo(pdu.description)
+      assertThat(response.first().code).isEqualTo(pdu.code)
     }
 
     @Test
@@ -906,6 +935,37 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       webTestClient
         .method(HttpMethod.GET)
         .uri("/bff/pdus-for-user-region")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+  }
+
+  @Nested
+  @DisplayName("Get office locations in PDU")
+  inner class GetOfficeLocationsInPdu {
+    @Test
+    fun `return 200 and list of office locations when exist in PDU`() {
+      val pdu = NDeliusApiProbationDeliveryUnitWithOfficeLocationsFactory().produce()
+      nDeliusApiStubs.stubRegionPduOfficeLocationsResponse(pdu.code, pdu)
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/office-locations-for-pdu/${pdu.code}",
+        returnType = object : ParameterizedTypeReference<List<CodeDescription>>() {},
+      )
+
+      assertThat(response).hasSize(3)
+      assertThat(response).containsAll(pdu.officeLocations)
+    }
+
+    @Test
+    fun `return 401 when unauthorised`() {
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/office-locations-for-pdu/RANDOM_PDU")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .exchange()

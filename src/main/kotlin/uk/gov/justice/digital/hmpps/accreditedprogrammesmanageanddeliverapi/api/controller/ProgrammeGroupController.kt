@@ -36,6 +36,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.DeliveryLocationService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
@@ -114,11 +115,6 @@ class ProgrammeGroupController(
     @Parameter(description = "Filter by one or more reporting teams. Repeat the parameter to include multiple teams.")
     @RequestParam(name = "reportingTeam", required = false) reportingTeams: List<String>?,
   ): ResponseEntity<ProgrammeGroupDetails> {
-    val username = authenticationHolder.username
-
-    if (username == null || username.isBlank()) {
-      throw AuthenticationCredentialsNotFoundException("No authenticated user found")
-    }
     val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
 
     val programmeDetails = programmeGroupService.getGroupWaitlistDataByCriteria(
@@ -185,10 +181,7 @@ class ProgrammeGroupController(
     @Parameter(description = "Filter by the sex that the group is being run for: 'Male', 'Female' or 'Mixed'")
     @RequestParam(name = "sex", required = false) sex: String?,
   ): ResponseEntity<GroupsByRegion> {
-    val username = authenticationHolder.username
-    if (username == null || username.isBlank()) {
-      throw AuthenticationCredentialsNotFoundException("No authenticated user found")
-    }
+    val username = getUsername()
 
     val groups = programmeGroupService.getProgrammeGroupsForRegion(
       pageable = pageable,
@@ -367,10 +360,7 @@ class ProgrammeGroupController(
     @Valid
     @RequestBody createGroupRequest: CreateGroupRequest,
   ): ResponseEntity<Void> {
-    val username = authenticationHolder.username
-    if (username == null || username.isBlank()) {
-      throw AuthenticationCredentialsNotFoundException("No authenticated user found")
-    }
+    val username = getUsername()
     programmeGroupService.createGroup(createGroupRequest, username)
     return ResponseEntity.status(HttpStatus.CREATED).build()
   }
@@ -406,10 +396,7 @@ class ProgrammeGroupController(
   )
   @GetMapping("/group/{groupCode}/details")
   fun getGroupInRegion(@PathVariable("groupCode") groupCode: String): ResponseEntity<Group>? {
-    val username = authenticationHolder.username
-    if (username == null || username.isBlank()) {
-      throw AuthenticationCredentialsNotFoundException("No authenticated user found")
-    }
+    val username = getUsername()
     return ResponseEntity.ok(programmeGroupService.getGroupInRegion(groupCode, username)?.toApi())
   }
 
@@ -422,7 +409,7 @@ class ProgrammeGroupController(
       ApiResponse(
         responseCode = "200",
         description = "Returns a list of PDUs",
-        content = [Content(array = ArraySchema(schema = Schema(implementation = String::class)))],
+        content = [Content(array = ArraySchema(schema = Schema(implementation = CodeDescription::class)))],
       ),
       ApiResponse(
         responseCode = "401",
@@ -438,13 +425,50 @@ class ProgrammeGroupController(
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @GetMapping("/bff/pdus-for-user-region")
-  fun getPdusInUserRegion(): ResponseEntity<List<String>> {
+  fun getPdusInUserRegion(): ResponseEntity<List<CodeDescription>> {
+    val username = getUsername()
+    val (userRegion) = userService.getUserRegions(username)
+    val pdusForRegion =
+      deliveryLocationService.getPdusForRegion(userRegion.code).map { CodeDescription(it.code, it.description) }
+    return ResponseEntity.ok(pdusForRegion)
+  }
+
+  @Operation(
+    tags = ["Programme Group controller"],
+    summary = "BFF endpoint to get a list of office locations for the selected PDU.",
+    operationId = "getOfficeLocationsInPdu",
+    description = "BFF endpoint to retrieve a list of office locations for the selected PDU.",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Returns a list of office locations",
+        content = [Content(array = ArraySchema(schema = Schema(implementation = CodeDescription::class)))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden. The client is not authorised to retrieve office locations.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/bff/office-locations-for-pdu/{pduCode}")
+  fun getOfficeLocationsInPdu(@PathVariable pduCode: String): ResponseEntity<List<CodeDescription>> {
+    val officeLocationsForPdu =
+      deliveryLocationService.getOfficeLocationsForPdu(pduCode).map { CodeDescription(it.code, it.description) }
+    return ResponseEntity.ok(officeLocationsForPdu)
+  }
+
+  private fun getUsername(): String {
     val username = authenticationHolder.username
     if (username == null || username.isBlank()) {
       throw AuthenticationCredentialsNotFoundException("No authenticated user found")
     }
-    val (userRegion) = userService.getUserRegions(username)
-    val pdusForRegion = deliveryLocationService.getPdusForRegion(userRegion.code).map { it.description }
-    return ResponseEntity.ok(pdusForRegion)
+    return username
   }
 }

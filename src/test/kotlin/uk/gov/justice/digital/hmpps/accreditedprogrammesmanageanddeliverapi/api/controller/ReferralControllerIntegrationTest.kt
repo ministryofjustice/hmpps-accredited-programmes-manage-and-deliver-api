@@ -22,7 +22,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.LdcStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiOfficeLocation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
@@ -961,8 +960,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
           description = "(Wiremocked) London PDU",
         ),
         officeLocations = listOf(
-          NDeliusApiOfficeLocation(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
-          NDeliusApiOfficeLocation(code = "OFF002", description = "(Wiremocked) Victoria Office"),
+          CodeDescription(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
+          CodeDescription(code = "OFF002", description = "(Wiremocked) Victoria Office"),
         ),
       )
 

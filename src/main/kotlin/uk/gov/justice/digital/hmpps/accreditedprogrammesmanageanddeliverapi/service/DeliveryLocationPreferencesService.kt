@@ -22,7 +22,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.DeliveryLocationPreferenceRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.PreferredDeliveryLocationProbationDeliveryUnitRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.PreferredDeliveryLocationRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.util.UUID
 
 @Service
@@ -33,7 +32,6 @@ class DeliveryLocationPreferencesService(
   private val userService: UserService,
   private val preferredDeliveryLocationProbationDeliveryUnitRepository: PreferredDeliveryLocationProbationDeliveryUnitRepository,
   private val preferredDeliveryLocationRepository: PreferredDeliveryLocationRepository,
-  private val referralRepository: ReferralRepository,
 ) {
 
   companion object {
@@ -124,7 +122,7 @@ class DeliveryLocationPreferencesService(
       personOnProbation = PersonOnProbationSummary(
         name = "${personalDetails.name.forename} ${personalDetails.name.surname}",
         crn = personalDetails.crn,
-        tier = personalDetails.probationDeliveryUnit?.description, // Using PDU description as tier for now
+        tier = personalDetails.probationDeliveryUnit.description, // Using PDU description as tier for now
         dateOfBirth = java.time.LocalDate.parse(personalDetails.dateOfBirth),
       ),
       existingDeliveryLocationPreferences = existingPreferences?.let { preferences ->
