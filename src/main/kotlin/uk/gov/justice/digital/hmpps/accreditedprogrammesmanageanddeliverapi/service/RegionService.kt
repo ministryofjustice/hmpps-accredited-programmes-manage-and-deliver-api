@@ -7,9 +7,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegionWithMembers
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 
 @Service
-class DeliveryLocationService(private val nDeliusApiIntegrationApiClient: NDeliusIntegrationApiClient) {
+class RegionService(private val nDeliusApiIntegrationApiClient: NDeliusIntegrationApiClient) {
 
   val log: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -41,6 +42,22 @@ class DeliveryLocationService(private val nDeliusApiIntegrationApiClient: NDeliu
 
     is ClientResult.Failure -> {
       log.error("Failed to fetch office location's for pduCode: $pduCode:  ${result.toException().message}")
+      emptyList()
+    }
+  }
+
+  fun getTeamMembersForPdu(regionCode: String, pduCode: String): List<CodeDescription> = when (val result = nDeliusApiIntegrationApiClient.getPdusForRegion(regionCode)) {
+    is ClientResult.Success -> {
+      val pdu: NDeliusRegionWithMembers.NDeliusPduWithTeam? = result.body.pdus.find { it.code == pduCode }
+      if (pdu == null) {
+        log.warn("No pdu found in region: $regionCode for pduCode: $pduCode")
+        emptyList<CodeDescription>()
+      }
+      pdu!!.team.flatMap { it.members.map { member -> CodeDescription(member.code, member.name.getNameAsString()) } }
+    }
+
+    is ClientResult.Failure -> {
+      log.error("Failed to fetch team members for region: $regionCode and pdu: $pduCode:  ${result.toException().message}")
       emptyList()
     }
   }
