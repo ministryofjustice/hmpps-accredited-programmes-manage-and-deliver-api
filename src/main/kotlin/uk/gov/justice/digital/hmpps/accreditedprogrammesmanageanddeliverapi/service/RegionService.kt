@@ -59,8 +59,8 @@ class RegionService(private val nDeliusApiIntegrationApiClient: NDeliusIntegrati
           pdu.team.flatMap { team ->
             team.members.map { member ->
               UserTeamMember(
-                code = member.code,
-                name = member.name.getNameAsString(),
+                personCode = member.code,
+                personName = member.name.getNameAsString(),
                 teamName = team.description,
                 teamCode = team.code,
               )

@@ -4,13 +4,13 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 
 data class UserTeamMember(
-  @get:JsonProperty("code", required = true)
+  @get:JsonProperty("personCode", required = true)
   @Schema(description = "The code for the team member")
-  val code: String,
+  val personCode: String,
 
-  @get:JsonProperty("name", required = true)
+  @get:JsonProperty("personName", required = true)
   @Schema(description = "The full name of the team member")
-  val name: String,
+  val personName: String,
 
   @get:JsonProperty("teamName", required = true)
   @Schema(description = "The name of the team that the member belongs to")

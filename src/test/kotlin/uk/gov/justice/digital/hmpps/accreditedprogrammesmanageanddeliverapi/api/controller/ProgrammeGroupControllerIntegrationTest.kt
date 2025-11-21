@@ -1001,8 +1001,8 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       )
 
       assertThat(response).hasSize(members.size + members2.size)
-      assertThat(response.first().name).isEqualTo(members.first().name.getNameAsString())
-      assertThat(response.first().code).isEqualTo(members.first().code)
+      assertThat(response.first().personName).isEqualTo(members.first().name.getNameAsString())
+      assertThat(response.first().personCode).isEqualTo(members.first().code)
     }
 
     @Test
