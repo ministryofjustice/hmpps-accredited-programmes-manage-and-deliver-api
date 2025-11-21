@@ -19,4 +19,7 @@ interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
 
   @EntityGraph(attributePaths = ["statusHistories"])
   fun findByCrn(crn: String): List<ReferralEntity>
+
+  @Query("SELECT r from ReferralEntity r WHERE r.sentenceEndDate IS NULL OR r.sex IS NULL")
+  fun getAllReferralsWithNulLSentenceEndDateOrSex(): List<ReferralEntity>
 }
