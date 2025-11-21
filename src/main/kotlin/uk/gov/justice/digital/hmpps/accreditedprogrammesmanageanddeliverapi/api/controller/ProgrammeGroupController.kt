@@ -474,7 +474,7 @@ class ProgrammeGroupController(
       ApiResponse(
         responseCode = "200",
         description = "Returns a list of members",
-        content = [Content(array = ArraySchema(schema = Schema(implementation = CodeDescription::class)))],
+        content = [Content(array = ArraySchema(schema = Schema(implementation = UserTeamMember::class)))],
       ),
       ApiResponse(
         responseCode = "401",
