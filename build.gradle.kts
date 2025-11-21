@@ -30,8 +30,8 @@ dependencies {
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:1.8.1")
 
   // security
-  implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.8")
-  implementation("org.springframework.boot:spring-boot-starter-oauth2-client:3.5.8")
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:4.0.0")
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-client:4.0.0")
   implementation("org.springframework.security:spring-security-crypto:7.0.0")
   implementation("com.nimbusds:oauth2-oidc-sdk:11.30.1")
 
