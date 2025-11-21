@@ -41,10 +41,17 @@ data class CreateGroupRequest(
   @get:JsonProperty("createGroupSessionSlot", required = true)
   @Schema(description = "A list of session slots for the group")
   var createGroupSessionSlot: Set<CreateGroupSessionSlot>,
+
+  @NotBlank(message = "personName must not be null")
+  @get:JsonProperty("personName", required = true)
+  @Schema(description = "The name of the facilitator")
+  val personName: String,
+
 )
 
 fun CreateGroupRequest.toEntity(region: String): ProgrammeGroupEntity {
-  val (cohort, isLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(cohort)
+  val (cohort, isLdc) = ProgrammeGroupCohort.toOffenit pull
+    ceTypeAndLdc(cohort)
   return ProgrammeGroupEntity(
     code = groupCode,
     cohort = cohort,
