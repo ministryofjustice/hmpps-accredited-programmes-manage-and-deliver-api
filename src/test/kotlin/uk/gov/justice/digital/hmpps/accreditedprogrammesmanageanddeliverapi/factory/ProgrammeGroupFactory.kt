@@ -64,6 +64,16 @@ class ProgrammeGroupFactory {
 
   fun toCreateGroup(programmeGroupSessionSlots: Set<CreateGroupSessionSlot> = setOf()): CreateGroupRequest {
     val group = produce()
-    return CreateGroupRequest(group.code, ProgrammeGroupCohort.from(group.cohort, group.isLdc), group.sex, LocalDate.parse("2025-01-01"), programmeGroupSessionSlots)
+    return CreateGroupRequest(
+      group.code,
+      ProgrammeGroupCohort.from(group.cohort, group.isLdc),
+      group.sex,
+      LocalDate.parse("2025-01-01"),
+      programmeGroupSessionSlots,
+      "PDU_NAME",
+      "PDU_CODE",
+      "DELIVERY_LOCATION_NAME",
+      "DELIVERY_LOCATION_CODE",
+    )
   }
 }

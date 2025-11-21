@@ -74,6 +74,7 @@ fun CreateGroupRequest.toEntity(region: String): ProgrammeGroupEntity {
     sex = sex,
     isLdc = isLdc,
     regionName = region,
+    startedAtDate = startedAtDate,
     probationDeliveryUnitCode = pduCode,
     probationDeliveryUnitName = pduName,
     deliveryLocationCode = deliveryLocationCode,
