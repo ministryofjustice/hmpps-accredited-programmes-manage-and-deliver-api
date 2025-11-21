@@ -47,26 +47,30 @@ class RegionService(private val nDeliusApiIntegrationApiClient: NDeliusIntegrati
     }
   }
 
-  fun getTeamMembersForPdu(regionCode: String, pduCode: String): List<UserTeamMember> {
+  fun getTeamMembersForPdu(regionCode: String): List<UserTeamMember> {
     when (val result = nDeliusApiIntegrationApiClient.getPdusForRegion(regionCode)) {
       is ClientResult.Success -> {
-        val pdu: NDeliusRegionWithMembers.NDeliusPduWithTeam? = result.body.pdus.find { it.code == pduCode }
-        if (pdu == null) {
-          log.warn("No pdu found in region: $regionCode for pduCode: $pduCode")
+        val pdus: List<NDeliusRegionWithMembers.NDeliusPduWithTeam> = result.body.pdus
+        pdus.ifEmpty {
+          log.warn("No pdus found in region: $regionCode")
           return emptyList()
         }
-        return pdu.team.flatMap {
-          it.members.map { member ->
-            UserTeamMember(
-              member.code,
-              member.name.getNameAsString(),
-            )
+        return pdus.flatMap { pdu ->
+          pdu.team.flatMap { team ->
+            team.members.map { member ->
+              UserTeamMember(
+                personCode = member.code,
+                personName = member.name.getNameAsString(),
+                teamName = team.description,
+                teamCode = team.code,
+              )
+            }
           }
         }
       }
 
       is ClientResult.Failure -> {
-        log.error("Failed to fetch team members for region: $regionCode and pdu: $pduCode:  ${result.toException().message}")
+        log.error("Failed to fetch team members for region: $regionCode ${result.toException().message}")
         return emptyList()
       }
     }
