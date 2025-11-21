@@ -110,6 +110,10 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
             existingGroup.sex,
             LocalDate.parse("2025-01-01"),
             setOf(),
+            "PDU_NAME",
+            "PDU_CODE",
+            "DELIVERY_LOCATION_NAME",
+            "DELIVERY_LOCATION_CODE",
           ),
           username = "AUTH_ADM",
         )

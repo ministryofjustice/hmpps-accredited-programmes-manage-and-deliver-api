@@ -33,14 +33,37 @@ data class CreateGroupRequest(
   )
   var sex: ProgrammeGroupSexEnum,
 
+  @NotNull(message = "startedAt must not be null")
   @get:JsonProperty("startedAtDate", required = true)
   @Schema(description = "The date the group started")
   @JsonFormat(pattern = "d/M/yyyy")
   var startedAtDate: LocalDate,
 
+  @NotNull(message = "createGroupSessionSlot must not be null")
   @get:JsonProperty("createGroupSessionSlot", required = true)
   @Schema(description = "A list of session slots for the group")
   var createGroupSessionSlot: Set<CreateGroupSessionSlot>,
+
+  @NotBlank(message = "pduName must not be null")
+  @get:JsonProperty("pduName", required = true)
+  @Schema(description = "The name of the PDU that the group will take place in")
+  val pduName: String,
+
+  @NotBlank(message = "pduCode must not be null")
+  @get:JsonProperty("pduCode", required = true)
+  @Schema(description = "The code of the PDU that the group will take place in")
+  val pduCode: String,
+
+  @NotBlank(message = "deliveryLocationName must not be null")
+  @get:JsonProperty("deliveryLocationName", required = true)
+  @Schema(description = "The name of the location that the group will be delivered at")
+  val deliveryLocationName: String,
+
+  @NotBlank(message = "deliveryLocationCode must not be null")
+  @get:JsonProperty("deliveryLocationCode", required = true)
+  @Schema(description = "The code of the location that the group will be delivered at")
+  val deliveryLocationCode: String,
+
 )
 
 fun CreateGroupRequest.toEntity(region: String): ProgrammeGroupEntity {
@@ -52,5 +75,9 @@ fun CreateGroupRequest.toEntity(region: String): ProgrammeGroupEntity {
     isLdc = isLdc,
     regionName = region,
     startedAtDate = startedAtDate,
+    probationDeliveryUnitCode = pduCode,
+    probationDeliveryUnitName = pduName,
+    deliveryLocationCode = deliveryLocationCode,
+    deliveryLocationName = deliveryLocationName,
   )
 }
