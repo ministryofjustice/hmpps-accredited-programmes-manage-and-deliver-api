@@ -10,7 +10,7 @@ hmpps-auth:
 
 spring:
   jpa:
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true

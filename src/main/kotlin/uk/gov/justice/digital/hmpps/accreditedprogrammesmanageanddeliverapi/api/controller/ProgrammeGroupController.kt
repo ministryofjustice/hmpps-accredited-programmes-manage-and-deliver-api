@@ -33,13 +33,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.DeliveryLocationService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RegionService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.util.UUID
@@ -55,7 +56,7 @@ class ProgrammeGroupController(
   private val authenticationHolder: HmppsAuthenticationHolder,
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
   private val userService: UserService,
-  private val deliveryLocationService: DeliveryLocationService,
+  private val regionService: RegionService,
 ) {
 
   @Operation(
@@ -429,7 +430,7 @@ class ProgrammeGroupController(
     val username = getUsername()
     val (userRegion) = userService.getUserRegions(username)
     val pdusForRegion =
-      deliveryLocationService.getPdusForRegion(userRegion.code).map { CodeDescription(it.code, it.description) }
+      regionService.getPdusForRegion(userRegion.code).map { CodeDescription(it.code, it.description) }
     return ResponseEntity.ok(pdusForRegion)
   }
 
@@ -460,8 +461,41 @@ class ProgrammeGroupController(
   @GetMapping("/bff/office-locations-for-pdu/{pduCode}")
   fun getOfficeLocationsInPdu(@PathVariable pduCode: String): ResponseEntity<List<CodeDescription>> {
     val officeLocationsForPdu =
-      deliveryLocationService.getOfficeLocationsForPdu(pduCode).map { CodeDescription(it.code, it.description) }
+      regionService.getOfficeLocationsForPdu(pduCode).map { CodeDescription(it.code, it.description) }
     return ResponseEntity.ok(officeLocationsForPdu)
+  }
+
+  @Operation(
+    tags = ["Programme Group controller"],
+    summary = "BFF endpoint to get a list of members for a PDU.",
+    operationId = "getMembersInPdu",
+    description = "BFF endpoint to retrieve a list of team members for a Probation Delivery Unit",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Returns a list of members",
+        content = [Content(array = ArraySchema(schema = Schema(implementation = CodeDescription::class)))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden. The client is not authorised to retrieve pdus.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/bff/region/{regionCode}/pdu/{pduCode}/members")
+  fun getPdusInUserRegion(
+    @PathVariable regionCode: String,
+    @PathVariable pduCode: String,
+  ): ResponseEntity<List<UserTeamMember>> {
+    val teamMembers = regionService.getTeamMembersForPdu(regionCode, pduCode)
+    return ResponseEntity.ok(teamMembers)
   }
 
   private fun getUsername(): String {

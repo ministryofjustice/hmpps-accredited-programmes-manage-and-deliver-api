@@ -23,11 +23,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.GroupsByRegionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedProgrammeDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
@@ -36,6 +38,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusRegionWithMembersFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamMembersFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamWithMembersFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ProgrammeGroupMembershipFactory
@@ -966,6 +970,57 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       webTestClient
         .method(HttpMethod.GET)
         .uri("/bff/office-locations-for-pdu/RANDOM_PDU")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+  }
+
+  @Nested
+  @DisplayName("Get team members in PDU")
+  inner class GetTeamMembersInPdu {
+    @Test
+    fun `return 200 and list of pdus when exist in region`() {
+      val members = listOf(NDeliusUserTeamMembersFactory().produce(), NDeliusUserTeamMembersFactory().produce())
+      val teams = listOf(NDeliusUserTeamWithMembersFactory().produce(members = members))
+      val pdu = NDeliusPduWithTeamFactory().produce(team = teams)
+      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(pdus = listOf(pdu, pdu))
+
+      nDeliusApiStubs.stubRegionWithMembersResponse(regionWithMembers.code, regionWithMembers)
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/region/${regionWithMembers.code}/pdu/${pdu.code}/members",
+        returnType = object : ParameterizedTypeReference<List<UserTeamMember>>() {},
+      )
+
+      assertThat(response).hasSize(members.size)
+      assertThat(response.first().name).isEqualTo(members.first().name.getNameAsString())
+      assertThat(response.first().code).isEqualTo(members.first().code)
+    }
+
+    @Test
+    fun `return 200 and empty list when no teams in region`() {
+      val pdu = NDeliusPduWithTeamFactory().produce(team = listOf())
+      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(pdus = listOf(pdu))
+
+      nDeliusApiStubs.stubRegionWithMembersResponse(regionWithMembers.code, regionWithMembers)
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/region/${regionWithMembers.code}/pdu/${pdu.code}/members",
+        returnType = object : ParameterizedTypeReference<List<UserTeamMember>>() {},
+      )
+
+      assertThat(response).hasSize(0)
+    }
+
+    @Test
+    fun `return 401 when unauthorised`() {
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/region/TEST_REGION}/pdu/TEST_PDU/members")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .exchange()
