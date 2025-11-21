@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.util.UUID
 
@@ -15,6 +16,8 @@ import java.util.UUID
 class AdminService(
   private val referralRepository: ReferralRepository,
   private val referralService: ReferralService,
+  private val userService: UserService,
+  private val sentenceService: SentenceService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -45,5 +48,39 @@ class AdminService(
     log.info("Starting refresh of personal details for all referrals")
     val ids = referralRepository.getAllIds()
     refreshPersonalDetailsForReferrals(ids)
+  }
+
+  @Transactional
+  fun cleanUpReferralsWithNoDeliusOrOasysData() {
+    val referrals = referralRepository.getAllReferralsWithNulLSentenceEndDateOrSex()
+
+    referrals.forEachIndexed { index, referral ->
+      log.info("[{}/{}] Checking Personal Details for Referral with id {}...", index + 1, referrals.size, referral)
+      try {
+        val personalDetails =
+          userService.getPersonalDetailsByIdentifier(referral.crn)
+        log.info("[{}/{}] Checking Sentence details for Referral with id {}...", index + 1, referrals.size, referral)
+        val sentenceEndDate =
+          sentenceService.getSentenceEndDate(
+            referral.crn,
+            referral.eventNumber,
+            referral.sourcedFrom,
+          ) ?: return@forEachIndexed referralRepository.deleteById(referral.id!!)
+
+        // If we found values update them
+        referral.sex = personalDetails.sex.description
+        referral.sentenceEndDate = sentenceEndDate
+        referralRepository.save(referral)
+        log.info("Referral was updated with crn: ${referral.crn}")
+      } catch (exception: Exception) {
+        if (exception.message?.contains("404") == true) {
+          referralRepository.deleteById(referral.id!!)
+          log.info("Deleted referral for crn: ${referral.crn}")
+        } else {
+          log.error("Non 404 exception caught: ${exception.message}")
+        }
+      }
+    }
+    log.info("...done!!")
   }
 }
