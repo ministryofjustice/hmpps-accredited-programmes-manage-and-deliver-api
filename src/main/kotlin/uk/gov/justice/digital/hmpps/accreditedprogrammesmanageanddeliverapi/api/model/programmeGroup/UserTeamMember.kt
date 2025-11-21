@@ -7,7 +7,17 @@ data class UserTeamMember(
   @get:JsonProperty("code", required = true)
   @Schema(description = "The code for the team member")
   val code: String,
+
   @get:JsonProperty("name", required = true)
   @Schema(description = "The full name of the team member")
   val name: String,
+
+  @get:JsonProperty("teamName", required = true)
+  @Schema(description = "The name of the team that the member belongs to")
+  val teamName: String,
+
+  @get:JsonProperty("teamCode", required = true)
+  @Schema(description = "The code of the team that the member belongs to")
+  val teamCode: String,
+
 )
