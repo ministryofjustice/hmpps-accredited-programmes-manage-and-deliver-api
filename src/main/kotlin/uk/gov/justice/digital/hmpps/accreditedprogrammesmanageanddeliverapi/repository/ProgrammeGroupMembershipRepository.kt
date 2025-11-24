@@ -8,7 +8,7 @@ import java.util.UUID
 
 interface ProgrammeGroupMembershipRepository : JpaRepository<ProgrammeGroupMembershipEntity, UUID> {
 
-  @EntityGraph(attributePaths = ["programmeGroup"])
+  @EntityGraph(attributePaths = ["uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/entity/programmeGroup"])
   @Query(
     """
     SELECT pgm FROM ProgrammeGroupMembershipEntity pgm
