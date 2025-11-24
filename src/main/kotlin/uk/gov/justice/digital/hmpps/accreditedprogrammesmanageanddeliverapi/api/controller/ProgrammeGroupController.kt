@@ -116,6 +116,8 @@ class ProgrammeGroupController(
     @Parameter(description = "Filter by one or more reporting teams. Repeat the parameter to include multiple teams.")
     @RequestParam(name = "reportingTeam", required = false) reportingTeams: List<String>?,
   ): ResponseEntity<ProgrammeGroupDetails> {
+    // This logic is non-trivial, please see [this doc](docs/2025-11-group-details-page-tabs.md)
+    // for an explanation of the flow of data and expected behaviour.
     val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
 
     val programmeDetails = programmeGroupService.getGroupWaitlistDataByCriteria(
