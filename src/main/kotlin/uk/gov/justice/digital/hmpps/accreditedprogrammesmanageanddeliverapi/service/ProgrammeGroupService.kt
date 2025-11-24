@@ -24,6 +24,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
@@ -49,6 +51,9 @@ class ProgrammeGroupService(
       ?.let { throw ConflictException("Programme group with code ${createGroupRequest.groupCode} already exists in region") }
 
     log.info("Group created with code: ${createGroupRequest.groupCode}")
+
+    val programmeGroupFacilitators = createGroupRequest.facilitators.map { it.toProgrammeGroupFacilitatorEntity() }
+    val facilitators = createGroupRequest.treatmentManager.toFacilitatorEntity()
 
     val programmeGroup = createGroupRequest.toEntity(userRegion.description)
     val slots = createSessionSlots(createGroupRequest.createGroupSessionSlot, programmeGroup)

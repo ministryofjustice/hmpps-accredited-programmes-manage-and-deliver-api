@@ -103,7 +103,15 @@ class ProgrammeGroupEntity(
   )
   var programmeGroupSessionSlots: MutableSet<ProgrammeGroupSessionSlotEntity> = mutableSetOf(),
 
-  @ManyToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
   @JoinColumn(name = "treatment_manager_id", referencedColumnName = "id")
   var treatmentManager: FacilitatorEntity? = null,
+
+  @OneToMany(
+    cascade = [CascadeType.ALL],
+    orphanRemoval = true,
+    fetch = FetchType.LAZY,
+  )
+  @JoinColumn(name = "programme_group_id", nullable = false)
+  val groupFacilitators: MutableSet<ProgrammeGroupFacilitatorEntity> = mutableSetOf(),
 )

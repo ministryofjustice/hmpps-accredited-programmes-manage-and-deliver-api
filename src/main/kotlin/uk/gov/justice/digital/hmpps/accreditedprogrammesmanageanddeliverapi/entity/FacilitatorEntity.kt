@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTreatmentManager
 import java.util.UUID
 
 @Entity
@@ -40,4 +41,15 @@ class FacilitatorEntity(
   @NotNull
   @Column(name = "ndelius_team_name")
   var ndeliusTeamName: String,
+)
+
+// TODO look at this setup it seems strange to me
+fun CreateGroupTreatmentManager.toFacilitatorEntity(): FacilitatorEntity = FacilitatorEntity(
+  // TODO SPLIT NAMES SENSIBLY
+  personForename = personName,
+  personMiddleName = personName,
+  personSurname = personName,
+  ndeliusPersonCode = personCode,
+  ndeliusTeamCode = ndeliusTeamCode,
+  ndeliusTeamName = ndeliusTeamName,
 )
