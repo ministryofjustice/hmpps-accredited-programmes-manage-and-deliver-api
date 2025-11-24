@@ -1007,29 +1007,32 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val members = listOf(NDeliusUserTeamMembersFactory().produce(), NDeliusUserTeamMembersFactory().produce())
       val teams = listOf(NDeliusUserTeamWithMembersFactory().produce(members = members))
       val pdu = NDeliusPduWithTeamFactory().produce(team = teams)
-      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(pdus = listOf(pdu, pdu))
+
+      val members2 = listOf(NDeliusUserTeamMembersFactory().produce(), NDeliusUserTeamMembersFactory().produce())
+      val teams2 = listOf(NDeliusUserTeamWithMembersFactory().produce(members = members2))
+      val pdu2 = NDeliusPduWithTeamFactory().produce(team = teams2)
+      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(pdus = listOf(pdu, pdu2))
 
       nDeliusApiStubs.stubRegionWithMembersResponse(regionWithMembers.code, regionWithMembers)
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/region/${regionWithMembers.code}/pdu/${pdu.code}/members",
+        uri = "/bff/region/${regionWithMembers.code}/members",
         returnType = object : ParameterizedTypeReference<List<UserTeamMember>>() {},
       )
 
-      assertThat(response).hasSize(members.size)
-      assertThat(response.first().name).isEqualTo(members.first().name.getNameAsString())
-      assertThat(response.first().code).isEqualTo(members.first().code)
+      assertThat(response).hasSize(members.size + members2.size)
+      assertThat(response.first().personName).isEqualTo(members.first().name.getNameAsString())
+      assertThat(response.first().personCode).isEqualTo(members.first().code)
     }
 
     @Test
-    fun `return 200 and empty list when no teams in region`() {
-      val pdu = NDeliusPduWithTeamFactory().produce(team = listOf())
-      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(pdus = listOf(pdu))
+    fun `return 200 and empty list when no pdus in region`() {
+      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(pdus = listOf())
 
       nDeliusApiStubs.stubRegionWithMembersResponse(regionWithMembers.code, regionWithMembers)
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/region/${regionWithMembers.code}/pdu/${pdu.code}/members",
+        uri = "/bff/region/${regionWithMembers.code}/members",
         returnType = object : ParameterizedTypeReference<List<UserTeamMember>>() {},
       )
 
@@ -1040,7 +1043,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
     fun `return 401 when unauthorised`() {
       webTestClient
         .method(HttpMethod.GET)
-        .uri("/bff/region/TEST_REGION}/pdu/TEST_PDU/members")
+        .uri("/bff/region/TEST_REGION}/members")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .exchange()

@@ -469,14 +469,14 @@ class ProgrammeGroupController(
 
   @Operation(
     tags = ["Programme Group controller"],
-    summary = "BFF endpoint to get a list of members for a PDU.",
-    operationId = "getMembersInPdu",
-    description = "BFF endpoint to retrieve a list of team members for a Probation Delivery Unit",
+    summary = "BFF endpoint to get a list of members for a Region.",
+    operationId = "getMembersInRegion",
+    description = "BFF endpoint to retrieve a list of team members for a Region.",
     responses = [
       ApiResponse(
         responseCode = "200",
         description = "Returns a list of members",
-        content = [Content(array = ArraySchema(schema = Schema(implementation = CodeDescription::class)))],
+        content = [Content(array = ArraySchema(schema = Schema(implementation = UserTeamMember::class)))],
       ),
       ApiResponse(
         responseCode = "401",
@@ -485,18 +485,17 @@ class ProgrammeGroupController(
       ),
       ApiResponse(
         responseCode = "403",
-        description = "Forbidden. The client is not authorised to retrieve pdus.",
+        description = "Forbidden. The client is not authorised to retrieve members for region.",
         content = [Content(schema = Schema(implementation = ErrorResponse::class))],
       ),
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/region/{regionCode}/pdu/{pduCode}/members")
+  @GetMapping("/bff/region/{regionCode}/members")
   fun getPdusInUserRegion(
     @PathVariable regionCode: String,
-    @PathVariable pduCode: String,
   ): ResponseEntity<List<UserTeamMember>> {
-    val teamMembers = regionService.getTeamMembersForPdu(regionCode, pduCode)
+    val teamMembers = regionService.getTeamMembersForPdu(regionCode)
     return ResponseEntity.ok(teamMembers)
   }
 
