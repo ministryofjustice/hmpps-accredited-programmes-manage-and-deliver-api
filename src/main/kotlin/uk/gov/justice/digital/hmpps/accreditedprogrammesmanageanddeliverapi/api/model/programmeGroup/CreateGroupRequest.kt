@@ -7,11 +7,9 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotEmpty
 import jakarta.validation.constraints.NotNull
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toFacilitatorEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toProgrammeGroupFacilitatorEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import java.time.LocalDate
 
 data class CreateGroupRequest(
@@ -74,20 +72,15 @@ data class CreateGroupRequest(
   @Schema(description = "The code of the location that the group will be delivered at")
   var deliveryLocationCode: String,
 
-  @NotNull(message = "treatmentManager must not be null")
-  @get:JsonProperty("treatmentManager", required = true)
-  @Schema(description = "The person code and name of the treatment manager for the group")
-  var treatmentManager: CreateGroupTreatmentManager,
-
   @Valid
-  @NotNull(message = "facilitators must not be null")
-  @NotEmpty(message = "facilitators must not be empty")
-  @get:JsonProperty("facilitators", required = true)
-  @Schema(description = "The person code and name and type of the facilitator for the group")
-  var facilitators: List<CreateGroupFacilitator>,
+  @NotNull(message = "teamMembers must not be null")
+  @NotEmpty(message = "teamMembers must not be empty")
+  @get:JsonProperty("teamMembers", required = true)
+  @Schema(description = "The person code and name and type of the teamMembers of the group")
+  var teamMembers: List<CreateGroupTeamMember>,
 )
 
-data class CreateGroupTreatmentManager(
+data class CreateGroupTeamMember(
   @NotNull(message = "personName must not be null")
   @get:JsonProperty("personName", required = true)
   @Schema(description = "The full name of the facilitator for the group")
@@ -107,33 +100,11 @@ data class CreateGroupTreatmentManager(
   @get:JsonProperty("ndeliusTeamCode", required = true)
   @Schema(description = "The code of the team that the member belongs to")
   var ndeliusTeamCode: String,
-)
 
-data class CreateGroupFacilitator(
-  @NotNull(message = "personName must not be null")
-  @get:JsonProperty("personName", required = true)
-  @Schema(description = "The full name of the facilitator for the group")
-  var personName: String,
-
-  @NotNull(message = "personCode must not be null")
-  @get:JsonProperty("personCode", required = true)
-  @Schema(description = "The nDelius code of the facilitator for the group")
-  var personCode: String,
-
-  @NotNull(message = "facilitatorType must not be null")
-  @get:JsonProperty("facilitatorType", required = true)
+  @NotNull(message = "teamMemberType must not be null")
+  @get:JsonProperty("teamMemberType", required = true)
   @Schema(description = "The type of the facilitator for the group")
-  var facilitatorType: FacilitatorType,
-
-  @NotNull
-  @get:JsonProperty("ndeliusTeamName", required = true)
-  @Schema(description = "The name of the team that the member belongs to")
-  var ndeliusTeamName: String,
-
-  @NotNull
-  @get:JsonProperty("ndeliusTeamCode", required = true)
-  @Schema(description = "The code of the team that the member belongs to")
-  var ndeliusTeamCode: String,
+  var teamMemberType: CreateGroupTeamMemberType,
 )
 
 fun CreateGroupRequest.toEntity(region: String): ProgrammeGroupEntity {
@@ -149,7 +120,5 @@ fun CreateGroupRequest.toEntity(region: String): ProgrammeGroupEntity {
     deliveryLocationName = deliveryLocationName,
     probationDeliveryUnitCode = pduCode,
     probationDeliveryUnitName = pduName,
-    treatmentManager = treatmentManager.toFacilitatorEntity(),
-    groupFacilitators = facilitators.map { it.toProgrammeGroupFacilitatorEntity() }.toMutableSet(),
   )
 }

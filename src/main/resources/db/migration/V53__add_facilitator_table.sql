@@ -21,15 +21,13 @@ COMMENT ON COLUMN facilitator.ndelius_team_name IS 'The name of the team the fac
 CREATE INDEX idx_facilitator_ndelius_person_code ON facilitator (ndelius_person_code);
 CREATE INDEX idx_facilitator_ndelius_tean_code ON facilitator (ndelius_team_code);
 
-CREATE TYPE facilitator_type AS ENUM ('LEAD_FACILITATOR','REGULAR_FACILITATOR','COVER_FACILITATOR');
-
 CREATE TABLE programme_group_facilitator
 (
-    id                 UUID             NOT NULL PRIMARY KEY,
-    programme_group_id UUID             NOT NULL REFERENCES programme_group (id),
-    facilitator_id     UUID             NOT NULL REFERENCES facilitator (id),
-    added_at           TIMESTAMP        NOT NULL,
-    facilitator_type   facilitator_type NOT NULL
+    id                 UUID      NOT NULL PRIMARY KEY,
+    programme_group_id UUID      NOT NULL REFERENCES programme_group (id),
+    facilitator_id     UUID      NOT NULL REFERENCES facilitator (id),
+    added_at           TIMESTAMP NOT NULL,
+    facilitator_type   TEXT      NOT NULL
 );
 
 COMMENT ON TABLE programme_group_facilitator IS 'Contains details around a programme group''s facilitators.';
@@ -40,6 +38,6 @@ COMMENT ON COLUMN programme_group_facilitator.added_at IS 'Timestamp of when the
 COMMENT ON COLUMN programme_group_facilitator.facilitator_type IS 'The role that the facilitator has in the group.';
 
 ALTER TABLE programme_group
-    ADD COLUMN treatment_manager_id UUID NULL REFERENCES programme_group_facilitator (id);
+    ADD COLUMN treatment_manager_id UUID NULL REFERENCES facilitator (id);
 
 COMMENT ON COLUMN programme_group.treatment_manager_id IS 'References the unique ID of the treatment manager for this group.';
