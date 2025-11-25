@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity
 
-import jakarta.annotation.Nullable
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
@@ -19,16 +18,8 @@ class FacilitatorEntity(
   var id: UUID? = null,
 
   @NotNull
-  @Column(name = "person_forename")
-  var personForename: String,
-
-  @Nullable
-  @Column(name = "person_middle_name")
-  var personMiddleName: String? = null,
-
-  @NotNull
-  @Column(name = "person_surname")
-  var personSurname: String,
+  @Column(name = "person_name")
+  var personName: String,
 
   @NotNull
   @Column(name = "ndelius_person_code")
@@ -44,10 +35,7 @@ class FacilitatorEntity(
 )
 
 fun CreateGroupTeamMember.toFacilitatorEntity(): FacilitatorEntity = FacilitatorEntity(
-// TODO SPLIT NAMES SENSIBLY
-  personForename = personName,
-  personMiddleName = personName,
-  personSurname = personName,
+  personName = personName,
   ndeliusPersonCode = personCode,
   ndeliusTeamCode = ndeliusTeamCode,
   ndeliusTeamName = ndeliusTeamName,
