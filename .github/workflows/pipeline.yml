@@ -79,10 +79,10 @@ jobs:
       HMPPS_COMMUNITY_AUTH_PASSWORD: ${{ secrets.HMPPS_COMMUNITY_AUTH_PASSWORD }}
     steps:
       - name: Checkout main repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Checkout e2e tests repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-e2e-tests
           path: hmpps-accredited-programmes-manage-and-deliver-e2e-tests
@@ -152,7 +152,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Get PR information
         id: pr-info
         run: |
