@@ -29,8 +29,11 @@ class TestDataCleaner(
       createNativeQuery("TRUNCATE TABLE programme_group_session_slot CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE facilitator CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE referral_motivation_background_and_non_associations CASCADE").executeUpdate()
-
       // Add additional tables here as the data model grows
+
+      // Refresh our views after clearing tables
+      createNativeQuery("REFRESH MATERIALIZED VIEW referral_caselist_item_view").executeUpdate()
+      createNativeQuery("REFRESH MATERIALIZED VIEW group_waitlist_item_view").executeUpdate()
     }
   }
 }
