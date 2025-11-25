@@ -47,11 +47,6 @@ data class CreateGroupRequest(
   @Schema(description = "A list of session slots for the group")
   var createGroupSessionSlot: Set<CreateGroupSessionSlot>,
 
-  @NotBlank(message = "personName must not be null")
-  @get:JsonProperty("personName", required = true)
-  @Schema(description = "The name of the facilitator")
-  var personName: String,
-
   @NotBlank(message = "pduName must not be null")
   @get:JsonProperty("pduName", required = true)
   @Schema(description = "The name of the PDU that the group will take place in")

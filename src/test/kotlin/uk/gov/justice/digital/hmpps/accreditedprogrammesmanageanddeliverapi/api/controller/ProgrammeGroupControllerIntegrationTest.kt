@@ -16,7 +16,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
@@ -24,6 +23,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
@@ -33,6 +33,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.GroupsByRegionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedProgrammeDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
@@ -46,6 +47,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.NDeliusApiProbationDeliveryUnitWithOfficeLocationsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -148,6 +151,25 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       assertThat(response.otherTabTotal).isEqualTo(1)
       assertThat(response.pagedGroupData).isNotNull
       assertThat(response.pagedGroupData.content.map { it.statusColour }).isNotEmpty
+    }
+
+    @Test
+    fun `getGroupDetails returns empty page when no waitlist data exists`() {
+      // Given
+      testDataCleaner.cleanAllTables()
+      val group = ProgrammeGroupFactory().withCode("TEST001").produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/group/${group.id}/WAITLIST",
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.pagedGroupData.content).isEmpty()
     }
 
     @Test
@@ -749,9 +771,20 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
   @Nested
   @DisplayName("Create a Programme group")
   inner class CreateProgrammeGroup {
+    val createGroupTeamMemberFactory = CreateGroupTeamMemberFactory()
+    val createGroupRequestFactory = CreateGroupRequestFactory()
+
     @Test
-    fun `create group with code and return 200 when it doesn't already exist`() {
-      val body = CreateGroupRequest(
+    fun `create group with all parameters and return 200 when it doesn't already exist`() {
+      val teamMember1 =
+        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER)
+      val teamMember2 =
+        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR)
+      val teamMember3 =
+        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
+      val teamMember4 =
+        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.COVER_FACILITATOR)
+      val body = CreateGroupRequestFactory().produce(
         "TEST_GROUP",
         ProgrammeGroupCohort.GENERAL,
         ProgrammeGroupSexEnum.MALE,
@@ -759,8 +792,9 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
         setOf(CreateGroupSessionSlot(DayOfWeek.MONDAY, 1, 1, AmOrPm.AM)),
         "TEST_PDU",
         "CODE_PDU",
-        "TEST_LOCATION",
-        "CODE_LOCATION",
+        "LOCATION_NAME",
+        "LOCATION_CODE",
+        listOf(teamMember1, teamMember2, teamMember3, teamMember4),
       )
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
@@ -780,55 +814,30 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       assertThat(createdGroup.programmeGroupSessionSlots).hasSize(1)
       assertThat(createdGroup.programmeGroupSessionSlots.first().dayOfWeek).isEqualTo(DayOfWeek.MONDAY)
       assertThat(createdGroup.programmeGroupSessionSlots.first().startTime).isEqualTo(LocalTime.of(1, 1))
+      assertThat(createdGroup.treatmentManager?.ndeliusPersonCode).isEqualTo(teamMember1.personCode)
+      assertThat(createdGroup.groupFacilitators).hasSize(3)
     }
 
     @Test
-    fun `create group and assign correct cohort and sex and return 200 when it doesn't already exist`() {
-      val body = CreateGroupRequest(
-        "TEST_GROUP",
-        ProgrammeGroupCohort.SEXUAL_LDC,
-        ProgrammeGroupSexEnum.FEMALE,
-        LocalDate.parse("2025-01-01"),
-        setOf(CreateGroupSessionSlot(DayOfWeek.MONDAY, 1, 1, AmOrPm.PM)),
-        "TEST_PDU",
-        "CODE_PDU",
-        "TEST_LOCATION",
-        "CODE_LOCATION",
-      )
+    fun `create group and assign code and return 200 when it doesn't already exist`() {
+      val body = createGroupRequestFactory.produce(groupCode = "TEST_GROUP")
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
         body = body,
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
+
       val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
       assertThat(createdGroup.code).isEqualTo(body.groupCode)
       assertThat(createdGroup.id).isNotNull
-      assertThat(createdGroup.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
-      assertThat(createdGroup.isLdc).isTrue
-      assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.FEMALE)
-      assertThat(createdGroup.regionName).isEqualTo("WIREMOCKED REGION")
-      assertThat(createdGroup.startedAtDate).isEqualTo(LocalDate.parse("2025-01-01"))
-      assertThat(createdGroup.programmeGroupSessionSlots).hasSize(1)
-      assertThat(createdGroup.programmeGroupSessionSlots.first().dayOfWeek).isEqualTo(DayOfWeek.MONDAY)
-      assertThat(createdGroup.programmeGroupSessionSlots.first().startTime).isEqualTo(LocalTime.of(13, 1))
     }
 
     @Test
     fun `create group with code and return CONFLICT when it already exists within the region`() {
       val group = ProgrammeGroupFactory().withCode("TEST_GROUP").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
-      val body = CreateGroupRequest(
-        "TEST_GROUP",
-        ProgrammeGroupCohort.GENERAL,
-        ProgrammeGroupSexEnum.MALE,
-        LocalDate.parse("2025-01-01"),
-        setOf(),
-        "TEST_PDU",
-        "CODE_PDU",
-        "TEST_LOCATION",
-        "CODE_LOCATION",
-      )
+      val body = createGroupRequestFactory.produce("TEST_GROUP")
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -840,18 +849,139 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
     }
 
     @Test
-    fun `return 401 when unauthorised`() {
-      val body = CreateGroupRequest(
-        "TEST_GROUP",
-        ProgrammeGroupCohort.GENERAL,
-        ProgrammeGroupSexEnum.MALE,
-        LocalDate.parse("2025-01-01"),
-        setOf(),
-        "TEST_PDU",
-        "CODE_PDU",
-        "TEST_LOCATION",
-        "CODE_LOCATION",
+    fun `create group and assign correct cohort and return 200 when it doesn't already exist`() {
+      val body = createGroupRequestFactory.produce(cohort = ProgrammeGroupCohort.SEXUAL_LDC)
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
       )
+      val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
+      assertThat(createdGroup.id).isNotNull
+      assertThat(createdGroup.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
+      assertThat(createdGroup.isLdc).isTrue
+    }
+
+    @Test
+    fun `create group and assign correct sex and return 200 when it doesn't already exist`() {
+      val body = createGroupRequestFactory.produce(sex = ProgrammeGroupSexEnum.MALE)
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+      val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
+      assertThat(createdGroup.id).isNotNull
+      assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.MALE)
+    }
+
+    @Test
+    fun `create group and assign correct pdu and delivery locations and return 200 when it doesn't already exist`() {
+      val body = createGroupRequestFactory.produce(
+        pduCode = randomUppercaseString(),
+        pduName = randomWord(1..2).toString(),
+        deliveryLocationCode = randomUppercaseString(),
+        deliveryLocationName = randomWord(1..2).toString(),
+      )
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+      val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
+      assertThat(createdGroup.id).isNotNull
+      assertThat(createdGroup.probationDeliveryUnitCode).isEqualTo(body.pduCode)
+      assertThat(createdGroup.probationDeliveryUnitName).isEqualTo(body.pduName)
+      assertThat(createdGroup.deliveryLocationCode).isEqualTo(body.deliveryLocationCode)
+      assertThat(createdGroup.deliveryLocationName).isEqualTo(body.deliveryLocationName)
+    }
+
+    @Test
+    fun `create group and assign correct team members and facilitators and return 200 when it doesn't already exist`() {
+      val teamMember1 =
+        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER)
+      val teamMember2 =
+        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR)
+      val teamMember3 =
+        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
+      val teamMember4 =
+        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.COVER_FACILITATOR)
+      val body = createGroupRequestFactory.produce(
+        teamMembers = listOf(teamMember1, teamMember2, teamMember3, teamMember4),
+      )
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+      val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
+      assertThat(createdGroup.id).isNotNull
+      assertThat(createdGroup.treatmentManager?.ndeliusPersonCode).isEqualTo(teamMember1.personCode)
+      val expectedFacilitatorCodes = listOf(
+        teamMember2.personCode,
+        teamMember3.personCode,
+        teamMember4.personCode,
+      )
+
+      val actualFacilitatorCodes = createdGroup.groupFacilitators.map { it.facilitator.ndeliusPersonCode }
+
+      assertThat(actualFacilitatorCodes)
+        .containsExactlyInAnyOrderElementsOf(expectedFacilitatorCodes)
+    }
+
+    @Test
+    fun `create group and return 400 when it doesn't already exist and there is no treatment manager`() {
+      val teamMember1 =
+        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR)
+      val teamMember2 =
+        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
+      val teamMember3 =
+        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.COVER_FACILITATOR)
+      val body = createGroupRequestFactory.produce(
+        teamMembers = listOf(teamMember1, teamMember2, teamMember3),
+      )
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        body = body,
+        expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+      )
+      assertThat(response.developerMessage).isEqualTo("At least one treatment manager must be specified for a programme group")
+    }
+
+    @Test
+    fun `createGroup and assign slots and return 200 when it doesn't already exist`() {
+      val slots = setOf(
+        CreateGroupSessionSlot(DayOfWeek.MONDAY, 1, 1, AmOrPm.AM),
+        CreateGroupSessionSlot(DayOfWeek.TUESDAY, 1, 1, AmOrPm.PM),
+      )
+      val body = createGroupRequestFactory.produce(createGroupSessionSlot = slots)
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val createdGroup = programmeGroupRepository.findByCode(body.groupCode)
+      assertThat { createdGroup }.isNotNull
+      assertThat(createdGroup?.code).isEqualTo(body.groupCode)
+      assertThat(createdGroup?.programmeGroupSessionSlots).size().isEqualTo(2)
+
+      assertThat(createdGroup?.programmeGroupSessionSlots).allMatch {
+        (it.dayOfWeek == DayOfWeek.MONDAY && it.startTime.equals(LocalTime.of(1, 1))) ||
+          (it.dayOfWeek == DayOfWeek.TUESDAY && it.startTime.equals(LocalTime.of(13, 1)))
+      }
+    }
+
+    @Test
+    fun `return 401 when unauthorised`() {
+      val body = createGroupRequestFactory.produce()
       webTestClient
         .method(HttpMethod.POST)
         .uri("/group")
@@ -909,17 +1039,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
 
     @Test
     fun `return 401 when unauthorised`() {
-      val body = CreateGroupRequest(
-        "TEST_GROUP",
-        ProgrammeGroupCohort.GENERAL,
-        ProgrammeGroupSexEnum.MALE,
-        LocalDate.parse("2025-01-01"),
-        setOf(),
-        "TEST_PDU",
-        "CODE_PDU",
-        "TEST_LOCATION",
-        "CODE_LOCATION",
-      )
+      val body = ProgrammeGroupFactory().produce()
       webTestClient
         .method(HttpMethod.GET)
         .uri("/group/TEST/details")

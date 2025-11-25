@@ -62,9 +62,14 @@ class ProgrammeGroupService(
       it.teamMemberType == CreateGroupTeamMemberType.TREATMENT_MANAGER
     }
 
-    if (treatmentManagers.isNotEmpty()) {
-      programmeGroup.treatmentManager = findOrCreateFacilitator(treatmentManagers.first())
+    require(treatmentManagers.isNotEmpty()) {
+      "At least one treatment manager must be specified for a programme group"
     }
+
+    require(treatmentManagers.size == 1) {
+      "Exactly one treatment manager must be specified for a programme group"
+    }
+    programmeGroup.treatmentManager = findOrCreateFacilitator(treatmentManagers.first())
 
     facilitators.forEach { facilitatorRequest ->
       val facilitatorEntity = findOrCreateFacilitator(facilitatorRequest)

@@ -1,11 +1,10 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -22,11 +21,17 @@ class ProgrammeGroupFactory {
   private var updatedAt: LocalDateTime? = null
   private var updatedByUsername: String? = null
   private var deletedAt: LocalDateTime? = null
+  var deliveryLocationName: String? = null
+  var deliveryLocationCode: String? = null
+  var probationDeliveryUnitName: String? = null
+  var probationDeliveryUnitCode: String? = null
   private var deletedByUsername: String? = null
   private var regionName: String = "TEST REGION"
   private var startedAtDate: LocalDate? = null
   private var earliestStartDate: LocalDate? = null
   private var programmeGroupSessionSlots: MutableSet<ProgrammeGroupSessionSlotEntity> = mutableSetOf()
+  private var treatmentManager: FacilitatorEntity? = null
+  private var groupFacilitators: MutableSet<ProgrammeGroupFacilitatorEntity> = mutableSetOf()
 
   fun withId(id: UUID) = apply { this.id = id }
   fun withCode(code: String) = apply { this.code = code }
@@ -61,19 +66,4 @@ class ProgrammeGroupFactory {
     earliestPossibleStartDate = this.earliestStartDate,
     programmeGroupSessionSlots = this.programmeGroupSessionSlots,
   )
-
-  fun toCreateGroup(programmeGroupSessionSlots: Set<CreateGroupSessionSlot> = setOf()): CreateGroupRequest {
-    val group = produce()
-    return CreateGroupRequest(
-      group.code,
-      ProgrammeGroupCohort.from(group.cohort, group.isLdc),
-      group.sex,
-      LocalDate.parse("2025-01-01"),
-      programmeGroupSessionSlots,
-      "PDU_NAME",
-      "PDU_CODE",
-      "DELIVERY_LOCATION_NAME",
-      "DELIVERY_LOCATION_CODE",
-    )
-  }
 }
