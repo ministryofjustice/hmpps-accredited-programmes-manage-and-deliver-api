@@ -1,7 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -10,7 +10,6 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import org.springframework.transaction.support.TransactionTemplate
 import org.springframework.web.client.HttpClientErrorException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
@@ -18,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 /**
@@ -32,7 +32,7 @@ class AdminService(
   private val referralService: ReferralService,
   private val sentenceService: SentenceService,
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
-  private val transactionTemplate: TransactionTemplate,
+  private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -65,22 +65,19 @@ class AdminService(
     refreshPersonalDetailsForReferrals(ids)
   }
 
-  // Limit API calls to 20
-  @OptIn(ExperimentalCoroutinesApi::class)
-  private val dispatcher = Dispatchers.IO.limitedParallelism(20)
-
   // Limit DB operations to 5
   private val dbSemaphore = Semaphore(5)
 
   /**
    * This method is intended on cleaning up referrals in dev that have no information in Ndelius or Oasys.
-   * It processes referrals that have no 'sex' or 'sentence_end_date' in the referral table as these are values fetched by Ndelius and Oasys resepectively.
+   * It processes referrals that have no 'sex' or 'sentence_end_date' in the referral table as these are values fetched by Ndelius and Oasys respectively.
    *
    * It is designed to run as a long-running process after the HTTP response
    * has been sent to the client.
    */
-  suspend fun cleanUpReferralsWithNoDeliusOrOasysData() = coroutineScope {
-    val referrals = referralRepository.getAllReferralsWithNulLSentenceEndDateOrSex()
+
+  suspend fun cleanUpReferralsWithNoDeliusOrOasysData(): Int = coroutineScope {
+    val referrals = referralRepository.getOldReferralsWithNulLSentenceEndDateOrSex(LocalDateTime.now().minusDays(7))
     log.info("Found {} referrals with no 'sentence_end_date' or 'sex' ", referrals.size)
 
     val results = referrals.mapIndexed { index, referral ->
@@ -90,7 +87,14 @@ class AdminService(
           val personalDetails = fetchPersonalDetails(referral.crn) ?: return@async ProcessingResult.DELETED
           val sentenceEndDate = fetchSentenceEndDate(referral) ?: return@async ProcessingResult.DELETED
 
-          updateReferral(referral, personalDetails, sentenceEndDate)
+          dbSemaphore.withPermit {
+            referral.sex = personalDetails.sex.description
+            referral.sentenceEndDate = sentenceEndDate
+            referral.dateOfBirth = personalDetails.dateOfBirth.toLocalDate()
+            referralRepository.save(referral)
+            log.info("Successfully updated referral for crn: ${referral.crn}")
+          }
+          ProcessingResult.UPDATED
         } catch (e: Exception) {
           log.error("Unexpected error processing referral ${referral.id}, crn ${referral.crn}: ${e.message}", e)
           ProcessingResult.ERROR
@@ -106,6 +110,7 @@ class AdminService(
       summary[ProcessingResult.DELETED] ?: 0,
       summary[ProcessingResult.ERROR] ?: 0,
     )
+    summary[ProcessingResult.DELETED] ?: 0
   }
 
   private suspend fun fetchPersonalDetails(crn: String): NDeliusPersonalDetails? = withContext(Dispatchers.IO) {
@@ -156,21 +161,6 @@ class AdminService(
       }
       null
     }
-  }
-
-  private suspend fun updateReferral(
-    referral: ReferralEntity,
-    personalDetails: NDeliusPersonalDetails,
-    sentenceEndDate: LocalDate,
-  ): ProcessingResult {
-    dbSemaphore.withPermit {
-      referral.sex = personalDetails.sex.description
-      referral.sentenceEndDate = sentenceEndDate
-      referral.dateOfBirth = personalDetails.dateOfBirth.toLocalDate()
-      referralRepository.save(referral)
-      log.info("Successfully updated referral for crn: ${referral.crn}")
-    }
-    return ProcessingResult.UPDATED
   }
 
   private enum class ProcessingResult {

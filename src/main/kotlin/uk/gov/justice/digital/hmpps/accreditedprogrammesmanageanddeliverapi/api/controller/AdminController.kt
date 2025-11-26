@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -30,7 +31,7 @@ data class PopulatePersonalDetailsResponse(val ids: List<String>)
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
 class AdminController(
   private val adminService: AdminService,
-  private val backgroundScope: CoroutineScope = CoroutineScope(Dispatchers.Default),
+  private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -85,7 +86,7 @@ class AdminController(
       emptyList()
     }
 
-    backgroundScope.launch {
+    CoroutineScope(dispatcher).launch {
       try {
         if (containsWildcard) {
           log.info("Processing all referrals")
@@ -122,7 +123,7 @@ class AdminController(
   )
   @PostMapping("/admin/clear-missing-data-referrals")
   suspend fun clearMissingDataReferrals(): ResponseEntity<Void> {
-    backgroundScope.launch {
+    CoroutineScope(dispatcher).launch {
       adminService.cleanUpReferralsWithNoDeliusOrOasysData()
     }
     return ResponseEntity.accepted().build()
