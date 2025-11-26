@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup
 
+import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
@@ -37,6 +38,7 @@ data class Group(
     example = "23-10-2025",
     description = "The actual start date initiated by the facilitator",
   )
+  @JsonFormat(pattern = "d MMM yyyy")
   @get:JsonProperty("startDate")
   val startDate: LocalDate? = null,
 
