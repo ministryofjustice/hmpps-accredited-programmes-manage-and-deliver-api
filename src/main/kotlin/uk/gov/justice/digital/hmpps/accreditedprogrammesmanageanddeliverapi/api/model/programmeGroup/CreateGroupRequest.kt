@@ -76,20 +76,20 @@ data class CreateGroupRequest(
 )
 
 data class CreateGroupTeamMember(
-  @NotNull(message = "personName must not be null")
-  @get:JsonProperty("personName", required = true)
+  @NotNull(message = "facilitator must not be null")
+  @get:JsonProperty("facilitator", required = true)
   @Schema(description = "The full name of the facilitator for the group")
-  var personName: String,
+  var facilitator: String,
 
-  @NotNull(message = "personCode must not be null")
-  @get:JsonProperty("personCode", required = true)
-  @Schema(description = "The nDelius code of the facilitator for the group")
-  var personCode: String,
+  @NotNull(message = "facilitatorCode must not be null")
+  @get:JsonProperty("facilitatorCode", required = true)
+  @Schema(description = "The code of the facilitator for the group")
+  var facilitatorCode: String,
 
   @NotNull
-  @get:JsonProperty("ndeliusTeamName", required = true)
+  @get:JsonProperty("teamName", required = true)
   @Schema(description = "The name of the team that the member belongs to")
-  var ndeliusTeamName: String,
+  var teamName: String,
 
   @NotNull
   @get:JsonProperty("ndeliusTeamCode", required = true)

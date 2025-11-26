@@ -90,7 +90,7 @@ class ProgrammeGroupService(
     return programmeGroupRepository.save(programmeGroup)
   }
 
-  private fun findOrCreateFacilitator(teamMember: CreateGroupTeamMember): FacilitatorEntity = facilitatorRepository.findByNdeliusPersonCode(teamMember.personCode)
+  private fun findOrCreateFacilitator(teamMember: CreateGroupTeamMember): FacilitatorEntity = facilitatorRepository.findByNdeliusPersonCode(teamMember.facilitatorCode)
     ?: facilitatorRepository.save(teamMember.toFacilitatorEntity())
 
   private fun createSessionSlots(

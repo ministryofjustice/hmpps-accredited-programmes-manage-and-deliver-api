@@ -35,8 +35,8 @@ class FacilitatorEntity(
 )
 
 fun CreateGroupTeamMember.toFacilitatorEntity(): FacilitatorEntity = FacilitatorEntity(
-  personName = personName,
-  ndeliusPersonCode = personCode,
+  personName = facilitator,
+  ndeliusPersonCode = facilitatorCode,
   ndeliusTeamCode = ndeliusTeamCode,
-  ndeliusTeamName = ndeliusTeamName,
+  ndeliusTeamName = teamName,
 )

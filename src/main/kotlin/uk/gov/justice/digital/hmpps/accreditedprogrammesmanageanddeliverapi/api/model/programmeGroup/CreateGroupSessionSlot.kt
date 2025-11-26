@@ -59,8 +59,8 @@ enum class AmOrPm(
   val label: String,
 ) {
   @Schema(description = "Morning time")
-  AM("AM"),
+  AM("am"),
 
   @Schema(description = "Afternoon/evening time")
-  PM("PM"),
+  PM("pm"),
 }

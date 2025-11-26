@@ -15,9 +15,9 @@ class CreateGroupTeamMemberFactory {
     ndeliusTeamCode: String? = null,
     teamMemberType: CreateGroupTeamMemberType? = null,
   ): CreateGroupTeamMember = CreateGroupTeamMember(
-    personName = personName ?: randomFullName().getNameAsString(),
-    personCode = personCode ?: randomUppercaseString(),
-    ndeliusTeamName = ndeliusTeamName ?: randomWord(1..2).toString(),
+    facilitator = personName ?: randomFullName().getNameAsString(),
+    facilitatorCode = personCode ?: randomUppercaseString(),
+    teamName = ndeliusTeamName ?: randomWord(1..2).toString(),
     ndeliusTeamCode = ndeliusTeamCode ?: randomUppercaseString(),
     teamMemberType = teamMemberType ?: CreateGroupTeamMemberType.TREATMENT_MANAGER,
   )

@@ -814,7 +814,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       assertThat(createdGroup.programmeGroupSessionSlots).hasSize(1)
       assertThat(createdGroup.programmeGroupSessionSlots.first().dayOfWeek).isEqualTo(DayOfWeek.MONDAY)
       assertThat(createdGroup.programmeGroupSessionSlots.first().startTime).isEqualTo(LocalTime.of(1, 1))
-      assertThat(createdGroup.treatmentManager?.ndeliusPersonCode).isEqualTo(teamMember1.personCode)
+      assertThat(createdGroup.treatmentManager?.ndeliusPersonCode).isEqualTo(teamMember1.facilitatorCode)
       assertThat(createdGroup.groupFacilitators).hasSize(3)
     }
 
@@ -920,11 +920,11 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       )
       val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
       assertThat(createdGroup.id).isNotNull
-      assertThat(createdGroup.treatmentManager?.ndeliusPersonCode).isEqualTo(teamMember1.personCode)
+      assertThat(createdGroup.treatmentManager?.ndeliusPersonCode).isEqualTo(teamMember1.facilitatorCode)
       val expectedFacilitatorCodes = listOf(
-        teamMember2.personCode,
-        teamMember3.personCode,
-        teamMember4.personCode,
+        teamMember2.facilitatorCode,
+        teamMember3.facilitatorCode,
+        teamMember4.facilitatorCode,
       )
 
       val actualFacilitatorCodes = createdGroup.groupFacilitators.map { it.facilitator.ndeliusPersonCode }
