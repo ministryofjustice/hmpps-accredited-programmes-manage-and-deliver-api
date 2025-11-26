@@ -1,8 +1,16 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionTemplate
 import org.springframework.web.client.HttpClientErrorException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
@@ -24,6 +32,7 @@ class AdminService(
   private val referralService: ReferralService,
   private val sentenceService: SentenceService,
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
+  private val transactionTemplate: TransactionTemplate,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -56,15 +65,21 @@ class AdminService(
     refreshPersonalDetailsForReferrals(ids)
   }
 
-  @Transactional
-  fun cleanUpReferralsWithNoDeliusOrOasysData() {
+  @OptIn(ExperimentalCoroutinesApi::class)
+  private val dispatcher = Dispatchers.IO.limitedParallelism(20)
+
+  private val dbSemaphore = Semaphore(5)
+
+  suspend fun cleanUpReferralsWithNoDeliusOrOasysData() = coroutineScope {
     val referrals = referralRepository.getAllReferralsWithNulLSentenceEndDateOrSex()
     log.info("Starting cleanup of {} referrals", referrals.size)
 
     val results = referrals.mapIndexed { index, referral ->
-      log.info("[{}/{}] Processing referral {}", index + 1, referrals.size, referral.id)
-      processReferral(referral)
-    }
+      async(dispatcher) {
+        log.info("[{}/{}] Processing referral {}", index + 1, referrals.size, referral.id)
+        processReferral(referral)
+      }
+    }.awaitAll()
 
     val summary = results.groupingBy { it }.eachCount()
     log.info(
@@ -76,7 +91,7 @@ class AdminService(
     )
   }
 
-  private fun processReferral(referral: ReferralEntity): ProcessingResult {
+  private suspend fun processReferral(referral: ReferralEntity): ProcessingResult {
     return try {
       val personalDetails = fetchPersonalDetails(referral.crn) ?: return ProcessingResult.DELETED
       val sentenceEndDate = fetchSentenceEndDate(referral) ?: return ProcessingResult.DELETED
@@ -88,57 +103,70 @@ class AdminService(
     }
   }
 
-  private fun fetchPersonalDetails(crn: String): NDeliusPersonalDetails? = try {
-    when (val result = nDeliusIntegrationApiClient.getPersonalDetails(crn)) {
-      is ClientResult.Success -> result.body
-      is ClientResult.Failure -> result.throwException()
-    }
-  } catch (e: Exception) {
-    handleFetchError(crn, "personal details", e)
-  }
-
-  private fun fetchSentenceEndDate(referral: ReferralEntity): LocalDate? = try {
-    val sentenceEndDate = sentenceService.getSentenceEndDate(
-      referral.crn,
-      referral.eventNumber,
-      referral.sourcedFrom,
-    )
-
-    if (sentenceEndDate == null) {
-      log.info("Sentence end date is null for crn: ${referral.crn}, deleting referral")
-      referralRepository.deleteById(referral.id!!)
+  private suspend fun fetchPersonalDetails(crn: String): NDeliusPersonalDetails? = withContext(Dispatchers.IO) {
+    try {
+      when (val result = nDeliusIntegrationApiClient.getPersonalDetails(crn)) {
+        is ClientResult.Success -> result.body
+        is ClientResult.Failure -> result.throwException()
+      }
+    } catch (e: Exception) {
+      if (e is HttpClientErrorException.NotFound) {
+        log.info("Personal details not found (404) for crn: $crn, deleting referral")
+        dbSemaphore.withPermit {
+          val referral = referralRepository.findByCrn(crn).first()
+          referral.let { referralRepository.deleteById(it.id!!) }
+        }
+      } else {
+        log.error("Error fetching personal details for crn $crn: ${e.message}", e)
+      }
       null
-    } else {
-      sentenceEndDate
     }
-  } catch (e: Exception) {
-    handleFetchError(referral.crn, "sentence details", e)
   }
 
-  private fun handleFetchError(crn: String, dataType: String, exception: Exception): Nothing? = if (is404Error(exception)) {
-    log.info("$dataType not found (404) for crn: $crn, deleting referral")
-    referralRepository.findByCrn(crn).first().let { referralRepository.deleteById(it.id!!) }
-    null
-  } else {
-    log.error("Error fetching $dataType for crn $crn: ${exception.message}", exception)
-    null
+  private suspend fun fetchSentenceEndDate(referral: ReferralEntity): LocalDate? = withContext(Dispatchers.IO) {
+    try {
+      val sentenceEndDate = sentenceService.getSentenceEndDate(
+        referral.crn,
+        referral.eventNumber,
+        referral.sourcedFrom,
+      )
+
+      if (sentenceEndDate == null) {
+        log.info("Sentence end date is null for crn: ${referral.crn}, deleting referral")
+        dbSemaphore.withPermit {
+          referralRepository.deleteById(referral.id!!)
+        }
+        null
+      } else {
+        sentenceEndDate
+      }
+    } catch (e: Exception) {
+      if (e is HttpClientErrorException.NotFound) {
+        log.info("Sentence details not found (404) for crn: ${referral.crn}, deleting referral")
+        dbSemaphore.withPermit {
+          referralRepository.deleteById(referral.id!!)
+        }
+      } else {
+        log.error("Error fetching sentence details for crn ${referral.crn}: ${e.message}", e)
+      }
+      null
+    }
   }
 
-  private fun updateReferral(
+  private suspend fun updateReferral(
     referral: ReferralEntity,
     personalDetails: NDeliusPersonalDetails,
     sentenceEndDate: LocalDate,
   ): ProcessingResult {
-    referral.sex = personalDetails.sex.description
-    referral.sentenceEndDate = sentenceEndDate
-    referralRepository.save(referral)
-    log.info("Successfully updated referral for crn: ${referral.crn}")
+    dbSemaphore.withPermit {
+      referral.sex = personalDetails.sex.description
+      referral.sentenceEndDate = sentenceEndDate
+      referral.dateOfBirth = personalDetails.dateOfBirth.toLocalDate()
+      referralRepository.save(referral)
+      log.info("Successfully updated referral for crn: ${referral.crn}")
+    }
     return ProcessingResult.UPDATED
   }
-
-  private fun is404Error(exception: Exception): Boolean = exception.message?.contains("404") == true ||
-    exception is HttpClientErrorException.NotFound ||
-    (exception.cause?.message?.contains("404") == true)
 
   private enum class ProcessingResult {
     UPDATED,
