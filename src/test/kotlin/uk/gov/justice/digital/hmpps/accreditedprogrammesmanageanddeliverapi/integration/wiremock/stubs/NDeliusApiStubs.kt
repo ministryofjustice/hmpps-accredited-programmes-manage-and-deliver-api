@@ -95,6 +95,17 @@ class NDeliusApiStubs {
     )
   }
 
+  fun stubNotFoundPersonalDetailsResponse(crn: String? = null) {
+    wiremock.stubFor(
+      get(urlEqualTo("/case/$crn/personal-details"))
+        .willReturn(
+          aResponse()
+            .withStatus(404)
+            .withHeader("Content-Type", "application/json"),
+        ),
+    )
+  }
+
   fun stubSuccessfulOffencesResponse(
     crn: String,
     eventNumber: String,

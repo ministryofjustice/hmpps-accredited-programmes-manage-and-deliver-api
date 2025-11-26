@@ -65,19 +65,36 @@ class AdminService(
     refreshPersonalDetailsForReferrals(ids)
   }
 
+  // Limit API calls to 20
   @OptIn(ExperimentalCoroutinesApi::class)
   private val dispatcher = Dispatchers.IO.limitedParallelism(20)
 
+  // Limit DB operations to 5
   private val dbSemaphore = Semaphore(5)
 
+  /**
+   * This method is intended on cleaning up referrals in dev that have no information in Ndelius or Oasys.
+   * It processes referrals that have no 'sex' or 'sentence_end_date' in the referral table as these are values fetched by Ndelius and Oasys resepectively.
+   *
+   * It is designed to run as a long-running process after the HTTP response
+   * has been sent to the client.
+   */
   suspend fun cleanUpReferralsWithNoDeliusOrOasysData() = coroutineScope {
     val referrals = referralRepository.getAllReferralsWithNulLSentenceEndDateOrSex()
-    log.info("Starting cleanup of {} referrals", referrals.size)
+    log.info("Found {} referrals with no 'sentence_end_date' or 'sex' ", referrals.size)
 
     val results = referrals.mapIndexed { index, referral ->
       async(dispatcher) {
         log.info("[{}/{}] Processing referral {}", index + 1, referrals.size, referral.id)
-        processReferral(referral)
+        try {
+          val personalDetails = fetchPersonalDetails(referral.crn) ?: return@async ProcessingResult.DELETED
+          val sentenceEndDate = fetchSentenceEndDate(referral) ?: return@async ProcessingResult.DELETED
+
+          updateReferral(referral, personalDetails, sentenceEndDate)
+        } catch (e: Exception) {
+          log.error("Unexpected error processing referral ${referral.id}, crn ${referral.crn}: ${e.message}", e)
+          ProcessingResult.ERROR
+        }
       }
     }.awaitAll()
 
@@ -89,18 +106,6 @@ class AdminService(
       summary[ProcessingResult.DELETED] ?: 0,
       summary[ProcessingResult.ERROR] ?: 0,
     )
-  }
-
-  private suspend fun processReferral(referral: ReferralEntity): ProcessingResult {
-    return try {
-      val personalDetails = fetchPersonalDetails(referral.crn) ?: return ProcessingResult.DELETED
-      val sentenceEndDate = fetchSentenceEndDate(referral) ?: return ProcessingResult.DELETED
-
-      updateReferral(referral, personalDetails, sentenceEndDate)
-    } catch (e: Exception) {
-      log.error("Unexpected error processing referral ${referral.id}, crn ${referral.crn}: ${e.message}", e)
-      ProcessingResult.ERROR
-    }
   }
 
   private suspend fun fetchPersonalDetails(crn: String): NDeliusPersonalDetails? = withContext(Dispatchers.IO) {

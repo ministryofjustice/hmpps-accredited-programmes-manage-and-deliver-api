@@ -77,7 +77,7 @@ class AdminController(
       request.referralIds.mapNotNull { str ->
         try {
           UUID.fromString(str)
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
           null
         }
       }
@@ -102,8 +102,29 @@ class AdminController(
     return ResponseEntity.ok(PopulatePersonalDetailsResponse(ids = request.referralIds))
   }
 
-  @PostMapping("/admin/check-referral-info")
-  suspend fun checkIfReferralHasInfo() {
-    adminService.cleanUpReferralsWithNoDeliusOrOasysData()
+  @Operation(
+    tags = ["Admin"],
+    summary = "Clear down referrals with missing data",
+    operationId = "clearMissingDataReferrals",
+    description = "Clear down referrals that are missing Oasys and Delius data.",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Update started (not completed, process is async)",
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PostMapping("/admin/clear-missing-data-referrals")
+  suspend fun clearMissingDataReferrals(): ResponseEntity<Void> {
+    backgroundScope.launch {
+      adminService.cleanUpReferralsWithNoDeliusOrOasysData()
+    }
+    return ResponseEntity.accepted().build()
   }
 }
