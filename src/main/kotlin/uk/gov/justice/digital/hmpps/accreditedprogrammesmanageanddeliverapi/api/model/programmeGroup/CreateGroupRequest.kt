@@ -92,9 +92,9 @@ data class CreateGroupTeamMember(
   var teamName: String,
 
   @NotNull
-  @get:JsonProperty("ndeliusTeamCode", required = true)
+  @get:JsonProperty("teamCode", required = true)
   @Schema(description = "The code of the team that the member belongs to")
-  var ndeliusTeamCode: String,
+  var teamCode: String,
 
   @NotNull(message = "teamMemberType must not be null")
   @get:JsonProperty("teamMemberType", required = true)
