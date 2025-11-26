@@ -127,4 +127,18 @@ class ApiExceptionHandler {
         ),
       )
   }
+
+  @ExceptionHandler(IllegalArgumentException::class)
+  fun handleIllegalArgumentException(exception: IllegalArgumentException): ResponseEntity<ErrorResponse> {
+    log.warn("Bad request", exception)
+    return ResponseEntity
+      .status(BAD_REQUEST)
+      .body(
+        ErrorResponse(
+          status = BAD_REQUEST.value(),
+          userMessage = "Bad request: ${exception.message}",
+          developerMessage = exception.message,
+        ),
+      )
+  }
 }

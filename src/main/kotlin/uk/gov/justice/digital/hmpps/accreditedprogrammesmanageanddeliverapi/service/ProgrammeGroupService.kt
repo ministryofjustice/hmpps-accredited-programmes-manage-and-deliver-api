@@ -11,6 +11,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
@@ -18,13 +19,19 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.GroupWaitlistItemViewRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
@@ -40,22 +47,51 @@ class ProgrammeGroupService(
   private val groupWaitlistItemViewRepository: GroupWaitlistItemViewRepository,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
   private val userService: UserService,
+  private val facilitatorRepository: FacilitatorRepository,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  fun createGroup(createGroupRequest: CreateGroupRequest, username: String): ProgrammeGroupEntity? {
+  fun createGroup(createGroupRequest: CreateGroupRequest, username: String): ProgrammeGroupEntity {
     val (userRegion) = userService.getUserRegions(username)
     programmeGroupRepository.findByCodeAndRegionName(createGroupRequest.groupCode, userRegion.description)
       ?.let { throw ConflictException("Programme group with code ${createGroupRequest.groupCode} already exists in region") }
 
-    log.info("Group created with code: ${createGroupRequest.groupCode}")
-
     val programmeGroup = createGroupRequest.toEntity(userRegion.description)
-    val slots = createSessionSlots(createGroupRequest.createGroupSessionSlot, programmeGroup)
 
+    val (treatmentManagers, facilitators) = createGroupRequest.teamMembers.partition {
+      it.teamMemberType == CreateGroupTeamMemberType.TREATMENT_MANAGER
+    }
+
+    require(treatmentManagers.isNotEmpty()) {
+      "At least one treatment manager must be specified for a programme group"
+    }
+
+    require(treatmentManagers.size == 1) {
+      "Exactly one treatment manager must be specified for a programme group"
+    }
+    programmeGroup.treatmentManager = findOrCreateFacilitator(treatmentManagers.first())
+
+    facilitators.forEach { facilitatorRequest ->
+      val facilitatorEntity = findOrCreateFacilitator(facilitatorRequest)
+
+      val groupFacilitator = ProgrammeGroupFacilitatorEntity(
+        facilitator = facilitatorEntity,
+        facilitatorType = facilitatorRequest.teamMemberType.toFacilitatorType(),
+        programmeGroup = programmeGroup,
+      )
+
+      programmeGroup.groupFacilitators.add(groupFacilitator)
+    }
+
+    val slots = createSessionSlots(createGroupRequest.createGroupSessionSlot, programmeGroup)
     programmeGroup.programmeGroupSessionSlots.addAll(slots)
+
+    log.info("Group created with code: ${createGroupRequest.groupCode}")
     return programmeGroupRepository.save(programmeGroup)
   }
+
+  private fun findOrCreateFacilitator(teamMember: CreateGroupTeamMember): FacilitatorEntity = facilitatorRepository.findByNdeliusPersonCode(teamMember.facilitatorCode)
+    ?: facilitatorRepository.save(teamMember.toFacilitatorEntity())
 
   private fun createSessionSlots(
     slotData: Set<CreateGroupSessionSlot>,

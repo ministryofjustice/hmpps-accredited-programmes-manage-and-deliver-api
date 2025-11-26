@@ -9,6 +9,8 @@ import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
@@ -100,4 +102,11 @@ class ProgrammeGroupEntity(
     mappedBy = "programmeGroup",
   )
   var programmeGroupSessionSlots: MutableSet<ProgrammeGroupSessionSlotEntity> = mutableSetOf(),
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "treatment_manager_id", referencedColumnName = "id")
+  var treatmentManager: FacilitatorEntity? = null,
+
+  @OneToMany(orphanRemoval = true, fetch = FetchType.LAZY, cascade = [CascadeType.ALL], mappedBy = "programmeGroup")
+  val groupFacilitators: MutableSet<ProgrammeGroupFacilitatorEntity> = mutableSetOf(),
 )
