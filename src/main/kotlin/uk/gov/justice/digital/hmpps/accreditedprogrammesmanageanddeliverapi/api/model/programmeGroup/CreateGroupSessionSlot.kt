@@ -55,7 +55,7 @@ data class CreateGroupSessionSlot(
 
 @Schema(description = "AM/PM time indicator")
 enum class AmOrPm(
-  @Schema(description = "Display label", example = "AM")
+  @Schema(description = "Display label", example = "am")
   val label: String,
 ) {
   @Schema(description = "Morning time")
