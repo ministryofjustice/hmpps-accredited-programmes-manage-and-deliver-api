@@ -7,10 +7,19 @@ import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import java.time.LocalDate
+import java.util.UUID
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(description = "Information identifying the group.")
 data class Group(
+  @Schema(
+    example = "1ff57cea-352c-4a99-8f66-3e626aac3265",
+    required = true,
+    description = "A unique id identifying the programme group.",
+  )
+  @get:JsonProperty("id", required = true)
+  val id: UUID?,
+
   @Schema(
     example = "AP_BIRMINGHAM_NORTH",
     required = true,
@@ -71,10 +80,10 @@ data class Group(
   )
   @get:JsonProperty("sex")
   val sex: ProgrammeGroupSexEnum? = null,
-
 )
 
 fun ProgrammeGroupEntity.toApi(): Group = Group(
+  id = this.id,
   code = this.code,
   regionName = this.regionName,
   earliestStartDate = this.earliestPossibleStartDate,

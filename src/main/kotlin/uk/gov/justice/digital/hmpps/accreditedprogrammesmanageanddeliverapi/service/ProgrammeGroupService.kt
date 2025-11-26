@@ -103,6 +103,7 @@ class ProgrammeGroupService(
 
     return ProgrammeGroupDetails(
       group = Group(
+        id = group.id,
         code = group.code,
         regionName = group.regionName,
       ),
