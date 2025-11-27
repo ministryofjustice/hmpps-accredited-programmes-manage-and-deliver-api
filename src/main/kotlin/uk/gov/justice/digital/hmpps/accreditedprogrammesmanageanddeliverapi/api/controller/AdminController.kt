@@ -122,7 +122,7 @@ class AdminController(
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @PostMapping("/admin/clear-missing-data-referrals")
-  suspend fun clearMissingDataReferrals(): ResponseEntity<Void> {
+  fun clearMissingDataReferrals(): ResponseEntity<Void> {
     CoroutineScope(dispatcher).launch {
       adminService.cleanUpReferralsWithNoDeliusOrOasysData()
     }
