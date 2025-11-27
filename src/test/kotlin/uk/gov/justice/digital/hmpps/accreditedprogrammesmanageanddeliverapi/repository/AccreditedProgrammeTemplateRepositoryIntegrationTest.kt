@@ -19,15 +19,18 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
   @Test
   @Transactional
   fun `should have seeded template 'Building Choices' with 12 modules in order`() {
+    // Given
     val programmeTemplate = getBuildingChoicesTemplate()
     assertThat(programmeTemplate)
       .withFailMessage("Expected Flyway V55 to seed 'Building Choices' template")
       .isNotNull()
 
+    // When
     val moduleNamesInOrder = programmeTemplate!!.modules
       .sortedBy(ModuleEntity::moduleNumber)
       .map { it.name }
 
+    // Then
     assertThat(moduleNamesInOrder).containsExactly(
       "Pre-Group",
       "Getting Ready",
