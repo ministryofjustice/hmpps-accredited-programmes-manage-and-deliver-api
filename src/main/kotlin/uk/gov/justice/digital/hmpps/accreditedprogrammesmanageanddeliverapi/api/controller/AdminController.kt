@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Profile
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -29,6 +30,7 @@ data class PopulatePersonalDetailsResponse(val ids: List<String>)
  */
 @RestController
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
+@Profile(value = ["dev", "local"])
 class AdminController(
   private val adminService: AdminService,
   private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
