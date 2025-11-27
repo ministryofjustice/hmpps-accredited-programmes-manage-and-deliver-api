@@ -30,7 +30,7 @@ data class PopulatePersonalDetailsResponse(val ids: List<String>)
  */
 @RestController
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
-@Profile(value = ["dev", "local"])
+@Profile(value = ["dev", "local", "test"])
 class AdminController(
   private val adminService: AdminService,
   private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
