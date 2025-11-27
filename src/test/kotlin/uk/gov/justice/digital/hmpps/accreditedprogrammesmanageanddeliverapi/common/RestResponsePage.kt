@@ -39,4 +39,5 @@ data class PagedProgrammeDetails<T>(
 data class GroupsByRegionResponse<T>(
   val pagedGroupData: RestResponsePage<T>,
   val otherTabTotal: Int,
+  val regionName: String,
 )

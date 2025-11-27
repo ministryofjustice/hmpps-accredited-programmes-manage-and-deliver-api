@@ -212,6 +212,7 @@ class ProgrammeGroupService(
     return GroupsByRegion(
       pagedGroupData = pagedData,
       otherTabTotal = otherTabTotal,
+      regionName = userRegion.description,
     )
   }
 }
