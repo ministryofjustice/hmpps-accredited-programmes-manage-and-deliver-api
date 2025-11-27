@@ -2,7 +2,10 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import java.time.LocalDateTime
 import java.util.UUID
 
 /**
@@ -15,6 +18,8 @@ import java.util.UUID
 class AdminService(
   private val referralRepository: ReferralRepository,
   private val referralService: ReferralService,
+  private val sentenceService: SentenceService,
+  private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -45,5 +50,68 @@ class AdminService(
     log.info("Starting refresh of personal details for all referrals")
     val ids = referralRepository.getAllIds()
     refreshPersonalDetailsForReferrals(ids)
+  }
+
+  /**
+   * This method is intended on cleaning up referrals in dev that have no information in Ndelius or Oasys.
+   * It processes referrals that have no 'sex' or 'sentence_end_date' in the referral table as these are values fetched by Ndelius and Oasys respectively.
+   *
+   * It is designed to run as a long-running process after the HTTP response
+   * has been sent to the client.
+   */
+
+  fun cleanUpReferralsWithNoDeliusOrOasysData() {
+    val cutoff = LocalDateTime.now().minusDays(7)
+    val referrals = referralRepository.getOldReferralsWithNulLSentenceEndDateOrSex(cutoff)
+
+    log.info("Found {} referrals with missing NDelius or OASys data", referrals.size)
+
+    val results = referrals.mapIndexed { index, referral ->
+      log.info("[{}/{}] Processing referral {}", index + 1, referrals.size, referral.id)
+
+      val personalDetails = when (nDeliusIntegrationApiClient.getPersonalDetails(referral.crn)) {
+        is ClientResult.Success -> true
+        is ClientResult.Failure -> false
+      }
+      if (!personalDetails) {
+        log.info("Missing NDelius personal details for crn ${referral.crn}. Deleting referral ${referral.id}...")
+        referralRepository.deleteById(referral.id!!)
+        return@mapIndexed ProcessingResult.DELETED
+      }
+
+      val sentenceEndDate = try {
+        sentenceService.getSentenceEndDate(
+          referral.crn,
+          referral.eventNumber,
+          referral.sourcedFrom,
+        )
+      } catch (e: Exception) {
+        log.info(
+          "Error or 404 while fetching sentence end date for crn ${referral.crn}. Deleting referral ${referral.id}... : ${e.message}",
+        )
+        null
+      }
+
+      if (sentenceEndDate == null) {
+        log.info("Missing sentence end date for crn ${referral.crn}. Deleting referral ${referral.id}...")
+        referralRepository.deleteById(referral.id!!)
+        return@mapIndexed ProcessingResult.DELETED
+      }
+
+      ProcessingResult.SKIPPED
+    }
+
+    val summary = results.groupingBy { it }.eachCount()
+    log.info(
+      "Cleanup completed. Total: {}, Deleted: {}, Skipped: {}",
+      results.size,
+      summary[ProcessingResult.DELETED] ?: 0,
+      summary[ProcessingResult.SKIPPED] ?: 0,
+    )
+  }
+
+  private enum class ProcessingResult {
+    SKIPPED,
+    DELETED,
   }
 }

@@ -500,6 +500,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       assertThat(codes).containsExactlyInAnyOrder("GROUP-A-NS-1", "GROUP-A-NS-2", "GROUP-A-NS-3")
       // otherTabTotal should be count of started groups in the region (2)
       assertThat(response.otherTabTotal).isEqualTo(2)
+      assertThat(response.regionName).isEqualTo("WIREMOCKED REGION")
     }
 
     @Test
@@ -531,6 +532,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       assertThat(codes).containsExactlyInAnyOrder("GROUP-A-S-1", "GROUP-A-S-2")
       // otherTabTotal should be count of not-started groups (2)
       assertThat(response.otherTabTotal).isEqualTo(2)
+      assertThat(response.regionName).isEqualTo("WIREMOCKED REGION")
     }
 
     @Test

@@ -19,4 +19,12 @@ data class GroupsByRegion(
   )
   @get:JsonProperty("otherTabTotal", required = true)
   val otherTabTotal: Int,
+
+  @Schema(
+    example = "West Midlands",
+    required = true,
+    description = "The region name the groups belongs to.",
+  )
+  @get:JsonProperty("regionName", required = true)
+  val regionName: String,
 )

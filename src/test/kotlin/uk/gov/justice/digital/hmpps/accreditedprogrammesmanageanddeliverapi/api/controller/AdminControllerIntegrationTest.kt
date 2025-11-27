@@ -6,14 +6,15 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.PopulatePersonalDetailsRequest
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 
 class AdminControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
-  private lateinit var referralService: ReferralService
+  private lateinit var referralRepository: ReferralRepository
 
   @BeforeEach
   fun setup() {
@@ -36,6 +37,26 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
 
     //    Then
     assertEquals(response.ids, listOf("*"))
+  }
+
+  @Test
+  fun `cleanUpReferrals - deletes referral when NDelius returns 404`() {
+    // Given
+    stubAuthTokenEndpoint()
+    val referralEntity = ReferralEntityFactory().produce()
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
+
+    nDeliusApiStubs.stubNotFoundPersonalDetailsResponse(referralEntity.crn)
+
+    // When
+    performRequestAndExpectStatusNoBody(
+      HttpMethod.POST,
+      "/admin/clear-missing-data-referrals",
+      expectedResponseStatus = 202,
+    )
+
+    Thread.sleep(2000)
+    !referralRepository.findById(referralEntity.id!!).isPresent
   }
 
   private fun buildPopulatePersonalDetailsResponse(
