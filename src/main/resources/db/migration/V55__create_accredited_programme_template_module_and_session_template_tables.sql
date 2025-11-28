@@ -42,7 +42,7 @@ CREATE TABLE module_session_template
     session_number    INTEGER NOT NULL,
     session_type      TEXT    NOT NULL,
     pathway           TEXT    NOT NULL,
-    name              TEXT,
+    name              TEXT    NOT NULL,
     description       TEXT,
     duration_minutes  INTEGER NOT NULL DEFAULT 60,
     CONSTRAINT fk_module_session_template_module
