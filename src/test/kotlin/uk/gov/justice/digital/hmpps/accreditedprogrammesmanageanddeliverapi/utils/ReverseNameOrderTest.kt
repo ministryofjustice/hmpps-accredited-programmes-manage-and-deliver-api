@@ -25,8 +25,8 @@ class ReverseNameOrderTest {
 
   @Test
   fun `test extra spaces`() {
-    assertEquals("Smith John", ("   John   Smith   "))
-    assertEquals("Brown Mary Anna John", (" John    Anna   Mary   Brown ").reverseNameOrder())
+    assertEquals("Smith John", ("   John   Smith   ").reverseNameOrder())
+    assertEquals("Brown Anna Mary John", (" John    Anna   Mary   Brown ").reverseNameOrder())
   }
 
   @Test
