@@ -12,6 +12,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
+import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedBy
@@ -109,4 +110,8 @@ class ProgrammeGroupEntity(
 
   @OneToMany(orphanRemoval = true, fetch = FetchType.LAZY, cascade = [CascadeType.ALL], mappedBy = "programmeGroup")
   val groupFacilitators: MutableSet<ProgrammeGroupFacilitatorEntity> = mutableSetOf(),
+
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "accredited_programme_template_id", referencedColumnName = "id", unique = true)
+  var accreditedProgrammeTemplate: AccreditedProgrammeTemplateEntity? = null,
 )
