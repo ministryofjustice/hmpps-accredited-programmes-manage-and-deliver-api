@@ -25,7 +25,7 @@ dependencies {
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 
   // AWS
-  implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:5.6.2")
+  implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:5.6.3")
 
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:1.8.2")
 
@@ -45,7 +45,7 @@ dependencies {
   testImplementation("org.testcontainers:junit-jupiter:1.21.3")
   testImplementation("org.awaitility:awaitility-kotlin")
   testImplementation("com.ninja-squad:springmockk:4.0.2")
-  testImplementation("io.kotest:kotest-assertions-core:6.0.5")
+  testImplementation("io.kotest:kotest-assertions-core:6.0.6")
   testImplementation("io.mockk:mockk:1.14.6")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
