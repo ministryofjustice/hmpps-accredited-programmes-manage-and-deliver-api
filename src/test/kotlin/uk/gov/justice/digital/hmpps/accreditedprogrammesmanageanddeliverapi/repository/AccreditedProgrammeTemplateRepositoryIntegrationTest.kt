@@ -18,7 +18,7 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
 
   @Test
   @Transactional
-  fun `should have seeded template 'Building Choices' with 12 modules in order`() {
+  fun `should have seeded template 'Building Choices' with 10 modules in order`() {
     // Given
     val programmeTemplate = getBuildingChoicesTemplate()
     assertThat(programmeTemplate)
@@ -33,8 +33,6 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
     // Then
     assertThat(moduleNamesInOrder).containsExactly(
       "Pre-Group",
-      "Getting Ready",
-      "Getting Ready 1-1",
       "Getting Started",
       "Getting Started 1-1",
       "Managing Myself",
@@ -49,26 +47,24 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
 
   @Test
   @Transactional
-  fun `should expose correct session counts for Getting Ready and Managing Myself`() {
+  fun `should expose correct session counts for Getting Started and Managing Myself`() {
     // Given
     val template = getBuildingChoicesTemplate()
 
     // When
     val modulesByName = template!!.modules.associateBy { it.name }
 
-    // Then - Getting Ready (Group only): Moderate 0, High 15
-    val gettingReady = modulesByName.getValue("Getting Ready")
+    // Then - Getting Started (Group only): Moderate 2
+    val gettingReady = modulesByName.getValue("Getting Started")
     val gettingReadySessions = gettingReady.sessionTemplates
     assertThat(gettingReadySessions).allMatch { it.sessionType == SessionType.GROUP }
-    assertThat(gettingReadySessions.count { it.pathway == Pathway.MODERATE_INTENSITY }).isEqualTo(0)
-    assertThat(gettingReadySessions.count { it.pathway == Pathway.HIGH_INTENSITY }).isEqualTo(15)
+    assertThat(gettingReadySessions.count { it.pathway == Pathway.MODERATE_INTENSITY }).isEqualTo(2)
 
-    // Then - Managing Myself (Group only): Moderate 6, High 9
+    // Then - Managing Myself (Group only): Moderate 6
     val managingMyself = modulesByName.getValue("Managing Myself")
     val managingMyselfSessions = managingMyself.sessionTemplates
     assertThat(managingMyselfSessions).allMatch { it.sessionType == SessionType.GROUP }
     assertThat(managingMyselfSessions.count { it.pathway == Pathway.MODERATE_INTENSITY }).isEqualTo(6)
-    assertThat(managingMyselfSessions.count { it.pathway == Pathway.HIGH_INTENSITY }).isEqualTo(9)
   }
 
   @Test
@@ -82,16 +78,14 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
     val allSessionTemplates = template!!.modules.flatMap { it.sessionTemplates }
 
     // Then
-    assertThat(allSessionTemplates.size).isEqualTo(78)
+    assertThat(allSessionTemplates.size).isEqualTo(26)
     assertThat(allSessionTemplates.count { it.pathway == Pathway.MODERATE_INTENSITY }).isEqualTo(26)
-    assertThat(allSessionTemplates.count { it.pathway == Pathway.HIGH_INTENSITY }).isEqualTo(52)
 
     // Then - validate session types: 1-1 modules should be ONE_TO_ONE only; non 1-1 named modules should be GROUP only
     val modulesByName = template.modules.associateBy { it.name }
 
     listOf(
       "Pre-Group",
-      "Getting Ready 1-1",
       "Getting Started 1-1",
       "Managing Myself 1-1",
       "Managing Life’s Problems 1-1",
@@ -103,7 +97,6 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
     }
 
     listOf(
-      "Getting Ready",
       "Getting Started",
       "Managing Myself",
       "Managing Life’s Problems",

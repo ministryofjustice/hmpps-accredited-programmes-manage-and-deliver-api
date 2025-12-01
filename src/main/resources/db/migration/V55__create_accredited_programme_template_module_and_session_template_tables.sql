@@ -44,7 +44,7 @@ CREATE TABLE module_session_template
     pathway           TEXT    NOT NULL,
     name              TEXT    NOT NULL,
     description       TEXT,
-    duration_minutes  INTEGER NOT NULL DEFAULT 60,
+    duration_minutes  INTEGER NOT NULL,
     CONSTRAINT fk_module_session_template_module
         FOREIGN KEY (module_id)
             REFERENCES module (id)
