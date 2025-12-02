@@ -17,9 +17,9 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListReferrals
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralCaseListItemService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.net.URLDecoder
@@ -56,10 +56,10 @@ class CaseListController(
     ) openOrClosed: OpenOrClosed,
     @Parameter(description = "CRN or persons name")
     @RequestParam(name = "crnOrPersonName", required = false) crnOrPersonName: String?,
-    @Parameter(description = "Filter by the cohort of the referral Eg: SEXUAL_OFFENCE or GENERAL_OFFENCE") @RequestParam(
+    @Parameter(description = "Filter by the cohort of the referral using the human-readable label, e.g. 'General Offence', 'General Offence - LDC', 'Sexual Offence', 'Sexual Offence - LDC'") @RequestParam(
       value = "cohort",
       required = false,
-    ) cohort: OffenceCohort?,
+    ) cohort: String?,
     @Parameter(description = "Filter by the status of the referral") @RequestParam(
       value = "status",
       required = false,
@@ -84,7 +84,7 @@ class CaseListController(
       openOrClosed = openOrClosed,
       username = username,
       crnOrPersonName = crnOrPersonName,
-      cohort = cohort?.name,
+      cohort = cohort?.let { ProgrammeGroupCohort.fromString(it) },
       status = if (status.isNullOrEmpty()) null else URLDecoder.decode(status, "UTF-8"),
       pdu = pdu,
       reportingTeams = reportingTeams,
