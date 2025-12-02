@@ -18,6 +18,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getReferralCaseListItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withAllowedCrns
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withRegionNames
 
 @Service
 class ReferralCaseListItemService(
@@ -92,7 +93,15 @@ class ReferralCaseListItemService(
         reportingTeams = reportingTeams,
       )
 
-    val crns = referralCaseListItemRepository.findAllCrns(baseSpec)
+    val userRegions = userService.getUserRegions(username).map { it.description }
+    val specWithRegions = if (userRegions.isEmpty()) {
+      log.warn("No regions found for user: $username. Returning empty list for ReferralCaseList.")
+      return PageImpl(emptyList(), pageable, 0)
+    } else {
+      withRegionNames(baseSpec, userRegions)
+    }
+
+    val crns = referralCaseListItemRepository.findAllCrns(specWithRegions)
 
     if (crns.isEmpty()) {
       log.warn("No CRNs found for user: $username. Returning empty list for ReferralCaseList.")
@@ -106,7 +115,7 @@ class ReferralCaseListItemService(
       return PageImpl(emptyList(), pageable, 0)
     }
 
-    val restrictedSpec = withAllowedCrns(baseSpec, allowedCrns)
+    val restrictedSpec = withAllowedCrns(specWithRegions, allowedCrns)
     return referralCaseListItemRepository.findAll(restrictedSpec, pageable)
   }
 
