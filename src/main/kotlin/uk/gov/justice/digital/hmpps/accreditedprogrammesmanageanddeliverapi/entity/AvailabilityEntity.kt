@@ -6,8 +6,11 @@ import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
 import jakarta.persistence.OneToMany
+import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
+import jakarta.validation.constraints.NotNull
 import org.hibernate.annotations.Fetch
 import org.hibernate.annotations.FetchMode.SUBSELECT
 import org.springframework.data.annotation.LastModifiedBy
@@ -23,8 +26,10 @@ class AvailabilityEntity(
   @GeneratedValue
   var id: UUID? = null,
 
-  @Column(name = "referral_id", nullable = false)
-  var referralId: UUID,
+  @NotNull
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "referral_id")
+  var referral: ReferralEntity,
 
   @Column(name = "start_date")
   var startDate: LocalDate,

@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.springframework.security.core.context.SecurityContextHolder
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilitySlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
@@ -13,9 +14,12 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-fun CreateAvailability.toEntity(lastModifiedBy: String = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN"): AvailabilityEntity {
+fun CreateAvailability.toEntity(
+  lastModifiedBy: String = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN",
+  referral: ReferralEntity,
+): AvailabilityEntity {
   val availabilityEntity = AvailabilityEntity(
-    referralId = this.referralId,
+    referral = referral,
     startDate = this.startDate?.toLocalDate() ?: LocalDate.now(),
     endDate = this.endDate?.toLocalDate(),
     otherDetails = this.otherDetails,
@@ -65,7 +69,7 @@ fun AvailabilityEntity.toModel(): Availability {
 
   return Availability(
     id = this.id,
-    referralId = this.referralId,
+    referralId = this.referral.id,
     startDate = this.startDate.toString(),
     endDate = this.endDate?.toString(),
     otherDetails = this.otherDetails,

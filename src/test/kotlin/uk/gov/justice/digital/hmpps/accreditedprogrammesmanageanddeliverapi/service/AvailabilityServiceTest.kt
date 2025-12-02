@@ -1,41 +1,36 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
+
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.factory.AvailabilityEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
 import java.time.DayOfWeek
-import java.time.LocalDateTime
-import java.util.*
+import java.util.UUID
+
 class AvailabilityServiceTest {
 
   private val availabilityRepository = mockk<AvailabilityRepository>()
   private val defaultAvailabilityConfigService = mockk<DefaultAvailabilityConfigService>()
   private lateinit var availabilityService: AvailabilityService
+  private var referralService = mockk<ReferralService>()
 
   @BeforeEach
   fun setup() {
-    availabilityService = AvailabilityService(availabilityRepository, defaultAvailabilityConfigService)
+    availabilityService = AvailabilityService(availabilityRepository, defaultAvailabilityConfigService, referralService)
   }
 
   @Test
   fun `getAvailability should return default availability when availability does not exist for a referral`() {
     // Given
-    val referralId = UUID.randomUUID()
-    val availabilityEntity = AvailabilityEntity(
-      id = UUID.randomUUID(),
-      referralId = referralId,
-      startDate = LocalDateTime.now().toLocalDate(),
-      endDate = LocalDateTime.now().plusDays(20).toLocalDate(),
-      otherDetails = "Details here",
-      lastModifiedBy = "admin",
-      lastModifiedAt = LocalDateTime.of(2025, 7, 9, 10, 0),
-    )
+    val referralEntity = ReferralEntityFactory().withId(UUID.randomUUID()).produce()
+    val availabilityEntity = AvailabilityEntityFactory().withReferral(referralEntity).produce()
 
     val defaultAvailability = DayOfWeek.entries.map { day ->
       DailyAvailabilityModel(
@@ -47,14 +42,14 @@ class AvailabilityServiceTest {
       )
     }
 
-    every { availabilityRepository.findByReferralId(referralId) } returns availabilityEntity
+    every { availabilityRepository.findByReferralId(availabilityEntity.referral.id!!) } returns availabilityEntity
     every { defaultAvailabilityConfigService.getDefaultAvailability() } returns defaultAvailability
 
     // When
-    val result = availabilityService.getAvailability(referralId)
+    val result = availabilityService.getAvailability(availabilityEntity.referral.id!!)
 
     // Then
-    assertThat(result.referralId).isEqualTo(availabilityEntity.referralId)
+    assertThat(result.referralId).isEqualTo(availabilityEntity.referral.id)
     assertThat(result.startDate.toString()).isEqualTo(availabilityEntity.startDate.toString())
     assertThat(result.endDate).isEqualTo(availabilityEntity.endDate?.toString())
     assertThat(result.otherDetails).isEqualTo(availabilityEntity.otherDetails)
@@ -62,7 +57,7 @@ class AvailabilityServiceTest {
     assertThat(result.lastModifiedAt).isEqualTo(availabilityEntity.lastModifiedAt.toString())
     assertThat(result.availabilities).isEqualTo(defaultAvailability)
 
-    verify { availabilityRepository.findByReferralId(referralId) }
+    verify { availabilityRepository.findByReferralId(availabilityEntity.referral.id!!) }
   }
 
   @Test
