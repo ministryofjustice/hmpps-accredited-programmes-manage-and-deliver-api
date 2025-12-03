@@ -102,7 +102,7 @@ class AdminService(
       val pni = try {
         pniService.getPniCalculation(referral.crn)
       } catch (_: Exception) {
-        log.info("Failure to retrieve PNI score for crn : ${referral.crn} falling back to defaults")
+        log.info("Failure to retrieve PNI score for crn : ${referral.crn}")
         null
       }
 
