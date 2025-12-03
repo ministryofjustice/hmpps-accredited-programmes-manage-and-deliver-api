@@ -1133,12 +1133,13 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       val members2 = listOf(NDeliusUserTeamMembersFactory().produce(), NDeliusUserTeamMembersFactory().produce())
       val teams2 = listOf(NDeliusUserTeamWithMembersFactory().produce(members = members2))
       val pdu2 = NDeliusPduWithTeamFactory().produce(team = teams2)
-      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(pdus = listOf(pdu, pdu2))
+      val regionWithMembers =
+        NDeliusRegionWithMembersFactory().produce(pdus = listOf(pdu, pdu2), code = "WIREMOCKED REGION")
 
-      nDeliusApiStubs.stubRegionWithMembersResponse(regionWithMembers.code, regionWithMembers)
+      nDeliusApiStubs.stubRegionWithMembersResponse("REGION001", regionWithMembers)
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/region/${regionWithMembers.code}/members",
+        uri = "/bff/region/members",
         returnType = object : ParameterizedTypeReference<List<UserTeamMember>>() {},
       )
 
@@ -1151,10 +1152,10 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
     fun `return 200 and empty list when no pdus in region`() {
       val regionWithMembers = NDeliusRegionWithMembersFactory().produce(pdus = listOf())
 
-      nDeliusApiStubs.stubRegionWithMembersResponse(regionWithMembers.code, regionWithMembers)
+      nDeliusApiStubs.stubRegionWithMembersResponse("REGION001", regionWithMembers)
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/region/${regionWithMembers.code}/members",
+        uri = "/bff/region/members",
         returnType = object : ParameterizedTypeReference<List<UserTeamMember>>() {},
       )
 
@@ -1165,7 +1166,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
     fun `return 401 when unauthorised`() {
       webTestClient
         .method(HttpMethod.GET)
-        .uri("/bff/region/TEST_REGION}/members")
+        .uri("/bff/region/members")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .exchange()
