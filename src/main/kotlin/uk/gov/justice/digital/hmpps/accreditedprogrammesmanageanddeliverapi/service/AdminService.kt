@@ -20,6 +20,7 @@ class AdminService(
   private val referralService: ReferralService,
   private val sentenceService: SentenceService,
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
+  private val pniService: PniService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -94,6 +95,19 @@ class AdminService(
 
       if (sentenceEndDate == null) {
         log.info("Missing sentence end date for crn ${referral.crn}. Deleting referral ${referral.id}...")
+        referralRepository.deleteById(referral.id!!)
+        return@mapIndexed ProcessingResult.DELETED
+      }
+
+      val pni = try {
+        pniService.getPniCalculation(referral.crn)
+      } catch (_: Exception) {
+        log.info("Failure to retrieve PNI score for crn : ${referral.crn}")
+        null
+      }
+
+      if (pni == null) {
+        log.info("Missing pni for crn ${referral.crn}. Deleting referral ${referral.id}...")
         referralRepository.deleteById(referral.id!!)
         return@mapIndexed ProcessingResult.DELETED
       }
