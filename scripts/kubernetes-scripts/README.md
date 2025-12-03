@@ -15,7 +15,7 @@ Every script takes one argument, `-ns <env>` ,that defines the namespace that it
 Regarding port forwarding for the database. Once a port forwarding pod has been started for an environment
 the pod port can be forwarded on to the user using a kubectl command like.
 ```
-kubectl port-forward db-port-forward-pod --namespace=hmpps-manage-and-deliver-accredited-programmes-prod 5432:5432
+kubectl port-forward db-port-forward-pod --namespace=hmpps-manage-and-deliver-accredited-programmes-dev 5432:5432
 ```
 Change the namespace and local port number (the left-hand one of the pair) as needed.
 

@@ -99,6 +99,8 @@ class ReferralEntity(
   @OneToOne(
     fetch = FetchType.LAZY,
     mappedBy = "referral",
+    cascade = [CascadeType.REMOVE],
+    orphanRemoval = true,
   )
   val deliveryLocationPreferences: DeliveryLocationPreferenceEntity? = null,
 
@@ -106,6 +108,7 @@ class ReferralEntity(
     fetch = FetchType.LAZY,
     cascade = [CascadeType.ALL],
     mappedBy = "referral",
+    orphanRemoval = true,
   )
   var referralLdcHistories: MutableSet<ReferralLdcHistoryEntity> = mutableSetOf(),
 
@@ -113,6 +116,8 @@ class ReferralEntity(
   @OneToOne(
     fetch = FetchType.LAZY,
     mappedBy = "referral",
+    cascade = [CascadeType.REMOVE],
+    orphanRemoval = true,
   )
   var referralReportingLocationEntity: ReferralReportingLocationEntity? = null,
 
@@ -120,6 +125,7 @@ class ReferralEntity(
     fetch = FetchType.LAZY,
     cascade = [CascadeType.ALL],
     mappedBy = "referral",
+    orphanRemoval = true,
   )
   var programmeGroupMemberships: MutableSet<ProgrammeGroupMembershipEntity> = mutableSetOf(),
 
@@ -127,6 +133,8 @@ class ReferralEntity(
   @OneToOne(
     fetch = FetchType.LAZY,
     mappedBy = "referral",
+    cascade = [CascadeType.REMOVE],
+    orphanRemoval = true,
   )
   var referralMotivationBackgroundAndNonAssociations: ReferralMotivationBackgroundAndNonAssociationsEntity? = null,
 )
