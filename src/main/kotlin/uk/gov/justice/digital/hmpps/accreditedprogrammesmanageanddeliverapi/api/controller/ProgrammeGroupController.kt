@@ -469,9 +469,9 @@ class ProgrammeGroupController(
 
   @Operation(
     tags = ["Programme Group controller"],
-    summary = "BFF endpoint to get a list of members for a Region.",
+    summary = "BFF endpoint to get a list of members for the logged user's region Region.",
     operationId = "getMembersInRegion",
-    description = "BFF endpoint to retrieve a list of team members for a Region.",
+    description = "BFF endpoint to retrieve a list of team members for the logged in user's Region.",
     responses = [
       ApiResponse(
         responseCode = "200",
@@ -491,11 +491,11 @@ class ProgrammeGroupController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/region/{regionCode}/members")
-  fun getPdusInUserRegion(
-    @PathVariable regionCode: String,
-  ): ResponseEntity<List<UserTeamMember>> {
-    val teamMembers = regionService.getTeamMembersForPdu(regionCode)
+  @GetMapping("/bff/region/members")
+  fun getMembersInUserRegion(): ResponseEntity<List<UserTeamMember>> {
+    val username = getUsername()
+    val (userRegion) = userService.getUserRegions(username)
+    val teamMembers = regionService.getTeamMembersForPdu(userRegion.code)
     return ResponseEntity.ok(teamMembers)
   }
 
