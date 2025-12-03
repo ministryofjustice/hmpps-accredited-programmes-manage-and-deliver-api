@@ -5,12 +5,14 @@ import jakarta.persistence.criteria.CriteriaQuery
 import jakarta.persistence.criteria.Predicate
 import jakarta.persistence.criteria.Root
 import org.springframework.data.jpa.domain.Specification
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
 
 fun getReferralCaseListItemSpecification(
   possibleStatuses: List<String>,
   crnOrPersonName: String? = null,
-  cohort: String? = null,
+  offenceCohort: OffenceCohort? = null,
+  hasLdc: Boolean? = null,
   status: String? = null,
   pdu: String? = null,
   reportingTeams: List<String>? = null,
@@ -38,11 +40,20 @@ fun getReferralCaseListItemSpecification(
     )
   }
 
-  cohort?.let {
+  offenceCohort?.let {
     predicates.add(
       criteriaBuilder.equal(
         root.get<String>("cohort"),
-        cohort,
+        offenceCohort.name,
+      ),
+    )
+  }
+
+  hasLdc?.let {
+    predicates.add(
+      criteriaBuilder.equal(
+        root.get<Boolean>("hasLdc"),
+        hasLdc,
       ),
     )
   }

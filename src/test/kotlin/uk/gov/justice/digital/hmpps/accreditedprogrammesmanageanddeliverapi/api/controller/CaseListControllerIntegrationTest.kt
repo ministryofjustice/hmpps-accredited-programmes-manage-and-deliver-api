@@ -387,7 +387,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     fun `getCaseListItems for OPEN and search by personName and cohort returns matching referrals`() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/open?crnOrPersonName=Alex River&cohort=SEXUAL_OFFENCE",
+        "/pages/caselist/open?crnOrPersonName=Alex River&cohort=Sexual Offence",
         object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
       val referralCaseListItems = response.pagedReferrals.content
@@ -407,7 +407,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     fun `getCaseListItems returns matching referrals when only cohort is used as part of request`() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/open?cohort=GENERAL_OFFENCE",
+        "/pages/caselist/open?cohort=General Offence",
         object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
       val referralCaseListItems = response.pagedReferrals.content
@@ -427,6 +427,22 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("cohort")
       }
       assertThat(response.otherTabTotal).isEqualTo(1)
+    }
+
+    @Test
+    fun `getCaseListItems returns no results when cohort with LDC is used and no records exist`() {
+      // Given and When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?cohort=General Offence - LDC",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(0)
+      assertThat(response.pagedReferrals.content).isEmpty()
+      assertThat(response.otherTabTotal).isEqualTo(0)
     }
 
     @Test
