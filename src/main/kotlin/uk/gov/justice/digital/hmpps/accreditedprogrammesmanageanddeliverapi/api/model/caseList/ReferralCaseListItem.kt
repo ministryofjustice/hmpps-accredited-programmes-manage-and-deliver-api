@@ -31,4 +31,5 @@ fun ReferralCaseListItemViewEntity.toApi() = ReferralCaseListItem(
 data class CaseListReferrals(
   val pagedReferrals: Page<ReferralCaseListItem>,
   val otherTabTotal: Int,
+  val filters: CaseListFilterValues,
 )
