@@ -178,7 +178,15 @@ class ProgrammeGroupService(
   ): GroupsByRegion {
     val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
 
-    val (userRegion) = userService.getUserRegions(username)
+    val distinctRegionDescriptions = userService.getUserRegions(username).map { it.description }.distinct()
+
+    if (distinctRegionDescriptions.isEmpty()) {
+      throw NotFoundException("Cannot find any regions (or teams) for user $username")
+    } else if (distinctRegionDescriptions.size > 1) {
+      log.warn("User $username has more than one region on their account, going to use '${distinctRegionDescriptions.first()}'")
+    }
+
+    val firstUserRegionDescription = distinctRegionDescriptions.first()
 
     // Base spec without startedAt filter (used for total count)
     val baseSpec = getProgrammeGroupsSpecification(
@@ -187,7 +195,7 @@ class ProgrammeGroupService(
       deliveryLocation = deliveryLocation,
       cohort = groupCohort,
       sex = sex,
-      regionName = userRegion.description,
+      regionName = firstUserRegionDescription,
     )
 
     // Apply tab-specific date filter
@@ -212,7 +220,7 @@ class ProgrammeGroupService(
     return GroupsByRegion(
       pagedGroupData = pagedData,
       otherTabTotal = otherTabTotal,
-      regionName = userRegion.description,
+      regionName = firstUserRegionDescription,
     )
   }
 }
