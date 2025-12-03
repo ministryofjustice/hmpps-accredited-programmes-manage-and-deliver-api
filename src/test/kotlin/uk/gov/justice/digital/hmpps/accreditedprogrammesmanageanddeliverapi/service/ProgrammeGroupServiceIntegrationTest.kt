@@ -136,7 +136,10 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(2)
-      assertThat(programmeGroups.pagedGroupData.map{it.code}).containsExactlyInAnyOrder("THE_GROUP_CODE", "GROUP_TWO_CODE")
+      assertThat(programmeGroups.pagedGroupData.map { it.code }).containsExactlyInAnyOrder(
+        "THE_GROUP_CODE",
+        "GROUP_TWO_CODE",
+      )
     }
 
     @Test
