@@ -10,6 +10,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.Pageable
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
@@ -51,7 +52,36 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
       testDataGenerator.createGroup(
         ProgrammeGroupFactory()
+          .withSex(ProgrammeGroupSexEnum.MALE)
           .withCode("THE_GROUP_CODE")
+          .withProbationDeliveryUnit("PDU Description", "PDU_CODE")
+          .withRegionName("Region Description")
+          .withEarliestStartDate(LocalDate.now().plusDays(1))
+          .produce(),
+      )
+
+      testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withCode("GROUP_TWO_CODE")
+          .withProbationDeliveryUnit("Another PDU Description", "ANOTHER_PDU_CODE")
+          .withRegionName("Region Description")
+          .withEarliestStartDate(LocalDate.now().plusDays(1))
+          .produce(),
+      )
+
+      testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withCode("THE_VERY_FAR_AWAY_GROUP")
+          .withRegionName("A very far away Region")
+          .produce(),
+      )
+
+      testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withCode("THE_FEMALE_GROUP_CODE")
+          .withSex(ProgrammeGroupSexEnum.FEMALE)
           .withRegionName("Region Description")
           .withEarliestStartDate(LocalDate.now().plusDays(1))
           .produce(),
@@ -99,14 +129,14 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         pdu = null,
         deliveryLocation = null,
         cohort = null,
-        sex = null,
+        sex = "MALE",
         selectedTab = GroupPageByRegionTab.NOT_STARTED,
         username = "the_username",
       )
 
       // Then
-      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(1)
-      assertThat(programmeGroups.pagedGroupData.first().code).isEqualTo("THE_GROUP_CODE")
+      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(2)
+      assertThat(programmeGroups.pagedGroupData.map{it.code}).containsExactlyInAnyOrder("THE_GROUP_CODE", "GROUP_TWO_CODE")
     }
 
     @Test
