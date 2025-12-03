@@ -31,7 +31,31 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     @BeforeEach
     fun setup() {
       nDeliusApiStubs.clearAllStubs()
+
       stubAuthTokenEndpoint()
+
+      // Given
+      nDeliusApiStubs.stubUserTeamsResponse(
+        "the_username",
+        NDeliusUserTeams(
+          listOf(
+            NDeliusUserTeam(
+              code = "the_code",
+              "The Team Description",
+              pdu = CodeDescription("PDU_CODE", "PDU Description"),
+              region = CodeDescription("REGION_CODE", "Region Description"),
+            ),
+          ),
+        ),
+      )
+
+      testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withCode("THE_GROUP_CODE")
+          .withRegionName("Region Description")
+          .withEarliestStartDate(LocalDate.now().plusDays(1))
+          .produce(),
+      )
     }
 
     @AfterEach
@@ -68,29 +92,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `Returning the ProgrammeGroups for a Region`() {
-      // Given
-      nDeliusApiStubs.stubUserTeamsResponse(
-        "the_username",
-        NDeliusUserTeams(
-          listOf(
-            NDeliusUserTeam(
-              code = "the_code",
-              "The Team Description",
-              pdu = CodeDescription("PDU_CODE", "PDU Description"),
-              region = CodeDescription("REGION_CODE", "Region Description"),
-            ),
-          ),
-        ),
-      )
-
-      testDataGenerator.createGroup(
-        ProgrammeGroupFactory()
-          .withCode("THE_GROUP_CODE")
-          .withRegionName("Region Description")
-          .withEarliestStartDate(LocalDate.now().plusDays(1))
-          .produce(),
-      )
-
       // When
       val programmeGroups = service.getProgrammeGroupsForRegion(
         pageable = Pageable.ofSize(10),
@@ -110,30 +111,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `Partial matching the group code`() {
-      // Given
-      // TODO: Extract this shared code into a before or setup function
-      nDeliusApiStubs.stubUserTeamsResponse(
-        "the_username",
-        NDeliusUserTeams(
-          listOf(
-            NDeliusUserTeam(
-              code = "the_code",
-              "The Team Description",
-              pdu = CodeDescription("PDU_CODE", "PDU Description"),
-              region = CodeDescription("REGION_CODE", "Region Description"),
-            ),
-          ),
-        ),
-      )
-
-      testDataGenerator.createGroup(
-        ProgrammeGroupFactory()
-          .withCode("THE_GROUP_CODE")
-          .withRegionName("Region Description")
-          .withEarliestStartDate(LocalDate.now().plusDays(1))
-          .produce(),
-      )
-
       // When
       val programmeGroups = service.getProgrammeGroupsForRegion(
         pageable = Pageable.ofSize(10),
