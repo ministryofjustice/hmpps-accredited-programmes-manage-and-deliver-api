@@ -44,7 +44,7 @@ dependencies {
   testImplementation("org.testcontainers:postgresql:1.21.3")
   testImplementation("org.testcontainers:junit-jupiter:1.21.3")
   testImplementation("org.awaitility:awaitility-kotlin")
-  testImplementation("com.ninja-squad:springmockk:4.0.2")
+  testImplementation("com.ninja-squad:springmockk:5.0.1")
   testImplementation("io.kotest:kotest-assertions-core:6.0.7")
   testImplementation("io.mockk:mockk:1.14.6")
 
