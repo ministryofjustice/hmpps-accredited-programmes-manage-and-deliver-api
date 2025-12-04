@@ -69,8 +69,9 @@ fun buildRiskModel(
   now: LocalDate? = LocalDate.now(),
 ) = Risks(
   assessmentCompleted = oasysOffendingInfo?.latestCompleteDate?.toLocalDate(),
-  offenderGroupReconviction = oasysRiskPredictorScores?.groupReconvictionScore,
-  offenderViolencePredictor = oasysRiskPredictorScores?.violencePredictorScore,
+  // If these properties are null create an object with null values so the UI can still deserialise
+  offenderGroupReconviction = oasysRiskPredictorScores?.groupReconvictionScore ?: Score(null, null, null),
+  offenderViolencePredictor = oasysRiskPredictorScores?.violencePredictorScore ?: Score(null, null, null),
   sara = oasysRelationships?.sara,
   riskOfSeriousRecidivism = oasysRiskPredictorScores?.riskOfSeriousRecidivismScore?.toModel(oasysOffendingInfo),
   riskOfSeriousHarm = oasysRoshSummary?.toModel(),
