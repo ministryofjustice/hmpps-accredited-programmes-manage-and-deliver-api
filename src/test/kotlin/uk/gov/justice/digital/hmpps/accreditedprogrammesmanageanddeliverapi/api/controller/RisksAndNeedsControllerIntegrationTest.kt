@@ -37,6 +37,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysLifestyleAndAssociatesFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysOffenceAnalysisFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRelationshipsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRiskPredictorScoresFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRoshFullFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysThinkingAndBehaviourFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -82,6 +83,46 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).hasFieldOrProperty("alerts")
       assertThat(response).hasFieldOrProperty("dateRetrieved")
       assertThat(response).hasFieldOrProperty("lastUpdated")
+    }
+
+    @Test
+    fun `should return risks and alerts section with null objects for scores when they are missing`() {
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferralWithStatusHistory(referralEntity)
+      val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
+      val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
+      oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
+      oasysApiStubs.stubSuccessfulOasysOffendingInfoResponse(assessmentId)
+      oasysApiStubs.stubSuccessfulOasysRelationshipsResponse(assessmentId)
+      oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(assessmentId)
+      val riskPredictors =
+        OasysRiskPredictorScoresFactory().withGroupReconvictionScore(null).withViolencePredictorScore(null).produce()
+      oasysApiStubs.stubSuccessfulOasysRiskPredictorScores(assessmentId, riskPredictors)
+      nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(referralEntity.crn)
+
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${referralEntity.crn}/risks-and-alerts",
+        returnType = object : ParameterizedTypeReference<Risks>() {},
+      )
+
+      assertThat(response).isNotNull
+      assertThat(response).hasFieldOrProperty("offenderGroupReconviction")
+      assertThat(response).hasFieldOrProperty("offenderViolencePredictor")
+      assertThat(response).hasFieldOrProperty("sara")
+      assertThat(response).hasFieldOrProperty("riskOfSeriousRecidivism")
+      assertThat(response).hasFieldOrProperty("riskOfSeriousHarm")
+      assertThat(response).hasFieldOrProperty("alerts")
+      assertThat(response).hasFieldOrProperty("dateRetrieved")
+      assertThat(response).hasFieldOrProperty("lastUpdated")
+
+      assertThat(response.offenderGroupReconviction!!.scoreLevel).isNull()
+      assertThat(response.offenderGroupReconviction.oneYear).isNull()
+      assertThat(response.offenderGroupReconviction.twoYears).isNull()
+
+      assertThat(response.offenderViolencePredictor!!.scoreLevel).isNull()
+      assertThat(response.offenderViolencePredictor.oneYear).isNull()
+      assertThat(response.offenderViolencePredictor.twoYears).isNull()
     }
   }
 
