@@ -66,7 +66,7 @@ class ReferralCaseListItemService(
       reportingTeams = reportingTeams,
     ).totalElements
 
-    return CaseListReferrals(referralsToReturn, otherTabCount.toInt())
+    return CaseListReferrals(referralsToReturn, otherTabCount.toInt(), this.getCaseListFilterData())
   }
 
   private fun getReferralCaseList(
@@ -143,6 +143,7 @@ class ReferralCaseListItemService(
     return CaseListFilterValues(
       statusFilterValues = statusFilterValues,
       locationFilterValues = pdusWithReportingTeams,
+      ProgrammeGroupCohort.entries.map { it.label },
     )
   }
 }

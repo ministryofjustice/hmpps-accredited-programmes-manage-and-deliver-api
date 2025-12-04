@@ -94,6 +94,8 @@ class CaseListController(
   @Operation(
     tags = ["Caselist"],
     summary = "Get reference data for displaying the possible filters for the ui",
+    description = "The filter reference data to display in the UI - now deprecated as filters are returned from the case list endpoint",
+    deprecated = true,
     operationId = "getCaseListFilterData",
     responses = [
       ApiResponse(

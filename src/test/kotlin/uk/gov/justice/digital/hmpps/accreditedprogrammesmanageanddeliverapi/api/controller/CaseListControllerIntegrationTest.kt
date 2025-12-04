@@ -14,6 +14,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
@@ -240,6 +241,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `getCaseListItems for OPEN referrals return 200 and paged list of referral case list items`() {
+      // Given & When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/pages/caselist/open",
@@ -247,6 +249,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       )
       val referralCaseListItems = response.pagedReferrals.content
 
+      // Then
       assertThat(response).isNotNull
       assertThat(response.pagedReferrals.totalElements).isEqualTo(6)
       assertThat(referralCaseListItems.map { it.crn })
@@ -260,6 +263,10 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("hasLdc")
       }
       assertThat(response.otherTabTotal).isEqualTo(1)
+      assertThat(response.filters).isNotNull
+      assertThat(response.filters.statusFilterValues.open).contains("Breach", "On programme")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).contains("PDU1", "PDU2")
+      assertThat(response.filters.cohort).containsAll(ProgrammeGroupCohort.entries.map { it.label })
     }
 
     @Test
