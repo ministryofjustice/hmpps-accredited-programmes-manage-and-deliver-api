@@ -22,7 +22,7 @@ fun getProgrammeGroupsSpecification(
   predicates.add(cb.isNull(root.get<LocalDateTime>("deletedAt")))
 
   groupCode?.let {
-    predicates.add(cb.equal(root.get<String>("code"), it))
+    predicates.add(cb.like(cb.lower(root.get("code")), "%$groupCode%".lowercase()))
   }
 
   pdu?.let {

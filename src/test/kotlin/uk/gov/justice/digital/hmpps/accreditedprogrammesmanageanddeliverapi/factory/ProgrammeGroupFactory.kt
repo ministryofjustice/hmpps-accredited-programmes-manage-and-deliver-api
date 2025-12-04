@@ -36,6 +36,11 @@ class ProgrammeGroupFactory {
   fun withId(id: UUID) = apply { this.id = id }
   fun withCode(code: String) = apply { this.code = code }
   fun withCohort(cohort: OffenceCohort) = apply { this.cohort = cohort }
+  fun withProbationDeliveryUnit(name: String, code: String) = apply {
+    this.probationDeliveryUnitName = name
+    this.probationDeliveryUnitCode = code
+  }
+
   fun withSex(sex: ProgrammeGroupSexEnum) = apply { this.sex = sex }
   fun withIsLdc(isLdc: Boolean) = apply { this.isLdc = isLdc }
   fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
@@ -65,5 +70,7 @@ class ProgrammeGroupFactory {
     startedAtDate = this.startedAtDate,
     earliestPossibleStartDate = this.earliestStartDate,
     programmeGroupSessionSlots = this.programmeGroupSessionSlots,
+    probationDeliveryUnitName = this.probationDeliveryUnitName,
+    probationDeliveryUnitCode = this.probationDeliveryUnitCode,
   )
 }
