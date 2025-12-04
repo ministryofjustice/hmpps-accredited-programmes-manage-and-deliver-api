@@ -3,24 +3,25 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.AvailabilityOption
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
 import java.time.LocalDate
-import java.util.*
+import java.util.UUID
 
 class AvailabilityTransformerTest {
 
   @Test
   fun `toEntity should map AvailabilityCreate to AvailabilityEntity correctly`() {
-    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(UUID.randomUUID()).produce()
     val now = LocalDate.now().toString()
     val end = LocalDate.now().plusWeeks(10).toString()
 
     val lastModifiedUsername = "test_user"
     val createAvailability = CreateAvailability(
-      referralId = referralId,
+      referralId = referralEntity.id!!,
       startDate = now,
       endDate = end,
       otherDetails = "Available remotely",
@@ -42,9 +43,9 @@ class AvailabilityTransformerTest {
       ),
     )
 
-    val entity = createAvailability.toEntity(lastModifiedBy = lastModifiedUsername)
+    val entity = createAvailability.toEntity(lastModifiedBy = lastModifiedUsername, referral = referralEntity)
 
-    assertThat(entity.referralId).isEqualTo(referralId)
+    assertThat(entity.referral).isEqualTo(referralEntity)
     assertThat(entity.startDate).isEqualTo(now)
     assertThat(entity.endDate).isEqualTo(end)
     assertThat(entity.otherDetails).isEqualTo("Available remotely")

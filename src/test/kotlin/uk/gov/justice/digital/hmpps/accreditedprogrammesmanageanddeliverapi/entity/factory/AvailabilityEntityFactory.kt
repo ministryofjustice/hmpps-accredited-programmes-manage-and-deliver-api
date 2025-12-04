@@ -2,13 +2,15 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ent
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilitySlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
 class AvailabilityEntityFactory {
   private var id: UUID? = UUID.randomUUID()
-  private var referralId: UUID = UUID.randomUUID()
+  private var referral: ReferralEntity = ReferralEntityFactory().produce()
   private var startDate: LocalDate = LocalDate.now()
   private var endDate: LocalDate? = null
   private var otherDetails: String? = "Some availability notes"
@@ -18,7 +20,7 @@ class AvailabilityEntityFactory {
 
   fun withId(id: UUID?) = apply { this.id = id }
 
-  fun withReferralId(referralId: UUID) = apply { this.referralId = referralId }
+  fun withReferral(referralEntity: ReferralEntity) = apply { this.referral = referralEntity }
 
   fun withStartDate(startDate: LocalDate) = apply { this.startDate = startDate }
 
@@ -35,7 +37,7 @@ class AvailabilityEntityFactory {
   fun produce(): AvailabilityEntity {
     val availability = AvailabilityEntity(
       id = this.id,
-      referralId = this.referralId,
+      referral = this.referral,
       startDate = this.startDate,
       endDate = this.endDate,
       otherDetails = this.otherDetails,

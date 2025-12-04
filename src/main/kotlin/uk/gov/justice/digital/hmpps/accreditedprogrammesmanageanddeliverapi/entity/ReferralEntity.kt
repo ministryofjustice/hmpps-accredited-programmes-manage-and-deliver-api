@@ -137,6 +137,15 @@ class ReferralEntity(
     orphanRemoval = true,
   )
   var referralMotivationBackgroundAndNonAssociations: ReferralMotivationBackgroundAndNonAssociationsEntity? = null,
+
+  @Nullable
+  @OneToOne(
+    fetch = FetchType.LAZY,
+    mappedBy = "referral",
+    cascade = [CascadeType.REMOVE],
+    orphanRemoval = true,
+  )
+  var availabilityEntity: AvailabilityEntity? = null,
 )
 
 enum class ReferralEntitySourcedFrom {
