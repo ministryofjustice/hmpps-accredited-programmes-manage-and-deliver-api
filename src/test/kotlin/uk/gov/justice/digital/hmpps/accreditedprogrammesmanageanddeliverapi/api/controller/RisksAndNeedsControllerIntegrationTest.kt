@@ -96,7 +96,8 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       oasysApiStubs.stubSuccessfulOasysRelationshipsResponse(assessmentId)
       oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(assessmentId)
       val riskPredictors =
-        OasysRiskPredictorScoresFactory().withGroupReconvictionScore(null).withViolencePredictorScore(null).produce()
+        OasysRiskPredictorScoresFactory().withGroupReconvictionScore(null).withViolencePredictorScore(null)
+          .withRiskOfSeriousRecidivismScore(null).produce()
       oasysApiStubs.stubSuccessfulOasysRiskPredictorScores(assessmentId, riskPredictors)
       nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(referralEntity.crn)
 
@@ -123,6 +124,11 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.offenderViolencePredictor!!.scoreLevel).isNull()
       assertThat(response.offenderViolencePredictor.oneYear).isNull()
       assertThat(response.offenderViolencePredictor.twoYears).isNull()
+
+      assertThat(response.riskOfSeriousRecidivism!!.percentageScore).isNull()
+      assertThat(response.riskOfSeriousRecidivism.scoreLevel).isNull()
+      assertThat(response.riskOfSeriousRecidivism.otherPersonAtRiskChildrenScore).isNull()
+      assertThat(response.riskOfSeriousRecidivism.otherPersonAtRiskIntimateScore).isNull()
     }
   }
 
