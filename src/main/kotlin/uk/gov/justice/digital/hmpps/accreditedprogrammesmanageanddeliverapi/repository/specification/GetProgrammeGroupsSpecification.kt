@@ -11,7 +11,7 @@ import java.time.LocalDateTime
 fun getProgrammeGroupsSpecification(
   groupCode: String?,
   pdu: String?,
-  deliveryLocation: String?,
+  deliveryLocations: List<String>?,
   cohort: ProgrammeGroupCohort?,
   sex: String?,
   regionName: String?,
@@ -29,8 +29,10 @@ fun getProgrammeGroupsSpecification(
     predicates.add(cb.equal(root.get<String>("probationDeliveryUnitName"), it))
   }
 
-  deliveryLocation?.let {
-    predicates.add(cb.equal(root.get<String>("deliveryLocationName"), it))
+  deliveryLocations?.let { deliveryLocations ->
+    deliveryLocations.forEach { deliveryLocation ->
+      predicates.add(cb.equal(root.get<String>("deliveryLocationName"), deliveryLocation))
+    }
   }
 
   cohort?.let {

@@ -163,7 +163,7 @@ class ProgrammeGroupController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/groups/region/{selectedTab}", produces = [MediaType.APPLICATION_JSON_VALUE])
+  @GetMapping("/bff/groups/{selectedTab}", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getProgrammeGroupsByRegion(
     @PageableDefault(
       page = 0,
@@ -178,7 +178,7 @@ class ProgrammeGroupController(
     @Parameter(description = "Filter by the human readable pdu of the group, i.e. 'All London'")
     @RequestParam(name = "pdu", required = false) pdu: String?,
     @Parameter(description = "Filter by the delivery location name")
-    @RequestParam(name = "deliveryLocation", required = false) deliveryLocation: String?,
+    @RequestParam(name = "deliveryLocations", required = false) deliveryLocations: List<String>?,
     @Parameter(description = "Filter by the cohort of the group Eg: 'Sexual Offence' or 'General Offence - LDC")
     @RequestParam(name = "cohort", required = false) cohort: String?,
     @Parameter(description = "Filter by the sex that the group is being run for: 'Male', 'Female' or 'Mixed'")
@@ -190,7 +190,7 @@ class ProgrammeGroupController(
       pageable = pageable,
       groupCode = groupCode,
       pdu = pdu,
-      deliveryLocation = deliveryLocation,
+      deliveryLocations = deliveryLocations,
       cohort = cohort,
       sex = sex,
       selectedTab = selectedTab,

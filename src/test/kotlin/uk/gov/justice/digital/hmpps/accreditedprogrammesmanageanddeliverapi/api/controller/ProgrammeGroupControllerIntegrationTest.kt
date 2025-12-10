@@ -490,7 +490,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/region/NOT_STARTED?page=0&size=10",
+        "/bff/groups/NOT_STARTED?page=0&size=10",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
@@ -522,7 +522,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/region/IN_PROGRESS_OR_COMPLETE?page=0&size=10",
+        "/bff/groups/IN_PROGRESS_OR_COMPLETE?page=0&size=10",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
@@ -548,12 +548,12 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       // When
       val page0 = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/region/NOT_STARTED?page=0&size=1",
+        "/bff/groups/NOT_STARTED?page=0&size=1",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
       val page1 = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/region/NOT_STARTED?page=1&size=1",
+        "/bff/groups/NOT_STARTED?page=1&size=1",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
@@ -569,7 +569,7 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       // When & Then
       webTestClient
         .method(HttpMethod.GET)
-        .uri("/bff/groups/region/NOT_STARTED?page=0&size=1)")
+        .uri("/bff/groups/NOT_STARTED?page=0&size=1)")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .accept(MediaType.APPLICATION_JSON)
