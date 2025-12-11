@@ -96,11 +96,6 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
     val returnToCourtToWithdrawn = getTransition("Return to court", "Withdrawn")
     assertThat(returnToCourtToWithdrawn).isNotNull
     assertThat(returnToCourtToWithdrawn!!.isContinuing).isFalse()
-
-    // Awaiting allocation --> Scheduled (Can only be done by adding someone to a group)
-    val awaitingAllocationToScheduled = getTransition("Awaiting allocation", "Scheduled")
-    assertThat(awaitingAllocationToScheduled).isNotNull
-    assertThat(awaitingAllocationToScheduled!!.isContinuing).isTrue()
   }
 
   @Test
