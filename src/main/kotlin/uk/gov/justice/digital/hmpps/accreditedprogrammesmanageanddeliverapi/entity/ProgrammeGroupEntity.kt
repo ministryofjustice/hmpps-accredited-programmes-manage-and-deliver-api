@@ -108,7 +108,7 @@ class ProgrammeGroupEntity(
   val groupFacilitators: MutableSet<ProgrammeGroupFacilitatorEntity> = mutableSetOf(),
 
   @OneToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "accredited_programme_template_id", referencedColumnName = "id", unique = true)
+  @JoinColumn(name = "accredited_programme_template_id", referencedColumnName = "id")
   var accreditedProgrammeTemplate: AccreditedProgrammeTemplateEntity? = null,
 
   @OneToMany(
