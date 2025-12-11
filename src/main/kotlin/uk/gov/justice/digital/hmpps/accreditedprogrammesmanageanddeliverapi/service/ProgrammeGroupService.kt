@@ -34,19 +34,17 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepositoryImpl
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
 import java.time.LocalDate
 import java.time.LocalTime
-import java.util.*
+import java.util.UUID
 
 @Service
 @Transactional
 class ProgrammeGroupService(
   private val programmeGroupRepository: ProgrammeGroupRepository,
-  private val programmeGroupRepositoryImpl: ProgrammeGroupRepositoryImpl,
   private val groupWaitlistItemViewRepository: GroupWaitlistItemViewRepository,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
   private val userService: UserService,
@@ -226,32 +224,12 @@ class ProgrammeGroupService(
     val totalForAllTabs: Long = programmeGroupRepository.count(baseSpec)
     val otherTabTotal: Int = (totalForAllTabs - pagedData.totalElements).toInt()
 
-    val allPduNames = programmeGroupRepositoryImpl.getDistinctFieldValues(
-      getProgrammeGroupsSpecification(
-        null,
-        null,
-        null,
-        null,
-        null,
-        firstUserRegionDescription,
-      ),
-      "probationDeliveryUnitName",
-    )
+    val allPduNames = programmeGroupRepository.findDistinctProbationDeliveryUnitNames(firstUserRegionDescription)
 
     val deliveryLocationNames = if (pdu.isNullOrEmpty()) {
       null
     } else {
-      programmeGroupRepositoryImpl.getDistinctFieldValues(
-        getProgrammeGroupsSpecification(
-          null,
-          pdu,
-          null,
-          null,
-          null,
-          firstUserRegionDescription,
-        ),
-        "deliveryLocationName",
-      )
+      programmeGroupRepository.findDistinctDeliveryLocationNames(firstUserRegionDescription, pdu)
     }
 
     return GroupsByRegion(
