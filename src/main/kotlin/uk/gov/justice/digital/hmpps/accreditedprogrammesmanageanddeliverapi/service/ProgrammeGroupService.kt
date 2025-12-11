@@ -1,8 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import jakarta.persistence.EntityManager
-import jakarta.persistence.criteria.CriteriaQuery
-import jakarta.persistence.criteria.Root
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -37,17 +34,19 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepositoryImpl
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
 import java.time.LocalDate
 import java.time.LocalTime
-import java.util.UUID
+import java.util.*
 
 @Service
 @Transactional
 class ProgrammeGroupService(
   private val programmeGroupRepository: ProgrammeGroupRepository,
+  private val programmeGroupRepositoryImpl: ProgrammeGroupRepositoryImpl,
   private val groupWaitlistItemViewRepository: GroupWaitlistItemViewRepository,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
   private val userService: UserService,
@@ -227,7 +226,7 @@ class ProgrammeGroupService(
     val totalForAllTabs: Long = programmeGroupRepository.count(baseSpec)
     val otherTabTotal: Int = (totalForAllTabs - pagedData.totalElements).toInt()
 
-    val allPduNames = getDistinctFieldValues(
+    val allPduNames = programmeGroupRepositoryImpl.getDistinctFieldValues(
       getProgrammeGroupsSpecification(
         null,
         null,
@@ -242,7 +241,7 @@ class ProgrammeGroupService(
     val deliveryLocationNames = if (pdu.isNullOrEmpty()) {
       null
     } else {
-      getDistinctFieldValues(
+      programmeGroupRepositoryImpl.getDistinctFieldValues(
         getProgrammeGroupsSpecification(
           null,
           pdu,
@@ -262,33 +261,5 @@ class ProgrammeGroupService(
       probationDeliveryUnitNames = allPduNames,
       deliveryLocationNames = deliveryLocationNames,
     )
-  }
-
-  /**
-   * Efficiently fetches distinct non-null values for a specific field from ProgrammeGroupEntity
-   * using the provided specification filter.
-   */
-  private fun getDistinctFieldValues(
-    spec: Specification<ProgrammeGroupEntity>,
-    fieldName: String,
-  ): List<String> {
-    val cb = entityManager.criteriaBuilder
-    val query: CriteriaQuery<String> = cb.createQuery(String::class.java)
-    val root: Root<ProgrammeGroupEntity> = query.from(ProgrammeGroupEntity::class.java)
-
-    // Apply the specification as a predicate
-    val predicate = spec.toPredicate(root, query, cb)
-
-    // Select distinct field values where the field is not null
-    query.select(root.get(fieldName))
-      .distinct(true)
-      .where(
-        cb.and(
-          predicate ?: cb.conjunction(),
-          cb.isNotNull(root.get<String>(fieldName)),
-        ),
-      )
-
-    return entityManager.createQuery(query).resultList
   }
 }

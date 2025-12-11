@@ -60,7 +60,7 @@ import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
-import java.util.UUID
+import java.util.*
 
 class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralService: ReferralService) : IntegrationTestBase() {
 
