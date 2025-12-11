@@ -34,6 +34,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedProgrammeDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
@@ -46,6 +47,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.NDeliusApiProbationDeliveryUnitWithOfficeLocationsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
@@ -81,6 +83,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
   private lateinit var referrals: List<ReferralEntity>
 
+  @Autowired
+  private lateinit var programmeGroupModuleRepository: ModuleRepository
+
   @BeforeEach
   override fun beforeEach() {
     testDataCleaner.cleanAllTables()
@@ -111,7 +116,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     )
     // Update all referrals to 'Awaiting Allocation status'
     val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
-    referrals.map {
+    referrals.forEach {
       referralService.updateStatus(
         it,
         status.id,
@@ -984,6 +989,40 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         (it.dayOfWeek == DayOfWeek.MONDAY && it.startTime.equals(LocalTime.of(1, 1))) ||
           (it.dayOfWeek == DayOfWeek.TUESDAY && it.startTime.equals(LocalTime.of(13, 1)))
       }
+    }
+
+    @Test
+    fun `create group and create sessions`() {
+      val body = CreateGroupRequestFactory().produce(
+        earliestStartDate = LocalDate.parse("2025-01-01"),
+        // Creates 3 slots in a week
+        createGroupSessionSlot = CreateGroupSessionSlotFactory().produceUniqueSlots(3),
+      )
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
+      assertThat(createdGroup).isNotNull
+
+      // Compare the template moduleNumber and sessionNumbers to the created moduleNumber and sessionNumbers
+      val expectedPairs: Set<Pair<Int, Int>> = programmeGroupModuleRepository
+        .findByAccreditedProgrammeTemplateId(createdGroup.accreditedProgrammeTemplate!!.id!!)
+        .flatMap { module ->
+          module.sessionTemplates.map { tmpl -> module.moduleNumber to tmpl.sessionNumber }
+        }
+        .toSet()
+
+      assertThat(createdGroup.sessions).hasSize(expectedPairs.size)
+
+      val actualPairs: Set<Pair<Int, Int>> = createdGroup.sessions
+        .map { s -> s.moduleSessionTemplate!!.module.moduleNumber to s.moduleSessionTemplate!!.sessionNumber }
+        .toSet()
+
+      assertThat(actualPairs).isEqualTo(expectedPairs)
     }
 
     @Test

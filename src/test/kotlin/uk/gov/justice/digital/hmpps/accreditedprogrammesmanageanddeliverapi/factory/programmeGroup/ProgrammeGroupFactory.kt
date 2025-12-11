@@ -83,11 +83,11 @@ class ProgrammeGroupFactory {
     programmeGroupSessionSlots = this.programmeGroupSessionSlots,
     probationDeliveryUnitName = this.probationDeliveryUnitName,
     probationDeliveryUnitCode = this.probationDeliveryUnitCode,
-    deliveryLocationName = deliveryLocationName,
-    deliveryLocationCode = deliveryLocationCode,
-    treatmentManager = treatmentManager,
-    groupFacilitators = groupFacilitators,
-    sessions = sessions,
-    accreditedProgrammeTemplate = accreditedProgrammeTemplate,
+    deliveryLocationName = this.deliveryLocationName,
+    deliveryLocationCode = this.deliveryLocationCode,
+    treatmentManager = this.treatmentManager,
+    groupFacilitators = this.groupFacilitators,
+    sessions = this.sessions,
+    accreditedProgrammeTemplate = this.accreditedProgrammeTemplate,
   )
 }
