@@ -37,7 +37,7 @@ data class CreateGroupRequest(
   var sex: ProgrammeGroupSexEnum,
 
   @NotNull(message = "earliestStartDate must not be null")
-  @get:JsonProperty("startedAtDate", required = true)
+  @get:JsonProperty("earliestStartDate", required = true)
   @Schema(description = "The earliest date the group can start")
   @JsonFormat(pattern = "d/M/yyyy")
   var earliestStartDate: LocalDate,
