@@ -41,6 +41,11 @@ class ProgrammeGroupFactory {
     this.probationDeliveryUnitCode = code
   }
 
+  fun withDeliveryLocation(name: String, code: String) = apply {
+    this.deliveryLocationName = name
+    this.deliveryLocationCode = code
+  }
+
   fun withSex(sex: ProgrammeGroupSexEnum) = apply { this.sex = sex }
   fun withIsLdc(isLdc: Boolean) = apply { this.isLdc = isLdc }
   fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
@@ -72,5 +77,7 @@ class ProgrammeGroupFactory {
     programmeGroupSessionSlots = this.programmeGroupSessionSlots,
     probationDeliveryUnitName = this.probationDeliveryUnitName,
     probationDeliveryUnitCode = this.probationDeliveryUnitCode,
+    deliveryLocationName = this.deliveryLocationName,
+    deliveryLocationCode = this.deliveryLocationCode,
   )
 }
