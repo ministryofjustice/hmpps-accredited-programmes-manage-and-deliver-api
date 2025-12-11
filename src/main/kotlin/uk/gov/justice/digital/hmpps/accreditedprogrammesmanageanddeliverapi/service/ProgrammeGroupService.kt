@@ -234,7 +234,7 @@ class ProgrammeGroupService(
         null,
         null,
         null,
-        null,
+        firstUserRegionDescription,
       ),
       "probationDeliveryUnitName",
     )
@@ -249,7 +249,7 @@ class ProgrammeGroupService(
           null,
           null,
           null,
-          null,
+          firstUserRegionDescription,
         ),
         "deliveryLocationName",
       )

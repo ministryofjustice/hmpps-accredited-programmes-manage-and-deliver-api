@@ -29,9 +29,12 @@ fun getProgrammeGroupsSpecification(
     predicates.add(cb.equal(root.get<String>("probationDeliveryUnitName"), it))
   }
 
-  deliveryLocations?.let { deliveryLocations ->
-    deliveryLocations.forEach { deliveryLocation ->
-      predicates.add(cb.equal(root.get<String>("deliveryLocationName"), deliveryLocation))
+  deliveryLocations?.let { locations ->
+    if (locations.isNotEmpty()) {
+      val orPredicates = locations.map { deliveryLocation ->
+        cb.equal(root.get<String>("deliveryLocationName"), deliveryLocation)
+      }
+      predicates.add(cb.or(*orPredicates.toTypedArray()))
     }
   }
 

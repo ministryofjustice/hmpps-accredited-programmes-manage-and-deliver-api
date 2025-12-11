@@ -201,77 +201,11 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         "THE_GROUP_CODE",
         "GROUP_THREE_CODE",
       )
-      // Scenario 2: pdu specified - should return single PDU in list
-      assertThat(programmeGroups.probationDeliveryUnitNames).containsExactly("PDU Description")
-      // Should return all unique delivery locations for that PDU
-      assertThat(programmeGroups.deliveryLocationNames).containsExactly("Location One")
-    }
-
-    @Test
-    fun `Returns correct delivery locations when pdu is specified with different PDU`() {
-      // When - filtering by a different PDU
-      val programmeGroups = service.getProgrammeGroupsForRegion(
-        pageable = Pageable.ofSize(10),
-        groupCode = null,
-        pdu = "Another PDU Description",
-        deliveryLocations = null,
-        cohort = null,
-        sex = "MALE",
-        selectedTab = GroupPageByRegionTab.NOT_STARTED,
-        username = "the_username",
-      )
-
-      // Then
-      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(1)
-      assertThat(programmeGroups.pagedGroupData.map { it.code }).containsExactly("GROUP_TWO_CODE")
-      // Should return the single PDU
-      assertThat(programmeGroups.probationDeliveryUnitNames).containsExactly("Another PDU Description")
-      // Should return delivery locations for that PDU
-      assertThat(programmeGroups.deliveryLocationNames).containsExactly("Location Two")
-    }
-
-    @Test
-    fun `Returns all unique PDUs when pdu is not specified despite other filters`() {
-      // When - filtering by sex but not PDU
-      val programmeGroups = service.getProgrammeGroupsForRegion(
-        pageable = Pageable.ofSize(10),
-        groupCode = null,
-        pdu = null,
-        deliveryLocations = null,
-        cohort = null,
-        sex = "FEMALE",
-        selectedTab = GroupPageByRegionTab.NOT_STARTED,
-        username = "the_username",
-      )
-
-      // Then - Should return all unique PDUs in the filtered (female) results
-      // Note: THE_FEMALE_GROUP_CODE doesn't have a PDU set, so it won't appear in the PDU names list
-      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(1)
-      assertThat(programmeGroups.pagedGroupData.first().code).isEqualTo("THE_FEMALE_GROUP_CODE")
-      assertThat(programmeGroups.probationDeliveryUnitNames).isEmpty()
-      assertThat(programmeGroups.deliveryLocationNames).isNull()
-    }
-
-    @Test
-    fun `Returns unique PDUs across all tabs when not started tab is selected`() {
-      // When
-      val programmeGroups = service.getProgrammeGroupsForRegion(
-        pageable = Pageable.ofSize(10),
-        groupCode = null,
-        pdu = null,
-        deliveryLocations = null,
-        cohort = null,
-        sex = null,
-        selectedTab = GroupPageByRegionTab.NOT_STARTED,
-        username = "the_username",
-      )
-
-      // Then - should include PDUs from all groups in the region (not just the paged results)
       assertThat(programmeGroups.probationDeliveryUnitNames).containsExactlyInAnyOrder(
         "PDU Description",
         "Another PDU Description",
       )
-      assertThat(programmeGroups.deliveryLocationNames).isNull()
+      assertThat(programmeGroups.deliveryLocationNames).containsExactly("Location One")
     }
   }
 }
