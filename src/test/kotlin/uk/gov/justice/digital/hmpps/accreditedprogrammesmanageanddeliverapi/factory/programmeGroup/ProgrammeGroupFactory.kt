@@ -1,11 +1,13 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AccreditedProgrammeTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -32,6 +34,8 @@ class ProgrammeGroupFactory {
   private var programmeGroupSessionSlots: MutableSet<ProgrammeGroupSessionSlotEntity> = mutableSetOf()
   private var treatmentManager: FacilitatorEntity? = null
   private var groupFacilitators: MutableSet<ProgrammeGroupFacilitatorEntity> = mutableSetOf()
+  private var accreditedProgrammeTemplate: AccreditedProgrammeTemplateEntity? = null
+  private var sessions: MutableSet<SessionEntity> = mutableSetOf()
 
   fun withId(id: UUID) = apply { this.id = id }
   fun withCode(code: String) = apply { this.code = code }
@@ -59,6 +63,8 @@ class ProgrammeGroupFactory {
   fun withEarliestStartDate(earliestStartDate: LocalDate) = apply { this.earliestStartDate = earliestStartDate }
   fun withSessionSlots(programmeGroupSessionSlots: MutableSet<ProgrammeGroupSessionSlotEntity>) = apply { this.programmeGroupSessionSlots = programmeGroupSessionSlots }
 
+  fun withAccreditedProgrammeTemplate(accreditedProgrammeTemplateEntity: AccreditedProgrammeTemplateEntity) = apply { this.accreditedProgrammeTemplate = accreditedProgrammeTemplateEntity }
+
   fun produce(): ProgrammeGroupEntity = ProgrammeGroupEntity(
     id = this.id,
     code = this.code,
@@ -79,5 +85,9 @@ class ProgrammeGroupFactory {
     probationDeliveryUnitCode = this.probationDeliveryUnitCode,
     deliveryLocationName = this.deliveryLocationName,
     deliveryLocationCode = this.deliveryLocationCode,
+    treatmentManager = this.treatmentManager,
+    groupFacilitators = this.groupFacilitators,
+    sessions = this.sessions,
+    accreditedProgrammeTemplate = this.accreditedProgrammeTemplate,
   )
 }

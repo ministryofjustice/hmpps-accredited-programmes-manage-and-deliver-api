@@ -22,4 +22,26 @@ class CreateGroupSessionSlotFactory {
   private fun randomDayOfWeek(): DayOfWeek = DayOfWeek.entries.random()
 
   private fun randomAmOrPm(): AmOrPm = AmOrPm.entries.random()
+
+  fun produceUniqueSlots(
+    count: Int,
+    overrideHour: Int? = null,
+    overrideMinutes: Int? = null,
+    overrideAmOrPm: AmOrPm? = null,
+  ): Set<CreateGroupSessionSlot> {
+    require(count in 1..7) {
+      "count must be between 1 and 7 because there are only 7 unique days."
+    }
+
+    val selectedDays = DayOfWeek.entries.shuffled().take(count)
+
+    return selectedDays.map { day ->
+      produce(
+        dayOfWeek = day,
+        hour = overrideHour,
+        minutes = overrideMinutes,
+        amOrPm = overrideAmOrPm,
+      )
+    }.toSet()
+  }
 }
