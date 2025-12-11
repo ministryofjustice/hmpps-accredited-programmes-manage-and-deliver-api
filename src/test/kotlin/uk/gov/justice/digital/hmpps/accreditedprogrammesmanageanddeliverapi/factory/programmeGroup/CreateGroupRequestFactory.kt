@@ -29,7 +29,7 @@ class CreateGroupRequestFactory(
     groupCode = groupCode ?: randomUppercaseString(),
     cohort = cohort ?: ProgrammeGroupCohort.GENERAL,
     sex = sex ?: ProgrammeGroupSexEnum.MALE,
-    startedAtDate = startedAtDate ?: LocalDate.now(),
+    earliestStartDate = startedAtDate ?: LocalDate.now(),
     createGroupSessionSlot = createGroupSessionSlot ?: setOf(sessionSlotFactory.produce()),
     pduName = pduName ?: randomWord(1..2).toString(),
     pduCode = pduCode ?: randomUppercaseString(),

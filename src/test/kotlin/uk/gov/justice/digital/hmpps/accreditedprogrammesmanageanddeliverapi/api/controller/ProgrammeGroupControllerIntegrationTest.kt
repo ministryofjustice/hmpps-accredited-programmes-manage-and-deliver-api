@@ -812,12 +812,14 @@ class ProgrammeGroupControllerIntegrationTest(@Autowired private val referralSer
       assertThat(createdGroup.isLdc).isFalse
       assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.MALE)
       assertThat(createdGroup.regionName).isEqualTo("WIREMOCKED REGION")
-      assertThat(createdGroup.startedAtDate).isEqualTo(LocalDate.parse("2025-01-01"))
+      assertThat(createdGroup.earliestPossibleStartDate).isEqualTo(LocalDate.parse("2025-01-01"))
       assertThat(createdGroup.programmeGroupSessionSlots).hasSize(1)
       assertThat(createdGroup.programmeGroupSessionSlots.first().dayOfWeek).isEqualTo(DayOfWeek.MONDAY)
       assertThat(createdGroup.programmeGroupSessionSlots.first().startTime).isEqualTo(LocalTime.of(1, 1))
       assertThat(createdGroup.treatmentManager?.ndeliusPersonCode).isEqualTo(teamMember1.facilitatorCode)
       assertThat(createdGroup.groupFacilitators).hasSize(3)
+      assertThat(createdGroup.accreditedProgrammeTemplate).isNotNull
+      assertThat(createdGroup.accreditedProgrammeTemplate!!.name).isEqualTo("Building Choices")
     }
 
     @Test
