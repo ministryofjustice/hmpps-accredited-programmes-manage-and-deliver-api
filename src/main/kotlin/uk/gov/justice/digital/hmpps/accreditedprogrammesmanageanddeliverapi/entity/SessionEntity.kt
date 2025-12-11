@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
+import jakarta.persistence.Transient
 import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
@@ -68,6 +69,15 @@ class SessionEntity(
   )
   var attendances: MutableSet<SessionAttendanceEntity> = mutableSetOf(),
 ) : Comparable<SessionEntity> {
+  // Compute these values rather than have them duplicated in the db tables
+  @get:Transient
+  val moduleNumber: Int?
+    get() = moduleSessionTemplate?.module?.moduleNumber
+
+  @get:Transient
+  val sessionNumber: Int?
+    get() = moduleSessionTemplate?.sessionNumber
+
   override fun compareTo(other: SessionEntity): Int = compareValuesBy(
     this,
     other,

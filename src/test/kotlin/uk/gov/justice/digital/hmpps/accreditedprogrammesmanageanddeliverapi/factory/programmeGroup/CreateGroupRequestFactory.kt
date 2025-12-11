@@ -5,6 +5,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.asString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
 import java.time.LocalDate
@@ -33,7 +34,7 @@ class CreateGroupRequestFactory(
     createGroupSessionSlot = createGroupSessionSlot ?: setOf(sessionSlotFactory.produce()),
     pduName = pduName ?: randomWord(1..2).toString(),
     pduCode = pduCode ?: randomUppercaseString(),
-    deliveryLocationName = deliveryLocationName ?: randomWord(1..2).toString(),
+    deliveryLocationName = deliveryLocationName ?: randomWord(1..3).asString(),
     deliveryLocationCode = deliveryLocationCode ?: randomUppercaseString(),
     teamMembers = teamMembers ?: listOf(teamMemberFactory.produce()),
   )
