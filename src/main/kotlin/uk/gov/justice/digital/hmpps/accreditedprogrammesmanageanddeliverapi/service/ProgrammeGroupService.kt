@@ -30,6 +30,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
@@ -48,6 +49,7 @@ class ProgrammeGroupService(
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
   private val userService: UserService,
   private val facilitatorRepository: FacilitatorRepository,
+  private val accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -85,6 +87,10 @@ class ProgrammeGroupService(
 
     val slots = createSessionSlots(createGroupRequest.createGroupSessionSlot, programmeGroup)
     programmeGroup.programmeGroupSessionSlots.addAll(slots)
+
+    val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")
+    programmeGroup.accreditedProgrammeTemplate = buildingChoicesTemplate
+    require(buildingChoicesTemplate != null) { "Template must not be null" }
 
     log.info("Group created with code: ${createGroupRequest.groupCode}")
     return programmeGroupRepository.save(programmeGroup)

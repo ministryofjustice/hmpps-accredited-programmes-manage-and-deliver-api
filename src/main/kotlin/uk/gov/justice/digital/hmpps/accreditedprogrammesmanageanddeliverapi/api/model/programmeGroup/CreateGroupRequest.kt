@@ -36,11 +36,11 @@ data class CreateGroupRequest(
   )
   var sex: ProgrammeGroupSexEnum,
 
-  @NotNull(message = "startedAt must not be null")
-  @get:JsonProperty("startedAtDate", required = true)
-  @Schema(description = "The date the group started")
+  @NotNull(message = "earliestStartDate must not be null")
+  @get:JsonProperty("earliestStartDate", required = true)
+  @Schema(description = "The earliest date the group can start")
   @JsonFormat(pattern = "d/M/yyyy")
-  var startedAtDate: LocalDate,
+  var earliestStartDate: LocalDate,
 
   @NotNull(message = "createGroupSessionSlot must not be null")
   @get:JsonProperty("createGroupSessionSlot", required = true)
@@ -110,7 +110,7 @@ fun CreateGroupRequest.toEntity(region: String): ProgrammeGroupEntity {
     sex = sex,
     isLdc = isLdc,
     regionName = region,
-    startedAtDate = startedAtDate,
+    earliestPossibleStartDate = earliestStartDate,
     deliveryLocationCode = deliveryLocationCode,
     deliveryLocationName = deliveryLocationName,
     probationDeliveryUnitCode = pduCode,
