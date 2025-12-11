@@ -2,11 +2,12 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupSessionSlotRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.temporal.TemporalAdjusters
@@ -15,7 +16,7 @@ import java.util.UUID
 
 data class SlotInstance(
   val slot: ProgrammeGroupSessionSlotEntity,
-  var nextDate: LocalDate, // actual scheduled date, moves forward weekly after use
+  var nextDate: LocalDate,
 ) : Comparable<SlotInstance> {
 
   override fun compareTo(other: SlotInstance): Int = compareValuesBy(this, other, { it.nextDate }, { it.slot.startTime })
@@ -24,10 +25,11 @@ data class SlotInstance(
 @Service
 class ScheduleService(
   val programmeGroupRepository: ProgrammeGroupRepository,
-  val programmeGroupSessionSlotRepository: ProgrammeGroupSessionSlotRepository,
   val programmeGroupModuleRepository: ModuleRepository,
+  val sessionRepository: SessionRepository,
 ) {
 
+  @Transactional
   fun scheduleSessionForGroup(programmeGroupId: UUID): MutableList<SessionEntity> {
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
     require(group != null) { "Group must not be null" }
@@ -56,6 +58,7 @@ class ScheduleService(
         startsAt = startDateTime,
         endsAt = endDateTime,
         isCatchup = false,
+        locationName = group.deliveryLocationName,
       )
 
       generatedSessions.add(session)
@@ -63,8 +66,7 @@ class ScheduleService(
       nextSlot.nextDate = nextSlot.nextDate.plusWeeks(1)
       queue.add(nextSlot)
     }
-
-    return generatedSessions
+    return sessionRepository.saveAll(generatedSessions)
   }
 
   private fun buildSlotQueue(
