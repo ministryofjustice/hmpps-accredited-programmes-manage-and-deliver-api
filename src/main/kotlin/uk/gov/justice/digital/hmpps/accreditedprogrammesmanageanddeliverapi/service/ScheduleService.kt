@@ -18,7 +18,7 @@ import java.util.UUID
 @Service
 class ScheduleService(
   private val programmeGroupRepository: ProgrammeGroupRepository,
-  private val programmeGroupModuleRepository: ModuleRepository,
+  private val module: ModuleRepository,
   private val sessionRepository: SessionRepository,
 ) {
 
@@ -34,7 +34,7 @@ class ScheduleService(
     require(templateId != null) { "Group template must not be null" }
 
     val allSessionTemplates =
-      programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(templateId)
+      module.findByAccreditedProgrammeTemplateId(templateId)
         .sortedBy { it.moduleNumber }
         .flatMap { moduleEntity -> moduleEntity.sessionTemplates.sortedBy { it.sessionNumber } }
 
