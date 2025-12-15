@@ -36,7 +36,7 @@ class SessionEntity(
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "module_session_template_id")
-  var moduleSessionTemplate: ModuleSessionTemplateEntity? = null,
+  var moduleSessionTemplate: ModuleSessionTemplateEntity,
 
   @NotNull
   @Column(name = "is_catchup")
@@ -71,12 +71,12 @@ class SessionEntity(
 ) : Comparable<SessionEntity> {
   // Compute these values rather than have them duplicated in the db tables
   @get:Transient
-  val moduleNumber: Int?
-    get() = moduleSessionTemplate?.module?.moduleNumber
+  val moduleNumber: Int
+    get() = moduleSessionTemplate.module.moduleNumber
 
   @get:Transient
-  val sessionNumber: Int?
-    get() = moduleSessionTemplate?.sessionNumber
+  val sessionNumber: Int
+    get() = moduleSessionTemplate.sessionNumber
 
   override fun compareTo(other: SessionEntity): Int = compareValuesBy(
     this,

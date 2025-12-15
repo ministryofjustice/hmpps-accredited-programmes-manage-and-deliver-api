@@ -16,6 +16,7 @@ import java.util.PriorityQueue
 import java.util.UUID
 
 @Service
+@Transactional
 class ScheduleService(
   private val programmeGroupRepository: ProgrammeGroupRepository,
   private val module: ModuleRepository,
@@ -24,8 +25,7 @@ class ScheduleService(
 
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  @Transactional
-  fun scheduleSessionsForGroup(programmeGroupId: UUID): MutableList<SessionEntity> {
+  fun scheduleSessionsForGroup(programmeGroupId: UUID, mostRecentSession: SessionEntity? = null): MutableList<SessionEntity> {
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
     require(group != null) { "Group must not be null" }
     require(group.earliestPossibleStartDate != null) { "Earliest start date must not be null" }
@@ -33,10 +33,16 @@ class ScheduleService(
     val templateId = group.accreditedProgrammeTemplate?.id
     require(templateId != null) { "Group template must not be null" }
 
-    val allSessionTemplates =
+    var allSessionTemplates =
       module.findByAccreditedProgrammeTemplateId(templateId)
         .sortedBy { it.moduleNumber }
         .flatMap { moduleEntity -> moduleEntity.sessionTemplates.sortedBy { it.sessionNumber } }
+
+    // In the case of a reschedule, filter out sessions in the past
+    if (mostRecentSession != null) {
+      allSessionTemplates = allSessionTemplates.filter { it.module.moduleNumber >= mostRecentSession.moduleNumber }
+        .filter { it.module.moduleNumber == mostRecentSession.moduleNumber }.filter { it.sessionNumber >= mostRecentSession.sessionNumber }
+    }
 
     val groupSlots = group.programmeGroupSessionSlots
     require(groupSlots.isNotEmpty()) { "Programme group slots must not be empty or null" }
@@ -70,6 +76,22 @@ class ScheduleService(
     }
     log.debug("Generated ${generatedSessions.size} sessions for group: ${group.code}")
     return sessionRepository.saveAll(generatedSessions)
+  }
+
+  fun rescheduleSessionsForGroup(programmeGroupId: UUID): MutableList<SessionEntity> {
+    val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
+    require(group != null) { "Group must not be null" }
+    require(group.earliestPossibleStartDate != null) { "Earliest start date must not be null" }
+
+    // Check there are no existing sessions for the group, if there are, delete them (reschedule)
+    group.sessions.filter { it.startsAt > LocalDate.now().atStartOfDay().plusDays(1) }
+      .forEach {
+        sessionRepository.delete(it)
+      }
+
+    val mostRecentSession = group.sessions.maxByOrNull { it.startsAt }!!
+
+    return scheduleSessionsForGroup(programmeGroupId, mostRecentSession)
   }
 
   private data class SlotInstance(
