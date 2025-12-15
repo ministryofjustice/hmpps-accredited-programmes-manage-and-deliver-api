@@ -25,5 +25,5 @@ VALUES ('e30062f5-7c40-4b0e-8833-51d35bed12a7',
         NOW(),
         NULL,
         NULL,
-        TRUE
+        FALSE
        );
