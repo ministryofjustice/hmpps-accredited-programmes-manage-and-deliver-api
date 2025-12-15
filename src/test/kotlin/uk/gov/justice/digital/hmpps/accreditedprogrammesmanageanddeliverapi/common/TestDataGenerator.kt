@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -161,8 +162,17 @@ class TestDataGenerator {
 
   fun createGroup(
     group: ProgrammeGroupEntity,
+    sessions: MutableSet<SessionEntity> = mutableSetOf(),
   ): ProgrammeGroupEntity {
     entityManager.persist(group)
+    sessions.forEach { entityManager.persist(it) }
     return group
+  }
+
+  fun createSession(
+    session: SessionEntity,
+  ): SessionEntity {
+    entityManager.persist(session)
+    return session
   }
 }

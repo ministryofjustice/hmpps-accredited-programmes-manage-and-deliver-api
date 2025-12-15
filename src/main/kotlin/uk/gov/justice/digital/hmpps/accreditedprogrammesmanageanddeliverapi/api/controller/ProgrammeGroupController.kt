@@ -41,6 +41,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RegionService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.util.UUID
@@ -57,6 +58,7 @@ class ProgrammeGroupController(
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
   private val userService: UserService,
   private val regionService: RegionService,
+  private val scheduleService: ScheduleService,
 ) {
 
   @Operation(
@@ -364,7 +366,8 @@ class ProgrammeGroupController(
     @RequestBody createGroupRequest: CreateGroupRequest,
   ): ResponseEntity<Void> {
     val username = getUsername()
-    programmeGroupService.createGroup(createGroupRequest, username)
+    val group = programmeGroupService.createGroup(createGroupRequest, username)
+    scheduleService.scheduleSessionsForGroup(group.id!!)
     return ResponseEntity.status(HttpStatus.CREATED).build()
   }
 
