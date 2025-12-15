@@ -1200,7 +1200,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     @Test
     fun `should return the correct status for a referral with an On programme status`() {
       // Given
-      testDataCleaner.cleanAllTables();
+      testDataCleaner.cleanAllTables()
       val theGroup = testDataGenerator.createGroup(ProgrammeGroupFactory().withCode("AAA1112").produce())
 
       val referralEntity = testReferralHelper.createReferralWithStatus(
@@ -1224,7 +1224,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         "Awaiting allocation",
         "Deprioritised",
         "Recall",
-        "Return to court"
+        "Return to court",
       )
     }
   }
