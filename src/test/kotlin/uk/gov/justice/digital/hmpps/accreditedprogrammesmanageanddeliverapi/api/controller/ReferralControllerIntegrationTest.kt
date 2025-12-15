@@ -1194,6 +1194,33 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response).isNotNull
       assertThat(response.currentStatus.title).isEqualTo("Scheduled")
       assertThat(response.availableStatuses).isNotEmpty
+      assertThat(response.availableStatuses).hasSize(6);
+    }
+
+    @Test
+    fun `should return the correct status for a referral with an On programme status`() {
+      // Given
+      testDataCleaner.cleanAllTables();
+      val theGroup = testDataGenerator.createGroup(ProgrammeGroupFactory().withCode("AAA1112").produce())
+
+      val referralEntity = testReferralHelper.createReferralWithStatus(
+        referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/remove-from-group/${referralEntity.id}",
+        returnType = object : ParameterizedTypeReference<RemoveReferralFromGroupStatusTransitions>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.currentStatus.title).isEqualTo("On programme")
+      assertThat(response.availableStatuses).isNotEmpty
+      assertThat(response.availableStatuses).hasSize(5);
+      assertThat(response.availableStatuses.map { it.status }).containsOnly(
+        "Awaiting assessment", "Awaiting allocation", "Deprioritised", "Recall", "Return to court");
     }
   }
 }
