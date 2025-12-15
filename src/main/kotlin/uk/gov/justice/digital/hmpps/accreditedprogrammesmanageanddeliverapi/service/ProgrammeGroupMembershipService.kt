@@ -20,7 +20,7 @@ import java.util.*
 @Service
 @Transactional
 class ProgrammeGroupMembershipService(
-  private val programmeGroupRepository: ProgrammeGroupRepository,
+  private val programmeGroupRepositoryImpl: ProgrammeGroupRepository,
   private val referralRepository: ReferralRepository,
   private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
@@ -36,7 +36,7 @@ class ProgrammeGroupMembershipService(
     val referral = referralRepository.findByIdOrNull(referralId)
       ?: throw NotFoundException("Referral with id $referralId not found")
 
-    val group = programmeGroupRepository.findByIdOrNull(groupId)
+    val group = programmeGroupRepositoryImpl.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
 
     val latestStatus = referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId)
@@ -81,7 +81,7 @@ class ProgrammeGroupMembershipService(
   ): ReferralEntity {
     log.info("Attempting to remove Referral with id: $referralId from group with id: $groupId...")
 
-    programmeGroupRepository.findByIdOrNull(groupId) ?: throw NotFoundException("Group with id $groupId not found")
+    programmeGroupRepositoryImpl.findByIdOrNull(groupId) ?: throw NotFoundException("Group with id $groupId not found")
 
     val referral = referralRepository.findByIdOrNull(referralId) ?: throw NotFoundException("Referral with id $referralId not found")
 

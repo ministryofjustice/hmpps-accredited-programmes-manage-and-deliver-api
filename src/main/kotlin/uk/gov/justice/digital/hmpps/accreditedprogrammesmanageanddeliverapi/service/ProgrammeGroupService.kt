@@ -176,7 +176,7 @@ class ProgrammeGroupService(
     pageable: Pageable,
     groupCode: String?,
     pdu: String?,
-    deliveryLocation: String?,
+    deliveryLocations: List<String>?,
     cohort: String?,
     sex: String?,
     selectedTab: GroupPageByRegionTab,
@@ -198,7 +198,7 @@ class ProgrammeGroupService(
     val baseSpec = getProgrammeGroupsSpecification(
       groupCode = groupCode,
       pdu = pdu,
-      deliveryLocation = deliveryLocation,
+      deliveryLocations = deliveryLocations,
       cohort = groupCohort,
       sex = sex,
       regionName = firstUserRegionDescription,
@@ -218,15 +218,26 @@ class ProgrammeGroupService(
     }
 
     val activeSpec = baseSpec.and(startedAtSpec)
+
     val pagedData: Page<Group> = programmeGroupRepository.findAll(activeSpec, pageable).map { it.toApi() }
 
     val totalForAllTabs: Long = programmeGroupRepository.count(baseSpec)
     val otherTabTotal: Int = (totalForAllTabs - pagedData.totalElements).toInt()
 
+    val allPduNames = programmeGroupRepository.findDistinctProbationDeliveryUnitNames(firstUserRegionDescription)
+
+    val deliveryLocationNames = if (pdu.isNullOrEmpty()) {
+      null
+    } else {
+      programmeGroupRepository.findDistinctDeliveryLocationNames(firstUserRegionDescription, pdu)
+    }
+
     return GroupsByRegion(
       pagedGroupData = pagedData,
       otherTabTotal = otherTabTotal,
       regionName = firstUserRegionDescription,
+      probationDeliveryUnitNames = allPduNames,
+      deliveryLocationNames = deliveryLocationNames,
     )
   }
 }

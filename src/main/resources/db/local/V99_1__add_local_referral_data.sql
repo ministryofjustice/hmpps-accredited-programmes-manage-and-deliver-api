@@ -173,8 +173,8 @@ VALUES ('83fae84a-5b42-49db-aab8-d93f2b046b7f',
         'Liverpool Office 1');
 
 INSERT INTO programme_group (id, code, created_at, created_by_username, updated_at, updated_by_username, deleted_at,
-                             deleted_by_username)
-VALUES ('897bee70-d0a5-48ac-b8b8-e4ab5ea7ad1d', 'BCCDD1', now(), 'AUTH_USER', now(), 'AUTH_USER', null, null);
+                             deleted_by_username, region_name)
+VALUES ('897bee70-d0a5-48ac-b8b8-e4ab5ea7ad1d', 'BCCDD1', now(), 'AUTH_USER', now(), 'AUTH_USER', null, null, 'Wiremocked Region Name');
 
 INSERT INTO programme_group_membership(id, programme_group_id, referral_id, created_at, created_by_username, deleted_at,
                                        deleted_by_username)

@@ -11,7 +11,7 @@ import java.time.LocalDateTime
 fun getProgrammeGroupsSpecification(
   groupCode: String?,
   pdu: String?,
-  deliveryLocation: String?,
+  deliveryLocations: List<String>?,
   cohort: ProgrammeGroupCohort?,
   sex: String?,
   regionName: String?,
@@ -29,8 +29,13 @@ fun getProgrammeGroupsSpecification(
     predicates.add(cb.equal(root.get<String>("probationDeliveryUnitName"), it))
   }
 
-  deliveryLocation?.let {
-    predicates.add(cb.equal(root.get<String>("deliveryLocationName"), it))
+  deliveryLocations?.let { locations ->
+    if (locations.isNotEmpty()) {
+      val orPredicates = locations.map { deliveryLocation ->
+        cb.equal(root.get<String>("deliveryLocationName"), deliveryLocation)
+      }
+      predicates.add(cb.or(*orPredicates.toTypedArray()))
+    }
   }
 
   cohort?.let {

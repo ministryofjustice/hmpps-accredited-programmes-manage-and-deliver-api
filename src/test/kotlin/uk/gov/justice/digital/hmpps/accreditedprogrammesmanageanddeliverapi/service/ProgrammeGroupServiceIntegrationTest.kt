@@ -55,6 +55,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           .withSex(ProgrammeGroupSexEnum.MALE)
           .withCode("THE_GROUP_CODE")
           .withProbationDeliveryUnit("PDU Description", "PDU_CODE")
+          .withDeliveryLocation("Location One", "LOC_ONE")
           .withRegionName("Region Description")
           .withEarliestStartDate(LocalDate.now().plusDays(1))
           .produce(),
@@ -65,6 +66,17 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           .withSex(ProgrammeGroupSexEnum.MALE)
           .withCode("GROUP_TWO_CODE")
           .withProbationDeliveryUnit("Another PDU Description", "ANOTHER_PDU_CODE")
+          .withDeliveryLocation("Location Two", "LOC_TWO")
+          .withRegionName("Region Description")
+          .withEarliestStartDate(LocalDate.now().plusDays(1))
+          .produce(),
+      )
+
+      testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withCode("GROUP_THREE_CODE")
+          .withProbationDeliveryUnit("PDU Description", "PDU_CODE")
           .withRegionName("Region Description")
           .withEarliestStartDate(LocalDate.now().plusDays(1))
           .produce(),
@@ -109,7 +121,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           pageable,
           groupCode = null,
           pdu = null,
-          deliveryLocation = null,
+          deliveryLocations = null,
           cohort = null,
           sex = null,
           selectedTab = GroupPageByRegionTab.NOT_STARTED,
@@ -127,7 +139,56 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         pageable = Pageable.ofSize(10),
         groupCode = null,
         pdu = null,
-        deliveryLocation = null,
+        deliveryLocations = null,
+        cohort = null,
+        sex = "MALE",
+        selectedTab = GroupPageByRegionTab.NOT_STARTED,
+        username = "the_username",
+      )
+
+      // Then
+      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(3)
+      assertThat(programmeGroups.pagedGroupData.map { it.code }).containsExactlyInAnyOrder(
+        "THE_GROUP_CODE",
+        "GROUP_TWO_CODE",
+        "GROUP_THREE_CODE",
+      )
+      // Scenario 1: pdu not specified - should return all unique PDU names
+      assertThat(programmeGroups.probationDeliveryUnitNames).containsExactlyInAnyOrder(
+        "PDU Description",
+        "Another PDU Description",
+      )
+      // deliveryLocationNames should be null when pdu is not specified
+      assertThat(programmeGroups.deliveryLocationNames).isNull()
+    }
+
+    @Test
+    fun `Partial matching the group code`() {
+      // When
+      val programmeGroups = service.getProgrammeGroupsForRegion(
+        pageable = Pageable.ofSize(10),
+        groupCode = "THE_G",
+        pdu = null,
+        deliveryLocations = null,
+        cohort = null,
+        sex = null,
+        selectedTab = GroupPageByRegionTab.NOT_STARTED,
+        username = "the_username",
+      )
+
+      // Then
+      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(1)
+      assertThat(programmeGroups.pagedGroupData.first().code).isEqualTo("THE_GROUP_CODE")
+    }
+
+    @Test
+    fun `Returns unique delivery locations when pdu is specified`() {
+      // When - filtering by specific PDU
+      val programmeGroups = service.getProgrammeGroupsForRegion(
+        pageable = Pageable.ofSize(10),
+        groupCode = null,
+        pdu = "PDU Description",
+        deliveryLocations = null,
         cohort = null,
         sex = "MALE",
         selectedTab = GroupPageByRegionTab.NOT_STARTED,
@@ -138,27 +199,13 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(2)
       assertThat(programmeGroups.pagedGroupData.map { it.code }).containsExactlyInAnyOrder(
         "THE_GROUP_CODE",
-        "GROUP_TWO_CODE",
+        "GROUP_THREE_CODE",
       )
-    }
-
-    @Test
-    fun `Partial matching the group code`() {
-      // When
-      val programmeGroups = service.getProgrammeGroupsForRegion(
-        pageable = Pageable.ofSize(10),
-        groupCode = "THE_G",
-        pdu = null,
-        deliveryLocation = null,
-        cohort = null,
-        sex = null,
-        selectedTab = GroupPageByRegionTab.NOT_STARTED,
-        username = "the_username",
+      assertThat(programmeGroups.probationDeliveryUnitNames).containsExactlyInAnyOrder(
+        "PDU Description",
+        "Another PDU Description",
       )
-
-      // Then
-      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(1)
-      assertThat(programmeGroups.pagedGroupData.first().code).isEqualTo("THE_GROUP_CODE")
+      assertThat(programmeGroups.deliveryLocationNames).containsExactly("Location One")
     }
   }
 }
