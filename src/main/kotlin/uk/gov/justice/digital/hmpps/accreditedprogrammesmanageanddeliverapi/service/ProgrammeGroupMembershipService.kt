@@ -61,12 +61,13 @@ class ProgrammeGroupMembershipService(
       )
 
     referral.statusHistories.add(statusHistory)
+    val currentGroup = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) ?: throw NotFoundException("No group membership found for referral $referralId")
 
     group.sessions.forEach { session ->
       session.attendances.add(
         SessionAttendanceEntity(
           session = session,
-          groupMembership = referral.programmeGroupMemberships.last(),
+          groupMembership = currentGroup,
         ),
       )
     }
