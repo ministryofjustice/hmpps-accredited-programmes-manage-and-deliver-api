@@ -114,6 +114,7 @@ class ProgrammeGroupEntity(
   @OneToMany(
     fetch = FetchType.LAZY,
     cascade = [CascadeType.ALL],
+    orphanRemoval = true,
     mappedBy = "programmeGroup",
   )
   var sessions: MutableSet<SessionEntity> = mutableSetOf(),

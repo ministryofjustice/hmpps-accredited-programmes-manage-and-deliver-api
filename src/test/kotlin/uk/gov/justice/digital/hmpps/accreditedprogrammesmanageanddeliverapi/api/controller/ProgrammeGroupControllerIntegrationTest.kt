@@ -42,7 +42,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
@@ -69,7 +68,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.util
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.UUID
 
@@ -607,26 +605,16 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `allocateReferralToGroup can successfully allocate a referral to a group`() {
       // Given
       val theCrnNumber = randomUppercaseString()
-      val groupCode = "AAA111"
-      val group = ProgrammeGroupFactory().withCode(groupCode).produce()
-      val session1 = SessionEntity(
-        programmeGroup = group,
-        moduleSessionTemplate = null,
-        isCatchup = false,
-        locationName = null,
-        startsAt = LocalDateTime.now(),
-        endsAt = LocalDateTime.now().plusDays(1),
-      )
-      val session2 = SessionEntity(
-        programmeGroup = group,
-        moduleSessionTemplate = null,
-        isCatchup = false,
-        locationName = null,
-        startsAt = LocalDateTime.now(),
-        endsAt = LocalDateTime.now().plusDays(1),
+
+      val body = CreateGroupRequestFactory().produce()
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
       )
 
-      testDataGenerator.createGroup(group, mutableSetOf(session1, session2))
+      val group = programmeGroupRepository.findByCode(body.groupCode)
 
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
       nDeliusApiStubs.stubPersonalDetailsResponse(
@@ -654,7 +642,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
-        uri = "/group/${group.id}/allocate/${referral.id}",
+        uri = "/group/${group!!.id}/allocate/${referral.id}",
         expectedResponseStatus = HttpStatus.OK.value(),
         body = allocateToGroupRequest,
         returnType = object : ParameterizedTypeReference<AllocateToGroupResponse>() {},
@@ -669,7 +657,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(foundRepository.id).isEqualTo(referral.id)
       assertThat(foundRepository.programmeGroupMemberships).hasSize(1)
       assertThat(foundRepository.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
-      assertThat(foundRepository.programmeGroupMemberships.first().attendances.size).isEqualTo(2)
+      assertThat(foundRepository.programmeGroupMemberships.first().attendances.size).isEqualTo(26)
     }
 
     @Test

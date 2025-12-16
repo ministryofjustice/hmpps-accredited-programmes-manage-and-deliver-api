@@ -69,8 +69,8 @@ class ProgrammeGroupController(
   private val userService: UserService,
   private val regionService: RegionService,
   private val scheduleService: ScheduleService,
-  private val programmeGroupRepository: ProgrammeGroupRepository,
   private val moduleRepository: ModuleRepository,
+  private val programmeGroupRepository: ProgrammeGroupRepository,
   private val templateService: TemplateService,
 ) {
 
@@ -662,7 +662,10 @@ class ProgrammeGroupController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/group/{groupId}/module/{moduleId}/schedule-individual-session-details", produces = [MediaType.APPLICATION_JSON_VALUE])
+  @GetMapping(
+    "/bff/group/{groupId}/module/{moduleId}/schedule-individual-session-details",
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+  )
   fun getScheduleIndividualSessionDetails(
     @Parameter(description = "The UUID of the Programme Group", required = true)
     @PathVariable("groupId") groupId: UUID,

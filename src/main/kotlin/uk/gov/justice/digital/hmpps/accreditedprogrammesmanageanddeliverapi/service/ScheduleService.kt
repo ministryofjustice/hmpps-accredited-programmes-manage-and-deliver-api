@@ -40,8 +40,10 @@ class ScheduleService(
 
     // In the case of a reschedule, filter out sessions in the past
     if (mostRecentSession != null) {
-      allSessionTemplates = allSessionTemplates.filter { it.module.moduleNumber >= mostRecentSession.moduleNumber }
-        .filter { it.module.moduleNumber == mostRecentSession.moduleNumber }.filter { it.sessionNumber >= mostRecentSession.sessionNumber }
+      allSessionTemplates = allSessionTemplates.filter { it.module.moduleNumber >= mostRecentSession.moduleNumber }.toMutableList()
+      val templatesToRemove = allSessionTemplates.filter { it.module.moduleNumber == mostRecentSession.moduleNumber && it.sessionNumber <= mostRecentSession.sessionNumber }.toMutableList()
+      allSessionTemplates.removeAll(templatesToRemove)
+      // .filter { it.module.moduleNumber == mostRecentSession.moduleNumber }.filter { it.sessionNumber >= mostRecentSession.sessionNumber }
     }
 
     val groupSlots = group.programmeGroupSessionSlots
@@ -81,15 +83,13 @@ class ScheduleService(
   fun rescheduleSessionsForGroup(programmeGroupId: UUID): MutableList<SessionEntity> {
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
     require(group != null) { "Group must not be null" }
-    require(group.earliestPossibleStartDate != null) { "Earliest start date must not be null" }
+    require(group.earliestPossibleStartDate != null) { "Earliest start dat e must not be null" }
 
     // Check there are no existing sessions for the group, if there are, delete them (reschedule)
-    group.sessions.filter { it.startsAt > LocalDate.now().atStartOfDay().plusDays(1) }
-      .forEach {
-        sessionRepository.delete(it)
-      }
+    group.sessions.removeAll { it.startsAt > LocalDateTime.now() }
+    programmeGroupRepository.save(group)
 
-    val mostRecentSession = group.sessions.maxByOrNull { it.startsAt }!!
+    val mostRecentSession = group.sessions.filter { it.startsAt <= LocalDateTime.now() }.maxByOrNull { it.startsAt }!!
 
     return scheduleSessionsForGroup(programmeGroupId, mostRecentSession)
   }
