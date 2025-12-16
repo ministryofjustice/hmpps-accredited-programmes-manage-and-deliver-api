@@ -999,11 +999,17 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `create group and create sessions`() {
+      val slots = mutableSetOf(
+        CreateGroupSessionSlotFactory().withDayOfWeek(DayOfWeek.MONDAY).withHour(9).withMinute(0).withAmOrPm(AmOrPm.AM).produce(),
+        CreateGroupSessionSlotFactory().withDayOfWeek(DayOfWeek.WEDNESDAY).withHour(12).withMinute(30).withAmOrPm(AmOrPm.PM).produce(),
+        CreateGroupSessionSlotFactory().withDayOfWeek(DayOfWeek.SATURDAY).withHour(5).withMinute(15).withAmOrPm(AmOrPm.PM).produce(),
+      )
+
       val body = CreateGroupRequestFactory().produce(
         earliestStartDate = LocalDate.parse("2025-01-01"),
-        // Creates 3 slots in a week
-        createGroupSessionSlot = CreateGroupSessionSlotFactory().produceUniqueSlots(3),
+        createGroupSessionSlot = slots,
       )
+
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -1012,7 +1018,36 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
+
       assertThat(createdGroup).isNotNull
+
+      // Hard-coded from the number of sessions in the template
+      assertThat(createdGroup.sessions).hasSize(26)
+      val sessionDays = createdGroup.sessions.map { it.startsAt.dayOfWeek }.distinct()
+
+      assertThat(sessionDays).containsExactlyInAnyOrder(
+        DayOfWeek.MONDAY,
+        DayOfWeek.WEDNESDAY,
+        DayOfWeek.SATURDAY,
+      )
+
+      // The 1st Jan 2025 is a Wednesday, so the first Session should be Wednesday 1st, then Saturday 4th
+      // TODO: Add the 3w buffer period after the pre-group 1:1
+      assertThat(
+        createdGroup.sessions.find {
+          it.startsAt.equals(LocalDateTime.of(2025, 1, 1, 12, 30)) &&
+            it.sessionNumber == 1 &&
+            it.moduleNumber == 1
+        },
+      ).isNotNull
+
+      assertThat(
+        createdGroup.sessions.find {
+          it.startsAt.equals(LocalDateTime.of(2025, 1, 4, 17, 15)) &&
+            it.moduleNumber == 2
+          it.sessionNumber == 1
+        },
+      ).isNotNull
 
       // Compare the template moduleNumber and sessionNumbers to the created moduleNumber and sessionNumbers
       val expectedPairs: Set<Pair<Int, Int>> = programmeGroupModuleRepository
@@ -1021,8 +1056,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           module.sessionTemplates.map { tmpl -> module.moduleNumber to tmpl.sessionNumber }
         }
         .toSet()
-
-      assertThat(createdGroup.sessions).hasSize(expectedPairs.size)
 
       val actualPairs: Set<Pair<Int, Int>> = createdGroup.sessions
         .map { s -> s.moduleSessionTemplate!!.module.moduleNumber to s.moduleSessionTemplate!!.sessionNumber }

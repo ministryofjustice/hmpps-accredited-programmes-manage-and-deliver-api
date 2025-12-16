@@ -9,6 +9,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
+import jakarta.persistence.OrderBy
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
 import java.util.UUID
@@ -39,5 +40,6 @@ class ModuleEntity(
     cascade = [CascadeType.ALL],
     mappedBy = "module",
   )
+  @OrderBy("sessionNumber ASC")
   var sessionTemplates: MutableSet<ModuleSessionTemplateEntity> = mutableSetOf(),
 )

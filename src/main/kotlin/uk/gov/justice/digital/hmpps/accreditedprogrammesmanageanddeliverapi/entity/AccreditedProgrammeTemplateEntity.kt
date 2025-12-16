@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.OneToMany
 import jakarta.persistence.OneToOne
+import jakarta.persistence.OrderBy
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
 import java.time.LocalDate
@@ -37,6 +38,7 @@ class AccreditedProgrammeTemplateEntity(
     cascade = [CascadeType.ALL],
     mappedBy = "accreditedProgrammeTemplate",
   )
+  @OrderBy("moduleNumber ASC")
   var modules: MutableSet<ModuleEntity> = mutableSetOf(),
 
   @OneToOne(mappedBy = "accreditedProgrammeTemplate", fetch = FetchType.LAZY)

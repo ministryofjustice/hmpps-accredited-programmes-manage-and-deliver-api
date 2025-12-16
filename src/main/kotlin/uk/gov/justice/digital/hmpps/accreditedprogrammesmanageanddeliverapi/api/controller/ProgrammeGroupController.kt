@@ -367,7 +367,7 @@ class ProgrammeGroupController(
   ): ResponseEntity<Void> {
     val username = getUsername()
     val group = programmeGroupService.createGroup(createGroupRequest, username)
-    scheduleService.scheduleSessionsForGroup(group.id!!)
+
     return ResponseEntity.status(HttpStatus.CREATED).build()
   }
 

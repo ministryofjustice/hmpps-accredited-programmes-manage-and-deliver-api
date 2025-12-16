@@ -6,42 +6,29 @@ import java.time.DayOfWeek
 import kotlin.random.Random
 
 class CreateGroupSessionSlotFactory {
+  private var dayOfWeek: DayOfWeek = DayOfWeek.MONDAY
+  private var hour: Int = 12
+  private var minute: Int = 0
+  private var amOrPm: AmOrPm = AmOrPm.AM
 
-  fun produce(
-    dayOfWeek: DayOfWeek? = null,
-    hour: Int? = null,
-    minutes: Int? = null,
-    amOrPm: AmOrPm? = null,
-  ): CreateGroupSessionSlot = CreateGroupSessionSlot(
-    dayOfWeek = dayOfWeek ?: randomDayOfWeek(),
-    hour = hour ?: Random.nextInt(1, 13), // 1–12 inclusive
-    minutes = minutes ?: Random.nextInt(0, 60), // 0–59 inclusive
-    amOrPm = amOrPm ?: randomAmOrPm(),
-  )
+  fun withDayOfWeek(day: DayOfWeek) = apply { this.dayOfWeek = day }
 
-  private fun randomDayOfWeek(): DayOfWeek = DayOfWeek.entries.random()
-
-  private fun randomAmOrPm(): AmOrPm = AmOrPm.entries.random()
-
-  fun produceUniqueSlots(
-    count: Int,
-    overrideHour: Int? = null,
-    overrideMinutes: Int? = null,
-    overrideAmOrPm: AmOrPm? = null,
-  ): Set<CreateGroupSessionSlot> {
-    require(count in 1..7) {
-      "count must be between 1 and 7 because there are only 7 unique days."
-    }
-
-    val selectedDays = DayOfWeek.entries.shuffled().take(count)
-
-    return selectedDays.map { day ->
-      produce(
-        dayOfWeek = day,
-        hour = overrideHour,
-        minutes = overrideMinutes,
-        amOrPm = overrideAmOrPm,
-      )
-    }.toSet()
+  fun withHour(hour: Int): CreateGroupSessionSlotFactory {
+    require(hour in 1..12) { "Hour must be in range 0..12" }
+    return apply { this.hour = hour }
   }
+
+  fun withMinute(minute: Int): CreateGroupSessionSlotFactory {
+    require(minute in 0..59) { "Hour must be in 0..23" }
+    return apply { this.minute = minute }
+  }
+
+  fun withAmOrPm(amOrPm: AmOrPm) = apply { this.amOrPm = amOrPm }
+
+  fun produce(): CreateGroupSessionSlot = CreateGroupSessionSlot(
+    dayOfWeek = this.dayOfWeek,
+    hour = this.hour,
+    minutes = this.minute,
+    amOrPm = this.amOrPm,
+  )
 }
