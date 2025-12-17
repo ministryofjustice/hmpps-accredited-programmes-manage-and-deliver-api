@@ -506,9 +506,9 @@ class ProgrammeGroupController(
 
   @Operation(
     tags = ["Programme Group controller"],
-    summary = "Schedule a one-to-one session for group members",
+    summary = "Schedule a session (one-to-one, or catch ups) for group members",
     operationId = "scheduleSession",
-    description = "Schedule a one-to-one session for members of a programme group. This endpoint allows facilitators to schedule individual sessions that must be coordinated across multiple group members.",
+    description = "Schedule a session for members of a programme group. This endpoint allows facilitators to schedule individual sessions that must be coordinated across multiple group members.",
     responses = [
       ApiResponse(
         responseCode = "200",
@@ -543,7 +543,8 @@ class ProgrammeGroupController(
     @Valid
     @RequestBody scheduleSessionRequest: ScheduleSessionRequest,
   ): ResponseEntity<ScheduleSessionResponse> {
-    // Placeholder implementation - actual business logic to be implemented
+    // Placeholder implementation - actual business logic to be implemented in follow-up PR
+    // --TJWC 2025-12-17
     val response = ScheduleSessionResponse(
       message = "Session scheduled successfully",
     )

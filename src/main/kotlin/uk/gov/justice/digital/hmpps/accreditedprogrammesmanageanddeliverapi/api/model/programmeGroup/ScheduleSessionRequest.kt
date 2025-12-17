@@ -27,12 +27,12 @@ data class ScheduleSessionRequest(
   @NotNull(message = "facilitators must not be null")
   @NotEmpty(message = "facilitators must not be empty")
   @get:JsonProperty("facilitators", required = true)
-  @Schema(description = "The facilitators who will conduct the one-to-one session")
+  @Schema(description = "The facilitator(s) who will conduct the session")
   var facilitators: List<CreateGroupTeamMember>,
 
   @NotNull(message = "startDate must not be null")
   @get:JsonProperty("startDate", required = true)
-  @Schema(description = "The start date of the session in YYYY-MM-DD format")
+  @Schema(description = "The start date of the session in YYYY-MM-DD format", example = "2025-12-17")
   @JsonFormat(pattern = "yyyy-MM-dd")
   var startDate: LocalDate,
 
@@ -54,14 +54,14 @@ data class SessionTime(
   @Min(value = 1, message = "hour must be between 1 and 12")
   @Max(value = 12, message = "hour must be between 1 and 12")
   @get:JsonProperty("hour", required = true)
-  @Schema(description = "Hour in 12-hour format (1-12)")
+  @Schema(description = "Hour in 12-hour format (1-12)", example = "10")
   var hour: Int,
 
   @NotNull(message = "minutes must not be null")
   @Min(value = 0, message = "minutes must be between 0 and 59")
   @Max(value = 59, message = "minutes must be between 0 and 59")
   @get:JsonProperty("minutes", required = true)
-  @Schema(description = "Minutes (0-59)")
+  @Schema(description = "Minutes (0-59)", example = "30")
   var minutes: Int,
 
   @NotNull(message = "amOrPm must not be null")
