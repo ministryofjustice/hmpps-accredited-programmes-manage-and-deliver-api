@@ -19,86 +19,114 @@ import java.util.UUID
 @Transactional
 class ScheduleService(
   private val programmeGroupRepository: ProgrammeGroupRepository,
-  private val module: ModuleRepository,
+  private val moduleRepository: ModuleRepository,
   private val sessionRepository: SessionRepository,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  fun scheduleSessionsForGroup(programmeGroupId: UUID, mostRecentSession: SessionEntity? = null): MutableList<SessionEntity> {
-    val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
-    require(group != null) { "Group must not be null" }
-    require(group.earliestPossibleStartDate != null) { "Earliest start date must not be null" }
+  fun scheduleSessionsForGroup(
+    programmeGroupId: UUID,
+    mostRecentSession: SessionEntity? = null,
+  ): MutableList<SessionEntity> {
+    val group = requireNotNull(programmeGroupRepository.findByIdOrNull(programmeGroupId)) {
+      "Group must not be null"
+    }
+    val earliestStartDate = requireNotNull(group.earliestPossibleStartDate) {
+      "Earliest start date must not be null"
+    }
+    val templateId = requireNotNull(group.accreditedProgrammeTemplate?.id) {
+      "Group template must not be null"
+    }
 
-    val templateId = group.accreditedProgrammeTemplate?.id
-    require(templateId != null) { "Group template must not be null" }
+    // Collect all session templates in module/session order
+    var allSessionTemplates = moduleRepository
+      .findByAccreditedProgrammeTemplateId(templateId)
+      .sortedBy { it.moduleNumber }
+      .flatMap { moduleEntity ->
+        moduleEntity.sessionTemplates.sortedBy { it.sessionNumber }
+      }
 
-    var allSessionTemplates =
-      module.findByAccreditedProgrammeTemplateId(templateId)
-        .sortedBy { it.moduleNumber }
-        .flatMap { moduleEntity -> moduleEntity.sessionTemplates.sortedBy { it.sessionNumber } }
-
-    // In the case of a reschedule, filter out sessions in the past
+    // If rescheduling, only include sessions after the most recent held session
     if (mostRecentSession != null) {
-      allSessionTemplates = allSessionTemplates.filter { it.module.moduleNumber >= mostRecentSession.moduleNumber }.toMutableList()
-      val templatesToRemove = allSessionTemplates.filter { it.module.moduleNumber == mostRecentSession.moduleNumber && it.sessionNumber <= mostRecentSession.sessionNumber }.toMutableList()
-      allSessionTemplates.removeAll(templatesToRemove)
-      // .filter { it.module.moduleNumber == mostRecentSession.moduleNumber }.filter { it.sessionNumber >= mostRecentSession.sessionNumber }
+      allSessionTemplates = allSessionTemplates.filter { template ->
+        template.module.moduleNumber > mostRecentSession.moduleNumber ||
+          (
+            template.module.moduleNumber == mostRecentSession.moduleNumber &&
+              template.sessionNumber > mostRecentSession.sessionNumber
+            )
+      }
     }
 
     val groupSlots = group.programmeGroupSessionSlots
-    require(groupSlots.isNotEmpty()) { "Programme group slots must not be empty or null" }
-    val queue = PriorityQueue<SlotInstance>()
+    require(groupSlots.isNotEmpty()) { "Programme group slots must not be empty" }
+
+    // Priority by (nextDate ASC, startTime ASC)
+    val slotQueue = PriorityQueue(
+      compareBy<SlotInstance>({ it.nextDate }, { it.slot.startTime }),
+    )
 
     groupSlots.forEach { slot ->
-      val firstDate = group.earliestPossibleStartDate!!.with(TemporalAdjusters.nextOrSame(slot.dayOfWeek))
-      queue.add(SlotInstance(slot, firstDate))
+      val firstDate = earliestStartDate.with(TemporalAdjusters.nextOrSame(slot.dayOfWeek))
+      slotQueue.add(SlotInstance(slot = slot, nextDate = firstDate))
     }
 
-    val generatedSessions = mutableListOf<SessionEntity>()
+    val generatedSessions = buildList {
+      for (template in allSessionTemplates) {
+        val nextSlot = slotQueue.poll() ?: break
 
-    for (sessionTemplate in allSessionTemplates) {
-      val nextSlot = queue.poll() ?: break
+        val startsAt = LocalDateTime.of(nextSlot.nextDate, nextSlot.slot.startTime)
+        val endsAt = startsAt.plusMinutes(template.durationMinutes.toLong())
 
-      val startDateTime = LocalDateTime.of(nextSlot.nextDate, nextSlot.slot.startTime)
-      val endDateTime = startDateTime.plusMinutes(sessionTemplate.durationMinutes.toLong())
+        add(
+          SessionEntity(
+            programmeGroup = group,
+            moduleSessionTemplate = template,
+            startsAt = startsAt,
+            endsAt = endsAt,
+            locationName = group.deliveryLocationName,
+          ),
+        )
 
-      val session = SessionEntity(
-        programmeGroup = group,
-        moduleSessionTemplate = sessionTemplate,
-        startsAt = startDateTime,
-        endsAt = endDateTime,
-        locationName = group.deliveryLocationName,
-      )
-
-      generatedSessions.add(session)
-
-      nextSlot.nextDate = nextSlot.nextDate.plusWeeks(1)
-      queue.add(nextSlot)
+        // Advance this slot by one week and re-queue
+        slotQueue.add(nextSlot.copy(nextDate = nextSlot.nextDate.plusWeeks(1)))
+      }
     }
-    log.debug("Generated ${generatedSessions.size} sessions for group: ${group.code}")
+
+    log.debug(
+      "Generated {} sessions for group code={}, programmeGroupId={}, templateId={}",
+      generatedSessions.size,
+      group.code,
+      programmeGroupId,
+      templateId,
+    )
+
     return sessionRepository.saveAll(generatedSessions)
   }
 
   fun rescheduleSessionsForGroup(programmeGroupId: UUID): MutableList<SessionEntity> {
-    val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
-    require(group != null) { "Group must not be null" }
-    require(group.earliestPossibleStartDate != null) { "Earliest start dat e must not be null" }
+    val group = requireNotNull(programmeGroupRepository.findByIdOrNull(programmeGroupId)) {
+      "Group must not be null"
+    }
+    requireNotNull(group.earliestPossibleStartDate) {
+      "Earliest start date must not be null"
+    }
 
-    // Check there are no existing sessions for the group, if there are, delete them (reschedule)
-    group.sessions.removeAll { it.startsAt > LocalDateTime.now() }
-    programmeGroupRepository.save(group)
+    val now = LocalDateTime.now()
+    val futureSessions = group.sessions.filter { it.startsAt > now }.toSet()
+    val mostRecentSession = group.sessions.filter { it.startsAt <= now }.maxByOrNull { it.startsAt }
 
-    val mostRecentSession = group.sessions.filter { it.startsAt <= LocalDateTime.now() }.maxByOrNull { it.startsAt }!!
+    if (futureSessions.isNotEmpty()) {
+      group.sessions.removeAll(futureSessions)
+      programmeGroupRepository.save(group)
+    }
 
+    // If there is no prior session, just schedule from start
     return scheduleSessionsForGroup(programmeGroupId, mostRecentSession)
   }
 
   private data class SlotInstance(
     val slot: ProgrammeGroupSessionSlotEntity,
-    var nextDate: LocalDate,
-  ) : Comparable<SlotInstance> {
-
-    override fun compareTo(other: SlotInstance): Int = compareValuesBy(this, other, { it.nextDate }, { it.slot.startTime })
-  }
+    val nextDate: LocalDate,
+  )
 }

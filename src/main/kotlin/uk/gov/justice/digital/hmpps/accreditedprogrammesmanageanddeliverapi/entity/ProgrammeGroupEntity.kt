@@ -12,6 +12,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.OneToOne
+import jakarta.persistence.OrderBy
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedBy
@@ -117,5 +118,6 @@ class ProgrammeGroupEntity(
     orphanRemoval = true,
     mappedBy = "programmeGroup",
   )
+  @OrderBy("startsAt ASC")
   var sessions: MutableSet<SessionEntity> = mutableSetOf(),
 )
