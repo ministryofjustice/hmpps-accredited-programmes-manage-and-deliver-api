@@ -595,11 +595,10 @@ class ProgrammeGroupController(
   )
   @PostMapping("/group/{groupId}/session/schedule")
   fun scheduleSession(
-    @Parameter(
+    @PathVariable @Parameter(
       description = "The UUID of the programme group",
       required = true,
-    )
-    @PathVariable("groupId") groupId: UUID,
+    ) groupId: UUID,
     @Valid
     @RequestBody scheduleSessionRequest: ScheduleSessionRequest,
   ): ResponseEntity<ScheduleSessionResponse> {

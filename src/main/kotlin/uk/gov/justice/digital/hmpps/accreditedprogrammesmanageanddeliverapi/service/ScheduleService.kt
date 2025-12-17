@@ -6,7 +6,9 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.Clock
@@ -23,6 +25,7 @@ class ScheduleService(
   private val moduleRepository: ModuleRepository,
   private val sessionRepository: SessionRepository,
   private val clock: Clock,
+  private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -102,6 +105,21 @@ class ScheduleService(
       programmeGroupId,
       templateId,
     )
+
+    val programmeGroupMemberships = programmeGroupMembershipRepository.findAllByProgrammeGroupId(group.id!!)
+
+    if (programmeGroupMemberships.isNotEmpty()) {
+      programmeGroupMemberships.forEach { groupMembership ->
+        generatedSessions.forEach { session ->
+          session.attendances.add(
+            SessionAttendanceEntity(
+              session = session,
+              groupMembership = groupMembership,
+            ),
+          )
+        }
+      }
+    }
 
     return sessionRepository.saveAll(generatedSessions)
   }
