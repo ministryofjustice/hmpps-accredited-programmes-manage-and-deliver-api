@@ -38,7 +38,6 @@ class TemplateService(
       throw NotFoundException("Module with id: $moduleId does not belong to the accredited programme template for group: $groupId")
     }
 
-    // Retrieve session templates for the module
     val sessionTemplates = moduleSessionTemplateRepository.findByModuleId(moduleId)
       .sortedBy { it.sessionNumber }
       .filter { it.sessionType == SessionType.ONE_TO_ONE }
@@ -50,7 +49,7 @@ class TemplateService(
         )
       }
 
-    log.info("Found ${sessionTemplates.size} session templates for module: $moduleId")
+    log.info("Found ${sessionTemplates.size} One-to-One session templates for module: $moduleId")
 
     return ScheduleSessionTypeResponse(sessionTemplates = sessionTemplates)
   }

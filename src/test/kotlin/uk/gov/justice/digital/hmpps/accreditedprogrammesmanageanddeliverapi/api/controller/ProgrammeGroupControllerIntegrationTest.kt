@@ -1440,11 +1440,12 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val moduleId = modules.first().id!!
 
       // When / Then
-      webTestClient
-        .get()
-        .uri("/bff/group/$nonExistentGroupId/module/$moduleId/schedule-session-type")
-        .exchange()
-        .expectStatus().isNotFound
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/$nonExistentGroupId/module/$moduleId/schedule-session-type",
+        body = " ",
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
     }
 
     @Test
@@ -1463,11 +1464,12 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val nonExistentModuleId = UUID.randomUUID()
 
       // When / Then
-      webTestClient
-        .get()
-        .uri("/bff/group/${group.id}/module/$nonExistentModuleId/schedule-session-type")
-        .exchange()
-        .expectStatus().isNotFound
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/module/$nonExistentModuleId/schedule-session-type",
+        body = " ",
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
     }
   }
 
