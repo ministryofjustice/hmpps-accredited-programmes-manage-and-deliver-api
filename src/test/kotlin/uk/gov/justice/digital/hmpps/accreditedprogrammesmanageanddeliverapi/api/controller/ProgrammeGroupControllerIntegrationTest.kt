@@ -58,6 +58,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -89,6 +90,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
 
   private lateinit var referrals: List<ReferralEntity>
+
+  @Autowired
+  private lateinit var accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository
 
   @Autowired
   private lateinit var programmeGroupModuleRepository: ModuleRepository
@@ -1378,6 +1382,92 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .bodyValue(scheduleSessionRequest)
         .exchange()
         .expectStatus().isUnauthorized
+    }
+  }
+
+  @Nested
+  @DisplayName("Get session templates for group module")
+  @WithMockAuthUser("AUTH_ADM")
+  inner class GetSessionTemplatesForGroupModule {
+    val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+
+    @Test
+    fun `Successfully retrieves session templates for a module using V56 migration data`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val modules = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplate!!.id!!)
+      assertThat(modules).isNotEmpty
+
+      // Use the "Getting Started" module (module_number = 2) which has 2 sessions
+      val firstModule = modules.find { it.moduleNumber == 1 }
+      assertThat(firstModule).isNotNull
+
+      // Create a test group linked to Building Choices
+      val group = ProgrammeGroupFactory()
+        .withCode("TEST_GROUP_001")
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      group.accreditedProgrammeTemplate = buildingChoicesTemplate
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectStatusAndReturnBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/module/${firstModule!!.id}/schedule-session-type",
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      response.json(
+        """
+        {
+          "sessionTemplates" : [ {
+            "id" : "1bcaf371-e624-4034-a13b-5ae2e9921bd4",
+            "number" : 1,
+            "name" : "Pre-Group"
+          } ]
+        }
+        """.trimIndent(),
+      )
+    }
+
+    @Test
+    fun `Returns 404 when group does not exist`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val nonExistentGroupId = UUID.randomUUID()
+      val modules = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplate.id!!)
+      val moduleId = modules.first().id!!
+
+      // When / Then
+      webTestClient
+        .get()
+        .uri("/bff/group/$nonExistentGroupId/module/$moduleId/schedule-session-type")
+        .exchange()
+        .expectStatus().isNotFound
+    }
+
+    @Test
+    fun `Returns 404 when module does not exist`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+      val group = ProgrammeGroupFactory()
+        .withCode("TEST_GROUP_002")
+        .withRegionName("WIREMOCKED REGION")
+        .withAccreditedProgrammeTemplate(buildingChoicesTemplate)
+        .produce()
+
+      testDataGenerator.createGroup(group)
+
+      val nonExistentModuleId = UUID.randomUUID()
+
+      // When / Then
+      webTestClient
+        .get()
+        .uri("/bff/group/${group.id}/module/$nonExistentModuleId/schedule-session-type")
+        .exchange()
+        .expectStatus().isNotFound
     }
   }
 
