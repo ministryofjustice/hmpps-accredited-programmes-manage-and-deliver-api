@@ -1038,7 +1038,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(createdGroup.sessions).hasSize(expectedPairs.size)
 
       val actualPairs: Set<Pair<Int, Int>> = createdGroup.sessions
-        .map { s -> s.moduleSessionTemplate!!.module.moduleNumber to s.moduleSessionTemplate!!.sessionNumber }
+        .map { s -> s.moduleSessionTemplate.module.moduleNumber to s.moduleSessionTemplate.sessionNumber }
         .toSet()
 
       assertThat(actualPairs).isEqualTo(expectedPairs)

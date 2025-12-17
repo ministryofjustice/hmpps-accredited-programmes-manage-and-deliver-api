@@ -9,6 +9,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.temporal.TemporalAdjusters
@@ -21,6 +22,7 @@ class ScheduleService(
   private val programmeGroupRepository: ProgrammeGroupRepository,
   private val moduleRepository: ModuleRepository,
   private val sessionRepository: SessionRepository,
+  private val clock: Clock,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -112,7 +114,7 @@ class ScheduleService(
       "Earliest start date must not be null"
     }
 
-    val now = LocalDateTime.now()
+    val now = LocalDateTime.now(clock)
     val futureSessions = group.sessions.filter { it.startsAt > now }.toSet()
     val mostRecentSession = group.sessions.filter { it.startsAt <= now }.maxByOrNull { it.startsAt }
 

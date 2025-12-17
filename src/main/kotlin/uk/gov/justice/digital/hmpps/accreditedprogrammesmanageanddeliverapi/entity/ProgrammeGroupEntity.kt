@@ -98,6 +98,7 @@ class ProgrammeGroupEntity(
     fetch = FetchType.LAZY,
     cascade = [CascadeType.ALL],
     mappedBy = "programmeGroup",
+    orphanRemoval = true,
   )
   var programmeGroupSessionSlots: MutableSet<ProgrammeGroupSessionSlotEntity> = mutableSetOf(),
 
