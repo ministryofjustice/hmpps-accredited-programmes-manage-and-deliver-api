@@ -17,11 +17,15 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
@@ -599,8 +603,22 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val theCrnNumber = randomUppercaseString()
       val groupCode = "AAA111"
       val group = ProgrammeGroupFactory().withCode(groupCode).produce()
-      val session1 = SessionEntity(programmeGroup = group, moduleSessionTemplate = null, isCatchup = false, locationName = null, startsAt = LocalDateTime.now(), endsAt = LocalDateTime.now().plusDays(1))
-      val session2 = SessionEntity(programmeGroup = group, moduleSessionTemplate = null, isCatchup = false, locationName = null, startsAt = LocalDateTime.now(), endsAt = LocalDateTime.now().plusDays(1))
+      val session1 = SessionEntity(
+        programmeGroup = group,
+        moduleSessionTemplate = null,
+        isCatchup = false,
+        locationName = null,
+        startsAt = LocalDateTime.now(),
+        endsAt = LocalDateTime.now().plusDays(1),
+      )
+      val session2 = SessionEntity(
+        programmeGroup = group,
+        moduleSessionTemplate = null,
+        isCatchup = false,
+        locationName = null,
+        startsAt = LocalDateTime.now(),
+        endsAt = LocalDateTime.now().plusDays(1),
+      )
 
       testDataGenerator.createGroup(group, mutableSetOf(session1, session2))
 
@@ -793,13 +811,14 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `create group with all parameters and return 200 when it doesn't already exist`() {
       val teamMember1 =
-        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER)
       val teamMember2 =
-        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR)
       val teamMember3 =
-        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
       val teamMember4 =
-        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.COVER_FACILITATOR)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.COVER_FACILITATOR)
+
       val body = CreateGroupRequestFactory().produce(
         "TEST_GROUP",
         ProgrammeGroupCohort.GENERAL,
@@ -920,13 +939,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `create group and assign correct team members and facilitators and return 200 when it doesn't already exist`() {
       val teamMember1 =
-        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER)
       val teamMember2 =
-        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR)
       val teamMember3 =
-        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
       val teamMember4 =
-        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.COVER_FACILITATOR)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.COVER_FACILITATOR)
       val body = createGroupRequestFactory.produce(
         teamMembers = listOf(teamMember1, teamMember2, teamMember3, teamMember4),
       )
@@ -954,11 +973,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `create group and return 400 when it doesn't already exist and there is no treatment manager`() {
       val teamMember1 =
-        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR)
       val teamMember2 =
-        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
       val teamMember3 =
-        createGroupTeamMemberFactory.produce(teamMemberType = CreateGroupTeamMemberType.COVER_FACILITATOR)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.COVER_FACILITATOR)
       val body = createGroupRequestFactory.produce(
         teamMembers = listOf(teamMember1, teamMember2, teamMember3),
       )
@@ -1223,6 +1242,141 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
+    }
+  }
+
+  @Nested
+  @DisplayName("Schedule Session")
+  @WithMockAuthUser("AUTH_ADM")
+  inner class ScheduleSession {
+    val facilitators = listOf(CreateGroupTeamMemberFactory().produce())
+    val group = ProgrammeGroupFactory().withCode("TEST001").produce()
+    var referral: ReferralEntity? = null
+
+    @BeforeEach
+    fun beforeEach() {
+      referral = referrals.first()
+      testDataGenerator.createGroup(group)
+    }
+
+    @Test
+    fun `should return 200 when scheduling a one-to-one session with valid data`() {
+      // Given
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = UUID.randomUUID(),
+        referralIds = listOf(referral!!.id!!),
+        facilitators = facilitators,
+        startDate = LocalDate.of(2025, 1, 1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody<ScheduleSessionResponse>(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<ScheduleSessionResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.message).isEqualTo("Session scheduled successfully")
+    }
+
+    @Test
+    fun `should return 400 when referralIds is empty`() {
+      // Given
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = UUID.randomUUID(),
+        referralIds = emptyList(),
+        facilitators = facilitators,
+        startDate = LocalDate.of(2025, 1, 1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When / Then
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+      )
+    }
+
+    @Test
+    fun `should return 400 when facilitators is empty`() {
+      // Given
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = UUID.randomUUID(),
+        referralIds = listOf(referral!!.id!!),
+        facilitators = emptyList(),
+        startDate = LocalDate.of(2025, 1, 1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When / Then
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+      )
+    }
+
+    @Test
+    fun `should return 400 when hour is out of range`() {
+      // Given
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = UUID.randomUUID(),
+        referralIds = listOf(referral!!.id!!),
+        facilitators = facilitators,
+        startDate = LocalDate.of(2025, 1, 1),
+        startTime = SessionTime(hour = 13, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When / Then
+      performRequestAndExpectStatusWithBody<ErrorResponse>(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+      )
+    }
+
+    @Test
+    fun `should return 401 when unauthorised`() {
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = UUID.randomUUID(),
+        referralIds = listOf(UUID.randomUUID()),
+        facilitators = listOf(
+          CreateGroupTeamMember(
+            facilitator = "Test Facilitator",
+            facilitatorCode = "FAC001",
+            teamName = "Test Team",
+            teamCode = "TEAM001",
+            teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER,
+          ),
+        ),
+        startDate = LocalDate.of(2025, 1, 1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      webTestClient
+        .post()
+        .uri("/group/${group.id}/session/schedule")
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(scheduleSessionRequest)
+        .exchange()
+        .expectStatus().isUnauthorized
     }
   }
 }

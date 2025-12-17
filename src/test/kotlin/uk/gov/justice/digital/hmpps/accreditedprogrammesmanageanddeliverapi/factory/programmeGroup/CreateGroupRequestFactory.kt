@@ -36,6 +36,6 @@ class CreateGroupRequestFactory(
     pduCode = pduCode ?: randomUppercaseString(),
     deliveryLocationName = deliveryLocationName ?: randomWord(1..3).asString(),
     deliveryLocationCode = deliveryLocationCode ?: randomUppercaseString(),
-    teamMembers = teamMembers ?: listOf(teamMemberFactory.produce()),
+    teamMembers = teamMembers ?: listOf(teamMemberFactory.produceWithRandomValues()),
   )
 }
