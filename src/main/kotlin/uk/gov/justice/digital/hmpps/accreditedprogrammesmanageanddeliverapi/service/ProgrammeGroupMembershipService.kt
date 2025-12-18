@@ -83,6 +83,8 @@ class ProgrammeGroupMembershipService(
     return null
   }
 
+  fun getActiveGroupMemberships(groupId: UUID): List<ProgrammeGroupMembershipEntity> = programmeGroupMembershipRepository.findAllActiveByProgrammeGroupId(groupId)
+
   fun removeReferralFromGroup(
     referralId: UUID,
     groupId: UUID,

@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -28,11 +29,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleIndividualSessionDetailsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
@@ -40,6 +43,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RegionService
@@ -61,6 +67,8 @@ class ProgrammeGroupController(
   private val userService: UserService,
   private val regionService: RegionService,
   private val scheduleService: ScheduleService,
+  private val programmeGroupRepository: ProgrammeGroupRepository,
+  private val moduleRepository: ModuleRepository,
 ) {
 
   @Operation(
@@ -550,6 +558,89 @@ class ProgrammeGroupController(
     )
 
     return ResponseEntity.status(HttpStatus.OK).body(response)
+  }
+
+  @Operation(
+    tags = ["Programme Group controller"],
+    summary = "Get details for scheduling an individual session",
+    operationId = "getScheduleIndividualSessionDetails",
+    description = "Retrieve facilitators and group members for scheduling a one-to-one session",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Successfully retrieved schedule session details",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ScheduleIndividualSessionDetailsResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden, requires role ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Group or module not found",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/bff/group/{groupId}/module/{moduleId}/schedule-individual-session-details", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getScheduleIndividualSessionDetails(
+    @Parameter(description = "The UUID of the Programme Group", required = true)
+    @PathVariable("groupId") groupId: UUID,
+    @Parameter(description = "The UUID of the Module", required = true)
+    @PathVariable("moduleId") moduleId: UUID,
+  ): ResponseEntity<ScheduleIndividualSessionDetailsResponse> {
+    programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
+
+    moduleRepository.findByIdOrNull(moduleId)
+      ?: throw NotFoundException("Module with id $moduleId not found")
+
+    val username = getUsername()
+    val (userRegion) = userService.getUserRegions(username)
+    val facilitators = regionService.getTeamMembersForPdu(userRegion.code)
+
+    val memberships = programmeGroupMembershipService.getActiveGroupMemberships(groupId)
+    val groupMembers = memberships.map { membership ->
+      GroupMember(
+        name = membership.referral.personName,
+        crn = membership.referral.crn,
+        referralId = membership.referral.id!!,
+      )
+    }
+
+    return ResponseEntity.ok(
+      ScheduleIndividualSessionDetailsResponse(
+        facilitators = facilitators,
+        groupMembers = groupMembers,
+      ),
+    )
   }
 
   private fun getUsername(): String {
