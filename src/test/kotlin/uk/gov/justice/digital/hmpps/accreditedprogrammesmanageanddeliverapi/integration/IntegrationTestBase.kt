@@ -17,6 +17,7 @@ import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.containers.localstack.LocalStackContainer
@@ -33,6 +34,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
+import java.time.Clock
 
 @Testcontainers
 @ExtendWith(HmppsAuthApiExtension::class)
@@ -73,6 +75,14 @@ abstract class IntegrationTestBase {
 
   @Autowired
   lateinit var testReferralHelper: TestReferralHelper
+
+  /**
+   * This is used in some tests to provide a fixed clock when specific dates and times matter.
+   * It is placed in this class so context is not reloaded by spring when mocking the bean
+   * as this causes context loading errors across the tests.
+   */
+  @MockitoSpyBean
+  lateinit var clock: Clock
 
   @BeforeEach
   fun beforeEach() {

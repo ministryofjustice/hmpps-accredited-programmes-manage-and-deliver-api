@@ -3,10 +3,8 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.TestConfiguration
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Primary
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
@@ -20,7 +18,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
-import java.time.Clock
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -37,24 +34,14 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
   private lateinit var programmeGroupRepository: ProgrammeGroupRepository
 
   @Autowired
-  private lateinit var clock: Clock
-
-  @Autowired
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
-
-  @TestConfiguration
-  class FixedClockConfig {
-
-    @Bean
-    @Primary
-    fun fixedClock(): Clock = Clock.fixed(
-      Instant.parse("2025-11-22T12:00:00Z"),
-      ZoneId.of("Europe/London"),
-    )
-  }
 
   @BeforeEach
   fun setup() {
+    whenever(clock.instant())
+      .thenReturn(Instant.parse("2025-11-22T12:00:00Z"))
+    whenever(clock.zone)
+      .thenReturn(ZoneId.of("Europe/London"))
     testDataCleaner.cleanAllTables()
 
     nDeliusApiStubs.clearAllStubs()
