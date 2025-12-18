@@ -26,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleIndividualSessionDetailsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionTypeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
@@ -1411,24 +1412,16 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createGroup(group)
 
       // When
-      val response = performRequestAndExpectStatusAndReturnBody(
+      val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.GET,
         uri = "/bff/group/${group.id}/module/${firstModule!!.id}/schedule-session-type",
         expectedResponseStatus = HttpStatus.OK.value(),
+        returnType = object : ParameterizedTypeReference<ScheduleSessionTypeResponse>() {},
+        body = " ",
       )
 
       // Then
-      response.json(
-        """
-        {
-          "sessionTemplates" : [ {
-            "id" : "1bcaf371-e624-4034-a13b-5ae2e9921bd4",
-            "number" : 1,
-            "name" : "Pre-Group"
-          } ]
-        }
-        """.trimIndent(),
-      )
+      assertThat(response.sessionTemplates).hasSize(1)
     }
 
     @Test
@@ -1439,7 +1432,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val modules = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplate.id!!)
       val moduleId = modules.first().id!!
 
-      // When / Then
+      // When/Then
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
         uri = "/bff/group/$nonExistentGroupId/module/$moduleId/schedule-session-type",

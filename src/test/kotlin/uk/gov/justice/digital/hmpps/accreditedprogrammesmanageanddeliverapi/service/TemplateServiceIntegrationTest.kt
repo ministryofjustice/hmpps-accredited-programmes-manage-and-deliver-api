@@ -77,11 +77,11 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
     @Test
     fun `Successfully retrieves session templates for Pre-Group module (one session)`() {
       // When
-      val response = service.getOneToOneSessionTemplatesForGroupAndModule(groupId, preGroupModuleId)
+      val sessionTemplates = service.getOneToOneSessionTemplatesForGroupAndModule(groupId, preGroupModuleId)
 
       // Then
-      assertThat(response.sessionTemplates).hasSize(1)
-      val sessionTemplate = response.sessionTemplates.first()
+      assertThat(sessionTemplates).hasSize(1)
+      val sessionTemplate = sessionTemplates.first()
       assertThat(sessionTemplate.number).isEqualTo(1)
       assertThat(sessionTemplate.name).isEqualTo("Pre-Group")
       assertThat(sessionTemplate.id).isNotNull
@@ -90,10 +90,10 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
     @Test
     fun `Successfully retrieves zero templates for Getting Started module (two Group sessions)`() {
       // When
-      val response = service.getOneToOneSessionTemplatesForGroupAndModule(groupId, gettingStartedModuleId)
+      val sessionTemplates = service.getOneToOneSessionTemplatesForGroupAndModule(groupId, gettingStartedModuleId)
 
       // Then
-      assertThat(response.sessionTemplates).hasSize(0)
+      assertThat(sessionTemplates).hasSize(0)
     }
 
     @Test

@@ -4,8 +4,8 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionTypeResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTemplateItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ModuleSessionTemplate
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -22,7 +22,7 @@ class TemplateService(
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  fun getOneToOneSessionTemplatesForGroupAndModule(groupId: UUID, moduleId: UUID): ScheduleSessionTypeResponse {
+  fun getOneToOneSessionTemplatesForGroupAndModule(groupId: UUID, moduleId: UUID): List<ModuleSessionTemplate> {
     log.info("Retrieving session templates for group: $groupId and module: $moduleId")
 
     val group = programmeGroupRepository.findByIdOrNull(groupId)
@@ -41,16 +41,10 @@ class TemplateService(
     val sessionTemplates = moduleSessionTemplateRepository.findByModuleId(moduleId)
       .sortedBy { it.sessionNumber }
       .filter { it.sessionType == SessionType.ONE_TO_ONE }
-      .map { template ->
-        SessionTemplateItem(
-          id = template.id!!,
-          number = template.sessionNumber,
-          name = template.name,
-        )
-      }
+      .map { it.toApi() }
 
     log.info("Found ${sessionTemplates.size} One-to-One session templates for module: $moduleId")
 
-    return ScheduleSessionTypeResponse(sessionTemplates = sessionTemplates)
+    return sessionTemplates
   }
 }

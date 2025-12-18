@@ -558,9 +558,11 @@ class ProgrammeGroupController(
      * One-to-Ones.
      * --TJWC 2025-12-17
      */
-    val response = templateService.getOneToOneSessionTemplatesForGroupAndModule(groupId, moduleId)
+    val sessionTemplates = templateService.getOneToOneSessionTemplatesForGroupAndModule(groupId, moduleId)
 
-    return ResponseEntity.ok(response)
+    val body = ScheduleSessionTypeResponse(sessionTemplates)
+
+    return ResponseEntity.ok(body)
   }
 
   @Operation(
