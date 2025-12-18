@@ -50,6 +50,7 @@ class ProgrammeGroupService(
   private val userService: UserService,
   private val facilitatorRepository: FacilitatorRepository,
   private val accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository,
+  private val scheduleService: ScheduleService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -93,7 +94,12 @@ class ProgrammeGroupService(
     require(buildingChoicesTemplate != null) { "Template must not be null" }
 
     log.info("Group created with code: ${createGroupRequest.groupCode}")
-    return programmeGroupRepository.save(programmeGroup)
+
+    val savedGroup = programmeGroupRepository.save(programmeGroup)
+
+    scheduleService.scheduleSessionsForGroup(savedGroup.id!!)
+
+    return savedGroup
   }
 
   private fun findOrCreateFacilitator(teamMember: CreateGroupTeamMember): FacilitatorEntity = facilitatorRepository.findByNdeliusPersonCode(teamMember.facilitatorCode)

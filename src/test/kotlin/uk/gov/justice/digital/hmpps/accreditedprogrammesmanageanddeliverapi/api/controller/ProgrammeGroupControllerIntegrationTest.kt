@@ -68,6 +68,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.util
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.UUID
 
@@ -1012,6 +1013,27 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `create group and create sessions`() {
+      val slot1 = CreateGroupSessionSlotFactory().produce(
+        dayOfWeek = DayOfWeek.MONDAY,
+        hour = 9,
+        minutes = 0,
+        amOrPm = AmOrPm.AM,
+      )
+      val slot2 = CreateGroupSessionSlotFactory().produce(
+        dayOfWeek = DayOfWeek.WEDNESDAY,
+        hour = 12,
+        minutes = 30,
+        amOrPm = AmOrPm.PM,
+      )
+      val slot3 =
+        CreateGroupSessionSlotFactory().produce(
+          dayOfWeek = DayOfWeek.SATURDAY,
+          hour = 5,
+          minutes = 15,
+          amOrPm = AmOrPm.PM,
+        )
+
+      val slots = mutableSetOf(slot1, slot2, slot3)
       val body = CreateGroupRequestFactory().produce(
         earliestStartDate = LocalDate.parse("2025-01-01"),
         // Creates 3 slots in a week
@@ -1026,6 +1048,33 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
       assertThat(createdGroup).isNotNull
+
+      // Hard-coded from the number of sessions in the template
+      assertThat(createdGroup.sessions).hasSize(26)
+      val sessionDays = createdGroup.sessions.map { it.startsAt.dayOfWeek }.distinct()
+
+      assertThat(sessionDays).containsExactlyInAnyOrder(
+        DayOfWeek.MONDAY,
+        DayOfWeek.WEDNESDAY,
+        DayOfWeek.SATURDAY,
+      )
+
+      // The 1st Jan 2025 is a Wednesday, so the first Session should be Wednesday 1st, then Saturday 4th
+      assertThat(
+        createdGroup.sessions.find {
+          it.startsAt == LocalDateTime.of(2025, 1, 1, 12, 30) &&
+            it.sessionNumber == 1 &&
+            it.moduleNumber == 1
+        },
+      ).isNotNull
+
+      assertThat(
+        createdGroup.sessions.find {
+          it.startsAt == LocalDateTime.of(2025, 1, 4, 17, 15) &&
+            it.moduleNumber == 2
+          it.sessionNumber == 1
+        },
+      ).isNotNull
 
       // Compare the template moduleNumber and sessionNumbers to the created moduleNumber and sessionNumbers
       val expectedPairs: Set<Pair<Int, Int>> = programmeGroupModuleRepository
