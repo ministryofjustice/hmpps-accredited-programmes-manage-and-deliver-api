@@ -33,6 +33,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
@@ -41,6 +43,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RegionService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.util.UUID
@@ -57,6 +60,7 @@ class ProgrammeGroupController(
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
   private val userService: UserService,
   private val regionService: RegionService,
+  private val scheduleService: ScheduleService,
 ) {
 
   @Operation(
@@ -364,7 +368,8 @@ class ProgrammeGroupController(
     @RequestBody createGroupRequest: CreateGroupRequest,
   ): ResponseEntity<Void> {
     val username = getUsername()
-    programmeGroupService.createGroup(createGroupRequest, username)
+    val group = programmeGroupService.createGroup(createGroupRequest, username)
+    scheduleService.scheduleSessionsForGroup(group.id!!)
     return ResponseEntity.status(HttpStatus.CREATED).build()
   }
 
@@ -497,6 +502,54 @@ class ProgrammeGroupController(
     val (userRegion) = userService.getUserRegions(username)
     val teamMembers = regionService.getTeamMembersForPdu(userRegion.code)
     return ResponseEntity.ok(teamMembers)
+  }
+
+  @Operation(
+    tags = ["Programme Group controller"],
+    summary = "Schedule a session (one-to-one, or catch ups) for group members",
+    operationId = "scheduleSession",
+    description = "Schedule a session for members of a programme group. This endpoint allows facilitators to schedule individual sessions that must be coordinated across multiple group members.",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Session successfully scheduled",
+        content = [Content(schema = Schema(implementation = ScheduleSessionResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid request parameters",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Group or session template not found",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PostMapping("/group/{groupId}/session/schedule")
+  fun scheduleSession(
+    @Parameter(
+      description = "The UUID of the programme group",
+      required = true,
+    )
+    @PathVariable("groupId") groupId: UUID,
+    @Valid
+    @RequestBody scheduleSessionRequest: ScheduleSessionRequest,
+  ): ResponseEntity<ScheduleSessionResponse> {
+    // Placeholder implementation - actual business logic to be implemented in follow-up PR
+    // --TJWC 2025-12-17
+    val response = ScheduleSessionResponse(
+      message = "Session scheduled successfully",
+    )
+
+    return ResponseEntity.status(HttpStatus.OK).body(response)
   }
 
   private fun getUsername(): String {
