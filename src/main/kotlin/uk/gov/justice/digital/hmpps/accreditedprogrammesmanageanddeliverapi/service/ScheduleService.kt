@@ -4,6 +4,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
@@ -34,9 +35,9 @@ class ScheduleService(
     programmeGroupId: UUID,
     mostRecentSession: SessionEntity? = null,
   ): MutableList<SessionEntity> {
-    val group = requireNotNull(programmeGroupRepository.findByIdOrNull(programmeGroupId)) {
-      "Group must not be null"
-    }
+    val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
+      ?: throw NotFoundException("Group with id: $programmeGroupId could not be found")
+
     val earliestStartDate = requireNotNull(group.earliestPossibleStartDate) {
       "Earliest start date must not be null"
     }

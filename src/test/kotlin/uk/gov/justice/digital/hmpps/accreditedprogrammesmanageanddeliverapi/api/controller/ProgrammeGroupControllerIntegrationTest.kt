@@ -1036,8 +1036,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val slots = mutableSetOf(slot1, slot2, slot3)
       val body = CreateGroupRequestFactory().produce(
         earliestStartDate = LocalDate.parse("2025-01-01"),
-        // Creates 3 slots in a week
-        createGroupSessionSlot = CreateGroupSessionSlotFactory().produceUniqueSlots(3),
+        createGroupSessionSlot = slots,
       )
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
