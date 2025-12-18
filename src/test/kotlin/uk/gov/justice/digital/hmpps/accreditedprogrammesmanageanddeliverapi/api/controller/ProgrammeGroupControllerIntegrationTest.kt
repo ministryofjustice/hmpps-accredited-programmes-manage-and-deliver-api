@@ -23,6 +23,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleIndividualSessionDetailsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
@@ -1377,6 +1378,117 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .bodyValue(scheduleSessionRequest)
         .exchange()
         .expectStatus().isUnauthorized
+    }
+  }
+
+  @Nested
+  @DisplayName("Get Schedule Individual Session Details")
+  @WithMockAuthUser("AUTH_ADM")
+  inner class GetScheduleIndividualSessionDetails {
+
+    @Test
+    fun `returns 200 with facilitators and group members for valid group and module`() {
+      // Setup nDelius stubs for facilitators
+      val members = listOf(
+        NDeliusUserTeamMembersFactory().produce(code = "CODE_1", name = FullName("First", null, "Forename")),
+        NDeliusUserTeamMembersFactory().produce(code = "CODE_2", name = FullName("Second", null, "Forename")),
+      )
+      val teams = listOf(NDeliusUserTeamWithMembersFactory().produce(members = members))
+      val pdu = NDeliusPduWithTeamFactory().produce(team = teams)
+      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(
+        pdus = listOf(pdu),
+        code = "REGION001",
+      )
+      nDeliusApiStubs.stubRegionWithMembersResponse("REGION001", regionWithMembers)
+
+      // Get an existing template and module to use
+      val template = programmeGroupModuleRepository.findAll().first().accreditedProgrammeTemplate
+
+      // Create a programme group
+      val group = ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(template!!)
+        .produce()
+      programmeGroupRepository.save(group)
+
+      // Allocate referrals to the group
+      val referral1 = referrals[0]
+      val referral2 = referrals[1]
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referralId = referral1.id!!,
+        groupId = group.id!!,
+        allocatedToGroupBy = "AUTH_ADM",
+        additionalDetails = "Test allocation",
+      )
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referralId = referral2.id!!,
+        groupId = group.id!!,
+        allocatedToGroupBy = "AUTH_ADM",
+        additionalDetails = "Test allocation",
+      )
+
+      // Get a module from the group's template
+      val module = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(
+        group.accreditedProgrammeTemplate!!.id!!,
+      ).first()
+
+      // Make the request
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/module/${module.id}/schedule-individual-session-details",
+        returnType = object : ParameterizedTypeReference<ScheduleIndividualSessionDetailsResponse>() {},
+      )
+
+      // Assertions
+      assertThat(response.facilitators).hasSize(2)
+      assertThat(response.facilitators.map { it.personCode }).containsExactlyInAnyOrder("CODE_1", "CODE_2")
+
+      assertThat(response.groupMembers).hasSize(2)
+      assertThat(response.groupMembers.map { it.crn }).containsExactlyInAnyOrder(
+        referral1.crn,
+        referral2.crn,
+      )
+      assertThat(response.groupMembers.map { it.name }).containsExactlyInAnyOrder(
+        referral1.personName,
+        referral2.personName,
+      )
+      assertThat(response.groupMembers.map { it.referralId }).containsExactlyInAnyOrder(
+        referral1.id,
+        referral2.id,
+      )
+    }
+
+    @Test
+    fun `returns 404 when group does not exist`() {
+      val nonExistentGroupId = UUID.randomUUID()
+      val module = programmeGroupModuleRepository.findAll().first()
+
+      val errorResponse = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/$nonExistentGroupId/module/${module.id}/schedule-individual-session-details",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(errorResponse.status).isEqualTo(HttpStatus.NOT_FOUND.value())
+      assertThat(errorResponse.userMessage).contains("Group with id $nonExistentGroupId not found")
+    }
+
+    @Test
+    fun `returns 404 when module does not exist`() {
+      val group = ProgrammeGroupFactory().produce()
+      programmeGroupRepository.save(group)
+
+      val nonExistentModuleId = UUID.randomUUID()
+
+      val errorResponse = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/module/$nonExistentModuleId/schedule-individual-session-details",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(errorResponse.status).isEqualTo(HttpStatus.NOT_FOUND.value())
+      assertThat(errorResponse.userMessage).contains("Module with id $nonExistentModuleId not found")
     }
   }
 }
