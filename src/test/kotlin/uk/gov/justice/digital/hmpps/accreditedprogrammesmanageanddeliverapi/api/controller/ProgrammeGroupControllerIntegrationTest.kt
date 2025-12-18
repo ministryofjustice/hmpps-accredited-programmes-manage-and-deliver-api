@@ -1006,8 +1006,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(createdGroup?.programmeGroupSessionSlots).size().isEqualTo(2)
 
       assertThat(createdGroup?.programmeGroupSessionSlots).allMatch {
-        (it.dayOfWeek == DayOfWeek.MONDAY && it.startTime.equals(LocalTime.of(1, 1))) ||
-          (it.dayOfWeek == DayOfWeek.TUESDAY && it.startTime.equals(LocalTime.of(13, 1)))
+        (it.dayOfWeek == DayOfWeek.MONDAY && it.startTime == LocalTime.of(1, 1)) ||
+          (it.dayOfWeek == DayOfWeek.TUESDAY && it.startTime == LocalTime.of(13, 1))
       }
     }
 
@@ -1314,7 +1314,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // When
-      val response = performRequestAndExpectStatusWithBody<ScheduleSessionResponse>(
+      val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group/${group.id}/session/schedule",
         body = scheduleSessionRequest,
@@ -1384,7 +1384,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // When / Then
-      performRequestAndExpectStatusWithBody<ErrorResponse>(
+      performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group/${group.id}/session/schedule",
         body = scheduleSessionRequest,
@@ -1432,7 +1432,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `Successfully retrieves session templates for a module using V56 migration data`() {
       // Given
       stubAuthTokenEndpoint()
-      val modules = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplate!!.id!!)
+      val modules = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplate.id!!)
       assertThat(modules).isNotEmpty
 
       // Use the "Getting Started" module (module_number = 2) which has 2 sessions
@@ -1527,7 +1527,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Create a programme group
       val group = ProgrammeGroupFactory()
-        .withAccreditedProgrammeTemplate(template!!)
+        .withAccreditedProgrammeTemplate(template)
         .produce()
       programmeGroupRepository.save(group)
 
