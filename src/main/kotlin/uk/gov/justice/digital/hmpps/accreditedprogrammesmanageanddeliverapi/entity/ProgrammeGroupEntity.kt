@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity
 
-import com.fasterxml.jackson.annotation.JsonFormat
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -9,7 +8,10 @@ import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
+import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedBy
@@ -50,7 +52,6 @@ class ProgrammeGroupEntity(
   @NotNull
   @Column(name = "created_at")
   @CreatedDate
-  @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
   var createdAt: LocalDateTime = LocalDateTime.now(),
 
   @NotNull
@@ -59,14 +60,12 @@ class ProgrammeGroupEntity(
   var createdByUsername: String? = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
 
   @Column(name = "updated_at")
-  @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
   var updatedAt: LocalDateTime? = null,
 
   @Column(name = "updated_by_username")
   var updatedByUsername: String? = null,
 
   @Column(name = "deleted_at")
-  @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
   var deletedAt: LocalDateTime? = null,
 
   @Column(name = "deleted_by_username")
@@ -100,4 +99,22 @@ class ProgrammeGroupEntity(
     mappedBy = "programmeGroup",
   )
   var programmeGroupSessionSlots: MutableSet<ProgrammeGroupSessionSlotEntity> = mutableSetOf(),
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "treatment_manager_id", referencedColumnName = "id")
+  var treatmentManager: FacilitatorEntity? = null,
+
+  @OneToMany(orphanRemoval = true, fetch = FetchType.LAZY, cascade = [CascadeType.ALL], mappedBy = "programmeGroup")
+  val groupFacilitators: MutableSet<ProgrammeGroupFacilitatorEntity> = mutableSetOf(),
+
+  @OneToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "accredited_programme_template_id", referencedColumnName = "id")
+  var accreditedProgrammeTemplate: AccreditedProgrammeTemplateEntity? = null,
+
+  @OneToMany(
+    fetch = FetchType.LAZY,
+    cascade = [CascadeType.ALL],
+    mappedBy = "programmeGroup",
+  )
+  var sessions: MutableSet<SessionEntity> = mutableSetOf(),
 )

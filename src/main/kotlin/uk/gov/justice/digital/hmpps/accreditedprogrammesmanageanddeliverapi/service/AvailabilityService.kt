@@ -22,6 +22,7 @@ import java.util.UUID
 class AvailabilityService(
   val availabilityRepository: AvailabilityRepository,
   val defaultAvailabilityConfigService: DefaultAvailabilityConfigService,
+  private val referralService: ReferralService,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -45,13 +46,13 @@ class AvailabilityService(
    *  false - availability created
    */
   fun createAvailability(createAvailability: CreateAvailability): Pair<Availability, Boolean> {
-    val existingAvailability = availabilityRepository.findByReferralId(createAvailability.referralId)
-    if (existingAvailability != null) {
+    val referral = referralService.getReferralById(createAvailability.referralId)
+    if (referral.availabilityEntity != null) {
       log.info("Availability already exists for referralId ${createAvailability.referralId}")
-      return Pair(existingAvailability.toModel(), true)
+      return Pair(referral.availabilityEntity!!.toModel(), true)
     }
 
-    val availabilityEntity = createAvailability.toEntity(getAuthenticatedReferrerUser())
+    val availabilityEntity = createAvailability.toEntity(getAuthenticatedReferrerUser(), referral)
     val savedAvailabilityEntity = availabilityRepository.save(availabilityEntity)
     return Pair(savedAvailabilityEntity.toModel(), false)
   }
@@ -61,10 +62,11 @@ class AvailabilityService(
 
   @Transactional
   fun updateAvailability(updateAvailability: UpdateAvailability): Availability {
+    val referral = referralService.getReferralById(updateAvailability.referralId)
     val availabilityEntity = availabilityRepository.findByIdOrNull(updateAvailability.availabilityId)
       ?: throw NotFoundException("No availability with id ${updateAvailability.availabilityId}")
 
-    availabilityEntity.referralId = updateAvailability.referralId
+    availabilityEntity.referral = referral
     availabilityEntity.startDate = updateAvailability.startDate?.toLocalDate() ?: LocalDate.now()
     availabilityEntity.endDate = updateAvailability.endDate?.toLocalDate()
     availabilityEntity.otherDetails = updateAvailability.otherDetails
@@ -95,7 +97,7 @@ class AvailabilityService(
 fun String.toLocalDate(): LocalDate {
   try {
     return LocalDate.parse(this)
-  } catch (e: DateTimeParseException) {
+  } catch (_: DateTimeParseException) {
     throw IllegalArgumentException("Invalid date: $this")
   }
 }

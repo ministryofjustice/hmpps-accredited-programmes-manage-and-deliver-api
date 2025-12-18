@@ -6,10 +6,12 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Profile
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -28,9 +30,10 @@ data class PopulatePersonalDetailsResponse(val ids: List<String>)
  */
 @RestController
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
+@Profile(value = ["dev", "local", "test"])
 class AdminController(
   private val adminService: AdminService,
-  private val backgroundScope: CoroutineScope = CoroutineScope(Dispatchers.Default),
+  private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -77,7 +80,7 @@ class AdminController(
       request.referralIds.mapNotNull { str ->
         try {
           UUID.fromString(str)
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
           null
         }
       }
@@ -85,7 +88,7 @@ class AdminController(
       emptyList()
     }
 
-    backgroundScope.launch {
+    CoroutineScope(dispatcher).launch {
       try {
         if (containsWildcard) {
           log.info("Processing all referrals")
@@ -100,5 +103,31 @@ class AdminController(
     }
 
     return ResponseEntity.ok(PopulatePersonalDetailsResponse(ids = request.referralIds))
+  }
+
+  @Operation(
+    tags = ["Admin"],
+    summary = "Clear down referrals with missing data",
+    operationId = "clearMissingDataReferrals",
+    description = "Clear down referrals that are missing Oasys and Delius data.",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Update started (not completed, process is async)",
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PostMapping("/admin/clear-missing-data-referrals")
+  fun clearMissingDataReferrals(): ResponseEntity<Void> {
+    CoroutineScope(dispatcher).launch {
+      adminService.cleanUpReferralsWithNoDeliusOrOasysData()
+    }
+    return ResponseEntity.accepted().build()
   }
 }

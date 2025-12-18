@@ -69,11 +69,13 @@ fun buildRiskModel(
   now: LocalDate? = LocalDate.now(),
 ) = Risks(
   assessmentCompleted = oasysOffendingInfo?.latestCompleteDate?.toLocalDate(),
-  offenderGroupReconviction = oasysRiskPredictorScores?.groupReconvictionScore,
-  offenderViolencePredictor = oasysRiskPredictorScores?.violencePredictorScore,
+  // If these properties are null create an object with null values so the UI can still deserialise
+  offenderGroupReconviction = oasysRiskPredictorScores?.groupReconvictionScore ?: Score(),
+  offenderViolencePredictor = oasysRiskPredictorScores?.violencePredictorScore ?: Score(),
   sara = oasysRelationships?.sara,
-  riskOfSeriousRecidivism = oasysRiskPredictorScores?.riskOfSeriousRecidivismScore?.toModel(oasysOffendingInfo),
-  riskOfSeriousHarm = oasysRoshSummary?.toModel(),
+  riskOfSeriousRecidivism = oasysRiskPredictorScores?.riskOfSeriousRecidivismScore?.toModel(oasysOffendingInfo)
+    ?: RiskOfSeriousRecidivism(),
+  riskOfSeriousHarm = oasysRoshSummary?.toModel() ?: RoshSummary(),
   alerts = alerts?.listOfActiveRegistrations(),
   dateRetrieved = now,
   lastUpdated = oasysOffendingInfo?.latestCompleteDate?.toLocalDate(),

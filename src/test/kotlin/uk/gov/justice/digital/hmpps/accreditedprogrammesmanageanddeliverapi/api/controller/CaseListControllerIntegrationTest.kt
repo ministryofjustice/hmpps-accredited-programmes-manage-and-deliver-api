@@ -14,6 +14,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
@@ -240,6 +241,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `getCaseListItems for OPEN referrals return 200 and paged list of referral case list items`() {
+      // Given & When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/pages/caselist/open",
@@ -247,6 +249,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       )
       val referralCaseListItems = response.pagedReferrals.content
 
+      // Then
       assertThat(response).isNotNull
       assertThat(response.pagedReferrals.totalElements).isEqualTo(6)
       assertThat(referralCaseListItems.map { it.crn })
@@ -260,6 +263,10 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("hasLdc")
       }
       assertThat(response.otherTabTotal).isEqualTo(1)
+      assertThat(response.filters).isNotNull
+      assertThat(response.filters.statusFilterValues.open).contains("Breach", "On programme")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).contains("PDU1", "PDU2")
+      assertThat(response.filters.cohort).containsAll(ProgrammeGroupCohort.entries.map { it.label })
     }
 
     @Test
@@ -371,7 +378,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       assertThat(response).isNotNull
       assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
-      assertThat(referralCaseListItems.first().personName).isEqualTo("Alex River")
+      assertThat(referralCaseListItems.first().personName).isEqualTo("River Alex")
 
       referralCaseListItems.forEach { item ->
         assertThat(item).hasFieldOrProperty("crn")
@@ -387,7 +394,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     fun `getCaseListItems for OPEN and search by personName and cohort returns matching referrals`() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/open?crnOrPersonName=Alex River&cohort=SEXUAL_OFFENCE",
+        "/pages/caselist/open?crnOrPersonName=Alex River&cohort=Sexual Offence",
         object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
       val referralCaseListItems = response.pagedReferrals.content
@@ -396,7 +403,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
 
       val referral = referralCaseListItems[0]
-      assertThat(referral.personName).isEqualTo("Alex River")
+      assertThat(referral.personName).isEqualTo("River Alex")
       assertThat(referral.crn).isEqualTo("CRN-999999")
       assertThat(referral.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(referral.referralStatus).isEqualTo("Awaiting assessment")
@@ -407,7 +414,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     fun `getCaseListItems returns matching referrals when only cohort is used as part of request`() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/open?cohort=GENERAL_OFFENCE",
+        "/pages/caselist/open?cohort=General Offence",
         object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
       val referralCaseListItems = response.pagedReferrals.content
@@ -427,6 +434,22 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("cohort")
       }
       assertThat(response.otherTabTotal).isEqualTo(1)
+    }
+
+    @Test
+    fun `getCaseListItems returns no results when cohort with LDC is used and no records exist`() {
+      // Given and When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?cohort=General Offence - LDC",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(0)
+      assertThat(response.pagedReferrals.content).isEmpty()
+      assertThat(response.otherTabTotal).isEqualTo(0)
     }
 
     @Test

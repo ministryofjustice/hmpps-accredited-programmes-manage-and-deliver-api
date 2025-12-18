@@ -19,4 +19,26 @@ data class GroupsByRegion(
   )
   @get:JsonProperty("otherTabTotal", required = true)
   val otherTabTotal: Int,
+
+  @Schema(
+    required = true,
+    description = "A list of (unique) Probation Delivery Units names across all of the Groups",
+  )
+  @get:JsonProperty("probationDeliveryUnitNames", required = true)
+  val probationDeliveryUnitNames: List<String>,
+
+  @Schema(
+    required = false,
+    description = "A list of (unique) Delivery Locations for Referrals within the current PDU.  Only present if a probationDeliveryUnit is specified",
+  )
+  @get:JsonProperty("deliveryLocationNames", required = false)
+  val deliveryLocationNames: List<String>?,
+
+  @Schema(
+    example = "West Midlands",
+    required = true,
+    description = "The region name the groups belongs to.",
+  )
+  @get:JsonProperty("regionName", required = true)
+  val regionName: String,
 )

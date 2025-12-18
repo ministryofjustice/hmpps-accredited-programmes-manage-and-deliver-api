@@ -39,6 +39,10 @@ class NDeliusApiStubs {
   @Autowired
   private lateinit var objectMapper: ObjectMapper
 
+  fun clearAllStubs() {
+    wiremock.resetAll()
+  }
+
   fun stubAccessCheck(granted: Boolean, vararg crns: String) {
     val response = LimitedAccessOffenderCheckResponse(
       crns.map { crn ->
@@ -91,6 +95,17 @@ class NDeliusApiStubs {
             .withStatus(200)
             .withHeader("Content-Type", "application/json")
             .withBody(objectMapper.writeValueAsString(personalDetails)),
+        ),
+    )
+  }
+
+  fun stubNotFoundPersonalDetailsResponse(crn: String? = null) {
+    wiremock.stubFor(
+      get(urlEqualTo("/case/$crn/personal-details"))
+        .willReturn(
+          aResponse()
+            .withStatus(404)
+            .withHeader("Content-Type", "application/json"),
         ),
     )
   }

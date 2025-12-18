@@ -18,6 +18,14 @@ data class CaseListFilterValues(
   )
   @get:JsonProperty("locationFilters", required = true)
   val locationFilterValues: List<LocationFilterValues>,
+
+  @Schema(
+    example = "[\"General Offence\", \"General Offence - LDC\", \"Domestic Violence\"]",
+    required = true,
+    description = "The available cohorts (offence types or programme categories) that can be used for filtering.",
+  )
+  @get:JsonProperty("cohort", required = true)
+  val cohort: List<String>,
 )
 
 data class StatusFilterValues(

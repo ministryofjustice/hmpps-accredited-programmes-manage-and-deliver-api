@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
+import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedBy
@@ -48,4 +49,10 @@ class ProgrammeGroupMembershipEntity(
 
   @Column(name = "deleted_by_username")
   var deletedByUsername: String? = null,
+
+  @OneToMany(
+    fetch = FetchType.LAZY,
+    mappedBy = "groupMembership",
+  )
+  var attendances: MutableSet<SessionAttendanceEntity> = mutableSetOf(),
 )

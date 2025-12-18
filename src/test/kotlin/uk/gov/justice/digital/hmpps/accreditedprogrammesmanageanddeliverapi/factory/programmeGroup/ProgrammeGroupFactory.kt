@@ -1,12 +1,13 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AccreditedProgrammeTemplateEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -22,15 +23,33 @@ class ProgrammeGroupFactory {
   private var updatedAt: LocalDateTime? = null
   private var updatedByUsername: String? = null
   private var deletedAt: LocalDateTime? = null
+  var deliveryLocationName: String? = null
+  var deliveryLocationCode: String? = null
+  var probationDeliveryUnitName: String? = null
+  var probationDeliveryUnitCode: String? = null
   private var deletedByUsername: String? = null
   private var regionName: String = "TEST REGION"
   private var startedAtDate: LocalDate? = null
   private var earliestStartDate: LocalDate? = null
   private var programmeGroupSessionSlots: MutableSet<ProgrammeGroupSessionSlotEntity> = mutableSetOf()
+  private var treatmentManager: FacilitatorEntity? = null
+  private var groupFacilitators: MutableSet<ProgrammeGroupFacilitatorEntity> = mutableSetOf()
+  private var accreditedProgrammeTemplate: AccreditedProgrammeTemplateEntity? = null
+  private var sessions: MutableSet<SessionEntity> = mutableSetOf()
 
   fun withId(id: UUID) = apply { this.id = id }
   fun withCode(code: String) = apply { this.code = code }
   fun withCohort(cohort: OffenceCohort) = apply { this.cohort = cohort }
+  fun withProbationDeliveryUnit(name: String, code: String) = apply {
+    this.probationDeliveryUnitName = name
+    this.probationDeliveryUnitCode = code
+  }
+
+  fun withDeliveryLocation(name: String, code: String) = apply {
+    this.deliveryLocationName = name
+    this.deliveryLocationCode = code
+  }
+
   fun withSex(sex: ProgrammeGroupSexEnum) = apply { this.sex = sex }
   fun withIsLdc(isLdc: Boolean) = apply { this.isLdc = isLdc }
   fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
@@ -43,6 +62,8 @@ class ProgrammeGroupFactory {
   fun withStartedAt(startedAt: LocalDate) = apply { this.startedAtDate = startedAt }
   fun withEarliestStartDate(earliestStartDate: LocalDate) = apply { this.earliestStartDate = earliestStartDate }
   fun withSessionSlots(programmeGroupSessionSlots: MutableSet<ProgrammeGroupSessionSlotEntity>) = apply { this.programmeGroupSessionSlots = programmeGroupSessionSlots }
+
+  fun withAccreditedProgrammeTemplate(accreditedProgrammeTemplateEntity: AccreditedProgrammeTemplateEntity) = apply { this.accreditedProgrammeTemplate = accreditedProgrammeTemplateEntity }
 
   fun produce(): ProgrammeGroupEntity = ProgrammeGroupEntity(
     id = this.id,
@@ -60,20 +81,13 @@ class ProgrammeGroupFactory {
     startedAtDate = this.startedAtDate,
     earliestPossibleStartDate = this.earliestStartDate,
     programmeGroupSessionSlots = this.programmeGroupSessionSlots,
+    probationDeliveryUnitName = this.probationDeliveryUnitName,
+    probationDeliveryUnitCode = this.probationDeliveryUnitCode,
+    deliveryLocationName = this.deliveryLocationName,
+    deliveryLocationCode = this.deliveryLocationCode,
+    treatmentManager = this.treatmentManager,
+    groupFacilitators = this.groupFacilitators,
+    sessions = this.sessions,
+    accreditedProgrammeTemplate = this.accreditedProgrammeTemplate,
   )
-
-  fun toCreateGroup(programmeGroupSessionSlots: Set<CreateGroupSessionSlot> = setOf()): CreateGroupRequest {
-    val group = produce()
-    return CreateGroupRequest(
-      group.code,
-      ProgrammeGroupCohort.from(group.cohort, group.isLdc),
-      group.sex,
-      LocalDate.parse("2025-01-01"),
-      programmeGroupSessionSlots,
-      "PDU_NAME",
-      "PDU_CODE",
-      "DELIVERY_LOCATION_NAME",
-      "DELIVERY_LOCATION_CODE",
-    )
-  }
 }

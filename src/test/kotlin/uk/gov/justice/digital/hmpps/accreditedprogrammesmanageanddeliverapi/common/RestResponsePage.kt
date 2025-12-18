@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.com
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
 
@@ -25,6 +26,7 @@ data class RestResponsePage<T>(
 data class PagedCaseListReferrals<T>(
   val pagedReferrals: RestResponsePage<T>,
   val otherTabTotal: Int,
+  val filters: CaseListFilterValues,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -39,4 +41,5 @@ data class PagedProgrammeDetails<T>(
 data class GroupsByRegionResponse<T>(
   val pagedGroupData: RestResponsePage<T>,
   val otherTabTotal: Int,
+  val regionName: String,
 )

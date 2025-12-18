@@ -10,6 +10,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -20,7 +21,7 @@ import java.util.*
 @Service
 @Transactional
 class ProgrammeGroupMembershipService(
-  private val programmeGroupRepository: ProgrammeGroupRepository,
+  private val programmeGroupRepositoryImpl: ProgrammeGroupRepository,
   private val referralRepository: ReferralRepository,
   private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
@@ -36,7 +37,7 @@ class ProgrammeGroupMembershipService(
     val referral = referralRepository.findByIdOrNull(referralId)
       ?: throw NotFoundException("Referral with id $referralId not found")
 
-    val group = programmeGroupRepository.findByIdOrNull(groupId)
+    val group = programmeGroupRepositoryImpl.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
 
     val latestStatus = referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId)
@@ -60,6 +61,16 @@ class ProgrammeGroupMembershipService(
       )
 
     referral.statusHistories.add(statusHistory)
+    val currentGroup = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) ?: throw NotFoundException("No group membership found for referral $referralId")
+
+    group.sessions.forEach { session ->
+      session.attendances.add(
+        SessionAttendanceEntity(
+          session = session,
+          groupMembership = currentGroup,
+        ),
+      )
+    }
 
     return referralRepository.save(referral)
   }
@@ -81,7 +92,7 @@ class ProgrammeGroupMembershipService(
   ): ReferralEntity {
     log.info("Attempting to remove Referral with id: $referralId from group with id: $groupId...")
 
-    programmeGroupRepository.findByIdOrNull(groupId) ?: throw NotFoundException("Group with id $groupId not found")
+    programmeGroupRepositoryImpl.findByIdOrNull(groupId) ?: throw NotFoundException("Group with id $groupId not found")
 
     val referral = referralRepository.findByIdOrNull(referralId) ?: throw NotFoundException("Referral with id $referralId not found")
 

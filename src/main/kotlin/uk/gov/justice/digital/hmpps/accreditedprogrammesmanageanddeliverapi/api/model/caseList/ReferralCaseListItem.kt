@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import org.springframework.data.domain.Page
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.reverseNameOrder
 import java.util.UUID
 
 data class ReferralCaseListItem(
@@ -19,7 +20,7 @@ data class ReferralCaseListItem(
 fun ReferralCaseListItemViewEntity.toApi() = ReferralCaseListItem(
   referralId = referralId,
   crn = crn,
-  personName = personName,
+  personName = personName.reverseNameOrder(),
   referralStatus = status,
   cohort = OffenceCohort.valueOf(cohort),
   hasLdc = hasLdc,
@@ -30,4 +31,5 @@ fun ReferralCaseListItemViewEntity.toApi() = ReferralCaseListItem(
 data class CaseListReferrals(
   val pagedReferrals: Page<ReferralCaseListItem>,
   val otherTabTotal: Int,
+  val filters: CaseListFilterValues,
 )

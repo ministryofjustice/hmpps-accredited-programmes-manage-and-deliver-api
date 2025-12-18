@@ -33,6 +33,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
@@ -41,6 +43,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RegionService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.util.UUID
@@ -57,6 +60,7 @@ class ProgrammeGroupController(
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
   private val userService: UserService,
   private val regionService: RegionService,
+  private val scheduleService: ScheduleService,
 ) {
 
   @Operation(
@@ -163,7 +167,7 @@ class ProgrammeGroupController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/groups/region/{selectedTab}", produces = [MediaType.APPLICATION_JSON_VALUE])
+  @GetMapping("/bff/groups/{selectedTab}", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getProgrammeGroupsByRegion(
     @PageableDefault(
       page = 0,
@@ -178,7 +182,7 @@ class ProgrammeGroupController(
     @Parameter(description = "Filter by the human readable pdu of the group, i.e. 'All London'")
     @RequestParam(name = "pdu", required = false) pdu: String?,
     @Parameter(description = "Filter by the delivery location name")
-    @RequestParam(name = "deliveryLocation", required = false) deliveryLocation: String?,
+    @RequestParam(name = "deliveryLocations", required = false) deliveryLocations: List<String>?,
     @Parameter(description = "Filter by the cohort of the group Eg: 'Sexual Offence' or 'General Offence - LDC")
     @RequestParam(name = "cohort", required = false) cohort: String?,
     @Parameter(description = "Filter by the sex that the group is being run for: 'Male', 'Female' or 'Mixed'")
@@ -190,7 +194,7 @@ class ProgrammeGroupController(
       pageable = pageable,
       groupCode = groupCode,
       pdu = pdu,
-      deliveryLocation = deliveryLocation,
+      deliveryLocations = deliveryLocations,
       cohort = cohort,
       sex = sex,
       selectedTab = selectedTab,
@@ -364,7 +368,8 @@ class ProgrammeGroupController(
     @RequestBody createGroupRequest: CreateGroupRequest,
   ): ResponseEntity<Void> {
     val username = getUsername()
-    programmeGroupService.createGroup(createGroupRequest, username)
+    val group = programmeGroupService.createGroup(createGroupRequest, username)
+    scheduleService.scheduleSessionsForGroup(group.id!!)
     return ResponseEntity.status(HttpStatus.CREATED).build()
   }
 
@@ -469,9 +474,9 @@ class ProgrammeGroupController(
 
   @Operation(
     tags = ["Programme Group controller"],
-    summary = "BFF endpoint to get a list of members for a Region.",
+    summary = "BFF endpoint to get a list of members for the logged user's region Region.",
     operationId = "getMembersInRegion",
-    description = "BFF endpoint to retrieve a list of team members for a Region.",
+    description = "BFF endpoint to retrieve a list of team members for the logged in user's Region.",
     responses = [
       ApiResponse(
         responseCode = "200",
@@ -491,12 +496,60 @@ class ProgrammeGroupController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/region/{regionCode}/members")
-  fun getPdusInUserRegion(
-    @PathVariable regionCode: String,
-  ): ResponseEntity<List<UserTeamMember>> {
-    val teamMembers = regionService.getTeamMembersForPdu(regionCode)
+  @GetMapping("/bff/region/members")
+  fun getMembersInUserRegion(): ResponseEntity<List<UserTeamMember>> {
+    val username = getUsername()
+    val (userRegion) = userService.getUserRegions(username)
+    val teamMembers = regionService.getTeamMembersForPdu(userRegion.code)
     return ResponseEntity.ok(teamMembers)
+  }
+
+  @Operation(
+    tags = ["Programme Group controller"],
+    summary = "Schedule a session (one-to-one, or catch ups) for group members",
+    operationId = "scheduleSession",
+    description = "Schedule a session for members of a programme group. This endpoint allows facilitators to schedule individual sessions that must be coordinated across multiple group members.",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Session successfully scheduled",
+        content = [Content(schema = Schema(implementation = ScheduleSessionResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid request parameters",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Group or session template not found",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PostMapping("/group/{groupId}/session/schedule")
+  fun scheduleSession(
+    @Parameter(
+      description = "The UUID of the programme group",
+      required = true,
+    )
+    @PathVariable("groupId") groupId: UUID,
+    @Valid
+    @RequestBody scheduleSessionRequest: ScheduleSessionRequest,
+  ): ResponseEntity<ScheduleSessionResponse> {
+    // Placeholder implementation - actual business logic to be implemented in follow-up PR
+    // --TJWC 2025-12-17
+    val response = ScheduleSessionResponse(
+      message = "Session scheduled successfully",
+    )
+
+    return ResponseEntity.status(HttpStatus.OK).body(response)
   }
 
   private fun getUsername(): String {
