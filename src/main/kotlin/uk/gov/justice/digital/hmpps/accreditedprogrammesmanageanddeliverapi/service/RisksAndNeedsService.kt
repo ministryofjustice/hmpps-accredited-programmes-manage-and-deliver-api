@@ -17,13 +17,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.buildLearningNeeds
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.buildRiskModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.arnsApi.AssessRiskAndNeedsApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.arnsApi.model.AllPredictorVersioned
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegistrations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.OasysApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAssessmentTimeline
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysOffendingInfo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRelationships
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRiskPredictorScores
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRoshSummary
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.getLatestCompletedLayerThreeAssessment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.toModel
@@ -34,6 +35,7 @@ import java.time.LocalDateTime
 class RisksAndNeedsService(
   private val oasysApiClient: OasysApiClient,
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
+  private val assessRiskAndNeedsApiClient: AssessRiskAndNeedsApiClient,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -137,6 +139,15 @@ class RisksAndNeedsService(
     ).toModel(assessmentCompletedDate?.toLocalDate())
   }
 
+  fun getRiskPredictors(assessmentId: Long): AllPredictorVersioned<Any>? = when (val result = assessRiskAndNeedsApiClient.getRiskPredictors(assessmentId)) {
+    is ClientResult.Failure -> {
+      log.error("Failure when retrieving risk predictors for assessment id : $assessmentId", result.toException())
+      result.throwException()
+    }
+
+    is ClientResult.Success -> result.body
+  }
+
   fun getRisksByCrn(crn: String): Risks {
     val assessmentId = getAssessmentIdAndDate(crn)?.first
       ?: throw NotFoundException("No assessment found for crn: $crn")
@@ -146,15 +157,14 @@ class RisksAndNeedsService(
     val oasysRelationships: OasysRelationships =
       getDetails(assessmentId, oasysApiClient::getRelationships, "Relationships")
     val oasysRoshSummary: OasysRoshSummary = getDetails(assessmentId, oasysApiClient::getRoshSummary, "RoshSummary")
-    val oasysRiskPredictorScores: OasysRiskPredictorScores =
-      getDetails(assessmentId, oasysApiClient::getRiskPredictors, "RiskPredictors")
+    val riskPredictors: AllPredictorVersioned<Any>? = getRiskPredictors(assessmentId)
     val activeAlerts: NDeliusRegistrations? = getActiveAlerts(crn)
 
     return buildRiskModel(
       oasysOffendingInfo,
       oasysRelationships,
       oasysRoshSummary,
-      oasysRiskPredictorScores,
+      riskPredictors,
       activeAlerts,
     )
   }
