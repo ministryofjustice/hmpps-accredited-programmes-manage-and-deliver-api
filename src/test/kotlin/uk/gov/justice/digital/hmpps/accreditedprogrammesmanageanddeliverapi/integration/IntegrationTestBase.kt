@@ -206,7 +206,7 @@ abstract class IntegrationTestBase {
   fun performRequestAndExpectStatusAndReturnBody(
     httpMethod: HttpMethod,
     uri: String,
-    body: Any,
+    body: Any = ' ',
     expectedResponseStatus: Int,
   ): WebTestClient.BodyContentSpec = webTestClient
     .method(httpMethod)

@@ -5,8 +5,10 @@ import jakarta.persistence.PersistenceContext
 import jakarta.transaction.Transactional
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AccreditedProgrammeTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnitEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
@@ -174,5 +176,31 @@ class TestDataGenerator {
   ): SessionEntity {
     entityManager.persist(session)
     return session
+  }
+
+  fun createAccreditedProgrammeTemplate(
+    name: String,
+  ): AccreditedProgrammeTemplateEntity {
+    val template = AccreditedProgrammeTemplateEntity(
+      name = name,
+      validFrom = java.time.LocalDate.now(),
+      validUntil = null,
+    )
+    entityManager.persist(template)
+    return template
+  }
+
+  fun createModule(
+    template: AccreditedProgrammeTemplateEntity,
+    name: String,
+    moduleNumber: Int,
+  ): ModuleEntity {
+    val module = ModuleEntity(
+      accreditedProgrammeTemplate = template,
+      name = name,
+      moduleNumber = moduleNumber,
+    )
+    entityManager.persist(module)
+    return module
   }
 }

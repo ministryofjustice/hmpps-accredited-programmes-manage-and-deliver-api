@@ -38,6 +38,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleIndividualSessionDetailsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionTypeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
@@ -50,6 +51,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RegionService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TemplateService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.util.UUID
@@ -69,6 +71,7 @@ class ProgrammeGroupController(
   private val scheduleService: ScheduleService,
   private val programmeGroupRepository: ProgrammeGroupRepository,
   private val moduleRepository: ModuleRepository,
+  private val templateService: TemplateService,
 ) {
 
   @Operation(
@@ -510,6 +513,56 @@ class ProgrammeGroupController(
     val (userRegion) = userService.getUserRegions(username)
     val teamMembers = regionService.getTeamMembersForPdu(userRegion.code)
     return ResponseEntity.ok(teamMembers)
+  }
+
+  @Operation(
+    tags = ["Programme Group controller"],
+    summary = "Get session templates for a group module",
+    operationId = "getSessionTemplatesForGroupModule",
+    description = "Retrieve available session templates for a specific module within a programme group. This endpoint is used to populate the session type selection screen when scheduling sessions.",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Session templates retrieved successfully",
+        content = [Content(schema = Schema(implementation = ScheduleSessionTypeResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Group, template, or module not found",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/bff/group/{groupId}/module/{moduleId}/schedule-session-type", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getSessionTemplatesForGroupModule(
+    @Parameter(
+      description = "The UUID of the programme group",
+      required = true,
+    )
+    @PathVariable("groupId") groupId: UUID,
+    @Parameter(
+      description = "The UUID of the module",
+      required = true,
+    )
+    @PathVariable("moduleId") moduleId: UUID,
+  ): ResponseEntity<ScheduleSessionTypeResponse> {
+    /**
+     * In the future this endpoint will also need to return Group Sessions (to allow
+     * catch-up Sessions to be Scheduled).  Initial implementation is to *just* schedule
+     * One-to-Ones.
+     * --TJWC 2025-12-17
+     */
+    val sessionTemplates = templateService.getOneToOneSessionTemplatesForGroupAndModule(groupId, moduleId)
+
+    val body = ScheduleSessionTypeResponse(sessionTemplates)
+
+    return ResponseEntity.ok(body)
   }
 
   @Operation(
