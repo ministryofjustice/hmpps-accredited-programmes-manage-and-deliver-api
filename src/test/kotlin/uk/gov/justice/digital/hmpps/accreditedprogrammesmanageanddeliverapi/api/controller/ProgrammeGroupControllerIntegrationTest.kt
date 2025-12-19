@@ -42,7 +42,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
@@ -607,26 +606,16 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `allocateReferralToGroup can successfully allocate a referral to a group`() {
       // Given
       val theCrnNumber = randomUppercaseString()
-      val groupCode = "AAA111"
-      val group = ProgrammeGroupFactory().withCode(groupCode).produce()
-      val session1 = SessionEntity(
-        programmeGroup = group,
-        moduleSessionTemplate = null,
-        isCatchup = false,
-        locationName = null,
-        startsAt = LocalDateTime.now(),
-        endsAt = LocalDateTime.now().plusDays(1),
-      )
-      val session2 = SessionEntity(
-        programmeGroup = group,
-        moduleSessionTemplate = null,
-        isCatchup = false,
-        locationName = null,
-        startsAt = LocalDateTime.now(),
-        endsAt = LocalDateTime.now().plusDays(1),
+
+      val body = CreateGroupRequestFactory().produce()
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
       )
 
-      testDataGenerator.createGroup(group, mutableSetOf(session1, session2))
+      val group = programmeGroupRepository.findByCode(body.groupCode)
 
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
       nDeliusApiStubs.stubPersonalDetailsResponse(
@@ -654,7 +643,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
-        uri = "/group/${group.id}/allocate/${referral.id}",
+        uri = "/group/${group!!.id}/allocate/${referral.id}",
         expectedResponseStatus = HttpStatus.OK.value(),
         body = allocateToGroupRequest,
         returnType = object : ParameterizedTypeReference<AllocateToGroupResponse>() {},
@@ -669,7 +658,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(foundRepository.id).isEqualTo(referral.id)
       assertThat(foundRepository.programmeGroupMemberships).hasSize(1)
       assertThat(foundRepository.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
-      assertThat(foundRepository.programmeGroupMemberships.first().attendances.size).isEqualTo(2)
+      assertThat(foundRepository.programmeGroupMemberships.first().attendances.size).isEqualTo(26)
     }
 
     @Test
@@ -1017,17 +1006,37 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(createdGroup?.programmeGroupSessionSlots).size().isEqualTo(2)
 
       assertThat(createdGroup?.programmeGroupSessionSlots).allMatch {
-        (it.dayOfWeek == DayOfWeek.MONDAY && it.startTime.equals(LocalTime.of(1, 1))) ||
-          (it.dayOfWeek == DayOfWeek.TUESDAY && it.startTime.equals(LocalTime.of(13, 1)))
+        (it.dayOfWeek == DayOfWeek.MONDAY && it.startTime == LocalTime.of(1, 1)) ||
+          (it.dayOfWeek == DayOfWeek.TUESDAY && it.startTime == LocalTime.of(13, 1))
       }
     }
 
     @Test
     fun `create group and create sessions`() {
+      val slot1 = CreateGroupSessionSlotFactory().produce(
+        dayOfWeek = DayOfWeek.MONDAY,
+        hour = 9,
+        minutes = 0,
+        amOrPm = AmOrPm.AM,
+      )
+      val slot2 = CreateGroupSessionSlotFactory().produce(
+        dayOfWeek = DayOfWeek.WEDNESDAY,
+        hour = 12,
+        minutes = 30,
+        amOrPm = AmOrPm.PM,
+      )
+      val slot3 =
+        CreateGroupSessionSlotFactory().produce(
+          dayOfWeek = DayOfWeek.SATURDAY,
+          hour = 5,
+          minutes = 15,
+          amOrPm = AmOrPm.PM,
+        )
+
+      val slots = mutableSetOf(slot1, slot2, slot3)
       val body = CreateGroupRequestFactory().produce(
         earliestStartDate = LocalDate.parse("2025-01-01"),
-        // Creates 3 slots in a week
-        createGroupSessionSlot = CreateGroupSessionSlotFactory().produceUniqueSlots(3),
+        createGroupSessionSlot = slots,
       )
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
@@ -1038,6 +1047,33 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
       assertThat(createdGroup).isNotNull
+
+      // Hard-coded from the number of sessions in the template
+      assertThat(createdGroup.sessions).hasSize(26)
+      val sessionDays = createdGroup.sessions.map { it.startsAt.dayOfWeek }.distinct()
+
+      assertThat(sessionDays).containsExactlyInAnyOrder(
+        DayOfWeek.MONDAY,
+        DayOfWeek.WEDNESDAY,
+        DayOfWeek.SATURDAY,
+      )
+
+      // The 1st Jan 2025 is a Wednesday, so the first Session should be Wednesday 1st, then Saturday 4th
+      assertThat(
+        createdGroup.sessions.find {
+          it.startsAt == LocalDateTime.of(2025, 1, 1, 12, 30) &&
+            it.sessionNumber == 1 &&
+            it.moduleNumber == 1
+        },
+      ).isNotNull
+
+      assertThat(
+        createdGroup.sessions.find {
+          it.startsAt == LocalDateTime.of(2025, 1, 4, 17, 15) &&
+            it.moduleNumber == 2
+          it.sessionNumber == 1
+        },
+      ).isNotNull
 
       // Compare the template moduleNumber and sessionNumbers to the created moduleNumber and sessionNumbers
       val expectedPairs: Set<Pair<Int, Int>> = programmeGroupModuleRepository
@@ -1050,7 +1086,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(createdGroup.sessions).hasSize(expectedPairs.size)
 
       val actualPairs: Set<Pair<Int, Int>> = createdGroup.sessions
-        .map { s -> s.moduleSessionTemplate!!.module.moduleNumber to s.moduleSessionTemplate!!.sessionNumber }
+        .map { s -> s.moduleSessionTemplate.module.moduleNumber to s.moduleSessionTemplate.sessionNumber }
         .toSet()
 
       assertThat(actualPairs).isEqualTo(expectedPairs)
@@ -1278,7 +1314,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // When
-      val response = performRequestAndExpectStatusWithBody<ScheduleSessionResponse>(
+      val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group/${group.id}/session/schedule",
         body = scheduleSessionRequest,
@@ -1348,7 +1384,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // When / Then
-      performRequestAndExpectStatusWithBody<ErrorResponse>(
+      performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group/${group.id}/session/schedule",
         body = scheduleSessionRequest,
@@ -1396,7 +1432,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `Successfully retrieves session templates for a module using V56 migration data`() {
       // Given
       stubAuthTokenEndpoint()
-      val modules = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplate!!.id!!)
+      val modules = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplate.id!!)
       assertThat(modules).isNotEmpty
 
       // Use the "Getting Started" module (module_number = 2) which has 2 sessions
@@ -1491,7 +1527,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Create a programme group
       val group = ProgrammeGroupFactory()
-        .withAccreditedProgrammeTemplate(template!!)
+        .withAccreditedProgrammeTemplate(template)
         .produce()
       programmeGroupRepository.save(group)
 

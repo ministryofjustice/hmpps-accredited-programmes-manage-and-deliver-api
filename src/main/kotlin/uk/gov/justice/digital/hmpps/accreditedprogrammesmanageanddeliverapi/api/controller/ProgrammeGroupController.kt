@@ -50,7 +50,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RegionService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TemplateService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
@@ -68,9 +67,8 @@ class ProgrammeGroupController(
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
   private val userService: UserService,
   private val regionService: RegionService,
-  private val scheduleService: ScheduleService,
-  private val programmeGroupRepository: ProgrammeGroupRepository,
   private val moduleRepository: ModuleRepository,
+  private val programmeGroupRepository: ProgrammeGroupRepository,
   private val templateService: TemplateService,
 ) {
 
@@ -379,8 +377,8 @@ class ProgrammeGroupController(
     @RequestBody createGroupRequest: CreateGroupRequest,
   ): ResponseEntity<Void> {
     val username = getUsername()
-    val group = programmeGroupService.createGroup(createGroupRequest, username)
-    scheduleService.scheduleSessionsForGroup(group.id!!)
+    programmeGroupService.createGroup(createGroupRequest, username)
+
     return ResponseEntity.status(HttpStatus.CREATED).build()
   }
 
@@ -596,11 +594,10 @@ class ProgrammeGroupController(
   )
   @PostMapping("/group/{groupId}/session/schedule")
   fun scheduleSession(
-    @Parameter(
+    @PathVariable @Parameter(
       description = "The UUID of the programme group",
       required = true,
-    )
-    @PathVariable("groupId") groupId: UUID,
+    ) groupId: UUID,
     @Valid
     @RequestBody scheduleSessionRequest: ScheduleSessionRequest,
   ): ResponseEntity<ScheduleSessionResponse> {
@@ -662,7 +659,10 @@ class ProgrammeGroupController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/group/{groupId}/module/{moduleId}/schedule-individual-session-details", produces = [MediaType.APPLICATION_JSON_VALUE])
+  @GetMapping(
+    "/bff/group/{groupId}/module/{moduleId}/schedule-individual-session-details",
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+  )
   fun getScheduleIndividualSessionDetails(
     @Parameter(description = "The UUID of the Programme Group", required = true)
     @PathVariable("groupId") groupId: UUID,

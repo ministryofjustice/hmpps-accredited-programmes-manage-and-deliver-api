@@ -3,9 +3,11 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.rep
 import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
+import org.springframework.stereotype.Repository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import java.util.UUID
 
+@Repository
 interface ProgrammeGroupMembershipRepository : JpaRepository<ProgrammeGroupMembershipEntity, UUID> {
 
   @EntityGraph(attributePaths = ["programmeGroup"])
@@ -29,6 +31,9 @@ interface ProgrammeGroupMembershipRepository : JpaRepository<ProgrammeGroupMembe
     """,
   )
   fun findNonDeletedByReferralAndGroupIds(referralId: UUID, programmeGroupId: UUID): ProgrammeGroupMembershipEntity?
+
+  @EntityGraph(attributePaths = ["programmeGroup"])
+  fun findAllByProgrammeGroupIdAndDeletedAtIsNullOrderByCreatedAtDesc(programmeGroupId: UUID): List<ProgrammeGroupMembershipEntity>
 
   @EntityGraph(attributePaths = ["referral"])
   @Query(

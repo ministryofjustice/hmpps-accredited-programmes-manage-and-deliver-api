@@ -162,7 +162,7 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
           "",
         )
       }
-      assertThat(exception.message).isEqualTo("Referral with id ${referral.id} is already allocated to group BBB222")
+      assertThat(exception.message).isEqualTo("Referral with id ${referral.id} is already allocated to a group: AAA111")
     }
   }
 
