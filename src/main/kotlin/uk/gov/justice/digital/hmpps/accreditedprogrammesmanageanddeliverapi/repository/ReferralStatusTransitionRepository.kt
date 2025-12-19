@@ -10,7 +10,5 @@ interface ReferralStatusTransitionRepository : JpaRepository<ReferralStatusTrans
   fun findByFromStatusIdAndVisibleTrue(fromStatusId: UUID): MutableList<ReferralStatusTransitionEntity>
 
   fun findByFromStatusIdAndToStatusId(fromStatusId: UUID, toStatusId: UUID): ReferralStatusTransitionEntity?
-  fun findByFromStatus(fromStatus: ReferralStatusDescriptionEntity): MutableList<ReferralStatusTransitionEntity>
-  fun deleteAllByFromStatus(fromStatus: ReferralStatusDescriptionEntity)
   fun findByToStatus(toStatus: ReferralStatusDescriptionEntity): MutableList<ReferralStatusTransitionEntity>
 }
