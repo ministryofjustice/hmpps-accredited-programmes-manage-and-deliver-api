@@ -74,7 +74,7 @@ jobs:
     timeout-minutes: 60
     runs-on: [ self-hosted, Linux, X64, hmpps-github-actions-runner ]
     env:
-      MANAGE_AND_DELIVER_URL: https://accredited-programmes-manage-and-deliver-dev.hmpps.service.justice.gov.uk/
+      MANAGE_AND_DELIVER_URL: https://accredited-programmes-manage-and-deliver-dev.hmpps.service.justice.gov.uk
       HMPPS_COMMUNITY_AUTH_USERNAME: ${{ secrets.HMPPS_COMMUNITY_AUTH_USERNAME }}
       HMPPS_COMMUNITY_AUTH_PASSWORD: ${{ secrets.HMPPS_COMMUNITY_AUTH_PASSWORD }}
     steps:
