@@ -3,7 +3,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -227,17 +226,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
   @DisplayName("createGroup")
   inner class CreateGroup {
     @Test
-    @Disabled
-    fun `should add a 3w gap for the Pre-group 1-1`() {
-      // Create a group (at any time)
-      // Expect there to be a 3w gap after the first session (i.e. the pre-group 1-1) and the
-      // second session
-      // Ths will be implemented in https://dsdmoj.atlassian.net/browse/APG-1628
-      // --TJWC & JD 2025-12-16
-      TODO()
-    }
-
-    @Test
     fun `should the Sessions for a Programme Group`() {
       // Given
       stubAuthTokenEndpoint()
@@ -299,8 +287,9 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         .atZone(ZoneId.of("Europe/London"))
         .toLocalDateTime()
 
-      val friday4thAprilAt17h30InBst: LocalDateTime = LocalDateTime
-        .of(2025, 4, 4, 17, 30)
+      // 3 week buffer between 1st pre group session and the rest
+      val friday18thAprilAt17h30InBst: LocalDateTime = LocalDateTime
+        .of(2025, 4, 18, 17, 30)
         .atZone(ZoneId.of("Europe/London"))
         .toLocalDateTime()
 
@@ -314,7 +303,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
       assertThat(
         foundGroup.sessions.find {
-          it.startsAt == friday4thAprilAt17h30InBst
+          it.startsAt == friday18thAprilAt17h30InBst
         },
       ).isNotNull
     }

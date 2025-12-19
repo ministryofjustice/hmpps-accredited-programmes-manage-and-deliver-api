@@ -77,6 +77,8 @@ class ScheduleService(
       slotQueue.add(SlotInstance(slot = slot, nextDate = firstDate))
     }
 
+    var firstSessionScheduledAndGapApplied = false
+
     val generatedSessions = buildList {
       for (template in allSessionTemplates) {
         val nextSlot = slotQueue.poll() ?: break
@@ -94,8 +96,23 @@ class ScheduleService(
           ),
         )
 
-        // Advance this slot by one week and re-queue
-        slotQueue.add(nextSlot.copy(nextDate = nextSlot.nextDate.plusWeeks(1)))
+        if (
+          mostRecentSession == null &&
+          !firstSessionScheduledAndGapApplied &&
+          template.module.moduleNumber == 1 &&
+          template.sessionNumber == 1
+        ) {
+          firstSessionScheduledAndGapApplied = true
+
+          // Regenerate our slot queue plus 3 weeks
+          slotQueue.clear()
+          groupSlots.forEach { slot ->
+            val dateAfterGap = startsAt.toLocalDate().plusWeeks(3).with(TemporalAdjusters.nextOrSame(slot.dayOfWeek))
+            slotQueue.add(SlotInstance(slot = slot, nextDate = dateAfterGap))
+          }
+        } else {
+          slotQueue.add(nextSlot.copy(nextDate = nextSlot.nextDate.plusWeeks(1)))
+        }
       }
     }
 
