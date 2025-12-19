@@ -107,7 +107,8 @@ class ScheduleService(
       templateId,
     )
 
-    val programmeGroupMemberships = programmeGroupMembershipRepository.findAllByProgrammeGroupId(group.id!!)
+    val programmeGroupMemberships =
+      programmeGroupMembershipRepository.findAllByProgrammeGroupIdAndDeletedAtIsNullOrderByCreatedAtDesc(group.id!!)
 
     if (programmeGroupMemberships.isNotEmpty()) {
       programmeGroupMemberships.forEach { groupMembership ->
