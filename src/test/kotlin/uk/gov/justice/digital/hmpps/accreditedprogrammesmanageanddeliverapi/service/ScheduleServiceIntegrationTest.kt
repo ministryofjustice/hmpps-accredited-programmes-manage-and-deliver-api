@@ -63,6 +63,30 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `Schedule sessions should add 3 week buffer`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+    val slot2 = CreateGroupSessionSlotFactory().produce(DayOfWeek.THURSDAY, 12, 0, AmOrPm.PM)
+
+    // Fixed clock so 2025-11-22 minus 4 days = 2025-11-18
+    val body = CreateGroupRequestFactory().produce(
+      earliestStartDate = LocalDate.now(clock).minusDays(4),
+      createGroupSessionSlot = setOf(slot1, slot2),
+    )
+    performRequestAndExpectStatus(
+      httpMethod = HttpMethod.POST,
+      uri = "/group",
+      body = body,
+      expectedResponseStatus = HttpStatus.CREATED.value(),
+    )
+
+    val group = programmeGroupRepository.findByCode(body.groupCode)!!
+
+    assertThat(group.sessions).hasSize(26)
+    val (preGroupSessions, restOfSessions) = group.sessions.partition { it.moduleSessionTemplate.name == "Pre-Group" }
+    assertThat(restOfSessions.first().startsAt).isAfterOrEqualTo(preGroupSessions.first().startsAt.plusWeeks(3))
+  }
+
+  @Test
   fun `Reschedule sessions should not delete already completed sessions when changing earliestStartDate`() {
     val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
     val slot2 = CreateGroupSessionSlotFactory().produce(DayOfWeek.THURSDAY, 12, 0, AmOrPm.PM)
@@ -98,8 +122,8 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     assertThat(updatedGroup.sessions.first().startsAt).isEqualTo(LocalDateTime.of(2025, 11, 20, 12, 0, 0))
     val (originalSchedule, rescheduled) = updatedGroup.sessions.partition { it.startsAt.year == 2025 }
 
-    assertThat(originalSchedule).hasSize(2)
-    assertThat(rescheduled).hasSize(24)
+    assertThat(originalSchedule).hasSize(1)
+    assertThat(rescheduled).hasSize(25)
     // >= because slots will overlap year
     assertThat(rescheduled).allMatch { it.startsAt.year >= 2027 }
   }
