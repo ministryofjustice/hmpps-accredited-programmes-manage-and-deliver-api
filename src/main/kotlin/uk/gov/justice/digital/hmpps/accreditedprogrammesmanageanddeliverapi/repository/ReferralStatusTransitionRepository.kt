@@ -7,6 +7,8 @@ import java.util.UUID
 
 interface ReferralStatusTransitionRepository : JpaRepository<ReferralStatusTransitionEntity, UUID> {
   fun findByFromStatusId(fromStatusId: UUID): List<ReferralStatusTransitionEntity>
+  fun findByFromStatusIdAndVisibleTrue(fromStatusId: UUID): MutableList<ReferralStatusTransitionEntity>
+
   fun findByFromStatusIdAndToStatusId(fromStatusId: UUID, toStatusId: UUID): ReferralStatusTransitionEntity?
   fun findByFromStatus(fromStatus: ReferralStatusDescriptionEntity): MutableList<ReferralStatusTransitionEntity>
   fun deleteAllByFromStatus(fromStatus: ReferralStatusDescriptionEntity)

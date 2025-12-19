@@ -1155,6 +1155,30 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     }
 
     @Test
+    fun `should return filter out statuses when not visible true`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
+      )
+      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/status-transitions/referral/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ReferralStatusTransitions>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.currentStatus.title).isEqualTo("On programme")
+      assertThat(response.availableStatuses).isNotEmpty
+      assertThat(response.availableStatuses.map { it.status }).doesNotContain("Programme complete")
+    }
+
+    @Test
     fun `should return empty list when referral status description does not exist`() {
       // Given
       val nonExistentId = UUID.randomUUID()
