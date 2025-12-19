@@ -88,7 +88,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.offenderViolencePredictor?.scoreLevel).isEqualTo(ScoreLevel.MEDIUM.name)
       assertThat(response.sara?.imminentRiskOfViolenceTowardsPartner).isEqualTo(ScoreLevel.LOW.type)
       assertThat(response.riskOfSeriousRecidivism?.percentageScore).isEqualTo(BigDecimal.valueOf(3.45))
-      assertThat(response.riskOfSeriousHarm?.riskPrisonersCustody).isNull()
+      assertThat(response.riskOfSeriousHarm?.riskPrisonersCustody).isEqualTo(ScoreLevel.MEDIUM.type)
       assertThat(response.alerts).hasSize(2)
       assertThat(response).hasFieldOrProperty("dateRetrieved")
       assertThat(response).hasFieldOrProperty("lastUpdated")
