@@ -91,3 +91,5 @@ services:
     base-url: http://localhost:9095
   oasys-api:
     base-url: http://localhost:9096
+  assess-risks-and-needs-api:
+    base-url: http://localhost:9097

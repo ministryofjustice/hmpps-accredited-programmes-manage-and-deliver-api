@@ -54,8 +54,8 @@ class OasysRelationshipsFactory {
 }
 
 class SaraFactory {
-  private var imminentRiskOfViolenceTowardsPartner: String? = listOf("YES", "NO", "DON'T_KNOW").random()
-  private var imminentRiskOfViolenceTowardsOthers: String? = listOf("YES", "NO", "DON'T_KNOW").random()
+  private var imminentRiskOfViolenceTowardsPartner: String? = "Low"
+  private var imminentRiskOfViolenceTowardsOthers: String? = "Low"
 
   fun withImminentRiskOfViolenceTowardsPartner(imminentRiskOfViolenceTowardsPartner: String?) = apply { this.imminentRiskOfViolenceTowardsPartner = imminentRiskOfViolenceTowardsPartner }
 

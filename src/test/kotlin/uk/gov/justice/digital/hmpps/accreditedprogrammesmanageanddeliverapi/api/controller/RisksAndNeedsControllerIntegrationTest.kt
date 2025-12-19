@@ -21,12 +21,15 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.Risks
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.RoshAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.ThinkingAndBehaviour
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.arnsApi.model.type.ScoreLevel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysOffenceAnalysis.WhatOccurred
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.Timeline
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.getLatestCompletedLayerThreeAssessment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.arns.AllPredictorVersionedLegacyDtoFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.arns.RiskScoresDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAlcoholMisuseDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAssessmentTimelineFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAttitudeFactory
@@ -37,10 +40,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysLifestyleAndAssociatesFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysOffenceAnalysisFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRelationshipsFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRiskPredictorScoresFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRoshFullFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysThinkingAndBehaviourFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.hmppsaccreditedprogrammesapi.client.arnsApi.model.type.ScoreType
+import java.math.BigDecimal
 import java.time.LocalDateTime
 
 class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
@@ -56,7 +60,8 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   @DisplayName("Get Risks and Alerts section")
   inner class GetRisksAndAlerts {
     @Test
-    fun `should return risks and alerts section`() {
+    fun `should return risks and alerts section with legacy ARNS risk data`() {
+      // Given
       val referralEntity = ReferralEntityFactory().produce()
       testDataGenerator.createReferralWithStatusHistory(referralEntity)
       val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
@@ -65,24 +70,93 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       oasysApiStubs.stubSuccessfulOasysOffendingInfoResponse(assessmentId)
       oasysApiStubs.stubSuccessfulOasysRelationshipsResponse(assessmentId)
       oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(assessmentId)
-      oasysApiStubs.stubSuccessfulOasysRiskPredictorScores(assessmentId)
+      arnsApiStubs.stubSuccessfulLegacyRiskPredictorsResponse(assessmentId)
       nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(referralEntity.crn)
 
+      // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/risks-and-needs/${referralEntity.crn}/risks-and-alerts",
         returnType = object : ParameterizedTypeReference<Risks>() {},
       )
 
+      // Then
       assertThat(response).isNotNull
-      assertThat(response).hasFieldOrProperty("offenderGroupReconviction")
-      assertThat(response).hasFieldOrProperty("offenderViolencePredictor")
-      assertThat(response).hasFieldOrProperty("sara")
-      assertThat(response).hasFieldOrProperty("riskOfSeriousRecidivism")
-      assertThat(response).hasFieldOrProperty("riskOfSeriousHarm")
-      assertThat(response).hasFieldOrProperty("alerts")
+      assertThat(response.offenderGroupReconviction?.oneYear).isEqualTo(BigDecimal.valueOf(29))
+      assertThat(response.offenderGroupReconviction?.scoreLevel).isEqualTo(ScoreLevel.MEDIUM.name)
+      assertThat(response.offenderViolencePredictor?.twoYears).isEqualTo(BigDecimal.valueOf(36))
+      assertThat(response.offenderViolencePredictor?.scoreLevel).isEqualTo(ScoreLevel.MEDIUM.name)
+      assertThat(response.sara?.imminentRiskOfViolenceTowardsPartner).isEqualTo(ScoreLevel.LOW.type)
+      assertThat(response.riskOfSeriousRecidivism?.percentageScore).isEqualTo(BigDecimal.valueOf(3.45))
+      assertThat(response.riskOfSeriousHarm?.riskPrisonersCustody).isNull()
+      assertThat(response.alerts).hasSize(2)
       assertThat(response).hasFieldOrProperty("dateRetrieved")
       assertThat(response).hasFieldOrProperty("lastUpdated")
+      assertThat(response.isLegacy).isTrue
+      assertThat(response.ogrS4Risks).isNull()
+    }
+
+    @Test
+    fun `should return risks and alerts section with non-legacy (OGRS4) ARNS risk data`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      testDataGenerator.createReferralWithStatusHistory(referralEntity)
+      val assessment = OasysAssessmentTimelineFactory().withCrn(referralEntity.crn).produce()
+      val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
+      oasysApiStubs.stubSuccessfulAssessmentsResponse(referralEntity.crn, assessment)
+      oasysApiStubs.stubSuccessfulOasysOffendingInfoResponse(assessmentId)
+      oasysApiStubs.stubSuccessfulOasysRelationshipsResponse(assessmentId)
+      oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(assessmentId)
+      // Non-legacy ARNS predictors (output version 2)
+      arnsApiStubs.stubSuccessfulRiskPredictorsResponse(assessmentId)
+      nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(referralEntity.crn)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/${referralEntity.crn}/risks-and-alerts",
+        returnType = object : ParameterizedTypeReference<Risks>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      // Legacy fields should be absent
+      assertThat(response.offenderGroupReconviction).isNull()
+      assertThat(response.offenderViolencePredictor).isNull()
+      assertThat(response.riskOfSeriousRecidivism).isNull()
+
+      // Common fields
+      assertThat(response.sara?.imminentRiskOfViolenceTowardsPartner).isEqualTo(ScoreLevel.LOW.type)
+      assertThat(response.alerts).hasSize(2)
+      assertThat(response).hasFieldOrProperty("dateRetrieved")
+      assertThat(response).hasFieldOrProperty("lastUpdated")
+
+      //  OGRS4 fields
+      assertThat(response.isLegacy).isFalse
+      assertThat(response.ogrS4Risks).isNotNull
+
+      val ogrs4 = response.ogrS4Risks!!
+      assertThat(ogrs4.allReoffendingScoreType).isEqualTo(ScoreType.STATIC.type)
+      assertThat(ogrs4.allReoffendingScore).isEqualTo(BigDecimal.valueOf(34))
+      assertThat(ogrs4.allReoffendingBand).isEqualTo(ScoreLevel.MEDIUM.type)
+
+      assertThat(ogrs4.violentReoffendingScoreType).isEqualTo(ScoreType.STATIC.type)
+      assertThat(ogrs4.violentReoffendingScore).isEqualTo(BigDecimal.valueOf(34))
+      assertThat(ogrs4.violentReoffendingBand).isEqualTo(ScoreLevel.MEDIUM.type)
+
+      assertThat(ogrs4.seriousViolentReoffendingScoreType).isEqualTo(ScoreType.STATIC.type)
+      assertThat(ogrs4.seriousViolentReoffendingScore).isEqualTo(BigDecimal.valueOf(34))
+      assertThat(ogrs4.seriousViolentReoffendingBand).isEqualTo(ScoreLevel.MEDIUM.type)
+
+      assertThat(ogrs4.directContactSexualReoffendingScore).isEqualTo(BigDecimal.valueOf(46))
+      assertThat(ogrs4.directContactSexualReoffendingBand).isEqualTo(ScoreLevel.MEDIUM.type)
+
+      assertThat(ogrs4.indirectImageContactSexualReoffendingScore).isEqualTo(BigDecimal.valueOf(46))
+      assertThat(ogrs4.indirectImageContactSexualReoffendingBand).isEqualTo(ScoreLevel.MEDIUM.type)
+
+      assertThat(ogrs4.combinedSeriousReoffendingScoreType).isEqualTo(ScoreType.STATIC.type)
+      assertThat(ogrs4.combinedSeriousReoffendingScore).isEqualTo(BigDecimal.valueOf(7))
+      assertThat(ogrs4.combinedSeriousReoffendingBand).isEqualTo(ScoreLevel.MEDIUM.type)
     }
 
     @Test
@@ -95,10 +169,14 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       oasysApiStubs.stubSuccessfulOasysOffendingInfoResponse(assessmentId)
       oasysApiStubs.stubSuccessfulOasysRelationshipsResponse(assessmentId)
       oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(assessmentId)
-      val riskPredictors =
-        OasysRiskPredictorScoresFactory().withGroupReconvictionScore(null).withViolencePredictorScore(null)
-          .withRiskOfSeriousRecidivismScore(null).produce()
-      oasysApiStubs.stubSuccessfulOasysRiskPredictorScores(assessmentId, riskPredictors)
+      val predictorDto = AllPredictorVersionedLegacyDtoFactory()
+        .withOutput(
+          RiskScoresDtoFactory()
+            .withGroupReconvictionScore(null)
+            .withViolencePredictorScore(null)
+            .withRiskOfSeriousRecidivismScore(null).produce(),
+        ).produce()
+      arnsApiStubs.stubSuccessfulLegacyRiskPredictorsResponse(assessmentId, predictorDto)
       nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(referralEntity.crn)
 
       val response = performRequestAndExpectOk(
@@ -216,8 +294,8 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     oasysApiStubs.stubSuccessfulOasysOffendingInfoResponse(assessmentId)
     oasysApiStubs.stubSuccessfulOasysRelationshipsResponse(assessmentId)
     oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(assessmentId)
-    oasysApiStubs.stubNotFoundOasysRiskPredictorScoresResponse(assessmentId)
 
+    arnsApiStubs.stubNotFoundRiskPredictorsResponse(assessmentId)
     val response = performRequestAndExpectStatus(
       httpMethod = HttpMethod.GET,
       uri = "/risks-and-needs/${referralEntity.crn}/risks-and-alerts",
@@ -225,7 +303,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       HttpStatus.NOT_FOUND.value(),
     )
 
-    assertThat(response.developerMessage).isEqualTo("Failure to retrieve RiskPredictors data for assessmentId: $assessmentId, reason: 'Unable to complete GET request to /assessments/$assessmentId/risk-predictors: 404 NOT_FOUND'")
+    assertThat(response.developerMessage).isEqualTo("No risk predictors found for assessment id: $assessmentId")
   }
 
   @Test
@@ -238,7 +316,8 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     oasysApiStubs.stubSuccessfulOasysOffendingInfoResponse(assessmentId)
     oasysApiStubs.stubSuccessfulOasysRelationshipsResponse(assessmentId)
     oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(assessmentId)
-    oasysApiStubs.stubSuccessfulOasysRiskPredictorScores(assessmentId)
+//    oasysApiStubs.stubSuccessfulOasysRiskPredictorScores(assessmentId)
+    arnsApiStubs.stubSuccessfulLegacyRiskPredictorsResponse(assessmentId)
     nDeliusApiStubs.stubNotFoundNDeliusRegistrationsResponse(referralEntity.crn)
 
     val response = performRequestAndExpectStatus(
