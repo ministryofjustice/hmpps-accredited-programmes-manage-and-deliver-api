@@ -28,6 +28,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.arns.AllPredictorVersionedLegacyDtoFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.arns.RiskScoresDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAlcoholMisuseDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAssessmentTimelineFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAttitudeFactory
@@ -38,7 +40,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysLifestyleAndAssociatesFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysOffenceAnalysisFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRelationshipsFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRiskPredictorScoresFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRoshFullFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysThinkingAndBehaviourFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -168,10 +169,14 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       oasysApiStubs.stubSuccessfulOasysOffendingInfoResponse(assessmentId)
       oasysApiStubs.stubSuccessfulOasysRelationshipsResponse(assessmentId)
       oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(assessmentId)
-      val riskPredictors =
-        OasysRiskPredictorScoresFactory().withGroupReconvictionScore(null).withViolencePredictorScore(null)
-          .withRiskOfSeriousRecidivismScore(null).produce()
-      oasysApiStubs.stubSuccessfulOasysRiskPredictorScores(assessmentId, riskPredictors)
+      val predictorDto = AllPredictorVersionedLegacyDtoFactory()
+        .withOutput(
+          RiskScoresDtoFactory()
+            .withGroupReconvictionScore(null)
+            .withViolencePredictorScore(null)
+            .withRiskOfSeriousRecidivismScore(null).produce(),
+        ).produce()
+      arnsApiStubs.stubSuccessfulLegacyRiskPredictorsResponse(assessmentId, predictorDto)
       nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(referralEntity.crn)
 
       val response = performRequestAndExpectOk(
@@ -289,8 +294,8 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     oasysApiStubs.stubSuccessfulOasysOffendingInfoResponse(assessmentId)
     oasysApiStubs.stubSuccessfulOasysRelationshipsResponse(assessmentId)
     oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(assessmentId)
-    oasysApiStubs.stubNotFoundOasysRiskPredictorScoresResponse(assessmentId)
 
+    arnsApiStubs.stubNotFoundRiskPredictorsResponse(assessmentId)
     val response = performRequestAndExpectStatus(
       httpMethod = HttpMethod.GET,
       uri = "/risks-and-needs/${referralEntity.crn}/risks-and-alerts",
@@ -298,7 +303,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       HttpStatus.NOT_FOUND.value(),
     )
 
-    assertThat(response.developerMessage).isEqualTo("Failure to retrieve RiskPredictors data for assessmentId: $assessmentId, reason: 'Unable to complete GET request to /assessments/$assessmentId/risk-predictors: 404 NOT_FOUND'")
+    assertThat(response.developerMessage).isEqualTo("No risk predictors found for assessment id: $assessmentId")
   }
 
   @Test
@@ -311,7 +316,8 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     oasysApiStubs.stubSuccessfulOasysOffendingInfoResponse(assessmentId)
     oasysApiStubs.stubSuccessfulOasysRelationshipsResponse(assessmentId)
     oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(assessmentId)
-    oasysApiStubs.stubSuccessfulOasysRiskPredictorScores(assessmentId)
+//    oasysApiStubs.stubSuccessfulOasysRiskPredictorScores(assessmentId)
+    arnsApiStubs.stubSuccessfulLegacyRiskPredictorsResponse(assessmentId)
     nDeliusApiStubs.stubNotFoundNDeliusRegistrationsResponse(referralEntity.crn)
 
     val response = performRequestAndExpectStatus(
