@@ -2,18 +2,17 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRoshSummary
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.ScoreLevel
-import kotlin.random.Random
 
 class OasysRoshSummaryFactory {
-  private var riskPrisonersCustody: ScoreLevel? = if (Random.nextBoolean()) ScoreLevel.entries.random() else null
-  private var riskStaffCustody: ScoreLevel? = if (Random.nextBoolean()) ScoreLevel.entries.random() else null
-  private var riskStaffCommunity: ScoreLevel? = if (Random.nextBoolean()) ScoreLevel.entries.random() else null
-  private var riskKnownAdultCustody: ScoreLevel? = if (Random.nextBoolean()) ScoreLevel.entries.random() else null
-  private var riskKnownAdultCommunity: ScoreLevel? = if (Random.nextBoolean()) ScoreLevel.entries.random() else null
-  private var riskPublicCustody: ScoreLevel? = if (Random.nextBoolean()) ScoreLevel.entries.random() else null
-  private var riskPublicCommunity: ScoreLevel? = if (Random.nextBoolean()) ScoreLevel.entries.random() else null
-  private var riskChildrenCustody: ScoreLevel? = if (Random.nextBoolean()) ScoreLevel.entries.random() else null
-  private var riskChildrenCommunity: ScoreLevel? = if (Random.nextBoolean()) ScoreLevel.entries.random() else null
+  private var riskPrisonersCustody: ScoreLevel? = ScoreLevel.MEDIUM
+  private var riskStaffCustody: ScoreLevel? = ScoreLevel.LOW
+  private var riskStaffCommunity: ScoreLevel? = ScoreLevel.HIGH
+  private var riskKnownAdultCustody: ScoreLevel? = ScoreLevel.LOW
+  private var riskKnownAdultCommunity: ScoreLevel? = ScoreLevel.LOW
+  private var riskPublicCustody: ScoreLevel? = ScoreLevel.LOW
+  private var riskPublicCommunity: ScoreLevel? = ScoreLevel.LOW
+  private var riskChildrenCustody: ScoreLevel? = ScoreLevel.LOW
+  private var riskChildrenCommunity: ScoreLevel? = ScoreLevel.LOW
 
   fun withRiskPrisonersCustody(riskPrisonersCustody: ScoreLevel?) = apply { this.riskPrisonersCustody = riskPrisonersCustody }
 
