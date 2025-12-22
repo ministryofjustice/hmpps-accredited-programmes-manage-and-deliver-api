@@ -1241,14 +1241,13 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response).isNotNull
       assertThat(response.currentStatus.title).isEqualTo("On programme")
       assertThat(response.availableStatuses).isNotEmpty
-      assertThat(response.availableStatuses).hasSize(6)
+      assertThat(response.availableStatuses).hasSize(5)
       assertThat(response.availableStatuses.map { it.status }).containsOnly(
         "Breach (non-attendance)",
         "Recall",
         "Return to court",
         "Awaiting assessment",
         "Awaiting allocation",
-        "Programme complete",
       )
     }
 
@@ -1273,15 +1272,14 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response).isNotNull
       assertThat(response.currentStatus.title).isEqualTo("On programme")
       assertThat(response.availableStatuses).isNotEmpty
-      assertThat(response.availableStatuses).hasSize(6)
-//      assertThat(response.availableStatuses.map { it.status }).containsSequence(
-//        "Awaiting assessment",
-//        "Awaiting allocation",
-//        "Breach (non-attendance)",
-//        "Recall",
-//        "Return to court",
-//        "Programme complete",
-//     )
+      assertThat(response.availableStatuses).hasSize(5)
+      assertThat(response.availableStatuses.map { it.status }).containsSequence(
+        "Awaiting assessment",
+        "Awaiting allocation",
+        "Breach (non-attendance)",
+        "Recall",
+        "Return to court",
+      )
     }
   }
 }
