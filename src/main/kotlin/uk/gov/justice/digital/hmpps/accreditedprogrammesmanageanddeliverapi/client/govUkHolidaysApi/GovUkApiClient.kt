@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.BaseHMPPSClient
@@ -15,6 +16,7 @@ class GovUkApiClient(
 ) : BaseHMPPSClient(webClient, objectMapper) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
+  @Cacheable("bank-holidays", unless = "#result == null")
   fun getHolidays() = getRequest<BankHolidaysResponse>("GovUk Bank Holidays API") {
     path = "/bank-holidays.json"
   }
