@@ -5,6 +5,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import java.util.UUID
 
 interface ReferralStatusTransitionRepository : JpaRepository<ReferralStatusTransitionEntity, UUID> {
-  fun findByFromStatusId(fromStatusId: UUID): List<ReferralStatusTransitionEntity>
+  fun findByFromStatusIdOrderByPriorityAsc(fromStatusId: UUID): List<ReferralStatusTransitionEntity>
   fun findByFromStatusIdAndToStatusId(fromStatusId: UUID, toStatusId: UUID): ReferralStatusTransitionEntity?
 }

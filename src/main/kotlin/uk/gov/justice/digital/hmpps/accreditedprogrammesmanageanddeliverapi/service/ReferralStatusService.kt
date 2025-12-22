@@ -24,7 +24,7 @@ class ReferralStatusService(
     val currentStatus =
       referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId) ?: return null
     val availableStatuses =
-      referralStatusTransitionRepository.findByFromStatusId(currentStatus.referralStatusDescription.id)
+      referralStatusTransitionRepository.findByFromStatusIdOrderByPriorityAsc(currentStatus.referralStatusDescription.id)
         .map { it.toStatus.toApi(it.description) }
 
     return ReferralStatusTransitions(currentStatus.toCurrentStatus(), availableStatuses)

@@ -5,6 +5,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusTransitionEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 
 class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() {
@@ -105,9 +106,9 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
 
   @Test
   @Transactional
-  fun `findByFromStatusId returns all transitions for a given status`() {
+  fun `findByFromStatusIdOrderByPriorityAsc returns all transitions for a given status`() {
     val awaitingAssessment = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
-    val transitions = referralStatusTransitionRepository.findByFromStatusId(awaitingAssessment.id)
+    val transitions = referralStatusTransitionRepository.findByFromStatusIdOrderByPriorityAsc(awaitingAssessment.id)
 
     assertThat(transitions).isNotEmpty
     assertThat(transitions).allMatch { it.fromStatus.id == awaitingAssessment.id }
@@ -118,5 +119,20 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
 
   private fun getTransition(fromStatusDescription: String, toStatusDescription: String) = referralStatusTransitionRepository.findAll().find {
     it.fromStatus.description == fromStatusDescription && it.toStatus.description == toStatusDescription
+  }
+
+  @Test
+  @Transactional
+  fun `should return statuses ordered by priority`() {
+
+    val onProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
+    val transitions = referralStatusTransitionRepository.findByFromStatusIdOrderByPriorityAsc(onProgramme.id)
+
+    // Assert: Verify the order
+    assertThat(transitions[0].description).isEqualTo("Awaiting Assessment")
+    assertThat(transitions[1].description).isEqualTo("Awaiting Allocation")
+    assertThat(transitions[2].description).isEqualTo("Breach (non-attendance)")
+    assertThat(transitions[3].description).isEqualTo("Recall")
+    assertThat(transitions[4].description).isEqualTo("Return to court")
   }
 }
