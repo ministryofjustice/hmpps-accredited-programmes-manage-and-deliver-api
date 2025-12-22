@@ -86,8 +86,8 @@ class ProgrammeGroupService(
     programmeGroup.programmeGroupSessionSlots.addAll(slots)
 
     val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")
-    programmeGroup.accreditedProgrammeTemplate = buildingChoicesTemplate
     require(buildingChoicesTemplate != null) { "Template must not be null" }
+    programmeGroup.accreditedProgrammeTemplate = buildingChoicesTemplate
 
     log.info("Group created with code: ${createGroupRequest.groupCode}")
 
