@@ -170,6 +170,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(programmeGroups.probationDeliveryUnitNames).containsExactlyInAnyOrder(
         "PDU Description",
         "Another PDU Description",
+        "Test PDU 1",
       )
       // deliveryLocationNames should be null when pdu is not specified
       assertThat(programmeGroups.deliveryLocationNames).isNull()
@@ -217,8 +218,9 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(programmeGroups.probationDeliveryUnitNames).containsExactlyInAnyOrder(
         "PDU Description",
         "Another PDU Description",
+        "Test PDU 1",
       )
-      assertThat(programmeGroups.deliveryLocationNames).containsExactly("Location One")
+      assertThat(programmeGroups.deliveryLocationNames).containsExactlyInAnyOrder("Location One", "Delivery Location 1")
     }
   }
 
@@ -226,7 +228,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
   @DisplayName("createGroup")
   inner class CreateGroup {
     @Test
-    fun `should the Sessions for a Programme Group`() {
+    fun `should schedule the Sessions for a Programme Group`() {
       // Given
       stubAuthTokenEndpoint()
       nDeliusApiStubs.stubUserTeamsResponse(
@@ -288,8 +290,9 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         .toLocalDateTime()
 
       // 3 week buffer between 1st pre group session and the rest
-      val friday18thAprilAt17h30InBst: LocalDateTime = LocalDateTime
-        .of(2025, 4, 18, 17, 30)
+      // and skip the bank holiday friday and monday slot
+      val friday25thAprilAt17h30InBst: LocalDateTime = LocalDateTime
+        .of(2025, 4, 25, 17, 30)
         .atZone(ZoneId.of("Europe/London"))
         .toLocalDateTime()
 
@@ -303,7 +306,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
       assertThat(
         foundGroup.sessions.find {
-          it.startsAt == friday18thAprilAt17h30InBst
+          it.startsAt == friday25thAprilAt17h30InBst
         },
       ).isNotNull
     }
