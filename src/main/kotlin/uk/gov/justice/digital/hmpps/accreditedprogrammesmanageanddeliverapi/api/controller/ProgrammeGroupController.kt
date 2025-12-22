@@ -114,10 +114,8 @@ class ProgrammeGroupController(
       sort = ["sentenceEndDate"],
       direction = Sort.Direction.ASC,
     ) pageable: Pageable,
-    @Parameter(description = "The id (UUID) of a group", required = true)
-    @PathVariable("groupId") groupId: UUID,
-    @Parameter(description = "Return table data for either the allocated tab or the waitlist tab")
-    @PathVariable("selectedTab") selectedTab: GroupPageTab,
+    @PathVariable @Parameter(description = "The id (UUID) of a group", required = true) groupId: UUID,
+    @PathVariable @Parameter(description = "Return table data for either the allocated tab or the waitlist tab") selectedTab: GroupPageTab,
     @Parameter(description = "Filter by the sex of the person in the referral")
     @RequestParam(name = "sex", required = false) sex: String?,
     @Parameter(description = "Filter by the cohort of the referral Eg: 'Sexual Offence' or 'General Offence - LDC")
@@ -184,8 +182,7 @@ class ProgrammeGroupController(
       sort = ["startedAtDate"],
       direction = Sort.Direction.ASC,
     ) pageable: Pageable,
-    @Parameter(description = "Return table data for either the Not started tab or the In progress/Completed tab")
-    @PathVariable("selectedTab") selectedTab: GroupPageByRegionTab,
+    @PathVariable @Parameter(description = "Return table data for either the Not started tab or the In progress/Completed tab") selectedTab: GroupPageByRegionTab,
     @Parameter(description = "Filter by the unique group code")
     @RequestParam(name = "groupCode", required = false) groupCode: String?,
     @Parameter(description = "Filter by the human readable pdu of the group, i.e. 'All London'")
@@ -248,16 +245,14 @@ class ProgrammeGroupController(
   )
   @PostMapping("/group/{groupId}/allocate/{referralId}")
   fun allocateToProgrammeGroup(
-    @Parameter(
+    @PathVariable @Parameter(
       description = "The group_id (UUID) of the group to allocate to",
       required = true,
-    )
-    @PathVariable("groupId") groupId: UUID,
-    @Parameter(
+    ) groupId: UUID,
+    @PathVariable @Parameter(
       description = "The referralId (UUID) of a referral",
       required = true,
-    )
-    @PathVariable("referralId") referralId: UUID,
+    ) referralId: UUID,
     @Valid
     @RequestBody allocateToGroupRequest: AllocateToGroupRequest,
   ): ResponseEntity<AllocateToGroupResponse> {
@@ -310,16 +305,14 @@ class ProgrammeGroupController(
   )
   @PostMapping("/group/{groupId}/remove/{referralId}")
   fun removeFromProgrammeGroup(
-    @Parameter(
+    @PathVariable @Parameter(
       description = "The group_id (UUID) of the group to remove from",
       required = true,
-    )
-    @PathVariable("groupId") groupId: UUID,
-    @Parameter(
+    ) groupId: UUID,
+    @PathVariable @Parameter(
       description = "The referralId (UUID) of a referral",
       required = true,
-    )
-    @PathVariable("referralId") referralId: UUID,
+    ) referralId: UUID,
     @Valid
     @RequestBody removeFromGroupRequest: RemoveFromGroupRequest,
   ): ResponseEntity<RemoveFromGroupResponse> {
@@ -412,7 +405,7 @@ class ProgrammeGroupController(
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @GetMapping("/group/{groupCode}/details")
-  fun getGroupInRegion(@PathVariable("groupCode") groupCode: String): ResponseEntity<Group>? {
+  fun getGroupInRegion(@PathVariable groupCode: String): ResponseEntity<Group>? {
     val username = getUsername()
     return ResponseEntity.ok(programmeGroupService.getGroupInRegion(groupCode, username)?.toApi())
   }
@@ -537,18 +530,19 @@ class ProgrammeGroupController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/group/{groupId}/module/{moduleId}/schedule-session-type", produces = [MediaType.APPLICATION_JSON_VALUE])
+  @GetMapping(
+    "/bff/group/{groupId}/module/{moduleId}/schedule-session-type",
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+  )
   fun getSessionTemplatesForGroupModule(
-    @Parameter(
+    @PathVariable @Parameter(
       description = "The UUID of the programme group",
       required = true,
-    )
-    @PathVariable("groupId") groupId: UUID,
-    @Parameter(
+    ) groupId: UUID,
+    @PathVariable @Parameter(
       description = "The UUID of the module",
       required = true,
-    )
-    @PathVariable("moduleId") moduleId: UUID,
+    ) moduleId: UUID,
   ): ResponseEntity<ScheduleSessionTypeResponse> {
     /**
      * In the future this endpoint will also need to return Group Sessions (to allow
@@ -664,10 +658,8 @@ class ProgrammeGroupController(
     produces = [MediaType.APPLICATION_JSON_VALUE],
   )
   fun getScheduleIndividualSessionDetails(
-    @Parameter(description = "The UUID of the Programme Group", required = true)
-    @PathVariable("groupId") groupId: UUID,
-    @Parameter(description = "The UUID of the Module", required = true)
-    @PathVariable("moduleId") moduleId: UUID,
+    @PathVariable @Parameter(description = "The UUID of the Programme Group", required = true) groupId: UUID,
+    @PathVariable @Parameter(description = "The UUID of the Module", required = true) moduleId: UUID,
   ): ResponseEntity<ScheduleIndividualSessionDetailsResponse> {
     programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
@@ -698,7 +690,7 @@ class ProgrammeGroupController(
 
   private fun getUsername(): String {
     val username = authenticationHolder.username
-    if (username == null || username.isBlank()) {
+    if (username.isNullOrBlank()) {
       throw AuthenticationCredentialsNotFoundException("No authenticated user found")
     }
     return username

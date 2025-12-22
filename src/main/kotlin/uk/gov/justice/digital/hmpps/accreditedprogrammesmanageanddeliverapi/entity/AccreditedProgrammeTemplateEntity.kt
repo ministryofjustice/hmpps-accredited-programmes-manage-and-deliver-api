@@ -7,7 +7,6 @@ import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.OneToMany
-import jakarta.persistence.OneToOne
 import jakarta.persistence.OrderBy
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
@@ -41,6 +40,6 @@ class AccreditedProgrammeTemplateEntity(
   @OrderBy("moduleNumber ASC")
   var modules: MutableSet<ModuleEntity> = mutableSetOf(),
 
-  @OneToOne(mappedBy = "accreditedProgrammeTemplate", fetch = FetchType.LAZY)
-  var programmeGroup: ProgrammeGroupEntity? = null,
+  @OneToMany(mappedBy = "accreditedProgrammeTemplate", fetch = FetchType.LAZY)
+  var programmeGroups: MutableSet<ProgrammeGroupEntity> = mutableSetOf(),
 )
