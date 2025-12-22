@@ -27,6 +27,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusTransitions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RemoveReferralFromGroupStatusTransitions
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
@@ -309,7 +310,7 @@ class ReferralController(
       description = "Details of the new Referral Status to assign",
       required = true,
     ) @RequestBody updateReferralStatus: CreateReferralStatusHistory,
-  ): ResponseEntity<ReferralStatusHistory> {
+  ): ResponseEntity<StatusUpdateResult> {
     val referral = referralService.getReferralById(id)
 
     val result = referralService.updateStatus(
@@ -318,7 +319,6 @@ class ReferralController(
       additionalDetails = updateReferralStatus.additionalDetails,
       createdBy = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
     )
-
     return ResponseEntity.ok(result)
   }
 
