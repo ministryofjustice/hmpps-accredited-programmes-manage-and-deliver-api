@@ -119,4 +119,17 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
   private fun getTransition(fromStatusDescription: String, toStatusDescription: String) = referralStatusTransitionRepository.findAll().find {
     it.fromStatus.description == fromStatusDescription && it.toStatus.description == toStatusDescription
   }
+
+  @Test
+  @Transactional
+  fun `ensure there is exactly one initial status and all others are reachable`() {
+    referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+    val allStatuses = referralStatusDescriptionRepository.findAll()
+
+    val unreachable = allStatuses.filter {
+      referralStatusTransitionRepository.findByToStatus(it).isEmpty()
+    }
+
+    assertThat(unreachable).hasSize(0)
+  }
 }
