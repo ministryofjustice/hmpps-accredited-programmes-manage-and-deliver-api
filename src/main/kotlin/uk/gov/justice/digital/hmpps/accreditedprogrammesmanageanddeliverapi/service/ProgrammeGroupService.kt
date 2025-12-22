@@ -90,8 +90,8 @@ class ProgrammeGroupService(
     programmeGroup.programmeGroupSessionSlots.addAll(slots)
 
     val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")
-    programmeGroup.accreditedProgrammeTemplate = buildingChoicesTemplate
     require(buildingChoicesTemplate != null) { "Template must not be null" }
+    programmeGroup.accreditedProgrammeTemplate = buildingChoicesTemplate
 
     log.info("Group created with code: ${createGroupRequest.groupCode}")
 
@@ -109,9 +109,9 @@ class ProgrammeGroupService(
     slotData: Set<CreateGroupSessionSlot>,
     programmeGroup: ProgrammeGroupEntity,
   ): List<ProgrammeGroupSessionSlotEntity> = slotData.map { item ->
-    val hour = when {
-      item.amOrPm == AmOrPm.PM && item.hour < 12 -> item.hour + 12
-      item.amOrPm == AmOrPm.AM && item.hour == 12 -> 0
+    val hour = when (item.amOrPm) {
+      AmOrPm.PM if item.hour < 12 -> item.hour + 12
+      AmOrPm.AM if item.hour == 12 -> 0
       else -> item.hour
     }
     val startTime = LocalTime.of(hour, item.minutes)
