@@ -1155,7 +1155,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     }
 
     @Test
-    fun `should return filter out statuses when not visible true`() {
+    fun `should return filter out statuses when isVisible false`() {
       // Given
       val referralEntity = ReferralEntityFactory().produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(

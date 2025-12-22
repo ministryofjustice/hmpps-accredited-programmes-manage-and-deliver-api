@@ -39,7 +39,7 @@ class ReferralStatusTransitionEntity(
   @Column(name = "deleted_at")
   val deletedAt: LocalDateTime? = null,
 
-  @Column(name = "visible")
-  val visible: Boolean = true,
+  @Column(name = "isVisible")
+  val isVisible: Boolean = true,
 
 )
