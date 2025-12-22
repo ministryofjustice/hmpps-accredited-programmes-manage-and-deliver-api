@@ -302,8 +302,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       object : ParameterizedTypeReference<ErrorResponse>() {},
       HttpStatus.NOT_FOUND.value(),
     )
-
-    assertThat(response.developerMessage).isEqualTo("No risk predictors found for assessment id: $assessmentId")
+    assertThat(response.developerMessage).isEqualTo("Failure to retrieve AllPredictorVersioned data for assessmentId: $assessmentId, reason: 'Unable to complete GET request to /assessments/id/$assessmentId/risk/predictors/all: 404 NOT_FOUND'")
   }
 
   @Test
@@ -316,7 +315,6 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     oasysApiStubs.stubSuccessfulOasysOffendingInfoResponse(assessmentId)
     oasysApiStubs.stubSuccessfulOasysRelationshipsResponse(assessmentId)
     oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(assessmentId)
-//    oasysApiStubs.stubSuccessfulOasysRiskPredictorScores(assessmentId)
     arnsApiStubs.stubSuccessfulLegacyRiskPredictorsResponse(assessmentId)
     nDeliusApiStubs.stubNotFoundNDeliusRegistrationsResponse(referralEntity.crn)
 

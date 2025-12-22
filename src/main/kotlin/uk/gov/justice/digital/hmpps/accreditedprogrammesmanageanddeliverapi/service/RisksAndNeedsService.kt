@@ -157,7 +157,9 @@ class RisksAndNeedsService(
     val oasysRelationships: OasysRelationships =
       getDetails(assessmentId, oasysApiClient::getRelationships, "Relationships")
     val oasysRoshSummary: OasysRoshSummary = getDetails(assessmentId, oasysApiClient::getRoshSummary, "RoshSummary")
-    val riskPredictors: AllPredictorVersioned<Any>? = getRiskPredictors(assessmentId) ?: throw NotFoundException("No risk predictors found for crn: $crn")
+    val riskPredictors: AllPredictorVersioned<Any> = getDetails(assessmentId, assessRiskAndNeedsApiClient::getRiskPredictors, "AllPredictorVersioned")
+//      getRiskPredictors(assessmentId)
+//      ?: throw NotFoundException("No risk predictors found for crn: $crn")
     val activeAlerts: NDeliusRegistrations? = getActiveAlerts(crn)
 
     return buildRiskModel(
