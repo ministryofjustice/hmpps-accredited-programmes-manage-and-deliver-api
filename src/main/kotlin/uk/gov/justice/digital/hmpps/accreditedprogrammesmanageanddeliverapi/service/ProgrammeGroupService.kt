@@ -59,7 +59,10 @@ class ProgrammeGroupService(
     programmeGroupRepository.findByCodeAndRegionName(createGroupRequest.groupCode, userRegion.description)
       ?.let { throw ConflictException("Programme group with code ${createGroupRequest.groupCode} already exists in region") }
 
-    val programmeGroup = createGroupRequest.toEntity(userRegion.description)
+    val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")
+    require(buildingChoicesTemplate != null) { "Template must not be null" }
+
+    val programmeGroup = createGroupRequest.toEntity(userRegion.description, buildingChoicesTemplate)
 
     val (treatmentManagers, facilitators) = createGroupRequest.teamMembers.partition {
       it.teamMemberType == CreateGroupTeamMemberType.TREATMENT_MANAGER
@@ -88,10 +91,6 @@ class ProgrammeGroupService(
 
     val slots = createSessionSlots(createGroupRequest.createGroupSessionSlot, programmeGroup)
     programmeGroup.programmeGroupSessionSlots.addAll(slots)
-
-    val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")
-    require(buildingChoicesTemplate != null) { "Template must not be null" }
-    programmeGroup.accreditedProgrammeTemplate = buildingChoicesTemplate
 
     log.info("Group created with code: ${createGroupRequest.groupCode}")
 

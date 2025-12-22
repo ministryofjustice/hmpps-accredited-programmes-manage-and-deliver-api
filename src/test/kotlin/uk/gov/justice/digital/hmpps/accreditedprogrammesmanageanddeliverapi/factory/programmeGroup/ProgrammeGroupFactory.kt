@@ -1,5 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup
 
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.TestComponent
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AccreditedProgrammeTemplateEntity
@@ -8,11 +10,19 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
+@TestComponent
 class ProgrammeGroupFactory {
+
+  @Autowired
+  private lateinit var accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository
+
+  private val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+
   private var id: UUID? = null
   private var code: String = "AAA111"
   private var cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE
@@ -23,18 +33,18 @@ class ProgrammeGroupFactory {
   private var updatedAt: LocalDateTime? = null
   private var updatedByUsername: String? = null
   private var deletedAt: LocalDateTime? = null
-  var deliveryLocationName: String? = null
-  var deliveryLocationCode: String? = null
-  var probationDeliveryUnitName: String? = null
-  var probationDeliveryUnitCode: String? = null
+  var deliveryLocationName: String = "Delivery Location 1"
+  var deliveryLocationCode: String = "Delivery Location code 1"
+  var probationDeliveryUnitName: String = "Probation delivery Location 1"
+  var probationDeliveryUnitCode: String = "Probation delivery Location code 1"
   private var deletedByUsername: String? = null
   private var regionName: String = "TEST REGION"
   private var startedAtDate: LocalDate? = null
-  private var earliestStartDate: LocalDate? = null
+  private var earliestStartDate: LocalDate = LocalDate.now()
   private var programmeGroupSessionSlots: MutableSet<ProgrammeGroupSessionSlotEntity> = mutableSetOf()
   private var treatmentManager: FacilitatorEntity? = null
   private var groupFacilitators: MutableSet<ProgrammeGroupFacilitatorEntity> = mutableSetOf()
-  private var accreditedProgrammeTemplate: AccreditedProgrammeTemplateEntity? = null
+  private var accreditedProgrammeTemplate: AccreditedProgrammeTemplateEntity = buildingChoicesTemplate
   private var sessions: MutableSet<SessionEntity> = mutableSetOf()
 
   fun withId(id: UUID) = apply { this.id = id }

@@ -93,16 +93,23 @@ class WebClientConfiguration(
 
   @Bean(name = ["govUkApiWebClient"])
   fun govUKApiWebClient(
-    clientRegistrations: ClientRegistrationRepository,
-    authorizedClients: OAuth2AuthorizedClientRepository,
-    authorizedClientManager: OAuth2AuthorizedClientManager,
-    @Value($$"${services.govuk-api.base-url}") govUKBaseUrl: String,
-  ): WebClient {
-    val oauth2Client = ServletOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager)
-
-    oauth2Client.setDefaultClientRegistrationId("manage-and-deliver-api-client")
-    return buildWebClient(govUKBaseUrl, oauth2Client)
-  }
+    @Value($$"${services.govuk-api.base-url}") govukBaseUrl: String,
+  ): WebClient = WebClient.builder()
+    .baseUrl(govukBaseUrl)
+    .clientConnector(
+      ReactorClientHttpConnector(
+        HttpClient
+          .create()
+          .responseTimeout(timeout)
+          .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeout.toMillis().toInt()),
+      ),
+    )
+    .exchangeStrategies(
+      ExchangeStrategies.builder().codecs {
+        it.defaultCodecs().maxInMemorySize(maxResponseInMemorySizeBytes)
+      }.build(),
+    )
+    .build()
 
   fun buildWebClient(url: String, oauth2Client: ServletOAuth2AuthorizedClientExchangeFilterFunction): WebClient = WebClient.builder()
     .baseUrl(url)

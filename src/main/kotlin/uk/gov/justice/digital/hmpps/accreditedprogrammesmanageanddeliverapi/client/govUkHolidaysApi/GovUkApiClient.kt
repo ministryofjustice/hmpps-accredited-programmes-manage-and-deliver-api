@@ -15,7 +15,7 @@ class GovUkApiClient(
 ) : BaseHMPPSClient(webClient, objectMapper) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  fun getHolidays() = getRequest<BankHolidaysResponse>("GovUK Bank Holidays API") {
+  fun getHolidays() = getRequest<BankHolidaysResponse>("GovUk Bank Holidays API") {
     path = "/bank-holidays.json"
   }
 }
