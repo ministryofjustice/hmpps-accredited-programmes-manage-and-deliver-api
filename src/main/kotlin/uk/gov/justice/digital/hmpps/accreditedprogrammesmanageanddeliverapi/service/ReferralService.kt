@@ -11,7 +11,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResult
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.UpdateLdc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
@@ -296,7 +296,7 @@ class ReferralService(
     referralStatusDescriptionId: UUID,
     additionalDetails: String? = null,
     createdBy: String,
-  ): StatusUpdateResult {
+  ): StatusUpdateResponse {
     val incomingReferralStatusDescription =
       referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId)
 
@@ -338,9 +338,9 @@ class ReferralService(
       ),
     )
 
-    return StatusUpdateResult(
+    return StatusUpdateResponse(
       referralStatusHistory = historyEntry.toApi(),
-      message = message
+      message = message,
     )
   }
 
