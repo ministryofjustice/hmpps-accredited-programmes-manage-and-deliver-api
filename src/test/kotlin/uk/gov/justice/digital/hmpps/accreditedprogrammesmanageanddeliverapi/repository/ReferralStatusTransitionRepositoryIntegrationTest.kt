@@ -123,7 +123,6 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
   @Test
   @Transactional
   fun `should return statuses ordered by priority`() {
-
     val onProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
     val transitions = referralStatusTransitionRepository.findByFromStatusIdAndIsVisibleTrueOrderByPriorityAsc(onProgramme.id)
 
