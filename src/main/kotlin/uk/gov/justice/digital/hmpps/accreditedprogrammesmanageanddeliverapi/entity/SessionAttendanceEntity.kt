@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity
 
+import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -53,6 +54,7 @@ class SessionAttendanceEntity(
   @Column(name = "recorded_at")
   var recordedAt: LocalDateTime? = null,
 
-  @OneToOne(mappedBy = "sessionAttendance", fetch = FetchType.LAZY)
+  @NotNull
+  @OneToOne(mappedBy = "sessionAttendance", fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
   var ndeliusAppointment: NDeliusAppointmentEntity? = null,
 )
