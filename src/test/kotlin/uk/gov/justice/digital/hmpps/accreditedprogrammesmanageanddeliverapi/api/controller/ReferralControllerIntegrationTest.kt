@@ -1221,7 +1221,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     }
 
     @Test
-    fun `should return the correct status for a referral with an On programme status`() {
+    fun `should return the correct ordered status for a referral with an On programme status`() {
       // Given
       testDataCleaner.cleanAllTables()
       val theGroup = testDataGenerator.createGroup(ProgrammeGroupFactory().withCode("AAA1112").produce())
@@ -1249,30 +1249,6 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         "Awaiting assessment",
         "Awaiting allocation",
       )
-    }
-
-    @Test
-    fun `should return the correct order of status for a referral with an On programme status`() {
-      // Given
-      testDataCleaner.cleanAllTables()
-      val theGroup = testDataGenerator.createGroup(ProgrammeGroupFactory().withCode("AAA1112").produce())
-
-      val referralEntity = testReferralHelper.createReferralWithStatus(
-        referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
-      )
-
-      // When
-      val response = performRequestAndExpectOk(
-        httpMethod = HttpMethod.GET,
-        uri = "/bff/remove-from-group/${referralEntity.id}",
-        returnType = object : ParameterizedTypeReference<RemoveReferralFromGroupStatusTransitions>() {},
-      )
-
-      // Then
-      assertThat(response).isNotNull
-      assertThat(response.currentStatus.title).isEqualTo("On programme")
-      assertThat(response.availableStatuses).isNotEmpty
-      assertThat(response.availableStatuses).hasSize(5)
       assertThat(response.availableStatuses.map { it.status }).containsSequence(
         "Awaiting assessment",
         "Awaiting allocation",
