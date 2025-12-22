@@ -528,8 +528,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       stubAuthTokenEndpoint()
 
       val region = "WIREMOCKED REGION"
-      val group1 = ProgrammeGroupFactory().withCode("GROUP-A-NS-1").withRegionName(region).produce()
-      val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2").withRegionName(region).produce()
+      val group1 = ProgrammeGroupFactory().withCode("GROUP-A-NS-1").withRegionName(region)
+        .withEarliestStartDate(LocalDate.now().plusDays(5)).produce()
+      val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2").withRegionName(region)
+        .withEarliestStartDate(LocalDate.now().plusDays(5)).produce()
 
       val group3 = ProgrammeGroupFactory().withCode("GROUP-A-S-1")
         .withRegionName(region).withEarliestStartDate(LocalDate.now().minusDays(5)).produce()

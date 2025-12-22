@@ -3,5 +3,4 @@ ALTER TABLE programme_group
     ALTER COLUMN probation_delivery_unit_name SET NOT NULL,
     ALTER COLUMN probation_delivery_unit_code SET NOT NULL,
     ALTER COLUMN delivery_location_name SET NOT NULL,
-    ALTER COLUMN delivery_location_code SET NOT NULL,
-    ALTER COLUMN accredited_programme_template_id SET NOT NULL;
+    ALTER COLUMN delivery_location_code SET NOT NULL;
