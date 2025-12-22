@@ -42,4 +42,7 @@ class ReferralStatusTransitionEntity(
   @Column(name = "priority")
   val priority: Int = 1,
 
+  @Column(name = "is_visible")
+  val isVisible: Boolean = true,
+
 )

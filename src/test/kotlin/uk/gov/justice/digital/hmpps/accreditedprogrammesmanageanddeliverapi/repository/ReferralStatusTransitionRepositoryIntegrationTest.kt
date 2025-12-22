@@ -5,7 +5,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusTransitionEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 
 class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() {
@@ -106,9 +105,9 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
 
   @Test
   @Transactional
-  fun `findByFromStatusIdOrderByPriorityAsc returns all transitions for a given status`() {
+  fun `findByFromStatusId returns all transitions for a given status`() {
     val awaitingAssessment = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
-    val transitions = referralStatusTransitionRepository.findByFromStatusIdOrderByPriorityAsc(awaitingAssessment.id)
+    val transitions = referralStatusTransitionRepository.findByFromStatusId(awaitingAssessment.id)
 
     assertThat(transitions).isNotEmpty
     assertThat(transitions).allMatch { it.fromStatus.id == awaitingAssessment.id }
@@ -126,7 +125,7 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
   fun `should return statuses ordered by priority`() {
 
     val onProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
-    val transitions = referralStatusTransitionRepository.findByFromStatusIdOrderByPriorityAsc(onProgramme.id)
+    val transitions = referralStatusTransitionRepository.findByFromStatusIdAndIsVisibleTrueOrderByPriorityAsc(onProgramme.id)
 
     // Assert: Verify the order
     assertThat(transitions[0].description).isEqualTo("Awaiting Assessment")
@@ -134,5 +133,18 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
     assertThat(transitions[2].description).isEqualTo("Breach (non-attendance)")
     assertThat(transitions[3].description).isEqualTo("Recall")
     assertThat(transitions[4].description).isEqualTo("Return to court")
+  }
+
+  @Test
+  @Transactional
+  fun `ensure there is exactly one initial status and all others are reachable`() {
+    referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+    val allStatuses = referralStatusDescriptionRepository.findAll()
+
+    val unreachable = allStatuses.filter {
+      referralStatusTransitionRepository.findByToStatus(it).isEmpty()
+    }
+
+    assertThat(unreachable).hasSize(0)
   }
 }
