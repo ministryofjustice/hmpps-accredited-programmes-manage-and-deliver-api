@@ -38,11 +38,6 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
     assertThat(scheduledToOnProgramme).isNotNull
     assertThat(scheduledToOnProgramme!!.isContinuing).isTrue()
 
-    // On programme --> Programme complete
-    val onProgrammeToProgrammeComplete = getTransition("On programme", "Programme complete")
-    assertThat(onProgrammeToProgrammeComplete).isNotNull
-    assertThat(onProgrammeToProgrammeComplete!!.isContinuing).isTrue()
-
     // Suitable but not ready --> Awaiting assessment
     val suitableButNotReadyToAwaitingAssessment = getTransition("Suitable but not ready", "Awaiting assessment")
     assertThat(suitableButNotReadyToAwaitingAssessment).isNotNull
@@ -101,6 +96,11 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
     val returnToCourtToWithdrawn = getTransition("Return to court", "Withdrawn")
     assertThat(returnToCourtToWithdrawn).isNotNull
     assertThat(returnToCourtToWithdrawn!!.isContinuing).isFalse()
+
+    // On programme --> Programme complete
+    val onProgrammeToProgrammeComplete = getTransition("On programme", "Programme complete")
+    assertThat(onProgrammeToProgrammeComplete).isNotNull
+    assertThat(onProgrammeToProgrammeComplete!!.isContinuing).isFalse()
   }
 
   @Test
