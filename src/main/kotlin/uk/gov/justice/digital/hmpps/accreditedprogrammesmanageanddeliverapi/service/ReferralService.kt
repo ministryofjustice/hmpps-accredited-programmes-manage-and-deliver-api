@@ -11,6 +11,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.UpdateLdc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
@@ -295,7 +296,7 @@ class ReferralService(
     referralStatusDescriptionId: UUID,
     additionalDetails: String? = null,
     createdBy: String,
-  ): ReferralStatusHistory {
+  ): StatusUpdateResponse {
     val incomingReferralStatusDescription =
       referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId)
 
@@ -317,6 +318,7 @@ class ReferralService(
       incomingReferralStatusDescription.id,
     )
 
+    var message = "${referral.personName}'s referral status is now ${incomingReferralStatusDescription.description}"
     val activeGroupMembership = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
 
     if (
@@ -324,6 +326,7 @@ class ReferralService(
       activeGroupMembership != null
     ) {
       programmeGroupMembershipService.deleteGroupMembershipForReferralAndGroup(referral.id!!, activeGroupMembership.programmeGroup.id!!, createdBy)
+      message = "${referral.personName}'s referral status is now ${incomingReferralStatusDescription.description}. They have been removed from group ${activeGroupMembership.programmeGroup.code}"
     }
 
     val historyEntry = referralStatusHistoryRepository.save(
@@ -335,7 +338,10 @@ class ReferralService(
       ),
     )
 
-    return historyEntry.toApi()
+    return StatusUpdateResponse(
+      referralStatusHistory = historyEntry.toApi(),
+      message = message,
+    )
   }
 
   fun getStatusHistory(referralId: UUID): List<ReferralStatusHistory> = referralStatusHistoryRepository.findAllByReferralId(referralId).sortedBy { it.createdAt }.map { it.toApi() }
