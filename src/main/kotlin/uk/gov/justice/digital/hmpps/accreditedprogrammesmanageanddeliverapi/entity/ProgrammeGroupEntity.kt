@@ -115,11 +115,10 @@ class ProgrammeGroupEntity(
   @OneToMany(orphanRemoval = true, fetch = FetchType.LAZY, cascade = [CascadeType.ALL], mappedBy = "programmeGroup")
   val groupFacilitators: MutableSet<ProgrammeGroupFacilitatorEntity> = mutableSetOf(),
 
-  @NotNull
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "accredited_programme_template_id", referencedColumnName = "id")
   @OnDelete(action = OnDeleteAction.SET_NULL)
-  var accreditedProgrammeTemplate: AccreditedProgrammeTemplateEntity,
+  var accreditedProgrammeTemplate: AccreditedProgrammeTemplateEntity? = null,
 
   @OneToMany(
     fetch = FetchType.LAZY,

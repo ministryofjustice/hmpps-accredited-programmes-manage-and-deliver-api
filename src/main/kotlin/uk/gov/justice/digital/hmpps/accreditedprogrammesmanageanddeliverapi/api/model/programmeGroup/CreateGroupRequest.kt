@@ -9,7 +9,6 @@ import jakarta.validation.constraints.NotEmpty
 import jakarta.validation.constraints.NotNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AccreditedProgrammeTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import java.time.LocalDate
 
@@ -105,7 +104,6 @@ data class CreateGroupTeamMember(
 
 fun CreateGroupRequest.toEntity(
   region: String,
-  accreditedProgrammeTemplateEntity: AccreditedProgrammeTemplateEntity,
 ): ProgrammeGroupEntity {
   val (cohort, isLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(cohort)
   return ProgrammeGroupEntity(
@@ -119,6 +117,5 @@ fun CreateGroupRequest.toEntity(
     deliveryLocationName = deliveryLocationName,
     probationDeliveryUnitCode = pduCode,
     probationDeliveryUnitName = pduName,
-    accreditedProgrammeTemplate = accreditedProgrammeTemplateEntity,
   )
 }

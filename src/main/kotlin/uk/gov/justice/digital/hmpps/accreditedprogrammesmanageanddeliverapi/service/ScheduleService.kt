@@ -42,7 +42,7 @@ class ScheduleService(
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
       ?: throw NotFoundException("Group with id: $programmeGroupId could not be found")
 
-    val templateId = requireNotNull(group.accreditedProgrammeTemplate.id) {
+    val templateId = requireNotNull(group.accreditedProgrammeTemplate?.id) {
       "Group template Id must not be null"
     }
 
