@@ -11,10 +11,11 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
-import jakarta.persistence.OneToOne
 import jakarta.persistence.OrderBy
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.security.core.context.SecurityContextHolder
@@ -109,8 +110,9 @@ class ProgrammeGroupEntity(
   @OneToMany(orphanRemoval = true, fetch = FetchType.LAZY, cascade = [CascadeType.ALL], mappedBy = "programmeGroup")
   val groupFacilitators: MutableSet<ProgrammeGroupFacilitatorEntity> = mutableSetOf(),
 
-  @OneToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "accredited_programme_template_id", referencedColumnName = "id")
+  @OnDelete(action = OnDeleteAction.SET_NULL)
   var accreditedProgrammeTemplate: AccreditedProgrammeTemplateEntity? = null,
 
   @OneToMany(
@@ -121,4 +123,5 @@ class ProgrammeGroupEntity(
   )
   @OrderBy("startsAt ASC")
   var sessions: MutableSet<SessionEntity> = mutableSetOf(),
+
 )

@@ -1107,6 +1107,28 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
     }
+
+    @Test
+    fun `create multiple groups should not fail`() {
+      // This test is in place as we are currently seeing an issue that produces the error
+      // More than one row with the given identifier was found: 3442732f-9a0d-4981-8f9e-54e622e72211, for class: uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+      repeat(10) { iteration ->
+        val body = createGroupRequestFactory.produce()
+
+        performRequestAndExpectStatus(
+          httpMethod = HttpMethod.POST,
+          uri = "/group",
+          body = body,
+          expectedResponseStatus = HttpStatus.CREATED.value(),
+        )
+
+        val createdGroup = programmeGroupRepository.findByCode(body.groupCode)
+          ?: error("Iteration $iteration: group not found")
+
+        assertThat(createdGroup.code).isEqualTo(body.groupCode)
+        assertThat(createdGroup.id).isNotNull
+      }
+    }
   }
 
   @Nested
