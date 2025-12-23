@@ -1,8 +1,7 @@
 
 -- This column indicates the ordering of the status transitions
 ALTER TABLE referral_status_transition
-    ADD COLUMN priority SMALLINT NOT NULL DEFAULT 1,
-    ADD CONSTRAINT check_priority_positive CHECK (priority > 0);
+    ADD COLUMN priority SMALLINT NOT NULL DEFAULT 1;
 
 -- On programme FROM
 
