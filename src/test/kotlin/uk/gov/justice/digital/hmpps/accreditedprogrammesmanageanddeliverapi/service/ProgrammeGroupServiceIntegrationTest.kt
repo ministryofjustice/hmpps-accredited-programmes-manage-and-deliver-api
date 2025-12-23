@@ -45,6 +45,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     @BeforeEach
     fun setup() {
       nDeliusApiStubs.clearAllStubs()
+      govUkApiStubs.stubBankHolidaysResponse()
 
       stubAuthTokenEndpoint()
 
