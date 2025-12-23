@@ -30,7 +30,7 @@ class ScheduleService(
   private val sessionRepository: SessionRepository,
   private val clock: Clock,
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
-  private val govUkApiClient: GovUkApiClient,
+  govUkApiClient: GovUkApiClient,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
