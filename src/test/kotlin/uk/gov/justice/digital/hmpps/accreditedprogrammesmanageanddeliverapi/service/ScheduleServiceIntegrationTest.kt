@@ -45,6 +45,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     testDataCleaner.cleanAllTables()
 
     nDeliusApiStubs.clearAllStubs()
+    govUkApiStubs.stubBankHolidaysResponse()
 
     stubAuthTokenEndpoint()
     nDeliusApiStubs.stubUserTeamsResponse(
