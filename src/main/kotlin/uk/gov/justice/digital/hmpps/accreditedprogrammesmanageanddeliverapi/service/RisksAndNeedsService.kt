@@ -139,15 +139,6 @@ class RisksAndNeedsService(
     ).toModel(assessmentCompletedDate?.toLocalDate())
   }
 
-  fun getRiskPredictors(assessmentId: Long): AllPredictorVersioned<Any>? = when (val result = assessRiskAndNeedsApiClient.getRiskPredictors(assessmentId)) {
-    is ClientResult.Failure -> {
-      log.error("Failure when retrieving risk predictors for assessment id : $assessmentId", result.toException())
-      throw NotFoundException("No risk predictors found for assessment id: $assessmentId")
-    }
-
-    is ClientResult.Success -> result.body
-  }
-
   fun getRisksByCrn(crn: String): Risks {
     val assessmentId = getAssessmentIdAndDate(crn)?.first
       ?: throw NotFoundException("No assessment found for crn: $crn")
@@ -157,7 +148,7 @@ class RisksAndNeedsService(
     val oasysRelationships: OasysRelationships =
       getDetails(assessmentId, oasysApiClient::getRelationships, "Relationships")
     val oasysRoshSummary: OasysRoshSummary = getDetails(assessmentId, oasysApiClient::getRoshSummary, "RoshSummary")
-    val riskPredictors: AllPredictorVersioned<Any>? = getRiskPredictors(assessmentId) ?: throw NotFoundException("No risk predictors found for crn: $crn")
+    val riskPredictors: AllPredictorVersioned<Any> = getDetails(assessmentId, assessRiskAndNeedsApiClient::getRiskPredictors, "AllPredictorVersioned")
     val activeAlerts: NDeliusRegistrations? = getActiveAlerts(crn)
 
     return buildRiskModel(
