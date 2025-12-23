@@ -179,7 +179,7 @@ class ScheduleService(
     var candidateDate = fromDate.with(TemporalAdjusters.nextOrSame(slot.dayOfWeek))
 
     // Keep advancing by weeks until we find a non-holiday
-    while (englandAndWalesHolidayDates.contains(candidateDate)) {
+    while (englandAndWalesHolidayDates().contains(candidateDate)) {
       candidateDate = candidateDate.plusWeeks(1)
     }
 
@@ -191,7 +191,7 @@ class ScheduleService(
     val nextDate: LocalDate,
   )
 
-  private val englandAndWalesHolidayDates: Set<LocalDate> = when (val response = govUkApiClient.getHolidays()) {
+  private fun englandAndWalesHolidayDates(): Set<LocalDate> = when (val response = govUkApiClient.getHolidays()) {
     is ClientResult.Failure -> {
       log.warn("Failure to retrieve Uk bank holidays")
       throw BusinessException("Could not retrieve bank holidays from GovUk Api")

@@ -15,11 +15,14 @@ class GovUkApiClientIntegrationTest : IntegrationTestBase() {
   @Test
   fun `should return a list of holidays for the uk`() {
     stubAuthTokenEndpoint()
+    govUkApiStubs.stubBankHolidaysResponse()
     when (val response = govUkApiClient.getHolidays()) {
       is ClientResult.Success<BankHolidaysResponse> -> {
         assertThat(response.body).isNotNull()
         assertThat(response.body.englandAndWales).isNotNull
         assertThat(response.body.englandAndWales.events).isNotEmpty
+        // Attempt to find Xmas day (obvious bank holiday)
+        assertThat(response.body.englandAndWales.events.find { it.date == "2025-12-25" }).isNotNull
       }
 
       is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")
