@@ -91,6 +91,26 @@ class WebClientConfiguration(
     return buildWebClient(assessRiskAndNeedsBaseUrl, oauth2Client)
   }
 
+  @Bean(name = ["govUkApiWebClient"])
+  fun govUKApiWebClient(
+    @Value($$"${services.govuk-api.base-url}") govukBaseUrl: String,
+  ): WebClient = WebClient.builder()
+    .baseUrl(govukBaseUrl)
+    .clientConnector(
+      ReactorClientHttpConnector(
+        HttpClient
+          .create()
+          .responseTimeout(timeout)
+          .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeout.toMillis().toInt()),
+      ),
+    )
+    .exchangeStrategies(
+      ExchangeStrategies.builder().codecs {
+        it.defaultCodecs().maxInMemorySize(maxResponseInMemorySizeBytes)
+      }.build(),
+    )
+    .build()
+
   fun buildWebClient(url: String, oauth2Client: ServletOAuth2AuthorizedClientExchangeFilterFunction): WebClient = WebClient.builder()
     .baseUrl(url)
     .clientConnector(

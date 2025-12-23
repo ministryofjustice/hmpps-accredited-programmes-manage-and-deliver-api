@@ -109,9 +109,9 @@ class ProgrammeGroupService(
     slotData: Set<CreateGroupSessionSlot>,
     programmeGroup: ProgrammeGroupEntity,
   ): List<ProgrammeGroupSessionSlotEntity> = slotData.map { item ->
-    val hour = when {
-      item.amOrPm == AmOrPm.PM && item.hour < 12 -> item.hour + 12
-      item.amOrPm == AmOrPm.AM && item.hour == 12 -> 0
+    val hour = when (item.amOrPm) {
+      AmOrPm.PM if item.hour < 12 -> item.hour + 12
+      AmOrPm.AM if item.hour == 12 -> 0
       else -> item.hour
     }
     val startTime = LocalTime.of(hour, item.minutes)

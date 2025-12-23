@@ -102,7 +102,9 @@ data class CreateGroupTeamMember(
   var teamMemberType: CreateGroupTeamMemberType,
 )
 
-fun CreateGroupRequest.toEntity(region: String): ProgrammeGroupEntity {
+fun CreateGroupRequest.toEntity(
+  region: String,
+): ProgrammeGroupEntity {
   val (cohort, isLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(cohort)
   return ProgrammeGroupEntity(
     code = groupCode,
