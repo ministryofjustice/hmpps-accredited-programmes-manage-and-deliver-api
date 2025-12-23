@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.BaseHMPPSClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnitWithOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
@@ -98,6 +99,14 @@ class NDeliusIntegrationApiClient(
    * @return List of office locations for a PDU.
    */
   fun getOfficeLocationsForPdu(pduCode: String) = getRequest<NDeliusApiProbationDeliveryUnitWithOfficeLocations>(N_DELIUS_INTEGRATION_API) {
-    path = "regions/pdu/$pduCode/office-locations"
+    path = "/regions/pdu/$pduCode/office-locations"
+  }
+
+  /**
+   * Create an appointment in NDelius.
+   *
+   */
+  fun createAppointmentsInDelius(appointments: List<CreateAppointmentRequest>) = postRequest<Void>(N_DELIUS_INTEGRATION_API) {
+    path = "/appointments"
   }
 }
