@@ -45,6 +45,10 @@ services:
     base-url: http://localhost:8095
   oasys-api:
     base-url: http://localhost:8095
+  assess-risks-and-needs-api:
+    base-url: http://localhost:8095
+  govuk-api:
+    base-url: http://localhost:8095
 
 wiremock:
   logging:
