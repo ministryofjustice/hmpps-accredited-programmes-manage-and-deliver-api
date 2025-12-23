@@ -101,6 +101,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   override fun beforeEach() {
     testDataCleaner.cleanAllTables()
 
+    govUkApiStubs.stubBankHolidaysResponse()
     nDeliusApiStubs.stubUserTeamsResponse(
       "AUTH_ADM",
       NDeliusUserTeams(
