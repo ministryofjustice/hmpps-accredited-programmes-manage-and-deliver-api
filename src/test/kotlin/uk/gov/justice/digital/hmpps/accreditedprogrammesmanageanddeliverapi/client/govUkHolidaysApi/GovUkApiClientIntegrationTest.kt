@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.govUkHolidaysApi
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
@@ -21,7 +22,18 @@ class GovUkApiClientIntegrationTest : IntegrationTestBase() {
         assertThat(response.body.englandAndWales.events).isNotEmpty
       }
 
-      else -> {}
+      is ClientResult.Failure.Other<*> -> fail("Unexpected client result: ${response::class.simpleName}")
+
+      is ClientResult.Failure.StatusCode<*> -> {
+        val message = """
+                   Unexpected status code result:
+                   Method: ${response.method}
+                   Path: ${response.path}
+                   Status: ${response.status}
+                   Body: ${response.body}
+        """.trimIndent()
+        fail(message)
+      }
     }
   }
 }
