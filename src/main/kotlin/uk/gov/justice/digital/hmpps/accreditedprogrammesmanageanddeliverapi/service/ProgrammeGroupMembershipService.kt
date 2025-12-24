@@ -25,6 +25,7 @@ class ProgrammeGroupMembershipService(
   private val referralRepository: ReferralRepository,
   private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
+  private val scheduleService: ScheduleService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -72,6 +73,8 @@ class ProgrammeGroupMembershipService(
         ),
       )
     }
+
+    scheduleService.createNdeliusAppointmentsForSessionAttendances(group.sessions.flatMap { it.attendances })
 
     return referralRepository.save(referral)
   }
