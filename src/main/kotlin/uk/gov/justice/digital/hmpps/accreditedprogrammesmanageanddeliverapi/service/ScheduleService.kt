@@ -10,6 +10,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.govUkHolidaysApi.GovUkApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toAppointment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
@@ -203,7 +206,9 @@ class ScheduleService(
       }
     }
 
-    return sessionRepository.saveAll(generatedSessions)
+    val savedSessions = sessionRepository.saveAll(generatedSessions)
+
+    return savedSessions
   }
 
   fun rescheduleSessionsForGroup(programmeGroupId: UUID): MutableList<SessionEntity> {
@@ -225,6 +230,18 @@ class ScheduleService(
 
     // If there is no prior session, just schedule from start
     return scheduleSessionsForGroup(programmeGroupId, mostRecentSession)
+  }
+
+  fun createNdeliusAppointmentsForSessionAttendances(sessionAttendances: List<SessionAttendanceEntity>) {
+    val appointments = CreateAppointmentRequest(appointments = sessionAttendances.map { it.toAppointment() })
+    when (val response = nDeliusIntegrationApiClient.createAppointmentsInDelius(appointments)) {
+      is ClientResult.Failure -> {
+        log.warn("Failure to create appointments")
+        throw BusinessException("Failure to create appointments", response.toException())
+      }
+
+      is ClientResult.Success -> response.body
+    }
   }
 
   /**
