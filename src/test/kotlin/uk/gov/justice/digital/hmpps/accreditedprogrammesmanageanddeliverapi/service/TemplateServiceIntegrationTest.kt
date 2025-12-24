@@ -41,7 +41,7 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
     fun setup() {
       val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
       assertThat(buildingChoicesTemplate).isNotNull
-      buildingChoicesTemplateId = buildingChoicesTemplate!!.id!!
+      buildingChoicesTemplateId = buildingChoicesTemplate.id!!
 
       val modules = moduleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplateId)
       assertThat(modules).isNotEmpty

@@ -92,6 +92,6 @@ fun NDeliusPersonalDetails.toModel(setting: SettingType) = PersonalDetails(
   age = age,
   gender = sex.description,
   setting = setting,
-  probationDeliveryUnit = probationDeliveryUnit?.description,
+  probationDeliveryUnit = probationDeliveryUnit.description,
   dateRetrieved = LocalDate.now(),
 )
