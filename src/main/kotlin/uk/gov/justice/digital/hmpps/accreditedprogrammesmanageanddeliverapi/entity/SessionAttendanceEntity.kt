@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
+import jakarta.persistence.Transient
 import jakarta.validation.constraints.NotNull
 import java.time.LocalDateTime
 import java.util.UUID
@@ -57,4 +58,12 @@ class SessionAttendanceEntity(
   @NotNull
   @OneToOne(mappedBy = "sessionAttendance", fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
   var ndeliusAppointment: NDeliusAppointmentEntity? = null,
-)
+) {
+  @get:Transient
+  val eventId: String?
+    get() = groupMembership.referral.eventId
+
+  @get:Transient
+  val eventType: ReferralEntitySourcedFrom?
+    get() = groupMembership.referral.sourcedFrom
+}

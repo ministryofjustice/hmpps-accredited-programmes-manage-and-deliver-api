@@ -6,6 +6,9 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.govUkHolidaysApi.GovUkApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toAppointment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
@@ -30,7 +33,8 @@ class ScheduleService(
   private val sessionRepository: SessionRepository,
   private val clock: Clock,
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
-  govUkApiClient: GovUkApiClient,
+  private val govUkApiClient: GovUkApiClient,
+  private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -144,7 +148,9 @@ class ScheduleService(
       }
     }
 
-    return sessionRepository.saveAll(generatedSessions)
+    val savedSessions = sessionRepository.saveAll(generatedSessions)
+
+    return savedSessions
   }
 
   fun rescheduleSessionsForGroup(programmeGroupId: UUID): MutableList<SessionEntity> {
@@ -166,6 +172,18 @@ class ScheduleService(
 
     // If there is no prior session, just schedule from start
     return scheduleSessionsForGroup(programmeGroupId, mostRecentSession)
+  }
+
+  fun createNdeliusAppointmentsForSessionAttendances(sessionAttendances: List<SessionAttendanceEntity>) {
+    val appointments = CreateAppointmentRequest(appointments = sessionAttendances.map { it.toAppointment() })
+    when (val response = nDeliusIntegrationApiClient.createAppointmentsInDelius(appointments)) {
+      is ClientResult.Failure -> {
+        log.warn("Failure to create appointments")
+        throw BusinessException("Failure to create appointments", response.toException())
+      }
+
+      is ClientResult.Success -> response.body
+    }
   }
 
   /**

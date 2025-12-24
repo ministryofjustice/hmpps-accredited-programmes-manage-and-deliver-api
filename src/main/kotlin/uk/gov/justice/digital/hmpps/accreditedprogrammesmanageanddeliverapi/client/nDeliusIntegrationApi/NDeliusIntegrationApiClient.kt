@@ -106,7 +106,7 @@ class NDeliusIntegrationApiClient(
    * Create an appointment in NDelius.
    *
    */
-  fun createAppointmentsInDelius(appointments: List<CreateAppointmentRequest>) = postRequest<Void>(N_DELIUS_INTEGRATION_API) {
+  fun createAppointmentsInDelius(appointments: CreateAppointmentRequest) = postRequest<Void>(N_DELIUS_INTEGRATION_API) {
     path = "/appointments"
   }
 }
