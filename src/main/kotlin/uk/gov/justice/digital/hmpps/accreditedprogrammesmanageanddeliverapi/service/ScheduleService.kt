@@ -10,12 +10,16 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.govUkHolidaysApi.GovUkApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toAppointment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
@@ -43,6 +47,7 @@ class ScheduleService(
   private val govUkApiClient: GovUkApiClient,
   private val facilitatorService: FacilitatorService,
   private val referralRepository: ReferralRepository,
+  private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -196,7 +201,9 @@ class ScheduleService(
       }
     }
 
-    return sessionRepository.saveAll(generatedSessions)
+    val savedSessions = sessionRepository.saveAll(generatedSessions)
+
+    return savedSessions
   }
 
   fun rescheduleSessionsForGroup(programmeGroupId: UUID): MutableList<SessionEntity> {
@@ -223,8 +230,21 @@ class ScheduleService(
   fun removeFutureSessionsForIndividual(group: ProgrammeGroupEntity, referralId: UUID) {
     log.info("Removing future sessions for referral with id: $referralId from group with id: ${group.id}")
     val now = LocalDateTime.now(clock)
-    val futureSessionsToDelete = group.sessions.filter { session -> session.startsAt > now && session.attendees.any { it.referral.id == referralId } }
+    val futureSessionsToDelete =
+      group.sessions.filter { session -> session.startsAt > now && session.attendees.any { it.referral.id == referralId } }
     group.sessions.removeAll(futureSessionsToDelete.toSet())
+  }
+
+  fun createNdeliusAppointmentsForSessionAttendances(sessionAttendances: List<SessionAttendanceEntity>) {
+    val appointments = CreateAppointmentRequest(appointments = sessionAttendances.map { it.toAppointment() })
+    when (val response = nDeliusIntegrationApiClient.createAppointmentsInDelius(appointments)) {
+      is ClientResult.Failure -> {
+        log.warn("Failure to create appointments")
+        throw BusinessException("Failure to create appointments", response.toException())
+      }
+
+      is ClientResult.Success -> response.body
+    }
   }
 
   /**
