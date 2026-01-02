@@ -4,17 +4,23 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.temporal.TemporalAdjusters
 import java.util.PriorityQueue
 import java.util.UUID
@@ -27,9 +33,54 @@ class ScheduleService(
   private val sessionRepository: SessionRepository,
   private val clock: Clock,
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
+  private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
+
+  fun scheduleIndividualSession(groupId: UUID, request: ScheduleSessionRequest): ScheduleSessionResponse {
+    val group = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id: $groupId could not be found")
+
+    val moduleSessionTemplate = moduleSessionTemplateRepository.findByIdOrNull(request.sessionTemplateId)
+      ?: throw NotFoundException("Session template with id: ${request.sessionTemplateId} could not be found")
+
+    val startsAt = convertToLocalDateTime(request.startDate, request.startTime)
+    val endsAt = convertToLocalDateTime(request.startDate, request.endTime)
+
+    val session = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(moduleSessionTemplate.id!!, groupId).first()
+    session.startsAt = startsAt
+    session.endsAt = endsAt
+
+    request.referralIds.forEach { referralId ->
+      val membership = programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referralId, groupId)
+        ?: throw NotFoundException("Active membership for referral $referralId in group $groupId not found")
+
+      session.attendances.add(
+        SessionAttendanceEntity(
+          session = session,
+          groupMembership = membership,
+//          recordedByFacilitator = ??
+        ),
+      )
+    }
+
+    sessionRepository.save(session)
+
+    return ScheduleSessionResponse(message = "Session scheduled successfully")
+  }
+
+  private fun convertToLocalDateTime(startDate: LocalDate, sessionTime: SessionTime): LocalDateTime = LocalDateTime.of(
+    startDate,
+    LocalTime.of(
+      when (sessionTime.amOrPm) {
+        AmOrPm.PM if sessionTime.hour < 12 -> sessionTime.hour + 12
+        AmOrPm.AM if sessionTime.hour == 12 -> 0
+        else -> sessionTime.hour
+      },
+      sessionTime.minutes,
+    ),
+  )
 
   fun scheduleSessionsForGroup(
     programmeGroupId: UUID,

@@ -41,7 +41,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
@@ -1324,10 +1329,38 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should return 200 when scheduling a one-to-one session with valid data`() {
+    fun `should return 201 when scheduling a one-to-one session with valid data`() {
       // Given
+      val template = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(template, "Test Module", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Test Session Template",
+          durationMinutes = 60,
+        ),
+      )
+      testDataGenerator.createGroupMembership(
+        ProgrammeGroupMembershipEntity(
+          referral = referral!!,
+          programmeGroup = group,
+        ),
+      )
+      testDataGenerator.createSession(
+        SessionEntity(
+          programmeGroup = group,
+          moduleSessionTemplate = sessionTemplate,
+          startsAt = LocalDateTime.of(2025, 1, 1, 10, 0),
+          endsAt = LocalDateTime.of(2025, 1, 1, 11, 0),
+          isCatchup = true,
+        ),
+      )
+
       val scheduleSessionRequest = ScheduleSessionRequest(
-        sessionTemplateId = UUID.randomUUID(),
+        sessionTemplateId = sessionTemplate.id!!,
         referralIds = listOf(referral!!.id!!),
         facilitators = facilitators,
         startDate = LocalDate.of(2025, 1, 1),
@@ -1341,7 +1374,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         uri = "/group/${group.id}/session/schedule",
         body = scheduleSessionRequest,
         returnType = object : ParameterizedTypeReference<ScheduleSessionResponse>() {},
-        expectedResponseStatus = HttpStatus.OK.value(),
+        expectedResponseStatus = HttpStatus.CREATED.value(),
       )
 
       // Then

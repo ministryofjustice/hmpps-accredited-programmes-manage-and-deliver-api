@@ -50,6 +50,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RegionService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TemplateService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
@@ -70,6 +71,7 @@ class ProgrammeGroupController(
   private val moduleRepository: ModuleRepository,
   private val programmeGroupRepository: ProgrammeGroupRepository,
   private val templateService: TemplateService,
+  private val scheduleService: ScheduleService,
 ) {
 
   @Operation(
@@ -564,7 +566,7 @@ class ProgrammeGroupController(
     description = "Schedule a session for members of a programme group. This endpoint allows facilitators to schedule individual sessions that must be coordinated across multiple group members.",
     responses = [
       ApiResponse(
-        responseCode = "200",
+        responseCode = "201",
         description = "Session successfully scheduled",
         content = [Content(schema = Schema(implementation = ScheduleSessionResponse::class))],
       ),
@@ -588,20 +590,12 @@ class ProgrammeGroupController(
   )
   @PostMapping("/group/{groupId}/session/schedule")
   fun scheduleSession(
-    @PathVariable @Parameter(
-      description = "The UUID of the programme group",
-      required = true,
-    ) groupId: UUID,
-    @Valid
-    @RequestBody scheduleSessionRequest: ScheduleSessionRequest,
+    @PathVariable @Parameter(description = "The UUID of the programme group", required = true) groupId: UUID,
+    @Valid @RequestBody scheduleSessionRequest: ScheduleSessionRequest,
   ): ResponseEntity<ScheduleSessionResponse> {
-    // Placeholder implementation - actual business logic to be implemented in follow-up PR
-    // --TJWC 2025-12-17
-    val response = ScheduleSessionResponse(
-      message = "Session scheduled successfully",
-    )
+    val response = scheduleService.scheduleIndividualSession(groupId, scheduleSessionRequest)
 
-    return ResponseEntity.status(HttpStatus.OK).body(response)
+    return ResponseEntity.status(HttpStatus.CREATED).body(response)
   }
 
   @Operation(
