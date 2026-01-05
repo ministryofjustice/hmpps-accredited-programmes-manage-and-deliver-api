@@ -347,7 +347,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
       assertThat(result.referralStatusHistory.referralStatusDescriptionId).isEqualTo(onProgrammeStatusDescriptionId)
       assertThat(result.referralStatusHistory.referralStatusDescriptionName).isEqualTo("On programme")
-      assertThat(result.message).isEqualTo("Alex River's referral status is now On programme")
+      assertThat(result.message).isEqualTo("Alex River's referral status is now On programme.")
 
       assertThat(foundReferral.statusHistories).hasSize(numberOfHistoriesBeforeUpdate + 1)
       assertThat(foundReferral.programmeGroupMemberships).isNotNull()

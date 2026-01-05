@@ -318,7 +318,7 @@ class ReferralService(
       incomingReferralStatusDescription.id,
     )
 
-    var message = "${referral.personName}'s referral status is now ${incomingReferralStatusDescription.description}"
+    var message = "${referral.personName}'s referral status is now ${incomingReferralStatusDescription.description}."
     val activeGroupMembership = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
 
     if (
