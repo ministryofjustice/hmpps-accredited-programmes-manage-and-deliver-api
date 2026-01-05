@@ -12,6 +12,7 @@ generic-service:
     SERVICES_NDELIUS-INTEGRATION-API_BASE-URL: "https://accredited-programmes-and-delius.hmpps.service.justice.gov.uk"
     SERVICES_OASYS-API_BASE-URL: "https://accredited-programmes-and-oasys.hmpps.service.justice.gov.uk"
     SERVICES_ASSESS-RISKS-AND-NEEDS-API_BASE-URL: "https://assess-risks-and-needs.hmpps.service.justice.gov.uk"
+    SERVICES_GOVUK-API_BASE-URL: "https://www.gov.uk"
     CACHE_EVICT_BANK_HOLIDAYS_CRON: "0 0 0 */1 * ?" #every day on PROD
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack

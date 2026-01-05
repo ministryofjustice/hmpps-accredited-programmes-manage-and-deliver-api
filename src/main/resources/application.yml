@@ -99,4 +99,4 @@ services:
   assess-risks-and-needs-api:
     base-url: http://localhost:9097
   govuk-api:
-    base-url: https://www.gov.uk
+    base-url: http://localhost:9098
