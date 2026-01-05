@@ -172,11 +172,22 @@ VALUES ('83fae84a-5b42-49db-aab8-d93f2b046b7f',
         'Liverpool',
         'Liverpool Office 1');
 
-INSERT INTO programme_group (id, code, created_at, created_by_username, updated_at, updated_by_username, deleted_at,
-                             deleted_by_username, region_name)
-VALUES ('897bee70-d0a5-48ac-b8b8-e4ab5ea7ad1d', 'BCCDD1', now(), 'AUTH_USER', now(), 'AUTH_USER', null, null, 'Wiremocked Region Name');
+INSERT INTO facilitator (id, person_name, ndelius_person_code, ndelius_team_code, ndelius_team_name)
+VALUES ('a4dc8a4a-578c-4062-9562-0a48e241fd60', 'R&MP Practitioner', 'N02P054', 'N02T04', 'OMU D');
+
+
+INSERT INTO programme_group (id, code, created_at, created_by_username, updated_at, updated_by_username,
+                             deleted_at, deleted_by_username, cohort, sex, is_ldc, region_name, started_at_date,
+                             delivery_location_name, probation_delivery_unit_name, earliest_possible_start_date,
+                             probation_delivery_unit_code, delivery_location_code, treatment_manager_id,
+                             accredited_programme_template_id)
+VALUES ('12cff917-3552-43f8-aa8b-52f654058da0', 'TEST GROUP 1', now(),
+        'REFER_MONITOR_PP', null, null, null, null, 'GENERAL_OFFENCE', 'FEMALE', true, 'NPS North East', null,
+        'Middlesbrough (Borough Rd)', 'Cleveland', '2099-12-09', 'N02CLE', 'DTVBOR1',
+        'a4dc8a4a-578c-4062-9562-0a48e241fd60', '3442732f-9a0d-4981-8f9e-54e622e72211');
+
 
 INSERT INTO programme_group_membership(id, programme_group_id, referral_id, created_at, created_by_username, deleted_at,
                                        deleted_by_username)
-VALUES ('34110c1e-4b08-43bd-a01f-333103232cfd', '897bee70-d0a5-48ac-b8b8-e4ab5ea7ad1d',
+VALUES ('34110c1e-4b08-43bd-a01f-333103232cfd', '12cff917-3552-43f8-aa8b-52f654058da0',
         '39fde7e8-d2e3-472b-8364-5848bf673aa6', now(), 'AUTH_USER', null, null);

@@ -45,6 +45,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     testDataCleaner.cleanAllTables()
 
     nDeliusApiStubs.clearAllStubs()
+    govUkApiStubs.stubBankHolidaysResponse()
 
     stubAuthTokenEndpoint()
     nDeliusApiStubs.stubUserTeamsResponse(
@@ -84,6 +85,31 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     assertThat(group.sessions).hasSize(26)
     val (preGroupSessions, restOfSessions) = group.sessions.partition { it.moduleSessionTemplate.name == "Pre-Group" }
     assertThat(restOfSessions.first().startsAt).isAfterOrEqualTo(preGroupSessions.first().startsAt.plusWeeks(3))
+  }
+
+  @Test
+  fun `Schedule sessions should skip bank holidays`() {
+    // Friday before bank holiday, so Monday = holiday
+    whenever(clock.instant())
+      .thenReturn(Instant.parse("2026-04-03T12:00:00Z"))
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+    val slot2 = CreateGroupSessionSlotFactory().produce(DayOfWeek.THURSDAY, 12, 0, AmOrPm.PM)
+
+    val body = CreateGroupRequestFactory().produce(
+      earliestStartDate = LocalDate.now(clock),
+      createGroupSessionSlot = setOf(slot1, slot2),
+    )
+    performRequestAndExpectStatus(
+      httpMethod = HttpMethod.POST,
+      uri = "/group",
+      body = body,
+      expectedResponseStatus = HttpStatus.CREATED.value(),
+    )
+
+    val group = programmeGroupRepository.findByCode(body.groupCode)!!
+
+    assertThat(group.sessions).hasSize(26)
+    assertThat(group.sessions.find { it.startsAt.toLocalDate() == LocalDate.of(2026, 3, 6) }).isNull()
   }
 
   @Test
