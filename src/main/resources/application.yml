@@ -84,6 +84,11 @@ hmpps:
 
 max-response-in-memory-size-bytes: 750000
 
+cache:
+  evict:
+    bank-holidays:
+      cron: "0 0 0 */7 * ?" #every 7 days
+
 services:
   find-and-refer-intervention-api:
     base-url: http://localhost:9094
@@ -93,3 +98,5 @@ services:
     base-url: http://localhost:9096
   assess-risks-and-needs-api:
     base-url: http://localhost:9097
+  govuk-api:
+    base-url: http://localhost:9098

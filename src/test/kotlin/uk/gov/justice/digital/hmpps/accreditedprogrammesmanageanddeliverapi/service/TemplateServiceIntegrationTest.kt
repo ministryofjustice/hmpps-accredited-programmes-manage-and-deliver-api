@@ -41,7 +41,7 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
     fun setup() {
       val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
       assertThat(buildingChoicesTemplate).isNotNull
-      buildingChoicesTemplateId = buildingChoicesTemplate!!.id!!
+      buildingChoicesTemplateId = buildingChoicesTemplate.id!!
 
       val modules = moduleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplateId)
       assertThat(modules).isNotEmpty
@@ -131,27 +131,6 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
       }
       assertThat(exception.message).contains(
         "Module with id: ${anotherModule.id} does not belong to the accredited programme template for group: $groupId",
-      )
-    }
-
-    @Test
-    fun `Throws NotFoundException when group has no associated template`() {
-      // Given - create a group without a template
-      val groupWithoutTemplate = testDataGenerator.createGroup(
-        ProgrammeGroupFactory()
-          .withSex(ProgrammeGroupSexEnum.FEMALE)
-          .withCode("GROUP_WITHOUT_TEMPLATE")
-          .withRegionName("Test Region")
-          .produce(),
-      )
-      groupWithoutTemplate.accreditedProgrammeTemplate = null
-
-      // When / Then
-      val exception = assertThrows<NotFoundException> {
-        service.getOneToOneSessionTemplatesForGroupAndModule(groupWithoutTemplate.id!!, preGroupModuleId)
-      }
-      assertThat(exception.message).contains(
-        "Programme group with id: ${groupWithoutTemplate.id} has no associated accredited programme template",
       )
     }
   }

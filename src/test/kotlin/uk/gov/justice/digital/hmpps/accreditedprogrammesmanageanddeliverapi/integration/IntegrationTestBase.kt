@@ -30,6 +30,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.conf
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.ArnsApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.GovUkApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
@@ -63,6 +64,9 @@ abstract class IntegrationTestBase {
 
   @Autowired
   lateinit var arnsApiStubs: ArnsApiStubs
+
+  @Autowired
+  lateinit var govUkApiStubs: GovUkApiStubs
 
   @Autowired
   lateinit var wiremock: WireMockServer

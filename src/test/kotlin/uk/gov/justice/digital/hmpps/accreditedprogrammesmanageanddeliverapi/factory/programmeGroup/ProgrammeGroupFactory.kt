@@ -13,6 +13,7 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 class ProgrammeGroupFactory {
+
   private var id: UUID? = null
   private var code: String = "AAA111"
   private var cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE
@@ -23,14 +24,14 @@ class ProgrammeGroupFactory {
   private var updatedAt: LocalDateTime? = null
   private var updatedByUsername: String? = null
   private var deletedAt: LocalDateTime? = null
-  var deliveryLocationName: String? = null
-  var deliveryLocationCode: String? = null
-  var probationDeliveryUnitName: String? = null
-  var probationDeliveryUnitCode: String? = null
+  private var deliveryLocationName: String = "Delivery Location 1"
+  private var deliveryLocationCode: String = "Delivery Location code 1"
+  private var probationDeliveryUnitName: String = "Test PDU 1"
+  private var probationDeliveryUnitCode: String = "PDU001"
   private var deletedByUsername: String? = null
   private var regionName: String = "TEST REGION"
   private var startedAtDate: LocalDate? = null
-  private var earliestStartDate: LocalDate? = null
+  private var earliestStartDate: LocalDate = LocalDate.now().plusDays(1)
   private var programmeGroupSessionSlots: MutableSet<ProgrammeGroupSessionSlotEntity> = mutableSetOf()
   private var treatmentManager: FacilitatorEntity? = null
   private var groupFacilitators: MutableSet<ProgrammeGroupFacilitatorEntity> = mutableSetOf()
