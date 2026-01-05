@@ -216,10 +216,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(body.filters.sex).isEqualTo(listOf("Male", "Female"))
       assertThat(body.filters.cohort).isEqualTo(
         listOf(
-          "General Offence",
-          "General Offence - LDC",
-          "Sexual Offence",
-          "Sexual Offence - LDC",
+          "General offence",
+          "General offence - LDC",
+          "Sexual offence",
+          "Sexual offence - LDC",
         ),
       )
       val expectedTeams = mapOf(
@@ -342,7 +342,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?sex=Male&cohort=Sexual Offence&pdu=Test PDU 1&page=0&size=10",
+        "/bff/group/${group.id}/WAITLIST?sex=Male&cohort=Sexual offence&pdu=Test PDU 1&page=0&size=10",
         object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 

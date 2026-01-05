@@ -394,7 +394,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     fun `getCaseListItems for OPEN and search by personName and cohort returns matching referrals`() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/open?crnOrPersonName=Alex River&cohort=Sexual Offence",
+        "/pages/caselist/open?crnOrPersonName=Alex River&cohort=Sexual offence",
         object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
       val referralCaseListItems = response.pagedReferrals.content
@@ -414,7 +414,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     fun `getCaseListItems returns matching referrals when only cohort is used as part of request`() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/open?cohort=General Offence",
+        "/pages/caselist/open?cohort=General offence",
         object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
       val referralCaseListItems = response.pagedReferrals.content
@@ -441,7 +441,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       // Given and When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/open?cohort=General Offence - LDC",
+        "/pages/caselist/open?cohort=General offence - LDC",
         object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
 

@@ -3,10 +3,10 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 
 enum class ProgrammeGroupCohort(val label: String) {
-  GENERAL("General Offence"),
-  GENERAL_LDC("General Offence - LDC"),
-  SEXUAL("Sexual Offence"),
-  SEXUAL_LDC("Sexual Offence - LDC"),
+  GENERAL("General offence"),
+  GENERAL_LDC("General offence - LDC"),
+  SEXUAL("Sexual offence"),
+  SEXUAL_LDC("Sexual offence - LDC"),
   ;
 
   companion object {
