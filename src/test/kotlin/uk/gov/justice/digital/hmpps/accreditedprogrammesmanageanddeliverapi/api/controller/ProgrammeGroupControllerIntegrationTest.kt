@@ -107,6 +107,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   override fun beforeEach() {
     testDataCleaner.cleanAllTables()
 
+    govUkApiStubs.stubBankHolidaysResponse()
     nDeliusApiStubs.stubUserTeamsResponse(
       "AUTH_ADM",
       NDeliusUserTeams(
@@ -534,8 +535,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       stubAuthTokenEndpoint()
 
       val region = "WIREMOCKED REGION"
-      val group1 = ProgrammeGroupFactory().withCode("GROUP-A-NS-1").withRegionName(region).produce()
-      val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2").withRegionName(region).produce()
+      val group1 = ProgrammeGroupFactory().withCode("GROUP-A-NS-1").withRegionName(region)
+        .withEarliestStartDate(LocalDate.now().plusDays(5)).produce()
+      val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2").withRegionName(region)
+        .withEarliestStartDate(LocalDate.now().plusDays(5)).produce()
 
       val group3 = ProgrammeGroupFactory().withCode("GROUP-A-S-1")
         .withRegionName(region).withEarliestStartDate(LocalDate.now().minusDays(5)).produce()
@@ -1041,7 +1044,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val slots = mutableSetOf(slot1, slot2, slot3)
       val body = CreateGroupRequestFactory().produce(
-        earliestStartDate = LocalDate.parse("2025-01-01"),
+        earliestStartDate = LocalDate.parse("2025-02-01"),
         createGroupSessionSlot = slots,
       )
       performRequestAndExpectStatus(
@@ -1064,10 +1067,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         DayOfWeek.SATURDAY,
       )
 
-      // The 1st Jan 2025 is a Wednesday, so the first Session should be Wednesday 1st, then Saturday 4th
+      // The 1st Feb 2025 is a Saturday, so the first Session should be Saturday 1st, then Monday 3rd
       assertThat(
         createdGroup.sessions.find {
-          it.startsAt == LocalDateTime.of(2025, 1, 1, 12, 30) &&
+          it.startsAt == LocalDateTime.of(2025, 2, 1, 17, 15) &&
             it.sessionNumber == 1 &&
             it.moduleNumber == 1
         },
@@ -1075,7 +1078,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       assertThat(
         createdGroup.sessions.find {
-          it.startsAt == LocalDateTime.of(2025, 1, 4, 17, 15) &&
+          it.startsAt == LocalDateTime.of(2025, 1, 3, 9, 0) &&
             it.moduleNumber == 2
           it.sessionNumber == 1
         },

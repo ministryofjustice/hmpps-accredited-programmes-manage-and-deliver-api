@@ -58,3 +58,5 @@ services:
     base-url: ${OASYS_BASE_URL:http://localhost:9095}
   assess-risks-and-needs-api:
     base-url: ${ASSESS_RISKS_AND_NEEDS_BASE_URL:http://localhost:9095}
+  govuk-api:
+    base-url: https://www.gov.uk

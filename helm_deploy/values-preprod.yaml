@@ -15,6 +15,7 @@ generic-service:
     SERVICES_NDELIUS-INTEGRATION-API_BASE-URL: "https://accredited-programmes-and-delius-preprod.hmpps.service.justice.gov.uk"
     SERVICES_OASYS-API_BASE-URL: "https://accredited-programmes-and-oasys-preprod.hmpps.service.justice.gov.uk"
     SERVICES_ASSESS-RISKS-AND-NEEDS-API_BASE-URL: "https://assess-risks-and-needs-preprod.hmpps.service.justice.gov.uk"
+    SERVICES_GOVUK-API_BASE-URL: "https://www.gov.uk"
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
 # See https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html#creating-your-own-custom-alerts

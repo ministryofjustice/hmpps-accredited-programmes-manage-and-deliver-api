@@ -4,6 +4,9 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.govUkHolidaysApi.GovUkApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionResponse
@@ -34,6 +37,7 @@ class ScheduleService(
   private val sessionRepository: SessionRepository,
   private val clock: Clock,
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
+  private val govUkApiClient: GovUkApiClient,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
   private val facilitatorRepository: FacilitatorRepository,
 ) {
@@ -89,11 +93,8 @@ class ScheduleService(
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
       ?: throw NotFoundException("Group with id: $programmeGroupId could not be found")
 
-    val earliestStartDate = requireNotNull(group.earliestPossibleStartDate) {
-      "Earliest start date must not be null"
-    }
     val templateId = requireNotNull(group.accreditedProgrammeTemplate?.id) {
-      "Group template must not be null"
+      "Group template Id must not be null"
     }
 
     // Collect all session templates in module/session order
@@ -124,7 +125,7 @@ class ScheduleService(
     )
 
     groupSlots.forEach { slot ->
-      val firstDate = earliestStartDate.with(TemporalAdjusters.nextOrSame(slot.dayOfWeek))
+      val firstDate = findNextValidDate(group.earliestPossibleStartDate, slot)
       slotQueue.add(SlotInstance(slot = slot, nextDate = firstDate))
     }
 
@@ -158,11 +159,14 @@ class ScheduleService(
           // Regenerate our slot queue plus 3 weeks
           slotQueue.clear()
           groupSlots.forEach { slot ->
-            val dateAfterGap = startsAt.toLocalDate().plusWeeks(3).with(TemporalAdjusters.nextOrSame(slot.dayOfWeek))
-            slotQueue.add(SlotInstance(slot = slot, nextDate = dateAfterGap))
+            val dateAfterGap = startsAt.toLocalDate().plusWeeks(3)
+            val nextValidDate = findNextValidDate(dateAfterGap, slot)
+            slotQueue.add(SlotInstance(slot = slot, nextDate = nextValidDate))
           }
         } else {
-          slotQueue.add(nextSlot.copy(nextDate = nextSlot.nextDate.plusWeeks(1)))
+          val nextWeekDate = nextSlot.nextDate.plusWeeks(1)
+          val nextValidDate = findNextValidDate(nextWeekDate, nextSlot.slot)
+          slotQueue.add(nextSlot.copy(nextDate = nextValidDate))
         }
       }
     }
@@ -215,8 +219,40 @@ class ScheduleService(
     return scheduleSessionsForGroup(programmeGroupId, mostRecentSession)
   }
 
+  /**
+   * Finds the next valid date (not a bank holiday) starting from the given date,
+   * on or after the slot's day of week.
+   */
+  private fun findNextValidDate(
+    fromDate: LocalDate,
+    slot: ProgrammeGroupSessionSlotEntity,
+  ): LocalDate {
+    var candidateDate = fromDate.with(TemporalAdjusters.nextOrSame(slot.dayOfWeek))
+
+    // Keep advancing by weeks until we find a non-holiday
+    while (englandAndWalesHolidayDates().contains(candidateDate)) {
+      candidateDate = candidateDate.plusWeeks(1)
+    }
+
+    return candidateDate
+  }
+
   private data class SlotInstance(
     val slot: ProgrammeGroupSessionSlotEntity,
     val nextDate: LocalDate,
   )
+
+  private fun englandAndWalesHolidayDates(): Set<LocalDate> = when (val response = govUkApiClient.getHolidays()) {
+    is ClientResult.Failure -> {
+      log.warn("Failure to retrieve Uk bank holidays")
+      throw BusinessException("Could not retrieve bank holidays from GovUk Api")
+    }
+
+    is ClientResult.Success ->
+      response.body.englandAndWales.events
+        .mapNotNull { event ->
+          runCatching { LocalDate.parse(event.date) }.getOrNull()
+        }
+        .toSet()
+  }
 }
