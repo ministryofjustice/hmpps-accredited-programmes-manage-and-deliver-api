@@ -122,6 +122,19 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
 
   @Test
   @Transactional
+  fun `should return statuses ordered by priority`() {
+    val onProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
+
+    val transitions = referralStatusTransitionRepository
+      .findByFromStatusIdAndIsVisibleTrueOrderByPriorityAsc(onProgramme.id)
+
+    assertThat(transitions).isNotEmpty
+
+    assertThat(transitions).extracting("priority").isSorted
+  }
+
+  @Test
+  @Transactional
   fun `ensure there is exactly one initial status and all others are reachable`() {
     referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
     val allStatuses = referralStatusDescriptionRepository.findAll()
