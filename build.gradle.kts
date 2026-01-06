@@ -27,7 +27,7 @@ dependencies {
   // AWS
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:5.6.3")
 
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:1.8.2")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:2.0.0")
 
   // security
   implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.9")
