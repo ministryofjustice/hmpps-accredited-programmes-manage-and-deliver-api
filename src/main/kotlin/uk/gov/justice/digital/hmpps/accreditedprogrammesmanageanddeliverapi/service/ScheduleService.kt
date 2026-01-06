@@ -243,9 +243,23 @@ class ScheduleService(
   )
 
   private fun englandAndWalesHolidayDates(): Set<LocalDate> = when (val response = govUkApiClient.getHolidays()) {
-    is ClientResult.Failure -> {
-      log.warn("Failure to retrieve Uk bank holidays")
-      throw BusinessException("Could not retrieve bank holidays from GovUk Api")
+    is ClientResult.Failure.StatusCode -> {
+      log.warn("Failed to retrieve UK bank holidays - Status: ${response.status}, Path: ${response.path}, Body: ${response.body}")
+      throw BusinessException(
+        "Could not retrieve bank holidays from GovUk Api. Status: ${response.status}",
+        response.toException(),
+      )
+    }
+
+    is ClientResult.Failure.Other -> {
+      log.warn(
+        "Failed to retrieve UK bank holidays - Service: ${response.serviceName}, Exception: ${response.exception.message}",
+        response.exception,
+      )
+      throw BusinessException(
+        "Could not retrieve bank holidays from GovUk Api: ${response.exception.message}",
+        response.exception,
+      )
     }
 
     is ClientResult.Success ->
