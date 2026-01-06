@@ -37,6 +37,7 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
       "Managing life’s problems",
       "Managing people around me",
       "Bringing it all together",
+      "Post programme review",
     )
   }
 
@@ -71,8 +72,8 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
     val allSessionTemplates = template!!.modules.flatMap { it.sessionTemplates }
 
     // Then
-    assertThat(allSessionTemplates.size).isEqualTo(26)
-    assertThat(allSessionTemplates.count { it.pathway == Pathway.MODERATE_INTENSITY }).isEqualTo(26)
+    assertThat(allSessionTemplates.size).isEqualTo(27)
+    assertThat(allSessionTemplates.count { it.pathway == Pathway.MODERATE_INTENSITY }).isEqualTo(27)
 
     // Then - validate session types: 1-1 modules should be ONE_TO_ONE only; non 1-1 named modules should be GROUP only
     val modulesByName = template.modules.associateBy { it.name }
@@ -84,6 +85,7 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
       "Managing Life’s Problems",
       "Managing People Around Me",
       "Bringing It All Together",
+      "Post programme review",
     ).forEach { name ->
       val sessions = modulesByName.getValue(name).sessionTemplates
       assertThat(sessions).isNotEmpty
