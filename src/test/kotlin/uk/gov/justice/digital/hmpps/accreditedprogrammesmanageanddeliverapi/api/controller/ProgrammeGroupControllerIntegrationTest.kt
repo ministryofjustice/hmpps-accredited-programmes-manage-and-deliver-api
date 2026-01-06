@@ -661,7 +661,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(foundRepository.id).isEqualTo(referral.id)
       assertThat(foundRepository.programmeGroupMemberships).hasSize(1)
       assertThat(foundRepository.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
-      assertThat(foundRepository.programmeGroupMemberships.first().attendances.size).isEqualTo(26)
+      assertThat(foundRepository.programmeGroupMemberships.first().attendances.size).isEqualTo(27)
     }
 
     @Test
@@ -1052,7 +1052,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(createdGroup).isNotNull
 
       // Hard-coded from the number of sessions in the template
-      assertThat(createdGroup.sessions).hasSize(26)
+      assertThat(createdGroup.sessions).hasSize(27)
       val sessionDays = createdGroup.sessions.map { it.startsAt.dayOfWeek }.distinct()
 
       assertThat(sessionDays).containsExactlyInAnyOrder(
