@@ -75,7 +75,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
         assertThat(body.dateOfBirth).isEqualTo("1980-01-01")
         assertThat(body.sex.description).isEqualTo("Male")
         assertThat(body.ethnicity!!.description).isEqualTo("White")
-        assertThat(body.probationDeliveryUnit!!.code).isEqualTo("PDU123")
+        assertThat(body.probationDeliveryUnit.code).isEqualTo("PDU123")
         assertThat(body.probationDeliveryUnit.description).isEqualTo("North London")
       }
 
