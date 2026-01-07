@@ -19,7 +19,6 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-security")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.15")
-  implementation("io.github.resilience4j:resilience4j-retry:2.3.0")
   implementation("io.github.resilience4j:resilience4j-spring-boot2:2.3.0")
 
   // Coroutines
