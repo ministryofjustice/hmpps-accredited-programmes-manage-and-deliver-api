@@ -52,7 +52,7 @@ class GovUkApiClientIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should retry twice then succeed when client throws`() {
+  fun `should retry twice then succeed when client throws exception`() {
     stubAuthTokenEndpoint()
     val failureResponse = """{"error":"Service unavailable"}"""
     val successResponse = govUkApiStubs.bankHolidaysSuccessResponse
