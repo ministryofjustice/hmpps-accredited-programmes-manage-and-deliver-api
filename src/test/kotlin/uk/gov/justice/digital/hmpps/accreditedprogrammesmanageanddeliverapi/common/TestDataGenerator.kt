@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AccreditedProgrammeTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
@@ -210,4 +211,9 @@ class TestDataGenerator {
   }
 
   fun createModuleSessionTemplate(moduleSessionTemplate: ModuleSessionTemplateEntity): ModuleSessionTemplateEntity = moduleSessionTemplateRepository.save(moduleSessionTemplate)
+
+  fun createFacilitator(facilitator: FacilitatorEntity): FacilitatorEntity {
+    entityManager.persist(facilitator)
+    return facilitator
+  }
 }

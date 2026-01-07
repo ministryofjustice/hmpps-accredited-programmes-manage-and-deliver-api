@@ -50,9 +50,6 @@ class SessionAttendanceEntity(
   @JoinColumn(name = "recorded_by_facilitator_id")
   var recordedByFacilitator: FacilitatorEntity? = null,
 
-  // TODO
-  // do we need a list of facilitators assocaited with this attendance?
-
   @Column(name = "recorded_at")
   var recordedAt: LocalDateTime? = null,
 

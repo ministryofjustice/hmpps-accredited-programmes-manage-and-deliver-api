@@ -45,6 +45,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
@@ -992,7 +993,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `createGroup and assign slots and return 200 when it doesn't already exist`() {
+    fun `create Group and assign slots and return 200 when it doesn't already exist`() {
       val slots = setOf(
         CreateGroupSessionSlot(DayOfWeek.MONDAY, 1, 1, AmOrPm.AM),
         CreateGroupSessionSlot(DayOfWeek.TUESDAY, 1, 1, AmOrPm.PM),
@@ -1326,6 +1327,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun beforeEach() {
       referral = referrals.first()
       testDataGenerator.createGroup(group)
+      facilitators.forEach {
+        testDataGenerator.createFacilitator(it.toFacilitatorEntity())
+      }
     }
 
     @Test
@@ -1379,7 +1383,17 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response).isNotNull
+
       assertThat(response.message).isEqualTo("Session scheduled successfully")
+
+      // Verify attendance records were created
+      val attendances = referral!!.programmeGroupMemberships.first().attendances
+      assertThat(attendances).isNotEmpty
+      val latestAttendance = attendances.first()
+      assertThat(latestAttendance.session.startsAt).isEqualTo(LocalDateTime.of(2025, 1, 1, 10, 0))
+      assertThat(latestAttendance.session.endsAt).isEqualTo(LocalDateTime.of(2025, 1, 1, 11, 30))
+      assertThat(latestAttendance.recordedByFacilitator?.personName).isEqualTo("Default facilitator name")
+      assertThat(latestAttendance.recordedByFacilitator?.ndeliusPersonCode).isEqualTo(facilitators.first().facilitatorCode)
     }
 
     @Test
@@ -1446,6 +1460,143 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
         expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
       )
+    }
+
+    @Test
+    fun `should return 404 when group does not exist`() {
+      // Given
+      val nonExistentGroupId = UUID.randomUUID()
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = UUID.randomUUID(),
+        referralIds = listOf(referral!!.id!!),
+        facilitators = facilitators,
+        startDate = LocalDate.of(2025, 1, 1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When & Then
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/$nonExistentGroupId/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(response.userMessage).contains("Group with id: $nonExistentGroupId could not be found")
+    }
+
+    @Test
+    fun `should return 404 when session template does not exist`() {
+      // Given
+      val nonExistentTemplateId = UUID.randomUUID()
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = nonExistentTemplateId,
+        referralIds = listOf(referral!!.id!!),
+        facilitators = facilitators,
+        startDate = LocalDate.of(2025, 1, 1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When & Then
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(response.userMessage).contains("Session template with id: $nonExistentTemplateId could not be found")
+    }
+
+    @Test
+    fun `should return 404 when facilitator does not exist in database`() {
+      // Given
+      val template = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(template, "Test Module", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Test Session Template",
+          durationMinutes = 60,
+        ),
+      )
+
+      val nonExistentFacilitator = CreateGroupTeamMemberFactory().withFacilitatorCode("NON_EXISTENT").produce()
+
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = sessionTemplate.id!!,
+        referralIds = listOf(referral!!.id!!),
+        facilitators = listOf(nonExistentFacilitator),
+        startDate = LocalDate.of(2025, 1, 1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When & Then
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(response.userMessage).contains("Facilitator with code ${nonExistentFacilitator.facilitatorCode} could not be found")
+    }
+
+    @Test
+    fun `should return 404 when referral does not have active membership in group`() {
+      // Given
+      val template = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(template, "Test Module", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Test Session Template",
+          durationMinutes = 60,
+        ),
+      )
+      testDataGenerator.createSession(
+        SessionEntity(
+          programmeGroup = group,
+          moduleSessionTemplate = sessionTemplate,
+          startsAt = LocalDateTime.of(2025, 1, 1, 10, 0),
+          endsAt = LocalDateTime.of(2025, 1, 1, 11, 0),
+          isCatchup = true,
+        ),
+      )
+
+      val referralWithoutMembership = referrals[1] // The second referral from @BeforeEach list
+
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = sessionTemplate.id!!,
+        referralIds = listOf(referralWithoutMembership.id!!),
+        facilitators = facilitators,
+        startDate = LocalDate.of(2025, 1, 1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When & Then
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(response.userMessage).contains("Active membership for referral ${referralWithoutMembership.id} in group ${group.id} not found")
     }
 
     @Test
