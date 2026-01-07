@@ -235,12 +235,14 @@ class ScheduleService(
   fun createNdeliusAppointmentsForSessionAttendances(sessionAttendances: List<SessionAttendanceEntity>) {
     val appointments = CreateAppointmentRequest(appointments = sessionAttendances.map { it.toAppointment() })
     when (val response = nDeliusIntegrationApiClient.createAppointmentsInDelius(appointments)) {
-      is ClientResult.Failure -> {
-        log.warn("Failure to create appointments")
+      is ClientResult.Failure.StatusCode -> {
+        log.warn("Failure to create appointments with reason: ${response.getErrorMessage()}")
         throw BusinessException("Failure to create appointments", response.toException())
       }
 
       is ClientResult.Success -> response.body
+
+      else -> {}
     }
   }
 
