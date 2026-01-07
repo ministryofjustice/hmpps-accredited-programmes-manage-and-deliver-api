@@ -76,6 +76,7 @@ class ProgrammeGroupMembershipService(
       )
     }
 
+    // Create appointment in NDelius for each session attendance object
     scheduleService.createNdeliusAppointmentsForSessionAttendances(group.sessions.flatMap { it.attendances })
 
     return referralRepository.save(referral)

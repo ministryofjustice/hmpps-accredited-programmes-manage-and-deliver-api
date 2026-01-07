@@ -110,6 +110,8 @@ sealed interface ClientResult<ResponseType> {
       override fun toException(): Throwable = RuntimeException("Unable to complete $method request to $path: $status")
       override fun getErrorMessage() = body ?: ""
 
+      fun getErrorMessage() = body ?: ""
+
       inline fun <reified ResponseType> deserializeTo(): ResponseType = jacksonObjectMapper().readValue(body, ResponseType::class.java)
     }
 

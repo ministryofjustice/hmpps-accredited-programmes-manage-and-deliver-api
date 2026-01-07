@@ -46,11 +46,8 @@ fun SessionAttendanceEntity.toAppointment(): CreateAppointmentRequest.Companion.
   startTime = session.startsAt.toLocalTime(),
   endTime = session.endsAt.toLocalTime(),
   outcome = null,
-  // TODO This should be code and not null
   location = CreateAppointmentRequest.Companion.Location(session.programmeGroup.deliveryLocationCode),
-  // TODO get staff code
   staff = CreateAppointmentRequest.Companion.Staff(session.programmeGroup.treatmentManager!!.ndeliusPersonCode),
-  // TODO get team code from staff
   team = CreateAppointmentRequest.Companion.Team(session.programmeGroup.treatmentManager!!.ndeliusTeamCode),
   notes = null,
   sensitive = false,

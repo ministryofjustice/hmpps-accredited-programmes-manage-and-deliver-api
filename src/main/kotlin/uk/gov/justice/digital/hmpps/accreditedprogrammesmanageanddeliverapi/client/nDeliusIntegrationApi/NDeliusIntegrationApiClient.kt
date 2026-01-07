@@ -108,5 +108,6 @@ class NDeliusIntegrationApiClient(
    */
   fun createAppointmentsInDelius(appointments: CreateAppointmentRequest) = postRequest<Void>(N_DELIUS_INTEGRATION_API) {
     path = "/appointments"
+    body = appointments
   }
 }

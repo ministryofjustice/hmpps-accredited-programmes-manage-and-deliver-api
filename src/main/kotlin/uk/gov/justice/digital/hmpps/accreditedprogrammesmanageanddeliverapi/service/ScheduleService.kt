@@ -21,8 +21,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -45,6 +46,8 @@ class ScheduleService(
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
   private val govUkApiClient: GovUkApiClient,
+  private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
+  private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
   private val facilitatorService: FacilitatorService,
   private val referralRepository: ReferralRepository,
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
@@ -236,14 +239,35 @@ class ScheduleService(
   }
 
   fun createNdeliusAppointmentsForSessionAttendances(sessionAttendances: List<SessionAttendanceEntity>) {
-    val appointments = CreateAppointmentRequest(appointments = sessionAttendances.map { it.toAppointment() })
-    when (val response = nDeliusIntegrationApiClient.createAppointmentsInDelius(appointments)) {
-      is ClientResult.Failure -> {
-        log.warn("Failure to create appointments")
+    val (appointments, entities) = sessionAttendances.map { attendance ->
+      val appointment = attendance.toAppointment()
+      appointment to appointment.toEntity(attendance)
+    }.unzip()
+
+    when (
+      val response =
+        nDeliusIntegrationApiClient.createAppointmentsInDelius(CreateAppointmentRequest(appointments))
+    ) {
+      is ClientResult.Failure.StatusCode -> {
+        log.warn("Failure to create appointments with reason: ${response.getErrorMessage()}")
         throw BusinessException("Failure to create appointments", response.toException())
       }
 
-      is ClientResult.Success -> response.body
+      is ClientResult.Failure.Other -> {
+        log.warn(
+          "Failure to create appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
+          response.exception,
+        )
+        throw BusinessException(
+          "Failure to create appointments in Ndelius: ${response.exception.message}",
+          response.exception,
+        )
+      }
+
+      is ClientResult.Success -> {
+        log.info("${entities.size} appointments created in Ndelius for group with id: ${entities.first().sessionAttendance.groupMembership.programmeGroup.id}")
+        nDeliusAppointmentRepository.saveAll(entities)
+      }
     }
   }
 

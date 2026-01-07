@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
 import org.jetbrains.annotations.NotNull
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
 import java.util.UUID
 
 @Entity
@@ -34,4 +35,11 @@ class NDeliusAppointmentEntity(
 
   @Column(name = "requirement_id")
   var requirementId: String? = null,
+)
+
+fun CreateAppointmentRequest.Companion.NdeliusAppointment.toEntity(sessionAttendance: SessionAttendanceEntity) = NDeliusAppointmentEntity(
+  ndeliusAppointmentId = reference,
+  sessionAttendance = sessionAttendance,
+  licenceConditionId = licenceConditionId,
+  requirementId = requirementId,
 )
