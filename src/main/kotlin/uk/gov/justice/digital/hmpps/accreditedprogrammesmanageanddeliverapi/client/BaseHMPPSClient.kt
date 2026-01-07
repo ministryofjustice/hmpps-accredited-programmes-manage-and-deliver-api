@@ -10,6 +10,7 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
+import org.springframework.web.reactive.function.client.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ServiceUnavailableException
 
 abstract class BaseHMPPSClient(
@@ -50,43 +51,72 @@ abstract class BaseHMPPSClient(
     val requestBuilder = HMPPSRequestConfiguration()
     requestBuilderConfiguration(requestBuilder)
 
-    try {
-      val request = webClient.method(method)
-        .uri(requestBuilder.path ?: "")
-        .headers { it.addAll(requestBuilder.headers) }
+    val maxRetries = 3
+    val baseBackoffMs = 200L
 
-      if (requestBuilder.body != null) {
-        request.bodyValue(requestBuilder.body!!)
-      }
+    repeat(maxRetries) { attempt ->
+      try {
+        val request = webClient.method(method)
+          .uri(requestBuilder.path ?: "")
+          .headers { it.addAll(requestBuilder.headers) }
 
-      val result = request.retrieve().toEntity(String::class.java).block()!!
+        if (requestBuilder.body != null) {
+          request.bodyValue(requestBuilder.body!!)
+        }
 
-      objectMapper.apply { registerModule((JavaTimeModule())) }
-      val deserialized = objectMapper.readValue(result.body, typeReference)
+        val result = request.retrieve().toEntity<String>().block()!!
 
-      return ClientResult.Success(result.statusCode, deserialized)
-    } catch (exception: WebClientResponseException) {
-      if (exception.statusCode.is5xxServerError) {
-        log.error("Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.")
-        throw ServiceUnavailableException(
-          "$serviceName is temporarily unavailable. Please try again later.",
-          exception,
-        )
-      } else if (!exception.statusCode.is2xxSuccessful) {
-        return ClientResult.Failure.StatusCode(
-          method,
-          requestBuilder.path ?: "",
-          exception.statusCode,
-          exception.responseBodyAsString,
-        )
-      } else {
-        log.error("Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.", exception)
+        objectMapper.registerModule(JavaTimeModule())
+        val deserialized = objectMapper.readValue(result.body, typeReference)
+
+        return ClientResult.Success(result.statusCode, deserialized)
+      } catch (exception: WebClientResponseException) {
+        // Retry only on 5xx
+        if (exception.statusCode.is5xxServerError) {
+          log.warn("Attempt ${attempt + 1} failed for $serviceName with ${exception.statusCode}. Retrying…")
+
+          if (attempt == maxRetries - 1) {
+            log.error("Max retries reached for $serviceName. Throwing ServiceUnavailableException.")
+            throw ServiceUnavailableException(
+              "$serviceName is temporarily unavailable. Please try again later.",
+              exception,
+            )
+          }
+
+          Thread.sleep(baseBackoffMs * (1L shl attempt))
+          return@repeat
+        }
+
+        // Non‑retryable 4xx
+        if (!exception.statusCode.is2xxSuccessful) {
+          return ClientResult.Failure.StatusCode(
+            method,
+            requestBuilder.path ?: "",
+            exception.statusCode,
+            exception.responseBodyAsString,
+          )
+        }
+
         throw exception
+      } catch (exception: Exception) {
+        log.warn("Attempt ${attempt + 1} failed due to exception: ${exception.message}")
+
+        if (attempt == maxRetries - 1) {
+          log.error("Max retries reached for $serviceName. Returning failure.")
+          return ClientResult.Failure.Other(method, requestBuilder.path ?: "", exception, serviceName)
+        }
+
+        Thread.sleep(baseBackoffMs * (1L shl attempt))
       }
-    } catch (exception: Exception) {
-      log.error("Exception occurred whilst processing request: ${exception.message}.", exception)
-      return ClientResult.Failure.Other(method, requestBuilder.path ?: "", exception, serviceName)
     }
+
+    // Should never reach here
+    return ClientResult.Failure.Other(
+      method,
+      requestBuilder.path ?: "",
+      RuntimeException("Unexpected retry exit"),
+      serviceName,
+    )
   }
 
   class HMPPSRequestConfiguration {
