@@ -89,6 +89,21 @@ cache:
     bank-holidays:
       cron: "0 0 0 */7 * ?" #every 7 days
 
+resilience4j:
+  retry:
+    instances:
+      govUkApi:
+        maxAttempts: 3
+        waitDuration: 500ms
+        retry-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientRequestException
+          - org.springframework.web.reactive.function.client.WebClientResponseException.BadGateway
+          - org.springframework.web.reactive.function.client.WebClientResponseException.TooManyRequests
+          - org.springframework.web.reactive.function.client.WebClientResponseException.ServiceUnavailable
+          - org.springframework.web.reactive.function.client.WebClientResponseException.GatewayTimeout
+        ignore-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientResponseException.BadRequest
+
 services:
   find-and-refer-intervention-api:
     base-url: http://localhost:9094
