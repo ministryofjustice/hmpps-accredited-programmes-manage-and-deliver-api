@@ -19,7 +19,7 @@ class GovUkApiClientIntegrationTest : IntegrationTestBase() {
   private lateinit var govUkApiClient: GovUkApiClient
 
   @BeforeEach
-  override fun beforeEach() {
+  fun setup() {
     wiremock.resetAll()
   }
 
