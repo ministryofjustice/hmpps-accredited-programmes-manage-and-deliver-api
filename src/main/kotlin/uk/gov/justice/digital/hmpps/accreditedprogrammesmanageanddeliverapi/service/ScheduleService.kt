@@ -16,7 +16,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
@@ -39,37 +38,28 @@ class ScheduleService(
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
   private val govUkApiClient: GovUkApiClient,
-  private val facilitatorRepository: FacilitatorRepository,
+  private val facilitatorService: FacilitatorService,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
 
   fun scheduleIndividualSession(groupId: UUID, request: ScheduleSessionRequest): ScheduleSessionResponse {
-    programmeGroupRepository.findByIdOrNull(groupId)
+    val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id: $groupId could not be found")
 
     val moduleSessionTemplate = moduleSessionTemplateRepository.findByIdOrNull(request.sessionTemplateId)
       ?: throw NotFoundException("Session template with id: ${request.sessionTemplateId} could not be found")
 
-    val facilitatorEntity = facilitatorRepository.findByNdeliusPersonCode(request.facilitators.first().facilitatorCode)
-      ?: throw NotFoundException("Facilitator with code ${request.facilitators.first().facilitatorCode} could not be found")
+    val facilitatorEntity = facilitatorService.findOrCreateFacilitator(request.facilitators.first())
 
-    val session = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(moduleSessionTemplate.id!!, groupId).first()
-    session.startsAt = convertToLocalDateTime(request.startDate, request.startTime)
-    session.endsAt = convertToLocalDateTime(request.startDate, request.endTime)
-
-    request.referralIds.forEach { referralId ->
-      val membership = programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referralId, groupId)
-        ?: throw NotFoundException("Active membership for referral $referralId in group $groupId not found")
-
-      session.attendances.add(
-        SessionAttendanceEntity(
-          session = session,
-          groupMembership = membership,
-          recordedByFacilitator = facilitatorEntity,
-        ),
-      )
-    }
+    val session = SessionEntity(
+      programmeGroup = programmeGroup,
+      moduleSessionTemplate = moduleSessionTemplate,
+      startsAt = convertToLocalDateTime(request.startDate, request.startTime),
+      endsAt = convertToLocalDateTime(request.startDate, request.endTime),
+      locationName = programmeGroup.deliveryLocationName,
+      sessionFacilitator = facilitatorEntity,
+    )
     sessionRepository.save(session)
     return ScheduleSessionResponse(message = "Session scheduled successfully")
   }

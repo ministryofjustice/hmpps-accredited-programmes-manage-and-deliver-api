@@ -44,7 +44,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -68,6 +67,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
@@ -88,6 +88,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
+
+  @Autowired
+  private lateinit var sessionRepository: SessionRepository
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
@@ -1356,15 +1359,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           programmeGroup = group,
         ),
       )
-      testDataGenerator.createSession(
-        SessionEntity(
-          programmeGroup = group,
-          moduleSessionTemplate = sessionTemplate,
-          startsAt = LocalDateTime.of(2025, 1, 1, 10, 0),
-          endsAt = LocalDateTime.of(2025, 1, 1, 11, 0),
-          isCatchup = true,
-        ),
-      )
 
       val scheduleSessionRequest = ScheduleSessionRequest(
         sessionTemplateId = sessionTemplate.id!!,
@@ -1387,14 +1381,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       assertThat(response).isNotNull
       assertThat(response.message).isEqualTo("Session scheduled successfully")
-      // Verify attendance records were created
-      val attendances = referral!!.programmeGroupMemberships.first().attendances
-      assertThat(attendances).isNotEmpty
-      val latestAttendance = attendances.first()
-      assertThat(latestAttendance.session.startsAt).isEqualTo(LocalDateTime.of(2025, 1, 1, 10, 0))
-      assertThat(latestAttendance.session.endsAt).isEqualTo(LocalDateTime.of(2025, 1, 1, 11, 30))
-      assertThat(latestAttendance.recordedByFacilitator?.personName).isEqualTo("Default facilitator name")
-      assertThat(latestAttendance.recordedByFacilitator?.ndeliusPersonCode).isEqualTo(facilitators.first().facilitatorCode)
+      val retrievedSession =
+        sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!).first()
+      assertThat(retrievedSession.sessionFacilitator?.personName).isEqualTo("Default facilitator name")
+      assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
     }
 
     @Test
@@ -1514,7 +1504,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should return 404 when facilitator does not exist in database`() {
+    fun `should return 201 and create facilitator when facilitator does not exist in database`() {
       // Given
       val template = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
       val module = testDataGenerator.createModule(template, "Test Module", 1)
@@ -1529,7 +1519,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         ),
       )
 
-      val nonExistentFacilitator = CreateGroupTeamMemberFactory().withFacilitatorCode("NON_EXISTENT").produce()
+      val nonExistentFacilitator = CreateGroupTeamMemberFactory()
+        .withFacilitator("Non existent Facilitator")
+        .withFacilitatorCode("Non existent code")
+        .produce()
 
       val scheduleSessionRequest = ScheduleSessionRequest(
         sessionTemplateId = sessionTemplate.id!!,
@@ -1545,59 +1538,14 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         httpMethod = HttpMethod.POST,
         uri = "/group/${group.id}/session/schedule",
         body = scheduleSessionRequest,
-        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        returnType = object : ParameterizedTypeReference<ScheduleSessionResponse>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
       )
-
-      assertThat(response.userMessage).contains("Facilitator with code ${nonExistentFacilitator.facilitatorCode} could not be found")
-    }
-
-    @Test
-    fun `should return 404 when referral does not have active membership in group`() {
-      // Given
-      val template = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
-      val module = testDataGenerator.createModule(template, "Test Module", 1)
-      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
-        ModuleSessionTemplateEntity(
-          module = module,
-          sessionNumber = 1,
-          sessionType = SessionType.ONE_TO_ONE,
-          pathway = Pathway.MODERATE_INTENSITY,
-          name = "Test Session Template",
-          durationMinutes = 60,
-        ),
-      )
-      testDataGenerator.createSession(
-        SessionEntity(
-          programmeGroup = group,
-          moduleSessionTemplate = sessionTemplate,
-          startsAt = LocalDateTime.of(2025, 1, 1, 10, 0),
-          endsAt = LocalDateTime.of(2025, 1, 1, 11, 0),
-          isCatchup = true,
-        ),
-      )
-
-      val referralWithoutMembership = referrals[1] // The second referral from @BeforeEach list
-
-      val scheduleSessionRequest = ScheduleSessionRequest(
-        sessionTemplateId = sessionTemplate.id!!,
-        referralIds = listOf(referralWithoutMembership.id!!),
-        facilitators = facilitators,
-        startDate = LocalDate.of(2025, 1, 1),
-        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
-        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
-      )
-
-      // When & Then
-      val response = performRequestAndExpectStatusWithBody(
-        httpMethod = HttpMethod.POST,
-        uri = "/group/${group.id}/session/schedule",
-        body = scheduleSessionRequest,
-        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
-      )
-
-      assertThat(response.userMessage).contains("Active membership for referral ${referralWithoutMembership.id} in group ${group.id} not found")
+      assertThat(response).isNotNull
+      assertThat(response.message).isEqualTo("Session scheduled successfully")
+      val retrievedSession =
+        sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!).first()
+      assertThat(retrievedSession.sessionFacilitator?.personName).isEqualTo("Non existent Facilitator")
     }
 
     @Test

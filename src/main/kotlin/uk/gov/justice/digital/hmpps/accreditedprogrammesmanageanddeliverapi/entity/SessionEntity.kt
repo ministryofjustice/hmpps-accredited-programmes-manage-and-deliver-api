@@ -53,6 +53,10 @@ class SessionEntity(
   @Column(name = "ends_at")
   var endsAt: LocalDateTime,
 
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "session_facilitator_id")
+  var sessionFacilitator: FacilitatorEntity? = null,
+
   @NotNull
   @Column(name = "created_at")
   @CreatedDate

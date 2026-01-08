@@ -11,7 +11,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
@@ -24,14 +23,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
@@ -48,9 +44,9 @@ class ProgrammeGroupService(
   private val groupWaitlistItemViewRepository: GroupWaitlistItemViewRepository,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
   private val userService: UserService,
-  private val facilitatorRepository: FacilitatorRepository,
   private val accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository,
   private val scheduleService: ScheduleService,
+  private val facilitatorService: FacilitatorService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -72,10 +68,10 @@ class ProgrammeGroupService(
     require(treatmentManagers.size == 1) {
       "Exactly one treatment manager must be specified for a programme group"
     }
-    programmeGroup.treatmentManager = findOrCreateFacilitator(treatmentManagers.first())
+    programmeGroup.treatmentManager = facilitatorService.findOrCreateFacilitator(treatmentManagers.first())
 
     facilitators.forEach { facilitatorRequest ->
-      val facilitatorEntity = findOrCreateFacilitator(facilitatorRequest)
+      val facilitatorEntity = facilitatorService.findOrCreateFacilitator(facilitatorRequest)
 
       val groupFacilitator = ProgrammeGroupFacilitatorEntity(
         facilitator = facilitatorEntity,
@@ -101,9 +97,6 @@ class ProgrammeGroupService(
 
     return savedGroup
   }
-
-  private fun findOrCreateFacilitator(teamMember: CreateGroupTeamMember): FacilitatorEntity = facilitatorRepository.findByNdeliusPersonCode(teamMember.facilitatorCode)
-    ?: facilitatorRepository.save(teamMember.toFacilitatorEntity())
 
   private fun createSessionSlots(
     slotData: Set<CreateGroupSessionSlot>,
