@@ -10,6 +10,7 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
+import org.springframework.web.reactive.function.client.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ServiceUnavailableException
 
 abstract class BaseHMPPSClient(
@@ -59,7 +60,7 @@ abstract class BaseHMPPSClient(
         request.bodyValue(requestBuilder.body!!)
       }
 
-      val result = request.retrieve().toEntity(String::class.java).block()!!
+      val result = request.retrieve().toEntity<String>().block()!!
 
       objectMapper.apply { registerModule((JavaTimeModule())) }
       val deserialized = objectMapper.readValue(result.body, typeReference)
@@ -80,7 +81,10 @@ abstract class BaseHMPPSClient(
           exception.responseBodyAsString,
         )
       } else {
-        log.error("Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.", exception)
+        log.error(
+          "Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.",
+          exception,
+        )
         throw exception
       }
     } catch (exception: Exception) {

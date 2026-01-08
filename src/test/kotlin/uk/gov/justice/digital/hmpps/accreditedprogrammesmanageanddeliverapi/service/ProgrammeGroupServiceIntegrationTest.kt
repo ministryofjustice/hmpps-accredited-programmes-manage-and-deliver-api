@@ -232,6 +232,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     fun `should schedule the Sessions for a Programme Group`() {
       // Given
       stubAuthTokenEndpoint()
+      govUkApiStubs.stubBankHolidaysResponse()
       nDeliusApiStubs.stubUserTeamsResponse(
         "the_username",
         NDeliusUserTeams(
