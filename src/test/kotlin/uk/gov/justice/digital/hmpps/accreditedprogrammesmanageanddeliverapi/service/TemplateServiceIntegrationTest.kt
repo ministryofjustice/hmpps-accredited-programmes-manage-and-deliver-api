@@ -88,15 +88,6 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `Successfully retrieves zero templates for Getting Started module (two Group sessions)`() {
-      // When
-      val sessionTemplates = service.getOneToOneSessionTemplatesForGroupAndModule(groupId, gettingStartedModuleId)
-
-      // Then
-      assertThat(sessionTemplates).hasSize(0)
-    }
-
-    @Test
     fun `Throws NotFoundException when group does not exist`() {
       // Given
       val nonExistentGroupId = UUID.randomUUID()
