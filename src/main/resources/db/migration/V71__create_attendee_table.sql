@@ -3,7 +3,7 @@ CREATE TABLE attendee
     id          UUID NOT NULL PRIMARY KEY,
     person_name TEXT NOT NULL,
     referral_id UUID NOT NULL,
-    session_id  UUID,
+    session_id  UUID NOT NULL,
     CONSTRAINT fk_attendee_referral
         FOREIGN KEY (referral_id)
             REFERENCES referral (id)
@@ -21,4 +21,4 @@ COMMENT ON TABLE attendee IS 'Represents an attendee of a session, linked to a r
 COMMENT ON COLUMN attendee.id IS 'Primary key.';
 COMMENT ON COLUMN attendee.person_name IS 'Name of the attendee, matching the referral.';
 COMMENT ON COLUMN attendee.referral_id IS 'FK to referral.id';
-COMMENT ON COLUMN attendee.session_id IS 'FK to session.id (optional).';
+COMMENT ON COLUMN attendee.session_id IS 'FK to session.id.';

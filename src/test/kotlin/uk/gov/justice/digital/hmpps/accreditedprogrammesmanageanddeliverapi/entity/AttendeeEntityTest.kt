@@ -6,13 +6,11 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AccreditedProgrammeTemplateEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AttendeeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.time.LocalDateTime
 
 class AttendeeEntityTest : IntegrationTestBase() {
@@ -21,19 +19,13 @@ class AttendeeEntityTest : IntegrationTestBase() {
   private lateinit var attendeeRepository: AttendeeRepository
 
   @Autowired
-  private lateinit var referralRepository: ReferralRepository
-
-  @Autowired
   private lateinit var programmeGroupRepository: ProgrammeGroupRepository
 
   @Test
   @Transactional
   fun `should save and retrieve attendee`() {
     // Given
-    val referral = ReferralEntityFactory()
-      .withPersonName("Attendee Name")
-      .produce()
-    referralRepository.save(referral)
+    val referral = testReferralHelper.createReferral(personName = "Attendee Name")
 
     val template = AccreditedProgrammeTemplateEntityFactory().produce()
     val module = ModuleEntity(
