@@ -8,6 +8,8 @@ import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
+import jakarta.persistence.JoinTable
+import jakarta.persistence.ManyToMany
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
@@ -53,9 +55,13 @@ class SessionEntity(
   @Column(name = "ends_at")
   var endsAt: LocalDateTime,
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "session_facilitator_id")
-  var sessionFacilitator: FacilitatorEntity? = null,
+  @ManyToMany(fetch = FetchType.LAZY)
+  @JoinTable(
+    name = "session_facilitator",
+    joinColumns = [JoinColumn(name = "session_id")],
+    inverseJoinColumns = [JoinColumn(name = "facilitator_id")],
+  )
+  var sessionFacilitators: MutableSet<FacilitatorEntity> = mutableSetOf(),
 
   @NotNull
   @Column(name = "created_at")
@@ -72,6 +78,13 @@ class SessionEntity(
     mappedBy = "session",
   )
   var attendances: MutableSet<SessionAttendanceEntity> = mutableSetOf(),
+
+  @OneToMany(
+    fetch = FetchType.LAZY,
+    cascade = [CascadeType.ALL],
+    mappedBy = "session",
+  )
+  var attendees: MutableList<AttendeeEntity> = mutableListOf(),
 ) : Comparable<SessionEntity> {
   // Compute these values rather than have them duplicated in the db tables
   @get:Transient

@@ -1,12 +1,12 @@
-ALTER TABLE session
-    ADD COLUMN session_facilitator_id UUID;
+CREATE TABLE session_facilitator (
+    session_id UUID NOT NULL,
+    facilitator_id UUID NOT NULL,
+    PRIMARY KEY (session_id, facilitator_id),
+    CONSTRAINT fk_session_facilitator_session FOREIGN KEY (session_id) REFERENCES session (id) ON DELETE CASCADE,
+    CONSTRAINT fk_session_facilitator_facilitator FOREIGN KEY (facilitator_id) REFERENCES facilitator (id) ON DELETE CASCADE
+);
 
-ALTER TABLE session
-    ADD CONSTRAINT fk_session_facilitator
-        FOREIGN KEY (session_facilitator_id)
-            REFERENCES facilitator (id)
-            ON DELETE SET NULL;
+CREATE INDEX idx_session_facilitator_session_id ON session_facilitator (session_id);
+CREATE INDEX idx_session_facilitator_facilitator_id ON session_facilitator (facilitator_id);
 
-CREATE INDEX idx_session_session_facilitator_id ON session (session_facilitator_id);
-
-COMMENT ON COLUMN session.session_facilitator_id IS 'FK to facilitator.id';
+COMMENT ON TABLE session_facilitator IS 'Join table for sessions and facilitators';

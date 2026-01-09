@@ -12,6 +12,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.govUkHolidaysApi.GovUkApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
@@ -19,6 +20,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.Clock
 import java.time.LocalDate
@@ -39,6 +41,7 @@ class ScheduleService(
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
   private val govUkApiClient: GovUkApiClient,
   private val facilitatorService: FacilitatorService,
+  private val referralRepository: ReferralRepository,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -50,7 +53,9 @@ class ScheduleService(
     val moduleSessionTemplate = moduleSessionTemplateRepository.findByIdOrNull(request.sessionTemplateId)
       ?: throw NotFoundException("Session template with id: ${request.sessionTemplateId} could not be found")
 
-    val facilitatorEntity = facilitatorService.findOrCreateFacilitator(request.facilitators.first())
+    val sessionFacilitators = request.facilitators.map {
+      facilitatorService.findOrCreateFacilitator(it)
+    }.toMutableSet()
 
     val session = SessionEntity(
       programmeGroup = programmeGroup,
@@ -58,8 +63,21 @@ class ScheduleService(
       startsAt = convertToLocalDateTime(request.startDate, request.startTime),
       endsAt = convertToLocalDateTime(request.startDate, request.endTime),
       locationName = programmeGroup.deliveryLocationName,
-      sessionFacilitator = facilitatorEntity,
+      sessionFacilitators = sessionFacilitators,
     )
+
+    request.referralIds.forEach { referralId ->
+      val referral = referralRepository.findByIdOrNull(referralId)
+        ?: throw NotFoundException("Referral with id: $referralId could not be found")
+      session.attendees.add(
+        AttendeeEntity(
+          personName = referral.personName,
+          referral = referral,
+          session = session,
+        ),
+      )
+    }
+
     sessionRepository.save(session)
     return ScheduleSessionResponse(message = "Session scheduled successfully")
   }

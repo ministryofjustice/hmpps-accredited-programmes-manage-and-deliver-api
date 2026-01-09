@@ -1383,8 +1383,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.message).isEqualTo("Session scheduled successfully")
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!).first()
-      assertThat(retrievedSession.sessionFacilitator?.personName).isEqualTo("Default facilitator name")
+      assertThat(retrievedSession.sessionFacilitators.first().personName).isEqualTo("Default facilitator name")
       assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
+      assertThat(retrievedSession.attendees).hasSize(1)
+      assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral!!.personName)
     }
 
     @Test
@@ -1545,7 +1547,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.message).isEqualTo("Session scheduled successfully")
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!).first()
-      assertThat(retrievedSession.sessionFacilitator?.personName).isEqualTo("Non existent Facilitator")
+      assertThat(retrievedSession.sessionFacilitators.first().personName).isEqualTo("Non existent Facilitator")
     }
 
     @Test
