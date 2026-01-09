@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleIndividualSessionDetailsResponse
@@ -44,6 +45,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -1767,6 +1769,63 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       assertThat(errorResponse.status).isEqualTo(HttpStatus.NOT_FOUND.value())
       assertThat(errorResponse.userMessage).contains("Module with id $nonExistentModuleId not found")
+    }
+  }
+
+  @Nested
+  @DisplayName("Get team members in PDU")
+  inner class GetGroupSessions {
+    @Test
+    fun `return 200 and bff data if successful`() {
+      val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+
+      val body = CreateGroupRequestFactory().produce(
+        createGroupSessionSlot = setOf(slot1),
+      )
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val group = programmeGroupRepository.findByCode(body.groupCode)!!
+
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/sessions",
+        returnType = object : ParameterizedTypeReference<ProgrammeGroupModuleSessionsResponse>() {},
+      )
+
+      assertThat(response.group).isNotNull
+      assertThat(response.modules).isNotNull
+      assertThat(response.modules.size).isEqualTo(10)
+      assertThat(response.modules.sumOf { it.sessions.count() }).isEqualTo(26)
+      response.modules.forEach { module ->
+        module.sessions.forEach { session ->
+          when (session.type) {
+            SessionType.GROUP -> {
+              assertThat(session.participants).isEqualTo(listOf("All"))
+            }
+            SessionType.ONE_TO_ONE -> {
+              assertThat(session.participants).isNotEqualTo(listOf("All")) // TO be updated when attendees/facilitators tables are added.
+            }
+          }
+        }
+      }
+    }
+
+    @Test
+    fun `return 401 when unauthorised`() {
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/group/${UUID.randomUUID()}/sessions")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
     }
   }
 }
