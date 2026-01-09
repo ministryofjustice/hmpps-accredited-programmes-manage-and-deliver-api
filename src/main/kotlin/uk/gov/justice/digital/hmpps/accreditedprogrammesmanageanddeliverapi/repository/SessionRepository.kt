@@ -6,4 +6,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import java.util.UUID
 
 @Repository
-interface SessionRepository : JpaRepository<SessionEntity, UUID>
+interface SessionRepository : JpaRepository<SessionEntity, UUID> {
+
+  fun findByModuleSessionTemplateIdAndProgrammeGroupId(
+    moduleSessionTemplateId: UUID,
+    programmeGroupId: UUID,
+  ): List<SessionEntity>
+}
