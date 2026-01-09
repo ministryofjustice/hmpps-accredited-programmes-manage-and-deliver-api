@@ -1,5 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
+import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -64,6 +66,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -105,6 +108,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var programmeGroupModuleRepository: ModuleRepository
+
+  @Autowired
+  private lateinit var nDeliusAppointmentRepository: NDeliusAppointmentRepository
 
   @BeforeEach
   override fun beforeEach() {
@@ -640,6 +646,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         ).produce(),
       )
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       val referral = referralService.createReferral(
         FindAndReferReferralDetailsFactory()
@@ -661,16 +668,25 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         returnType = object : ParameterizedTypeReference<AllocateToGroupResponse>() {},
       )
 
-      val foundRepository = referralRepository.findByIdOrNull(referral.id!!)!!
+      val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
 
       // Then
       assertThat(response.message).isEqualTo("the-forename the-surname was added to this group. Their referral status is now Scheduled.")
 
-      assertThat(foundRepository).isNotNull
-      assertThat(foundRepository.id).isEqualTo(referral.id)
-      assertThat(foundRepository.programmeGroupMemberships).hasSize(1)
-      assertThat(foundRepository.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
-      assertThat(foundRepository.programmeGroupMemberships.first().attendances.size).isEqualTo(26)
+      assertThat(foundReferral).isNotNull
+      assertThat(foundReferral.id).isEqualTo(referral.id)
+      assertThat(foundReferral.programmeGroupMemberships).hasSize(1)
+      assertThat(foundReferral.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
+      assertThat(foundReferral.programmeGroupMemberships.first().attendances.size).isEqualTo(26)
+
+      wiremock.verify(1, postRequestedFor(urlEqualTo("/appointments")))
+      val nDeliusAppointments = nDeliusAppointmentRepository.findAll()
+      assertThat(nDeliusAppointments.size).isEqualTo(26)
+      assertThat(foundReferral.eventId)
+        .isIn(
+          nDeliusAppointments.mapNotNull { it.licenceConditionId } +
+            nDeliusAppointments.mapNotNull { it.requirementId },
+        )
     }
 
     @Test

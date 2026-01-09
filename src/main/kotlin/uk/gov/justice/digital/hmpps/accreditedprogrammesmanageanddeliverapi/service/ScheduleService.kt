@@ -10,6 +10,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.govUkHolidaysApi.GovUkApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toAppointment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
@@ -17,6 +20,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
@@ -40,6 +45,8 @@ class ScheduleService(
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
   private val govUkApiClient: GovUkApiClient,
+  private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
+  private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
   private val facilitatorService: FacilitatorService,
   private val referralRepository: ReferralRepository,
 ) {
@@ -203,7 +210,9 @@ class ScheduleService(
       }
     }
 
-    return sessionRepository.saveAll(generatedSessions)
+    val savedSessions = sessionRepository.saveAll(generatedSessions)
+
+    return savedSessions
   }
 
   fun rescheduleSessionsForGroup(programmeGroupId: UUID): MutableList<SessionEntity> {
@@ -225,6 +234,39 @@ class ScheduleService(
 
     // If there is no prior session, just schedule from start
     return scheduleSessionsForGroup(programmeGroupId, mostRecentSession)
+  }
+
+  fun createNdeliusAppointmentsForSessionAttendances(sessionAttendances: List<SessionAttendanceEntity>) {
+    val (appointments, entities) = sessionAttendances.map { attendance ->
+      val appointment = attendance.toAppointment()
+      appointment to appointment.toEntity(attendance)
+    }.unzip()
+
+    when (
+      val response =
+        nDeliusIntegrationApiClient.createAppointmentsInDelius(CreateAppointmentRequest(appointments))
+    ) {
+      is ClientResult.Failure.StatusCode -> {
+        log.warn("Failure to create appointments with reason: ${response.getErrorMessage()}")
+        throw BusinessException("Failure to create appointments", response.toException())
+      }
+
+      is ClientResult.Failure.Other -> {
+        log.warn(
+          "Failure to create appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
+          response.exception,
+        )
+        throw BusinessException(
+          "Failure to create appointments in Ndelius: ${response.exception.message}",
+          response.exception,
+        )
+      }
+
+      is ClientResult.Success -> {
+        log.info("${entities.size} appointments created in Ndelius for group with id: ${entities.first().sessionAttendance.groupMembership.programmeGroup.id}")
+        nDeliusAppointmentRepository.saveAll(entities)
+      }
+    }
   }
 
   /**
