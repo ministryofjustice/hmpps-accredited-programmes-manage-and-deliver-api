@@ -64,6 +64,7 @@ class ScheduleService(
       endsAt = convertToLocalDateTime(request.startDate, request.endTime),
       locationName = programmeGroup.deliveryLocationName,
       sessionFacilitators = sessionFacilitators,
+      // Scheduling individual session should not be placeholder
       isPlaceholder = false,
     )
 
@@ -141,6 +142,7 @@ class ScheduleService(
             startsAt = startsAt,
             endsAt = endsAt,
             locationName = group.deliveryLocationName,
+            // If we are scheduling One-to-One here it is a placeholder session
             isPlaceholder = template.sessionType == SessionType.ONE_TO_ONE,
           ),
         )
