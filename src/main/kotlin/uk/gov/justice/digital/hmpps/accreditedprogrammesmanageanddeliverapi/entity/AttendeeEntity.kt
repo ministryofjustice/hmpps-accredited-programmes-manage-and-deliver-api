@@ -8,6 +8,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.Transient
 import java.util.UUID
 
 @Entity
@@ -18,9 +19,6 @@ class AttendeeEntity(
   @Column(name = "id")
   var id: UUID? = null,
 
-  @Column(name = "person_name")
-  var personName: String,
-
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "referral_id")
   var referral: ReferralEntity,
@@ -28,4 +26,8 @@ class AttendeeEntity(
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "session_id")
   var session: SessionEntity,
-)
+) {
+  @get:Transient
+  val personName: String
+    get() = referral.personName
+}

@@ -662,16 +662,19 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         returnType = object : ParameterizedTypeReference<AllocateToGroupResponse>() {},
       )
 
-      val foundRepository = referralRepository.findByIdOrNull(referral.id!!)!!
+      val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
 
       // Then
       assertThat(response.message).isEqualTo("the-forename the-surname was added to this group. Their referral status is now Scheduled.")
 
-      assertThat(foundRepository).isNotNull
-      assertThat(foundRepository.id).isEqualTo(referral.id)
-      assertThat(foundRepository.programmeGroupMemberships).hasSize(1)
-      assertThat(foundRepository.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
-      assertThat(foundRepository.programmeGroupMemberships.first().attendances.size).isEqualTo(26)
+      assertThat(foundReferral).isNotNull
+      assertThat(foundReferral.id).isEqualTo(referral.id)
+      assertThat(foundReferral.programmeGroupMemberships).hasSize(1)
+      assertThat(foundReferral.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
+      // Check that we have added the PoP to the session attendees list
+      val attendeeList =
+        foundReferral.programmeGroupMemberships.first().programmeGroup.sessions.flatMap { sessionEntity -> sessionEntity.attendees.map { it.personName } }
+      assertThat(attendeeList).allMatch { attendeeList.contains(it) }
     }
 
     @Test
@@ -807,6 +810,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(currentStatusHistory).isNotNull
       assertThat(currentStatusHistory!!.referralStatusDescription.description).isEqualTo("Awaiting allocation")
       assertThat(currentStatusHistory.additionalDetails).isEqualTo("The additional details for the removal")
+
+      // Check that all sessions associated with old group and person are removed
+      val oldGroupSessionAttendeesList =
+        foundReferral.programmeGroupMemberships.first().programmeGroup.sessions.flatMap { sessionEntity -> sessionEntity.attendees.map { it.personName } }
+      assertThat(oldGroupSessionAttendeesList.all { it != foundReferral.personName }).isTrue
     }
   }
 

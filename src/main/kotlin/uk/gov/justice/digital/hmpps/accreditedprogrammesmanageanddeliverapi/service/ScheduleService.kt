@@ -15,8 +15,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
@@ -64,6 +64,7 @@ class ScheduleService(
       endsAt = convertToLocalDateTime(request.startDate, request.endTime),
       locationName = programmeGroup.deliveryLocationName,
       sessionFacilitators = sessionFacilitators,
+      isPlaceholder = false,
     )
 
     request.referralIds.forEach { referralId ->
@@ -71,7 +72,6 @@ class ScheduleService(
         ?: throw NotFoundException("Referral with id: $referralId could not be found")
       session.attendees.add(
         AttendeeEntity(
-          personName = referral.personName,
           referral = referral,
           session = session,
         ),
@@ -81,18 +81,6 @@ class ScheduleService(
     sessionRepository.save(session)
     return ScheduleSessionResponse(message = "Session scheduled successfully")
   }
-
-  private fun convertToLocalDateTime(startDate: LocalDate, sessionTime: SessionTime): LocalDateTime = LocalDateTime.of(
-    startDate,
-    LocalTime.of(
-      when (sessionTime.amOrPm) {
-        AmOrPm.PM if sessionTime.hour < 12 -> sessionTime.hour + 12
-        AmOrPm.AM if sessionTime.hour == 12 -> 0
-        else -> sessionTime.hour
-      },
-      sessionTime.minutes,
-    ),
-  )
 
   fun scheduleSessionsForGroup(
     programmeGroupId: UUID,
@@ -153,6 +141,7 @@ class ScheduleService(
             startsAt = startsAt,
             endsAt = endsAt,
             locationName = group.deliveryLocationName,
+            isPlaceholder = template.sessionType == SessionType.ONE_TO_ONE,
           ),
         )
 
@@ -193,10 +182,10 @@ class ScheduleService(
     if (programmeGroupMemberships.isNotEmpty()) {
       programmeGroupMemberships.forEach { groupMembership ->
         generatedSessions.forEach { session ->
-          session.attendances.add(
-            SessionAttendanceEntity(
+          session.attendees.add(
+            AttendeeEntity(
+              referral = groupMembership.referral,
               session = session,
-              groupMembership = groupMembership,
             ),
           )
         }
@@ -277,4 +266,16 @@ class ScheduleService(
         }
         .toSet()
   }
+
+  private fun convertToLocalDateTime(startDate: LocalDate, sessionTime: SessionTime): LocalDateTime = LocalDateTime.of(
+    startDate,
+    LocalTime.of(
+      when (sessionTime.amOrPm) {
+        AmOrPm.PM if sessionTime.hour < 12 -> sessionTime.hour + 12
+        AmOrPm.AM if sessionTime.hour == 12 -> 0
+        else -> sessionTime.hour
+      },
+      sessionTime.minutes,
+    ),
+  )
 }
