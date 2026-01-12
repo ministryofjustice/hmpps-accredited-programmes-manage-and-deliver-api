@@ -81,7 +81,7 @@ data class ProgrammeGroupModuleSessionsResponseGroupSession(
 
 data class StartDateText(
   @Schema(description = "The bold estimated date text on the ui", required = true, example = "Estimated start date of pre-group one-to-ones")
-  val strong: String,
+  val sessionStartDate: String,
 
   @Schema(description = "The date of the earliest session", required = true, example = "Thursday 12 January 2023")
   val body: String,

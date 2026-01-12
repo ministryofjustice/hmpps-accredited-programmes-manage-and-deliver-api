@@ -189,6 +189,10 @@ class ProgrammeGroupService(
 
     val programmeGroupModuleSessionsResponseGroup = ProgrammeGroupModuleSessionsResponseGroup(group.code, group.regionName)
 
+    // We need to get all modules for the group's accredited programme template. From there, we get all the session templates for each module,
+    // and then we need to go to the database to find any scheduled sessions for the group that use that session template.
+    // We need to do this as we currently have no direct link from session templates to scheduled sessions.
+    // This then builds the api response object with all the required data.
     val modules = group.accreditedProgrammeTemplate?.modules?.map { module ->
       val sessions = module.sessionTemplates.map { sessionTemplate ->
         val scheduledSessions = getScheduledSessionForGroupAndSessionTemplate(

@@ -1772,7 +1772,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Nested
-  @DisplayName("Get team members in PDU")
+  @DisplayName("Get modules and sessions for group")
   inner class GetGroupSessions {
     @Test
     fun `return 200 and bff data if successful`() {
