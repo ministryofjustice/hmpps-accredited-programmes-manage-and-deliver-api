@@ -144,6 +144,7 @@ class ScheduleService(
             locationName = group.deliveryLocationName,
             // If we are scheduling One-to-One here it is a placeholder session
             isPlaceholder = template.sessionType == SessionType.ONE_TO_ONE,
+            sessionFacilitators = group.groupFacilitators.map { it.facilitator }.toMutableSet(),
           ),
         )
 
