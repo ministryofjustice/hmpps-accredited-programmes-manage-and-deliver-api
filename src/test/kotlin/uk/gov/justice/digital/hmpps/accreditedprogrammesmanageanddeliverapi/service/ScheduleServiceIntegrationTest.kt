@@ -83,7 +83,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     val group = programmeGroupRepository.findByCode(body.groupCode)!!
 
     assertThat(group.sessions).hasSize(26)
-    val (preGroupSessions, restOfSessions) = group.sessions.partition { it.moduleSessionTemplate.name == "Pre-Group" }
+    val (preGroupSessions, restOfSessions) = group.sessions.partition { it.moduleSessionTemplate.name == "Pre-group" }
     assertThat(restOfSessions.first().startsAt).isAfterOrEqualTo(preGroupSessions.first().startsAt.plusWeeks(3))
   }
 
