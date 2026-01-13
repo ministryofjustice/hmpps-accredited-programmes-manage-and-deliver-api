@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity
 
+import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -53,6 +54,8 @@ class ProgrammeGroupMembershipEntity(
   @OneToMany(
     fetch = FetchType.LAZY,
     mappedBy = "groupMembership",
+    cascade = [CascadeType.ALL],
+    orphanRemoval = true,
   )
   var attendances: MutableSet<SessionAttendanceEntity> = mutableSetOf(),
 )

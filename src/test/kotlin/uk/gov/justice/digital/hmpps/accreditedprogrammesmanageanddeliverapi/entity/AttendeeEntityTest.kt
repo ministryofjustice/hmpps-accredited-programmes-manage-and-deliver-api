@@ -54,12 +54,13 @@ class AttendeeEntityTest : IntegrationTestBase() {
       moduleSessionTemplate = sessionTemplate,
       startsAt = LocalDateTime.now(),
       endsAt = LocalDateTime.now().plusHours(2),
+      // Set individual sessions to placeholder types
+      isPlaceholder = false,
     )
     group.sessions.add(session)
     programmeGroupRepository.save(group)
 
     val attendee = AttendeeEntity(
-      personName = referral.personName,
       referral = referral,
       session = session,
     )
@@ -73,7 +74,7 @@ class AttendeeEntityTest : IntegrationTestBase() {
     assertThat(retrievedAttendee).isNotNull
     assertThat(retrievedAttendee.personName).isEqualTo("Attendee Name")
     assertThat(retrievedAttendee.referral.id).isEqualTo(referral.id)
-    assertThat(retrievedAttendee.session?.id).isEqualTo(session.id)
+    assertThat(retrievedAttendee.session.id).isEqualTo(session.id)
 
     // Verify session association
     val retrievedSession = group.sessions.first()

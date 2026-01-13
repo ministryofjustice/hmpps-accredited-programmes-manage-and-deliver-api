@@ -82,9 +82,15 @@ class SessionEntity(
   @OneToMany(
     fetch = FetchType.LAZY,
     cascade = [CascadeType.ALL],
+    orphanRemoval = true,
     mappedBy = "session",
   )
   var attendees: MutableList<AttendeeEntity> = mutableListOf(),
+
+  @NotNull
+  @Column(name = "is_placeholder")
+  var isPlaceholder: Boolean,
+
 ) : Comparable<SessionEntity> {
   // Compute these values rather than have them duplicated in the db tables
   @get:Transient
