@@ -201,14 +201,14 @@ class ProgrammeGroupService(
         )
         scheduledSessions?.map { scheduledSession ->
           ProgrammeGroupModuleSessionsResponseGroupSession(
-            id = sessionTemplate.id!!,
+            id = scheduledSession.id!!,
             number = sessionTemplate.sessionNumber,
             name = sessionTemplate.name,
             type = sessionTemplate.sessionType,
             dateOfSession = scheduledSession.startsAt.toLocalDate().format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")).toString(),
             timeOfSession = formatTimeForUiDisplay(scheduledSession.startsAt.toLocalTime()),
-            participants = if (sessionTemplate.sessionType == SessionType.GROUP) listOf("All") else listOf("The person"),
-            facilitators = group.groupFacilitators.map { it.facilitator.personName },
+            participants = if (sessionTemplate.sessionType == SessionType.GROUP) listOf("All") else scheduledSession.attendees.map { it.personName },
+            facilitators = scheduledSession.sessionFacilitators.map { it.personName },
           )
         } ?: emptyList()
       }.flatten()
