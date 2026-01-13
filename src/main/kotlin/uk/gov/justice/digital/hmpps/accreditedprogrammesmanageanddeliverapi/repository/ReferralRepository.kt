@@ -17,7 +17,7 @@ interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
   fun getAllIds(): List<UUID>
 
   @EntityGraph(attributePaths = ["statusHistories"])
-  override fun findById(id: UUID): Optional<ReferralEntity?>
+  override fun findById(id: UUID): Optional<ReferralEntity>
 
   @EntityGraph(attributePaths = ["statusHistories"])
   fun findByCrn(crn: String): List<ReferralEntity>
