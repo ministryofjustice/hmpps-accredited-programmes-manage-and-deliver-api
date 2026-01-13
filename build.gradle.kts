@@ -32,6 +32,7 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client:4.0.1")
   implementation("org.springframework.security:spring-security-crypto:7.0.2")
   implementation("com.nimbusds:oauth2-oidc-sdk:11.31.1")
+  implementation("io.github.resilience4j:resilience4j-spring-boot2:2.3.0")
 
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:2.0.0")
   testImplementation("org.springframework.boot:spring-boot-starter-webclient-test")
