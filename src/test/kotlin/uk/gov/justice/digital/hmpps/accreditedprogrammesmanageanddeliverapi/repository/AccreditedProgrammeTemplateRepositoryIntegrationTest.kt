@@ -32,16 +32,16 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
 
     // Then
     assertThat(moduleNamesInOrder).containsExactly(
-      "Pre-Group",
-      "Getting Started",
-      "Getting Started 1-1",
-      "Managing Myself",
-      "Managing Myself 1-1",
-      "Managing Life’s Problems",
-      "Managing Life’s Problems 1-1",
-      "Managing People Around Me",
-      "Managing People Around Me 1-1",
-      "Bringing It All Together",
+      "Pre-group",
+      "Getting started",
+      "Getting started one-to-one",
+      "Managing myself",
+      "Managing myself one-to-one",
+      "Managing life’s problems",
+      "Managing life’s problems one-to-one",
+      "Managing people around me",
+      "Managing people around me one-to-one",
+      "Bringing it all together",
     )
   }
 
@@ -55,13 +55,13 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
     val modulesByName = template!!.modules.associateBy { it.name }
 
     // Then - Getting Started (Group only): Moderate 2
-    val gettingReady = modulesByName.getValue("Getting Started")
+    val gettingReady = modulesByName.getValue("Getting started")
     val gettingReadySessions = gettingReady.sessionTemplates
     assertThat(gettingReadySessions).allMatch { it.sessionType == SessionType.GROUP }
     assertThat(gettingReadySessions.count { it.pathway == Pathway.MODERATE_INTENSITY }).isEqualTo(2)
 
     // Then - Managing Myself (Group only): Moderate 6
-    val managingMyself = modulesByName.getValue("Managing Myself")
+    val managingMyself = modulesByName.getValue("Managing myself")
     val managingMyselfSessions = managingMyself.sessionTemplates
     assertThat(managingMyselfSessions).allMatch { it.sessionType == SessionType.GROUP }
     assertThat(managingMyselfSessions.count { it.pathway == Pathway.MODERATE_INTENSITY }).isEqualTo(6)
@@ -85,11 +85,11 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
     val modulesByName = template.modules.associateBy { it.name }
 
     listOf(
-      "Pre-Group",
-      "Getting Started 1-1",
-      "Managing Myself 1-1",
-      "Managing Life’s Problems 1-1",
-      "Managing People Around Me 1-1",
+      "Pre-group",
+      "Getting started one-to-one",
+      "Managing myself one-to-one",
+      "Managing life’s problems one-to-one",
+      "Managing people around me one-to-one",
     ).forEach { name ->
       val sessions = modulesByName.getValue(name).sessionTemplates
       assertThat(sessions).isNotEmpty
@@ -97,11 +97,11 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
     }
 
     listOf(
-      "Getting Started",
-      "Managing Myself",
-      "Managing Life’s Problems",
-      "Managing People Around Me",
-      "Bringing It All Together",
+      "Getting started",
+      "Managing myself",
+      "Managing life’s problems",
+      "Managing people around me",
+      "Bringing it all together",
     ).forEach { name ->
       val sessions = modulesByName.getValue(name).sessionTemplates
       assertThat(sessions).isNotEmpty
