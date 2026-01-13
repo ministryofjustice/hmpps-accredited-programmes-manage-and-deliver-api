@@ -201,7 +201,7 @@ class ProgrammeGroupService(
         )
         scheduledSessions?.map { scheduledSession ->
           ProgrammeGroupModuleSessionsResponseGroupSession(
-            id = sessionTemplate.id!!,
+            id = scheduledSession.id!!,
             number = sessionTemplate.sessionNumber,
             name = sessionTemplate.name,
             type = sessionTemplate.sessionType,
