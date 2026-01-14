@@ -79,12 +79,12 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
     val modulesByName = template.modules.associateBy { it.name }
 
     listOf(
-      "Pre-Group",
-      "Getting Started",
-      "Managing Myself",
-      "Managing Life’s Problems",
-      "Managing People Around Me",
-      "Bringing It All Together",
+      "Pre-group",
+      "Getting started",
+      "Managing myself",
+      "Managing life’s problems",
+      "Managing people around me",
+      "Bringing it all together",
       "Post programme review",
     ).forEach { name ->
       val sessions = modulesByName.getValue(name).sessionTemplates

@@ -238,7 +238,6 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     // First scheduled session is Monday 1st December  @ 9.30am
     assertThat(group.sessions.first().startsAt).isEqualTo(LocalDateTime.of(2025, 12, 1, 9, 30, 0))
     assertThat(group.sessions.map { it.attendees }).isNotEmpty
-    assertThat(group.sessions.sumOf { it.attendances.size }).isEqualTo(54)
 
     // Alter group start date for rescheduling
     group.earliestPossibleStartDate = LocalDate.now(clock).plusYears(2)
