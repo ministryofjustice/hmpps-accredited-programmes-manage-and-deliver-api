@@ -9,6 +9,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnitEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
@@ -20,8 +21,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.util.UUID
 
@@ -33,6 +37,9 @@ class TestDataGenerator {
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
+
+  @Autowired
+  private lateinit var accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository
 
   fun createPreferredDeliveryLocationProbationDeliveryUnit(preferredDeliveryLocationProbationDeliveryUnit: PreferredDeliveryLocationProbationDeliveryUnitEntity) {
     entityManager.persist(preferredDeliveryLocationProbationDeliveryUnit)
@@ -178,7 +185,7 @@ class TestDataGenerator {
     return session
   }
 
-  fun createAccreditedProgrammeTemplate(
+/*  fun createAccreditedProgrammeTemplate(
     name: String,
   ): AccreditedProgrammeTemplateEntity {
     val template = AccreditedProgrammeTemplateEntity(
@@ -188,7 +195,18 @@ class TestDataGenerator {
     )
     entityManager.persist(template)
     return template
-  }
+  }*/
+
+  fun createAccreditedProgrammeTemplate(
+    name: String,
+  ): AccreditedProgrammeTemplateEntity = accreditedProgrammeTemplateRepository.findFirstByName(name)
+    ?: accreditedProgrammeTemplateRepository.save(
+      AccreditedProgrammeTemplateEntity(
+        name = name,
+        validFrom = java.time.LocalDate.now(),
+        validUntil = null,
+      ),
+    )
 
   fun createModule(
     template: AccreditedProgrammeTemplateEntity,
@@ -202,5 +220,25 @@ class TestDataGenerator {
     )
     entityManager.persist(module)
     return module
+  }
+
+  fun createModuleSessionTemplate(
+    module: ModuleEntity,
+    name: String,
+    sessionNumber: Int,
+    sessionType: SessionType = SessionType.GROUP,
+    pathway: Pathway = Pathway.MODERATE_INTENSITY,
+    durationMinutes: Int = 120,
+  ): ModuleSessionTemplateEntity {
+    val template = ModuleSessionTemplateEntity(
+      module = module,
+      name = name,
+      sessionNumber = sessionNumber,
+      sessionType = sessionType,
+      pathway = pathway,
+      durationMinutes = durationMinutes,
+    )
+    entityManager.persist(template)
+    return template
   }
 }

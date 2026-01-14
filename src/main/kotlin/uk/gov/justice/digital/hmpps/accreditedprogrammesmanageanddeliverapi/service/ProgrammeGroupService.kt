@@ -14,6 +14,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSchedule
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleSession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
@@ -35,6 +37,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
 import java.time.LocalDate
@@ -51,6 +54,7 @@ class ProgrammeGroupService(
   private val facilitatorRepository: FacilitatorRepository,
   private val accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository,
   private val scheduleService: ScheduleService,
+  private val sessionRepository: SessionRepository,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -176,6 +180,54 @@ class ProgrammeGroupService(
     return ProgrammeGroupDetails.Filters(
       locationFilterValues = pdusWithReportingTeams,
     )
+  }
+
+  fun getScheduleForGroup(groupId: UUID): GroupSchedule? {
+    val group = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
+
+    val sessions = sessionRepository.findByProgrammeGroupId(groupId)
+
+    val scheduleSessions = sessions.map { session ->
+      GroupScheduleSession(
+        id = session.id,
+        name = session.moduleSessionTemplate.name,
+        // TODO: ModuleSessionTemplateEntity.sessionType instead for type?
+        type = if (session.moduleSessionTemplate.name.contains("one-to-one", ignoreCase = true)) "Individual" else "Group",
+        date = session.startsAt.toLocalDate().toString(),
+        time = formatTimeForUiDisplay(session.startsAt.toLocalTime()),
+      )
+    }
+
+    val preGroupOneToOneDate = sessions
+      .filter { it.moduleSessionTemplate.name == "Pre-group one-to-ones" }
+      .minByOrNull { it.startsAt }
+      ?.startsAt?.toLocalDate()?.toString() ?: ""
+
+    val gettingStartedStartDate = sessions
+      .filter { it.moduleSessionTemplate.name.startsWith("Getting started") }
+      .minByOrNull { it.startsAt }
+      ?.startsAt?.toLocalDate()?.toString() ?: ""
+
+    val endDate = sessions
+      .maxByOrNull { it.startsAt }
+      ?.startsAt?.toLocalDate()?.toString() ?: ""
+
+    return GroupSchedule(
+      preGroupOneToOneStartDate = preGroupOneToOneDate,
+      gettingStartedModuleStartDate = gettingStartedStartDate,
+      endDate = endDate,
+      modules = scheduleSessions,
+    )
+  }
+
+  private fun formatTimeForUiDisplay(time: LocalTime): String = when {
+    time.hour == 12 && time.minute == 0 -> "midday"
+    time.hour == 0 -> "midnight"
+    time.hour == 0 -> "12:${time.minute}am"
+    time.hour < 12 -> "${time.hour}:${time.minute}am"
+    time.hour == 12 -> "12:${time.minute}pm"
+    else -> "${time.hour - 12}:${time.minute}pm"
   }
 
   fun getProgrammeGroupsForRegion(
