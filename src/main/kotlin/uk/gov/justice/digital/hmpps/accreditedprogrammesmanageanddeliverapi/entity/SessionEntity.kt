@@ -92,7 +92,7 @@ class SessionEntity(
   var isPlaceholder: Boolean,
 
   @NotNull
-  @OneToMany(mappedBy = "session")
+  @OneToMany(mappedBy = "session", cascade = [CascadeType.ALL], orphanRemoval = true)
   var ndeliusAppointments: MutableSet<NDeliusAppointmentEntity> = mutableSetOf(),
 
 ) : Comparable<SessionEntity> {
