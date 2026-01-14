@@ -22,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSchedule
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleIndividualSessionDetailsResponse
@@ -42,8 +43,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
@@ -51,19 +57,17 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamMembersFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamWithMembersFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamsFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.NDeliusApiProbationDeliveryUnitWithOfficeLocationsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
@@ -84,6 +88,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
+
+  @Autowired
+  private lateinit var sessionRepository: SessionRepository
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
@@ -620,7 +627,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
 
-      val group = programmeGroupRepository.findByCode(body.groupCode)
+      val group = programmeGroupRepository.findByCode(body.groupCode)!!
 
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
       nDeliusApiStubs.stubPersonalDetailsResponse(
@@ -648,30 +655,40 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
-        uri = "/group/${group!!.id}/allocate/${referral.id}",
+        uri = "/group/${group.id}/allocate/${referral.id}",
         expectedResponseStatus = HttpStatus.OK.value(),
         body = allocateToGroupRequest,
         returnType = object : ParameterizedTypeReference<AllocateToGroupResponse>() {},
       )
 
-      val foundRepository = referralRepository.findByIdOrNull(referral.id!!)!!
+      val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
 
       // Then
       assertThat(response.message).isEqualTo("the-forename the-surname was added to this group. Their referral status is now Scheduled.")
 
-      assertThat(foundRepository).isNotNull
-      assertThat(foundRepository.id).isEqualTo(referral.id)
-      assertThat(foundRepository.programmeGroupMemberships).hasSize(1)
-      assertThat(foundRepository.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
-      assertThat(foundRepository.programmeGroupMemberships.first().attendances.size).isEqualTo(26)
+      assertThat(foundReferral).isNotNull
+      assertThat(foundReferral.id).isEqualTo(referral.id)
+      assertThat(foundReferral.programmeGroupMemberships).hasSize(1)
+      assertThat(foundReferral.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
+      // Check that we have added the PoP to the session attendees list
+      val attendeeList =
+        foundReferral.programmeGroupMemberships.first().programmeGroup.sessions.flatMap { sessionEntity -> sessionEntity.attendees.map { it.personName } }
+      assertThat(attendeeList).allMatch { attendeeList.contains(it) }
     }
 
     @Test
     fun `allocateReferralToGroup throws an error if referral does not exist`() {
       val referralId = UUID.randomUUID()
-      val groupCode = "AAA111"
-      val group = ProgrammeGroupFactory().withCode(groupCode).produce()
-      testDataGenerator.createGroup(group)
+
+      val body = CreateGroupRequestFactory().produce()
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val group = programmeGroupRepository.findByCode(body.groupCode)!!
 
       val exception = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
@@ -687,10 +704,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `allocateReferralToGroup throws an error if group does not exist`() {
       val groupId = UUID.randomUUID()
-      val referralStatusDescriptionEntity = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
-      val referral = ReferralEntityFactory().produce()
-      val statusHistory = ReferralStatusHistoryEntityFactory().produce(referral, referralStatusDescriptionEntity)
-      testDataGenerator.createReferralWithStatusHistory(referral, statusHistory)
+      val referral = testReferralHelper.createReferral()
 
       val exception = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
@@ -704,14 +718,17 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `allocateReferralToGroup throws an error if referral is in a closed state`() {
-      val groupCode = "AAA111"
-      val group = ProgrammeGroupFactory().withCode(groupCode).produce()
-      testDataGenerator.createGroup(group)
+      val body = CreateGroupRequestFactory().produce()
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
 
-      val referralStatusDescriptionEntity = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
-      val referral = ReferralEntityFactory().produce()
-      val statusHistory = ReferralStatusHistoryEntityFactory().produce(referral, referralStatusDescriptionEntity)
-      testDataGenerator.createReferralWithStatusHistory(referral, statusHistory)
+      val group = programmeGroupRepository.findByCode(body.groupCode)!!
+      val referral =
+        testReferralHelper.createReferralWithStatus(referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription())
 
       val exception = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
@@ -725,25 +742,33 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `allocateReferralToGroup throws an error if referral already allocated to a group`() {
-      val groupCode = "AAA111"
-      val group = ProgrammeGroupFactory().withCode(groupCode).produce()
-      testDataGenerator.createGroup(group)
+      val body = CreateGroupRequestFactory().produce()
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
 
-      val referralStatusDescriptionEntity = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
-      val referral = ReferralEntityFactory().produce()
-      val statusHistory = ReferralStatusHistoryEntityFactory().produce(referral, referralStatusDescriptionEntity)
-      testDataGenerator.createReferralWithStatusHistory(referral, statusHistory)
-      val groupMembership = ProgrammeGroupMembershipFactory().withReferral(referral).withProgrammeGroup(group).produce()
-      testDataGenerator.createGroupMembership(groupMembership)
+      val group = programmeGroupRepository.findByCode(body.groupCode)!!
+
+      val referral =
+        testReferralHelper.createReferralWithStatus(referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription())
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
 
       val exception = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group/${group.id}/allocate/${referral.id}",
         returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-        expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+        expectedResponseStatus = HttpStatus.CONFLICT.value(),
         body = AllocateToGroupRequest("Empty additional details"),
       )
-      assertThat(exception.userMessage).isEqualTo("Bad request: Cannot assign referral to group as referral with id ${referral.id} is in a closed state")
+      assertThat(exception.userMessage).isEqualTo("Conflict: Referral with id ${referral.id} is already allocated to a group: ${group.code}")
     }
   }
 
@@ -753,9 +778,15 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `removeReferralFromGroup can successfully remove a referral from a group`() {
       // Given
-      val groupCode = "AAA111"
-      val group = ProgrammeGroupFactory().withCode(groupCode).produce()
-      testDataGenerator.createGroup(group)
+      val body = CreateGroupRequestFactory().produce()
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val group = programmeGroupRepository.findByCode(body.groupCode)!!
 
       val referral = testReferralHelper.createReferralWithStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
@@ -799,6 +830,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(currentStatusHistory).isNotNull
       assertThat(currentStatusHistory!!.referralStatusDescription.description).isEqualTo("Awaiting allocation")
       assertThat(currentStatusHistory.additionalDetails).isEqualTo("The additional details for the removal")
+
+      // Check that all sessions associated with old group and person are removed
+      val oldGroupSessionAttendeesList =
+        foundReferral.programmeGroupMemberships.first().programmeGroup.sessions.flatMap { sessionEntity -> sessionEntity.attendees.map { it.personName } }
+      assertThat(oldGroupSessionAttendeesList.all { it != foundReferral.personName }).isTrue
     }
   }
 
@@ -872,8 +908,14 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `create group with code and return CONFLICT when it already exists within the region`() {
-      val group = ProgrammeGroupFactory().withCode("TEST_GROUP").withRegionName("WIREMOCKED REGION").produce()
-      testDataGenerator.createGroup(group)
+      val group = CreateGroupRequestFactory().produce(groupCode = "TEST_GROUP")
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = group,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
       val body = createGroupRequestFactory.produce("TEST_GROUP")
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
@@ -992,7 +1034,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `createGroup and assign slots and return 200 when it doesn't already exist`() {
+    fun `create Group and assign slots and return 200 when it doesn't already exist`() {
       val slots = setOf(
         CreateGroupSessionSlot(DayOfWeek.MONDAY, 1, 1, AmOrPm.AM),
         CreateGroupSessionSlot(DayOfWeek.TUESDAY, 1, 1, AmOrPm.PM),
@@ -1054,7 +1096,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(createdGroup).isNotNull
 
       // Hard-coded from the number of sessions in the template
-      assertThat(createdGroup.sessions).hasSize(26)
+      assertThat(createdGroup.sessions).hasSize(27)
       val sessionDays = createdGroup.sessions.map { it.startsAt.dayOfWeek }.distinct()
 
       assertThat(sessionDays).containsExactlyInAnyOrder(
@@ -1326,13 +1368,35 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun beforeEach() {
       referral = referrals.first()
       testDataGenerator.createGroup(group)
+      facilitators.forEach {
+        testDataGenerator.createFacilitator(it.toFacilitatorEntity())
+      }
     }
 
     @Test
-    fun `should return 200 when scheduling a one-to-one session with valid data`() {
+    fun `should return 201 when scheduling a one-to-one session with valid data`() {
       // Given
+      val template = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(template, "Test Module", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Test Session Template",
+          durationMinutes = 60,
+        ),
+      )
+      testDataGenerator.createGroupMembership(
+        ProgrammeGroupMembershipEntity(
+          referral = referral!!,
+          programmeGroup = group,
+        ),
+      )
+
       val scheduleSessionRequest = ScheduleSessionRequest(
-        sessionTemplateId = UUID.randomUUID(),
+        sessionTemplateId = sessionTemplate.id!!,
         referralIds = listOf(referral!!.id!!),
         facilitators = facilitators,
         startDate = LocalDate.of(2025, 1, 1),
@@ -1346,12 +1410,18 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         uri = "/group/${group.id}/session/schedule",
         body = scheduleSessionRequest,
         returnType = object : ParameterizedTypeReference<ScheduleSessionResponse>() {},
-        expectedResponseStatus = HttpStatus.OK.value(),
+        expectedResponseStatus = HttpStatus.CREATED.value(),
       )
 
       // Then
       assertThat(response).isNotNull
       assertThat(response.message).isEqualTo("Session scheduled successfully")
+      val retrievedSession =
+        sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!).first()
+      assertThat(retrievedSession.sessionFacilitators.first().personName).isEqualTo("Default facilitator name")
+      assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
+      assertThat(retrievedSession.attendees).hasSize(1)
+      assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral!!.personName)
     }
 
     @Test
@@ -1421,6 +1491,101 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should return 404 when group does not exist`() {
+      // Given
+      val nonExistentGroupId = UUID.randomUUID()
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = UUID.randomUUID(),
+        referralIds = listOf(referral!!.id!!),
+        facilitators = facilitators,
+        startDate = LocalDate.of(2025, 1, 1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When & Then
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/$nonExistentGroupId/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(response.userMessage).contains("Group with id: $nonExistentGroupId could not be found")
+    }
+
+    @Test
+    fun `should return 404 when session template does not exist`() {
+      // Given
+      val nonExistentTemplateId = UUID.randomUUID()
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = nonExistentTemplateId,
+        referralIds = listOf(referral!!.id!!),
+        facilitators = facilitators,
+        startDate = LocalDate.of(2025, 1, 1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When & Then
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(response.userMessage).contains("Session template with id: $nonExistentTemplateId could not be found")
+    }
+
+    @Test
+    fun `should return 201 and create facilitator when facilitator does not exist in database`() {
+      // Given
+      val template = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(template, "Test Module", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Test Session Template",
+          durationMinutes = 60,
+        ),
+      )
+
+      val nonExistentFacilitator = CreateGroupTeamMemberFactory()
+        .withFacilitator("Non existent Facilitator")
+        .withFacilitatorCode("Non existent code")
+        .produce()
+
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = sessionTemplate.id!!,
+        referralIds = listOf(referral!!.id!!),
+        facilitators = listOf(nonExistentFacilitator),
+        startDate = LocalDate.of(2025, 1, 1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When & Then
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<ScheduleSessionResponse>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+      assertThat(response).isNotNull
+      assertThat(response.message).isEqualTo("Session scheduled successfully")
+      val retrievedSession =
+        sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!).first()
+      assertThat(retrievedSession.sessionFacilitators.first().personName).isEqualTo("Non existent Facilitator")
+    }
+
+    @Test
     fun `should return 401 when unauthorised`() {
       val scheduleSessionRequest = ScheduleSessionRequest(
         sessionTemplateId = UUID.randomUUID(),
@@ -1459,7 +1624,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `Successfully retrieves session templates for a module using V56 migration data`() {
       // Given
       stubAuthTokenEndpoint()
-      // val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
       val modules = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplate.id!!)
       assertThat(modules).isNotEmpty
 
@@ -1492,7 +1656,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `Returns 404 when group does not exist`() {
       // Given
       stubAuthTokenEndpoint()
-      // val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
       val nonExistentGroupId = UUID.randomUUID()
       val modules = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplate.id!!)
       val moduleId = modules.first().id!!
@@ -1643,6 +1806,64 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Nested
+  @DisplayName("Get modules and sessions for group")
+  inner class GetGroupSessions {
+    @Test
+    fun `return 200 and bff data if successful`() {
+      val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+
+      val body = CreateGroupRequestFactory().produce(
+        createGroupSessionSlot = setOf(slot1),
+      )
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val group = programmeGroupRepository.findByCode(body.groupCode)!!
+
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/sessions",
+        returnType = object : ParameterizedTypeReference<ProgrammeGroupModuleSessionsResponse>() {},
+      )
+
+      assertThat(response.group).isNotNull
+      assertThat(response.modules).isNotNull
+      assertThat(response.modules.size).isEqualTo(7)
+      assertThat(response.modules.sumOf { it.sessions.count() }).isEqualTo(27)
+      response.modules.forEach { module ->
+        module.sessions.forEach { session ->
+          when (session.type) {
+            SessionType.GROUP -> {
+              assertThat(session.participants).isEqualTo(listOf("All"))
+            }
+
+            SessionType.ONE_TO_ONE -> {
+              assertThat(session.participants).isNotEqualTo(listOf("All")) // TO be updated when attendees/facilitators tables are added.
+            }
+          }
+        }
+      }
+    }
+
+    @Test
+    fun `return 401 when unauthorised`() {
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/group/${UUID.randomUUID()}/sessions")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+  }
+
+  @Nested
   @DisplayName("Get Schedules")
   inner class GetSchedules {
 
@@ -1701,6 +1922,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           moduleSessionTemplate = sessionTemplate,
           startsAt = LocalDateTime.of(2026, 6, 1, 9, 0),
           endsAt = LocalDateTime.of(2026, 6, 1, 11, 0),
+          isPlaceholder = false,
         ),
       )
 

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AccreditedProgrammeTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
@@ -26,6 +27,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.util.UUID
 
@@ -40,6 +42,9 @@ class TestDataGenerator {
 
   @Autowired
   private lateinit var accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository
+
+  @Autowired
+  private lateinit var moduleSessionTemplateRepository: ModuleSessionTemplateRepository
 
   fun createPreferredDeliveryLocationProbationDeliveryUnit(preferredDeliveryLocationProbationDeliveryUnit: PreferredDeliveryLocationProbationDeliveryUnitEntity) {
     entityManager.persist(preferredDeliveryLocationProbationDeliveryUnit)
@@ -185,18 +190,6 @@ class TestDataGenerator {
     return session
   }
 
-/*  fun createAccreditedProgrammeTemplate(
-    name: String,
-  ): AccreditedProgrammeTemplateEntity {
-    val template = AccreditedProgrammeTemplateEntity(
-      name = name,
-      validFrom = java.time.LocalDate.now(),
-      validUntil = null,
-    )
-    entityManager.persist(template)
-    return template
-  }*/
-
   fun createAccreditedProgrammeTemplate(
     name: String,
   ): AccreditedProgrammeTemplateEntity = accreditedProgrammeTemplateRepository.findFirstByName(name)
@@ -220,6 +213,13 @@ class TestDataGenerator {
     )
     entityManager.persist(module)
     return module
+  }
+
+  fun createModuleSessionTemplate(moduleSessionTemplate: ModuleSessionTemplateEntity): ModuleSessionTemplateEntity = moduleSessionTemplateRepository.save(moduleSessionTemplate)
+
+  fun createFacilitator(facilitator: FacilitatorEntity): FacilitatorEntity {
+    entityManager.persist(facilitator)
+    return facilitator
   }
 
   fun createModuleSessionTemplate(

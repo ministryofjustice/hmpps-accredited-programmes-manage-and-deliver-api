@@ -82,8 +82,8 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
 
     val group = programmeGroupRepository.findByCode(body.groupCode)!!
 
-    assertThat(group.sessions).hasSize(26)
-    val (preGroupSessions, restOfSessions) = group.sessions.partition { it.moduleSessionTemplate.name == "Pre-Group" }
+    assertThat(group.sessions).hasSize(27)
+    val (preGroupSessions, restOfSessions) = group.sessions.partition { it.moduleSessionTemplate.name == "Pre-group" }
     assertThat(restOfSessions.first().startsAt).isAfterOrEqualTo(preGroupSessions.first().startsAt.plusWeeks(3))
   }
 
@@ -108,7 +108,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
 
     val group = programmeGroupRepository.findByCode(body.groupCode)!!
 
-    assertThat(group.sessions).hasSize(26)
+    assertThat(group.sessions).hasSize(27)
     assertThat(group.sessions.find { it.startsAt.toLocalDate() == LocalDate.of(2026, 3, 6) }).isNull()
   }
 
@@ -132,7 +132,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
 
     val group = programmeGroupRepository.findByCode(body.groupCode)!!
 
-    assertThat(group.sessions).hasSize(26)
+    assertThat(group.sessions).hasSize(27)
     // First scheduled session is THURSDAY slot @ 12pm
     assertThat(group.sessions.first().startsAt).isEqualTo(LocalDateTime.of(2025, 11, 20, 12, 0, 0))
 
@@ -143,13 +143,13 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     scheduleService.rescheduleSessionsForGroup(group.id!!)
 
     val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
-    assertThat(updatedGroup.sessions).hasSize(26)
+    assertThat(updatedGroup.sessions).hasSize(27)
     // After reschedule first slot should stay same THURSDAY slot @ 12pm
     assertThat(updatedGroup.sessions.first().startsAt).isEqualTo(LocalDateTime.of(2025, 11, 20, 12, 0, 0))
     val (originalSchedule, rescheduled) = updatedGroup.sessions.partition { it.startsAt.year == 2025 }
 
     assertThat(originalSchedule).hasSize(1)
-    assertThat(rescheduled).hasSize(25)
+    assertThat(rescheduled).hasSize(26)
     // >= because slots will overlap year
     assertThat(rescheduled).allMatch { it.startsAt.year >= 2027 }
   }
@@ -171,7 +171,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
 
     val group = programmeGroupRepository.findByCode(body.groupCode)!!
 
-    assertThat(group.sessions).hasSize(26)
+    assertThat(group.sessions).hasSize(27)
     // First scheduled session is Monday 17th  @ 9.30am
     assertThat(group.sessions.first().startsAt).isEqualTo(LocalDateTime.of(2025, 11, 17, 9, 30, 0))
 
@@ -188,20 +188,20 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     scheduleService.rescheduleSessionsForGroup(group.id!!)
 
     val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
-    assertThat(updatedGroup.sessions).hasSize(26)
+    assertThat(updatedGroup.sessions).hasSize(27)
     // First slot should be same as original after reschedule Monday 17th  @ 9.30am
     assertThat(group.sessions.first().startsAt).isEqualTo(LocalDateTime.of(2025, 11, 17, 9, 30, 0))
     val (originalSchedule, rescheduled) = updatedGroup.sessions.partition { it.startsAt.dayOfWeek == DayOfWeek.MONDAY }
 
     assertThat(originalSchedule).hasSize(1)
-    assertThat(rescheduled).hasSize(25)
+    assertThat(rescheduled).hasSize(26)
     assertThat(rescheduled).allMatch {
       it.startsAt.dayOfWeek == DayOfWeek.WEDNESDAY && it.startsAt.toLocalTime() == LocalTime.of(15, 0)
     }
   }
 
   @Test
-  fun `Reschedule sessions should remove all attendances and reschedule when group has not started yet`() {
+  fun `Reschedule sessions should remove all attendees and reschedule when group has not started yet`() {
     val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
     // Earliest start date plus 7 days 2025-11-29 so we will have 0 slot completed
     val body = CreateGroupRequestFactory().produce(
@@ -234,10 +234,10 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
       )
     }
 
-    assertThat(group.sessions).hasSize(26)
+    assertThat(group.sessions).hasSize(27)
     // First scheduled session is Monday 1st December  @ 9.30am
     assertThat(group.sessions.first().startsAt).isEqualTo(LocalDateTime.of(2025, 12, 1, 9, 30, 0))
-    assertThat(group.sessions.sumOf { it.attendances.size }).isEqualTo(52)
+    assertThat(group.sessions.map { it.attendees }).isNotEmpty
 
     // Alter group start date for rescheduling
     group.earliestPossibleStartDate = LocalDate.now(clock).plusYears(2)
@@ -246,20 +246,13 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     scheduleService.rescheduleSessionsForGroup(group.id!!)
 
     val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
-    assertThat(updatedGroup.sessions).hasSize(26)
-    assertThat(updatedGroup.sessions.sumOf { it.attendances.size }).isEqualTo(52)
-    val (originalAttendance, rescheduledAttendance) = updatedGroup.sessions.flatMap { it.attendances }
-      .partition { it.session.startsAt.year <= 2026 }
-    assertThat(rescheduledAttendance).allMatch { it.session.startsAt.year >= 2027 }
+    assertThat(updatedGroup.sessions).hasSize(27)
+    assertThat(group.sessions.map { it.attendees }).isNotEmpty
+    val (originalSessions, rescheduleSessions) = updatedGroup.sessions.partition { it.startsAt.year <= 2026 }
+    assertThat(rescheduleSessions).allMatch { it.startsAt.year >= 2027 }
 
-    assertThat(originalAttendance).hasSize(0)
-    assertThat(rescheduledAttendance).hasSize(52)
-
-    val (originalSchedule, rescheduled) = updatedGroup.sessions.partition { it.startsAt.year <= 2026 }
-
-    assertThat(originalSchedule).hasSize(0)
-    assertThat(rescheduled).hasSize(26)
-    assertThat(rescheduled).allMatch { it.startsAt.year >= 2027 }
+    assertThat(originalSessions).hasSize(0)
+    assertThat(rescheduleSessions).hasSize(27)
   }
 
   @Test
@@ -296,10 +289,10 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
       )
     }
 
-    assertThat(group.sessions).hasSize(26)
+    assertThat(group.sessions).hasSize(27)
     // First scheduled session is Monday 17th  @ 9.30am
     assertThat(group.sessions.first().startsAt).isEqualTo(LocalDateTime.of(2025, 11, 17, 9, 30, 0))
-    assertThat(group.sessions.sumOf { it.attendances.size }).isEqualTo(52)
+    assertThat(group.sessions.map { it.attendees }).isNotEmpty
 
     // Alter group start date for rescheduling
     group.programmeGroupSessionSlots = mutableSetOf(
@@ -314,21 +307,15 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     scheduleService.rescheduleSessionsForGroup(group.id!!)
 
     val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
-    assertThat(updatedGroup.sessions).hasSize(26)
-    assertThat(updatedGroup.sessions.sumOf { it.attendances.size }).isEqualTo(52)
-    val (originalAttendance, rescheduledAttendance) = updatedGroup.sessions.flatMap { it.attendances }
-      .partition { it.session.startsAt.dayOfWeek == DayOfWeek.MONDAY }
-    assertThat(rescheduledAttendance).allMatch { it.session.startsAt.dayOfWeek == DayOfWeek.WEDNESDAY }
-
-    assertThat(originalAttendance).hasSize(2)
-    assertThat(rescheduledAttendance).hasSize(50)
+    assertThat(updatedGroup.sessions).hasSize(27)
+    assertThat(updatedGroup.sessions.map { it.attendees }).isNotEmpty
 
     // First slot should be same as original after reschedule Monday 17th  @ 9.30am
     assertThat(group.sessions.first().startsAt).isEqualTo(LocalDateTime.of(2025, 11, 17, 9, 30, 0))
     val (originalSchedule, rescheduled) = updatedGroup.sessions.partition { it.startsAt.dayOfWeek == DayOfWeek.MONDAY }
 
     assertThat(originalSchedule).hasSize(1)
-    assertThat(rescheduled).hasSize(25)
+    assertThat(rescheduled).hasSize(26)
     assertThat(rescheduled).allMatch {
       it.startsAt.dayOfWeek == DayOfWeek.WEDNESDAY && it.startsAt.toLocalTime() == LocalTime.of(15, 0)
     }

@@ -34,6 +34,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleIndividualSessionDetailsResponse
@@ -51,6 +52,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RegionService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TemplateService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
@@ -71,6 +73,7 @@ class ProgrammeGroupController(
   private val moduleRepository: ModuleRepository,
   private val programmeGroupRepository: ProgrammeGroupRepository,
   private val templateService: TemplateService,
+  private val scheduleService: ScheduleService,
 ) {
 
   @Operation(
@@ -565,7 +568,7 @@ class ProgrammeGroupController(
     description = "Schedule a session for members of a programme group. This endpoint allows facilitators to schedule individual sessions that must be coordinated across multiple group members.",
     responses = [
       ApiResponse(
-        responseCode = "200",
+        responseCode = "201",
         description = "Session successfully scheduled",
         content = [Content(schema = Schema(implementation = ScheduleSessionResponse::class))],
       ),
@@ -589,20 +592,12 @@ class ProgrammeGroupController(
   )
   @PostMapping("/group/{groupId}/session/schedule")
   fun scheduleSession(
-    @PathVariable @Parameter(
-      description = "The UUID of the programme group",
-      required = true,
-    ) groupId: UUID,
-    @Valid
-    @RequestBody scheduleSessionRequest: ScheduleSessionRequest,
+    @PathVariable @Parameter(description = "The UUID of the programme group", required = true) groupId: UUID,
+    @Valid @RequestBody scheduleSessionRequest: ScheduleSessionRequest,
   ): ResponseEntity<ScheduleSessionResponse> {
-    // Placeholder implementation - actual business logic to be implemented in follow-up PR
-    // --TJWC 2025-12-17
-    val response = ScheduleSessionResponse(
-      message = "Session scheduled successfully",
-    )
+    val response = scheduleService.scheduleIndividualSession(groupId, scheduleSessionRequest)
 
-    return ResponseEntity.status(HttpStatus.OK).body(response)
+    return ResponseEntity.status(HttpStatus.CREATED).body(response)
   }
 
   @Operation(
@@ -688,6 +683,63 @@ class ProgrammeGroupController(
       ),
     )
   }
+
+  @Operation(
+    tags = ["Programme Group controller"],
+    summary = "bff endpoint to retrieve module sessions for a programme group",
+    operationId = "getGroupSessions",
+    description = "Retrieve group module sessions for scheduling purposes",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Successfully retrieved group module session details",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ProgrammeGroupModuleSessionsResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden, requires role ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Group or module not found",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping(
+    "/bff/group/{groupId}/sessions",
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+  )
+  fun getGroupSessions(
+    @PathVariable @Parameter(description = "The UUID of the Programme Group", required = true) groupId: UUID,
+  ): ResponseEntity<ProgrammeGroupModuleSessionsResponse?> = ResponseEntity.ok(programmeGroupService.getModuleSessionsForGroup(groupId))
 
   @Operation(
     tags = ["Programme Group controller"],

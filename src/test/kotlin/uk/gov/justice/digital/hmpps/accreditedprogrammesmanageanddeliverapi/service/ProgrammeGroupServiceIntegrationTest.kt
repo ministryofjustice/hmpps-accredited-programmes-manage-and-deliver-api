@@ -236,6 +236,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     fun `should schedule the Sessions for a Programme Group`() {
       // Given
       stubAuthTokenEndpoint()
+      govUkApiStubs.stubBankHolidaysResponse()
       nDeliusApiStubs.stubUserTeamsResponse(
         "the_username",
         NDeliusUserTeams(
@@ -355,6 +356,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           moduleSessionTemplate = preGroupTemplate,
           startsAt = LocalDateTime.of(2026, 6, 1, 10, 0),
           endsAt = LocalDateTime.of(2026, 6, 1, 11, 0),
+          isPlaceholder = false,
         ),
       )
 
@@ -373,6 +375,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           moduleSessionTemplate = gettingStartedTemplate,
           startsAt = LocalDateTime.of(2026, 6, 15, 12, 0),
           endsAt = LocalDateTime.of(2026, 6, 15, 14, 0),
+          isPlaceholder = false,
         ),
       )
 
@@ -391,6 +394,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           moduleSessionTemplate = regularTemplate,
           startsAt = LocalDateTime.of(2026, 7, 20, 15, 30),
           endsAt = LocalDateTime.of(2026, 7, 20, 17, 30),
+          isPlaceholder = false,
         ),
       )
 

@@ -11,14 +11,7 @@ import org.springframework.boot.test.context.TestComponent
 @TestComponent
 class GovUkApiStubs {
 
-  @Autowired
-  private lateinit var wiremock: WireMockServer
-
-  @Autowired
-  private lateinit var objectMapper: ObjectMapper
-
-  fun stubBankHolidaysResponse() {
-    val bankHolidaysResponse = """{
+  val bankHolidaysSuccessResponse = """{
   "england-and-wales": {
     "division": "england-and-wales",
     "events": [
@@ -846,13 +839,21 @@ class GovUkApiStubs {
   }
 }
     """
+
+  @Autowired
+  private lateinit var wiremock: WireMockServer
+
+  @Autowired
+  private lateinit var objectMapper: ObjectMapper
+
+  fun stubBankHolidaysResponse() {
     wiremock.stubFor(
       get(urlEqualTo("/bank-holidays.json"))
         .willReturn(
           aResponse()
             .withStatus(200)
             .withHeader("Content-Type", "application/json")
-            .withBody(bankHolidaysResponse),
+            .withBody(bankHolidaysSuccessResponse),
         ),
     )
   }

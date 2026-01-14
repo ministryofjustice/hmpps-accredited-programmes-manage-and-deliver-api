@@ -8,7 +8,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
 
 class CreateGroupTeamMemberFactory {
-  private var facilitator: String = "Default faciltiator name"
+  private var facilitator: String = "Default facilitator name"
   private var facilitatorCode: String = "Default facilitator code"
   private var teamName: String = "Default team name"
   private var teamCode: String = "Default team code"
