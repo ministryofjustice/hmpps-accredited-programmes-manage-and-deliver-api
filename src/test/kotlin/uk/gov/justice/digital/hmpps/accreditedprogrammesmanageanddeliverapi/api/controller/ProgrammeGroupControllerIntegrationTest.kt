@@ -1962,7 +1962,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.group).isNotNull
       assertThat(response.modules).isNotNull
       assertThat(response.modules.size).isEqualTo(7)
-      assertThat(response.modules.sumOf { it.sessions.count() }).isEqualTo(27)
+      assertThat(response.modules.sumOf { it.sessions.count() }).isEqualTo(21)
       response.modules.forEach { module ->
         module.sessions.forEach { session ->
           when (session.type) {

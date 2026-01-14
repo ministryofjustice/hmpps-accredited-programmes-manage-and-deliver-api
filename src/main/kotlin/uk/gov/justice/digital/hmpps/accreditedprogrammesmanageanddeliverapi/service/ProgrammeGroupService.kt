@@ -28,6 +28,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
@@ -197,12 +198,12 @@ class ProgrammeGroupService(
         val scheduledSessions = getScheduledSessionForGroupAndSessionTemplate(
           groupId = group.id!!,
           sessionTemplateId = sessionTemplate.id!!,
-        )
+        )?.filter { !it.isPlaceholder }
         scheduledSessions?.map { scheduledSession ->
           ProgrammeGroupModuleSessionsResponseGroupSession(
             id = scheduledSession.id!!,
             number = sessionTemplate.sessionNumber,
-            name = sessionTemplate.name,
+            name = getFormattedSessionNameForDisplay(sessionTemplate, scheduledSession),
             type = sessionTemplate.sessionType,
             dateOfSession = scheduledSession.startsAt.toLocalDate()
               .format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")).toString(),
@@ -240,6 +241,11 @@ class ProgrammeGroupService(
     time.hour < 12 -> "${time.hour}:${time.minute}am"
     time.hour == 12 -> "12:${time.minute}pm"
     else -> "${time.hour - 12}:${time.minute}pm"
+  }
+
+  private fun getFormattedSessionNameForDisplay(sessionTemplate: ModuleSessionTemplateEntity, scheduledSession: SessionEntity): String = when (sessionTemplate.sessionType) {
+    SessionType.GROUP -> "${sessionTemplate.module.name} ${scheduledSession.sessionNumber}: ${sessionTemplate.name}"
+    SessionType.ONE_TO_ONE -> "${scheduledSession.attendees.first().personName} (${scheduledSession.attendees.first().referral.crn}): ${sessionTemplate.name}"
   }
 
   fun getScheduledSessionForGroupAndSessionTemplate(
