@@ -14,6 +14,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
@@ -23,6 +24,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.GovUkApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
 import java.time.LocalDate
 
@@ -45,6 +47,9 @@ import java.time.LocalDate
 @ExtendWith(HmppsAuthApiExtension::class)
 @Import(OasysApiStubs::class, NDeliusApiStubs::class, ArnsApiStubs::class, GovUkApiStubs::class)
 class TestGroupHelper {
+
+  @Autowired
+  private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
 
   @Autowired
   private lateinit var programmeGroupService: ProgrammeGroupService
@@ -129,5 +134,41 @@ class TestGroupHelper {
     )
 
     return programmeGroupService.createGroup(createGroupRequest, "REFER_MONITOR_PP")
+  }
+
+  /**
+   * Allocates a [ReferralEntity] to the given [ProgrammeGroupEntity] using the
+   * [ProgrammeGroupMembershipService].
+   *
+   * <p>
+   * This method handles all required stubbing of the nDelius API to simulate a
+   * successful appointment post. It then delegates to the service layer to perform
+   * the allocation, mimicking the production behaviour in an integration test.
+   * </p>
+   *
+   * <p>
+   * Typically used in test scenarios where a referral must be associated with a
+   * programme group before further actions (e.g., session attendance, reporting)
+   * can be tested.
+   * </p>
+   *
+   * @param group the programme group to which the referral should be allocated
+   * @param referral the referral entity to allocate; must have a non-null ID
+   *
+   * @return the updated [ReferralEntity] after allocation
+   */
+  fun allocateToGroup(
+    group: ProgrammeGroupEntity,
+    referral: ReferralEntity,
+    additionalDetails: String = "",
+  ): ReferralEntity {
+    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+    return programmeGroupMembershipService.allocateReferralToGroup(
+      referralId = referral.id!!,
+      groupId = group.id!!,
+      allocatedToGroupBy = "REFER_MONITOR_PP",
+      additionalDetails = additionalDetails,
+    )
   }
 }

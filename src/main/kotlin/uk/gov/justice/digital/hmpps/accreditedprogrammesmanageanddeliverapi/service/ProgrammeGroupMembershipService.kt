@@ -68,21 +68,21 @@ class ProgrammeGroupMembershipService(
     val currentGroupMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId)
       ?: throw NotFoundException("No group membership found for referral $referralId")
 
-    // Filter out individual sessions which are not placeholders i.e. these have been scheduled by a Probation Practitioner.
+    // Filter out individual sessions
     val coreGroupSessions =
-      group.sessions.filter { it.sessionType == SessionType.GROUP || (it.sessionType == SessionType.ONE_TO_ONE && it.isPlaceholder) }
+      group.sessions.filter { it.sessionType == SessionType.GROUP }
 
-    coreGroupSessions.forEach { session ->
-      session.attendees.add(
-        AttendeeEntity(
-          referral = currentGroupMembership.referral,
-          session = session,
-        ),
+    val newAttendees = coreGroupSessions.map { session ->
+      val attendeeEntity = AttendeeEntity(
+        referral = currentGroupMembership.referral,
+        session = session,
       )
+      session.attendees.add(attendeeEntity)
+      attendeeEntity
     }
 
     // Create appointment in NDelius for each session object
-    scheduleService.createNdeliusAppointmentsForSessions(group.sessions.flatMap { it.attendees })
+    scheduleService.createNdeliusAppointmentsForSessions(newAttendees)
 
     return referralRepository.save(referral)
   }

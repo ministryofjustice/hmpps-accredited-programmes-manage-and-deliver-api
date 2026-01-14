@@ -73,6 +73,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.DayOfWeek
@@ -111,6 +112,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var nDeliusAppointmentRepository: NDeliusAppointmentRepository
+
+  @Autowired
+  private lateinit var scheduleService: ScheduleService
 
   @BeforeEach
   override fun beforeEach() {
@@ -659,14 +663,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
       assertThat(foundReferral.programmeGroupMemberships).hasSize(1)
-      assertThat(foundReferral.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
-      assertThat(foundReferral.programmeGroupMemberships.first().programmeGroup.sessions.sumOf { it.attendees.count() }).isEqualTo(
-        27,
-      )
+      val currentGroupMembership = foundReferral.programmeGroupMemberships.first()
+      assertThat(currentGroupMembership.programmeGroup.id).isEqualTo(group.id)
+      assertThat(currentGroupMembership.programmeGroup.sessions.sumOf { it.attendees.count() }).isEqualTo(21)
 
       wiremock.verify(1, postRequestedFor(urlEqualTo("/appointments")))
       val nDeliusAppointments = nDeliusAppointmentRepository.findAll()
-      assertThat(nDeliusAppointments.size).isEqualTo(27)
+      assertThat(nDeliusAppointments.size).isEqualTo(21)
       assertThat(foundReferral.eventId).isIn(nDeliusAppointments.mapNotNull { it.referral.eventId })
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
@@ -747,6 +750,68 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         body = AllocateToGroupRequest("Empty additional details"),
       )
       assertThat(exception.userMessage).isEqualTo("Conflict: Referral with id ${referral.id} is already allocated to a group: ${group.code}")
+    }
+
+    @Test
+    fun `allocateReferralToGroup will only add PoP to core group sessions and not any individual scheduled sessions`() {
+      // Given
+      val theCrnNumber = randomUppercaseString()
+      val facilitators = listOf(CreateGroupTeamMemberFactory().produce())
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
+      nDeliusApiStubs.stubPersonalDetailsResponse()
+      oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      val group = testGroupHelper.createGroup()
+      val alreadyAllocatedReferral = testReferralHelper.createReferral()
+      testGroupHelper.allocateToGroup(group, alreadyAllocatedReferral)
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = group.sessions.find { it.sessionType == SessionType.ONE_TO_ONE }!!.moduleSessionTemplate.id!!,
+        referralIds = listOf(alreadyAllocatedReferral.id!!),
+        facilitators = facilitators,
+        startDate = LocalDate.of(2025, 1, 1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+      scheduleService.scheduleIndividualSession(group.id!!, scheduleSessionRequest)
+      // When
+
+      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "the-forename the-surname")
+
+      val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "The additional details for the test")
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/allocate/${referral.id}",
+        expectedResponseStatus = HttpStatus.OK.value(),
+        body = allocateToGroupRequest,
+        returnType = object : ParameterizedTypeReference<AllocateToGroupResponse>() {},
+      )
+      val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
+
+      // Then
+      assertThat(response.message).isEqualTo("the-forename the-surname was added to this group. Their referral status is now Scheduled.")
+
+      val currentGroupMembership = foundReferral.programmeGroupMemberships.first()
+      assertThat(currentGroupMembership.programmeGroup.id).isEqualTo(group.id)
+      val nonPlaceHolderIndividualSessions =
+        currentGroupMembership.programmeGroup.sessions.filter { !it.isPlaceholder && it.sessionType == SessionType.ONE_TO_ONE }
+      assertThat(nonPlaceHolderIndividualSessions.map { sessionEntity -> sessionEntity.attendees.map { it.personName } }).isNotIn(
+        foundReferral.personName,
+      )
+
+      wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
+      val nDeliusAppointments = nDeliusAppointmentRepository.findAll()
+      assertThat(nDeliusAppointments.size).isEqualTo(42)
+      assertThat(foundReferral.eventId).isIn(nDeliusAppointments.mapNotNull { it.referral.eventId })
+      assertThat(foundReferral).isNotNull
+      assertThat(foundReferral.id).isEqualTo(referral.id)
+      assertThat(foundReferral.programmeGroupMemberships).hasSize(1)
+      assertThat(foundReferral.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
+      // Check that we have added the PoP to the session attendees list
+      val attendeeList =
+        foundReferral.programmeGroupMemberships.first().programmeGroup.sessions.flatMap { sessionEntity -> sessionEntity.attendees.map { it.personName } }
+      assertThat(attendeeList).allMatch { attendeeList.contains(it) }
     }
   }
 
