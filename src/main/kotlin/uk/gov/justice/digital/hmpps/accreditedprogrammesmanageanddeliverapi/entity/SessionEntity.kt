@@ -19,6 +19,7 @@ import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import org.springframework.security.core.context.SecurityContextHolder
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -104,6 +105,10 @@ class SessionEntity(
   @get:Transient
   val sessionNumber: Int
     get() = moduleSessionTemplate.sessionNumber
+
+  @get:Transient
+  val sessionType: SessionType
+    get() = moduleSessionTemplate.sessionType
 
   override fun compareTo(other: SessionEntity): Int = compareValuesBy(
     this,

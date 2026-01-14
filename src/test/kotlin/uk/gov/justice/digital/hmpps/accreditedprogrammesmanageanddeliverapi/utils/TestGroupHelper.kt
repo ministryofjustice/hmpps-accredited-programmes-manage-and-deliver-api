@@ -59,16 +59,12 @@ class TestGroupHelper {
    * Creates and persists a new [ProgrammeGroupEntity] using the
    * [ProgrammeGroupService], including session slots and team members.
    *
-   * <p>
    * This method performs all required WireMock stubbing for downstream services
    * (authentication, bank holidays, and nDelius user teams) before invoking the
    * service layer.
-   * </p>
    *
-   * <p>
    * Unless overridden, sensible defaults are provided for all parameters to
    * minimise test setup overhead.
-   * </p>
    *
    * @param groupCode unique programme group code; defaults to a random alphanumeric value
    * @param cohort offence cohort for the programme group

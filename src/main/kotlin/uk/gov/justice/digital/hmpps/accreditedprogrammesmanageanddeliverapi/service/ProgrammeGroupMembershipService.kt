@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -67,7 +68,11 @@ class ProgrammeGroupMembershipService(
     val currentGroupMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId)
       ?: throw NotFoundException("No group membership found for referral $referralId")
 
-    group.sessions.forEach { session ->
+    // Filter out individual sessions which are not placeholders i.e. these have been scheduled by a Probation Practitioner.
+    val coreGroupSessions =
+      group.sessions.filter { it.sessionType == SessionType.GROUP || (it.sessionType == SessionType.ONE_TO_ONE && it.isPlaceholder) }
+
+    coreGroupSessions.forEach { session ->
       session.attendees.add(
         AttendeeEntity(
           referral = currentGroupMembership.referral,
@@ -76,8 +81,8 @@ class ProgrammeGroupMembershipService(
       )
     }
 
-    // Create appointment in NDelius for each session attendance object
-    scheduleService.createNdeliusAppointmentsForSessionAttendances(group.sessions.flatMap { it.attendees })
+    // Create appointment in NDelius for each session object
+    scheduleService.createNdeliusAppointmentsForSessions(group.sessions.flatMap { it.attendees })
 
     return referralRepository.save(referral)
   }

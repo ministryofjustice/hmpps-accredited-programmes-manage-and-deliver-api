@@ -115,7 +115,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   @BeforeEach
   override fun beforeEach() {
     testDataCleaner.cleanAllTables()
-    wiremock.resetAll()
+    nDeliusApiStubs.clearAllStubs()
     govUkApiStubs.stubBankHolidaysResponse()
     nDeliusApiStubs.stubUserTeamsResponse(
       "AUTH_ADM",

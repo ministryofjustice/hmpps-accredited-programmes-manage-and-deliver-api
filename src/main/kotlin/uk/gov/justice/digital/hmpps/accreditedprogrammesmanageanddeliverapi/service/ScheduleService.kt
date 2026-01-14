@@ -88,7 +88,8 @@ class ScheduleService(
       )
     }
 
-    sessionRepository.save(session)
+    programmeGroup.sessions.add(session)
+    programmeGroupRepository.save(programmeGroup)
     return ScheduleSessionResponse(message = "Session scheduled successfully")
   }
 
@@ -239,7 +240,7 @@ class ScheduleService(
     group.sessions.removeAll(futureSessionsToDelete.toSet())
   }
 
-  fun createNdeliusAppointmentsForSessionAttendances(attendees: List<AttendeeEntity>) {
+  fun createNdeliusAppointmentsForSessions(attendees: List<AttendeeEntity>) {
     val (ndeliusAppointments, nDeliusAppointmentEntities) = attendees.map { attendee ->
       // Generate an appointment ID to be used by NDelius
       val appointmentId = UUID.randomUUID()
