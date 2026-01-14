@@ -4,17 +4,21 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -25,6 +29,8 @@ class ProgrammeGroupMembershipService(
   private val referralRepository: ReferralRepository,
   private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
+  private val referralStatusTransitionRepository: ReferralStatusTransitionRepository,
+  private val scheduleService: ScheduleService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -90,26 +96,33 @@ class ProgrammeGroupMembershipService(
     referralId: UUID,
     groupId: UUID,
     removedFromGroupBy: String,
-    additionalDetails: String?,
-    newStatusDescriptionId: UUID,
+    removeFromGroupRequest: RemoveFromGroupRequest,
   ): ReferralEntity {
     log.info("Attempting to remove Referral with id: $referralId from group with id: $groupId...")
 
-    programmeGroupRepositoryImpl.findByIdOrNull(groupId) ?: throw NotFoundException("Group with id $groupId not found")
+    val programGroup = programmeGroupRepositoryImpl.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
 
     val referral =
       referralRepository.findByIdOrNull(referralId) ?: throw NotFoundException("Referral with id $referralId not found")
 
     deleteGroupMembershipForReferralAndGroup(referralId, groupId, removedFromGroupBy)
 
-    val statusDescription = referralStatusDescriptionRepository.findByIdOrNull(newStatusDescriptionId)
-      ?: throw NotFoundException("No Referral Status Description found for id: $newStatusDescriptionId")
+    val desiredStatus = referralStatusDescriptionRepository.findByIdOrNull(removeFromGroupRequest.referralStatusDescriptionId)
+      ?: throw NotFoundException("No Referral Status Description found for id: ${removeFromGroupRequest.referralStatusDescriptionId}")
+
+    val currentStatus = referral.statusHistories.maxByOrNull { it.createdAt }?.referralStatusDescription
+
+    if (isOnProgrammeAndDesiredStatusIsValid(currentStatus!!, desiredStatus)) {
+      scheduleService.removeFutureSessionsForIndividual(programGroup, referralId)
+      // TODO also remove future sessions from nDelius
+    }
 
     val statusHistory =
       ReferralStatusHistoryEntity(
         referral = referral,
-        referralStatusDescription = statusDescription,
-        additionalDetails = additionalDetails,
+        referralStatusDescription = desiredStatus,
+        additionalDetails = removeFromGroupRequest.additionalDetails,
         createdBy = removedFromGroupBy,
       )
 
@@ -117,6 +130,10 @@ class ProgrammeGroupMembershipService(
 
     return referralRepository.save(referral)
   }
+
+  private fun isOnProgrammeAndDesiredStatusIsValid(currentStatus: ReferralStatusDescriptionEntity, desiredStatus: ReferralStatusDescriptionEntity): Boolean = currentStatus.description == ReferralStatusType.ON_PROGRAMME.description &&
+    referralStatusTransitionRepository.findByFromStatusId(currentStatus.id)
+      .any { it.toStatus.id == desiredStatus.id }
 
   fun deleteGroupMembershipForReferralAndGroup(
     referralId: UUID,

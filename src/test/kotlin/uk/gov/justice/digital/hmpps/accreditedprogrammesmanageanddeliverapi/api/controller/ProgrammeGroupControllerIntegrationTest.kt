@@ -44,6 +44,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -57,11 +58,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.NDeliusApiProbationDeliveryUnitWithOfficeLocationsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
@@ -781,6 +784,23 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         additionalDetails = "The additional details for the removal",
       )
 
+      // Add a future session for the group and the referral
+      val session = sessionRepository.save(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(programmeGroupModuleRepository.findAll().first().sessionTemplates.first())
+          .withStartsAt(LocalDateTime.now().plusDays(1))
+          .withEndsAt(LocalDateTime.now().plusDays(1).plusHours(1))
+          .produce(),
+      )
+      session.attendees.add(
+        AttendeeFactory()
+          .withReferral(referral)
+          .withSession(session)
+          .produce(),
+      )
+      sessionRepository.save(session)
+
       // When
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
@@ -806,6 +826,97 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(currentStatusHistory).isNotNull
       assertThat(currentStatusHistory!!.referralStatusDescription.description).isEqualTo("Awaiting allocation")
       assertThat(currentStatusHistory.additionalDetails).isEqualTo("The additional details for the removal")
+
+      val allSessions = sessionRepository.findAll()
+      assertThat(allSessions.any { it.id == session.id }).isTrue()
+      allSessions.forEach { session ->
+        assertThat(session.attendees.any { it.referral.id == referral.id }).isTrue()
+      }
+    }
+
+    @Test
+    fun `should remove referral from group and remove future sessions for an on programme referral`() {
+      // Given
+      val groupCode = "AAA111"
+      val group = ProgrammeGroupFactory().withCode(groupCode).produce()
+      testDataGenerator.createGroup(group)
+
+      val referral = testReferralHelper.createReferralWithStatus(
+        referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
+      )
+
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "THE_ALLOCATED_TO_GROUP_BY_ID",
+        "any additional details",
+      )
+
+      val statusHistory =
+        ReferralStatusHistoryEntity(
+          referral = referral,
+          referralStatusDescription = referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
+          additionalDetails = "additional details",
+          createdBy = "createdBy",
+        )
+
+      referral.statusHistories.add(statusHistory)
+      referralRepository.save(referral)
+
+      val removeFromGroupRequest = RemoveFromGroupRequest(
+        referralStatusDescriptionId = referralStatusDescriptionRepository.getReturnToCourtStatusDescription().id,
+        additionalDetails = "The additional details for the removal",
+      )
+
+      // Add a future session for the group and the referral
+      val session = sessionRepository.save(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(programmeGroupModuleRepository.findAll().first().sessionTemplates.first())
+          .withStartsAt(LocalDateTime.now().plusDays(1))
+          .withEndsAt(LocalDateTime.now().plusDays(1).plusHours(1))
+          .produce(),
+      )
+      session.attendees.add(
+        AttendeeFactory()
+          .withReferral(referral)
+          .withSession(session)
+          .produce(),
+      )
+      sessionRepository.save(session)
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/remove/${referral.id}",
+        expectedResponseStatus = HttpStatus.OK.value(),
+        body = removeFromGroupRequest,
+        returnType = object : ParameterizedTypeReference<RemoveFromGroupResponse>() {},
+      )
+
+      val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
+
+      // Then
+      assertThat(response.message).contains("was removed from this group")
+      assertThat(response.message).contains("Return to court")
+
+      assertThat(foundReferral).isNotNull
+      assertThat(foundReferral.id).isEqualTo(referral.id)
+
+      val currentlyAllocatedGroup = programmeGroupMembershipService.getCurrentlyAllocatedGroup(foundReferral)
+      assertThat(currentlyAllocatedGroup).isNull()
+
+      val currentStatusHistory = referralService.getCurrentStatusHistory(foundReferral)
+      assertThat(currentStatusHistory).isNotNull
+      assertThat(currentStatusHistory!!.referralStatusDescription.description).isEqualTo("Return to court")
+      assertThat(currentStatusHistory.additionalDetails).isEqualTo("The additional details for the removal")
+
+      // validate the removal of future sessions for this referral
+      val allSessions = sessionRepository.findAll()
+      assertThat(allSessions.any { it.id == session.id }).isFalse()
+      allSessions.forEach { session ->
+        assertThat(session.attendees.any { it.referral.id == referral.id }).isFalse()
+      }
     }
   }
 

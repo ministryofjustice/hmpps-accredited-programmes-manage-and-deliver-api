@@ -322,8 +322,7 @@ class ProgrammeGroupController(
       referralId,
       groupId,
       authenticationHolder.username ?: "SYSTEM",
-      removeFromGroupRequest.additionalDetails,
-      removeFromGroupRequest.referralStatusDescriptionId,
+      removeFromGroupRequest,
     )
 
     val response = RemoveFromGroupResponse(

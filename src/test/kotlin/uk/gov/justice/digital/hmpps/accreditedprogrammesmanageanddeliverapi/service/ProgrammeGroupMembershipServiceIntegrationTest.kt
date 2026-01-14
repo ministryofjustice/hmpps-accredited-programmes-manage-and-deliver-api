@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -210,8 +211,10 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
         theReferral.id!!,
         theGroup.id!!,
         "THE_REMOVED_FROM_GROUP_BY_ID",
-        "the additional details",
-        awaitingAllocationStatusDescriptionId,
+        RemoveFromGroupRequest(
+          additionalDetails = "the additional details",
+          referralStatusDescriptionId = awaitingAllocationStatusDescriptionId,
+        ),
       )
 
       // Then
@@ -224,9 +227,7 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
       assertThat(currentStatusHistory).isNotNull
       assertThat(currentStatusHistory!!.createdBy).isEqualTo("THE_REMOVED_FROM_GROUP_BY_ID")
       assertThat(currentStatusHistory.additionalDetails).isEqualTo("the additional details")
-      assertThat(currentStatusHistory.referralStatusDescription.description).isEqualTo(
-        "Awaiting allocation",
-      )
+      assertThat(currentStatusHistory.referralStatusDescription.description).isEqualTo("Awaiting allocation")
 
       // These check the implementation, but we want to make sure that we haven't got stale references or hard deletes
       assertThat(updatedReferral.programmeGroupMemberships.none { it.deletedAt === null }).isTrue
@@ -238,15 +239,17 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
         theReferral.id!!,
         theGroup.id!!,
         "SECOND_ALLOCATION_TO_GROUP",
-        "Another set of addditional details",
+        "Another set of additional details",
       )
 
       programmeGroupMembershipService.removeReferralFromGroup(
         theReferral.id!!,
         theGroup.id!!,
         "REMOVED_FROM_GROUP_BY_ID",
-        "the additional details",
-        awaitingAllocationStatusDescriptionId,
+        RemoveFromGroupRequest(
+          additionalDetails = "the additional details",
+          referralStatusDescriptionId = awaitingAllocationStatusDescriptionId,
+        ),
       )
     }
 
@@ -261,8 +264,10 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
           theReferral.id!!,
           groupId,
           "",
-          "",
-          awaitingAllocationStatusDescriptionId,
+          RemoveFromGroupRequest(
+            additionalDetails = "",
+            referralStatusDescriptionId = awaitingAllocationStatusDescriptionId,
+          ),
         )
       }.message.let { message ->
         // Then
@@ -281,8 +286,10 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
           referralId,
           theGroup.id!!,
           "",
-          "",
-          awaitingAllocationStatusDescriptionId,
+          RemoveFromGroupRequest(
+            additionalDetails = "",
+            referralStatusDescriptionId = awaitingAllocationStatusDescriptionId,
+          ),
         )
       }.message.let { message ->
         // Then
@@ -298,8 +305,10 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
           theReferral.id!!,
           theGroup.id!!,
           "",
-          "",
-          awaitingAllocationStatusDescriptionId,
+          RemoveFromGroupRequest(
+            additionalDetails = "",
+            referralStatusDescriptionId = awaitingAllocationStatusDescriptionId,
+          ),
         )
       }.message.let { message ->
         // Then
@@ -324,8 +333,10 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
           theReferral.id!!,
           theGroup.id!!,
           "",
-          "",
-          nonExistentStatusDescriptionId,
+          RemoveFromGroupRequest(
+            additionalDetails = "",
+            referralStatusDescriptionId = nonExistentStatusDescriptionId,
+          ),
         )
       }.message.let { message ->
         // Then
