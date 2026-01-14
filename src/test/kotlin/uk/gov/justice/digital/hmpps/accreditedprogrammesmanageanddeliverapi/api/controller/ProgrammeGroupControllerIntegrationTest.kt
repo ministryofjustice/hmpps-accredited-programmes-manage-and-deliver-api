@@ -1094,7 +1094,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(createdGroup).isNotNull
 
       // Hard-coded from the number of sessions in the template
-      assertThat(createdGroup.sessions).hasSize(26)
+      assertThat(createdGroup.sessions).hasSize(27)
       val sessionDays = createdGroup.sessions.map { it.startsAt.dayOfWeek }.distinct()
 
       assertThat(sessionDays).containsExactlyInAnyOrder(
@@ -1830,8 +1830,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       assertThat(response.group).isNotNull
       assertThat(response.modules).isNotNull
-      assertThat(response.modules.size).isEqualTo(10)
-      assertThat(response.modules.sumOf { it.sessions.count() }).isEqualTo(26)
+      assertThat(response.modules.size).isEqualTo(7)
+      assertThat(response.modules.sumOf { it.sessions.count() }).isEqualTo(27)
       response.modules.forEach { module ->
         module.sessions.forEach { session ->
           when (session.type) {
