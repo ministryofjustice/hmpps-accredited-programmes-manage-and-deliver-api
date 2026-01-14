@@ -14,6 +14,7 @@ class SessionFactory {
   private var programmeGroup: ProgrammeGroupEntity? = null
   private var moduleSessionTemplate: ModuleSessionTemplateEntity? = null
   private var isCatchup: Boolean = false
+  private var isPlaceholder: Boolean = false
   private var locationName: String? = null
   private var startsAt: LocalDateTime = LocalDateTime.now()
   private var endsAt: LocalDateTime = LocalDateTime.now().plusHours(1)
@@ -27,6 +28,7 @@ class SessionFactory {
   fun withProgrammeGroup(programmeGroup: ProgrammeGroupEntity) = apply { this.programmeGroup = programmeGroup }
   fun withModuleSessionTemplate(moduleSessionTemplate: ModuleSessionTemplateEntity) = apply { this.moduleSessionTemplate = moduleSessionTemplate }
   fun withIsCatchup(isCatchup: Boolean) = apply { this.isCatchup = isCatchup }
+  fun withIsPlaceholder(isPlaceholder: Boolean) = apply { this.isPlaceholder = isPlaceholder }
   fun withLocationName(locationName: String?) = apply { this.locationName = locationName }
   fun withStartsAt(startsAt: LocalDateTime) = apply { this.startsAt = startsAt }
   fun withEndsAt(endsAt: LocalDateTime) = apply { this.endsAt = endsAt }
@@ -49,5 +51,6 @@ class SessionFactory {
     createdByUsername = this.createdByUsername,
     attendances = this.attendances,
     attendees = this.attendees,
+    isPlaceholder = this.isPlaceholder,
   )
 }

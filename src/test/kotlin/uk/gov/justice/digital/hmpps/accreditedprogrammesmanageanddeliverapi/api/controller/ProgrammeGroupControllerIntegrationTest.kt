@@ -835,9 +835,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
 
       // Then
-      assertThat(response.message).contains("was removed from this group")
-      assertThat(response.message).contains("Awaiting allocation")
-
+      assertThat(response.message).contains("Future scheduled sessions for this PoP have been deleted in nDelius and the Digital Service.")
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
 
@@ -849,20 +847,15 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(currentStatusHistory!!.referralStatusDescription.description).isEqualTo("Awaiting allocation")
       assertThat(currentStatusHistory.additionalDetails).isEqualTo("The additional details for the removal")
 
-      // Check that all sessions associated with old group and person are removed
-      val oldGroupSessionAttendeesList =
-        foundReferral.programmeGroupMemberships.first().programmeGroup.sessions.flatMap { sessionEntity -> sessionEntity.attendees.map { it.personName } }
-      assertThat(oldGroupSessionAttendeesList.all { it != foundReferral.personName }).isTrue
+      // Check that all future sessions associated with group and person are removed
+      val remainingAttendeeNames = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
+        .flatMap { session -> session.attendees.map { it.personName } }
 
-      val allSessions = sessionRepository.findAll()
-      assertThat(allSessions.any { it.id == session.id }).isTrue()
-      allSessions.forEach { session ->
-        assertThat(session.attendees.any { it.referral.id == referral.id }).isTrue()
-      }
+      assertThat(remainingAttendeeNames).doesNotContain(foundReferral.personName)
     }
 
     @Test
-    fun `should remove referral from group and remove future sessions for an on programme referral`() {
+    fun `should remove referral from group and leave past session attendance records intact`() {
       // Given
       val groupCode = "AAA111"
       val group = ProgrammeGroupFactory().withCode(groupCode).produce()
@@ -895,13 +888,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         additionalDetails = "The additional details for the removal",
       )
 
-      // Add a future session for the group and the referral
+      // Add a past session for the group and the referral
       val session = sessionRepository.save(
         SessionFactory()
           .withProgrammeGroup(group)
           .withModuleSessionTemplate(programmeGroupModuleRepository.findAll().first().sessionTemplates.first())
-          .withStartsAt(LocalDateTime.now().plusDays(1))
-          .withEndsAt(LocalDateTime.now().plusDays(1).plusHours(1))
+          .withStartsAt(LocalDateTime.now().minusDays(1))
+          .withEndsAt(LocalDateTime.now().minusDays(1).plusHours(1))
           .produce(),
       )
       session.attendees.add(
@@ -924,9 +917,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
 
       // Then
-      assertThat(response.message).contains("was removed from this group")
-      assertThat(response.message).contains("Return to court")
-
+      assertThat(response.message).contains("Future scheduled sessions for this PoP have been deleted in nDelius and the Digital Service.")
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
 
@@ -938,12 +929,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(currentStatusHistory!!.referralStatusDescription.description).isEqualTo("Return to court")
       assertThat(currentStatusHistory.additionalDetails).isEqualTo("The additional details for the removal")
 
-      // validate the removal of future sessions for this referral
-      val allSessions = sessionRepository.findAll()
-      assertThat(allSessions.any { it.id == session.id }).isFalse()
-      allSessions.forEach { session ->
-        assertThat(session.attendees.any { it.referral.id == referral.id }).isFalse()
-      }
+      // validate that past session attendances are left intact for this referral
+      val remainingAttendeeNames = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
+        .flatMap { session -> session.attendees.map { it.personName } }
+
+      assertThat(remainingAttendeeNames).contains(foundReferral.personName)
     }
   }
 

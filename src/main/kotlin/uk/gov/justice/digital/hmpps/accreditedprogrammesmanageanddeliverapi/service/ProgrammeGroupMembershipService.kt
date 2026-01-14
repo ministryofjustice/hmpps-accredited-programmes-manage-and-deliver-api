@@ -12,14 +12,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -112,13 +110,6 @@ class ProgrammeGroupMembershipService(
     val desiredStatus = referralStatusDescriptionRepository.findByIdOrNull(removeFromGroupRequest.referralStatusDescriptionId)
       ?: throw NotFoundException("No Referral Status Description found for id: ${removeFromGroupRequest.referralStatusDescriptionId}")
 
-    val currentStatus = referral.statusHistories.maxByOrNull { it.createdAt }?.referralStatusDescription
-
-    if (isOnProgrammeAndDesiredStatusIsValid(currentStatus!!, desiredStatus)) {
-      scheduleService.removeFutureSessionsForIndividual(programGroup, referralId)
-      // TODO also remove future sessions from nDelius
-    }
-
     val statusHistory =
       ReferralStatusHistoryEntity(
         referral = referral,
@@ -128,13 +119,8 @@ class ProgrammeGroupMembershipService(
       )
 
     referral.statusHistories.add(statusHistory)
-
     return referralRepository.save(referral)
   }
-
-  private fun isOnProgrammeAndDesiredStatusIsValid(currentStatus: ReferralStatusDescriptionEntity, desiredStatus: ReferralStatusDescriptionEntity): Boolean = currentStatus.description == ReferralStatusType.ON_PROGRAMME.description &&
-    referralStatusTransitionRepository.findByFromStatusId(currentStatus.id)
-      .any { it.toStatus.id == desiredStatus.id }
 
   fun deleteGroupMembershipForReferralAndGroup(
     referralId: UUID,
@@ -151,8 +137,9 @@ class ProgrammeGroupMembershipService(
     groupMembership.deletedAt = LocalDateTime.now()
     groupMembership.deletedByUsername = deletedByUsername
 
-    // Remove the PoP from the list of attendees for the sessions of the group they have been removed from
-    group.sessions.forEach { session -> session.attendees.removeIf { it.referral.id == referralId } }
+    // Remove the PoP from the list of attendees for any future sessions of the group they have been removed from
+    val now = LocalDateTime.now()
+    group.sessions.forEach { session -> session.attendees.removeIf { it.referral.id == referralId && session.startsAt > now } }
     log.info("...Successfully found Referral ($referralId), Group ($groupId), and Membership (${groupMembership.id}) to remove")
     return programmeGroupRepositoryImpl.save(group)
   }

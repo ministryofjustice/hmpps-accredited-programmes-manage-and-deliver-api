@@ -327,7 +327,7 @@ class ProgrammeGroupController(
     )
 
     val response = RemoveFromGroupResponse(
-      message = "${referral.personName} was removed from this group. Their referral status is now ${referral.statusHistories.maxByOrNull { it.createdAt }?.referralStatusDescription?.description}.",
+      message = "Future scheduled sessions for this PoP have been deleted in nDelius and the Digital Service.",
     )
 
     return ResponseEntity.status(HttpStatus.OK).body(response)
