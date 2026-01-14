@@ -1,7 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model
 
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
@@ -38,10 +38,10 @@ data class CreateAppointmentRequest(
   }
 }
 
-fun SessionAttendanceEntity.toAppointment(): CreateAppointmentRequest.Companion.NdeliusAppointment = CreateAppointmentRequest.Companion.NdeliusAppointment(
-  reference = UUID.randomUUID(),
-  requirementId = if (eventType == ReferralEntitySourcedFrom.REQUIREMENT) eventId else null,
-  licenceConditionId = if (eventType == ReferralEntitySourcedFrom.LICENCE_CONDITION) eventId else null,
+fun AttendeeEntity.toAppointment(ndeliusAppointmentId: UUID): CreateAppointmentRequest.Companion.NdeliusAppointment = CreateAppointmentRequest.Companion.NdeliusAppointment(
+  reference = ndeliusAppointmentId,
+  requirementId = if (referral.sourcedFrom == ReferralEntitySourcedFrom.REQUIREMENT) referral.eventId else null,
+  licenceConditionId = if (referral.sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION) referral.eventId else null,
   date = session.startsAt.toLocalDate(),
   startTime = session.startsAt.toLocalTime(),
   endTime = session.endsAt.toLocalTime(),

@@ -89,7 +89,7 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
     fun `can successfully allocate a referral to a group`() {
       // Given
       val referral = testReferralHelper.createReferral()
-
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       // Given
       val referralFromAllocate = programmeGroupMembershipService.allocateReferralToGroup(
         referral.id!!,
@@ -180,7 +180,7 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
       val referral = testReferralHelper.createReferralWithStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
       )
-
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       programmeGroupMembershipService.allocateReferralToGroup(
         referral.id!!,
         firstGroup.id!!,
@@ -220,15 +220,14 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
       theReferral = testReferralHelper.createReferralWithStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
       )
-
-      theGroup = testDataGenerator.createGroup(
-        ProgrammeGroupFactory().withCode("AAA111").produce(),
-      )
+      theGroup = testGroupHelper.createGroup(groupCode = "AAA111")
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
     }
 
     @Test
     fun `Removes a Referral from a Group if it was already Added, and updates a Status`() {
       // Given
+
       programmeGroupMembershipService.allocateReferralToGroup(
         theReferral.id!!,
         theGroup.id!!,
@@ -353,7 +352,6 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
     fun `Throws an error if the proposed new ReferralStatusDescription does not exist`() {
       // When
       val nonExistentStatusDescriptionId = UUID.randomUUID()
-
       programmeGroupMembershipService.allocateReferralToGroup(
         theReferral.id!!,
         theGroup.id!!,

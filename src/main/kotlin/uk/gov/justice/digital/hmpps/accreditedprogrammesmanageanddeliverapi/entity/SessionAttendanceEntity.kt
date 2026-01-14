@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity
 
-import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -8,9 +7,7 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
-import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
-import jakarta.persistence.Transient
 import jakarta.validation.constraints.NotNull
 import java.time.LocalDateTime
 import java.util.UUID
@@ -54,16 +51,4 @@ class SessionAttendanceEntity(
 
   @Column(name = "recorded_at")
   var recordedAt: LocalDateTime? = null,
-
-  @NotNull
-  @OneToOne(mappedBy = "sessionAttendance", fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
-  var ndeliusAppointment: NDeliusAppointmentEntity? = null,
-) {
-  @get:Transient
-  val eventId: String?
-    get() = groupMembership.referral.eventId
-
-  @get:Transient
-  val eventType: ReferralEntitySourcedFrom?
-    get() = groupMembership.referral.sourcedFrom
-}
+)

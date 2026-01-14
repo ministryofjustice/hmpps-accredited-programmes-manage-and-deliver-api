@@ -91,6 +91,10 @@ class SessionEntity(
   @Column(name = "is_placeholder")
   var isPlaceholder: Boolean,
 
+  @NotNull
+  @OneToMany(mappedBy = "session")
+  var ndeliusAppointments: MutableSet<NDeliusAppointmentEntity> = mutableSetOf(),
+
 ) : Comparable<SessionEntity> {
   // Compute these values rather than have them duplicated in the db tables
   @get:Transient

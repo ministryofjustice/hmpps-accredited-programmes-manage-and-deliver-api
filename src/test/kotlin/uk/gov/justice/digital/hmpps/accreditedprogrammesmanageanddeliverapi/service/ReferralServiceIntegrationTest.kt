@@ -32,7 +32,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -317,11 +316,12 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     fun `updateStatus should create a new entry in the ReferralStatusHistory log`() {
       // Given
       val theCrnNumber = randomUppercaseString()
-      val theGroup = testDataGenerator.createGroup(ProgrammeGroupFactory().withCode("GROUP-001").produce())
       val onProgrammeStatusDescriptionId = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
+      val theGroup = testGroupHelper.createGroup()
       val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "Alex River")
 
       val referralFromAllocateToGroup =
@@ -376,11 +376,12 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     @Test
     fun `updateStatus should remove Group Membership if the transition is not 'continuing'`() {
       // Given
-      val theGroup = testDataGenerator.createGroup(ProgrammeGroupFactory().produce())
+      val theGroup = testGroupHelper.createGroup(groupCode = "AAA111")
 
       val theCrnNumber = randomUppercaseString()
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       val recallStatusDescription = referralStatusDescriptionRepository.getRecallStatusDescription()
 

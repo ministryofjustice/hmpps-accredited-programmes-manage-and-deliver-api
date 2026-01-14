@@ -19,9 +19,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toNdeliusAppointmentEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
@@ -95,7 +95,7 @@ class ScheduleService(
   fun scheduleSessionsForGroup(
     programmeGroupId: UUID,
     mostRecentSession: SessionEntity? = null,
-  ): MutableList<SessionEntity> {
+  ): MutableSet<SessionEntity> {
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
       ?: throw NotFoundException("Group with id: $programmeGroupId could not be found")
 
@@ -204,12 +204,13 @@ class ScheduleService(
       }
     }
 
-    val savedSessions = sessionRepository.saveAll(generatedSessions)
+    group.sessions.addAll(generatedSessions)
+    programmeGroupRepository.save(group)
 
-    return savedSessions
+    return group.sessions
   }
 
-  fun rescheduleSessionsForGroup(programmeGroupId: UUID): MutableList<SessionEntity> {
+  fun rescheduleSessionsForGroup(programmeGroupId: UUID): MutableSet<SessionEntity> {
     val group = requireNotNull(programmeGroupRepository.findByIdOrNull(programmeGroupId)) {
       "Group must not be null"
     }
@@ -238,15 +239,18 @@ class ScheduleService(
     group.sessions.removeAll(futureSessionsToDelete.toSet())
   }
 
-  fun createNdeliusAppointmentsForSessionAttendances(sessionAttendances: List<SessionAttendanceEntity>) {
-    val (appointments, entities) = sessionAttendances.map { attendance ->
-      val appointment = attendance.toAppointment()
-      appointment to appointment.toEntity(attendance)
+  fun createNdeliusAppointmentsForSessionAttendances(attendees: List<AttendeeEntity>) {
+    val (ndeliusAppointments, nDeliusAppointmentEntities) = attendees.map { attendee ->
+      // Generate an appointment ID to be used by NDelius
+      val appointmentId = UUID.randomUUID()
+      val appointment = attendee.toAppointment(appointmentId)
+      val appointmentEntity = attendee.toNdeliusAppointmentEntity(appointmentId)
+      appointment to appointmentEntity
     }.unzip()
 
     when (
       val response =
-        nDeliusIntegrationApiClient.createAppointmentsInDelius(CreateAppointmentRequest(appointments))
+        nDeliusIntegrationApiClient.createAppointmentsInDelius(CreateAppointmentRequest(ndeliusAppointments))
     ) {
       is ClientResult.Failure.StatusCode -> {
         log.warn("Failure to create appointments with reason: ${response.getErrorMessage()}")
@@ -265,8 +269,8 @@ class ScheduleService(
       }
 
       is ClientResult.Success -> {
-        log.info("${entities.size} appointments created in Ndelius for group with id: ${entities.first().sessionAttendance.groupMembership.programmeGroup.id}")
-        nDeliusAppointmentRepository.saveAll(entities)
+        log.info("${ndeliusAppointments.size} appointments created in Ndelius for group with id: ${nDeliusAppointmentEntities.first().session.programmeGroup.id}")
+        nDeliusAppointmentRepository.saveAll(nDeliusAppointmentEntities)
       }
     }
   }

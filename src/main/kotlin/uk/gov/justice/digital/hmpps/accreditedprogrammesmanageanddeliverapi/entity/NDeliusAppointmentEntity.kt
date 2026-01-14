@@ -1,16 +1,14 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity
 
-import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
-import jakarta.persistence.OneToOne
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import org.jetbrains.annotations.NotNull
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
 import java.util.UUID
 
 @Entity
@@ -26,20 +24,18 @@ class NDeliusAppointmentEntity(
   var ndeliusAppointmentId: UUID,
 
   @NotNull
-  @OneToOne(fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
-  @JoinColumn(name = "session_attendance_id")
-  var sessionAttendance: SessionAttendanceEntity,
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "session_id")
+  var session: SessionEntity,
 
-  @Column(name = "licence_condition_id")
-  var licenceConditionId: String? = null,
-
-  @Column(name = "requirement_id")
-  var requirementId: String? = null,
+  @NotNull
+  @JoinColumn(name = "referral_id")
+  @ManyToOne(fetch = FetchType.LAZY)
+  var referral: ReferralEntity,
 )
 
-fun CreateAppointmentRequest.Companion.NdeliusAppointment.toEntity(sessionAttendance: SessionAttendanceEntity) = NDeliusAppointmentEntity(
-  ndeliusAppointmentId = reference,
-  sessionAttendance = sessionAttendance,
-  licenceConditionId = licenceConditionId,
-  requirementId = requirementId,
+fun AttendeeEntity.toNdeliusAppointmentEntity(ndeliusAppointmentId: UUID) = NDeliusAppointmentEntity(
+  ndeliusAppointmentId = ndeliusAppointmentId,
+  session = session,
+  referral = referral,
 )
