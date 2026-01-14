@@ -48,7 +48,6 @@ class ScheduleService(
   private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
   private val facilitatorService: FacilitatorService,
   private val referralRepository: ReferralRepository,
-  private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -222,6 +221,7 @@ class ScheduleService(
     val mostRecentSession = group.sessions.filter { it.startsAt <= now }.maxByOrNull { it.startsAt }
 
     if (futureSessions.isNotEmpty()) {
+      // TODO Delete Ndelius appointments here, this will be done as part of https://dsdmoj.atlassian.net/browse/APG-1631
       group.sessions.removeAll(futureSessions)
       programmeGroupRepository.save(group)
     }

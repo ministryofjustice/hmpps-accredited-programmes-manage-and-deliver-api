@@ -900,6 +900,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
       )
 
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       programmeGroupMembershipService.allocateReferralToGroup(
         referral.id!!,
         group.id!!,
