@@ -8,16 +8,22 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.util.UUID
 
@@ -32,8 +38,25 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
   @Autowired
   private lateinit var programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository
 
+  @Autowired
+  private lateinit var programmeGroupRepository: ProgrammeGroupRepository
+
   @BeforeEach
   override fun beforeEach() {
+    govUkApiStubs.stubBankHolidaysResponse()
+    nDeliusApiStubs.stubUserTeamsResponse(
+      "AUTH_ADM",
+      NDeliusUserTeams(
+        teams = listOf(
+          NDeliusUserTeam(
+            code = "TEAM001",
+            description = "Test Team 1",
+            pdu = CodeDescription("PDU001", "Test PDU 1"),
+            region = CodeDescription("REGION001", "WIREMOCKED REGION"),
+          ),
+        ),
+      ),
+    )
     testDataCleaner.cleanAllTables()
   }
 
@@ -46,22 +69,31 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
   @DisplayName("allocateReferralToGroup")
   inner class AllocateReferralToGroupTests {
 
+    var group: ProgrammeGroupEntity? = null
+
+    @BeforeEach
+    fun beforeEach() {
+      stubAuthTokenEndpoint()
+      val body = CreateGroupRequestFactory().produce()
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      group = programmeGroupRepository.findByCode(body.groupCode)!!
+    }
+
     @Test
     fun `can successfully allocate a referral to a group`() {
       // Given
-      val groupCode = "AAA111"
-      val group = ProgrammeGroupFactory().withCode(groupCode).produce()
-      testDataGenerator.createGroup(group)
-
-      val referralStatusDescriptionEntity = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
-      val referral = ReferralEntityFactory().produce()
-      val statusHistory = ReferralStatusHistoryEntityFactory().produce(referral, referralStatusDescriptionEntity)
-      testDataGenerator.createReferralWithStatusHistory(referral, statusHistory)
+      val referral = testReferralHelper.createReferral()
 
       // Given
       val referralFromAllocate = programmeGroupMembershipService.allocateReferralToGroup(
         referral.id!!,
-        group.id!!,
+        group!!.id!!,
         "SYSTEM",
         additionalDetails = "The additional details",
       )
@@ -70,7 +102,7 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
       assertThat(referralFromAllocate).isNotNull
       assertThat(referralFromAllocate.id).isEqualTo(referral.id)
       assertThat(referralFromAllocate.programmeGroupMemberships).hasSize(1)
-      assertThat(referralFromAllocate.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
+      assertThat(referralFromAllocate.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group!!.id)
 
       assertThat(referralFromAllocate.statusHistories).hasSize(2)
       val currentStatusHistory = referralService.getCurrentStatusHistory(referralFromAllocate)
@@ -81,14 +113,11 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
     @Test
     fun `throws an error if referral does not exist`() {
       val referralId = UUID.randomUUID()
-      val groupCode = "AAA111"
-      val group = ProgrammeGroupFactory().withCode(groupCode).produce()
-      testDataGenerator.createGroup(group)
 
       val exception = assertThrows<NotFoundException> {
         programmeGroupMembershipService.allocateReferralToGroup(
           referralId,
-          group.id!!,
+          group!!.id!!,
           "SYSTEM",
           "",
         )
@@ -99,10 +128,7 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
     @Test
     fun `throws an error if group does not exist`() {
       val groupId = UUID.randomUUID()
-      val referralStatusDescriptionEntity = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
-      val referral = ReferralEntityFactory().produce()
-      val statusHistory = ReferralStatusHistoryEntityFactory().produce(referral, referralStatusDescriptionEntity)
-      testDataGenerator.createReferralWithStatusHistory(referral, statusHistory)
+      val referral = testReferralHelper.createReferral()
 
       val exception = assertThrows<NotFoundException> {
         programmeGroupMembershipService.allocateReferralToGroup(
@@ -117,19 +143,13 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
 
     @Test
     fun `throws an error if referral is in a closed state`() {
-      val groupCode = "AAA111"
-      val group = ProgrammeGroupFactory().withCode(groupCode).produce()
-      testDataGenerator.createGroup(group)
-
-      val referralStatusDescriptionEntity = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
-      val referral = ReferralEntityFactory().produce()
-      val statusHistory = ReferralStatusHistoryEntityFactory().produce(referral, referralStatusDescriptionEntity)
-      testDataGenerator.createReferralWithStatusHistory(referral, statusHistory)
+      val referral =
+        testReferralHelper.createReferralWithStatus(referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription())
 
       val exception = assertThrows<BusinessException> {
         programmeGroupMembershipService.allocateReferralToGroup(
           referral.id!!,
-          group.id!!,
+          group!!.id!!,
           "SYSTEM",
           "",
         )
@@ -139,10 +159,23 @@ class ProgrammeGroupMembershipServiceIntegrationTest(@Autowired private val refe
 
     @Test
     fun `throws an error if referral already allocated to a group`() {
-      val firstGroup = ProgrammeGroupFactory().withCode("AAA111").produce()
-      val secondGroup = ProgrammeGroupFactory().withCode("BBB222").produce()
-      testDataGenerator.createGroup(firstGroup)
-      testDataGenerator.createGroup(secondGroup)
+      val group1 = CreateGroupRequestFactory().produce(groupCode = "AAA111")
+      val group2 = CreateGroupRequestFactory().produce(groupCode = "BBB222")
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = group1,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = group2,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val firstGroup = programmeGroupRepository.findByCode(group1.groupCode)!!
+      val secondGroup = programmeGroupRepository.findByCode(group2.groupCode)!!
 
       val referral = testReferralHelper.createReferralWithStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),

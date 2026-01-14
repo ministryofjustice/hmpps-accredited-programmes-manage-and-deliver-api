@@ -16,6 +16,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponseGroup
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponseGroupModule
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponseGroupSession
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.StartDateText
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
@@ -26,16 +31,22 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
+import kotlin.compareTo
+import kotlin.toString
 
 @Service
 @Transactional
@@ -46,6 +57,7 @@ class ProgrammeGroupService(
   private val userService: UserService,
   private val accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository,
   private val scheduleService: ScheduleService,
+  private val sessionRepository: SessionRepository,
   private val facilitatorService: FacilitatorService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -170,6 +182,70 @@ class ProgrammeGroupService(
       locationFilterValues = pdusWithReportingTeams,
     )
   }
+
+  fun getModuleSessionsForGroup(groupId: UUID): ProgrammeGroupModuleSessionsResponse? {
+    val group = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
+
+    val programmeGroupModuleSessionsResponseGroup = ProgrammeGroupModuleSessionsResponseGroup(group.code, group.regionName)
+
+    // We need to get all modules for the group's accredited programme template. From there, we get all the session templates for each module,
+    // and then we need to go to the database to find any scheduled sessions for the group that use that session template.
+    // We need to do this as we currently have no direct link from session templates to scheduled sessions.
+    // This then builds the api response object with all the required data.
+    val modules = group.accreditedProgrammeTemplate?.modules?.map { module ->
+      val sessions = module.sessionTemplates.map { sessionTemplate ->
+        val scheduledSessions = getScheduledSessionForGroupAndSessionTemplate(
+          groupId = group.id!!,
+          sessionTemplateId = sessionTemplate.id!!,
+        )
+        scheduledSessions?.map { scheduledSession ->
+          ProgrammeGroupModuleSessionsResponseGroupSession(
+            id = scheduledSession.id!!,
+            number = sessionTemplate.sessionNumber,
+            name = sessionTemplate.name,
+            type = sessionTemplate.sessionType,
+            dateOfSession = scheduledSession.startsAt.toLocalDate().format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")).toString(),
+            timeOfSession = formatTimeForUiDisplay(scheduledSession.startsAt.toLocalTime()),
+            participants = if (sessionTemplate.sessionType == SessionType.GROUP) listOf("All") else scheduledSession.attendees.map { it.personName },
+            facilitators = scheduledSession.sessionFacilitators.map { it.personName },
+          )
+        } ?: emptyList()
+      }.flatten()
+
+      ProgrammeGroupModuleSessionsResponseGroupModule(
+        id = module.id!!,
+        number = module.moduleNumber,
+        name = module.name,
+        startDateText = StartDateText(
+          "Estimated start date of ${module.name} one to ones",
+          group.sessions
+            .filter { it.moduleSessionTemplate.sessionType == SessionType.ONE_TO_ONE }
+            .minByOrNull { it.startsAt }?.startsAt?.toLocalDate()
+            ?.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy"))
+            .toString(),
+        ),
+        scheduleButtonText = "Schedule a ${module.name} session",
+        sessions = sessions,
+      )
+    }.orEmpty()
+
+    return ProgrammeGroupModuleSessionsResponse(programmeGroupModuleSessionsResponseGroup, modules)
+  }
+
+  private fun formatTimeForUiDisplay(time: LocalTime): String = when {
+    time.hour == 12 && time.minute == 0 -> "midday"
+    time.hour == 0 -> "midnight"
+    time.hour == 0 -> "12:${time.minute}am"
+    time.hour < 12 -> "${time.hour}:${time.minute}am"
+    time.hour == 12 -> "12:${time.minute}pm"
+    else -> "${time.hour - 12}:${time.minute}pm"
+  }
+
+  fun getScheduledSessionForGroupAndSessionTemplate(
+    groupId: UUID,
+    sessionTemplateId: UUID,
+  ): List<SessionEntity>? = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplateId, groupId)
 
   fun getProgrammeGroupsForRegion(
     pageable: Pageable,

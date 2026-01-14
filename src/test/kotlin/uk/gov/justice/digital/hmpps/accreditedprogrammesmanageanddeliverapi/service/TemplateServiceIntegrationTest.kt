@@ -83,17 +83,8 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
       assertThat(sessionTemplates).hasSize(1)
       val sessionTemplate = sessionTemplates.first()
       assertThat(sessionTemplate.number).isEqualTo(1)
-      assertThat(sessionTemplate.name).isEqualTo("Pre-Group")
+      assertThat(sessionTemplate.name).isEqualTo("Pre-group")
       assertThat(sessionTemplate.id).isNotNull
-    }
-
-    @Test
-    fun `Successfully retrieves zero templates for Getting Started module (two Group sessions)`() {
-      // When
-      val sessionTemplates = service.getOneToOneSessionTemplatesForGroupAndModule(groupId, gettingStartedModuleId)
-
-      // Then
-      assertThat(sessionTemplates).hasSize(0)
     }
 
     @Test

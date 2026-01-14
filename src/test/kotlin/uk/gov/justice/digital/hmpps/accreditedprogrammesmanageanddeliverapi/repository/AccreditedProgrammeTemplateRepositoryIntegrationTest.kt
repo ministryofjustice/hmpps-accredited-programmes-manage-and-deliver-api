@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 
 class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase() {
@@ -32,16 +31,13 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
 
     // Then
     assertThat(moduleNamesInOrder).containsExactly(
-      "Pre-Group",
-      "Getting Started",
-      "Getting Started 1-1",
-      "Managing Myself",
-      "Managing Myself 1-1",
-      "Managing Life’s Problems",
-      "Managing Life’s Problems 1-1",
-      "Managing People Around Me",
-      "Managing People Around Me 1-1",
-      "Bringing It All Together",
+      "Pre-group",
+      "Getting started",
+      "Managing myself",
+      "Managing life’s problems",
+      "Managing people around me",
+      "Bringing it all together",
+      "Post programme review",
     )
   }
 
@@ -54,17 +50,15 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
     // When
     val modulesByName = template!!.modules.associateBy { it.name }
 
-    // Then - Getting Started (Group only): Moderate 2
-    val gettingReady = modulesByName.getValue("Getting Started")
+    // Then - Getting Started (Group only): Moderate 3
+    val gettingReady = modulesByName.getValue("Getting started")
     val gettingReadySessions = gettingReady.sessionTemplates
-    assertThat(gettingReadySessions).allMatch { it.sessionType == SessionType.GROUP }
-    assertThat(gettingReadySessions.count { it.pathway == Pathway.MODERATE_INTENSITY }).isEqualTo(2)
+    assertThat(gettingReadySessions.count { it.pathway == Pathway.MODERATE_INTENSITY }).isEqualTo(3)
 
-    // Then - Managing Myself (Group only): Moderate 6
-    val managingMyself = modulesByName.getValue("Managing Myself")
+    // Then - Managing Myself (Group only): Moderate 7
+    val managingMyself = modulesByName.getValue("Managing myself")
     val managingMyselfSessions = managingMyself.sessionTemplates
-    assertThat(managingMyselfSessions).allMatch { it.sessionType == SessionType.GROUP }
-    assertThat(managingMyselfSessions.count { it.pathway == Pathway.MODERATE_INTENSITY }).isEqualTo(6)
+    assertThat(managingMyselfSessions.count { it.pathway == Pathway.MODERATE_INTENSITY }).isEqualTo(7)
   }
 
   @Test
@@ -78,34 +72,23 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
     val allSessionTemplates = template!!.modules.flatMap { it.sessionTemplates }
 
     // Then
-    assertThat(allSessionTemplates.size).isEqualTo(26)
-    assertThat(allSessionTemplates.count { it.pathway == Pathway.MODERATE_INTENSITY }).isEqualTo(26)
+    assertThat(allSessionTemplates.size).isEqualTo(27)
+    assertThat(allSessionTemplates.count { it.pathway == Pathway.MODERATE_INTENSITY }).isEqualTo(27)
 
     // Then - validate session types: 1-1 modules should be ONE_TO_ONE only; non 1-1 named modules should be GROUP only
     val modulesByName = template.modules.associateBy { it.name }
 
     listOf(
-      "Pre-Group",
-      "Getting Started 1-1",
-      "Managing Myself 1-1",
-      "Managing Life’s Problems 1-1",
-      "Managing People Around Me 1-1",
+      "Pre-group",
+      "Getting started",
+      "Managing myself",
+      "Managing life’s problems",
+      "Managing people around me",
+      "Bringing it all together",
+      "Post programme review",
     ).forEach { name ->
       val sessions = modulesByName.getValue(name).sessionTemplates
       assertThat(sessions).isNotEmpty
-      assertThat(sessions).allMatch { it.sessionType == SessionType.ONE_TO_ONE }
-    }
-
-    listOf(
-      "Getting Started",
-      "Managing Myself",
-      "Managing Life’s Problems",
-      "Managing People Around Me",
-      "Bringing It All Together",
-    ).forEach { name ->
-      val sessions = modulesByName.getValue(name).sessionTemplates
-      assertThat(sessions).isNotEmpty
-      assertThat(sessions).allMatch { it.sessionType == SessionType.GROUP }
     }
   }
 }

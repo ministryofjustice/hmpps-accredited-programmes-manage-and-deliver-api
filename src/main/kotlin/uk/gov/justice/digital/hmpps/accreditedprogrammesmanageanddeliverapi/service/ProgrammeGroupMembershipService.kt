@@ -8,11 +8,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -71,10 +72,10 @@ class ProgrammeGroupMembershipService(
       ?: throw NotFoundException("No group membership found for referral $referralId")
 
     group.sessions.forEach { session ->
-      session.attendances.add(
-        SessionAttendanceEntity(
+      session.attendees.add(
+        AttendeeEntity(
+          referral = currentGroupMembership.referral,
           session = session,
-          groupMembership = currentGroupMembership,
         ),
       )
     }
@@ -139,7 +140,9 @@ class ProgrammeGroupMembershipService(
     referralId: UUID,
     groupId: UUID,
     deletedByUsername: String,
-  ): ProgrammeGroupMembershipEntity {
+  ): ProgrammeGroupEntity {
+    val group = programmeGroupRepositoryImpl.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
     val groupMembership = programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referralId, groupId)
       ?: throw NotFoundException(
         "No active Membership found for Referral ($referralId) and Group ($groupId)",
@@ -147,7 +150,10 @@ class ProgrammeGroupMembershipService(
 
     groupMembership.deletedAt = LocalDateTime.now()
     groupMembership.deletedByUsername = deletedByUsername
+
+    // Remove the PoP from the list of attendees for the sessions of the group they have been removed from
+    group.sessions.forEach { session -> session.attendees.removeIf { it.referral.id == referralId } }
     log.info("...Successfully found Referral ($referralId), Group ($groupId), and Membership (${groupMembership.id}) to remove")
-    return programmeGroupMembershipRepository.save(groupMembership)
+    return programmeGroupRepositoryImpl.save(group)
   }
 }
