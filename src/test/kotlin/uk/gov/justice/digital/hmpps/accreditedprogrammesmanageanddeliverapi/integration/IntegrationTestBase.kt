@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.context.annotation.Import
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpHeaders
@@ -42,6 +43,7 @@ import java.time.Clock
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @ActiveProfiles("test")
 @Import(TestReferralHelper::class, DomainEventsQueueConfig::class)
+@AutoConfigureWebTestClient
 abstract class IntegrationTestBase {
 
   @Autowired
@@ -143,13 +145,13 @@ abstract class IntegrationTestBase {
     hmppsAuth.stubGrantToken()
   }
 
-  fun <T> performRequestAndExpectOk(
+  fun <T : Any> performRequestAndExpectOk(
     httpMethod: HttpMethod,
     uri: String,
     returnType: ParameterizedTypeReference<T>,
   ): T = performRequestAndExpectStatus(httpMethod, uri, returnType, HttpStatus.OK.value())
 
-  fun <T> performRequestAndExpectStatus(
+  fun <T : Any> performRequestAndExpectStatus(
     httpMethod: HttpMethod,
     uri: String,
     returnType: ParameterizedTypeReference<T>,
@@ -165,7 +167,7 @@ abstract class IntegrationTestBase {
     .expectBody(returnType)
     .returnResult().responseBody!!
 
-  fun <T> performRequestAndExpectStatusWithBody(
+  fun <T : Any> performRequestAndExpectStatusWithBody(
     httpMethod: HttpMethod,
     uri: String,
     returnType: ParameterizedTypeReference<T>,

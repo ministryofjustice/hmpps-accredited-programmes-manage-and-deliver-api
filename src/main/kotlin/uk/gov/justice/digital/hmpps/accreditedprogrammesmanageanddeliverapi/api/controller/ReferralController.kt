@@ -87,8 +87,7 @@ class ReferralController(
   )
   @GetMapping("/referral-details/{id}", produces = [MediaType.APPLICATION_JSON_VALUE])
   suspend fun getReferralDetailsById(
-    @Parameter(description = "The id (UUID) of a referral", required = true)
-    @PathVariable("id") id: UUID,
+    @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) id: UUID,
   ): ResponseEntity<ReferralDetails> = referralService.refreshPersonalDetailsForReferral(id)?.let {
     ResponseEntity.ok(it)
   } ?: throw NotFoundException("Referral with id $id not found")
@@ -124,13 +123,12 @@ class ReferralController(
   )
   @GetMapping("/referral-details/{id}/personal-details", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getPersonalDetailsByReferralId(
-    @Parameter(description = "The id (UUID) of a referral", required = true)
-    @PathVariable("id") id: UUID,
+    @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) id: UUID,
   ): ResponseEntity<PersonalDetails> {
     val referral = referralService.getReferralById(id)
     return userService.getPersonalDetailsByIdentifier(referral.crn).let {
       ResponseEntity.ok(it.toModel(referral.setting))
-    } ?: throw NotFoundException("Personal details not found for crn ${referral.crn} not found")
+    }
   }
 
   @Operation(
@@ -173,12 +171,10 @@ class ReferralController(
   )
   @GetMapping("/referral-details/{id}/offence-history", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getOffenceHistoryByReferralId(
-    @Parameter(description = "The id (UUID) of a referral", required = true)
-    @PathVariable("id") id: UUID,
+    @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) id: UUID,
   ): ResponseEntity<OffenceHistory> {
     val referral = referralService.getReferralById(id)
     return offenceService.getOffenceHistory(referral).let { ResponseEntity.ok(it) }
-      ?: throw NotFoundException("Offence history not found for crn ${referral.crn} and referral with id $id")
   }
 
   @Operation(
@@ -212,8 +208,7 @@ class ReferralController(
   )
   @GetMapping("/referral-details/{id}/sentence-information", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getSentenceInformationByReferralId(
-    @Parameter(description = "The id (UUID) of a referral", required = true)
-    @PathVariable("id") id: UUID,
+    @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) id: UUID,
   ): ResponseEntity<SentenceInformation> {
     val referral = referralService.getReferralById(id)
     if (referral.eventNumber == null) {
@@ -222,7 +217,7 @@ class ReferralController(
     }
     return sentenceService.getSentenceInformationByIdentifier(referral.crn, referral.eventNumber).let {
       ResponseEntity.ok(it.toModel())
-    } ?: throw NotFoundException("Sentence information not found for crn ${referral.crn} not found")
+    }
   }
 
   @Operation(
@@ -255,16 +250,15 @@ class ReferralController(
   )
   @PutMapping("/referral/{id}/update-cohort", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun updateCohortForReferral(
-    @Parameter(
+    @PathVariable @Parameter(
       description = "The id (UUID) of a referral allowed values SEXUAL_OFFENCE or GENERAL_OFFENCE",
       required = true,
-    )
-    @PathVariable("id") id: UUID,
+    ) id: UUID,
     @Parameter(
       description = "Cohort to update the referral with",
       required = true,
     ) @RequestBody updateCohort: UpdateCohort,
-  ): ResponseEntity<Referral?> {
+  ): ResponseEntity<Referral> {
     val referral = referralService.getReferralById(id)
     val updateCohort = referralService.updateCohort(referral, updateCohort.cohort)
     return ResponseEntity.ok(updateCohort)
@@ -301,11 +295,10 @@ class ReferralController(
   )
   @PostMapping("/referral/{id}/status-history", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun updateStatusForReferral(
-    @Parameter(
+    @PathVariable @Parameter(
       description = "The id (UUID) of a Referral",
       required = true,
-    )
-    @PathVariable("id") id: UUID,
+    ) id: UUID,
     @Parameter(
       description = "Details of the new Referral Status to assign",
       required = true,
@@ -353,11 +346,10 @@ class ReferralController(
   )
   @GetMapping("/referral/{id}/status-history", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getStatusHistoryForReferral(
-    @Parameter(
+    @PathVariable @Parameter(
       description = "The id (UUID) of a Referral",
       required = true,
-    )
-    @PathVariable("id") id: UUID,
+    ) id: UUID,
   ): ResponseEntity<List<ReferralStatusHistory>> {
     val result = referralService.getStatusHistory(id)
 
@@ -399,8 +391,7 @@ class ReferralController(
   )
   @GetMapping("/referral-details/{id}/manager")
   fun getDeliveryLocationsByReferralId(
-    @Parameter(description = "The id (UUID) of a referral", required = true)
-    @PathVariable("id") id: UUID,
+    @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) id: UUID,
   ): ResponseEntity<RequirementOrLicenceConditionManager> = referralService.attemptToFindManagerForReferral(id)?.let {
     ResponseEntity.ok(it)
   } ?: throw NotFoundException("Could not retrieve Delivery Locations for Referral with ID: $id")
@@ -435,8 +426,7 @@ class ReferralController(
   )
   @GetMapping("/referral-details/{id}/delivery-location-preferences", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getPreferredDeliveryLocationsByReferralId(
-    @Parameter(description = "The id (UUID) of a referral", required = true)
-    @PathVariable("id") id: UUID,
+    @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) id: UUID,
   ): ResponseEntity<DeliveryLocationPreferences> {
     val deliveryLocationPreferences = deliveryLocationPreferencesService.getPreferredDeliveryLocationsForReferral(id)
     return ResponseEntity.ok().body(deliveryLocationPreferences)
@@ -504,7 +494,8 @@ class ReferralController(
     @Parameter(description = "The id (UUID) of a referral status description", required = true)
     @PathVariable referralId: UUID,
   ): ResponseEntity<RemoveReferralFromGroupStatusTransitions> {
-    val data = referralStatusService.getStatusTransitionsForReferral(referralId) ?: throw NotFoundException("Referral status history for referral with id $referralId not found")
+    val data = referralStatusService.getStatusTransitionsForReferral(referralId)
+      ?: throw NotFoundException("Referral status history for referral with id $referralId not found")
     val removeReferralFromGroupStatusTransitions = RemoveReferralFromGroupStatusTransitions.from(data)
     return ResponseEntity.ok(removeReferralFromGroupStatusTransitions)
   }

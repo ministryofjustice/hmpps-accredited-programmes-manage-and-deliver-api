@@ -59,18 +59,20 @@ class RisksAndNeedsService(
     )
   }
 
-  fun getHealth(crn: String): Health? {
+  fun getHealth(crn: String): Health {
     val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
 
     return getDetails(assessmentId, oasysApiClient::getHealth, "Health").toModel(assessmentCompletedDate?.toLocalDate())
   }
 
-  fun getLifestyleAndAssociates(crn: String): LifestyleAndAssociates? {
+  fun getLifestyleAndAssociates(crn: String): LifestyleAndAssociates {
     val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
 
-    return getDetails(assessmentId, oasysApiClient::getLifestyleAndAssociates, "LifestyleAndAssociates").toModel(assessmentCompletedDate?.toLocalDate())
+    return getDetails(assessmentId, oasysApiClient::getLifestyleAndAssociates, "LifestyleAndAssociates").toModel(
+      assessmentCompletedDate?.toLocalDate(),
+    )
   }
 
   fun getRelationshipsForCrn(crn: String): Relationships {
@@ -84,7 +86,7 @@ class RisksAndNeedsService(
     ).toModel(assessmentCompletedDate?.toLocalDate())
   }
 
-  fun getDrugDetails(crn: String): DrugDetails? {
+  fun getDrugDetails(crn: String): DrugDetails {
     val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
 
@@ -95,7 +97,7 @@ class RisksAndNeedsService(
     ).toModel(assessmentCompletedDate?.toLocalDate())
   }
 
-  fun getAlcoholMisuseDetails(crn: String): AlcoholMisuseDetails? {
+  fun getAlcoholMisuseDetails(crn: String): AlcoholMisuseDetails {
     val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
 
@@ -106,7 +108,7 @@ class RisksAndNeedsService(
     ).toModel(assessmentCompletedDate?.toLocalDate())
   }
 
-  fun getEmotionalWellbeing(crn: String): EmotionalWellbeing? {
+  fun getEmotionalWellbeing(crn: String): EmotionalWellbeing {
     val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
 
@@ -117,7 +119,7 @@ class RisksAndNeedsService(
     ).toModel(assessmentCompletedDate?.toLocalDate())
   }
 
-  fun getThinkingAndBehaviour(crn: String): ThinkingAndBehaviour? {
+  fun getThinkingAndBehaviour(crn: String): ThinkingAndBehaviour {
     val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
 
@@ -128,7 +130,7 @@ class RisksAndNeedsService(
     ).toModel(assessmentCompletedDate?.toLocalDate())
   }
 
-  fun getAttitude(crn: String): Attitude? {
+  fun getAttitude(crn: String): Attitude {
     val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
 
@@ -148,7 +150,8 @@ class RisksAndNeedsService(
     val oasysRelationships: OasysRelationships =
       getDetails(assessmentId, oasysApiClient::getRelationships, "Relationships")
     val oasysRoshSummary: OasysRoshSummary = getDetails(assessmentId, oasysApiClient::getRoshSummary, "RoshSummary")
-    val riskPredictors: AllPredictorVersioned<Any> = getDetails(assessmentId, assessRiskAndNeedsApiClient::getRiskPredictors, "AllPredictorVersioned")
+    val riskPredictors: AllPredictorVersioned<Any> =
+      getDetails(assessmentId, assessRiskAndNeedsApiClient::getRiskPredictors, "AllPredictorVersioned")
     val activeAlerts: NDeliusRegistrations? = getActiveAlerts(crn)
 
     return buildRiskModel(

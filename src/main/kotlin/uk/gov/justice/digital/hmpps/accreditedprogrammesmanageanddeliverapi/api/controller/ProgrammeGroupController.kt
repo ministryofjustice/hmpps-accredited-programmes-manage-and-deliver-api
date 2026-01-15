@@ -737,7 +737,7 @@ class ProgrammeGroupController(
   )
   fun getGroupSessions(
     @PathVariable @Parameter(description = "The UUID of the Programme Group", required = true) groupId: UUID,
-  ): ResponseEntity<ProgrammeGroupModuleSessionsResponse?> = ResponseEntity.ok(programmeGroupService.getModuleSessionsForGroup(groupId))
+  ): ResponseEntity<ProgrammeGroupModuleSessionsResponse> = ResponseEntity.ok(programmeGroupService.getModuleSessionsForGroup(groupId))
 
   private fun getUsername(): String {
     val username = authenticationHolder.username
