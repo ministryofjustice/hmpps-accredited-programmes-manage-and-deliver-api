@@ -14,6 +14,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -217,6 +218,13 @@ class ScheduleService(
 
     // If there is no prior session, just schedule from start
     return scheduleSessionsForGroup(programmeGroupId, mostRecentSession)
+  }
+
+  fun removeFutureSessionsForIndividual(group: ProgrammeGroupEntity, referralId: UUID) {
+    log.info("Removing future sessions for referral with id: $referralId from group with id: ${group.id}")
+    val now = LocalDateTime.now(clock)
+    val futureSessionsToDelete = group.sessions.filter { session -> session.startsAt > now && session.attendees.any { it.referral.id == referralId } }
+    group.sessions.removeAll(futureSessionsToDelete.toSet())
   }
 
   /**
