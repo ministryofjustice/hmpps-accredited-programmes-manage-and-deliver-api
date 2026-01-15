@@ -18,7 +18,7 @@ class RegionService(private val nDeliusApiIntegrationApiClient: NDeliusIntegrati
   fun getPdusForRegion(regionCode: String): List<NDeliusRegionWithMembers.NDeliusPduWithTeam> = when (val result = nDeliusApiIntegrationApiClient.getPdusForRegion(regionCode)) {
     is ClientResult.Success -> {
       val pduNames = result.body.pdus
-      log.debug("Region code: {} returned pduNames: {}", regionCode, pduNames)
+      log.debug("Region code: {} returned pduNames: {}", regionCode, pduNames.map { it.description }.distinct())
       pduNames.ifEmpty {
         log.warn("No PDU's returned for regionCode: $regionCode")
         emptyList()
@@ -34,7 +34,7 @@ class RegionService(private val nDeliusApiIntegrationApiClient: NDeliusIntegrati
   fun getOfficeLocationsForPdu(pduCode: String): List<CodeDescription> = when (val result = nDeliusApiIntegrationApiClient.getOfficeLocationsForPdu(pduCode)) {
     is ClientResult.Success -> {
       val officeNames = result.body.officeLocations
-      log.debug("Pdu code: {} returned officeNames: {}", pduCode, officeNames)
+      log.debug("Pdu code: {} returned officeNames: {}", pduCode, officeNames.map { it.description }.distinct())
       officeNames.ifEmpty {
         log.warn("No office location's returned for pduCode: $pduCode")
         emptyList()
