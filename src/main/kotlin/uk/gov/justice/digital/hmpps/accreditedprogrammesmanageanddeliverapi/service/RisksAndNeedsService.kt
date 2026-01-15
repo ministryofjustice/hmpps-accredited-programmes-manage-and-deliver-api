@@ -194,7 +194,11 @@ class RisksAndNeedsService(
     entityName: String,
   ): T = when (val response = fetchFunction(assessmentId)) {
     is ClientResult.Failure -> {
-      log.warn("Failure to retrieve $entityName data for assessmentId $assessmentId reason ${response.toException().cause}", response.toException())
+      log.warn(
+        "Failure to retrieve $entityName data for assessmentId $assessmentId reason ${response.toException().cause}",
+        response.toException(),
+        response.getErrorMessage(),
+      )
       throw NotFoundException("Failure to retrieve $entityName data for assessmentId: $assessmentId, reason: '${response.toException().message}'")
     }
 
