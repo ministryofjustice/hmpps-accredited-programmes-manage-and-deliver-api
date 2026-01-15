@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -1968,10 +1969,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   @DisplayName("Get Schedules")
   inner class GetSchedules {
 
-    // @AfterEach
-    // fun tearDown() {
-    // testDataCleaner.cleanAllTables()
-    // }
+    @AfterEach
+    fun tearDown() {
+      testDataCleaner.cleanAllTables()
+    }
 
     @Test
     fun `return 401 when unauthorised for schedule`() {
