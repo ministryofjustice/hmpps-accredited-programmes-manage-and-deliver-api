@@ -106,6 +106,7 @@ sealed interface ClientResult<ResponseType> {
   sealed interface Failure<ResponseType> : ClientResult<ResponseType> {
     fun throwException(): Nothing = throw toException()
     fun toException(): Throwable
+    fun getErrorMessage(): String
 
     class StatusCode<ResponseType>(
       val method: HttpMethod,
@@ -114,6 +115,7 @@ sealed interface ClientResult<ResponseType> {
       val body: String?,
     ) : Failure<ResponseType> {
       override fun toException(): Throwable = RuntimeException("Unable to complete $method request to $path: $status")
+      override fun getErrorMessage() = body ?: ""
 
       inline fun <reified ResponseType> deserializeTo(): ResponseType = jacksonObjectMapper().readValue(body, ResponseType::class.java)
     }
@@ -125,6 +127,8 @@ sealed interface ClientResult<ResponseType> {
       val serviceName: String,
     ) : Failure<ResponseType> {
       override fun toException(): Throwable = RuntimeException("Unable to complete request. Service $serviceName for $method request to $path", exception)
+
+      override fun getErrorMessage() = exception.message ?: "Unknown error from $serviceName"
     }
   }
 }
