@@ -4,6 +4,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -91,52 +92,52 @@ class ProgrammeGroupMembershipService(
     referralId: UUID,
     groupId: UUID,
     removedFromGroupBy: String,
-    additionalDetails: String?,
-    newStatusDescriptionId: UUID,
+    removeFromGroupRequest: RemoveFromGroupRequest,
   ): ReferralEntity {
     log.info("Attempting to remove Referral with id: $referralId from group with id: $groupId...")
 
-    programmeGroupRepositoryImpl.findByIdOrNull(groupId) ?: throw NotFoundException("Group with id $groupId not found")
+    val group = (
+      programmeGroupRepositoryImpl.findByIdOrNull(groupId)
+        ?: throw NotFoundException("Group with id $groupId not found")
+      )
 
-    val referral =
-      referralRepository.findByIdOrNull(referralId) ?: throw NotFoundException("Referral with id $referralId not found")
+    val referral = referralRepository.findByIdOrNull(referralId)
+      ?: throw NotFoundException("Referral with id $referralId not found")
 
-    deleteGroupMembershipForReferralAndGroup(referralId, groupId, removedFromGroupBy)
+    deleteGroupMembershipForReferralAndGroup(referral, group, removedFromGroupBy)
 
-    val statusDescription = referralStatusDescriptionRepository.findByIdOrNull(newStatusDescriptionId)
-      ?: throw NotFoundException("No Referral Status Description found for id: $newStatusDescriptionId")
+    val desiredStatus = referralStatusDescriptionRepository.findByIdOrNull(removeFromGroupRequest.referralStatusDescriptionId)
+      ?: throw NotFoundException("No Referral Status Description found for id: ${removeFromGroupRequest.referralStatusDescriptionId}")
 
     val statusHistory =
       ReferralStatusHistoryEntity(
         referral = referral,
-        referralStatusDescription = statusDescription,
-        additionalDetails = additionalDetails,
+        referralStatusDescription = desiredStatus,
+        additionalDetails = removeFromGroupRequest.additionalDetails,
         createdBy = removedFromGroupBy,
       )
 
     referral.statusHistories.add(statusHistory)
-
     return referralRepository.save(referral)
   }
 
   fun deleteGroupMembershipForReferralAndGroup(
-    referralId: UUID,
-    groupId: UUID,
+    referral: ReferralEntity,
+    group: ProgrammeGroupEntity,
     deletedByUsername: String,
   ): ProgrammeGroupEntity {
-    val group = programmeGroupRepositoryImpl.findByIdOrNull(groupId)
-      ?: throw NotFoundException("Group with id $groupId not found")
-    val groupMembership = programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referralId, groupId)
+    val groupMembership = programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referral.id!!, group.id!!)
       ?: throw NotFoundException(
-        "No active Membership found for Referral ($referralId) and Group ($groupId)",
+        "No active Membership found for Referral (${referral.id}) and Group (${group.id})",
       )
 
     groupMembership.deletedAt = LocalDateTime.now()
     groupMembership.deletedByUsername = deletedByUsername
 
-    // Remove the PoP from the list of attendees for the sessions of the group they have been removed from
-    group.sessions.forEach { session -> session.attendees.removeIf { it.referral.id == referralId } }
-    log.info("...Successfully found Referral ($referralId), Group ($groupId), and Membership (${groupMembership.id}) to remove")
+    // Remove the PoP from the list of attendees for any future sessions of the group they have been removed from
+    val now = LocalDateTime.now()
+    group.sessions.forEach { session -> session.attendees.removeIf { it.referral.id == referral.id!! && session.startsAt > now } }
+    log.info("...Successfully found Referral (${referral.id}), Group (${group.id}), and Membership (${groupMembership.id}) to remove")
     return programmeGroupRepositoryImpl.save(group)
   }
 }

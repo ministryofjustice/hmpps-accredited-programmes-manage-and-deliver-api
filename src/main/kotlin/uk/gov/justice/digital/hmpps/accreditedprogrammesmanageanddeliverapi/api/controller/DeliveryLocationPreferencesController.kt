@@ -76,8 +76,7 @@ class DeliveryLocationPreferencesController(
     produces = [MediaType.APPLICATION_JSON_VALUE],
   )
   fun getDeliveryLocationPreferencesFormData(
-    @Parameter(description = "The id (UUID) of a referral", required = true)
-    @PathVariable("referralId") referralId: UUID,
+    @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) referralId: UUID,
   ): ResponseEntity<DeliveryLocationPreferencesFormData> {
     val formData = deliveryLocationPreferencesService.getDeliveryLocationPreferencesFormDataForReferral(referralId)
     return ResponseEntity.ok(formData)
@@ -123,8 +122,7 @@ class DeliveryLocationPreferencesController(
     consumes = [MediaType.APPLICATION_JSON_VALUE],
   )
   fun createDeliveryLocationPreferencesForReferral(
-    @Parameter(description = "The id (UUID) of a referral", required = true)
-    @PathVariable("referralId") referralId: UUID,
+    @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) referralId: UUID,
     @Parameter(
       description = "The delivery location preferences for a referral",
       required = true,
@@ -174,8 +172,7 @@ class DeliveryLocationPreferencesController(
     consumes = [MediaType.APPLICATION_JSON_VALUE],
   )
   fun updateDeliveryLocationPreferencesForReferral(
-    @Parameter(description = "The id (UUID) of a referral", required = true)
-    @PathVariable("referralId") referralId: UUID,
+    @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) referralId: UUID,
     @Parameter(
       description = "The delivery location preferences for a referral",
       required = true,

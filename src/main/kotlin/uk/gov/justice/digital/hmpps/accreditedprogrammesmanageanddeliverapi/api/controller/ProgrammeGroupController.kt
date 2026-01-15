@@ -324,12 +324,11 @@ class ProgrammeGroupController(
       referralId,
       groupId,
       authenticationHolder.username ?: "SYSTEM",
-      removeFromGroupRequest.additionalDetails,
-      removeFromGroupRequest.referralStatusDescriptionId,
+      removeFromGroupRequest,
     )
 
     val response = RemoveFromGroupResponse(
-      message = "${referral.personName} was removed from this group. Their referral status is now ${referral.statusHistories.maxByOrNull { it.createdAt }?.referralStatusDescription?.description}.",
+      message = "Future scheduled sessions for this PoP have been deleted in nDelius and the Digital Service.",
     )
 
     return ResponseEntity.status(HttpStatus.OK).body(response)
@@ -739,7 +738,7 @@ class ProgrammeGroupController(
   )
   fun getGroupSessions(
     @PathVariable @Parameter(description = "The UUID of the Programme Group", required = true) groupId: UUID,
-  ): ResponseEntity<ProgrammeGroupModuleSessionsResponse?> = ResponseEntity.ok(programmeGroupService.getModuleSessionsForGroup(groupId))
+  ): ResponseEntity<ProgrammeGroupModuleSessionsResponse> = ResponseEntity.ok(programmeGroupService.getModuleSessionsForGroup(groupId))
 
   @Operation(
     tags = ["Programme Group controller"],
@@ -796,7 +795,7 @@ class ProgrammeGroupController(
   )
   fun getGroupSchedule(
     @PathVariable @Parameter(description = "The UUID of the Programme Group", required = true) groupId: UUID,
-  ): ResponseEntity<GroupSchedule?> = ResponseEntity.ok(programmeGroupService.getScheduleForGroup(groupId))
+  ): ResponseEntity<GroupSchedule> = ResponseEntity.ok(programmeGroupService.getScheduleForGroup(groupId))
 
   private fun getUsername(): String {
     val username = authenticationHolder.username

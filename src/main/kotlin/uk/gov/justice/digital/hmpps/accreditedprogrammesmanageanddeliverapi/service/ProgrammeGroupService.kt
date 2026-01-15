@@ -48,8 +48,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
-import kotlin.compareTo
-import kotlin.toString
 
 @Service
 @Transactional
@@ -191,14 +189,15 @@ class ProgrammeGroupService(
     val group = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
 
-    val programmeGroupModuleSessionsResponseGroup = ProgrammeGroupModuleSessionsResponseGroup(group.code, group.regionName)
+    val programmeGroupModuleSessionsResponseGroup =
+      ProgrammeGroupModuleSessionsResponseGroup(group.code, group.regionName)
 
     // We need to get all modules for the group's accredited programme template. From there, we get all the session templates for each module,
     // and then we need to go to the database to find any scheduled sessions for the group that use that session template.
     // We need to do this as we currently have no direct link from session templates to scheduled sessions.
     // This then builds the api response object with all the required data.
     val modules = group.accreditedProgrammeTemplate?.modules?.map { module ->
-      val sessions = module.sessionTemplates.map { sessionTemplate ->
+      val sessions = module.sessionTemplates.flatMap { sessionTemplate ->
         val scheduledSessions = getScheduledSessionForGroupAndSessionTemplate(
           groupId = group.id!!,
           sessionTemplateId = sessionTemplate.id!!,
@@ -209,13 +208,14 @@ class ProgrammeGroupService(
             number = sessionTemplate.sessionNumber,
             name = sessionTemplate.name,
             type = sessionTemplate.sessionType,
-            dateOfSession = scheduledSession.startsAt.toLocalDate().format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")).toString(),
+            dateOfSession = scheduledSession.startsAt.toLocalDate()
+              .format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")).toString(),
             timeOfSession = formatTimeForUiDisplay(scheduledSession.startsAt.toLocalTime()),
             participants = if (sessionTemplate.sessionType == SessionType.GROUP) listOf("All") else scheduledSession.attendees.map { it.personName },
             facilitators = scheduledSession.sessionFacilitators.map { it.personName },
           )
         } ?: emptyList()
-      }.flatten()
+      }
 
       ProgrammeGroupModuleSessionsResponseGroupModule(
         id = module.id!!,

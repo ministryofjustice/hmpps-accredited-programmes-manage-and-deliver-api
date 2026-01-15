@@ -78,15 +78,14 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     produces = ["application/json"],
   )
   fun getRisksByCrn(
-    @Pattern(
+    @PathVariable @Pattern(
       regexp = CRN_REGEX,
       message = "Invalid code format. Expected format for CRN: X718255",
     )
     @Parameter(
       description = "CRN",
       required = true,
-    )
-    @PathVariable("crn") crn: String,
+    ) crn: String,
   ): ResponseEntity<Risks> = ResponseEntity.ok(risksAndNeedsService.getRisksByCrn(crn))
 
   @Operation(
@@ -128,15 +127,14 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     produces = ["application/json"],
   )
   fun getLearningNeeds(
-    @Pattern(
+    @PathVariable @Pattern(
       regexp = CRN_REGEX,
       message = "Invalid code format. Expected format for CRN: X718255",
     )
     @Parameter(
       description = "CRN",
       required = true,
-    )
-    @PathVariable("crn") crn: String,
+    ) crn: String,
   ): ResponseEntity<LearningNeeds> = ResponseEntity.ok(risksAndNeedsService.getLearningNeedsForCrn(crn))
 
   @Operation(
@@ -178,16 +176,15 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     produces = ["application/json"],
   )
   fun getHealth(
-    @Pattern(
+    @PathVariable @Pattern(
       regexp = CRN_REGEX,
       message = "Invalid code format. Expected format for CRN: X718255",
     )
     @Parameter(
       description = "CRN",
       required = true,
-    )
-    @PathVariable("crn") crn: String,
-  ): ResponseEntity<Health?> = ResponseEntity
+    ) crn: String,
+  ): ResponseEntity<Health> = ResponseEntity
     .ok(
       risksAndNeedsService
         .getHealth(crn),
@@ -231,15 +228,14 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     produces = ["application/json"],
   )
   fun getRelationships(
-    @Pattern(
+    @PathVariable @Pattern(
       regexp = CRN_REGEX,
       message = "Invalid code format. Expected format for CRN: X718255",
     )
     @Parameter(
       description = "CRN",
       required = true,
-    )
-    @PathVariable("crn") crn: String,
+    ) crn: String,
   ): ResponseEntity<Relationships> = ResponseEntity.ok(risksAndNeedsService.getRelationshipsForCrn(crn))
 
   @Operation(
@@ -281,15 +277,14 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     produces = ["application/json"],
   )
   fun getRoshAnalysisByCrn(
-    @Pattern(
+    @PathVariable @Pattern(
       regexp = CRN_REGEX,
       message = "Invalid code format. Expected format for CRN: X718255",
     )
     @Parameter(
       description = "CRN",
       required = true,
-    )
-    @PathVariable("crn") crn: String,
+    ) crn: String,
   ): ResponseEntity<RoshAnalysis> = ResponseEntity.ok(risksAndNeedsService.getRoshFullForCrn(crn))
 
   @Operation(
@@ -331,15 +326,14 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     produces = ["application/json"],
   )
   fun getOffenceAnalysisForCrn(
-    @Pattern(
+    @PathVariable @Pattern(
       regexp = CRN_REGEX,
       message = "Invalid code format. Expected format for CRN: X718255",
     )
     @Parameter(
       description = "CRN",
       required = true,
-    )
-    @PathVariable("crn") crn: String,
+    ) crn: String,
   ): ResponseEntity<OffenceAnalysis> = ResponseEntity.ok(risksAndNeedsService.getOffenceAnalysis(crn))
 
   @Operation(
@@ -381,16 +375,15 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     produces = ["application/json"],
   )
   fun getDrugDetails(
-    @Pattern(
+    @PathVariable @Pattern(
       regexp = CRN_REGEX,
       message = "Invalid code format. Expected format for CRN: X718255",
     )
     @Parameter(
       description = "CRN",
       required = true,
-    )
-    @PathVariable("crn") crn: String,
-  ): ResponseEntity<DrugDetails?> = ResponseEntity
+    ) crn: String,
+  ): ResponseEntity<DrugDetails> = ResponseEntity
     .ok(
       risksAndNeedsService
         .getDrugDetails(crn),
@@ -435,16 +428,15 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     produces = ["application/json"],
   )
   fun getLifestyleAndAssociates(
-    @Pattern(
+    @PathVariable @Pattern(
       regexp = CRN_REGEX,
       message = "Invalid code format. Expected format for CRN: X718255",
     )
     @Parameter(
       description = "CRN",
       required = true,
-    )
-    @PathVariable("crn") crn: String,
-  ): ResponseEntity<LifestyleAndAssociates?> = ResponseEntity
+    ) crn: String,
+  ): ResponseEntity<LifestyleAndAssociates> = ResponseEntity
     .ok(
       risksAndNeedsService
         .getLifestyleAndAssociates(crn),
@@ -488,16 +480,15 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     produces = ["application/json"],
   )
   fun getAlcoholMisuseDetails(
-    @Pattern(
+    @PathVariable @Pattern(
       regexp = CRN_REGEX,
       message = "Invalid code format. Expected format for CRN: X718255",
     )
     @Parameter(
       description = "CRN",
       required = true,
-    )
-    @PathVariable("crn") crn: String,
-  ): ResponseEntity<AlcoholMisuseDetails?> = ResponseEntity
+    ) crn: String,
+  ): ResponseEntity<AlcoholMisuseDetails> = ResponseEntity
     .ok(risksAndNeedsService.getAlcoholMisuseDetails(crn))
 
   @Operation(
@@ -539,16 +530,15 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     produces = ["application/json"],
   )
   fun getEmotionalWellbeingDetails(
-    @Pattern(
+    @PathVariable @Pattern(
       regexp = CRN_REGEX,
       message = "Invalid code format. Expected format for CRN: X718255",
     )
     @Parameter(
       description = "CRN",
       required = true,
-    )
-    @PathVariable("crn") crn: String,
-  ): ResponseEntity<EmotionalWellbeing?> = ResponseEntity
+    ) crn: String,
+  ): ResponseEntity<EmotionalWellbeing> = ResponseEntity
     .ok(
       risksAndNeedsService
         .getEmotionalWellbeing(crn),
@@ -593,16 +583,15 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     produces = ["application/json"],
   )
   fun getThinkingAndBehaviourDetails(
-    @Pattern(
+    @PathVariable @Pattern(
       regexp = CRN_REGEX,
       message = "Invalid code format. Expected format for CRN: X718255",
     )
     @Parameter(
       description = "CRN",
       required = true,
-    )
-    @PathVariable("crn") crn: String,
-  ): ResponseEntity<ThinkingAndBehaviour?> = ResponseEntity
+    ) crn: String,
+  ): ResponseEntity<ThinkingAndBehaviour> = ResponseEntity
     .ok(
       risksAndNeedsService
         .getThinkingAndBehaviour(crn),
@@ -647,14 +636,13 @@ class RisksAndNeedsController(private val risksAndNeedsService: RisksAndNeedsSer
     produces = ["application/json"],
   )
   fun getAttitude(
-    @Pattern(
+    @PathVariable @Pattern(
       regexp = CRN_REGEX,
       message = "Invalid code format. Expected format for CRN: X718255",
     )
     @Parameter(
       description = "CRN",
       required = true,
-    )
-    @PathVariable("crn") crn: String,
-  ): ResponseEntity<Attitude?> = ResponseEntity.ok(risksAndNeedsService.getAttitude(crn))
+    ) crn: String,
+  ): ResponseEntity<Attitude> = ResponseEntity.ok(risksAndNeedsService.getAttitude(crn))
 }

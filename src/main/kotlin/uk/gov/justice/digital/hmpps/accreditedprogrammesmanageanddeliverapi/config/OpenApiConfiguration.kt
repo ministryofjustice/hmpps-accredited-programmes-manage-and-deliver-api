@@ -11,15 +11,18 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class OpenApiConfiguration(buildProperties: BuildProperties) {
-  private val version: String = buildProperties.version
+  private val version: String = buildProperties.version!!
 
   @Bean
   fun customOpenAPI(): OpenAPI = OpenAPI()
     .servers(
       listOf(
-        Server().url("https://accredited-programmes-manage-and-deliver-api-dev.hmpps.service.justice.gov.uk").description("Development"),
-        Server().url("https://accredited-programmes-manage-and-deliver-api-preprod.hmpps.service.justice.gov.uk").description("Pre-Production"),
-        Server().url("https://accredited-programmes-manage-and-deliver-api.hmpps.service.justice.gov.uk").description("Production"),
+        Server().url("https://accredited-programmes-manage-and-deliver-api-dev.hmpps.service.justice.gov.uk")
+          .description("Development"),
+        Server().url("https://accredited-programmes-manage-and-deliver-api-preprod.hmpps.service.justice.gov.uk")
+          .description("Pre-Production"),
+        Server().url("https://accredited-programmes-manage-and-deliver-api.hmpps.service.justice.gov.uk")
+          .description("Production"),
         Server().url("http://localhost:8080").description("Local"),
       ),
     )

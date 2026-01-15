@@ -325,7 +325,7 @@ class ReferralService(
       (transition == null || !transition.isContinuing) &&
       activeGroupMembership != null
     ) {
-      programmeGroupMembershipService.deleteGroupMembershipForReferralAndGroup(referral.id!!, activeGroupMembership.programmeGroup.id!!, createdBy)
+      programmeGroupMembershipService.deleteGroupMembershipForReferralAndGroup(referral, activeGroupMembership.programmeGroup, createdBy)
       if (incomingReferralStatusDescription.description != "Programme complete") {
         message =
           "${referral.personName}'s referral status is now ${incomingReferralStatusDescription.description}. They have been removed from group ${activeGroupMembership.programmeGroup.code}"
