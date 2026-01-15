@@ -216,21 +216,27 @@ class ProgrammeGroupService(
       ProgrammeGroupModuleSessionsResponseGroupModule(
         id = module.id!!,
         number = module.moduleNumber,
-        name = module.name,
+        name = if (module.name == "Pre-group") "${module.name} one-to-ones" else module.name,
         startDateText = StartDateText(
-          "Estimated start date of ${module.name} one to ones",
+          formatEstimatedStartText(module.name),
           group.sessions
             .filter { it.moduleSessionTemplate.sessionType == SessionType.ONE_TO_ONE }
             .minByOrNull { it.startsAt }?.startsAt?.toLocalDate()
             ?.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy"))
             .toString(),
         ),
-        scheduleButtonText = "Schedule a ${module.name} session",
+        scheduleButtonText = if (module.name == "Post programme review") "Schedule a post-programme review" else "Schedule a ${module.name} session",
         sessions = sessions,
       )
     }.orEmpty()
 
     return ProgrammeGroupModuleSessionsResponse(programmeGroupModuleSessionsResponseGroup, modules)
+  }
+
+  private fun formatEstimatedStartText(moduleName: String): String = when (moduleName) {
+    "Pre-group" -> "Estimated start date of $moduleName one-to-ones:"
+    "Post programme review" -> "Post-programme reviews deadline:"
+    else -> "Estimated date of $moduleName one to ones"
   }
 
   private fun formatTimeOfSession(startTime: LocalTime, duration: Int): String {
