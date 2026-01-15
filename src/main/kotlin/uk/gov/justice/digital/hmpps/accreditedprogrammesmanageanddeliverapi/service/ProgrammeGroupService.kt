@@ -206,7 +206,7 @@ class ProgrammeGroupService(
             name = getFormattedSessionNameForDisplay(sessionTemplate, scheduledSession),
             type = if (sessionTemplate.sessionType == SessionType.ONE_TO_ONE) "Individual" else "Group",
             dateOfSession = scheduledSession.startsAt.toLocalDate().format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")).toString(),
-            timeOfSession = formatTimeOfSession(scheduledSession.startsAt.toLocalTime(), sessionTemplate.durationMinutes),
+            timeOfSession = formatTimeOfSession(scheduledSession.startsAt.toLocalTime(), scheduledSession.endsAt.toLocalTime()),
             participants = if (sessionTemplate.sessionType == SessionType.GROUP) listOf("All") else scheduledSession.attendees.map { it.personName },
             facilitators = scheduledSession.sessionFacilitators.map { it.personName },
           )
@@ -239,8 +239,7 @@ class ProgrammeGroupService(
     else -> "Estimated date of $moduleName one to ones"
   }
 
-  private fun formatTimeOfSession(startTime: LocalTime, duration: Int): String {
-    val endTime = startTime.plusMinutes(duration.toLong())
+  private fun formatTimeOfSession(startTime: LocalTime, endTime: LocalTime): String {
     val formattedStartTime = formatTimeForUiDisplay(startTime)
     val formattedEndTime = formatTimeForUiDisplay(endTime)
     return "$formattedStartTime to $formattedEndTime"
