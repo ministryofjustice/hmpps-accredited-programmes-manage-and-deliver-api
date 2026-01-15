@@ -192,14 +192,15 @@ class TestDataGenerator {
 
   fun createAccreditedProgrammeTemplate(
     name: String,
-  ): AccreditedProgrammeTemplateEntity = accreditedProgrammeTemplateRepository.findFirstByName(name)
-    ?: accreditedProgrammeTemplateRepository.save(
-      AccreditedProgrammeTemplateEntity(
-        name = name,
-        validFrom = java.time.LocalDate.now(),
-        validUntil = null,
-      ),
+  ): AccreditedProgrammeTemplateEntity {
+    val template = AccreditedProgrammeTemplateEntity(
+      name = name,
+      validFrom = java.time.LocalDate.now(),
+      validUntil = null,
     )
+    entityManager.persist(template)
+    return template
+  }
 
   fun createModule(
     template: AccreditedProgrammeTemplateEntity,
