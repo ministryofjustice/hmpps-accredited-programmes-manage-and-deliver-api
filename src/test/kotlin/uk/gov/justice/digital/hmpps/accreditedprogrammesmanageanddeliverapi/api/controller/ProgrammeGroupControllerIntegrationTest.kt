@@ -893,8 +893,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `should remove referral from group and leave past session attendance records intact`() {
       // Given
       val groupCode = "AAA111"
-      val group = ProgrammeGroupFactory().withCode(groupCode).produce()
-      testDataGenerator.createGroup(group)
+      val group = testGroupHelper.createGroup(groupCode)
 
       val referral = testReferralHelper.createReferralWithStatus(
         referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
