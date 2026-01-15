@@ -41,11 +41,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
   @Autowired
   private lateinit var programmeGroupRepository: ProgrammeGroupRepository
 
-  @AfterEach
-  fun tearDown() {
-    testDataCleaner.cleanAllTables()
-  }
-
   @Nested
   @DisplayName("getProgrammeGroupsForRegion")
   inner class GetProgrammeGroupsForRegion {
