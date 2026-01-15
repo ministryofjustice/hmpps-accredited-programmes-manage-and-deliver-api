@@ -194,7 +194,7 @@ class ProgrammeGroupService(
     // We need to do this as we currently have no direct link from session templates to scheduled sessions.
     // This then builds the api response object with all the required data.
     val modules = group.accreditedProgrammeTemplate?.modules?.map { module ->
-      val sessions = module.sessionTemplates.flatMap { sessionTemplate ->
+      val sessions = module.sessionTemplates.map { sessionTemplate ->
         val scheduledSessions = getScheduledSessionForGroupAndSessionTemplate(
           groupId = group.id!!,
           sessionTemplateId = sessionTemplate.id!!,
@@ -205,14 +205,13 @@ class ProgrammeGroupService(
             number = sessionTemplate.sessionNumber,
             name = getFormattedSessionNameForDisplay(sessionTemplate, scheduledSession),
             type = sessionTemplate.sessionType,
-            dateOfSession = scheduledSession.startsAt.toLocalDate()
-              .format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")).toString(),
-            timeOfSession = formatTimeForUiDisplay(scheduledSession.startsAt.toLocalTime()),
+            dateOfSession = scheduledSession.startsAt.toLocalDate().format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")).toString(),
+            timeOfSession = formatTimeOfSession(scheduledSession.startsAt.toLocalTime(), sessionTemplate.durationMinutes),
             participants = if (sessionTemplate.sessionType == SessionType.GROUP) listOf("All") else scheduledSession.attendees.map { it.personName },
             facilitators = scheduledSession.sessionFacilitators.map { it.personName },
           )
         } ?: emptyList()
-      }
+      }.flatten()
 
       ProgrammeGroupModuleSessionsResponseGroupModule(
         id = module.id!!,
@@ -234,13 +233,20 @@ class ProgrammeGroupService(
     return ProgrammeGroupModuleSessionsResponse(programmeGroupModuleSessionsResponseGroup, modules)
   }
 
+  private fun formatTimeOfSession(startTime: LocalTime, duration: Int): String {
+    val endTime = startTime.plusMinutes(duration.toLong())
+    val formattedStartTime = formatTimeForUiDisplay(startTime)
+    val formattedEndTime = formatTimeForUiDisplay(endTime)
+    return "$formattedStartTime to $formattedEndTime"
+  }
+
   private fun formatTimeForUiDisplay(time: LocalTime): String = when {
     time.hour == 12 && time.minute == 0 -> "midday"
-    time.hour == 0 -> "midnight"
+    time.hour == 0 && time.minute == 0 -> "midnight"
     time.hour == 0 -> "12:${time.minute}am"
-    time.hour < 12 -> "${time.hour}:${time.minute}am"
-    time.hour == 12 -> "12:${time.minute}pm"
-    else -> "${time.hour - 12}:${time.minute}pm"
+    time.hour < 12 -> if (time.minute == 0) "${time.hour}am" else "${time.hour}:${time.minute}am"
+    time.hour == 12 -> if (time.minute == 0) "12pm" else "12:${time.minute}pm"
+    else -> if (time.minute == 0) "${time.hour - 12}pm" else "${time.hour - 12}:${time.minute}pm"
   }
 
   private fun getFormattedSessionNameForDisplay(sessionTemplate: ModuleSessionTemplateEntity, scheduledSession: SessionEntity): String = when (sessionTemplate.sessionType) {
