@@ -2,7 +2,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import java.util.UUID
 
 data class ProgrammeGroupModuleSessionsResponse(
@@ -64,7 +63,7 @@ data class ProgrammeGroupModuleSessionsResponseGroupSession(
   val name: String,
 
   @Schema(description = "The type of session", required = true, example = "one-to-one")
-  val type: SessionType,
+  val type: String,
 
   @Schema(description = "The date of the session", required = true, example = "Thursday 12 January 2023")
   val dateOfSession: String,
