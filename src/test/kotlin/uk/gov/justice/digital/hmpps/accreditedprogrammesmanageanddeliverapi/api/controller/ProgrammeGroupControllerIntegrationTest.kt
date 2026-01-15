@@ -1966,11 +1966,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       response.modules.forEach { module ->
         module.sessions.forEach { session ->
           when (session.type) {
-            SessionType.GROUP -> {
+            "Group" -> {
               assertThat(session.participants).isEqualTo(listOf("All"))
             }
-
-            SessionType.ONE_TO_ONE -> {
+            "Individual" -> {
               assertThat(session.participants).isNotEqualTo(listOf("All")) // TO be updated when attendees/facilitators tables are added.
             }
           }
