@@ -3,7 +3,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.rep
 import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
-import org.springframework.data.repository.query.Param
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import java.time.LocalDateTime
 import java.util.Optional
@@ -22,6 +21,5 @@ interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
   @EntityGraph(attributePaths = ["statusHistories"])
   fun findByCrn(crn: String): List<ReferralEntity>
 
-  @Query("SELECT r from ReferralEntity r WHERE r.sentenceEndDate IS NULL OR r.sex IS NULL AND r.createdAt < :cutoff")
-  fun getOldReferralsWithNulLSentenceEndDateOrSex(@Param("cutoff") cutoff: LocalDateTime): List<ReferralEntity>
+  fun findAllByCreatedAtBefore(createdAtBefore: LocalDateTime): MutableList<ReferralEntity>
 }
