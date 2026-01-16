@@ -22,8 +22,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.util.UUID
@@ -36,6 +39,9 @@ class TestDataGenerator {
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
+
+  @Autowired
+  private lateinit var accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository
 
   @Autowired
   private lateinit var moduleSessionTemplateRepository: ModuleSessionTemplateRepository
@@ -215,5 +221,25 @@ class TestDataGenerator {
   fun createFacilitator(facilitator: FacilitatorEntity): FacilitatorEntity {
     entityManager.persist(facilitator)
     return facilitator
+  }
+
+  fun createModuleSessionTemplate(
+    module: ModuleEntity,
+    name: String,
+    sessionNumber: Int,
+    sessionType: SessionType = SessionType.GROUP,
+    pathway: Pathway = Pathway.MODERATE_INTENSITY,
+    durationMinutes: Int = 120,
+  ): ModuleSessionTemplateEntity {
+    val template = ModuleSessionTemplateEntity(
+      module = module,
+      name = name,
+      sessionNumber = sessionNumber,
+      sessionType = sessionType,
+      pathway = pathway,
+      durationMinutes = durationMinutes,
+    )
+    entityManager.persist(template)
+    return template
   }
 }

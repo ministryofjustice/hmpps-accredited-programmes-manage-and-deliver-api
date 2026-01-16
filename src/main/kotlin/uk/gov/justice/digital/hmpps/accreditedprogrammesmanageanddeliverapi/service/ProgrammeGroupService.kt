@@ -13,6 +13,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSchedule
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleSession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
@@ -35,6 +37,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
@@ -53,6 +56,7 @@ class ProgrammeGroupService(
   private val groupWaitlistItemViewRepository: GroupWaitlistItemViewRepository,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
   private val userService: UserService,
+  private val facilitatorRepository: FacilitatorRepository,
   private val accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository,
   private val scheduleService: ScheduleService,
   private val sessionRepository: SessionRepository,
@@ -246,6 +250,45 @@ class ProgrammeGroupService(
     groupId: UUID,
     sessionTemplateId: UUID,
   ): List<SessionEntity>? = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplateId, groupId)
+
+  fun getScheduleForGroup(groupId: UUID): GroupSchedule? {
+    val group = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
+
+    val sessions = sessionRepository.findByProgrammeGroupId(groupId)
+
+    val scheduleSessions = sessions.map { session ->
+      GroupScheduleSession(
+        id = session.id,
+        name = session.moduleSessionTemplate.name,
+        // TODO: ModuleSessionTemplateEntity.sessionType instead for type?
+        type = if (session.moduleSessionTemplate.name.contains("one-to-one", ignoreCase = true)) "Individual" else "Group",
+        date = session.startsAt.toLocalDate().toString(),
+        time = formatTimeForUiDisplay(session.startsAt.toLocalTime()),
+      )
+    }
+
+    val preGroupOneToOneDate = sessions
+      .filter { it.moduleSessionTemplate.name == "Pre-group one-to-ones" }
+      .minByOrNull { it.startsAt }
+      ?.startsAt?.toLocalDate()?.toString() ?: ""
+
+    val gettingStartedStartDate = sessions
+      .filter { it.moduleSessionTemplate.name.startsWith("Getting started") }
+      .minByOrNull { it.startsAt }
+      ?.startsAt?.toLocalDate()?.toString() ?: ""
+
+    val endDate = sessions
+      .maxByOrNull { it.startsAt }
+      ?.startsAt?.toLocalDate()?.toString() ?: ""
+
+    return GroupSchedule(
+      preGroupOneToOneStartDate = preGroupOneToOneDate,
+      gettingStartedModuleStartDate = gettingStartedStartDate,
+      endDate = endDate,
+      modules = scheduleSessions,
+    )
+  }
 
   fun getProgrammeGroupsForRegion(
     pageable: Pageable,

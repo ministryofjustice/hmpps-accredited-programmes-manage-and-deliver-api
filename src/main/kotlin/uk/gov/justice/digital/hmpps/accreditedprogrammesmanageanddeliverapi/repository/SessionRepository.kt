@@ -7,6 +7,6 @@ import java.util.UUID
 
 @Repository
 interface SessionRepository : JpaRepository<SessionEntity, UUID> {
-
+  fun findByProgrammeGroupId(groupId: UUID): List<SessionEntity>
   fun findByModuleSessionTemplateIdAndProgrammeGroupId(moduleSessionTemplateId: UUID, programmeGroupId: UUID): List<SessionEntity>
 }

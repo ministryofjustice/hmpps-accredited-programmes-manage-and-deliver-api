@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -22,6 +23,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSchedule
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
@@ -48,6 +50,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -1989,6 +1992,105 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
+    }
+  }
+
+  @Nested
+  @DisplayName("Get Schedules")
+  inner class GetSchedules {
+
+    @AfterEach
+    fun tearDown() {
+      testDataCleaner.cleanAllTables()
+    }
+
+    @Test
+    fun `return 401 when unauthorised for schedule`() {
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/group/${UUID.randomUUID()}/schedule")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+
+    @Test
+    fun `returns 404 when group does not exist for schedule`() {
+      val nonExistentGroupId = UUID.randomUUID()
+      val module = programmeGroupModuleRepository.findAll().first()
+
+      val errorResponse = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/$nonExistentGroupId/schedule",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(errorResponse.status).isEqualTo(HttpStatus.NOT_FOUND.value())
+      assertThat(errorResponse.userMessage).contains("Group with id $nonExistentGroupId not found")
+    }
+
+    @Test
+    fun `returns 200 when group does exist for schedule`() {
+      // Given
+      val template = testDataGenerator.createAccreditedProgrammeTemplate("Building Choices")
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withCode("GET_SCHED_200")
+          .withRegionName("WIREMOCKED REGION")
+          .withAccreditedProgrammeTemplate(template)
+          .produce(),
+      )
+
+      val module = testDataGenerator.createModule(template, "Module 1", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(module, "Pre-group one-to-ones", 1)
+
+      testDataGenerator.createSession(
+        SessionEntity(
+          programmeGroup = group,
+          moduleSessionTemplate = sessionTemplate,
+          startsAt = LocalDateTime.of(2026, 6, 1, 9, 0),
+          endsAt = LocalDateTime.of(2026, 6, 1, 11, 0),
+          isPlaceholder = false,
+        ),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/schedule",
+        returnType = object : ParameterizedTypeReference<GroupSchedule>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.preGroupOneToOneStartDate).isEqualTo("2026-06-01")
+      assertThat(response.modules).hasSize(1)
+      assertThat(response.modules.first().name).isEqualTo("Pre-group one-to-ones")
+      assertThat(response.modules.first().type).isEqualTo("Individual")
+    }
+
+    @Test
+    fun `returns 200 with empty fields when group has no sessions`() {
+      // Given
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory().withCode("EMPTY_SCHED").produce(),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/schedule",
+        returnType = object : ParameterizedTypeReference<GroupSchedule>() {},
+      )
+
+      // Then
+      assertThat(response.modules).isEmpty()
+      assertThat(response.preGroupOneToOneStartDate).isEmpty()
+      assertThat(response.endDate).isEmpty()
     }
   }
 }
