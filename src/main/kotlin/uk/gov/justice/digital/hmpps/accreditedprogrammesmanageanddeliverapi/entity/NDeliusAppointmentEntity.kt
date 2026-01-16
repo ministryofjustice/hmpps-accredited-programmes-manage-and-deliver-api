@@ -6,8 +6,9 @@ import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
-import jakarta.persistence.OneToOne
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import org.jetbrains.annotations.NotNull
 import java.util.UUID
 
 @Entity
@@ -18,13 +19,23 @@ class NDeliusAppointmentEntity(
   @Column(name = "id")
   var id: UUID? = null,
 
-  @OneToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "session_attendance_id", unique = true)
-  var sessionAttendance: SessionAttendanceEntity,
+  @NotNull
+  @Column("ndelius_appointment_id")
+  var ndeliusAppointmentId: UUID,
 
-  @Column(name = "licence_condition_id")
-  var licenceConditionId: String? = null,
+  @NotNull
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "session_id")
+  var session: SessionEntity,
 
-  @Column(name = "requirement_id")
-  var requirementId: String? = null,
+  @NotNull
+  @JoinColumn(name = "referral_id")
+  @ManyToOne(fetch = FetchType.LAZY)
+  var referral: ReferralEntity,
+)
+
+fun AttendeeEntity.toNdeliusAppointmentEntity(ndeliusAppointmentId: UUID) = NDeliusAppointmentEntity(
+  ndeliusAppointmentId = ndeliusAppointmentId,
+  session = session,
+  referral = referral,
 )

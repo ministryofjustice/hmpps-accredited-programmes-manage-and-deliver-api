@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -27,6 +28,7 @@ class ProgrammeGroupMembershipService(
   private val referralRepository: ReferralRepository,
   private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
+  private val scheduleService: ScheduleService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -66,14 +68,21 @@ class ProgrammeGroupMembershipService(
     val currentGroupMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId)
       ?: throw NotFoundException("No group membership found for referral $referralId")
 
-    group.sessions.forEach { session ->
-      session.attendees.add(
-        AttendeeEntity(
-          referral = currentGroupMembership.referral,
-          session = session,
-        ),
+    // Filter out individual sessions
+    val coreGroupSessions =
+      group.sessions.filter { it.sessionType == SessionType.GROUP }
+
+    val newAttendees = coreGroupSessions.map { session ->
+      val attendeeEntity = AttendeeEntity(
+        referral = currentGroupMembership.referral,
+        session = session,
       )
+      session.attendees.add(attendeeEntity)
+      attendeeEntity
     }
+
+    // Create appointment in NDelius for each session object
+    scheduleService.createNdeliusAppointmentsForSessions(newAttendees)
 
     return referralRepository.save(referral)
   }
