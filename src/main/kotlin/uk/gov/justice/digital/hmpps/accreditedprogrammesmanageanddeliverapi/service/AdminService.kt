@@ -63,9 +63,9 @@ class AdminService(
 
   fun cleanUpReferralsWithNoDeliusOrOasysData() {
     val cutoff = LocalDateTime.now().minusDays(7)
-    val referrals = referralRepository.getOldReferralsWithNulLSentenceEndDateOrSex(cutoff)
+    val referrals = referralRepository.findAllByCreatedAtBefore(cutoff)
 
-    log.info("Found {} referrals with missing NDelius or OASys data", referrals.size)
+    log.info("Found {} referrals", referrals.size)
 
     val results = referrals.mapIndexed { index, referral ->
       log.info("[{}/{}] Processing referral {}", index + 1, referrals.size, referral.id)
