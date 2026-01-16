@@ -14,7 +14,7 @@ class AssessRiskAndNeedsApiClient(
   @Qualifier("arnsApiWebClient") webClient: WebClient,
 ) : BaseHMPPSClient(webClient, jacksonObjectMapper()) {
 
-  fun getRiskPredictors(assessmentId: Long) = getRequest<AllPredictorVersioned<Any>>(ARNS_API) {
+  fun getRiskPredictors(assessmentId: Long) = getRequest<AllPredictorVersioned<*>>(ARNS_API) {
     path = "/assessments/id/$assessmentId/risk/predictors/all"
   }
 }
