@@ -57,7 +57,11 @@ class UserService(
         log.warn("User $username has teams but no regions associated with them")
         emptyList()
       } else {
-        log.debug("User $username has access to regions: ${regionNames.joinToString(", ") { it.description }}")
+        log.debug(
+          "User $username has access to regions: ${
+            regionNames.distinct().joinToString(", ") { it.description }
+          }",
+        )
         regionNames
       }
     }
