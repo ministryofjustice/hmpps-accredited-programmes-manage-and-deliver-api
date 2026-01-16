@@ -307,9 +307,7 @@ class NDeliusApiStubs {
       post(urlEqualTo("/appointments"))
         .willReturn(
           aResponse()
-            .withStatus(201)
-            .withHeader("Content-Type", "application/json")
-            .withBody("{}"),
+            .withStatus(201),
         ),
     )
   }

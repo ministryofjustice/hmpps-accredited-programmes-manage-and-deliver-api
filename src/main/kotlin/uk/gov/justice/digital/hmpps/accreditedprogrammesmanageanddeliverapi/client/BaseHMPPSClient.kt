@@ -58,13 +58,21 @@ abstract class BaseHMPPSClient(
       if (requestBuilder.body != null) {
         request.bodyValue(requestBuilder.body!!)
       }
+
       val result = request.retrieve().toEntity<String>().block()!!
-      val deserialized = objectMapper.readValue(result.body, typeReference)
+
+      // Map an empty response body to empty object
+      val responseBody = result.body?.takeIf { it.isNotBlank() } ?: "{}"
+
+      val deserialized = objectMapper.readValue(responseBody, typeReference)
 
       return ClientResult.Success(result.statusCode, deserialized)
     } catch (exception: WebClientResponseException) {
       if (exception.statusCode.is5xxServerError) {
-        log.error("Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.", exception)
+        log.error(
+          "Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.",
+          exception,
+        )
         throw ServiceUnavailableException(
           "$serviceName is temporarily unavailable. Please try again later.",
           exception,
@@ -77,7 +85,10 @@ abstract class BaseHMPPSClient(
           exception.responseBodyAsString,
         )
       } else {
-        log.error("Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.", exception)
+        log.error(
+          "Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.",
+          exception,
+        )
         throw exception
       }
     } catch (exception: Exception) {
