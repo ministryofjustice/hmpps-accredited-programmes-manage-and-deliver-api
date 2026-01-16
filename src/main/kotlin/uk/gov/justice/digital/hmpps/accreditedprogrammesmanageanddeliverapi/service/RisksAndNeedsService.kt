@@ -28,6 +28,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysRoshSummary
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.getLatestCompletedLayerThreeAssessment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.toModel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import java.time.LocalDateTime
 
@@ -150,7 +151,7 @@ class RisksAndNeedsService(
     val oasysRelationships: OasysRelationships =
       getDetails(assessmentId, oasysApiClient::getRelationships, "Relationships")
     val oasysRoshSummary: OasysRoshSummary = getDetails(assessmentId, oasysApiClient::getRoshSummary, "RoshSummary")
-    val riskPredictors: AllPredictorVersioned<Any> =
+    val riskPredictors: AllPredictorVersioned<*> =
       getDetails(assessmentId, assessRiskAndNeedsApiClient::getRiskPredictors, "AllPredictorVersioned")
     val activeAlerts: NDeliusRegistrations? = getActiveAlerts(crn)
 
@@ -194,12 +195,17 @@ class RisksAndNeedsService(
     entityName: String,
   ): T = when (val response = fetchFunction(assessmentId)) {
     is ClientResult.Failure -> {
-      log.warn(
-        "Failure to retrieve $entityName data for assessmentId $assessmentId reason ${response.toException().cause}",
-        response.toException(),
-        response.getErrorMessage(),
-      )
-      throw NotFoundException("Failure to retrieve $entityName data for assessmentId: $assessmentId, reason: '${response.toException().message}'")
+      val exception = response.toException()
+      if (response is ClientResult.Failure.StatusCode && response.status.value() == 404) {
+        log.warn(
+          "Failure to retrieve $entityName data for assessmentId $assessmentId reason ${response.toException().cause}",
+          response.toException(),
+          response.getErrorMessage(),
+        )
+        throw NotFoundException("Failure to retrieve $entityName data for assessmentId: $assessmentId, reason: '${response.toException().message}'")
+      }
+      log.error("Failure retrieving $entityName for assessmentId $assessmentId. Reason: ${exception.message}", exception)
+      throw BusinessException("Failed to retrieve $entityName data for assessmentId: $assessmentId due to upstream error")
     }
 
     is ClientResult.Success -> response.body

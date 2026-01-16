@@ -80,7 +80,7 @@ fun buildRiskModel(
   oasysOffendingInfo: OasysOffendingInfo?,
   oasysRelationships: OasysRelationships?,
   oasysRoshSummary: OasysRoshSummary?,
-  riskPredictors: AllPredictorVersioned<Any>?,
+  riskPredictors: AllPredictorVersioned<*>?,
   alerts: NDeliusRegistrations?,
   now: LocalDate? = LocalDate.now(),
 ): Risks {
