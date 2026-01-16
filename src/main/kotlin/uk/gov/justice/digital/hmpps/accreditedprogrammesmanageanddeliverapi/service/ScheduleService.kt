@@ -202,6 +202,8 @@ class ScheduleService(
       }
     }
 
+    // Save the group here so the parent entity is updated and updates the corresponding sessions
+    // otherwise JPA does not always update the inverse side of the relationship.
     group.sessions.addAll(generatedSessions)
     programmeGroupRepository.save(group)
 
