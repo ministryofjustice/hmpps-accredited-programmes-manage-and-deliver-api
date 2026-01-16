@@ -319,12 +319,14 @@ class ScheduleService(
       )
     }
 
-    is ClientResult.Success ->
+    is ClientResult.Success -> {
+      log.debug("Successfully retrieved UK bank holidays...")
       response.body.englandAndWales.events
         .mapNotNull { event ->
           runCatching { LocalDate.parse(event.date) }.getOrNull()
         }
         .toSet()
+    }
   }
 
   private fun convertToLocalDateTime(startDate: LocalDate, sessionTime: SessionTime): LocalDateTime = LocalDateTime.of(
