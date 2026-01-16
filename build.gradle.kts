@@ -51,7 +51,7 @@ dependencies {
   testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
-  runtimeOnly("org.postgresql:postgresql:42.7.8")
+  runtimeOnly("org.postgresql:postgresql:42.7.9")
 }
 
 kotlin {
