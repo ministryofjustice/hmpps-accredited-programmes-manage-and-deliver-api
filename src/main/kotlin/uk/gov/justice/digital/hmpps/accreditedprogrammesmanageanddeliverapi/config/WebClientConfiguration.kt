@@ -83,7 +83,7 @@ class WebClientConfiguration(
     clientRegistrations: ClientRegistrationRepository,
     authorizedClients: OAuth2AuthorizedClientRepository,
     authorizedClientManager: OAuth2AuthorizedClientManager,
-    @Value("\${services.oasys-api.base-url}") assessRiskAndNeedsBaseUrl: String,
+    @Value("\${services.assess-risks-and-needs-api.base-url}") assessRiskAndNeedsBaseUrl: String,
   ): WebClient {
     val oauth2Client = ServletOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager)
 
