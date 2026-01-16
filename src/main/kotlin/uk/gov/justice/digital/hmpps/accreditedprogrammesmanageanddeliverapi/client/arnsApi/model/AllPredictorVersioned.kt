@@ -10,6 +10,7 @@ import java.time.LocalDateTime
   include = JsonTypeInfo.As.EXISTING_PROPERTY,
   property = "outputVersion",
   visible = true,
+  defaultImpl = AllPredictorVersionedLegacyDto::class,
 )
 @JsonSubTypes(
   JsonSubTypes.Type(value = AllPredictorVersionedLegacyDto::class, name = "1"),

@@ -68,7 +68,7 @@ abstract class BaseHMPPSClient(
       return ClientResult.Success(result.statusCode, deserialized)
     } catch (exception: WebClientResponseException) {
       if (exception.statusCode.is5xxServerError) {
-        log.error("Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.")
+        log.error("Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.", exception)
         throw ServiceUnavailableException(
           "$serviceName is temporarily unavailable. Please try again later.",
           exception,
@@ -81,10 +81,7 @@ abstract class BaseHMPPSClient(
           exception.responseBodyAsString,
         )
       } else {
-        log.error(
-          "Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.",
-          exception,
-        )
+        log.error("Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.", exception)
         throw exception
       }
     } catch (exception: Exception) {
