@@ -68,6 +68,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -109,6 +110,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var programmeGroupModuleRepository: ModuleRepository
+
+  @Autowired
+  private lateinit var moduleSessionTemplateRepository: ModuleSessionTemplateRepository
 
   @BeforeEach
   override fun beforeEach() {
@@ -1722,6 +1726,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   inner class GetSessionTemplatesForGroupModule {
     val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
 
+    @BeforeEach
+    fun before() {
+      testDataCleaner.cleanAllTables()
+    }
+
     @Test
     fun `Successfully retrieves session templates for a module using V56 migration data`() {
       // Given
@@ -2006,7 +2015,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `returns 200 when group does exist for schedule`() {
       // Given
-      val template = testDataGenerator.createAccreditedProgrammeTemplate("Building Choices")
+      val template = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+      assertThat(template).isNotNull
+      val buildingChoicesTemplateId = template.id!!
+
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withCode("GET_SCHED_200")
@@ -2014,9 +2026,16 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           .withAccreditedProgrammeTemplate(template)
           .produce(),
       )
+      val modules = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplateId)
+      assertThat(modules).isNotEmpty
 
-      val module = testDataGenerator.createModule(template, "Module 1", 1)
-      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(module, "Pre-group one-to-ones", 1)
+      // Find Pre-Group module (module_number = 1)
+      val preGroupModule = modules.find { it.name.startsWith("Pre-group") }
+      assertThat(preGroupModule).isNotNull
+      val preGroupModuleId = preGroupModule!!.id!!
+
+      val preGroupModuleSessions = moduleSessionTemplateRepository.findByModuleId(preGroupModuleId)
+      val sessionTemplate = preGroupModuleSessions.first()
 
       testDataGenerator.createSession(
         SessionEntity(
@@ -2038,9 +2057,21 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       assertThat(response).isNotNull
       assertThat(response.preGroupOneToOneStartDate).isEqualTo("2026-06-01")
+      assertThat(response.gettingStartedModuleStartDate).isEmpty()
+      assertThat(response.endDate).isEqualTo("2026-06-01")
+
       assertThat(response.modules).hasSize(1)
-      assertThat(response.modules.first().name).isEqualTo("Pre-group one-to-ones")
-      assertThat(response.modules.first().type).isEqualTo("Individual")
+
+      val session = response.modules.first()
+      assertThat(session.name).isEqualTo(sessionTemplate.name)
+      assertThat(session.date).isEqualTo("2026-06-01")
+      assertThat(session.time).isEqualTo("9:00am")
+
+      val expectedType = if (sessionTemplate.name.contains("one-to-one", ignoreCase = true)) {
+        "Individual"
+      } else {
+        "Group"
+      }
     }
 
     @Test

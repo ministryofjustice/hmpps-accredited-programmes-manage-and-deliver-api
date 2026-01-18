@@ -2,7 +2,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.rep
 
 import jakarta.transaction.Transactional
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleEntity
@@ -15,11 +14,6 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
   private lateinit var repository: AccreditedProgrammeTemplateRepository
 
   private fun getBuildingChoicesTemplate() = repository.findAll().firstOrNull { it.name == "Building Choices" }
-
-  @AfterEach
-  fun tearDown() {
-    testDataCleaner.cleanAllTables()
-  }
 
   @Test
   @Transactional

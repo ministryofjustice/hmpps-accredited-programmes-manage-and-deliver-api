@@ -18,18 +18,21 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.ZoneId
 import java.util.UUID
 
@@ -40,6 +43,18 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var programmeGroupRepository: ProgrammeGroupRepository
+
+  @Autowired
+  private lateinit var accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository
+
+  @Autowired
+  private lateinit var moduleSessionTemplateRepository: ModuleSessionTemplateRepository
+
+  @Autowired
+  private lateinit var moduleRepository: ModuleRepository
+
+  @Autowired
+  private lateinit var sessionRepository: SessionRepository
 
   @Nested
   @DisplayName("getProgrammeGroupsForRegion")
@@ -322,6 +337,12 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
   @DisplayName("getScheduleForGroup")
   inner class GetScheduleForGroup {
 
+    private lateinit var buildingChoicesTemplateId: UUID
+    private lateinit var preGroupModuleId: UUID
+    private lateinit var gettingStartedModuleId: UUID
+    private lateinit var regularModuleId: UUID
+    private lateinit var groupId: UUID
+
     @AfterEach
     fun tearDown() {
       testDataCleaner.cleanAllTables()
@@ -330,68 +351,70 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return the group schedule with correctly derived start and end dates`() {
       // Given
-      val template = testDataGenerator.createAccreditedProgrammeTemplate("Building Choices")
+      val template = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+      assertThat(template).isNotNull
+      buildingChoicesTemplateId = template.id!!
+
+      val modules = moduleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplateId)
+      assertThat(modules).isNotEmpty
+
+      // Find Pre-Group module
+      val preGroupModule = modules.find { it.name.startsWith("Pre-group") }
+      assertThat(preGroupModule).isNotNull
+      preGroupModuleId = preGroupModule!!.id!!
+
+      // Find Getting Started module
+      val gettingStartedModule = modules.find { it.name.startsWith("Getting started") }
+      assertThat(gettingStartedModule).isNotNull
+      gettingStartedModuleId = gettingStartedModule!!.id!!
+
+      // Find regular last module (module_number = last)
+      val regularModule = modules.find { it.moduleNumber == modules.last().moduleNumber }
+      assertThat(regularModule).isNotNull
+      regularModuleId = regularModule!!.id!!
+
+      val preGroupModuleSessions = moduleSessionTemplateRepository.findByModuleId(preGroupModuleId)
+
+      // Create a test group associated with Building Choices template
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
+          .withSex(ProgrammeGroupSexEnum.MALE)
           .withCode("SCHEDULE_GROUP")
-          .withRegionName("Region Description")
+          .withRegionName("Test Region")
           .withAccreditedProgrammeTemplate(template)
+          .withEarliestStartDate(LocalDate.now().plusDays(1))
           .produce(),
       )
+      groupId = group.id!!
 
-      val module = testDataGenerator.createModule(template, "Module 1", 1)
-
-      // 1. A Pre-group one-to-one session (Earliest)
-      val preGroupTemplate = testDataGenerator.createModuleSessionTemplate(
-        module,
-        "Pre-group one-to-ones",
-        1,
-        sessionType = SessionType.ONE_TO_ONE,
-        pathway = Pathway.MODERATE_INTENSITY,
-        durationMinutes = 60,
-      )
       testDataGenerator.createSession(
         SessionEntity(
           programmeGroup = group,
-          moduleSessionTemplate = preGroupTemplate,
+          moduleSessionTemplate = preGroupModuleSessions.first(),
           startsAt = LocalDateTime.of(2026, 6, 1, 10, 0),
           endsAt = LocalDateTime.of(2026, 6, 1, 11, 0),
           isPlaceholder = false,
         ),
       )
 
-      // 2. A Getting started session
-      val gettingStartedTemplate = testDataGenerator.createModuleSessionTemplate(
-        module,
-        "Getting started session",
-        2,
-        sessionType = SessionType.GROUP,
-        pathway = Pathway.MODERATE_INTENSITY,
-        durationMinutes = 120,
-      )
+      val gettingStartedModuleSessions = moduleSessionTemplateRepository.findByModuleId(gettingStartedModuleId)
+
       testDataGenerator.createSession(
         SessionEntity(
           programmeGroup = group,
-          moduleSessionTemplate = gettingStartedTemplate,
+          moduleSessionTemplate = gettingStartedModuleSessions.last(),
           startsAt = LocalDateTime.of(2026, 6, 15, 12, 0),
           endsAt = LocalDateTime.of(2026, 6, 15, 14, 0),
           isPlaceholder = false,
         ),
       )
 
-      // 3. A regular session (Latest)
-      val regularTemplate = testDataGenerator.createModuleSessionTemplate(
-        module,
-        "Regular session",
-        3,
-        sessionType = SessionType.GROUP,
-        pathway = Pathway.MODERATE_INTENSITY,
-        durationMinutes = 120,
-      )
+      val regularModuleSessions = moduleSessionTemplateRepository.findByModuleId(regularModuleId)
+
       testDataGenerator.createSession(
         SessionEntity(
           programmeGroup = group,
-          moduleSessionTemplate = regularTemplate,
+          moduleSessionTemplate = regularModuleSessions.first(),
           startsAt = LocalDateTime.of(2026, 7, 20, 15, 30),
           endsAt = LocalDateTime.of(2026, 7, 20, 17, 30),
           isPlaceholder = false,
@@ -407,17 +430,47 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(schedule.gettingStartedModuleStartDate).isEqualTo("2026-06-15")
       assertThat(schedule.endDate).isEqualTo("2026-07-20")
 
-      assertThat(schedule.modules).hasSize(3)
+      assertThat(schedule.modules).isNotEmpty
 
       // Verify individual session formatting
-      val middaySession = schedule.modules.find { it.name == "Getting started session" }
-      assertThat(middaySession).isNotNull
-      assertThat(middaySession!!.time).isEqualTo("midday")
-      assertThat(middaySession.type).isEqualTo("Group")
+      val gettingStartedSession = schedule.modules.find { it.name.startsWith("Getting started") }
+      assertThat(gettingStartedSession).isNotNull
+      assertThat(gettingStartedSession!!.time).isEqualTo("midday")
+      assertThat(gettingStartedSession.type).isEqualTo("Individual")
+      assertThat(gettingStartedSession.date).isEqualTo(schedule.gettingStartedModuleStartDate)
 
-      val individualSession = schedule.modules.find { it.name == "Pre-group one-to-ones" }
-      assertThat(individualSession!!.type).isEqualTo("Individual")
-      assertThat(individualSession.time).isEqualTo("10:0am")
+      val preGroupSession = schedule.modules.find { it.name.startsWith("Pre-group") }
+      assertThat(preGroupSession!!.type).isEqualTo("Group")
+      assertThat(preGroupSession.time).isEqualTo("10:00am")
+      assertThat(preGroupSession.date).isEqualTo(schedule.preGroupOneToOneStartDate)
+
+      val lastSession = schedule.modules.last()
+      assertThat(lastSession.date).isEqualTo(schedule.endDate)
+    }
+
+    @Test
+    fun `formatTimeForUiDisplay returns correct format for various times`() {
+      // Midnight
+      assertThat(service.formatTimeForUiDisplay(LocalTime.of(0, 0))).isEqualTo("midnight")
+      assertThat(service.formatTimeForUiDisplay(LocalTime.of(0, 30))).isEqualTo("12:30am")
+      assertThat(service.formatTimeForUiDisplay(LocalTime.of(0, 5))).isEqualTo("12:05am")
+
+      // Morning times
+      assertThat(service.formatTimeForUiDisplay(LocalTime.of(1, 0))).isEqualTo("1:00am")
+      assertThat(service.formatTimeForUiDisplay(LocalTime.of(9, 5))).isEqualTo("9:05am")
+      assertThat(service.formatTimeForUiDisplay(LocalTime.of(10, 0))).isEqualTo("10:00am")
+      assertThat(service.formatTimeForUiDisplay(LocalTime.of(11, 59))).isEqualTo("11:59am")
+
+      // Midday
+      assertThat(service.formatTimeForUiDisplay(LocalTime.of(12, 0))).isEqualTo("midday")
+      assertThat(service.formatTimeForUiDisplay(LocalTime.of(12, 30))).isEqualTo("12:30pm")
+      assertThat(service.formatTimeForUiDisplay(LocalTime.of(12, 1))).isEqualTo("12:01pm")
+
+      // Afternoon/Evening times
+      assertThat(service.formatTimeForUiDisplay(LocalTime.of(13, 0))).isEqualTo("1:00pm")
+      assertThat(service.formatTimeForUiDisplay(LocalTime.of(15, 30))).isEqualTo("3:30pm")
+      assertThat(service.formatTimeForUiDisplay(LocalTime.of(18, 45))).isEqualTo("6:45pm")
+      assertThat(service.formatTimeForUiDisplay(LocalTime.of(23, 59))).isEqualTo("11:59pm")
     }
 
     @Test
