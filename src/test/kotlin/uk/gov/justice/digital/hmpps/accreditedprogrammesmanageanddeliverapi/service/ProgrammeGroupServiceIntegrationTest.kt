@@ -28,7 +28,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -52,9 +51,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var moduleRepository: ModuleRepository
-
-  @Autowired
-  private lateinit var sessionRepository: SessionRepository
 
   @Nested
   @DisplayName("getProgrammeGroupsForRegion")
@@ -426,7 +422,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(schedule).isNotNull
-      assertThat(schedule!!.preGroupOneToOneStartDate).isEqualTo("2026-06-01")
+      assertThat(schedule.preGroupOneToOneStartDate).isEqualTo("2026-06-01")
       assertThat(schedule.gettingStartedModuleStartDate).isEqualTo("2026-06-15")
       assertThat(schedule.endDate).isEqualTo("2026-07-20")
 

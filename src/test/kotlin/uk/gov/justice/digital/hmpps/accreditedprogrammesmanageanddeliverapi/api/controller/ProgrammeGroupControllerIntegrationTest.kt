@@ -2054,7 +2054,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val modules = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplateId)
       assertThat(modules).isNotEmpty
 
-      // Find Pre-Group module (module_number = 1)
       val preGroupModule = modules.find { it.name.startsWith("Pre-group") }
       assertThat(preGroupModule).isNotNull
       val preGroupModuleId = preGroupModule!!.id!!

@@ -37,7 +37,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
@@ -56,7 +55,6 @@ class ProgrammeGroupService(
   private val groupWaitlistItemViewRepository: GroupWaitlistItemViewRepository,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
   private val userService: UserService,
-  private val facilitatorRepository: FacilitatorRepository,
   private val accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository,
   private val scheduleService: ScheduleService,
   private val sessionRepository: SessionRepository,
