@@ -1,5 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
+import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -52,7 +54,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusRegionWithMembersFactory
@@ -69,12 +70,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.DayOfWeek
@@ -112,12 +115,18 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   private lateinit var programmeGroupModuleRepository: ModuleRepository
 
   @Autowired
+  private lateinit var nDeliusAppointmentRepository: NDeliusAppointmentRepository
+
+  @Autowired
+  private lateinit var scheduleService: ScheduleService
+
+  @Autowired
   private lateinit var moduleSessionTemplateRepository: ModuleSessionTemplateRepository
 
   @BeforeEach
   override fun beforeEach() {
     testDataCleaner.cleanAllTables()
-
+    nDeliusApiStubs.clearAllStubs()
     govUkApiStubs.stubBankHolidaysResponse()
     nDeliusApiStubs.stubUserTeamsResponse(
       "AUTH_ADM",
@@ -162,8 +171,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `getGroupDetails returns 200 with valid group and waitlist data`() {
       // Given
       stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST001").withRegionName("TEST REGION").produce()
-      testDataGenerator.createGroup(group)
+      val group = testGroupHelper.createGroup(groupCode = "TEST001")
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
       val referral = referrals.first()
@@ -183,7 +192,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       assertThat(response).isNotNull
       assertThat(response.group.code).isEqualTo("TEST001")
-      assertThat(response.group.regionName).isEqualTo("TEST REGION")
+      assertThat(response.group.regionName).isEqualTo("WIREMOCKED REGION")
       assertThat(response.pagedGroupData.totalElements).isEqualTo(5)
       assertThat(response.otherTabTotal).isEqualTo(1)
       assertThat(response.pagedGroupData).isNotNull
@@ -443,9 +452,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `getGroupDetails returns 200 for ALLOCATED tab with all data when no filters are provided`() {
       // Given
-      val group = ProgrammeGroupFactory().withCode("TEST008").withRegionName("WIREMOCKED REGION").produce()
-      testDataGenerator.createGroup(group)
+      val group = testGroupHelper.createGroup(groupCode = "TEST008")
       stubAuthTokenEndpoint()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       // Allocate all our referrals to a group
       referrals.forEach {
@@ -626,16 +635,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `allocateReferralToGroup can successfully allocate a referral to a group`() {
       // Given
       val theCrnNumber = randomUppercaseString()
-
-      val body = CreateGroupRequestFactory().produce()
-      performRequestAndExpectStatus(
-        httpMethod = HttpMethod.POST,
-        uri = "/group",
-        body = body,
-        expectedResponseStatus = HttpStatus.CREATED.value(),
-      )
-
-      val group = programmeGroupRepository.findByCode(body.groupCode)!!
+      val group = testGroupHelper.createGroup()
 
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
       nDeliusApiStubs.stubPersonalDetailsResponse(
@@ -648,17 +648,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         ).produce(),
       )
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
-      val referral = referralService.createReferral(
-        FindAndReferReferralDetailsFactory()
-          .withPersonReference(theCrnNumber)
-          .withEventNumber(1)
-          .produce(),
-      )
-
-      val allocateToGroupRequest = AllocateToGroupRequest(
-        additionalDetails = "The additional details for the test",
-      )
+      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "the-forename the-surname")
+      val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "The additional details for the test")
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -677,6 +670,17 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
       assertThat(foundReferral.programmeGroupMemberships).hasSize(1)
+      val currentGroupMembership = foundReferral.programmeGroupMemberships.first()
+      assertThat(currentGroupMembership.programmeGroup.id).isEqualTo(group.id)
+      assertThat(currentGroupMembership.programmeGroup.sessions.sumOf { it.attendees.count() }).isEqualTo(21)
+
+      wiremock.verify(1, postRequestedFor(urlEqualTo("/appointments")))
+      val nDeliusAppointments = nDeliusAppointmentRepository.findAll()
+      assertThat(nDeliusAppointments.size).isEqualTo(21)
+      assertThat(foundReferral.eventId).isIn(nDeliusAppointments.mapNotNull { it.referral.eventId })
+      assertThat(foundReferral).isNotNull
+      assertThat(foundReferral.id).isEqualTo(referral.id)
+      assertThat(foundReferral.programmeGroupMemberships).hasSize(1)
       assertThat(foundReferral.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
       // Check that we have added the PoP to the session attendees list
       val attendeeList =
@@ -687,16 +691,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `allocateReferralToGroup throws an error if referral does not exist`() {
       val referralId = UUID.randomUUID()
-
-      val body = CreateGroupRequestFactory().produce()
-      performRequestAndExpectStatus(
-        httpMethod = HttpMethod.POST,
-        uri = "/group",
-        body = body,
-        expectedResponseStatus = HttpStatus.CREATED.value(),
-      )
-
-      val group = programmeGroupRepository.findByCode(body.groupCode)!!
+      val group = testGroupHelper.createGroup()
 
       val exception = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
@@ -726,15 +721,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `allocateReferralToGroup throws an error if referral is in a closed state`() {
-      val body = CreateGroupRequestFactory().produce()
-      performRequestAndExpectStatus(
-        httpMethod = HttpMethod.POST,
-        uri = "/group",
-        body = body,
-        expectedResponseStatus = HttpStatus.CREATED.value(),
-      )
-
-      val group = programmeGroupRepository.findByCode(body.groupCode)!!
+      val group = testGroupHelper.createGroup()
       val referral =
         testReferralHelper.createReferralWithStatus(referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription())
 
@@ -750,18 +737,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `allocateReferralToGroup throws an error if referral already allocated to a group`() {
-      val body = CreateGroupRequestFactory().produce()
-      performRequestAndExpectStatus(
-        httpMethod = HttpMethod.POST,
-        uri = "/group",
-        body = body,
-        expectedResponseStatus = HttpStatus.CREATED.value(),
-      )
-
-      val group = programmeGroupRepository.findByCode(body.groupCode)!!
-
+      val group = testGroupHelper.createGroup()
       val referral =
         testReferralHelper.createReferralWithStatus(referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription())
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
       programmeGroupMembershipService.allocateReferralToGroup(
         referral.id!!,
         group.id!!,
@@ -778,6 +758,68 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
       assertThat(exception.userMessage).isEqualTo("Conflict: Referral with id ${referral.id} is already allocated to a group: ${group.code}")
     }
+
+    @Test
+    fun `allocateReferralToGroup will only add PoP to core group sessions and not any individual scheduled sessions`() {
+      // Given
+      val theCrnNumber = randomUppercaseString()
+      val facilitators = listOf(CreateGroupTeamMemberFactory().produce())
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
+      nDeliusApiStubs.stubPersonalDetailsResponse()
+      oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      val group = testGroupHelper.createGroup()
+      val alreadyAllocatedReferral = testReferralHelper.createReferral()
+      testGroupHelper.allocateToGroup(group, alreadyAllocatedReferral)
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = group.sessions.find { it.sessionType == SessionType.ONE_TO_ONE }!!.moduleSessionTemplate.id!!,
+        referralIds = listOf(alreadyAllocatedReferral.id!!),
+        facilitators = facilitators,
+        startDate = LocalDate.of(2025, 1, 1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+      scheduleService.scheduleIndividualSession(group.id!!, scheduleSessionRequest)
+      // When
+
+      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "the-forename the-surname")
+
+      val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "The additional details for the test")
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/allocate/${referral.id}",
+        expectedResponseStatus = HttpStatus.OK.value(),
+        body = allocateToGroupRequest,
+        returnType = object : ParameterizedTypeReference<AllocateToGroupResponse>() {},
+      )
+      val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
+
+      // Then
+      assertThat(response.message).isEqualTo("the-forename the-surname was added to this group. Their referral status is now Scheduled.")
+
+      val currentGroupMembership = foundReferral.programmeGroupMemberships.first()
+      assertThat(currentGroupMembership.programmeGroup.id).isEqualTo(group.id)
+      val nonPlaceHolderIndividualSessions =
+        currentGroupMembership.programmeGroup.sessions.filter { !it.isPlaceholder && it.sessionType == SessionType.ONE_TO_ONE }
+      assertThat(nonPlaceHolderIndividualSessions.map { sessionEntity -> sessionEntity.attendees.map { it.personName } }).isNotIn(
+        foundReferral.personName,
+      )
+
+      wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
+      val nDeliusAppointments = nDeliusAppointmentRepository.findAll()
+      assertThat(nDeliusAppointments.size).isEqualTo(42)
+      assertThat(foundReferral.eventId).isIn(nDeliusAppointments.mapNotNull { it.referral.eventId })
+      assertThat(foundReferral).isNotNull
+      assertThat(foundReferral.id).isEqualTo(referral.id)
+      assertThat(foundReferral.programmeGroupMemberships).hasSize(1)
+      assertThat(foundReferral.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
+      // Check that we have added the PoP to the session attendees list
+      val attendeeList =
+        foundReferral.programmeGroupMemberships.first().programmeGroup.sessions.flatMap { sessionEntity -> sessionEntity.attendees.map { it.personName } }
+      assertThat(attendeeList).allMatch { attendeeList.contains(it) }
+    }
   }
 
   @Nested
@@ -786,19 +828,12 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `removeReferralFromGroup can successfully remove a referral from a group`() {
       // Given
-      val body = CreateGroupRequestFactory().produce()
-      performRequestAndExpectStatus(
-        httpMethod = HttpMethod.POST,
-        uri = "/group",
-        body = body,
-        expectedResponseStatus = HttpStatus.CREATED.value(),
-      )
-
-      val group = programmeGroupRepository.findByCode(body.groupCode)!!
+      val group = testGroupHelper.createGroup()
 
       val referral = testReferralHelper.createReferralWithStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
       )
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       // Allocate the referral to the group first
       programmeGroupMembershipService.allocateReferralToGroup(
@@ -865,13 +900,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `should remove referral from group and leave past session attendance records intact`() {
       // Given
       val groupCode = "AAA111"
-      val group = ProgrammeGroupFactory().withCode(groupCode).produce()
-      testDataGenerator.createGroup(group)
+      val group = testGroupHelper.createGroup(groupCode)
 
       val referral = testReferralHelper.createReferralWithStatus(
         referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
       )
 
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       programmeGroupMembershipService.allocateReferralToGroup(
         referral.id!!,
         group.id!!,
@@ -1726,11 +1761,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   inner class GetSessionTemplatesForGroupModule {
     val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
 
-    @BeforeEach
-    fun before() {
-      testDataCleaner.cleanAllTables()
-    }
-
     @Test
     fun `Successfully retrieves session templates for a module using V56 migration data`() {
       // Given
@@ -1824,15 +1854,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         code = "REGION001",
       )
       nDeliusApiStubs.stubRegionWithMembersResponse("REGION001", regionWithMembers)
-
-      // Get an existing template and module to use
-      val template = programmeGroupModuleRepository.findAll().first().accreditedProgrammeTemplate
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       // Create a programme group
-      val group = ProgrammeGroupFactory()
-        .withAccreditedProgrammeTemplate(template)
-        .produce()
-      programmeGroupRepository.save(group)
+      val group = testGroupHelper.createGroup()
 
       // Allocate referrals to the group
       val referral1 = referrals[0]

@@ -52,7 +52,6 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   @BeforeEach
   fun setup() {
     testDataCleaner.cleanAllTables()
-
     stubAuthTokenEndpoint()
   }
 

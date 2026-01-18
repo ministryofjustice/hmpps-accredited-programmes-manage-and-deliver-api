@@ -34,6 +34,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.GovUkApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestGroupHelper
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 import java.time.Clock
@@ -42,7 +43,7 @@ import java.time.Clock
 @ExtendWith(HmppsAuthApiExtension::class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @ActiveProfiles("test")
-@Import(TestReferralHelper::class, DomainEventsQueueConfig::class)
+@Import(TestReferralHelper::class, DomainEventsQueueConfig::class, TestGroupHelper::class)
 @AutoConfigureWebTestClient
 abstract class IntegrationTestBase {
 
@@ -81,6 +82,9 @@ abstract class IntegrationTestBase {
 
   @Autowired
   lateinit var testReferralHelper: TestReferralHelper
+
+  @Autowired
+  lateinit var testGroupHelper: TestGroupHelper
 
   /**
    * This is used in some tests to provide a fixed clock when specific dates and times matter.

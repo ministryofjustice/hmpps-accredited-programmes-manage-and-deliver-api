@@ -10,6 +10,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.govUkHolidaysApi.GovUkApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toAppointment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
@@ -17,12 +20,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toNdeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -36,11 +40,12 @@ import java.util.UUID
 class ScheduleService(
   private val programmeGroupRepository: ProgrammeGroupRepository,
   private val moduleRepository: ModuleRepository,
-  private val sessionRepository: SessionRepository,
   private val clock: Clock,
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
   private val govUkApiClient: GovUkApiClient,
+  private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
+  private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
   private val facilitatorService: FacilitatorService,
   private val referralRepository: ReferralRepository,
 ) {
@@ -80,14 +85,15 @@ class ScheduleService(
       )
     }
 
-    sessionRepository.save(session)
+    programmeGroup.sessions.add(session)
+    programmeGroupRepository.save(programmeGroup)
     return ScheduleSessionResponse(message = "Session scheduled successfully")
   }
 
   fun scheduleSessionsForGroup(
     programmeGroupId: UUID,
     mostRecentSession: SessionEntity? = null,
-  ): MutableList<SessionEntity> {
+  ): MutableSet<SessionEntity> {
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
       ?: throw NotFoundException("Group with id: $programmeGroupId could not be found")
 
@@ -196,10 +202,15 @@ class ScheduleService(
       }
     }
 
-    return sessionRepository.saveAll(generatedSessions)
+    // Save the group here so the parent entity is updated and updates the corresponding sessions
+    // otherwise JPA does not always update the inverse side of the relationship.
+    group.sessions.addAll(generatedSessions)
+    programmeGroupRepository.save(group)
+
+    return group.sessions
   }
 
-  fun rescheduleSessionsForGroup(programmeGroupId: UUID): MutableList<SessionEntity> {
+  fun rescheduleSessionsForGroup(programmeGroupId: UUID): MutableSet<SessionEntity> {
     val group = requireNotNull(programmeGroupRepository.findByIdOrNull(programmeGroupId)) {
       "Group must not be null"
     }
@@ -212,6 +223,7 @@ class ScheduleService(
     val mostRecentSession = group.sessions.filter { it.startsAt <= now }.maxByOrNull { it.startsAt }
 
     if (futureSessions.isNotEmpty()) {
+      // TODO Delete Ndelius appointments here, this will be done as part of https://dsdmoj.atlassian.net/browse/APG-1631
       group.sessions.removeAll(futureSessions)
       programmeGroupRepository.save(group)
     }
@@ -223,8 +235,45 @@ class ScheduleService(
   fun removeFutureSessionsForIndividual(group: ProgrammeGroupEntity, referralId: UUID) {
     log.info("Removing future sessions for referral with id: $referralId from group with id: ${group.id}")
     val now = LocalDateTime.now(clock)
-    val futureSessionsToDelete = group.sessions.filter { session -> session.startsAt > now && session.attendees.any { it.referral.id == referralId } }
+    val futureSessionsToDelete =
+      group.sessions.filter { session -> session.startsAt > now && session.attendees.any { it.referral.id == referralId } }
     group.sessions.removeAll(futureSessionsToDelete.toSet())
+  }
+
+  fun createNdeliusAppointmentsForSessions(attendees: List<AttendeeEntity>) {
+    val (ndeliusAppointments, nDeliusAppointmentEntities) = attendees.map { attendee ->
+      // Generate an appointment ID to be used by NDelius
+      val appointmentId = UUID.randomUUID()
+      val appointment = attendee.toAppointment(appointmentId)
+      val appointmentEntity = attendee.toNdeliusAppointmentEntity(appointmentId)
+      appointment to appointmentEntity
+    }.unzip()
+
+    when (
+      val response =
+        nDeliusIntegrationApiClient.createAppointmentsInDelius(CreateAppointmentRequest(ndeliusAppointments))
+    ) {
+      is ClientResult.Failure.StatusCode -> {
+        log.warn("Failure to create appointments with reason: ${response.getErrorMessage()}")
+        throw BusinessException("Failure to create appointments", response.toException())
+      }
+
+      is ClientResult.Failure.Other -> {
+        log.warn(
+          "Failure to create appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
+          response.exception,
+        )
+        throw BusinessException(
+          "Failure to create appointments in Ndelius: ${response.exception.message}",
+          response.exception,
+        )
+      }
+
+      is ClientResult.Success -> {
+        log.info("${ndeliusAppointments.size} appointments created in Ndelius for group with id: ${nDeliusAppointmentEntities.first().session.programmeGroup.id}")
+        nDeliusAppointmentRepository.saveAll(nDeliusAppointmentEntities)
+      }
+    }
   }
 
   /**
@@ -270,12 +319,14 @@ class ScheduleService(
       )
     }
 
-    is ClientResult.Success ->
+    is ClientResult.Success -> {
+      log.debug("Successfully retrieved UK bank holidays...")
       response.body.englandAndWales.events
         .mapNotNull { event ->
           runCatching { LocalDate.parse(event.date) }.getOrNull()
         }
         .toSet()
+    }
   }
 
   private fun convertToLocalDateTime(startDate: LocalDate, sessionTime: SessionTime): LocalDateTime = LocalDateTime.of(

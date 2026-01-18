@@ -2,7 +2,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
@@ -59,16 +58,13 @@ abstract class BaseHMPPSClient(
       if (requestBuilder.body != null) {
         request.bodyValue(requestBuilder.body!!)
       }
-
       val result = request.retrieve().toEntity<String>().block()!!
-
-      objectMapper.apply { registerModule((JavaTimeModule())) }
       val deserialized = objectMapper.readValue(result.body, typeReference)
 
       return ClientResult.Success(result.statusCode, deserialized)
     } catch (exception: WebClientResponseException) {
       if (exception.statusCode.is5xxServerError) {
-        log.error("Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.")
+        log.error("Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.", exception)
         throw ServiceUnavailableException(
           "$serviceName is temporarily unavailable. Please try again later.",
           exception,
@@ -81,10 +77,7 @@ abstract class BaseHMPPSClient(
           exception.responseBodyAsString,
         )
       } else {
-        log.error(
-          "Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.",
-          exception,
-        )
+        log.error("Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.", exception)
         throw exception
       }
     } catch (exception: Exception) {

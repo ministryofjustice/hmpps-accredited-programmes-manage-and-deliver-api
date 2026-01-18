@@ -204,18 +204,10 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
   fun `Reschedule sessions should remove all attendees and reschedule when group has not started yet`() {
     val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
     // Earliest start date plus 7 days 2025-11-29 so we will have 0 slot completed
-    val body = CreateGroupRequestFactory().produce(
+    val group = testGroupHelper.createGroup(
       earliestStartDate = LocalDate.now(clock).plusDays(7),
-      createGroupSessionSlot = setOf(slot1),
+      createGroupSessionSlots = setOf(slot1),
     )
-    performRequestAndExpectStatus(
-      httpMethod = HttpMethod.POST,
-      uri = "/group",
-      body = body,
-      expectedResponseStatus = HttpStatus.CREATED.value(),
-    )
-
-    val group = programmeGroupRepository.findByCode(body.groupCode)!!
 
     val referrals = testReferralHelper.createReferrals(
       referralConfigs =
@@ -224,6 +216,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
         TestReferralHelper.ReferralConfig(),
       ),
     )
+    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
     // Allocate all our referrals to a group
     referrals.forEach {
       programmeGroupMembershipService.allocateReferralToGroup(
@@ -259,18 +252,10 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
   fun `Reschedule sessions should remove old attendances and keep ones related to sessions that have ran`() {
     val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
     // Earliest start date minus 7 days 2025-11-15 so we will have 1 slot completed
-    val body = CreateGroupRequestFactory().produce(
+    val group = testGroupHelper.createGroup(
       earliestStartDate = LocalDate.now(clock).minusDays(7),
-      createGroupSessionSlot = setOf(slot1),
+      createGroupSessionSlots = setOf(slot1),
     )
-    performRequestAndExpectStatus(
-      httpMethod = HttpMethod.POST,
-      uri = "/group",
-      body = body,
-      expectedResponseStatus = HttpStatus.CREATED.value(),
-    )
-
-    val group = programmeGroupRepository.findByCode(body.groupCode)!!
 
     val referrals = testReferralHelper.createReferrals(
       referralConfigs =
@@ -279,6 +264,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
         TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team C"),
       ),
     )
+    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
     // Allocate all our referrals to a group
     referrals.forEach {
       programmeGroupMembershipService.allocateReferralToGroup(

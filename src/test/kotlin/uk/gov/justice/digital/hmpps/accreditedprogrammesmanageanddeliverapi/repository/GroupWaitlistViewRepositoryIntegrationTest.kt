@@ -6,11 +6,10 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.repository.findByIdOrNull
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 
-class GroupWaitlistViewRepositoryIntegrationTest(@Autowired private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository) : IntegrationTestBase() {
+class GroupWaitlistViewRepositoryIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var groupWaitListRepo: GroupWaitlistItemViewRepository
@@ -58,8 +57,8 @@ class GroupWaitlistViewRepositoryIntegrationTest(@Autowired private val referral
   fun `retrieve latest active_programme_group_id`() {
     val waitlistItems = groupWaitListRepo.findAll()
     val referralId = waitlistItems.first().referralId
-    val group = ProgrammeGroupFactory().produce()
-    testDataGenerator.createGroup(group)
+    val group = testGroupHelper.createGroup()
+    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
     programmeGroupMembershipService.allocateReferralToGroup(referralId, group.id!!, "SYSTEM", "")
 
     val allocatedReferral = groupWaitListRepo.findByIdOrNull(referralId)!!

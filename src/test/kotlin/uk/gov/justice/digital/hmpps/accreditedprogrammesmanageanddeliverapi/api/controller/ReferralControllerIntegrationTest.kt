@@ -1199,7 +1199,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     @Test
     fun `should return the status data for the ui form based on a referral id`() {
       // Given
-      val theGroup = testDataGenerator.createGroup(ProgrammeGroupFactory().withCode("AAA111").produce())
+      val theGroup = testGroupHelper.createGroup(groupCode = "AAA111")
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       val referralEntity = testReferralHelper.createReferralWithStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),

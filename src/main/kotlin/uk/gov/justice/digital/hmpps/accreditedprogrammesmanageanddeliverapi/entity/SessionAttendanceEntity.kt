@@ -7,7 +7,6 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
-import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
 import java.time.LocalDateTime
@@ -52,7 +51,4 @@ class SessionAttendanceEntity(
 
   @Column(name = "recorded_at")
   var recordedAt: LocalDateTime? = null,
-
-  @OneToOne(mappedBy = "sessionAttendance", fetch = FetchType.LAZY)
-  var ndeliusAppointment: NDeliusAppointmentEntity? = null,
 )
