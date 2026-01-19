@@ -31,7 +31,7 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
 
     // Then
     assertThat(moduleNamesInOrder).containsExactly(
-      "Pre-group",
+      "Pre-group one-to-ones",
       "Getting started",
       "Managing myself",
       "Managing life’s problems",
@@ -79,7 +79,7 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
     val modulesByName = template.modules.associateBy { it.name }
 
     listOf(
-      "Pre-group",
+      "Pre-group one-to-ones",
       "Getting started",
       "Managing myself",
       "Managing life’s problems",

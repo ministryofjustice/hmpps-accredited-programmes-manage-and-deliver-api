@@ -28,6 +28,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
@@ -193,39 +194,38 @@ class ProgrammeGroupService(
     // We need to do this as we currently have no direct link from session templates to scheduled sessions.
     // This then builds the api response object with all the required data.
     val modules = group.accreditedProgrammeTemplate?.modules?.map { module ->
-      val sessions = module.sessionTemplates.flatMap { sessionTemplate ->
+      val sessions = module.sessionTemplates.map { sessionTemplate ->
         val scheduledSessions = getScheduledSessionForGroupAndSessionTemplate(
           groupId = group.id!!,
           sessionTemplateId = sessionTemplate.id!!,
-        )
+        )?.filter { !it.isPlaceholder }
         scheduledSessions?.map { scheduledSession ->
           ProgrammeGroupModuleSessionsResponseGroupSession(
             id = scheduledSession.id!!,
             number = sessionTemplate.sessionNumber,
-            name = sessionTemplate.name,
-            type = sessionTemplate.sessionType,
-            dateOfSession = scheduledSession.startsAt.toLocalDate()
-              .format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")).toString(),
-            timeOfSession = formatTimeForUiDisplay(scheduledSession.startsAt.toLocalTime()),
+            name = getFormattedSessionNameForDisplay(sessionTemplate, scheduledSession),
+            type = if (sessionTemplate.sessionType == SessionType.ONE_TO_ONE) "Individual" else "Group",
+            dateOfSession = scheduledSession.startsAt.toLocalDate(),
+            timeOfSession = formatTimeOfSession(scheduledSession.startsAt.toLocalTime(), scheduledSession.endsAt.toLocalTime()),
             participants = if (sessionTemplate.sessionType == SessionType.GROUP) listOf("All") else scheduledSession.attendees.map { it.personName },
             facilitators = scheduledSession.sessionFacilitators.map { it.personName },
           )
         } ?: emptyList()
-      }
+      }.flatten()
 
       ProgrammeGroupModuleSessionsResponseGroupModule(
         id = module.id!!,
         number = module.moduleNumber,
         name = module.name,
         startDateText = StartDateText(
-          "Estimated start date of ${module.name} one to ones",
+          formatEstimatedStartText(module.name),
           group.sessions
             .filter { it.moduleSessionTemplate.sessionType == SessionType.ONE_TO_ONE }
             .minByOrNull { it.startsAt }?.startsAt?.toLocalDate()
             ?.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy"))
             .toString(),
         ),
-        scheduleButtonText = "Schedule a ${module.name} session",
+        scheduleButtonText = if (module.name == "Post programme review") "Schedule a post-programme review" else "Schedule a ${module.name} session",
         sessions = sessions,
       )
     }.orEmpty()
@@ -233,13 +233,30 @@ class ProgrammeGroupService(
     return ProgrammeGroupModuleSessionsResponse(programmeGroupModuleSessionsResponseGroup, modules)
   }
 
+  private fun formatEstimatedStartText(moduleName: String): String = when (moduleName) {
+    "Pre-group" -> "Estimated start date of $moduleName one-to-ones:"
+    "Post programme review" -> "Post-programme reviews deadline:"
+    else -> "Estimated date of $moduleName one to ones"
+  }
+
+  private fun formatTimeOfSession(startTime: LocalTime, endTime: LocalTime): String {
+    val formattedStartTime = formatTimeForUiDisplay(startTime)
+    val formattedEndTime = formatTimeForUiDisplay(endTime)
+    return "$formattedStartTime to $formattedEndTime"
+  }
+
   private fun formatTimeForUiDisplay(time: LocalTime): String = when {
     time.hour == 12 && time.minute == 0 -> "midday"
-    time.hour == 0 -> "midnight"
+    time.hour == 0 && time.minute == 0 -> "midnight"
     time.hour == 0 -> "12:${time.minute}am"
-    time.hour < 12 -> "${time.hour}:${time.minute}am"
-    time.hour == 12 -> "12:${time.minute}pm"
-    else -> "${time.hour - 12}:${time.minute}pm"
+    time.hour < 12 -> if (time.minute == 0) "${time.hour}am" else "${time.hour}:${time.minute}am"
+    time.hour == 12 -> if (time.minute == 0) "12pm" else "12:${time.minute}pm"
+    else -> if (time.minute == 0) "${time.hour - 12}pm" else "${time.hour - 12}:${time.minute}pm"
+  }
+
+  private fun getFormattedSessionNameForDisplay(sessionTemplate: ModuleSessionTemplateEntity, scheduledSession: SessionEntity): String = when (sessionTemplate.sessionType) {
+    SessionType.GROUP -> "${sessionTemplate.module.name} ${scheduledSession.sessionNumber}: ${sessionTemplate.name}"
+    SessionType.ONE_TO_ONE -> "${scheduledSession.attendees.first().personName} (${scheduledSession.attendees.first().referral.crn}): ${sessionTemplate.name}"
   }
 
   fun getScheduledSessionForGroupAndSessionTemplate(
