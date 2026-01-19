@@ -216,7 +216,7 @@ class ProgrammeGroupService(
       ProgrammeGroupModuleSessionsResponseGroupModule(
         id = module.id!!,
         number = module.moduleNumber,
-        name = if (module.name == "Pre-group") "${module.name} one-to-ones" else module.name,
+        name = module.name,
         startDateText = StartDateText(
           formatEstimatedStartText(module.name),
           group.sessions

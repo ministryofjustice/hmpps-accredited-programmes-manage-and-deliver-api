@@ -27,8 +27,3 @@ VALUES (uuid 'ac581f6c-1d81-45a2-af1e-7e3a041ae756', uuid '3442732f-9a0d-4981-8f
 
 INSERT INTO module_session_template (id, module_id, session_number, session_type, pathway, name, duration_minutes)
 Values(uuid 'fb60da35-7de1-4d25-a03d-6ff2c9baec3f', uuid 'ac581f6c-1d81-45a2-af1e-7e3a041ae756', 1, 'ONE_TO_ONE', 'MODERATE_INTENSITY', 'Post programme review', 60);
-
--- Update name of Pre-group module
-Update module
-SET name = 'Pre-group one-to-ones'
-WHERE name = 'Pre-group';
