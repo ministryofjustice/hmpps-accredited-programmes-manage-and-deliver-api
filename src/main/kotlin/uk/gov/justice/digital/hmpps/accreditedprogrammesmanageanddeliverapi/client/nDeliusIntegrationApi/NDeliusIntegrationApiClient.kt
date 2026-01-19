@@ -102,7 +102,7 @@ class NDeliusIntegrationApiClient(
     path = "/regions/pdu/$pduCode/office-locations"
   }
 
-  fun createAppointmentsInDelius(appointments: CreateAppointmentRequest) = postRequest<Void>(N_DELIUS_INTEGRATION_API) {
+  fun createAppointmentsInDelius(appointments: CreateAppointmentRequest) = postRequest<Unit>(N_DELIUS_INTEGRATION_API) {
     path = "/appointments"
     body = appointments
   }
