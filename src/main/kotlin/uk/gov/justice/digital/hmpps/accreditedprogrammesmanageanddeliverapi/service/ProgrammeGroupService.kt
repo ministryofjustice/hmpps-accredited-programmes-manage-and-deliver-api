@@ -205,7 +205,7 @@ class ProgrammeGroupService(
             number = sessionTemplate.sessionNumber,
             name = getFormattedSessionNameForDisplay(sessionTemplate, scheduledSession),
             type = if (sessionTemplate.sessionType == SessionType.ONE_TO_ONE) "Individual" else "Group",
-            dateOfSession = scheduledSession.startsAt.toLocalDate().format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")).toString(),
+            dateOfSession = scheduledSession.startsAt.toLocalDate(),
             timeOfSession = formatTimeOfSession(scheduledSession.startsAt.toLocalTime(), scheduledSession.endsAt.toLocalTime()),
             participants = if (sessionTemplate.sessionType == SessionType.GROUP) listOf("All") else scheduledSession.attendees.map { it.personName },
             facilitators = scheduledSession.sessionFacilitators.map { it.personName },
