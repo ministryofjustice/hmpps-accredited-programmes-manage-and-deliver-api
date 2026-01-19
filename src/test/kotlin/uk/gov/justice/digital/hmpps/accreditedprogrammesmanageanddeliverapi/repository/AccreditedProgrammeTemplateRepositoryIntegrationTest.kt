@@ -3,17 +3,13 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.rep
 import jakarta.transaction.Transactional
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 
 class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase() {
 
-  @Autowired
-  private lateinit var repository: AccreditedProgrammeTemplateRepository
-
-  private fun getBuildingChoicesTemplate() = repository.findAll().firstOrNull { it.name == "Building Choices" }
+  private fun getBuildingChoicesTemplate() = accreditedProgrammeTemplateRepository.findAll().firstOrNull { it.name == "Building Choices" }
 
   @Test
   @Transactional

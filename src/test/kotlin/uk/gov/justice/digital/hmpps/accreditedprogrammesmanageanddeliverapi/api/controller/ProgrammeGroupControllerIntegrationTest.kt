@@ -43,13 +43,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedProgrammeDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toFacilitatorEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
@@ -65,7 +61,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -103,12 +98,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
 
   private lateinit var referrals: List<ReferralEntity>
-
-  @Autowired
-  private lateinit var accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository
-
-  @Autowired
-  private lateinit var programmeGroupModuleRepository: ModuleRepository
 
   @Autowired
   private lateinit var nDeliusAppointmentRepository: NDeliusAppointmentRepository
@@ -800,9 +789,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         foundReferral.personName,
       )
 
-      wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
+      wiremock.verify(3, postRequestedFor(urlEqualTo("/appointments")))
       val nDeliusAppointments = nDeliusAppointmentRepository.findAll()
-      assertThat(nDeliusAppointments.size).isEqualTo(42)
+      assertThat(nDeliusAppointments.size).isEqualTo(43)
       assertThat(foundReferral.eventId).isIn(nDeliusAppointments.mapNotNull { it.referral.eventId })
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
@@ -818,6 +807,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   @Nested
   @DisplayName("Remove from Programme group")
   inner class RemoveFromProgrammeGroup {
+
+    val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+
     @Test
     fun `removeReferralFromGroup can successfully remove a referral from a group`() {
       // Given
@@ -845,7 +837,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val session = sessionRepository.save(
         SessionFactory()
           .withProgrammeGroup(group)
-          .withModuleSessionTemplate(programmeGroupModuleRepository.findAll().first().sessionTemplates.first())
+          .withModuleSessionTemplate(buildingChoicesTemplate.modules.first().sessionTemplates.first())
           .withStartsAt(LocalDateTime.now().plusDays(1))
           .withEndsAt(LocalDateTime.now().plusDays(1).plusHours(1))
           .produce(),
@@ -927,7 +919,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val session = sessionRepository.save(
         SessionFactory()
           .withProgrammeGroup(group)
-          .withModuleSessionTemplate(programmeGroupModuleRepository.findAll().first().sessionTemplates.first())
+          .withModuleSessionTemplate(buildingChoicesTemplate.modules.first().sessionTemplates.first())
           .withStartsAt(LocalDateTime.now().minusDays(1))
           .withEndsAt(LocalDateTime.now().minusDays(1).plusHours(1))
           .produce(),
@@ -977,6 +969,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   inner class CreateProgrammeGroup {
     val createGroupTeamMemberFactory = CreateGroupTeamMemberFactory()
     val createGroupRequestFactory = CreateGroupRequestFactory()
+    val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
 
     @Test
     fun `create group with all parameters and return 200 when it doesn't already exist`() {
@@ -1257,11 +1250,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       ).isNotNull
 
       // Compare the template moduleNumber and sessionNumbers to the created moduleNumber and sessionNumbers
-      val expectedPairs: Set<Pair<Int, Int>> = programmeGroupModuleRepository
-        .findByAccreditedProgrammeTemplateId(createdGroup.accreditedProgrammeTemplate!!.id!!)
-        .flatMap { module ->
-          module.sessionTemplates.map { tmpl -> module.moduleNumber to tmpl.sessionNumber }
-        }
+      val expectedPairs: Set<Pair<Int, Int>> = buildingChoicesTemplate.modules.flatMap { module ->
+        module.sessionTemplates.map { tmpl -> module.moduleNumber to tmpl.sessionNumber }
+      }
         .toSet()
 
       assertThat(createdGroup.sessions).hasSize(expectedPairs.size)
@@ -1495,43 +1486,24 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   @WithMockAuthUser("AUTH_ADM")
   inner class ScheduleSession {
     val facilitators = listOf(CreateGroupTeamMemberFactory().produce())
-    val group = ProgrammeGroupFactory().withCode("TEST001").produce()
-    var referral: ReferralEntity? = null
+    private lateinit var group: ProgrammeGroupEntity
+    private lateinit var referral: ReferralEntity
 
     @BeforeEach
     fun beforeEach() {
       referral = referrals.first()
-      testDataGenerator.createGroup(group)
-      facilitators.forEach {
-        testDataGenerator.createFacilitator(it.toFacilitatorEntity())
-      }
+      group = testGroupHelper.createGroup()
     }
 
     @Test
     fun `should return 201 when scheduling a one-to-one session with valid data`() {
       // Given
-      val template = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
-      val module = testDataGenerator.createModule(template, "Test Module", 1)
-      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
-        ModuleSessionTemplateEntity(
-          module = module,
-          sessionNumber = 1,
-          sessionType = SessionType.ONE_TO_ONE,
-          pathway = Pathway.MODERATE_INTENSITY,
-          name = "Test Session Template",
-          durationMinutes = 60,
-        ),
-      )
-      testDataGenerator.createGroupMembership(
-        ProgrammeGroupMembershipEntity(
-          referral = referral!!,
-          programmeGroup = group,
-        ),
-      )
+      testGroupHelper.allocateToGroup(group, referral)
+      val sessionTemplate = group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first()
 
       val scheduleSessionRequest = ScheduleSessionRequest(
         sessionTemplateId = sessionTemplate.id!!,
-        referralIds = listOf(referral!!.id!!),
+        referralIds = listOf(referral.id!!),
         facilitators = facilitators,
         startDate = LocalDate.of(2025, 1, 1),
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
@@ -1551,11 +1523,14 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).isNotNull
       assertThat(response.message).isEqualTo("Session scheduled successfully")
       val retrievedSession =
-        sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!).first()
+        sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
+          .sortedByDescending { it.createdAt }.first()
       assertThat(retrievedSession.sessionFacilitators.first().personName).isEqualTo("Default facilitator name")
       assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
       assertThat(retrievedSession.attendees).hasSize(1)
-      assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral!!.personName)
+      assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
+      wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
+      assertThat(nDeliusAppointmentRepository.findBySessionId(retrievedSession.id!!)!!).isNotNull
     }
 
     @Test
@@ -1585,7 +1560,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val scheduleSessionRequest = ScheduleSessionRequest(
         sessionTemplateId = UUID.randomUUID(),
-        referralIds = listOf(referral!!.id!!),
+        referralIds = listOf(referral.id!!),
         facilitators = emptyList(),
         startDate = LocalDate.of(2025, 1, 1),
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
@@ -1607,7 +1582,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val scheduleSessionRequest = ScheduleSessionRequest(
         sessionTemplateId = UUID.randomUUID(),
-        referralIds = listOf(referral!!.id!!),
+        referralIds = listOf(referral.id!!),
         facilitators = facilitators,
         startDate = LocalDate.of(2025, 1, 1),
         startTime = SessionTime(hour = 13, minutes = 0, amOrPm = AmOrPm.AM),
@@ -1630,7 +1605,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val nonExistentGroupId = UUID.randomUUID()
       val scheduleSessionRequest = ScheduleSessionRequest(
         sessionTemplateId = UUID.randomUUID(),
-        referralIds = listOf(referral!!.id!!),
+        referralIds = listOf(referral.id!!),
         facilitators = facilitators,
         startDate = LocalDate.of(2025, 1, 1),
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
@@ -1655,7 +1630,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val nonExistentTemplateId = UUID.randomUUID()
       val scheduleSessionRequest = ScheduleSessionRequest(
         sessionTemplateId = nonExistentTemplateId,
-        referralIds = listOf(referral!!.id!!),
+        referralIds = listOf(referral.id!!),
         facilitators = facilitators,
         startDate = LocalDate.of(2025, 1, 1),
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
@@ -1677,18 +1652,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return 201 and create facilitator when facilitator does not exist in database`() {
       // Given
-      val template = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
-      val module = testDataGenerator.createModule(template, "Test Module", 1)
-      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
-        ModuleSessionTemplateEntity(
-          module = module,
-          sessionNumber = 1,
-          sessionType = SessionType.ONE_TO_ONE,
-          pathway = Pathway.MODERATE_INTENSITY,
-          name = "Test Session Template",
-          durationMinutes = 60,
-        ),
-      )
+      testGroupHelper.allocateToGroup(group, referral)
+      val sessionTemplate = group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first()
 
       val nonExistentFacilitator = CreateGroupTeamMemberFactory()
         .withFacilitator("Non existent Facilitator")
@@ -1697,7 +1662,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val scheduleSessionRequest = ScheduleSessionRequest(
         sessionTemplateId = sessionTemplate.id!!,
-        referralIds = listOf(referral!!.id!!),
+        referralIds = listOf(referral.id!!),
         facilitators = listOf(nonExistentFacilitator),
         startDate = LocalDate.of(2025, 1, 1),
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
@@ -1715,8 +1680,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).isNotNull
       assertThat(response.message).isEqualTo("Session scheduled successfully")
       val retrievedSession =
-        sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!).first()
-      assertThat(retrievedSession.sessionFacilitators.first().personName).isEqualTo("Non existent Facilitator")
+        sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
+          .sortedByDescending { it.createdAt }.first()
+      assertThat(retrievedSession.sessionFacilitators).extracting("personName").contains("Non existent Facilitator")
+      // This is 2 as we made a call when we allocated to a group as part of test setup
+      wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -1752,13 +1720,14 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   @DisplayName("Get session templates for group module")
   @WithMockAuthUser("AUTH_ADM")
   inner class GetSessionTemplatesForGroupModule {
+
     val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
 
     @Test
     fun `Successfully retrieves session templates for a module using V56 migration data`() {
       // Given
       stubAuthTokenEndpoint()
-      val modules = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplate.id!!)
+      val modules = buildingChoicesTemplate.modules
       assertThat(modules).isNotEmpty
 
       // Use the "Getting Started" module (module_number = 2) which has 2 sessions
@@ -1791,7 +1760,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       stubAuthTokenEndpoint()
       val nonExistentGroupId = UUID.randomUUID()
-      val modules = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplate.id!!)
+      val modules = buildingChoicesTemplate.modules
       val moduleId = modules.first().id!!
 
       // When/Then
@@ -1807,7 +1776,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `Returns 404 when module does not exist`() {
       // Given
       stubAuthTokenEndpoint()
-      val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
       val group = ProgrammeGroupFactory()
         .withCode("TEST_GROUP_002")
         .withRegionName("WIREMOCKED REGION")
@@ -1832,6 +1800,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   @DisplayName("Get Schedule Individual Session Details")
   @WithMockAuthUser("AUTH_ADM")
   inner class GetScheduleIndividualSessionDetails {
+    val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
 
     @Test
     fun `returns 200 with facilitators and group members for valid group and module`() {
@@ -1869,9 +1838,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Get a module from the group's template
-      val module = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(
-        group.accreditedProgrammeTemplate!!.id!!,
-      ).first()
+      val module = buildingChoicesTemplate.modules.first()
 
       // Make the request
       val response = performRequestAndExpectOk(
@@ -1902,7 +1869,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `returns 404 when group does not exist`() {
       val nonExistentGroupId = UUID.randomUUID()
-      val module = programmeGroupModuleRepository.findAll().first()
+      val module = buildingChoicesTemplate.modules.first()
 
       val errorResponse = performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
@@ -1969,6 +1936,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
             "Group" -> {
               assertThat(session.participants).isEqualTo(listOf("All"))
             }
+
             "Individual" -> {
               assertThat(session.participants).isNotEqualTo(listOf("All")) // TO be updated when attendees/facilitators tables are added.
             }
