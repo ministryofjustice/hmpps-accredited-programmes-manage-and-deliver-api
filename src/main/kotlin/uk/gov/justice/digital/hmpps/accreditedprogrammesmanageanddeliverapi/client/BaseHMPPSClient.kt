@@ -61,10 +61,12 @@ abstract class BaseHMPPSClient(
 
       val result = request.retrieve().toEntity<String>().block()!!
 
-      // Map an empty response body to empty object
-      val responseBody = result.body?.takeIf { it.isNotBlank() } ?: "{}"
-
-      val deserialized = objectMapper.readValue(responseBody, typeReference)
+      val deserialized = if (typeReference.type == Unit::class.java) {
+        @Suppress("UNCHECKED_CAST")
+        Unit as ResponseType
+      } else {
+        objectMapper.readValue(result.body, typeReference)
+      }
 
       return ClientResult.Success(result.statusCode, deserialized)
     } catch (exception: WebClientResponseException) {
