@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.BaseHMPPSClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.DeleteAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnitWithOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
@@ -103,6 +104,11 @@ class NDeliusIntegrationApiClient(
   }
 
   fun createAppointmentsInDelius(appointments: CreateAppointmentRequest) = postRequest<Unit>(N_DELIUS_INTEGRATION_API) {
+    path = "/appointments"
+    body = appointments
+  }
+
+  fun deleteAppointmentsInDelius(appointments: DeleteAppointmentsRequest) = deleteRequest<Unit>(N_DELIUS_INTEGRATION_API) {
     path = "/appointments"
     body = appointments
   }

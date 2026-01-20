@@ -31,6 +31,11 @@ abstract class BaseHMPPSClient(
     noinline requestBuilderConfiguration: HMPPSRequestConfiguration.() -> Unit,
   ): ClientResult<ResponseType> = request(HttpMethod.POST, requestBuilderConfiguration, serviceName)
 
+  protected inline fun <reified ResponseType : Any> deleteRequest(
+    serviceName: String,
+    noinline requestBuilderConfiguration: HMPPSRequestConfiguration.() -> Unit,
+  ): ClientResult<ResponseType> = request(HttpMethod.DELETE, requestBuilderConfiguration, serviceName)
+
   protected inline fun <reified ResponseType : Any> request(
     method: HttpMethod,
     noinline requestBuilderConfiguration: HMPPSRequestConfiguration.() -> Unit,
