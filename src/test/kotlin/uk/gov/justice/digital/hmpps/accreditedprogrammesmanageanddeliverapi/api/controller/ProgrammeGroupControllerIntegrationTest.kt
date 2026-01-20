@@ -898,6 +898,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
       programmeGroupMembershipService.allocateReferralToGroup(
         referral.id!!,
         group.id!!,
