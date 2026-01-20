@@ -34,6 +34,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.GovUkApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestGroupHelper
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
@@ -85,6 +86,9 @@ abstract class IntegrationTestBase {
 
   @Autowired
   lateinit var testGroupHelper: TestGroupHelper
+
+  @Autowired
+  lateinit var accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository
 
   /**
    * This is used in some tests to provide a fixed clock when specific dates and times matter.

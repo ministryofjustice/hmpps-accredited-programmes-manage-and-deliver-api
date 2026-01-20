@@ -27,6 +27,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -48,6 +49,7 @@ class ScheduleService(
   private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
   private val facilitatorService: FacilitatorService,
   private val referralRepository: ReferralRepository,
+  private val sessionRepository: SessionRepository,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -85,8 +87,9 @@ class ScheduleService(
       )
     }
 
-    programmeGroup.sessions.add(session)
-    programmeGroupRepository.save(programmeGroup)
+    val savedSession = sessionRepository.save(session)
+    createNdeliusAppointmentsForSessions(savedSession.attendees)
+
     return ScheduleSessionResponse(message = "Session scheduled successfully")
   }
 
