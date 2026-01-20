@@ -284,6 +284,15 @@
           ]
         }
       }
+    },
+    {
+      "request": {
+        "urlPattern": "/appointments",
+        "method": "POST"
+      },
+      "response": {
+        "status": 201
+      }
     }
   ]
 }
