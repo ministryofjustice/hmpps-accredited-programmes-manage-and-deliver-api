@@ -33,6 +33,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
@@ -42,6 +43,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -208,7 +210,7 @@ class ProgrammeGroupService(
             dateOfSession = scheduledSession.startsAt.toLocalDate(),
             timeOfSession = formatTimeOfSession(scheduledSession.startsAt.toLocalTime(), scheduledSession.endsAt.toLocalTime()),
             participants = if (sessionTemplate.sessionType == SessionType.GROUP) listOf("All") else scheduledSession.attendees.map { it.personName },
-            facilitators = scheduledSession.sessionFacilitators.map { it.personName },
+            facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }.map { it.facilitator!!.personName },
           )
         } ?: emptyList()
       }.flatten()
@@ -225,7 +227,7 @@ class ProgrammeGroupService(
             ?.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy"))
             .toString(),
         ),
-        scheduleButtonText = if (module.name == "Post programme review") "Schedule a post-programme review" else "Schedule a ${module.name} session",
+        scheduleButtonText = formatButtonText(module.name),
         sessions = sessions,
       )
     }.orEmpty()
@@ -233,8 +235,14 @@ class ProgrammeGroupService(
     return ProgrammeGroupModuleSessionsResponse(programmeGroupModuleSessionsResponseGroup, modules)
   }
 
+  private fun formatButtonText(moduleName: String): String = when (moduleName) {
+    "Pre-group one-to-ones" -> "Schedule a pre-group session"
+    "Post programme review" -> "Schedule a post-programme review"
+    else -> "Schedule a $moduleName session"
+  }
+
   private fun formatEstimatedStartText(moduleName: String): String = when (moduleName) {
-    "Pre-group" -> "Estimated start date of $moduleName one-to-ones:"
+    "Pre-group one-to-ones" -> "Estimated start date of ${moduleName.lowercase()}:"
     "Post programme review" -> "Post-programme reviews deadline:"
     else -> "Estimated date of $moduleName one to ones"
   }
@@ -243,15 +251,6 @@ class ProgrammeGroupService(
     val formattedStartTime = formatTimeForUiDisplay(startTime)
     val formattedEndTime = formatTimeForUiDisplay(endTime)
     return "$formattedStartTime to $formattedEndTime"
-  }
-
-  private fun formatTimeForUiDisplay(time: LocalTime): String = when {
-    time.hour == 12 && time.minute == 0 -> "midday"
-    time.hour == 0 && time.minute == 0 -> "midnight"
-    time.hour == 0 -> "12:${time.minute}am"
-    time.hour < 12 -> if (time.minute == 0) "${time.hour}am" else "${time.hour}:${time.minute}am"
-    time.hour == 12 -> if (time.minute == 0) "12pm" else "12:${time.minute}pm"
-    else -> if (time.minute == 0) "${time.hour - 12}pm" else "${time.hour - 12}:${time.minute}pm"
   }
 
   private fun getFormattedSessionNameForDisplay(sessionTemplate: ModuleSessionTemplateEntity, scheduledSession: SessionEntity): String = when (sessionTemplate.sessionType) {
