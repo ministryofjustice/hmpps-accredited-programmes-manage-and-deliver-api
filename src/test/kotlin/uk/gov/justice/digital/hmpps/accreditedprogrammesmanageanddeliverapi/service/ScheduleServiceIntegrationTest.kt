@@ -44,7 +44,6 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
       .thenReturn(ZoneId.of("Europe/London"))
     testDataCleaner.cleanAllTables()
 
-    nDeliusApiStubs.clearAllStubs()
     govUkApiStubs.stubBankHolidaysResponse()
 
     stubAuthTokenEndpoint()

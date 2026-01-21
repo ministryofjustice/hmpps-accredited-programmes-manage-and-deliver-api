@@ -4,6 +4,7 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.post
+import com.github.tomakehurst.wiremock.client.WireMock.stubFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.github.tomakehurst.wiremock.http.HttpHeader
 import com.github.tomakehurst.wiremock.http.HttpHeaders
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.extension.AfterAllCallback
 import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.WireMockHolder
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
@@ -20,7 +22,7 @@ class HmppsAuthApiExtension :
   BeforeEachCallback {
   companion object {
     @JvmField
-    val hmppsAuth = HmppsAuthMockServer()
+    val hmppsAuth = WireMockHolder.server
   }
 
   override fun beforeAll(context: ExtensionContext) {
@@ -36,10 +38,7 @@ class HmppsAuthApiExtension :
   }
 }
 
-class HmppsAuthMockServer : WireMockServer(WIREMOCK_PORT) {
-  companion object {
-    private const val WIREMOCK_PORT = 9999
-  }
+class HmppsAuthMockServer(private val wireMockServer: WireMockServer) {
 
   fun stubGrantToken() {
     stubFor(

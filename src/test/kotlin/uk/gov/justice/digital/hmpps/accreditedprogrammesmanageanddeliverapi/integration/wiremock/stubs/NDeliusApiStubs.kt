@@ -39,10 +39,6 @@ class NDeliusApiStubs {
   @Autowired
   private lateinit var objectMapper: ObjectMapper
 
-  fun clearAllStubs() {
-    wiremock.resetAll()
-  }
-
   fun stubAccessCheck(granted: Boolean, vararg crns: String) {
     val response = LimitedAccessOffenderCheckResponse(
       crns.map { crn ->

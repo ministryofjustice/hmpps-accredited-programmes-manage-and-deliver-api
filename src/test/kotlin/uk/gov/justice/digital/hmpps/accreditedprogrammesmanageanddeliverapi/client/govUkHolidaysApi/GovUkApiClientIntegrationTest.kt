@@ -7,7 +7,6 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.fail
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
@@ -17,11 +16,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 class GovUkApiClientIntegrationTest : IntegrationTestBase() {
   @Autowired
   private lateinit var govUkApiClient: GovUkApiClient
-
-  @BeforeEach
-  fun setup() {
-    wiremock.resetAll()
-  }
 
   @Test
   fun `should return a list of holidays for the uk`() {

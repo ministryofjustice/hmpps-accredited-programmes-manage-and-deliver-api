@@ -91,3 +91,17 @@ val compileTestKotlin: KotlinCompile by tasks
 compileTestKotlin.compilerOptions {
   freeCompilerArgs.set(listOf("-Xannotation-default-target=param-property"))
 }
+
+tasks.withType<Test> {
+  afterEvaluate {
+    if (environment["CI"] != null) {
+      maxParallelForks = Runtime.getRuntime().availableProcessors()
+      println("Running in CI - setting max test processes to number of processors: $maxParallelForks")
+    } else {
+      maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).takeIf { it > 0 } ?: 1
+      println("Setting max test processes to recommended half of available: $maxParallelForks")
+    }
+  }
+  reports.html.required = false
+  reports.junitXml.required = false
+}

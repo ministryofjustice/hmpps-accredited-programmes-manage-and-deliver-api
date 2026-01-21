@@ -2,8 +2,14 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.int
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.post
+import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import com.github.tomakehurst.wiremock.http.HttpHeader
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -21,13 +27,15 @@ import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.containers.localstack.LocalStackContainer.Service
+import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import org.testcontainers.utility.DockerImageName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.DomainEventsQueueConfig
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.LocalStackHolder
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.WireMockConfig
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.WireMockHolder
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.ArnsApiStubs
@@ -39,26 +47,35 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.util
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 import java.time.Clock
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import com.github.tomakehurst.wiremock.http.HttpHeaders as WireMockHeaders
 
 @Testcontainers
 @ExtendWith(HmppsAuthApiExtension::class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @ActiveProfiles("test")
-@Import(TestReferralHelper::class, DomainEventsQueueConfig::class, TestGroupHelper::class)
 @AutoConfigureWebTestClient
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Import(
+  TestReferralHelper::class,
+  DomainEventsQueueConfig::class,
+  TestGroupHelper::class,
+  WireMockConfig::class,
+)
 abstract class IntegrationTestBase {
 
   @Autowired
-  protected lateinit var testDataCleaner: TestDataCleaner
+  lateinit var testDataCleaner: TestDataCleaner
 
   @Autowired
-  protected lateinit var testDataGenerator: TestDataGenerator
+  lateinit var testDataGenerator: TestDataGenerator
 
   @Autowired
-  protected lateinit var webTestClient: WebTestClient
+  lateinit var webTestClient: WebTestClient
 
   @Autowired
-  protected lateinit var jwtAuthHelper: JwtAuthorisationHelper
+  lateinit var jwtAuthHelper: JwtAuthorisationHelper
 
   @Autowired
   lateinit var oasysApiStubs: OasysApiStubs
@@ -71,9 +88,6 @@ abstract class IntegrationTestBase {
 
   @Autowired
   lateinit var govUkApiStubs: GovUkApiStubs
-
-  @Autowired
-  lateinit var wiremock: WireMockServer
 
   @Autowired
   lateinit var objectMapper: ObjectMapper
@@ -90,13 +104,19 @@ abstract class IntegrationTestBase {
   @Autowired
   lateinit var accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository
 
+  @Autowired
+  lateinit var wiremock: WireMockServer
+
   /**
-   * This is used in some tests to provide a fixed clock when specific dates and times matter.
-   * It is placed in this class so context is not reloaded by spring when mocking the bean
-   * as this causes context loading errors across the tests.
+   * Used by tests that require a fixed clock without reloading Spring context
    */
   @MockitoSpyBean
   lateinit var clock: Clock
+
+  @BeforeAll
+  fun resetWireMockOnce() {
+    wiremock.resetAll()
+  }
 
   @BeforeEach
   fun beforeEach() {
@@ -105,37 +125,40 @@ abstract class IntegrationTestBase {
 
   companion object {
 
+    @Container
     @JvmStatic
-    private val localStackContainer: LocalStackContainer =
-      LocalStackContainer(DockerImageName.parse("localstack/localstack"))
-        .apply {
-          withEnv("DEFAULT_REGION", "eu-west-2")
-          withServices(Service.SNS, Service.SQS)
-        }
-
-    @JvmStatic
-    private val postgresContainer = PostgreSQLContainer<Nothing>("postgres:17")
-      .apply {
+    private val postgresContainer =
+      PostgreSQLContainer<Nothing>("postgres:17").apply {
         withUsername("admin")
         withPassword("admin_password")
         withReuse(true)
       }
 
-    @BeforeAll
-    @JvmStatic
-    fun startContainers() {
-      localStackContainer.start()
+    init {
       postgresContainer.start()
     }
 
     @DynamicPropertySource
     @JvmStatic
     fun setUpProperties(registry: DynamicPropertyRegistry) {
-      registry.add("hmpps.sqs.localstackUrl") { localStackContainer.getEndpointOverride(Service.SNS).toString() }
+      val baseUrl = "http://localhost:${WireMockHolder.server.port()}"
+      val localStackContainer = LocalStackHolder.container
+
+      registry.add("services.find-and-refer-intervention-api.base-url") { baseUrl }
+      registry.add("services.ndelius-integration-api.base-url") { baseUrl }
+      registry.add("services.oasys-api.base-url") { baseUrl }
+      registry.add("services.assess-risks-and-needs-api.base-url") { baseUrl }
+      registry.add("services.govuk-api.base-url") { baseUrl }
+      registry.add("hmpps-auth.url") { "http://localhost:${WireMockHolder.server.port()}/auth" }
+
+      registry.add("hmpps.sqs.localstackUrl") {
+        localStackContainer.getEndpointOverride(Service.SNS).toString()
+      }
       registry.add("hmpps.sqs.region") { localStackContainer.region }
-      registry.add("spring.datasource.url") { postgresContainer.jdbcUrl }
-      registry.add("spring.datasource.username") { postgresContainer.username }
-      registry.add("spring.datasource.password") { postgresContainer.password }
+
+      registry.add("spring.datasource.url", postgresContainer::getJdbcUrl)
+      registry.add("spring.datasource.username", postgresContainer::getUsername)
+      registry.add("spring.datasource.password", postgresContainer::getPassword)
     }
   }
 
@@ -145,12 +168,34 @@ abstract class IntegrationTestBase {
     scopes: List<String> = listOf("read"),
   ): (HttpHeaders) -> Unit = jwtAuthHelper.setAuthorisationHeader(username = username, scope = scopes, roles = roles)
 
-  protected fun stubPingWithResponse(status: Int) {
-    hmppsAuth.stubHealthPing(status)
+  fun stubPingWithResponse(status: Int) {
+    hmppsAuth.stubFor(
+      get("/auth/health/ping").willReturn(
+        aResponse()
+          .withHeader("Content-Type", "application/json")
+          .withBody(if (status == 200) """{"status":"UP"}""" else """{"status":"DOWN"}""")
+          .withStatus(status),
+      ),
+    )
   }
 
   fun stubAuthTokenEndpoint() {
-    hmppsAuth.stubGrantToken()
+    hmppsAuth.stubFor(
+      post(urlEqualTo("/auth/oauth/token"))
+        .willReturn(
+          aResponse()
+            .withHeaders(WireMockHeaders(HttpHeader("Content-Type", "application/json")))
+            .withBody(
+              """
+                {
+                  "token_type": "bearer",
+                  "access_token": "ABCDE",
+                  "expires_in": ${LocalDateTime.now().plusHours(2).toEpochSecond(ZoneOffset.UTC)}
+                }
+              """.trimIndent(),
+            ),
+        ),
+    )
   }
 
   fun <T : Any> performRequestAndExpectOk(

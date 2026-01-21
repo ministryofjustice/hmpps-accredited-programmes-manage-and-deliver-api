@@ -1,5 +1,10 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils
 
+import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.post
+import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import com.github.tomakehurst.wiremock.http.HttpHeader
+import com.github.tomakehurst.wiremock.http.HttpHeaders
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestComponent
@@ -27,6 +32,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 /**
  * Test helper component for creating fully-initialised [ProgrammeGroupEntity] instances
@@ -104,7 +111,22 @@ class TestGroupHelper {
       ),
     ),
   ): ProgrammeGroupEntity {
-    hmppsAuth.stubGrantToken()
+    hmppsAuth.stubFor(
+      post(urlEqualTo("/auth/oauth/token"))
+        .willReturn(
+          aResponse()
+            .withHeaders(HttpHeaders(HttpHeader("Content-Type", "application/json")))
+            .withBody(
+              """
+                {
+                  "token_type": "bearer",
+                  "access_token": "ABCDE",
+                  "expires_in": ${LocalDateTime.now().plusHours(2).toEpochSecond(ZoneOffset.UTC)}
+                }
+              """.trimIndent(),
+            ),
+        ),
+    )
     govUkApiStubs.stubBankHolidaysResponse()
     nDeliusApiStubs.stubUserTeamsResponse(
       "REFER_MONITOR_PP",
