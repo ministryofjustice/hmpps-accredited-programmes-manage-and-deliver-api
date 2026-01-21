@@ -47,6 +47,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusAppointmentEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusRegionWithMembersFactory
@@ -819,6 +820,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
 
       // Allocate the referral to the group first
       programmeGroupMembershipService.allocateReferralToGroup(
@@ -879,6 +881,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .flatMap { session -> session.attendees.map { it.personName } }
 
       assertThat(remainingAttendeeNames).doesNotContain(foundReferral.personName)
+      // Validate that associated ndelius appointments have been removed from the DB
+      val foundSession = sessionRepository.findByIdOrNull(session.id!!)!!
+      assertThat(foundSession.attendees).isEmpty()
+      assertThat(foundSession.ndeliusAppointments).isEmpty()
     }
 
     @Test
@@ -892,6 +898,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
       programmeGroupMembershipService.allocateReferralToGroup(
         referral.id!!,
         group.id!!,
@@ -927,6 +934,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       session.attendees.add(
         AttendeeFactory()
           .withReferral(referral)
+          .withSession(session)
+          .produce(),
+      )
+      session.ndeliusAppointments.add(
+        NDeliusAppointmentEntityFactory()
+          .withNdeliusAppointmentId(UUID.randomUUID())
+          .withReferral(referral = referral)
           .withSession(session)
           .produce(),
       )

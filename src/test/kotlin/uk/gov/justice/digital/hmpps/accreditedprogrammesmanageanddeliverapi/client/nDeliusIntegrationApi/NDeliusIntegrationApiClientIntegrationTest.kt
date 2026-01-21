@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi
 
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.delete
 import com.github.tomakehurst.wiremock.client.WireMock.equalToJson
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.post
@@ -11,7 +12,9 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.AppointmentReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.DeleteAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
@@ -365,6 +368,60 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
 
     when (val response = nDeliusIntegrationApiClient.getRequirementManagerDetails(crn, requirementId)) {
       is ClientResult.Failure.StatusCode<*> -> assertThat(response.status).isEqualTo(HttpStatus.NOT_FOUND)
+      else -> fail("Unexpected result: ${response::class.simpleName}")
+    }
+  }
+
+  @Test
+  fun `should delete appointments in Delius`() {
+    stubAuthTokenEndpoint()
+    val appointments = DeleteAppointmentsRequest(
+      appointments = listOf(
+        AppointmentReference(java.util.UUID.randomUUID()),
+        AppointmentReference(java.util.UUID.randomUUID()),
+      ),
+    )
+
+    wiremock.stubFor(
+      delete(urlEqualTo("/appointments"))
+        .withRequestBody(equalToJson(objectMapper.writeValueAsString(appointments)))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody("{}"),
+        ),
+    )
+
+    when (val response = nDeliusIntegrationApiClient.deleteAppointmentsInDelius(appointments)) {
+      is ClientResult.Success<*> -> {
+        assertThat(response.status).isEqualTo(HttpStatus.OK)
+      }
+
+      else -> fail("Unexpected result: ${response::class.simpleName}")
+    }
+  }
+
+  @Test
+  fun `should return error when deleting appointments in Delius fails`() {
+    stubAuthTokenEndpoint()
+    val appointments = DeleteAppointmentsRequest(
+      appointments = listOf(
+        AppointmentReference(java.util.UUID.randomUUID()),
+      ),
+    )
+
+    wiremock.stubFor(
+      delete(urlEqualTo("/appointments"))
+        .withRequestBody(equalToJson(objectMapper.writeValueAsString(appointments)))
+        .willReturn(aResponse().withStatus(400)),
+    )
+
+    when (val response = nDeliusIntegrationApiClient.deleteAppointmentsInDelius(appointments)) {
+      is ClientResult.Failure.StatusCode<*> -> {
+        assertThat(response.status).isEqualTo(HttpStatus.BAD_REQUEST)
+      }
+
       else -> fail("Unexpected result: ${response::class.simpleName}")
     }
   }

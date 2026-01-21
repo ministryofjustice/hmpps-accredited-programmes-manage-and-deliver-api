@@ -382,6 +382,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
 
       val recallStatusDescription = referralStatusDescriptionRepository.getRecallStatusDescription()
 

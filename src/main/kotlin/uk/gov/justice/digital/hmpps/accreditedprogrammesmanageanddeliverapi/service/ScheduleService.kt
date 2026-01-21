@@ -11,12 +11,15 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.govUkHolidaysApi.GovUkApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.AppointmentReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.DeleteAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toAppointment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
@@ -343,4 +346,34 @@ class ScheduleService(
       sessionTime.minutes,
     ),
   )
+
+  fun removeNDeliusAppointments(nDeliusAppointmentsToRemove: List<NDeliusAppointmentEntity>, sessions: List<SessionEntity>) {
+    if (nDeliusAppointmentsToRemove.isEmpty()) return
+
+    when (
+      val response = nDeliusIntegrationApiClient.deleteAppointmentsInDelius(
+        DeleteAppointmentsRequest(
+          appointments = nDeliusAppointmentsToRemove.map { AppointmentReference(it.ndeliusAppointmentId) },
+        ),
+      )
+    ) {
+      is ClientResult.Failure.StatusCode -> {
+        log.warn("Failure deleting appointments in nDelius with reason: ${response.getErrorMessage()}", response.toException())
+        throw BusinessException("Failure deleting appointments in nDelius with status code : ${response.status}", response.toException())
+      }
+
+      is ClientResult.Failure.Other -> {
+        log.warn("Failure to delete appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}", response.exception)
+        throw BusinessException("Failure to delete appointments in NDelius: ${response.exception.message}", response.exception)
+      }
+
+      is ClientResult.Success -> {
+        sessions.forEach { session ->
+          session.ndeliusAppointments
+            .removeIf { appointment -> appointment.ndeliusAppointmentId in nDeliusAppointmentsToRemove.map { it.ndeliusAppointmentId } }
+        }
+        log.info("${nDeliusAppointmentsToRemove.size} appointments deleted in NDelius")
+      }
+    }
+  }
 }

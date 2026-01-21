@@ -319,7 +319,7 @@ class ProgrammeGroupController(
     @Valid
     @RequestBody removeFromGroupRequest: RemoveFromGroupRequest,
   ): ResponseEntity<RemoveFromGroupResponse> {
-    val referral = programmeGroupMembershipService.removeReferralFromGroup(
+    programmeGroupMembershipService.removeReferralFromGroup(
       referralId,
       groupId,
       authenticationHolder.username ?: "SYSTEM",
