@@ -23,8 +23,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toNdeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
@@ -64,20 +66,23 @@ class ScheduleService(
     val moduleSessionTemplate = moduleSessionTemplateRepository.findByIdOrNull(request.sessionTemplateId)
       ?: throw NotFoundException("Session template with id: ${request.sessionTemplateId} could not be found")
 
-    val sessionFacilitators = request.facilitators.map {
-      facilitatorService.findOrCreateFacilitator(it)
-    }.toMutableSet()
-
     val session = SessionEntity(
       programmeGroup = programmeGroup,
       moduleSessionTemplate = moduleSessionTemplate,
       startsAt = convertToLocalDateTime(request.startDate, request.startTime),
       endsAt = convertToLocalDateTime(request.startDate, request.endTime),
       locationName = programmeGroup.deliveryLocationName,
-      sessionFacilitators = sessionFacilitators,
       // Scheduling individual session should not be placeholder
       isPlaceholder = false,
     )
+    val sessionFacilitators = request.facilitators.map {
+      SessionFacilitatorEntity(
+        facilitator = facilitatorService.findOrCreateFacilitator(it),
+        session = session,
+        facilitatorType = it.teamMemberType.toFacilitatorType(),
+      )
+    }.toMutableSet()
+    session.sessionFacilitators = sessionFacilitators
 
     request.referralIds.forEach { referralId ->
       val referral = referralRepository.findByIdOrNull(referralId)
@@ -148,18 +153,17 @@ class ScheduleService(
         val startsAt = LocalDateTime.of(nextSlot.nextDate, nextSlot.slot.startTime)
         val endsAt = startsAt.plusMinutes(template.durationMinutes.toLong())
 
-        add(
-          SessionEntity(
-            programmeGroup = group,
-            moduleSessionTemplate = template,
-            startsAt = startsAt,
-            endsAt = endsAt,
-            locationName = group.deliveryLocationName,
-            // If we are scheduling One-to-One here it is a placeholder session
-            isPlaceholder = template.sessionType == SessionType.ONE_TO_ONE,
-            sessionFacilitators = group.groupFacilitators.map { it.facilitator }.toMutableSet(),
-          ),
+        val session = SessionEntity(
+          programmeGroup = group,
+          moduleSessionTemplate = template,
+          startsAt = startsAt,
+          endsAt = endsAt,
+          locationName = group.deliveryLocationName,
+          // If we are scheduling One-to-One here it is a placeholder session
+          isPlaceholder = template.sessionType == SessionType.ONE_TO_ONE,
         )
+        session.sessionFacilitators = group.groupFacilitators.map { SessionFacilitatorEntity(facilitator = it.facilitator, session, facilitatorType = it.facilitatorType) }.toMutableSet()
+        add(session)
 
         if (
           mostRecentSession == null &&

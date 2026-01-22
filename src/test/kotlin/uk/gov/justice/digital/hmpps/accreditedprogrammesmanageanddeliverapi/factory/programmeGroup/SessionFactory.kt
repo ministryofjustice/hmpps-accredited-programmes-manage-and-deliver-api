@@ -1,11 +1,11 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -18,7 +18,7 @@ class SessionFactory {
   private var locationName: String? = null
   private var startsAt: LocalDateTime = LocalDateTime.now()
   private var endsAt: LocalDateTime = LocalDateTime.now().plusHours(1)
-  private var sessionFacilitators: MutableSet<FacilitatorEntity> = mutableSetOf()
+  private var sessionFacilitators: MutableSet<SessionFacilitatorEntity> = mutableSetOf()
   private var createdAt: LocalDateTime? = LocalDateTime.now()
   private var createdByUsername: String? = "UNKNOWN_USER"
   private var attendances: MutableSet<SessionAttendanceEntity> = mutableSetOf()
@@ -32,7 +32,7 @@ class SessionFactory {
   fun withLocationName(locationName: String?) = apply { this.locationName = locationName }
   fun withStartsAt(startsAt: LocalDateTime) = apply { this.startsAt = startsAt }
   fun withEndsAt(endsAt: LocalDateTime) = apply { this.endsAt = endsAt }
-  fun withSessionFacilitators(sessionFacilitators: MutableSet<FacilitatorEntity>) = apply { this.sessionFacilitators = sessionFacilitators }
+  fun withSessionFacilitators(sessionFacilitators: MutableSet<SessionFacilitatorEntity>) = apply { this.sessionFacilitators = sessionFacilitators }
   fun withCreatedAt(createdAt: LocalDateTime?) = apply { this.createdAt = createdAt }
   fun withCreatedByUsername(createdByUsername: String?) = apply { this.createdByUsername = createdByUsername }
   fun withAttendances(attendances: MutableSet<SessionAttendanceEntity>) = apply { this.attendances = attendances }
