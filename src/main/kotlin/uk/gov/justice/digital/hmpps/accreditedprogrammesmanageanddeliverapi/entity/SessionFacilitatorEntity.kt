@@ -34,10 +34,10 @@ class SessionFacilitatorEntity(
     facilitatorType = facilitatorType,
   )
 
-  val facilitator: FacilitatorEntity?
+  val facilitator: FacilitatorEntity
     get() = id.facilitator
 
-  val session: SessionEntity?
+  val session: SessionEntity
     get() = id.session
 }
 
@@ -45,9 +45,9 @@ class SessionFacilitatorEntity(
 data class SessionFacilitatorId(
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "facilitator_id")
-  var facilitator: FacilitatorEntity? = null,
+  var facilitator: FacilitatorEntity,
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "session_id")
-  var session: SessionEntity? = null,
+  var session: SessionEntity,
 ) : Serializable
