@@ -336,24 +336,21 @@ class ProgrammeGroupService(
     )
   }
 
-  fun getGroupSessionPage(
-    groupId: UUID,
-    sessionId: UUID,
-  ) {
+  fun getGroupSessionPage(groupId: UUID, sessionId: UUID): GroupSessionResponse {
     val programmeGroup =
       programmeGroupRepository.findByIdOrNull(groupId) ?: throw NotFoundException("Group with id $groupId not found")
 
     val session =
       sessionRepository.findByIdOrNull(sessionId) ?: throw NotFoundException("Session with $sessionId not found")
 
-    GroupSessionResponse(
+    return GroupSessionResponse(
       groupCode = programmeGroup.code,
-      pageTitle = session.moduleSessionTemplate.name,
-      sessionType = session.sessionType.name,
+      pageTitle = "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}",
+      sessionType = session.sessionType.value,
       date = session.startsAt.toLocalDate(),
-      time = session.startsAt.toLocalTime(),
+      time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
       scheduledToAttend = session.attendees.map { it.personName },
-      facilitators = session.sessionFacilitators.map { it.personName },
+      facilitators = session.sessionFacilitators.map { it.facilitator.personName },
       attendanceAndSessionNotes = listOf(),
     )
   }
