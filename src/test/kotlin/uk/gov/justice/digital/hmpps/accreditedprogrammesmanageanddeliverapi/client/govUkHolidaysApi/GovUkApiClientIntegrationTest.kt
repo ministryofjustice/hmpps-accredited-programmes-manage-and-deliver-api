@@ -10,17 +10,26 @@ import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.cache.CacheManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.govUkHolidaysApi.model.BankHolidaysResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.task.ScheduledCacheEvictTask
 
 class GovUkApiClientIntegrationTest : IntegrationTestBase() {
   @Autowired
   private lateinit var govUkApiClient: GovUkApiClient
 
+  @Autowired
+  private lateinit var cacheManager: CacheManager
+
+  @Autowired
+  private lateinit var scheduledCacheEvictTask: ScheduledCacheEvictTask
+
   @BeforeEach
   fun setup() {
     wiremock.resetAll()
+    cacheManager.getCache("bank-holidays")?.clear()
   }
 
   @Test
@@ -144,6 +153,49 @@ class GovUkApiClientIntegrationTest : IntegrationTestBase() {
     val response = govUkApiClient.getHolidays()
     assertThat(response)
       .isInstanceOf(ClientResult.Failure::class.java)
+
+    wiremock.verify(
+      1,
+      getRequestedFor(urlEqualTo("/bank-holidays.json")),
+    )
+  }
+
+  @Test
+  fun `should cache holidays and only call external API once`() {
+    stubAuthTokenEndpoint()
+    govUkApiStubs.stubBankHolidaysResponse()
+
+    // Call api twice but should only hit wiremock once
+    govUkApiClient.getHolidays()
+    govUkApiClient.getHolidays()
+
+    wiremock.verify(
+      1,
+      getRequestedFor(urlEqualTo("/bank-holidays.json")),
+    )
+  }
+
+  @Test
+  fun `should evict cache and call external API again`() {
+    stubAuthTokenEndpoint()
+    govUkApiStubs.stubBankHolidaysResponse()
+
+    // First call fills cache
+    govUkApiClient.getHolidays()
+    wiremock.verify(
+      1,
+      getRequestedFor(urlEqualTo("/bank-holidays.json")),
+    )
+
+    // Evict cache
+    scheduledCacheEvictTask.evictBankHolidaysCache()
+
+    // Reset wiremock and stub again to ensure it is hit again
+    wiremock.resetRequests()
+    govUkApiStubs.stubBankHolidaysResponse()
+
+    // Second call should hit wiremock again
+    govUkApiClient.getHolidays()
 
     wiremock.verify(
       1,

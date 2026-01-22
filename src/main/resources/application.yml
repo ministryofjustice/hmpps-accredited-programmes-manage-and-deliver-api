@@ -91,7 +91,7 @@ resilience4j:
   retry:
     instances:
       govUkApi:
-        maxAttempts: 3
+        maxAttempts: 5
         waitDuration: 500ms
         retry-exceptions:
           - org.springframework.web.reactive.function.client.WebClientRequestException
