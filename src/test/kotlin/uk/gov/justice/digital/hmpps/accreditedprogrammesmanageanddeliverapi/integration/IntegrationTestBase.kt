@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
+import org.springframework.cache.CacheManager
 import org.springframework.context.annotation.Import
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpHeaders
@@ -98,9 +99,13 @@ abstract class IntegrationTestBase {
   @MockitoSpyBean
   lateinit var clock: Clock
 
+  @Autowired
+  private lateinit var cacheManager: CacheManager
+
   @BeforeEach
   fun beforeEach() {
     domainEventsQueueConfig.purgeAllQueues()
+    cacheManager.getCache("bank-holidays")?.clear()
   }
 
   companion object {
