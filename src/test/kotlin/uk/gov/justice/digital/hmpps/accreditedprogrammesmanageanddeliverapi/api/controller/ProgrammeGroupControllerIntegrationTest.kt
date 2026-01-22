@@ -22,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
@@ -1971,5 +1972,114 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
     }
+  }
+
+  @Nested
+  @DisplayName("Get sessions for group")
+  inner class GetGroupSessionPage {
+    @Test
+    fun `return 200 and bff data if successful`() {
+      referrals = testReferralHelper.createReferrals()
+
+      // Create group
+      val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+      val body = CreateGroupRequestFactory().produce(
+        createGroupSessionSlot = setOf(slot1),
+      )
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val group = programmeGroupRepository.findByCode(body.groupCode)!!
+      group.sessions = group.sessions.filter { !it.isPlaceholder }.toMutableSet()
+
+      // assign a referral to a group
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/allocate/${referrals.first().id}",
+        body = AllocateToGroupRequest(
+          additionalDetails = "Test allocation",
+        ),
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      val groupWithAllocation = programmeGroupRepository.findByCode(body.groupCode)!!
+      groupWithAllocation.sessions = group.sessions.filter { !it.isPlaceholder }.toMutableSet()
+
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/session/${groupWithAllocation.sessions.first().id}",
+        returnType = object : ParameterizedTypeReference<GroupSessionResponse>() {},
+      )
+
+      assertThat(response.groupCode).isEqualTo(body.groupCode)
+      assertThat(response.sessionType).isIn("Group")
+      assertThat(response.pageTitle).isEqualTo("${groupWithAllocation.sessions.first().moduleSessionTemplate.module.name} ${groupWithAllocation.sessions.first().moduleSessionTemplate.sessionNumber}: ${group.sessions.first().moduleSessionTemplate.name}")
+      assertThat(response.date).isNotNull
+      assertThat(response.time).isEqualTo("9:30am to midday")
+      assertThat(response.scheduledToAttend).isEqualTo(groupWithAllocation.sessions.first().attendees.map { it.personName })
+      assertThat(response.facilitators).isEqualTo(group.groupFacilitators.map { it.facilitator.personName })
+    }
+  }
+
+  @Test
+  fun `return 401 when unauthorised`() {
+    webTestClient
+      .method(HttpMethod.GET)
+      .uri("/bff/group/${UUID.randomUUID()}/session/${UUID.randomUUID()}")
+      .contentType(MediaType.APPLICATION_JSON)
+      .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+      .exchange()
+      .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+      .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+      .returnResult().responseBody!!
+  }
+
+  @Test
+  fun `return 404 when the programme group is not found`() {
+    val groupId = UUID.randomUUID()
+
+    val exception = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.GET,
+      uri = "/bff/group/$groupId/session/${UUID.randomUUID()}",
+      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+      expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      body = {},
+    )
+    assertThat(exception.userMessage).isEqualTo("Not Found: Group with id $groupId not found")
+  }
+
+  @Test
+  fun `return 404 when the session is not found`() {
+    val sessionId = UUID.randomUUID()
+
+    // Create group
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+    val body = CreateGroupRequestFactory().produce(
+      createGroupSessionSlot = setOf(slot1),
+    )
+    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+    performRequestAndExpectStatus(
+      httpMethod = HttpMethod.POST,
+      uri = "/group",
+      body = body,
+      expectedResponseStatus = HttpStatus.CREATED.value(),
+    )
+    val group = programmeGroupRepository.findByCode(body.groupCode)!!
+
+    val exception = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.GET,
+      uri = "/bff/group/${group.id}/session/$sessionId",
+      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+      expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      body = {},
+    )
+    assertThat(exception.userMessage).isEqualTo("Not Found: Session with $sessionId not found")
   }
 }
