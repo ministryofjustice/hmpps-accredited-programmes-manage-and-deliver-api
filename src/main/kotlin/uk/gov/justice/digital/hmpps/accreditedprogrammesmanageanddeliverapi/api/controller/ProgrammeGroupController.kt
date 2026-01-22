@@ -746,4 +746,9 @@ class ProgrammeGroupController(
     }
     return username
   }
+
+  @GetMapping("/bff/group/{groupId}/session/{sessionId}")
+  fun getGroupSessionPage(@PathVariable groupId: UUID, @PathVariable sessionId: UUID) {
+    val response = programmeGroupService.getGroupSessionPage(groupId, sessionId)
+  }
 }

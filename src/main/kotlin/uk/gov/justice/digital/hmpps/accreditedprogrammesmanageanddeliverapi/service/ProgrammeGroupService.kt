@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
@@ -208,7 +209,10 @@ class ProgrammeGroupService(
             name = getFormattedSessionNameForDisplay(sessionTemplate, scheduledSession),
             type = if (sessionTemplate.sessionType == SessionType.ONE_TO_ONE) "Individual" else "Group",
             dateOfSession = scheduledSession.startsAt.toLocalDate(),
-            timeOfSession = formatTimeOfSession(scheduledSession.startsAt.toLocalTime(), scheduledSession.endsAt.toLocalTime()),
+            timeOfSession = formatTimeOfSession(
+              scheduledSession.startsAt.toLocalTime(),
+              scheduledSession.endsAt.toLocalTime(),
+            ),
             participants = if (sessionTemplate.sessionType == SessionType.GROUP) listOf("All") else scheduledSession.attendees.map { it.personName },
             facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }.map { it.facilitator!!.personName },
           )
@@ -329,6 +333,28 @@ class ProgrammeGroupService(
       regionName = firstUserRegionDescription,
       probationDeliveryUnitNames = allPduNames,
       deliveryLocationNames = deliveryLocationNames,
+    )
+  }
+
+  fun getGroupSessionPage(
+    groupId: UUID,
+    sessionId: UUID,
+  ) {
+    val programmeGroup =
+      programmeGroupRepository.findByIdOrNull(groupId) ?: throw NotFoundException("Group with id $groupId not found")
+
+    val session =
+      sessionRepository.findByIdOrNull(sessionId) ?: throw NotFoundException("Session with $sessionId not found")
+
+    GroupSessionResponse(
+      groupCode = programmeGroup.code,
+      pageTitle = session.moduleSessionTemplate.name,
+      sessionType = session.sessionType.name,
+      date = session.startsAt.toLocalDate(),
+      time = session.startsAt.toLocalTime(),
+      scheduledToAttend = session.attendees.map { it.personName },
+      facilitators = session.sessionFacilitators.map { it.personName },
+      attendanceAndSessionNotes = listOf(),
     )
   }
 }
