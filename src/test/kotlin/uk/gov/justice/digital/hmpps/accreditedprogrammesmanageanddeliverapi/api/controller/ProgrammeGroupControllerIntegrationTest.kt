@@ -1696,7 +1696,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
-      assertThat(retrievedSession.sessionFacilitators).extracting("personName").contains("Non existent Facilitator")
+      assertThat(retrievedSession.sessionFacilitators).extracting("facilitator.personName").contains("Non existent Facilitator")
       // This is 2 as we made a call when we allocated to a group as part of test setup
       wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
     }
