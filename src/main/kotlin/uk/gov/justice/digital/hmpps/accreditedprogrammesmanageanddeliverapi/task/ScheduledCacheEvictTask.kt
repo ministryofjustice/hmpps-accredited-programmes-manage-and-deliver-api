@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.task
 
+import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -9,7 +10,7 @@ import org.springframework.stereotype.Component
  */
 @Component
 class ScheduledCacheEvictTask {
-  private val log = org.slf4j.LoggerFactory.getLogger(this::class.java)
+  private val log = LoggerFactory.getLogger(this::class.java)
 
   @Scheduled(cron = $$"${cache.evict.bank-holidays.cron:0 0 0 */7 * ?}")
   @CacheEvict(value = ["bank-holidays"], allEntries = true)

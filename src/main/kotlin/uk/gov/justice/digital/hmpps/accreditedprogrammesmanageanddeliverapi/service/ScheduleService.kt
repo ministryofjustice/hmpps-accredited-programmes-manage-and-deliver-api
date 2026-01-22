@@ -58,7 +58,7 @@ class ScheduleService(
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
-
+  private lateinit var bankHolidays: Set<LocalDate>
   fun scheduleIndividualSession(groupId: UUID, request: ScheduleSessionRequest): ScheduleSessionResponse {
     val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id: $groupId could not be found")
@@ -111,6 +111,7 @@ class ScheduleService(
     val templateId = requireNotNull(group.accreditedProgrammeTemplate?.id) {
       "Group template Id must not be null"
     }
+    bankHolidays = englandAndWalesHolidayDates()
 
     // Collect all session templates in module/session order
     var allSessionTemplates = moduleRepository
@@ -162,7 +163,13 @@ class ScheduleService(
           // If we are scheduling One-to-One here it is a placeholder session
           isPlaceholder = template.sessionType == SessionType.ONE_TO_ONE,
         )
-        session.sessionFacilitators = group.groupFacilitators.map { SessionFacilitatorEntity(facilitator = it.facilitator, session, facilitatorType = it.facilitatorType) }.toMutableSet()
+        session.sessionFacilitators = group.groupFacilitators.map {
+          SessionFacilitatorEntity(
+            facilitator = it.facilitator,
+            session,
+            facilitatorType = it.facilitatorType,
+          )
+        }.toMutableSet()
         add(session)
 
         if (
@@ -297,7 +304,7 @@ class ScheduleService(
     var candidateDate = fromDate.with(TemporalAdjusters.nextOrSame(slot.dayOfWeek))
 
     // Keep advancing by weeks until we find a non-holiday
-    while (englandAndWalesHolidayDates().contains(candidateDate)) {
+    while (bankHolidays.contains(candidateDate)) {
       candidateDate = candidateDate.plusWeeks(1)
     }
 
@@ -351,7 +358,10 @@ class ScheduleService(
     ),
   )
 
-  fun removeNDeliusAppointments(nDeliusAppointmentsToRemove: List<NDeliusAppointmentEntity>, sessions: List<SessionEntity>) {
+  fun removeNDeliusAppointments(
+    nDeliusAppointmentsToRemove: List<NDeliusAppointmentEntity>,
+    sessions: List<SessionEntity>,
+  ) {
     if (nDeliusAppointmentsToRemove.isEmpty()) return
 
     when (
@@ -362,13 +372,25 @@ class ScheduleService(
       )
     ) {
       is ClientResult.Failure.StatusCode -> {
-        log.warn("Failure deleting appointments in nDelius with reason: ${response.getErrorMessage()}", response.toException())
-        throw BusinessException("Failure deleting appointments in nDelius with status code : ${response.status}", response.toException())
+        log.warn(
+          "Failure deleting appointments in nDelius with reason: ${response.getErrorMessage()}",
+          response.toException(),
+        )
+        throw BusinessException(
+          "Failure deleting appointments in nDelius with status code : ${response.status}",
+          response.toException(),
+        )
       }
 
       is ClientResult.Failure.Other -> {
-        log.warn("Failure to delete appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}", response.exception)
-        throw BusinessException("Failure to delete appointments in NDelius: ${response.exception.message}", response.exception)
+        log.warn(
+          "Failure to delete appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
+          response.exception,
+        )
+        throw BusinessException(
+          "Failure to delete appointments in NDelius: ${response.exception.message}",
+          response.exception,
+        )
       }
 
       is ClientResult.Success -> {
