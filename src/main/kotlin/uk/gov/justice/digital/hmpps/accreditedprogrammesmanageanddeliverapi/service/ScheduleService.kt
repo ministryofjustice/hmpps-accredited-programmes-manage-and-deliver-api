@@ -398,6 +398,7 @@ class ScheduleService(
           session.ndeliusAppointments
             .removeIf { appointment -> appointment.ndeliusAppointmentId in nDeliusAppointmentsToRemove.map { it.ndeliusAppointmentId } }
         }
+        sessionRepository.deleteAll(sessions)
         log.info("${nDeliusAppointmentsToRemove.size} appointments deleted in NDelius")
       }
     }

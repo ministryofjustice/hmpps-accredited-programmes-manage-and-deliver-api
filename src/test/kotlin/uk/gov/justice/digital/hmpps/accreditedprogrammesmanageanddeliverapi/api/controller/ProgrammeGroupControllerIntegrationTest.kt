@@ -1697,7 +1697,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
-      assertThat(retrievedSession.sessionFacilitators).extracting("facilitator.personName").contains("Non existent Facilitator")
+      assertThat(retrievedSession.sessionFacilitators).extracting("facilitator.personName")
+        .contains("Non existent Facilitator")
       // This is 2 as we made a call when we allocated to a group as part of test setup
       wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
     }
@@ -2081,5 +2082,63 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       body = {},
     )
     assertThat(exception.userMessage).isEqualTo("Not Found: Session with $sessionId not found")
+  }
+
+  @Test
+  fun `return 204 when the session is deleted`() {
+    // Create group
+    val group = testGroupHelper.createGroup()
+    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+    // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+    val referral = referrals.first()
+    programmeGroupMembershipService.allocateReferralToGroup(
+      referral.id!!,
+      group.id!!,
+      "SYSTEM",
+      "",
+    )
+
+    val sessionId =
+      sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }?.id
+    nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+
+    performRequestAndExpectStatusNoBody(
+      httpMethod = HttpMethod.DELETE,
+      uri = "/session/$sessionId",
+      expectedResponseStatus = HttpStatus.NO_CONTENT.value(),
+    )
+
+    val savedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)
+    assertThat(savedGroup!!.sessions.find { it.id == sessionId }).isNull()
+  }
+
+  @Test
+  fun `return 404 when the session is not found on delete`() {
+    val sessionId = UUID.randomUUID()
+
+    val exception = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.DELETE,
+      uri = "/session/$sessionId",
+      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+      expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      body = {},
+    )
+    assertThat(exception.userMessage).isEqualTo("Not Found: Session with id $sessionId not found.")
+  }
+
+  @Test
+  fun `return 401 when unauthorised on delete session`() {
+    val sessionId = UUID.randomUUID()
+
+    webTestClient
+      .method(HttpMethod.DELETE)
+      .uri("/session/$sessionId")
+      .contentType(MediaType.APPLICATION_JSON)
+      .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+      .exchange()
+      .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+      .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+      .returnResult().responseBody!!
   }
 }
