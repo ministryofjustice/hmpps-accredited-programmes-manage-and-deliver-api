@@ -9,16 +9,16 @@ import java.util.UUID
 data class GroupSchedule(
   @get:JsonProperty("preGroupOneToOneStartDate", required = true)
   @Schema(description = "The start date of a group one to one in format DayName DateNumber MonthName YearNumber", example = "Monday 22 June 2026")
-  @JsonFormat(pattern = "d MMMM yyyy")
+  @JsonFormat(pattern = "EEEE d MMMM yyyy")
   val preGroupOneToOneStartDate: LocalDate?,
 
   @get:JsonProperty("gettingStartedModuleStartDate", required = true)
   @Schema(description = "The start date of a module in format DayName DateNumber MonthName YearNumber", example = "Monday 22 June 2026")
-  @JsonFormat(pattern = "d MMMM yyyy")
+  @JsonFormat(pattern = "EEEE d MMMM yyyy")
   val gettingStartedModuleStartDate: LocalDate?,
 
   @get:JsonProperty("endDate", required = true)
-  @JsonFormat(pattern = "d MMMM yyyy")
+  @JsonFormat(pattern = "EEEE d MMMM yyyy")
   @Schema(description = "The end date of a module in format DayName DateNumber MonthName YearNumber", example = "Monday 22 September 2026")
   val endDate: LocalDate?,
 
@@ -38,7 +38,7 @@ data class GroupScheduleSession(
   @Schema(description = "The type of the session", required = true, example = "Individual")
   val type: String,
 
-  @JsonFormat(pattern = "d MMMM yyyy")
+  @JsonFormat(pattern = "EEEE d MMMM yyyy")
   @Schema(description = "The date of the session", example = "Monday 22 June 2026")
   val date: LocalDate,
 

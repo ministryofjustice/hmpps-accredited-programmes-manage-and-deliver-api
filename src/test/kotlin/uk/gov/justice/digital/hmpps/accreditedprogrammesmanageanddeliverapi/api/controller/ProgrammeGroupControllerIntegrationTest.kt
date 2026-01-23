@@ -2176,17 +2176,17 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Then - Verify schedule-level dates
       assertThat(response).isNotNull
-      assertThat(response.preGroupOneToOneStartDate).isEqualTo("2026-06-01")
-      assertThat(response.gettingStartedModuleStartDate).isEqualTo("2026-06-15")
-      assertThat(response.endDate).isEqualTo("2026-07-20")
+      assertThat(response.preGroupOneToOneStartDate).isEqualTo(LocalDate.of(2026, 6, 1))
+      assertThat(response.gettingStartedModuleStartDate).isEqualTo(LocalDate.of(2026, 6, 15))
+      assertThat(response.endDate).isEqualTo(LocalDate.of(2026, 7, 20))
       assertThat(response.modules).hasSize(3)
 
       // Verify Pre-group session details
       val preGroupSession = response.modules.find { it.name == preGroupSessionTemplate.name }
       assertThat(preGroupSession).isNotNull
-      assertThat(preGroupSession!!.id).isNotNull
-      assertThat(preGroupSession.name).isEqualTo(preGroupSessionTemplate.name)
-      assertThat(preGroupSession.date).isEqualTo("2026-06-01")
+      assertThat(preGroupSession?.id).isNotNull
+      assertThat(preGroupSession?.name).isEqualTo(preGroupSessionTemplate.name)
+      assertThat(preGroupSession!!.date).isEqualTo(LocalDate.of(2026, 6, 1))
       assertThat(preGroupSession.time).isEqualTo("9:00am")
       assertThat(preGroupSession.type).isEqualTo("ONE_TO_ONE")
 
@@ -2195,20 +2195,20 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(gettingStartedSession).isNotNull
       assertThat(gettingStartedSession!!.id).isNotNull
       assertThat(gettingStartedSession.name).isEqualTo(gettingStartedSessionTemplate.name)
-      assertThat(gettingStartedSession.date).isEqualTo("2026-06-15")
       assertThat(gettingStartedSession.time).isEqualTo("10:00am")
       assertThat(gettingStartedSession.type).isEqualTo("GROUP")
+      assertThat(gettingStartedSession.date).isEqualTo(LocalDate.of(2026, 6, 15))
 
       // Verify regular/last session details
       val regularSession = response.modules.find { it.name == regularSessionTemplate.name }
       assertThat(regularSession).isNotNull
       assertThat(regularSession!!.id).isNotNull
-      assertThat(regularSession.name).isEqualTo(regularSessionTemplate.name)
-      assertThat(regularSession.date).isEqualTo("2026-07-20")
       assertThat(regularSession.time).isEqualTo("2:00pm")
       assertThat(regularSession.type).isEqualTo("ONE_TO_ONE")
+      assertThat(regularSession.name).isEqualTo(regularSessionTemplate.name)
+      assertThat(regularSession.date).isEqualTo(LocalDate.of(2026, 7, 20))
 
-      // Verify that the last session in the list has the end date
+      // Verify that the last session in the list matches the end date object
       val lastSession = response.modules.last()
       assertThat(lastSession.date).isEqualTo(response.endDate)
     }
