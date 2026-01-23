@@ -2,7 +2,9 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -15,10 +17,22 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import java.time.LocalDateTime
 import java.util.UUID
 
 class SessionControllerIntegrationTest : IntegrationTestBase() {
+
+  @Autowired
+  private lateinit var sessionRepository: SessionRepository
+
+  @Autowired
+  private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
+
+  @Autowired
+  private lateinit var programmeGroupRepository: ProgrammeGroupRepository
 
   @Test
   fun `retrieveSessionDetailsToEdit returns 200 and session details`() {
@@ -90,6 +104,64 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     webTestClient
       .method(HttpMethod.GET)
       .uri("/bff/session/$sessionId/edit-session-date-and-time")
+      .contentType(MediaType.APPLICATION_JSON)
+      .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+      .exchange()
+      .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+      .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+      .returnResult().responseBody!!
+  }
+
+  @Test
+  fun `return 204 when the session is deleted`() {
+    // Create group
+    val group = testGroupHelper.createGroup()
+    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+    // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+    val referral = testReferralHelper.createReferral()
+    programmeGroupMembershipService.allocateReferralToGroup(
+      referral.id!!,
+      group.id!!,
+      "SYSTEM",
+      "",
+    )
+
+    val sessionId =
+      sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }?.id
+    nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+
+    performRequestAndExpectStatusNoBody(
+      httpMethod = HttpMethod.DELETE,
+      uri = "/session/$sessionId",
+      expectedResponseStatus = HttpStatus.NO_CONTENT.value(),
+    )
+
+    val savedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)
+    assertThat(savedGroup!!.sessions.find { it.id == sessionId }).isNull()
+  }
+
+  @Test
+  fun `return 404 when the session is not found on delete`() {
+    val sessionId = UUID.randomUUID()
+
+    val exception = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.DELETE,
+      uri = "/session/$sessionId",
+      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+      expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      body = {},
+    )
+    assertThat(exception.userMessage).isEqualTo("Not Found: Session with id $sessionId not found.")
+  }
+
+  @Test
+  fun `return 401 when unauthorised on delete session`() {
+    val sessionId = UUID.randomUUID()
+
+    webTestClient
+      .method(HttpMethod.DELETE)
+      .uri("/session/$sessionId")
       .contentType(MediaType.APPLICATION_JSON)
       .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
       .exchange()
