@@ -29,8 +29,8 @@ dependencies {
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 
   // security
-  implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:4.0.1")
-  implementation("org.springframework.boot:spring-boot-starter-oauth2-client:4.0.1")
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:4.0.2")
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-client:4.0.2")
   implementation("org.springframework.security:spring-security-crypto:7.0.2")
   implementation("com.nimbusds:oauth2-oidc-sdk:11.31.1")
   implementation("io.github.resilience4j:resilience4j-spring-boot2:2.3.0")
