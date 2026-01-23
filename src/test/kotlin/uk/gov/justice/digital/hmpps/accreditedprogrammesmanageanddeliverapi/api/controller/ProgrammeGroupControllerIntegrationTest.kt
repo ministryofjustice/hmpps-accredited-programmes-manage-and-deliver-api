@@ -2037,7 +2037,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(errorResponse.userMessage).contains("Group with id $nonExistentGroupId not found")
     }
 
-    @Test
+/*    @Test
     fun `returns 200 when group does exist for schedule`() {
       // Given
       val template = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
@@ -2057,6 +2057,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val preGroupModule = modules.find { it.name.startsWith("Pre-group") }
       assertThat(preGroupModule).isNotNull
       val preGroupModuleId = preGroupModule!!.id!!
+
+      val gettingStartedModule = modules.find { it.name.startsWith("Getting started") }
+      assertThat(gettingStartedModule).isNotNull
+      val gettingStartedModuleId = gettingStartedModule!!.id!!
 
       val preGroupModuleSessions = moduleSessionTemplateRepository.findByModuleId(preGroupModuleId)
       val sessionTemplate = preGroupModuleSessions.first()
@@ -2081,7 +2085,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       assertThat(response).isNotNull
       assertThat(response.preGroupOneToOneStartDate).isEqualTo("2026-06-01")
-      assertThat(response.gettingStartedModuleStartDate).isEmpty()
+      assertThat(response.gettingStartedModuleStartDate).isEqualTo("2026-06-01")
       assertThat(response.endDate).isEqualTo("2026-06-01")
 
       assertThat(response.modules).hasSize(1)
@@ -2096,13 +2100,71 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       } else {
         "Group"
       }
-    }
+    }*/
 
     @Test
-    fun `returns 200 with empty fields when group has no sessions`() {
+    fun `returns 200 with complete schedule when group has all session types`() {
       // Given
+      val template = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+      assertThat(template).isNotNull
+
       val group = testDataGenerator.createGroup(
-        ProgrammeGroupFactory().withCode("EMPTY_SCHED").produce(),
+        ProgrammeGroupFactory()
+          .withCode("GET_SCHED_200")
+          .withRegionName("WIREMOCKED REGION")
+          .withAccreditedProgrammeTemplate(template)
+          .produce(),
+      )
+
+      val modules = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(template.id!!)
+      assertThat(modules).isNotEmpty
+
+      // Create Pre-group session
+      val preGroupModule = modules.find { it.name.startsWith("Pre-group") }
+      assertThat(preGroupModule).isNotNull
+      val preGroupSessions = moduleSessionTemplateRepository.findByModuleId(preGroupModule!!.id!!)
+      val preGroupSessionTemplate = preGroupSessions.first()
+
+      testDataGenerator.createSession(
+        SessionEntity(
+          programmeGroup = group,
+          moduleSessionTemplate = preGroupSessionTemplate,
+          startsAt = LocalDateTime.of(2026, 6, 1, 9, 0),
+          endsAt = LocalDateTime.of(2026, 6, 1, 11, 0),
+          isPlaceholder = false,
+        ),
+      )
+
+      // Create Getting Started session
+      val gettingStartedModule = modules.find { it.name.startsWith("Getting started") }
+      assertThat(gettingStartedModule).isNotNull
+      val gettingStartedSessions = moduleSessionTemplateRepository.findByModuleId(gettingStartedModule!!.id!!)
+      val gettingStartedSessionTemplate = gettingStartedSessions.first()
+
+      testDataGenerator.createSession(
+        SessionEntity(
+          programmeGroup = group,
+          moduleSessionTemplate = gettingStartedSessionTemplate,
+          startsAt = LocalDateTime.of(2026, 6, 15, 10, 0),
+          endsAt = LocalDateTime.of(2026, 6, 15, 12, 0),
+          isPlaceholder = false,
+        ),
+      )
+
+      // Create regular session (end date)
+      val regularModule = modules.find { it.moduleNumber == modules.last().moduleNumber }
+      assertThat(regularModule).isNotNull
+      val regularSessions = moduleSessionTemplateRepository.findByModuleId(regularModule!!.id!!)
+      val regularSessionTemplate = regularSessions.first()
+
+      testDataGenerator.createSession(
+        SessionEntity(
+          programmeGroup = group,
+          moduleSessionTemplate = regularSessionTemplate,
+          startsAt = LocalDateTime.of(2026, 7, 20, 14, 0),
+          endsAt = LocalDateTime.of(2026, 7, 20, 16, 0),
+          isPlaceholder = false,
+        ),
       )
 
       // When
@@ -2112,10 +2174,58 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         returnType = object : ParameterizedTypeReference<GroupSchedule>() {},
       )
 
-      // Then
-      assertThat(response.modules).isEmpty()
-      assertThat(response.preGroupOneToOneStartDate).isEmpty()
-      assertThat(response.endDate).isEmpty()
+      // Then - Verify schedule-level dates
+      assertThat(response).isNotNull
+      assertThat(response.preGroupOneToOneStartDate).isEqualTo("2026-06-01")
+      assertThat(response.gettingStartedModuleStartDate).isEqualTo("2026-06-15")
+      assertThat(response.endDate).isEqualTo("2026-07-20")
+      assertThat(response.modules).hasSize(3)
+
+      // Verify Pre-group session details
+      val preGroupSession = response.modules.find { it.name == preGroupSessionTemplate.name }
+      assertThat(preGroupSession).isNotNull
+      assertThat(preGroupSession!!.id).isNotNull
+      assertThat(preGroupSession.name).isEqualTo(preGroupSessionTemplate.name)
+      assertThat(preGroupSession.date).isEqualTo("2026-06-01")
+      assertThat(preGroupSession.time).isEqualTo("9:00am")
+      assertThat(preGroupSession.type).isEqualTo("ONE_TO_ONE")
+
+      // Verify Getting Started session details
+      val gettingStartedSession = response.modules.find { it.name == gettingStartedSessionTemplate.name }
+      assertThat(gettingStartedSession).isNotNull
+      assertThat(gettingStartedSession!!.id).isNotNull
+      assertThat(gettingStartedSession.name).isEqualTo(gettingStartedSessionTemplate.name)
+      assertThat(gettingStartedSession.date).isEqualTo("2026-06-15")
+      assertThat(gettingStartedSession.time).isEqualTo("10:00am")
+      assertThat(gettingStartedSession.type).isEqualTo("GROUP")
+
+      // Verify regular/last session details
+      val regularSession = response.modules.find { it.name == regularSessionTemplate.name }
+      assertThat(regularSession).isNotNull
+      assertThat(regularSession!!.id).isNotNull
+      assertThat(regularSession.name).isEqualTo(regularSessionTemplate.name)
+      assertThat(regularSession.date).isEqualTo("2026-07-20")
+      assertThat(regularSession.time).isEqualTo("2:00pm")
+      assertThat(regularSession.type).isEqualTo("ONE_TO_ONE")
+
+      // Verify that the last session in the list has the end date
+      val lastSession = response.modules.last()
+      assertThat(lastSession.date).isEqualTo(response.endDate)
+    }
+
+    @Test
+    fun `schedule from group returns 404 when sessions does not exist for group`() {
+      // Given
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory().withCode("EMPTY_SCHED").produce(),
+      )
+
+      // When & Then
+      performRequestAndExpectStatusNoBody(
+        HttpMethod.GET,
+        uri = "/bff/group/${group.id}/schedule",
+        HttpStatus.NOT_FOUND.value(),
+      )
     }
   }
 }

@@ -432,11 +432,11 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       val gettingStartedSession = schedule.modules.find { it.name.startsWith("Getting started") }
       assertThat(gettingStartedSession).isNotNull
       assertThat(gettingStartedSession!!.time).isEqualTo("midday")
-      assertThat(gettingStartedSession.type).isEqualTo("Individual")
+      assertThat(gettingStartedSession.type).isEqualTo("ONE_TO_ONE")
       assertThat(gettingStartedSession.date).isEqualTo(schedule.gettingStartedModuleStartDate)
 
       val preGroupSession = schedule.modules.find { it.name.startsWith("Pre-group") }
-      assertThat(preGroupSession!!.type).isEqualTo("Group")
+      assertThat(preGroupSession!!.type).isEqualTo("ONE_TO_ONE")
       assertThat(preGroupSession.time).isEqualTo("10:00am")
       assertThat(preGroupSession.date).isEqualTo(schedule.preGroupOneToOneStartDate)
 
@@ -476,6 +476,21 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         service.getScheduleForGroup(randomId)
       }
       assertThat(exception.message).isEqualTo("Group with id $randomId not found")
+    }
+
+    @Test
+    fun `should throw NotFoundException when group has no sessions`() {
+      // Given
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory().withCode("EMPTY_SCHED").produce(),
+      )
+
+      // When/Then
+      val exception = assertThrows<NotFoundException> {
+        service.getScheduleForGroup(group.id!!)
+      }
+
+      assertThat(exception.message).isEqualTo("No sessions found for group ${group.id}")
     }
   }
 }

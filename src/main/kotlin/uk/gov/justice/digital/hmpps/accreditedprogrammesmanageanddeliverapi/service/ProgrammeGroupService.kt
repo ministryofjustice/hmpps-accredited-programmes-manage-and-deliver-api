@@ -256,47 +256,40 @@ class ProgrammeGroupService(
     val sessions = sessionRepository.findByProgrammeGroupId(groupId)
 
     if (sessions.isEmpty()) {
-      return GroupSchedule(
-        preGroupOneToOneStartDate = "",
-        gettingStartedModuleStartDate = "",
-        endDate = "",
-        modules = emptyList(),
-      )
+      throw NotFoundException("No sessions found for group $groupId")
     }
 
     val scheduleSessions = sessions.map { session ->
       GroupScheduleSession(
         id = session.id,
         name = session.moduleSessionTemplate.name,
-        type = determineSessionType(session.moduleSessionTemplate.name),
-        date = session.startsAt.toLocalDate().toString(),
+        type = session.sessionType.name,
+        date = session.startsAt.toLocalDate(),
         time = formatTimeForUiDisplay(session.startsAt.toLocalTime()),
       )
     }
 
     val preGroupOneToOneDate = sessions
-      .filter { it.moduleSessionTemplate.name.startsWith("Pre-group", ignoreCase = true) }
+      .filter { it.moduleSessionTemplate.module.name.startsWith("Pre-group", ignoreCase = true) }
       .minByOrNull { it.startsAt }
-      ?.startsAt?.toLocalDate()?.toString()
+      ?.startsAt?.toLocalDate()
 
     val gettingStartedStartDate = sessions
-      .filter { it.moduleSessionTemplate.name.startsWith("Getting started", ignoreCase = true) }
+      .filter { it.moduleSessionTemplate.module.name.startsWith("Getting started", ignoreCase = true) }
       .minByOrNull { it.startsAt }
-      ?.startsAt?.toLocalDate()?.toString()
+      ?.startsAt?.toLocalDate()
 
     val endDate = sessions
       .maxByOrNull { it.startsAt }
-      ?.startsAt?.toLocalDate()?.toString()
+      ?.startsAt?.toLocalDate()
 
     return GroupSchedule(
-      preGroupOneToOneStartDate = preGroupOneToOneDate ?: "",
-      gettingStartedModuleStartDate = gettingStartedStartDate ?: "",
-      endDate = endDate ?: "",
+      preGroupOneToOneStartDate = preGroupOneToOneDate,
+      gettingStartedModuleStartDate = gettingStartedStartDate,
+      endDate = endDate,
       modules = scheduleSessions,
     )
   }
-
-  private fun determineSessionType(sessionName: String): String = if (sessionName.contains("one-to-one", ignoreCase = true)) "Individual" else "Group"
 
   fun getProgrammeGroupsForRegion(
     pageable: Pageable,
