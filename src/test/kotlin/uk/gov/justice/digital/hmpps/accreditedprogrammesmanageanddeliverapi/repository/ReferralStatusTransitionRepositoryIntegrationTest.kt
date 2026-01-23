@@ -28,11 +28,6 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
     assertThat(awaitingAssessmentToAwaitingAllocation).isNotNull
     assertThat(awaitingAssessmentToAwaitingAllocation!!.isContinuing).isTrue()
 
-    // Awaiting allocation --> Scheduled
-    val awaitingAllocationToScheduled = getTransition("Awaiting allocation", "Scheduled")
-    assertThat(awaitingAllocationToScheduled).isNotNull
-    assertThat(awaitingAllocationToScheduled!!.isContinuing).isTrue()
-
     // Scheduled --> On programme
     val scheduledToOnProgramme = getTransition("Scheduled", "On programme")
     assertThat(scheduledToOnProgramme).isNotNull
@@ -116,6 +111,24 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
     assertThat(transitions).hasSizeGreaterThanOrEqualTo(5)
   }
 
+  @Test
+  @Transactional
+  fun `should return all appropriate transitions for Awaiting allocation`() {
+    // Given
+    val awaitingAllocation = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+
+    // When
+    val transitions = referralStatusTransitionRepository.findByFromStatusId(awaitingAllocation.id)
+
+    // Then
+    assertThat(transitions).hasSize(3)
+    assertThat(transitions.map { it.toStatus.description }).containsExactlyInAnyOrder(
+      "Deprioritised",
+      "Recall",
+      "Return to court",
+    )
+  }
+
   private fun getTransition(fromStatusDescription: String, toStatusDescription: String) = referralStatusTransitionRepository.findAll().find {
     it.fromStatus.description == fromStatusDescription && it.toStatus.description == toStatusDescription
   }
@@ -135,14 +148,18 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
 
   @Test
   @Transactional
-  fun `ensure there is exactly one initial status and all others are reachable`() {
+  fun `ensure there is exactly one initial status and others are reachable`() {
+    // Given
     referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
     val allStatuses = referralStatusDescriptionRepository.findAll()
 
+    // When
     val unreachable = allStatuses.filter {
       referralStatusTransitionRepository.findByToStatus(it).isEmpty()
     }
 
-    assertThat(unreachable).hasSize(0)
+    // Currently, the "Scheduled" status is unreachable, but this will change in the future
+    assertThat(unreachable).hasSize(1)
+    assertThat(unreachable.first().description).isEqualTo("Scheduled")
   }
 }

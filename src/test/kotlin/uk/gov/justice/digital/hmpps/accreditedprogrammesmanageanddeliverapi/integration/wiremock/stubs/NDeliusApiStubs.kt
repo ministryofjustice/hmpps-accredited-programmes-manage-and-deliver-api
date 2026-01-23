@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.int
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.delete
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
 import com.github.tomakehurst.wiremock.client.WireMock.post
@@ -10,6 +11,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathTemplate
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestComponent
+import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnitWithOfficeLocations
@@ -307,9 +309,17 @@ class NDeliusApiStubs {
       post(urlEqualTo("/appointments"))
         .willReturn(
           aResponse()
-            .withStatus(201)
-            .withHeader("Content-Type", "application/json")
-            .withBody("{}"),
+            .withStatus(HttpStatus.CREATED.value()),
+        ),
+    )
+  }
+
+  fun stubSuccessfulDeleteAppointmentsResponse() {
+    wiremock.stubFor(
+      delete(urlEqualTo("/appointments"))
+        .willReturn(
+          aResponse()
+            .withStatus(HttpStatus.NO_CONTENT.value()),
         ),
     )
   }

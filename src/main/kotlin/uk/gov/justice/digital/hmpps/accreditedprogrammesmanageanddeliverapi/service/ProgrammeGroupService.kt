@@ -15,6 +15,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSchedule
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleSession
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
@@ -30,10 +31,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
@@ -43,6 +46,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -195,39 +199,41 @@ class ProgrammeGroupService(
     // We need to do this as we currently have no direct link from session templates to scheduled sessions.
     // This then builds the api response object with all the required data.
     val modules = group.accreditedProgrammeTemplate?.modules?.map { module ->
-      val sessions = module.sessionTemplates.flatMap { sessionTemplate ->
+      val sessions = module.sessionTemplates.map { sessionTemplate ->
         val scheduledSessions = getScheduledSessionForGroupAndSessionTemplate(
           groupId = group.id!!,
           sessionTemplateId = sessionTemplate.id!!,
-        )
+        )?.filter { !it.isPlaceholder }
         scheduledSessions?.map { scheduledSession ->
           ProgrammeGroupModuleSessionsResponseGroupSession(
             id = scheduledSession.id!!,
             number = sessionTemplate.sessionNumber,
-            name = sessionTemplate.name,
-            type = sessionTemplate.sessionType,
-            dateOfSession = scheduledSession.startsAt.toLocalDate()
-              .format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")).toString(),
-            timeOfSession = formatTimeForUiDisplay(scheduledSession.startsAt.toLocalTime()),
+            name = getFormattedSessionNameForDisplay(sessionTemplate, scheduledSession),
+            type = if (sessionTemplate.sessionType == SessionType.ONE_TO_ONE) "Individual" else "Group",
+            dateOfSession = scheduledSession.startsAt.toLocalDate(),
+            timeOfSession = formatTimeOfSession(
+              scheduledSession.startsAt.toLocalTime(),
+              scheduledSession.endsAt.toLocalTime(),
+            ),
             participants = if (sessionTemplate.sessionType == SessionType.GROUP) listOf("All") else scheduledSession.attendees.map { it.personName },
-            facilitators = scheduledSession.sessionFacilitators.map { it.personName },
+            facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }.map { it.facilitator!!.personName },
           )
         } ?: emptyList()
-      }
+      }.flatten()
 
       ProgrammeGroupModuleSessionsResponseGroupModule(
         id = module.id!!,
         number = module.moduleNumber,
         name = module.name,
         startDateText = StartDateText(
-          "Estimated start date of ${module.name} one to ones",
+          formatEstimatedStartText(module.name),
           group.sessions
             .filter { it.moduleSessionTemplate.sessionType == SessionType.ONE_TO_ONE }
             .minByOrNull { it.startsAt }?.startsAt?.toLocalDate()
             ?.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy"))
             .toString(),
         ),
-        scheduleButtonText = "Schedule a ${module.name} session",
+        scheduleButtonText = formatButtonText(module.name),
         sessions = sessions,
       )
     }.orEmpty()
@@ -242,6 +248,27 @@ class ProgrammeGroupService(
     time.hour < 12 -> "${time.hour}:${time.minute.toString().padStart(2, '0')}am"
     time.hour == 12 -> "12:${time.minute.toString().padStart(2, '0')}pm"
     else -> "${time.hour - 12}:${time.minute.toString().padStart(2, '0')}pm"
+  private fun formatButtonText(moduleName: String): String = when (moduleName) {
+    "Pre-group one-to-ones" -> "Schedule a pre-group session"
+    "Post programme review" -> "Schedule a post-programme review"
+    else -> "Schedule a $moduleName session"
+  }
+
+  private fun formatEstimatedStartText(moduleName: String): String = when (moduleName) {
+    "Pre-group one-to-ones" -> "Estimated start date of ${moduleName.lowercase()}:"
+    "Post programme review" -> "Post-programme reviews deadline:"
+    else -> "Estimated date of $moduleName one to ones"
+  }
+
+  private fun formatTimeOfSession(startTime: LocalTime, endTime: LocalTime): String {
+    val formattedStartTime = formatTimeForUiDisplay(startTime)
+    val formattedEndTime = formatTimeForUiDisplay(endTime)
+    return "$formattedStartTime to $formattedEndTime"
+  }
+
+  private fun getFormattedSessionNameForDisplay(sessionTemplate: ModuleSessionTemplateEntity, scheduledSession: SessionEntity): String = when (sessionTemplate.sessionType) {
+    SessionType.GROUP -> "${sessionTemplate.module.name} ${scheduledSession.sessionNumber}: ${sessionTemplate.name}"
+    SessionType.ONE_TO_ONE -> "${scheduledSession.attendees.first().personName} (${scheduledSession.attendees.first().referral.crn}): ${sessionTemplate.name}"
   }
 
   fun getScheduledSessionForGroupAndSessionTemplate(
@@ -357,6 +384,25 @@ class ProgrammeGroupService(
       regionName = firstUserRegionDescription,
       probationDeliveryUnitNames = allPduNames,
       deliveryLocationNames = deliveryLocationNames,
+    )
+  }
+
+  fun getGroupSessionPage(groupId: UUID, sessionId: UUID): GroupSessionResponse {
+    val programmeGroup =
+      programmeGroupRepository.findByIdOrNull(groupId) ?: throw NotFoundException("Group with id $groupId not found")
+
+    val session =
+      sessionRepository.findByIdOrNull(sessionId) ?: throw NotFoundException("Session with $sessionId not found")
+
+    return GroupSessionResponse(
+      groupCode = programmeGroup.code,
+      pageTitle = "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}",
+      sessionType = session.sessionType.value,
+      date = session.startsAt.toLocalDate(),
+      time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
+      scheduledToAttend = session.attendees.map { it.personName },
+      facilitators = session.sessionFacilitators.map { it.facilitator.personName },
+      attendanceAndSessionNotes = listOf(),
     )
   }
 }

@@ -136,16 +136,28 @@ class ProgrammeGroupMembershipService(
     deletedByUsername: String,
   ): ProgrammeGroupEntity {
     val groupMembership = programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referral.id!!, group.id!!)
-      ?: throw NotFoundException(
-        "No active Membership found for Referral (${referral.id}) and Group (${group.id})",
-      )
+      ?: throw NotFoundException("No active Membership found for Referral (${referral.id}) and Group (${group.id})")
 
-    groupMembership.deletedAt = LocalDateTime.now()
+    val now = LocalDateTime.now()
+    groupMembership.deletedAt = now
     groupMembership.deletedByUsername = deletedByUsername
 
+    val futureSessions = group.sessions.filter { it.startsAt > now }
+
     // Remove the PoP from the list of attendees for any future sessions of the group they have been removed from
-    val now = LocalDateTime.now()
-    group.sessions.forEach { session -> session.attendees.removeIf { it.referral.id == referral.id!! && session.startsAt > now } }
+    val attendeesToRemove = futureSessions.flatMap { session ->
+      session.attendees.filter { it.referral.id == referral.id }
+    }
+
+    val futureNdeliusAppointmentsToRemove = futureSessions.flatMap { session ->
+      session.ndeliusAppointments.filter { it.referral.id == referral.id }
+    }
+    // Ensure future session appointments for the PoP are also removed from nDelius
+    scheduleService.removeNDeliusAppointments(futureNdeliusAppointmentsToRemove, futureSessions)
+
+    // remove the attendees from the sessions
+    attendeesToRemove.forEach { it.session.attendees.remove(it) }
+
     log.info("...Successfully found Referral (${referral.id}), Group (${group.id}), and Membership (${groupMembership.id}) to remove")
     return programmeGroupRepositoryImpl.save(group)
   }

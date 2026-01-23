@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
+import org.springframework.cache.CacheManager
 import org.springframework.context.annotation.Import
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpHeaders
@@ -34,6 +35,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.GovUkApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestGroupHelper
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
@@ -86,6 +88,9 @@ abstract class IntegrationTestBase {
   @Autowired
   lateinit var testGroupHelper: TestGroupHelper
 
+  @Autowired
+  lateinit var accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository
+
   /**
    * This is used in some tests to provide a fixed clock when specific dates and times matter.
    * It is placed in this class so context is not reloaded by spring when mocking the bean
@@ -94,9 +99,13 @@ abstract class IntegrationTestBase {
   @MockitoSpyBean
   lateinit var clock: Clock
 
+  @Autowired
+  private lateinit var cacheManager: CacheManager
+
   @BeforeEach
   fun beforeEach() {
     domainEventsQueueConfig.purgeAllQueues()
+    cacheManager.getCache("bank-holidays")?.clear()
   }
 
   companion object {

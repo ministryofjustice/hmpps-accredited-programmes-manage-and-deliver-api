@@ -11,22 +11,28 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.govUkHolidaysApi.GovUkApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.AppointmentReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.DeleteAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toAppointment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toNdeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -48,10 +54,11 @@ class ScheduleService(
   private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
   private val facilitatorService: FacilitatorService,
   private val referralRepository: ReferralRepository,
+  private val sessionRepository: SessionRepository,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
-
+  private lateinit var bankHolidays: Set<LocalDate>
   fun scheduleIndividualSession(groupId: UUID, request: ScheduleSessionRequest): ScheduleSessionResponse {
     val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id: $groupId could not be found")
@@ -59,20 +66,23 @@ class ScheduleService(
     val moduleSessionTemplate = moduleSessionTemplateRepository.findByIdOrNull(request.sessionTemplateId)
       ?: throw NotFoundException("Session template with id: ${request.sessionTemplateId} could not be found")
 
-    val sessionFacilitators = request.facilitators.map {
-      facilitatorService.findOrCreateFacilitator(it)
-    }.toMutableSet()
-
     val session = SessionEntity(
       programmeGroup = programmeGroup,
       moduleSessionTemplate = moduleSessionTemplate,
       startsAt = convertToLocalDateTime(request.startDate, request.startTime),
       endsAt = convertToLocalDateTime(request.startDate, request.endTime),
       locationName = programmeGroup.deliveryLocationName,
-      sessionFacilitators = sessionFacilitators,
       // Scheduling individual session should not be placeholder
       isPlaceholder = false,
     )
+    val sessionFacilitators = request.facilitators.map {
+      SessionFacilitatorEntity(
+        facilitator = facilitatorService.findOrCreateFacilitator(it),
+        session = session,
+        facilitatorType = it.teamMemberType.toFacilitatorType(),
+      )
+    }.toMutableSet()
+    session.sessionFacilitators = sessionFacilitators
 
     request.referralIds.forEach { referralId ->
       val referral = referralRepository.findByIdOrNull(referralId)
@@ -85,8 +95,9 @@ class ScheduleService(
       )
     }
 
-    programmeGroup.sessions.add(session)
-    programmeGroupRepository.save(programmeGroup)
+    val savedSession = sessionRepository.save(session)
+    createNdeliusAppointmentsForSessions(savedSession.attendees)
+
     return ScheduleSessionResponse(message = "Session scheduled successfully")
   }
 
@@ -100,6 +111,7 @@ class ScheduleService(
     val templateId = requireNotNull(group.accreditedProgrammeTemplate?.id) {
       "Group template Id must not be null"
     }
+    bankHolidays = englandAndWalesHolidayDates()
 
     // Collect all session templates in module/session order
     var allSessionTemplates = moduleRepository
@@ -142,18 +154,23 @@ class ScheduleService(
         val startsAt = LocalDateTime.of(nextSlot.nextDate, nextSlot.slot.startTime)
         val endsAt = startsAt.plusMinutes(template.durationMinutes.toLong())
 
-        add(
-          SessionEntity(
-            programmeGroup = group,
-            moduleSessionTemplate = template,
-            startsAt = startsAt,
-            endsAt = endsAt,
-            locationName = group.deliveryLocationName,
-            // If we are scheduling One-to-One here it is a placeholder session
-            isPlaceholder = template.sessionType == SessionType.ONE_TO_ONE,
-            sessionFacilitators = group.groupFacilitators.map { it.facilitator }.toMutableSet(),
-          ),
+        val session = SessionEntity(
+          programmeGroup = group,
+          moduleSessionTemplate = template,
+          startsAt = startsAt,
+          endsAt = endsAt,
+          locationName = group.deliveryLocationName,
+          // If we are scheduling One-to-One here it is a placeholder session
+          isPlaceholder = template.sessionType == SessionType.ONE_TO_ONE,
         )
+        session.sessionFacilitators = group.groupFacilitators.map {
+          SessionFacilitatorEntity(
+            facilitator = it.facilitator,
+            session,
+            facilitatorType = it.facilitatorType,
+          )
+        }.toMutableSet()
+        add(session)
 
         if (
           mostRecentSession == null &&
@@ -287,7 +304,7 @@ class ScheduleService(
     var candidateDate = fromDate.with(TemporalAdjusters.nextOrSame(slot.dayOfWeek))
 
     // Keep advancing by weeks until we find a non-holiday
-    while (englandAndWalesHolidayDates().contains(candidateDate)) {
+    while (bankHolidays.contains(candidateDate)) {
       candidateDate = candidateDate.plusWeeks(1)
     }
 
@@ -340,4 +357,49 @@ class ScheduleService(
       sessionTime.minutes,
     ),
   )
+
+  fun removeNDeliusAppointments(
+    nDeliusAppointmentsToRemove: List<NDeliusAppointmentEntity>,
+    sessions: List<SessionEntity>,
+  ) {
+    if (nDeliusAppointmentsToRemove.isEmpty()) return
+
+    when (
+      val response = nDeliusIntegrationApiClient.deleteAppointmentsInDelius(
+        DeleteAppointmentsRequest(
+          appointments = nDeliusAppointmentsToRemove.map { AppointmentReference(it.ndeliusAppointmentId) },
+        ),
+      )
+    ) {
+      is ClientResult.Failure.StatusCode -> {
+        log.warn(
+          "Failure deleting appointments in nDelius with reason: ${response.getErrorMessage()}",
+          response.toException(),
+        )
+        throw BusinessException(
+          "Failure deleting appointments in nDelius with status code : ${response.status}",
+          response.toException(),
+        )
+      }
+
+      is ClientResult.Failure.Other -> {
+        log.warn(
+          "Failure to delete appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
+          response.exception,
+        )
+        throw BusinessException(
+          "Failure to delete appointments in NDelius: ${response.exception.message}",
+          response.exception,
+        )
+      }
+
+      is ClientResult.Success -> {
+        sessions.forEach { session ->
+          session.ndeliusAppointments
+            .removeIf { appointment -> appointment.ndeliusAppointmentId in nDeliusAppointmentsToRemove.map { it.ndeliusAppointmentId } }
+        }
+        log.info("${nDeliusAppointmentsToRemove.size} appointments deleted in NDelius")
+      }
+    }
+  }
 }

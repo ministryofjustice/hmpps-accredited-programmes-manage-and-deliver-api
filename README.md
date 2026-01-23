@@ -78,7 +78,7 @@ Create new connection using local database credentials;
 ### Events
 
 The application listens to events that are published on the `HMPPS_DOMAIN_EVENTS_QUEUE`. This functionality is
-replicated locally using localstack. If you wish to view and create messages/queues/etc then it is recommended to use
+replicated locally using Localstack. If you wish to view and create messages/queues/etc then it is recommended to use
 the `awslocal` wrapper which can be installed using
 
 ```zsh

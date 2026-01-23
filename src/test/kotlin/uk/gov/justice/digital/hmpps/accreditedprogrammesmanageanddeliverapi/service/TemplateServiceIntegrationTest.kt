@@ -13,7 +13,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import java.time.LocalDate
 import java.util.UUID
 
@@ -21,9 +20,6 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var service: TemplateService
-
-  @Autowired
-  private lateinit var accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository
 
   @Autowired
   private lateinit var moduleRepository: ModuleRepository

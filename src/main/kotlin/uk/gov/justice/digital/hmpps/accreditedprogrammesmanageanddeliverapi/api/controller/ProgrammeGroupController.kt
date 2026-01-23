@@ -31,6 +31,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSchedule
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
@@ -320,7 +321,7 @@ class ProgrammeGroupController(
     @Valid
     @RequestBody removeFromGroupRequest: RemoveFromGroupRequest,
   ): ResponseEntity<RemoveFromGroupResponse> {
-    val referral = programmeGroupMembershipService.removeReferralFromGroup(
+    programmeGroupMembershipService.removeReferralFromGroup(
       referralId,
       groupId,
       authenticationHolder.username ?: "SYSTEM",
@@ -753,6 +754,17 @@ class ProgrammeGroupController(
           Content(
             mediaType = MediaType.APPLICATION_JSON_VALUE,
             schema = Schema(implementation = GroupSchedule::class),
+    summary = "bff endpoint to retrieve group sessions page data",
+    operationId = "getGroupSessionPage",
+    description = "Retrieve group sessions",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Successfully retrieved group sessions",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = GroupSessionResponse::class),
           ),
         ],
       ),
@@ -796,6 +808,8 @@ class ProgrammeGroupController(
   fun getGroupSchedule(
     @PathVariable @Parameter(description = "The UUID of the Programme Group", required = true) groupId: UUID,
   ): ResponseEntity<GroupSchedule> = ResponseEntity.ok(programmeGroupService.getScheduleForGroup(groupId))
+  @GetMapping("/bff/group/{groupId}/session/{sessionId}")
+  fun getGroupSessionPage(@PathVariable groupId: UUID, @PathVariable sessionId: UUID): ResponseEntity<GroupSessionResponse> = ResponseEntity.ok(programmeGroupService.getGroupSessionPage(groupId, sessionId))
 
   private fun getUsername(): String {
     val username = authenticationHolder.username

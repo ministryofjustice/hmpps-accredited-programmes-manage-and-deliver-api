@@ -31,6 +31,11 @@ abstract class BaseHMPPSClient(
     noinline requestBuilderConfiguration: HMPPSRequestConfiguration.() -> Unit,
   ): ClientResult<ResponseType> = request(HttpMethod.POST, requestBuilderConfiguration, serviceName)
 
+  protected inline fun <reified ResponseType : Any> deleteRequest(
+    serviceName: String,
+    noinline requestBuilderConfiguration: HMPPSRequestConfiguration.() -> Unit,
+  ): ClientResult<ResponseType> = request(HttpMethod.DELETE, requestBuilderConfiguration, serviceName)
+
   protected inline fun <reified ResponseType : Any> request(
     method: HttpMethod,
     noinline requestBuilderConfiguration: HMPPSRequestConfiguration.() -> Unit,
@@ -58,13 +63,23 @@ abstract class BaseHMPPSClient(
       if (requestBuilder.body != null) {
         request.bodyValue(requestBuilder.body!!)
       }
+
       val result = request.retrieve().toEntity<String>().block()!!
-      val deserialized = objectMapper.readValue(result.body, typeReference)
+
+      val deserialized = if (typeReference.type == Unit::class.java) {
+        @Suppress("UNCHECKED_CAST")
+        Unit as ResponseType
+      } else {
+        objectMapper.readValue(result.body, typeReference)
+      }
 
       return ClientResult.Success(result.statusCode, deserialized)
     } catch (exception: WebClientResponseException) {
       if (exception.statusCode.is5xxServerError) {
-        log.error("Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.", exception)
+        log.error(
+          "Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.",
+          exception,
+        )
         throw ServiceUnavailableException(
           "$serviceName is temporarily unavailable. Please try again later.",
           exception,
@@ -77,7 +92,10 @@ abstract class BaseHMPPSClient(
           exception.responseBodyAsString,
         )
       } else {
-        log.error("Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.", exception)
+        log.error(
+          "Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.",
+          exception,
+        )
         throw exception
       }
     } catch (exception: Exception) {
