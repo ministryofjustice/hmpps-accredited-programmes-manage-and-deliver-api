@@ -46,12 +46,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedProgrammeDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toFacilitatorEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusAppointmentEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
@@ -68,7 +67,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
@@ -116,6 +114,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var moduleSessionTemplateRepository: ModuleSessionTemplateRepository
+
+  @Autowired
+  private lateinit var moduleRepository: ModuleRepository
 
   @BeforeEach
   override fun beforeEach() {
@@ -1707,7 +1708,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
-      assertThat(retrievedSession.sessionFacilitators).extracting("facilitator.personName").contains("Non existent Facilitator")
+      assertThat(retrievedSession.sessionFacilitators).extracting("facilitator.personName")
+        .contains("Non existent Facilitator")
       // This is 2 as we made a call when we allocated to a group as part of test setup
       wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
     }
@@ -2009,7 +2011,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `returns 404 when group does not exist for schedule`() {
       val nonExistentGroupId = UUID.randomUUID()
-      val module = programmeGroupModuleRepository.findAll().first()
+      val module = moduleRepository.findAll().first()
 
       val errorResponse = performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
@@ -2036,7 +2038,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           .produce(),
       )
 
-      val modules = programmeGroupModuleRepository.findByAccreditedProgrammeTemplateId(template.id!!)
+      val modules = moduleRepository.findByAccreditedProgrammeTemplateId(template.id!!)
       assertThat(modules).isNotEmpty
 
       // Create Pre-group session
@@ -2147,6 +2149,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         HttpStatus.NOT_FOUND.value(),
       )
     }
+  }
+
+  @Nested
   @DisplayName("Get sessions for group")
   inner class GetGroupSessionPage {
     @Test
@@ -2197,61 +2202,61 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.scheduledToAttend).isEqualTo(groupWithAllocation.sessions.first().attendees.map { it.personName })
       assertThat(response.facilitators).isEqualTo(group.groupFacilitators.map { it.facilitator.personName })
     }
-  }
 
-  @Test
-  fun `return 401 when unauthorised`() {
-    webTestClient
-      .method(HttpMethod.GET)
-      .uri("/bff/group/${UUID.randomUUID()}/session/${UUID.randomUUID()}")
-      .contentType(MediaType.APPLICATION_JSON)
-      .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
-      .exchange()
-      .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
-      .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
-      .returnResult().responseBody!!
-  }
+    @Test
+    fun `return 401 when unauthorised`() {
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/group/${UUID.randomUUID()}/session/${UUID.randomUUID()}")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
 
-  @Test
-  fun `return 404 when the programme group is not found`() {
-    val groupId = UUID.randomUUID()
+    @Test
+    fun `return 404 when the programme group is not found`() {
+      val groupId = UUID.randomUUID()
 
-    val exception = performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.GET,
-      uri = "/bff/group/$groupId/session/${UUID.randomUUID()}",
-      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-      expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
-      body = {},
-    )
-    assertThat(exception.userMessage).isEqualTo("Not Found: Group with id $groupId not found")
-  }
+      val exception = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/$groupId/session/${UUID.randomUUID()}",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        body = {},
+      )
+      assertThat(exception.userMessage).isEqualTo("Not Found: Group with id $groupId not found")
+    }
 
-  @Test
-  fun `return 404 when the session is not found`() {
-    val sessionId = UUID.randomUUID()
+    @Test
+    fun `return 404 when the session is not found`() {
+      val sessionId = UUID.randomUUID()
 
-    // Create group
-    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
-    val body = CreateGroupRequestFactory().produce(
-      createGroupSessionSlot = setOf(slot1),
-    )
-    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      // Create group
+      val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+      val body = CreateGroupRequestFactory().produce(
+        createGroupSessionSlot = setOf(slot1),
+      )
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
-    performRequestAndExpectStatus(
-      httpMethod = HttpMethod.POST,
-      uri = "/group",
-      body = body,
-      expectedResponseStatus = HttpStatus.CREATED.value(),
-    )
-    val group = programmeGroupRepository.findByCode(body.groupCode)!!
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+      val group = programmeGroupRepository.findByCode(body.groupCode)!!
 
-    val exception = performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.GET,
-      uri = "/bff/group/${group.id}/session/$sessionId",
-      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-      expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
-      body = {},
-    )
-    assertThat(exception.userMessage).isEqualTo("Not Found: Session with $sessionId not found")
+      val exception = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/session/$sessionId",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        body = {},
+      )
+      assertThat(exception.userMessage).isEqualTo("Not Found: Session with $sessionId not found")
+    }
   }
 }

@@ -25,7 +25,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import java.time.DayOfWeek
@@ -42,9 +41,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var programmeGroupRepository: ProgrammeGroupRepository
-
-  @Autowired
-  private lateinit var accreditedProgrammeTemplateRepository: AccreditedProgrammeTemplateRepository
 
   @Autowired
   private lateinit var moduleSessionTemplateRepository: ModuleSessionTemplateRepository
