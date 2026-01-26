@@ -46,6 +46,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -240,16 +241,6 @@ class ProgrammeGroupService(
     return ProgrammeGroupModuleSessionsResponse(programmeGroupModuleSessionsResponseGroup, modules)
   }
 
-  // TODO: refactor to use uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils
-  internal fun formatTimeForUiDisplay(time: LocalTime): String = when {
-    time.hour == 12 && time.minute == 0 -> "midday"
-    time.hour == 0 && time.minute == 0 -> "midnight"
-    time.hour == 0 -> "12:${time.minute.toString().padStart(2, '0')}am"
-    time.hour < 12 -> "${time.hour}:${time.minute.toString().padStart(2, '0')}am"
-    time.hour == 12 -> "12:${time.minute.toString().padStart(2, '0')}pm"
-    else -> "${time.hour - 12}:${time.minute.toString().padStart(2, '0')}pm"
-  }
-
   private fun formatButtonText(moduleName: String): String = when (moduleName) {
     "Pre-group one-to-ones" -> "Schedule a pre-group session"
     "Post programme review" -> "Schedule a post-programme review"
@@ -263,8 +254,8 @@ class ProgrammeGroupService(
   }
 
   private fun formatTimeOfSession(startTime: LocalTime, endTime: LocalTime): String {
-    val formattedStartTime = uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay(startTime)
-    val formattedEndTime = uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay(endTime)
+    val formattedStartTime = formatTimeForUiDisplay(startTime)
+    val formattedEndTime = formatTimeForUiDisplay(endTime)
     return "$formattedStartTime to $formattedEndTime"
   }
 

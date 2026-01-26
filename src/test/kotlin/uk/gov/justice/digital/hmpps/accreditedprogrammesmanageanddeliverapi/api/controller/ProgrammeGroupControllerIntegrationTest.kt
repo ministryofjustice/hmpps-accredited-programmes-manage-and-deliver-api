@@ -2109,7 +2109,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(preGroupSession?.id).isNotNull
       assertThat(preGroupSession?.name).isEqualTo(preGroupSessionTemplate.name)
       assertThat(preGroupSession!!.date).isEqualTo(LocalDate.of(2026, 6, 1))
-      assertThat(preGroupSession.time).isEqualTo("9:00am")
+      assertThat(preGroupSession.time).isEqualTo("9am")
       assertThat(preGroupSession.type).isEqualTo("ONE_TO_ONE")
 
       // Verify Getting Started session details
@@ -2117,7 +2117,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(gettingStartedSession).isNotNull
       assertThat(gettingStartedSession!!.id).isNotNull
       assertThat(gettingStartedSession.name).isEqualTo(gettingStartedSessionTemplate.name)
-      assertThat(gettingStartedSession.time).isEqualTo("10:00am")
+      assertThat(gettingStartedSession.time).isEqualTo("10am")
       assertThat(gettingStartedSession.type).isEqualTo("GROUP")
       assertThat(gettingStartedSession.date).isEqualTo(LocalDate.of(2026, 6, 15))
 
@@ -2125,7 +2125,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val regularSession = response.modules.find { it.name == regularSessionTemplate.name }
       assertThat(regularSession).isNotNull
       assertThat(regularSession!!.id).isNotNull
-      assertThat(regularSession.time).isEqualTo("2:00pm")
+      assertThat(regularSession.time).isEqualTo("2pm")
       assertThat(regularSession.type).isEqualTo("ONE_TO_ONE")
       assertThat(regularSession.name).isEqualTo(regularSessionTemplate.name)
       assertThat(regularSession.date).isEqualTo(LocalDate.of(2026, 7, 20))

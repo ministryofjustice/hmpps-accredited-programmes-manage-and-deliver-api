@@ -30,7 +30,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.ZoneId
 import java.util.UUID
 
@@ -433,36 +432,11 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
       val preGroupSession = schedule.modules.find { it.name.startsWith("Pre-group") }
       assertThat(preGroupSession!!.type).isEqualTo("ONE_TO_ONE")
-      assertThat(preGroupSession.time).isEqualTo("10:00am")
+      assertThat(preGroupSession.time).isEqualTo("10am")
       assertThat(preGroupSession.date).isEqualTo(schedule.preGroupOneToOneStartDate)
 
       val lastSession = schedule.modules.last()
       assertThat(lastSession.date).isEqualTo(schedule.endDate)
-    }
-
-    @Test
-    fun `formatTimeForUiDisplay returns correct format for various times`() {
-      // Midnight
-      assertThat(service.formatTimeForUiDisplay(LocalTime.of(0, 0))).isEqualTo("midnight")
-      assertThat(service.formatTimeForUiDisplay(LocalTime.of(0, 30))).isEqualTo("12:30am")
-      assertThat(service.formatTimeForUiDisplay(LocalTime.of(0, 5))).isEqualTo("12:05am")
-
-      // Morning times
-      assertThat(service.formatTimeForUiDisplay(LocalTime.of(1, 0))).isEqualTo("1:00am")
-      assertThat(service.formatTimeForUiDisplay(LocalTime.of(9, 5))).isEqualTo("9:05am")
-      assertThat(service.formatTimeForUiDisplay(LocalTime.of(10, 0))).isEqualTo("10:00am")
-      assertThat(service.formatTimeForUiDisplay(LocalTime.of(11, 59))).isEqualTo("11:59am")
-
-      // Midday
-      assertThat(service.formatTimeForUiDisplay(LocalTime.of(12, 0))).isEqualTo("midday")
-      assertThat(service.formatTimeForUiDisplay(LocalTime.of(12, 30))).isEqualTo("12:30pm")
-      assertThat(service.formatTimeForUiDisplay(LocalTime.of(12, 1))).isEqualTo("12:01pm")
-
-      // Afternoon/Evening times
-      assertThat(service.formatTimeForUiDisplay(LocalTime.of(13, 0))).isEqualTo("1:00pm")
-      assertThat(service.formatTimeForUiDisplay(LocalTime.of(15, 30))).isEqualTo("3:30pm")
-      assertThat(service.formatTimeForUiDisplay(LocalTime.of(18, 45))).isEqualTo("6:45pm")
-      assertThat(service.formatTimeForUiDisplay(LocalTime.of(23, 59))).isEqualTo("11:59pm")
     }
 
     @Test
