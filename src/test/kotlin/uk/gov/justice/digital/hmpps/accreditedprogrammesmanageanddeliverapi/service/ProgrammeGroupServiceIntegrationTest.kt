@@ -427,12 +427,112 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       val gettingStartedSession = schedule.modules.find { it.name.startsWith("Getting started") }
       assertThat(gettingStartedSession).isNotNull
       assertThat(gettingStartedSession!!.time).isEqualTo("midday")
-      assertThat(gettingStartedSession.type).isEqualTo("ONE_TO_ONE")
+      assertThat(gettingStartedSession.type).isEqualTo("Individual")
       assertThat(gettingStartedSession.date).isEqualTo(schedule.gettingStartedModuleStartDate)
 
       val preGroupSession = schedule.modules.find { it.name.startsWith("Pre-group") }
-      assertThat(preGroupSession!!.type).isEqualTo("ONE_TO_ONE")
+      assertThat(preGroupSession!!.type).isEqualTo("Individual")
       assertThat(preGroupSession.time).isEqualTo("10am")
+      assertThat(preGroupSession.date).isEqualTo(schedule.preGroupOneToOneStartDate)
+
+      val lastSession = schedule.modules.last()
+      assertThat(lastSession.date).isEqualTo(schedule.endDate)
+    }
+
+    @Test
+    fun `should return group schedule with various times formatting if placeholder set`() {
+      // Given
+      val template = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+      assertThat(template).isNotNull
+      buildingChoicesTemplateId = template.id!!
+
+      val modules = moduleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplateId)
+      assertThat(modules).isNotEmpty
+
+      // Find Pre-Group module
+      val preGroupModule = modules.find { it.name.startsWith("Pre-group") }
+      assertThat(preGroupModule).isNotNull
+      preGroupModuleId = preGroupModule!!.id!!
+
+      // Find Getting Started module
+      val gettingStartedModule = modules.find { it.name.startsWith("Getting started") }
+      assertThat(gettingStartedModule).isNotNull
+      gettingStartedModuleId = gettingStartedModule!!.id!!
+
+      // Find regular last module (module_number = last)
+      val regularModule = modules.find { it.moduleNumber == modules.last().moduleNumber }
+      assertThat(regularModule).isNotNull
+      regularModuleId = regularModule!!.id!!
+
+      val preGroupModuleSessions = moduleSessionTemplateRepository.findByModuleId(preGroupModuleId)
+
+      // Create a test group associated with Building Choices template
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withCode("SCHEDULE_GROUP")
+          .withRegionName("Test Region")
+          .withAccreditedProgrammeTemplate(template)
+          .withEarliestStartDate(LocalDate.now().plusDays(1))
+          .produce(),
+      )
+      groupId = group.id!!
+
+      testDataGenerator.createSession(
+        SessionEntity(
+          programmeGroup = group,
+          moduleSessionTemplate = preGroupModuleSessions.first(),
+          startsAt = LocalDateTime.of(2026, 6, 1, 10, 0),
+          endsAt = LocalDateTime.of(2026, 6, 1, 11, 0),
+          isPlaceholder = true,
+        ),
+      )
+
+      val gettingStartedModuleSessions = moduleSessionTemplateRepository.findByModuleId(gettingStartedModuleId)
+
+      testDataGenerator.createSession(
+        SessionEntity(
+          programmeGroup = group,
+          moduleSessionTemplate = gettingStartedModuleSessions.last(),
+          startsAt = LocalDateTime.of(2026, 6, 15, 12, 0),
+          endsAt = LocalDateTime.of(2026, 6, 15, 14, 0),
+          isPlaceholder = true,
+        ),
+      )
+
+      val regularModuleSessions = moduleSessionTemplateRepository.findByModuleId(regularModuleId)
+
+      testDataGenerator.createSession(
+        SessionEntity(
+          programmeGroup = group,
+          moduleSessionTemplate = regularModuleSessions.first(),
+          startsAt = LocalDateTime.of(2026, 7, 20, 15, 30),
+          endsAt = LocalDateTime.of(2026, 7, 20, 17, 30),
+          isPlaceholder = true,
+        ),
+      )
+
+      // When
+      val schedule = service.getScheduleForGroup(group.id!!)
+
+      // Then
+      assertThat(schedule).isNotNull
+      assertThat(schedule.preGroupOneToOneStartDate).isEqualTo("2026-06-01")
+      assertThat(schedule.gettingStartedModuleStartDate).isEqualTo("2026-06-15")
+      assertThat(schedule.endDate).isEqualTo("2026-07-20")
+
+      assertThat(schedule.modules).isNotEmpty
+
+      // Verify individual session formatting
+      val gettingStartedSession = schedule.modules.find { it.name.startsWith("Getting started") }
+      assertThat(gettingStartedSession).isNotNull
+      assertThat(gettingStartedSession!!.time).isEqualTo("Various times")
+      assertThat(gettingStartedSession.type).isEqualTo("Individual")
+      assertThat(gettingStartedSession.date).isEqualTo(schedule.gettingStartedModuleStartDate)
+
+      val preGroupSession = schedule.modules.find { it.name.startsWith("Pre-group") }
+      assertThat(preGroupSession!!.type).isEqualTo("Individual")
+      assertThat(preGroupSession.time).isEqualTo("Various times")
       assertThat(preGroupSession.date).isEqualTo(schedule.preGroupOneToOneStartDate)
 
       val lastSession = schedule.modules.last()

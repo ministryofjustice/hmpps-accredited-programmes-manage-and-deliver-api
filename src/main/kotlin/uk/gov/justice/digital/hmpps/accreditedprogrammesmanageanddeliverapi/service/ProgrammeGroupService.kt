@@ -283,9 +283,9 @@ class ProgrammeGroupService(
       GroupScheduleSession(
         id = session.id,
         name = session.moduleSessionTemplate.name,
-        type = session.sessionType.name,
+        type = session.sessionType.value,
         date = session.startsAt.toLocalDate(),
-        time = formatTimeForUiDisplay(session.startsAt.toLocalTime()),
+        time = if (session.isPlaceholder) "Various times" else formatTimeForUiDisplay(session.startsAt.toLocalTime()),
       )
     }
 
