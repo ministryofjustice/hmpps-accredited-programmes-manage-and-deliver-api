@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -217,6 +218,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
       ),
     )
     nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+    nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
     // Allocate all our referrals to a group
     referrals.forEach {
       programmeGroupMembershipService.allocateReferralToGroup(
@@ -227,25 +229,35 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
       )
     }
 
-    assertThat(group.sessions).hasSize(27)
+    val updatedGroupBeforeReschedule = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+    assertThat(updatedGroupBeforeReschedule.sessions).hasSize(27)
     // First scheduled session is Monday 1st December  @ 9.30am
-    assertThat(group.sessions.first().startsAt).isEqualTo(LocalDateTime.of(2025, 12, 1, 9, 30, 0))
-    assertThat(group.sessions.map { it.attendees }).isNotEmpty
+    assertThat(updatedGroupBeforeReschedule.sessions.first().startsAt).isEqualTo(LocalDateTime.of(2025, 12, 1, 9, 30, 0))
+    assertThat(updatedGroupBeforeReschedule.sessions.map { it.attendees }).isNotEmpty
+
+    // Only GROUP sessions get appointments during allocateReferralToGroup
+    val groupSessionsWithAppointments = updatedGroupBeforeReschedule.sessions.filter { it.sessionType == SessionType.GROUP }
+    assertThat(groupSessionsWithAppointments).isNotEmpty
+    groupSessionsWithAppointments.forEach {
+      assertThat(it.ndeliusAppointments).hasSize(2)
+    }
 
     // Alter group start date for rescheduling
-    group.earliestPossibleStartDate = LocalDate.now(clock).plusYears(2)
-    programmeGroupRepository.save(group)
+    updatedGroupBeforeReschedule.earliestPossibleStartDate = LocalDate.now(clock).plusYears(2)
+    programmeGroupRepository.save(updatedGroupBeforeReschedule)
 
-    scheduleService.rescheduleSessionsForGroup(group.id!!)
+    scheduleService.rescheduleSessionsForGroup(updatedGroupBeforeReschedule.id!!)
 
-    val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+    val updatedGroup = programmeGroupRepository.findByIdOrNull(updatedGroupBeforeReschedule.id!!)!!
     assertThat(updatedGroup.sessions).hasSize(27)
-    assertThat(group.sessions.map { it.attendees }).isNotEmpty
     val (originalSessions, rescheduleSessions) = updatedGroup.sessions.partition { it.startsAt.year <= 2026 }
     assertThat(rescheduleSessions).allMatch { it.startsAt.year >= 2027 }
 
     assertThat(originalSessions).hasSize(0)
     assertThat(rescheduleSessions).hasSize(27)
+
+    // Verify ndeliusAppointments are removed from old sessions
+    assertThat(rescheduleSessions.flatMap { it.ndeliusAppointments }).isEmpty()
   }
 
   @Test
@@ -265,6 +277,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
       ),
     )
     nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+    nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
     // Allocate all our referrals to a group
     referrals.forEach {
       programmeGroupMembershipService.allocateReferralToGroup(
@@ -275,29 +288,42 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
       )
     }
 
-    assertThat(group.sessions).hasSize(27)
+    val updatedGroupBeforeReschedule = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+    assertThat(updatedGroupBeforeReschedule.sessions).hasSize(27)
     // First scheduled session is Monday 17th  @ 9.30am
-    assertThat(group.sessions.first().startsAt).isEqualTo(LocalDateTime.of(2025, 11, 17, 9, 30, 0))
-    assertThat(group.sessions.map { it.attendees }).isNotEmpty
+    assertThat(updatedGroupBeforeReschedule.sessions.first().startsAt).isEqualTo(LocalDateTime.of(2025, 11, 17, 9, 30, 0))
+    assertThat(updatedGroupBeforeReschedule.sessions.map { it.attendees }).isNotEmpty
+
+    // Only GROUP sessions get appointments during allocateReferralToGroup
+    val groupSessionsWithAppointments = updatedGroupBeforeReschedule.sessions.filter { it.sessionType == SessionType.GROUP }
+    assertThat(groupSessionsWithAppointments).isNotEmpty
+    groupSessionsWithAppointments.forEach {
+      assertThat(it.ndeliusAppointments).hasSize(2)
+    }
 
     // Alter group start date for rescheduling
-    group.programmeGroupSessionSlots = mutableSetOf(
+    updatedGroupBeforeReschedule.programmeGroupSessionSlots = mutableSetOf(
       ProgrammeGroupSessionSlotEntity(
-        programmeGroup = group,
+        programmeGroup = updatedGroupBeforeReschedule,
         dayOfWeek = DayOfWeek.WEDNESDAY,
         startTime = LocalTime.of(15, 0),
       ),
     )
-    programmeGroupRepository.save(group)
+    programmeGroupRepository.save(updatedGroupBeforeReschedule)
 
-    scheduleService.rescheduleSessionsForGroup(group.id!!)
+    scheduleService.rescheduleSessionsForGroup(updatedGroupBeforeReschedule.id!!)
 
-    val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+    val updatedGroup = programmeGroupRepository.findByIdOrNull(updatedGroupBeforeReschedule.id!!)!!
     assertThat(updatedGroup.sessions).hasSize(27)
-    assertThat(updatedGroup.sessions.map { it.attendees }).isNotEmpty
 
-    // First slot should be same as original after reschedule Monday 17th  @ 9.30am
-    assertThat(group.sessions.first().startsAt).isEqualTo(LocalDateTime.of(2025, 11, 17, 9, 30, 0))
+    // First session should be same as original after reschedule Monday 17th  @ 9.30am
+    val firstSession = updatedGroup.sessions.first()
+    assertThat(firstSession.startsAt).isEqualTo(LocalDateTime.of(2025, 11, 17, 9, 30, 0))
+    // It should still have its appointments IF it was a GROUP session
+    if (firstSession.sessionType == SessionType.GROUP) {
+      assertThat(firstSession.ndeliusAppointments).hasSize(2)
+    }
+
     val (originalSchedule, rescheduled) = updatedGroup.sessions.partition { it.startsAt.dayOfWeek == DayOfWeek.MONDAY }
 
     assertThat(originalSchedule).hasSize(1)
@@ -305,5 +331,8 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     assertThat(rescheduled).allMatch {
       it.startsAt.dayOfWeek == DayOfWeek.WEDNESDAY && it.startsAt.toLocalTime() == LocalTime.of(15, 0)
     }
+
+    // Verify ndeliusAppointments are removed from old sessions
+    assertThat(rescheduled.flatMap { it.ndeliusAppointments }).isEmpty()
   }
 }

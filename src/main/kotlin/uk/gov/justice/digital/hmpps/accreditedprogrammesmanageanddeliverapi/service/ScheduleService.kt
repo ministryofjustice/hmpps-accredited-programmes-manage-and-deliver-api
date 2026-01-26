@@ -237,10 +237,11 @@ class ScheduleService(
 
     val now = LocalDateTime.now(clock)
     val futureSessions = group.sessions.filter { it.startsAt > now }.toSet()
+    val futureNDeliusAppointmentsToRemove = futureSessions.flatMap { session -> session.ndeliusAppointments }
     val mostRecentSession = group.sessions.filter { it.startsAt <= now }.maxByOrNull { it.startsAt }
 
     if (futureSessions.isNotEmpty()) {
-      // TODO Delete Ndelius appointments here, this will be done as part of https://dsdmoj.atlassian.net/browse/APG-1631
+      removeNDeliusAppointments(futureNDeliusAppointmentsToRemove, futureSessions.toList())
       group.sessions.removeAll(futureSessions)
       programmeGroupRepository.save(group)
     }

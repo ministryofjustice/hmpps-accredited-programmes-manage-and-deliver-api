@@ -248,8 +248,8 @@ class ProgrammeGroupService(
   }
 
   private fun formatEstimatedStartText(moduleName: String): String = when (moduleName) {
-    "Pre-group one-to-ones" -> "Estimated start date of ${moduleName.lowercase()}:"
-    "Post programme review" -> "Post-programme reviews deadline:"
+    "Pre-group one-to-ones" -> "Estimated start date of ${moduleName.lowercase()}"
+    "Post programme review" -> "Post-programme reviews deadline"
     else -> "Estimated date of $moduleName one to ones"
   }
 
