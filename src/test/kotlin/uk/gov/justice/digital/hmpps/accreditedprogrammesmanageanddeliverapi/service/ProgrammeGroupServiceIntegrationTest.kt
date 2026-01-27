@@ -19,6 +19,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
@@ -333,19 +335,24 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     private lateinit var gettingStartedModuleId: UUID
     private lateinit var regularModuleId: UUID
     private lateinit var groupId: UUID
+    private lateinit var preGroupModuleSessions: List<ModuleSessionTemplateEntity>
+    private lateinit var gettingStartedModuleSessions: List<ModuleSessionTemplateEntity>
+    private lateinit var regularModuleSessions: List<ModuleSessionTemplateEntity>
+    private lateinit var programmeGroup: ProgrammeGroupEntity
 
     @AfterEach
     fun tearDown() {
       testDataCleaner.cleanAllTables()
     }
 
-    @Test
-    fun `should return the group schedule with correctly derived start and end dates`() {
-      // Given
+    @BeforeEach
+    fun setup() {
+      // Get template
       val template = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
       assertThat(template).isNotNull
       buildingChoicesTemplateId = template.id!!
 
+      // Get modules
       val modules = moduleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplateId)
       assertThat(modules).isNotEmpty
 
@@ -359,15 +366,13 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(gettingStartedModule).isNotNull
       gettingStartedModuleId = gettingStartedModule!!.id!!
 
-      // Find regular last module (module_number = last)
+      // Find regular last module
       val regularModule = modules.find { it.moduleNumber == modules.last().moduleNumber }
       assertThat(regularModule).isNotNull
       regularModuleId = regularModule!!.id!!
 
-      val preGroupModuleSessions = moduleSessionTemplateRepository.findByModuleId(preGroupModuleId)
-
       // Create a test group associated with Building Choices template
-      val group = testDataGenerator.createGroup(
+      programmeGroup = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withSex(ProgrammeGroupSexEnum.MALE)
           .withCode("SCHEDULE_GROUP")
@@ -376,35 +381,40 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           .withEarliestStartDate(LocalDate.now().plusDays(1))
           .produce(),
       )
-      groupId = group.id!!
+      groupId = programmeGroup.id!!
 
+      gettingStartedModuleSessions = moduleSessionTemplateRepository.findByModuleId(gettingStartedModuleId)
+      preGroupModuleSessions = moduleSessionTemplateRepository.findByModuleId(preGroupModuleId)
+      regularModuleSessions = moduleSessionTemplateRepository.findByModuleId(regularModuleId)
+    }
+
+    @Test
+    fun `should return the group schedule with correctly derived start and end dates`() {
+      // Given
+      // Create getting started session
       testDataGenerator.createSession(
         SessionFactory()
-          .withProgrammeGroup(group)
-          .withModuleSessionTemplate(preGroupModuleSessions.first({ it.name.startsWith("Pre-group") }))
-          .withStartsAt(LocalDateTime.of(2026, 6, 1, 10, 0))
-          .withEndsAt(LocalDateTime.of(2026, 6, 1, 11, 0))
-          .withIsPlaceholder(false)
-          .produce(),
-      )
-
-      val gettingStartedModuleSessions = moduleSessionTemplateRepository.findByModuleId(gettingStartedModuleId)
-
-      testDataGenerator.createSession(
-        SessionFactory()
-          .withProgrammeGroup(group)
+          .withProgrammeGroup(programmeGroup)
           .withModuleSessionTemplate(gettingStartedModuleSessions.first { it.name.startsWith("Getting started") })
           .withStartsAt(LocalDateTime.of(2026, 6, 15, 12, 0))
           .withEndsAt(LocalDateTime.of(2026, 6, 15, 14, 0))
           .withIsPlaceholder(false)
           .produce(),
       )
-
-      val regularModuleSessions = moduleSessionTemplateRepository.findByModuleId(regularModuleId)
-
+      // Create pre-group session
       testDataGenerator.createSession(
         SessionFactory()
-          .withProgrammeGroup(group)
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(preGroupModuleSessions.first({ it.name.startsWith("Pre-group") }))
+          .withStartsAt(LocalDateTime.of(2026, 6, 1, 10, 0))
+          .withEndsAt(LocalDateTime.of(2026, 6, 1, 11, 0))
+          .withIsPlaceholder(false)
+          .produce(),
+      )
+      // Create regular session
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
           .withModuleSessionTemplate(regularModuleSessions.first())
           .withStartsAt(LocalDateTime.of(2026, 7, 20, 15, 30))
           .withEndsAt(LocalDateTime.of(2026, 7, 20, 17, 30))
@@ -413,7 +423,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       )
 
       // When
-      val schedule = service.getScheduleForGroup(group.id!!)
+      val schedule = service.getScheduleForGroup(programmeGroup.id!!)
 
       // Then
       assertThat(schedule).isNotNull
@@ -442,69 +452,30 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return group schedule with various times formatting if placeholder set`() {
       // Given
-      val template = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
-      assertThat(template).isNotNull
-      buildingChoicesTemplateId = template.id!!
-
-      val modules = moduleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplateId)
-      assertThat(modules).isNotEmpty
-
-      // Find Pre-Group module
-      val preGroupModule = modules.find { it.name.startsWith("Pre-group") }
-      assertThat(preGroupModule).isNotNull
-      preGroupModuleId = preGroupModule!!.id!!
-
-      // Find Getting Started module
-      val gettingStartedModule = modules.find { it.name.startsWith("Getting started") }
-      assertThat(gettingStartedModule).isNotNull
-      gettingStartedModuleId = gettingStartedModule!!.id!!
-
-      // Find regular last module (module_number = last)
-      val regularModule = modules.find { it.moduleNumber == modules.last().moduleNumber }
-      assertThat(regularModule).isNotNull
-      regularModuleId = regularModule!!.id!!
-
-      val preGroupModuleSessions = moduleSessionTemplateRepository.findByModuleId(preGroupModuleId)
-
-      // Create a test group associated with Building Choices template
-      val group = testDataGenerator.createGroup(
-        ProgrammeGroupFactory()
-          .withSex(ProgrammeGroupSexEnum.MALE)
-          .withCode("SCHEDULE_GROUP")
-          .withRegionName("Test Region")
-          .withAccreditedProgrammeTemplate(template)
-          .withEarliestStartDate(LocalDate.now().plusDays(1))
-          .produce(),
-      )
-      groupId = group.id!!
-
+      // Create getting started session
       testDataGenerator.createSession(
         SessionFactory()
-          .withProgrammeGroup(group)
-          .withModuleSessionTemplate(preGroupModuleSessions.first { it.name.startsWith("Pre-group") })
-          .withStartsAt(LocalDateTime.of(2026, 6, 1, 10, 0))
-          .withEndsAt(LocalDateTime.of(2026, 6, 1, 11, 0))
-          .withIsPlaceholder(true)
-          .produce(),
-      )
-
-      val gettingStartedModuleSessions = moduleSessionTemplateRepository.findByModuleId(gettingStartedModuleId)
-
-      testDataGenerator.createSession(
-        SessionFactory()
-          .withProgrammeGroup(group)
+          .withProgrammeGroup(programmeGroup)
           .withModuleSessionTemplate(gettingStartedModuleSessions.first { it.name.startsWith("Getting started") })
           .withStartsAt(LocalDateTime.of(2026, 6, 15, 12, 0))
           .withEndsAt(LocalDateTime.of(2026, 6, 15, 14, 0))
           .withIsPlaceholder(true)
           .produce(),
       )
-
-      val regularModuleSessions = moduleSessionTemplateRepository.findByModuleId(regularModuleId)
-
+      // Create pre-group session
       testDataGenerator.createSession(
         SessionFactory()
-          .withProgrammeGroup(group)
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(preGroupModuleSessions.first { it.name.startsWith("Pre-group") })
+          .withStartsAt(LocalDateTime.of(2026, 6, 1, 10, 0))
+          .withEndsAt(LocalDateTime.of(2026, 6, 1, 11, 0))
+          .withIsPlaceholder(true)
+          .produce(),
+      )
+      // Create regular session
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
           .withModuleSessionTemplate(regularModuleSessions.first())
           .withStartsAt(LocalDateTime.of(2026, 7, 20, 15, 30))
           .withEndsAt(LocalDateTime.of(2026, 7, 20, 17, 30))
@@ -513,7 +484,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       )
 
       // When
-      val schedule = service.getScheduleForGroup(group.id!!)
+      val schedule = service.getScheduleForGroup(programmeGroup.id!!)
 
       // Then
       assertThat(schedule).isNotNull
