@@ -12,9 +12,12 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SessionService
 import java.util.UUID
 
@@ -81,4 +84,10 @@ class SessionController(
   fun retrieveSessionDetailsToEdit(
     @PathVariable @Parameter(description = "The unique session identifier") sessionId: UUID,
   ): ResponseEntity<EditSessionDetails> = ResponseEntity.ok(sessionService.getSessionDetailsToEdit(sessionId))
+
+  @PutMapping("session/{sessionId}/reschedule", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun rescheduleSession(
+    @PathVariable @Parameter(description = "The unique session identifier") sessionId: UUID,
+    @RequestBody rescheduleSessionRequest: RescheduleSessionRequest,
+  ): ResponseEntity<String> = ResponseEntity.ok(sessionService.rescheduleSessions(sessionId, rescheduleSessionRequest))
 }
