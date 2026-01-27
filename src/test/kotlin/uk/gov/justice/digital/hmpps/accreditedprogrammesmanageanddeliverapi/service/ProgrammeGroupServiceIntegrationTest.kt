@@ -481,7 +481,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(group)
-          .withModuleSessionTemplate(preGroupModuleSessions.first())
+          .withModuleSessionTemplate(preGroupModuleSessions.first { it.name.startsWith("Pre-group") })
           .withStartsAt(LocalDateTime.of(2026, 6, 1, 10, 0))
           .withEndsAt(LocalDateTime.of(2026, 6, 1, 11, 0))
           .withIsPlaceholder(true)
@@ -493,7 +493,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(group)
-          .withModuleSessionTemplate(gettingStartedModuleSessions.first())
+          .withModuleSessionTemplate(gettingStartedModuleSessions.first { it.name.startsWith("Getting started") })
           .withStartsAt(LocalDateTime.of(2026, 6, 15, 12, 0))
           .withEndsAt(LocalDateTime.of(2026, 6, 15, 14, 0))
           .withIsPlaceholder(true)
