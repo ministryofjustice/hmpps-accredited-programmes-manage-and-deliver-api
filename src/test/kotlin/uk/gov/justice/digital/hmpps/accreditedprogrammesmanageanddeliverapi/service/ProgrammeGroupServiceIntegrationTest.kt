@@ -19,11 +19,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
@@ -379,37 +379,37 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       groupId = group.id!!
 
       testDataGenerator.createSession(
-        SessionEntity(
-          programmeGroup = group,
-          moduleSessionTemplate = preGroupModuleSessions.first(),
-          startsAt = LocalDateTime.of(2026, 6, 1, 10, 0),
-          endsAt = LocalDateTime.of(2026, 6, 1, 11, 0),
-          isPlaceholder = false,
-        ),
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(preGroupModuleSessions.first({ it.name.startsWith("Pre-group") }))
+          .withStartsAt(LocalDateTime.of(2026, 6, 1, 10, 0))
+          .withEndsAt(LocalDateTime.of(2026, 6, 1, 11, 0))
+          .withIsPlaceholder(false)
+          .produce(),
       )
 
       val gettingStartedModuleSessions = moduleSessionTemplateRepository.findByModuleId(gettingStartedModuleId)
 
       testDataGenerator.createSession(
-        SessionEntity(
-          programmeGroup = group,
-          moduleSessionTemplate = gettingStartedModuleSessions.last(),
-          startsAt = LocalDateTime.of(2026, 6, 15, 12, 0),
-          endsAt = LocalDateTime.of(2026, 6, 15, 14, 0),
-          isPlaceholder = false,
-        ),
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(gettingStartedModuleSessions.first { it.name.startsWith("Getting started") })
+          .withStartsAt(LocalDateTime.of(2026, 6, 15, 12, 0))
+          .withEndsAt(LocalDateTime.of(2026, 6, 15, 14, 0))
+          .withIsPlaceholder(false)
+          .produce(),
       )
 
       val regularModuleSessions = moduleSessionTemplateRepository.findByModuleId(regularModuleId)
 
       testDataGenerator.createSession(
-        SessionEntity(
-          programmeGroup = group,
-          moduleSessionTemplate = regularModuleSessions.first(),
-          startsAt = LocalDateTime.of(2026, 7, 20, 15, 30),
-          endsAt = LocalDateTime.of(2026, 7, 20, 17, 30),
-          isPlaceholder = false,
-        ),
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(regularModuleSessions.first())
+          .withStartsAt(LocalDateTime.of(2026, 7, 20, 15, 30))
+          .withEndsAt(LocalDateTime.of(2026, 7, 20, 17, 30))
+          .withIsPlaceholder(false)
+          .produce(),
       )
 
       // When
@@ -479,37 +479,37 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       groupId = group.id!!
 
       testDataGenerator.createSession(
-        SessionEntity(
-          programmeGroup = group,
-          moduleSessionTemplate = preGroupModuleSessions.first(),
-          startsAt = LocalDateTime.of(2026, 6, 1, 10, 0),
-          endsAt = LocalDateTime.of(2026, 6, 1, 11, 0),
-          isPlaceholder = true,
-        ),
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(preGroupModuleSessions.first())
+          .withStartsAt(LocalDateTime.of(2026, 6, 1, 10, 0))
+          .withEndsAt(LocalDateTime.of(2026, 6, 1, 11, 0))
+          .withIsPlaceholder(true)
+          .produce(),
       )
 
       val gettingStartedModuleSessions = moduleSessionTemplateRepository.findByModuleId(gettingStartedModuleId)
 
       testDataGenerator.createSession(
-        SessionEntity(
-          programmeGroup = group,
-          moduleSessionTemplate = gettingStartedModuleSessions.last(),
-          startsAt = LocalDateTime.of(2026, 6, 15, 12, 0),
-          endsAt = LocalDateTime.of(2026, 6, 15, 14, 0),
-          isPlaceholder = true,
-        ),
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(gettingStartedModuleSessions.first())
+          .withStartsAt(LocalDateTime.of(2026, 6, 15, 12, 0))
+          .withEndsAt(LocalDateTime.of(2026, 6, 15, 14, 0))
+          .withIsPlaceholder(true)
+          .produce(),
       )
 
       val regularModuleSessions = moduleSessionTemplateRepository.findByModuleId(regularModuleId)
 
       testDataGenerator.createSession(
-        SessionEntity(
-          programmeGroup = group,
-          moduleSessionTemplate = regularModuleSessions.first(),
-          startsAt = LocalDateTime.of(2026, 7, 20, 15, 30),
-          endsAt = LocalDateTime.of(2026, 7, 20, 17, 30),
-          isPlaceholder = true,
-        ),
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(regularModuleSessions.first())
+          .withStartsAt(LocalDateTime.of(2026, 7, 20, 15, 30))
+          .withEndsAt(LocalDateTime.of(2026, 7, 20, 17, 30))
+          .withIsPlaceholder(true)
+          .produce(),
       )
 
       // When

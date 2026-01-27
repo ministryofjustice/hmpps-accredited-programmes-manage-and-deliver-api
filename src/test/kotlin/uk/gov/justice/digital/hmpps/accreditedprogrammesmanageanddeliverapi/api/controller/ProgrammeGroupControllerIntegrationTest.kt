@@ -50,7 +50,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusAppointmentEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
@@ -2048,13 +2047,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val preGroupSessionTemplate = preGroupSessions.first()
 
       testDataGenerator.createSession(
-        SessionEntity(
-          programmeGroup = group,
-          moduleSessionTemplate = preGroupSessionTemplate,
-          startsAt = LocalDateTime.of(2026, 6, 1, 9, 0),
-          endsAt = LocalDateTime.of(2026, 6, 1, 11, 0),
-          isPlaceholder = false,
-        ),
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(preGroupSessionTemplate)
+          .withStartsAt(LocalDateTime.of(2026, 6, 1, 9, 0))
+          .withEndsAt(LocalDateTime.of(2026, 6, 1, 11, 0))
+          .withIsPlaceholder(false)
+          .produce(),
       )
 
       // Create Getting Started session
@@ -2064,13 +2063,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val gettingStartedSessionTemplate = gettingStartedSessions.first()
 
       testDataGenerator.createSession(
-        SessionEntity(
-          programmeGroup = group,
-          moduleSessionTemplate = gettingStartedSessionTemplate,
-          startsAt = LocalDateTime.of(2026, 6, 15, 10, 0),
-          endsAt = LocalDateTime.of(2026, 6, 15, 12, 0),
-          isPlaceholder = false,
-        ),
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(gettingStartedSessionTemplate)
+          .withStartsAt(LocalDateTime.of(2026, 6, 15, 10, 0))
+          .withEndsAt(LocalDateTime.of(2026, 6, 15, 12, 0))
+          .withIsPlaceholder(false)
+          .produce(),
       )
 
       // Create regular session (end date)
@@ -2080,13 +2079,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val regularSessionTemplate = regularSessions.first()
 
       testDataGenerator.createSession(
-        SessionEntity(
-          programmeGroup = group,
-          moduleSessionTemplate = regularSessionTemplate,
-          startsAt = LocalDateTime.of(2026, 7, 20, 14, 0),
-          endsAt = LocalDateTime.of(2026, 7, 20, 16, 0),
-          isPlaceholder = false,
-        ),
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(regularSessionTemplate)
+          .withStartsAt(LocalDateTime.of(2026, 7, 20, 14, 0))
+          .withEndsAt(LocalDateTime.of(2026, 7, 20, 16, 0))
+          .withIsPlaceholder(false)
+          .produce(),
       )
 
       // When
