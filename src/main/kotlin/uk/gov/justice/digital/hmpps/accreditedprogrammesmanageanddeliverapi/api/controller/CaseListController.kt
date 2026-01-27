@@ -49,11 +49,8 @@ class CaseListController(
   )
   @GetMapping("/pages/caselist/{openOrClosed}", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getCaseListReferrals(
-    @PageableDefault(page = 0, size = 10, sort = ["personName"]) pageable: Pageable,
-    @PathVariable(
-      name = "openOrClosed",
-      required = true,
-    ) openOrClosed: OpenOrClosed,
+    @PageableDefault(page = 0, size = 50, sort = ["personName"]) pageable: Pageable,
+    @PathVariable(required = true) openOrClosed: OpenOrClosed,
     @Parameter(description = "CRN or persons name")
     @RequestParam(name = "crnOrPersonName", required = false) crnOrPersonName: String?,
     @Parameter(description = "Filter by the cohort of the referral using the human-readable label, e.g. 'General Offence', 'General Offence - LDC', 'Sexual Offence', 'Sexual Offence - LDC'") @RequestParam(
@@ -75,7 +72,7 @@ class CaseListController(
   ): CaseListReferrals {
     val username = authenticationHolder.username
 
-    if (username == null || username.isBlank()) {
+    if (username.isNullOrBlank()) {
       throw AuthenticationCredentialsNotFoundException("No authenticated user found")
     }
 

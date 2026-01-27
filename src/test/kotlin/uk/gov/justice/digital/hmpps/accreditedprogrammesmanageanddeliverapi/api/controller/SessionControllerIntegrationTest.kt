@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
@@ -17,20 +18,28 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
 class SessionControllerIntegrationTest : IntegrationTestBase() {
 
-  @Autowired
-  private lateinit var sessionRepository: SessionRepository
-
   @BeforeEach
   fun setup() {
     testDataCleaner.cleanAllTables()
   }
+
+  @Autowired
+  private lateinit var sessionRepository: SessionRepository
+
+  @Autowired
+  private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
+
+  @Autowired
+  private lateinit var programmeGroupRepository: ProgrammeGroupRepository
 
   @Test
   fun `retrieveSessionDetailsToEdit returns 200 and session details`() {
@@ -264,5 +273,63 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     val updatedSession3 = sessionRepository.findById(session3.id!!).get()
     assertThat(updatedSession3.startsAt).isEqualTo(LocalDateTime.of(2026, 4, 25, 10, 0))
     assertThat(updatedSession3.endsAt).isEqualTo(LocalDateTime.of(2026, 4, 25, 11, 0))
+  }
+
+  @Test
+  fun `return 204 when the session is deleted`() {
+    // Create group
+    val group = testGroupHelper.createGroup()
+    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+    // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+    val referral = testReferralHelper.createReferral()
+    programmeGroupMembershipService.allocateReferralToGroup(
+      referral.id!!,
+      group.id!!,
+      "SYSTEM",
+      "",
+    )
+
+    val sessionId =
+      sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }?.id
+    nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+
+    performRequestAndExpectStatusNoBody(
+      httpMethod = HttpMethod.DELETE,
+      uri = "/session/$sessionId",
+      expectedResponseStatus = HttpStatus.NO_CONTENT.value(),
+    )
+
+    val savedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)
+    assertThat(savedGroup!!.sessions.find { it.id == sessionId }).isNull()
+  }
+
+  @Test
+  fun `return 404 when the session is not found on delete`() {
+    val sessionId = UUID.randomUUID()
+
+    val exception = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.DELETE,
+      uri = "/session/$sessionId",
+      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+      expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      body = {},
+    )
+    assertThat(exception.userMessage).isEqualTo("Not Found: Session with id $sessionId not found.")
+  }
+
+  @Test
+  fun `return 401 when unauthorised on delete session`() {
+    val sessionId = UUID.randomUUID()
+
+    webTestClient
+      .method(HttpMethod.DELETE)
+      .uri("/session/$sessionId")
+      .contentType(MediaType.APPLICATION_JSON)
+      .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+      .exchange()
+      .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+      .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+      .returnResult().responseBody!!
   }
 }
