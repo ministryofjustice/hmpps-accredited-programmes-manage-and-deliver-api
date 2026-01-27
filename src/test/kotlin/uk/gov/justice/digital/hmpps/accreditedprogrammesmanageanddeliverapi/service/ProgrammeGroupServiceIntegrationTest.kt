@@ -330,10 +330,6 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
   @DisplayName("getScheduleForGroup")
   inner class GetScheduleForGroup {
 
-    private lateinit var buildingChoicesTemplateId: UUID
-    private lateinit var preGroupModuleId: UUID
-    private lateinit var gettingStartedModuleId: UUID
-    private lateinit var regularModuleId: UUID
     private lateinit var groupId: UUID
     private lateinit var preGroupModuleSessions: List<ModuleSessionTemplateEntity>
     private lateinit var gettingStartedModuleSessions: List<ModuleSessionTemplateEntity>
@@ -350,7 +346,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       // Get template
       val template = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
       assertThat(template).isNotNull
-      buildingChoicesTemplateId = template.id!!
+      val buildingChoicesTemplateId = template.id!!
 
       // Get modules
       val modules = moduleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplateId)
@@ -359,17 +355,17 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       // Find Pre-Group module
       val preGroupModule = modules.find { it.name.startsWith("Pre-group") }
       assertThat(preGroupModule).isNotNull
-      preGroupModuleId = preGroupModule!!.id!!
+      val preGroupModuleId = preGroupModule!!.id!!
 
       // Find Getting Started module
       val gettingStartedModule = modules.find { it.name.startsWith("Getting started") }
       assertThat(gettingStartedModule).isNotNull
-      gettingStartedModuleId = gettingStartedModule!!.id!!
+      val gettingStartedModuleId = gettingStartedModule!!.id!!
 
       // Find regular last module
       val regularModule = modules.find { it.moduleNumber == modules.last().moduleNumber }
       assertThat(regularModule).isNotNull
-      regularModuleId = regularModule!!.id!!
+      val regularModuleId = regularModule!!.id!!
 
       // Create a test group associated with Building Choices template
       programmeGroup = testDataGenerator.createGroup(
