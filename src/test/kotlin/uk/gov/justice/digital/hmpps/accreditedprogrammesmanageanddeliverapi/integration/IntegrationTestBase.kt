@@ -220,12 +220,13 @@ abstract class IntegrationTestBase {
     httpMethod: HttpMethod,
     uri: String,
     expectedResponseStatus: Int,
+    roles: List<String> = listOf("ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR"),
   ) {
     webTestClient
       .method(httpMethod)
       .uri(uri)
       .contentType(MediaType.APPLICATION_JSON)
-      .headers(setAuthorisation())
+      .headers(setAuthorisation(roles = roles))
       .accept(MediaType.APPLICATION_JSON)
       .exchange()
       .expectStatus()
