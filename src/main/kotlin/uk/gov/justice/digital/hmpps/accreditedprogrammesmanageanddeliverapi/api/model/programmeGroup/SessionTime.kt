@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotNull
 import java.time.LocalDateTime
+import java.time.LocalTime
 
 data class SessionTime(
   @NotNull(message = "hour must not be null")
@@ -27,6 +28,14 @@ data class SessionTime(
   @Schema(description = "AM or PM designation", implementation = AmOrPm::class)
   val amOrPm: AmOrPm,
 )
+
+fun SessionTime.toLocalTime(): LocalTime {
+  val hour24 = when (amOrPm) {
+    AmOrPm.AM -> if (hour == 12) 0 else hour
+    AmOrPm.PM -> if (hour == 12) 12 else hour + 12
+  }
+  return LocalTime.of(hour24, minutes)
+}
 
 fun fromDateTime(dateTime: LocalDateTime): SessionTime {
   fun Int.toHour12(): Int = when {
