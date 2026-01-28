@@ -3,7 +3,9 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.fromDateTime
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.format.DateTimeFormatter
@@ -28,5 +30,13 @@ class SessionService(
       sessionStartTime = fromDateTime(session.startsAt),
       sessionEndTime = fromDateTime(session.endsAt),
     )
+  }
+
+  fun getSession(sessionId: UUID): Session {
+    val entity = sessionRepository.findById(sessionId).orElseThrow {
+      NotFoundException("Session with id $sessionId not found.")
+    }
+
+    return entity.toApi()
   }
 }
