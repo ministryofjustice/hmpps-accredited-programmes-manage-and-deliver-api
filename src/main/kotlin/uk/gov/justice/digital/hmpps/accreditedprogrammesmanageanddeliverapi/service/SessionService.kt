@@ -3,15 +3,18 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.fromDateTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toLocalTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import java.util.UUID
 
 @Service
@@ -33,6 +36,40 @@ class SessionService(
       sessionStartTime = fromDateTime(session.startsAt),
       sessionEndTime = fromDateTime(session.endsAt),
     )
+  }
+
+  fun getRescheduleSessionDetails(sessionId: UUID): RescheduleSessionDetails {
+    val session = sessionRepository.findById(sessionId).orElseThrow {
+      NotFoundException("Session not found with id: $sessionId")
+    }
+
+    return RescheduleSessionDetails(
+      sessionId = sessionId,
+      sessionName = formatSessionName(session),
+      previousSessionDateAndTime = formatPreviousSessionDateAndTime(session),
+    )
+  }
+
+  private fun formatSessionName(session: SessionEntity): String {
+    val moduleName = session.moduleSessionTemplate.name
+    val isCatchup = session.isCatchup
+
+    return if (isCatchup) "$moduleName catch-up" else moduleName
+  }
+
+  private fun formatPreviousSessionDateAndTime(session: SessionEntity): String {
+    val date = session.startsAt.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ENGLISH))
+    val startTime = formatTime(session.startsAt)
+    val endTime = formatTime(session.endsAt)
+
+    return "$date, $startTime to $endTime"
+  }
+
+  private fun formatTime(dateTime: LocalDateTime): String {
+    val hour = if (dateTime.hour == 0 || dateTime.hour == 12) 12 else dateTime.hour % 12
+    val amPm = if (dateTime.hour < 12) "am" else "pm"
+    val minutes = if (dateTime.minute == 0) "" else ":${dateTime.minute.toString().padStart(2, '0')}"
+    return "$hour$minutes$amPm"
   }
 
   fun rescheduleSessions(sessionId: UUID, request: RescheduleSessionRequest): String {

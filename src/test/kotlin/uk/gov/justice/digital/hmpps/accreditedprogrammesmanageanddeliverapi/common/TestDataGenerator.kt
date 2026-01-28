@@ -6,6 +6,7 @@ import jakarta.transaction.Transactional
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AccreditedProgrammeTemplateEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
@@ -26,7 +27,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AttendeeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.util.UUID
 
@@ -41,6 +44,12 @@ class TestDataGenerator {
 
   @Autowired
   private lateinit var moduleSessionTemplateRepository: ModuleSessionTemplateRepository
+
+  @Autowired
+  private lateinit var referralRepository: ReferralRepository
+
+  @Autowired
+  private lateinit var attendeeRepository: AttendeeRepository
 
   fun createPreferredDeliveryLocationProbationDeliveryUnit(preferredDeliveryLocationProbationDeliveryUnit: PreferredDeliveryLocationProbationDeliveryUnitEntity) {
     entityManager.persist(preferredDeliveryLocationProbationDeliveryUnit)
@@ -217,6 +226,16 @@ class TestDataGenerator {
   fun createFacilitator(facilitator: FacilitatorEntity): FacilitatorEntity {
     entityManager.persist(facilitator)
     return facilitator
+  }
+
+  fun createReferral(personName: String, crn: String): ReferralEntity {
+    val referral = ReferralEntityFactory().withPersonName(personName).withCrn(crn).produce()
+    return referralRepository.save(referral)
+  }
+
+  fun createAttendee(referral: ReferralEntity, session: SessionEntity): AttendeeEntity {
+    val attendee = AttendeeEntity(referral = referral, session = session)
+    return attendeeRepository.save(attendee)
   }
 
   fun createModuleSessionTemplate(
