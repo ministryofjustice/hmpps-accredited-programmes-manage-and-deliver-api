@@ -20,6 +20,9 @@ data class Session(
 
   @Schema(description = "A list of referrals for a session")
   val referrals: List<Referral>,
+
+  @Schema(description = "A flag if a session is a catchup or not", example = "false")
+  val isCatchup: Boolean = false,
 )
 
 fun SessionEntity.toApi() = Session(
@@ -28,4 +31,5 @@ fun SessionEntity.toApi() = Session(
   name = moduleSessionTemplate.module.name,
   number = sessionNumber,
   referrals = attendees.map { it.referral.toApi() },
+  isCatchup = isCatchup,
 )

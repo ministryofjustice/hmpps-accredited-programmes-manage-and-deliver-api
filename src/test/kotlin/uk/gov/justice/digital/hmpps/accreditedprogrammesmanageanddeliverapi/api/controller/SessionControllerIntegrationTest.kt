@@ -375,6 +375,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     assertThat(response.referrals[0].crn).isEqualTo(sessionEntity.attendees[0].referral.crn)
     assertThat(response.referrals[0].createdAt).isNotNull()
     assertThat(response.referrals[0].status).isNotNull()
+    assertThat(response.isCatchup).isEqualTo(sessionEntity.isCatchup)
   }
 
   @Test
