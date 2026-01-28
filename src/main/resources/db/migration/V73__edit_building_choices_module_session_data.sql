@@ -20,7 +20,7 @@ SET name = CASE id
                WHEN uuid '1bcaf371-e624-4034-a13b-5ae2e9921bd4' THEN 'Pre-group'
 
     -- 2) Getting Started
-               WHEN uuid 'e17396c4-0638-4100-7f90-e7f8091a2b3c' THEN 'Introduction to building choices'
+               WHEN uuid 'e17396c4-0638-4100-7f90-e7f8091a2b3c' THEN 'Introduction to Building Choices'
                WHEN uuid 'f284a7d5-1749-4211-80a1-f8091a2b3c4d' THEN 'Understanding myself'
 
     -- 3) Getting Started one-to-one
@@ -28,7 +28,7 @@ SET name = CASE id
 
     -- 4) Managing Myself
                WHEN uuid 'e7d9fc2a-6c9e-4766-d5f6-4d5e6f708192' THEN 'Understanding my feelings'
-               WHEN uuid 'f8ea0d3b-7daf-4877-e607-5e6f708192a3' THEN 'Helpful/unhelpful feelings'
+               WHEN uuid 'f8ea0d3b-7daf-4877-e607-5e6f708192a3' THEN 'Helpful and unhelpful feelings'
                WHEN uuid '09fb1e4c-8eb0-4988-f718-6f708192a3b4' THEN 'Managing my feelings - part 1'
                WHEN uuid '1a0c2f5d-9fc1-4a99-0829-70708192a3b4' THEN 'Managing my feelings - part 2'
                WHEN uuid '2b1d306e-a1d2-4baa-193a-808192a3b4c5' THEN 'Understanding my thinking'
@@ -51,7 +51,7 @@ SET name = CASE id
                WHEN uuid 'd6a7eb19-5b8d-4345-c4e5-30182a3b4c5d' THEN 'My role in relationships'
                WHEN uuid 'e7b8fc2a-6c9e-4456-d5f6-40182a3b4c5d' THEN 'Relationship skills'
                WHEN uuid 'f8c90d3b-7daf-4567-e607-50182a3b4c5d' THEN 'Relationship skills'
-               WHEN uuid '09da1e4c-8eb0-4678-f718-60182a3b4c5d' THEN 'Practicing our relationship skills'
+               WHEN uuid '09da1e4c-8eb0-4678-f718-60182a3b4c5d' THEN 'Practising our relationship skills'
                WHEN uuid '1aeb2f5d-9fc1-4789-0829-70182a3b4c5d' THEN 'Module skills practice'
 
     -- 9) Managing People Around Me one-to-one

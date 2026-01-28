@@ -21,9 +21,9 @@ DELETE FROM module WHERE id in ('89d0e1f2-3a4b-4017-b274-9e0f1a2b3c4d');
 -- Bringing it all together (update module number)
 UPDATE module SET module_number = '6' WHERE id = '9ad0e1f2-4a5b-4028-c385-0f1a2b3c4d5e';
 
--- new module and associated session for post programme review
+-- new module and associated session for Post-programme reviews
 INSERT INTO module (id, accredited_programme_template_id, name, module_number)
-VALUES (uuid 'ac581f6c-1d81-45a2-af1e-7e3a041ae756', uuid '3442732f-9a0d-4981-8f9e-54e622e72211', 'Post programme review', 7);
+VALUES (uuid 'ac581f6c-1d81-45a2-af1e-7e3a041ae756', uuid '3442732f-9a0d-4981-8f9e-54e622e72211', 'Post-programme reviews', 7);
 
 INSERT INTO module_session_template (id, module_id, session_number, session_type, pathway, name, duration_minutes)
-Values(uuid 'fb60da35-7de1-4d25-a03d-6ff2c9baec3f', uuid 'ac581f6c-1d81-45a2-af1e-7e3a041ae756', 1, 'ONE_TO_ONE', 'MODERATE_INTENSITY', 'Post programme review', 60);
+Values(uuid 'fb60da35-7de1-4d25-a03d-6ff2c9baec3f', uuid 'ac581f6c-1d81-45a2-af1e-7e3a041ae756', 1, 'ONE_TO_ONE', 'MODERATE_INTENSITY', 'Post-programme reviews', 60);

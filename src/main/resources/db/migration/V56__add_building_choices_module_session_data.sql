@@ -51,7 +51,7 @@ UNION ALL SELECT uuid 'c5b7da08-4a7c-4544-b3d4-2b3c4d5e6f70', uuid '23d4e5f6-7a8
 
 -- 4) Managing Myself (Group); Moderate = 6
 UNION ALL SELECT uuid 'e7d9fc2a-6c9e-4766-d5f6-4d5e6f708192', uuid '34e5f6a7-8b9a-4bc2-8d3e-4f5a6b7c8d9e', 1, 'GROUP', 'MODERATE_INTENSITY', 'Understanding my feelings', 150
-UNION ALL SELECT uuid 'f8ea0d3b-7daf-4877-e607-5e6f708192a3', uuid '34e5f6a7-8b9a-4bc2-8d3e-4f5a6b7c8d9e', 2, 'GROUP', 'MODERATE_INTENSITY', 'Helpful/Unhelpful Feelings', 150
+UNION ALL SELECT uuid 'f8ea0d3b-7daf-4877-e607-5e6f708192a3', uuid '34e5f6a7-8b9a-4bc2-8d3e-4f5a6b7c8d9e', 2, 'GROUP', 'MODERATE_INTENSITY', 'Helpful and unhelpful feelings', 150
 UNION ALL SELECT uuid '09fb1e4c-8eb0-4988-f718-6f708192a3b4', uuid '34e5f6a7-8b9a-4bc2-8d3e-4f5a6b7c8d9e', 3, 'GROUP', 'MODERATE_INTENSITY', 'Managing My Feelings - Part 1', 150
 UNION ALL SELECT uuid '1a0c2f5d-9fc1-4a99-0829-70708192a3b4', uuid '34e5f6a7-8b9a-4bc2-8d3e-4f5a6b7c8d9e', 4, 'GROUP', 'MODERATE_INTENSITY', 'Managing My Feelings - Part 2', 150
 UNION ALL SELECT uuid '2b1d306e-a1d2-4baa-193a-808192a3b4c5', uuid '34e5f6a7-8b9a-4bc2-8d3e-4f5a6b7c8d9e', 5, 'GROUP', 'MODERATE_INTENSITY', 'Understanding My Thinking', 150
@@ -74,7 +74,7 @@ UNION ALL SELECT uuid 'c596da08-4a7c-4234-b3d4-20182a3b4c5d', uuid '78c9d0e1-2a3
 UNION ALL SELECT uuid 'd6a7eb19-5b8d-4345-c4e5-30182a3b4c5d', uuid '78c9d0e1-2a3b-40f6-a163-8d9e0f1a2b3c', 2, 'GROUP', 'MODERATE_INTENSITY', 'My role in relationships', 150
 UNION ALL SELECT uuid 'e7b8fc2a-6c9e-4456-d5f6-40182a3b4c5d', uuid '78c9d0e1-2a3b-40f6-a163-8d9e0f1a2b3c', 3, 'GROUP', 'MODERATE_INTENSITY', 'Relationship Skills', 150
 UNION ALL SELECT uuid 'f8c90d3b-7daf-4567-e607-50182a3b4c5d', uuid '78c9d0e1-2a3b-40f6-a163-8d9e0f1a2b3c', 4, 'GROUP', 'MODERATE_INTENSITY', 'Relationship Skills', 150
-UNION ALL SELECT uuid '09da1e4c-8eb0-4678-f718-60182a3b4c5d', uuid '78c9d0e1-2a3b-40f6-a163-8d9e0f1a2b3c', 5, 'GROUP', 'MODERATE_INTENSITY', 'Practicing Our Relationship Skills', 150
+UNION ALL SELECT uuid '09da1e4c-8eb0-4678-f718-60182a3b4c5d', uuid '78c9d0e1-2a3b-40f6-a163-8d9e0f1a2b3c', 5, 'GROUP', 'MODERATE_INTENSITY', 'Practising Our Relationship Skills', 150
 UNION ALL SELECT uuid '1aeb2f5d-9fc1-4789-0829-70182a3b4c5d', uuid '78c9d0e1-2a3b-40f6-a163-8d9e0f1a2b3c', 6, 'GROUP', 'MODERATE_INTENSITY', 'Module Skills Practice', 150
 
 -- 9) Managing People Around Me 1-1 (Individual); Moderate = 1

@@ -8,7 +8,7 @@ import java.util.UUID
 
 data class GroupSchedule(
   @get:JsonProperty("preGroupOneToOneStartDate", required = true)
-  @Schema(description = "The start date of a group one to one in format DayName DateNumber MonthName YearNumber", example = "Monday 22 June 2026")
+  @Schema(description = "The start date of a group one-to-one in format DayName DateNumber MonthName YearNumber", example = "Monday 22 June 2026")
   @JsonFormat(pattern = "EEEE d MMMM yyyy")
   val preGroupOneToOneStartDate: LocalDate?,
 

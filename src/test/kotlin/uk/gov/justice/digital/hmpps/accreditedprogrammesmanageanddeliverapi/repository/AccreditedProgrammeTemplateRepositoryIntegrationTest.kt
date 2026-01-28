@@ -33,7 +33,7 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
       "Managing life’s problems",
       "Managing people around me",
       "Bringing it all together",
-      "Post programme review",
+      "Post-programme reviews",
     )
   }
 
@@ -81,7 +81,7 @@ class AccreditedProgrammeTemplateRepositoryIntegrationTest : IntegrationTestBase
       "Managing life’s problems",
       "Managing people around me",
       "Bringing it all together",
-      "Post programme review",
+      "Post-programme reviews",
     ).forEach { name ->
       val sessions = modulesByName.getValue(name).sessionTemplates
       assertThat(sessions).isNotEmpty
