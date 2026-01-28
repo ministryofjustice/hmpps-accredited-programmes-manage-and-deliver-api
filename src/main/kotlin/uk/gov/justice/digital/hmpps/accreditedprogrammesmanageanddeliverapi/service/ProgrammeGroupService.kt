@@ -13,6 +13,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSchedule
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleSession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
@@ -266,6 +268,48 @@ class ProgrammeGroupService(
     groupId: UUID,
     sessionTemplateId: UUID,
   ): List<SessionEntity>? = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplateId, groupId)
+
+  fun getScheduleForGroup(groupId: UUID): GroupSchedule {
+    val group = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
+
+    val sessions = sessionRepository.findByProgrammeGroupId(groupId)
+
+    if (sessions.isEmpty()) {
+      throw NotFoundException("No sessions found for group $groupId")
+    }
+
+    val scheduleSessions = sessions.map { session ->
+      GroupScheduleSession(
+        id = session.id,
+        name = session.moduleSessionTemplate.name,
+        type = session.sessionType.value,
+        date = session.startsAt.toLocalDate(),
+        time = if (session.isPlaceholder) "Various times" else formatTimeForUiDisplay(session.startsAt.toLocalTime()),
+      )
+    }
+
+    val preGroupOneToOneDate = sessions
+      .filter { it.moduleSessionTemplate.module.name.startsWith("Pre-group", ignoreCase = true) }
+      .minByOrNull { it.startsAt }
+      ?.startsAt?.toLocalDate()
+
+    val gettingStartedStartDate = sessions
+      .filter { it.moduleSessionTemplate.module.name.startsWith("Getting started", ignoreCase = true) }
+      .minByOrNull { it.startsAt }
+      ?.startsAt?.toLocalDate()
+
+    val endDate = sessions
+      .maxByOrNull { it.startsAt }
+      ?.startsAt?.toLocalDate()
+
+    return GroupSchedule(
+      preGroupOneToOneStartDate = preGroupOneToOneDate,
+      gettingStartedModuleStartDate = gettingStartedStartDate,
+      endDate = endDate,
+      modules = scheduleSessions,
+    )
+  }
 
   fun getProgrammeGroupsForRegion(
     pageable: Pageable,
