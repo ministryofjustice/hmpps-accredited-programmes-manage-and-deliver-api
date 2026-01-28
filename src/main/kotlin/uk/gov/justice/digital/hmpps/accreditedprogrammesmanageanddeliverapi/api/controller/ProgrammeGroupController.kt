@@ -30,6 +30,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupMember
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSchedule
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
@@ -794,6 +795,63 @@ class ProgrammeGroupController(
     @PathVariable groupId: UUID,
     @PathVariable sessionId: UUID,
   ): ResponseEntity<GroupSessionResponse> = ResponseEntity.ok(programmeGroupService.getGroupSessionPage(groupId, sessionId))
+
+  @Operation(
+    tags = ["Programme Group controller"],
+    summary = "bff endpoint to retrieve a schedule of a module sessions for a programme group",
+    operationId = "getGroupSchedule",
+    description = "Retrieve group schedule..",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Successfully retrieved group schedule details",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = GroupSchedule::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden, requires role ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Group or module not found",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping(
+    "/bff/group/{groupId}/schedule",
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+  )
+  fun getGroupSchedule(
+    @PathVariable @Parameter(description = "The UUID of the Programme Group", required = true) groupId: UUID,
+  ): ResponseEntity<GroupSchedule> = ResponseEntity.ok(programmeGroupService.getScheduleForGroup(groupId))
 
   private fun getUsername(): String {
     val username = authenticationHolder.username
