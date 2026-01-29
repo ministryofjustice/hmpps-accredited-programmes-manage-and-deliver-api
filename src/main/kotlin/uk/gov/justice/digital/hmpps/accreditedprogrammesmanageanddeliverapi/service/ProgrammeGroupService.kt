@@ -216,7 +216,7 @@ class ProgrammeGroupService(
               scheduledSession.endsAt.toLocalTime(),
             ),
             participants = if (sessionTemplate.sessionType == SessionType.GROUP) listOf("All") else scheduledSession.attendees.map { it.personName },
-            facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }.map { it.facilitator!!.personName },
+            facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }.map { it.facilitator.personName },
           )
         } ?: emptyList()
       }.flatten()
@@ -399,11 +399,12 @@ class ProgrammeGroupService(
     )
   }
 
-  private fun groupFormatPageTitle(session: SessionEntity): String {
-   return when (session.sessionType) {
-      SessionType.GROUP -> "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}"
-      SessionType.ONE_TO_ONE -> if(session.moduleSessionTemplate.name == "Post programme review") "${session.attendees.first().personName}: Post-programme review"
-        else "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name} "
+  private fun groupFormatPageTitle(session: SessionEntity): String = when (session.sessionType) {
+    SessionType.GROUP -> "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}"
+    SessionType.ONE_TO_ONE -> if (session.moduleSessionTemplate.name == "Post programme review") {
+      "${session.attendees.first().personName}: Post-programme review"
+    } else {
+      "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name} "
     }
   }
 }
