@@ -13,6 +13,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSchedule
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleSession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
@@ -214,7 +216,7 @@ class ProgrammeGroupService(
               scheduledSession.endsAt.toLocalTime(),
             ),
             participants = if (sessionTemplate.sessionType == SessionType.GROUP) listOf("All") else scheduledSession.attendees.map { it.personName },
-            facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }.map { it.facilitator!!.personName },
+            facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }.map { it.facilitator.personName },
           )
         } ?: emptyList()
       }.flatten()
@@ -246,8 +248,8 @@ class ProgrammeGroupService(
   }
 
   private fun formatEstimatedStartText(moduleName: String): String = when (moduleName) {
-    "Pre-group one-to-ones" -> "Estimated start date of ${moduleName.lowercase()}:"
-    "Post programme review" -> "Post-programme reviews deadline:"
+    "Pre-group one-to-ones" -> "Estimated start date of ${moduleName.lowercase()}"
+    "Post programme review" -> "Post-programme reviews deadline"
     else -> "Estimated date of $moduleName one to ones"
   }
 
@@ -266,6 +268,48 @@ class ProgrammeGroupService(
     groupId: UUID,
     sessionTemplateId: UUID,
   ): List<SessionEntity>? = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplateId, groupId)
+
+  fun getScheduleForGroup(groupId: UUID): GroupSchedule {
+    val group = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
+
+    val sessions = sessionRepository.findByProgrammeGroupId(groupId)
+
+    if (sessions.isEmpty()) {
+      throw NotFoundException("No sessions found for group $groupId")
+    }
+
+    val scheduleSessions = sessions.map { session ->
+      GroupScheduleSession(
+        id = session.id,
+        name = session.moduleSessionTemplate.name,
+        type = session.sessionType.value,
+        date = session.startsAt.toLocalDate(),
+        time = if (session.isPlaceholder) "Various times" else formatTimeForUiDisplay(session.startsAt.toLocalTime()),
+      )
+    }
+
+    val preGroupOneToOneDate = sessions
+      .filter { it.moduleSessionTemplate.module.name.startsWith("Pre-group", ignoreCase = true) }
+      .minByOrNull { it.startsAt }
+      ?.startsAt?.toLocalDate()
+
+    val gettingStartedStartDate = sessions
+      .filter { it.moduleSessionTemplate.module.name.startsWith("Getting started", ignoreCase = true) }
+      .minByOrNull { it.startsAt }
+      ?.startsAt?.toLocalDate()
+
+    val endDate = sessions
+      .maxByOrNull { it.startsAt }
+      ?.startsAt?.toLocalDate()
+
+    return GroupSchedule(
+      preGroupOneToOneStartDate = preGroupOneToOneDate,
+      gettingStartedModuleStartDate = gettingStartedStartDate,
+      endDate = endDate,
+      modules = scheduleSessions,
+    )
+  }
 
   fun getProgrammeGroupsForRegion(
     pageable: Pageable,
@@ -345,7 +389,7 @@ class ProgrammeGroupService(
 
     return GroupSessionResponse(
       groupCode = programmeGroup.code,
-      pageTitle = "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}",
+      pageTitle = groupFormatPageTitle(session),
       sessionType = session.sessionType.value,
       date = session.startsAt.toLocalDate(),
       time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
@@ -353,5 +397,14 @@ class ProgrammeGroupService(
       facilitators = session.sessionFacilitators.map { it.facilitator.personName },
       attendanceAndSessionNotes = listOf(),
     )
+  }
+
+  private fun groupFormatPageTitle(session: SessionEntity): String = when (session.sessionType) {
+    SessionType.GROUP -> "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}"
+    SessionType.ONE_TO_ONE -> if (session.moduleSessionTemplate.name == "Post programme review") {
+      "${session.attendees.first().personName}: Post-programme review"
+    } else {
+      "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name} "
+    }
   }
 }
