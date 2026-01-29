@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
@@ -20,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
@@ -36,6 +39,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var sessionRepository: SessionRepository
+
+  @Autowired
+  private lateinit var moduleSessionTemplateRepository: ModuleSessionTemplateRepository
 
   @Autowired
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
@@ -91,6 +97,144 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     assertThat(response.sessionEndTime.hour).isEqualTo(2)
     assertThat(response.sessionEndTime.minutes).isEqualTo(30)
     assertThat(response.sessionEndTime.amOrPm).isEqualTo(AmOrPm.PM)
+  }
+
+  @Test
+  fun `getRescheduleSessionDetails returns 200 and reschedule details for group session`() {
+    // Given
+    val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+    val sessionTemplate = moduleSessionTemplateRepository.findByName("Future me plan")
+
+    val group = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(programmeTemplate)
+        .produce(),
+    )
+    val session = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(sessionTemplate!!)
+        .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
+        .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
+        .produce(),
+    )
+
+    // When
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "/bff/session/${session.id}/edit-session-date-and-time/reschedule",
+      object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
+    )
+
+    // Then
+    assertThat(response.sessionId).isEqualTo(session.id)
+    assertThat(response.sessionName).isEqualTo("Future me plan")
+    assertThat(response.previousSessionDateAndTime).isEqualTo("Thursday 21 May 2026, 11am to 1:30pm")
+  }
+
+  @Test
+  fun `getRescheduleSessionDetails returns 200 and reschedule details for group catch-up session`() {
+    // Given
+    val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+    val sessionTemplate = moduleSessionTemplateRepository.findByName("Module skills practice")
+
+    val group = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(programmeTemplate)
+        .produce(),
+    )
+    val session = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(sessionTemplate!!)
+        .withIsCatchup(true)
+        .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
+        .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
+        .produce(),
+    )
+
+    // When
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "/bff/session/${session.id}/edit-session-date-and-time/reschedule",
+      object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
+    )
+
+    // Then
+    assertThat(response.sessionName).isEqualTo("Module skills practice catch-up")
+  }
+
+  @Test
+  fun `getRescheduleSessionDetails returns 200 and reschedule details for one-to-one session`() {
+    // Given
+    val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+    val sessionTemplate = moduleSessionTemplateRepository.findByName("Managing myself one-to-one")
+
+    val group = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(programmeTemplate)
+        .produce(),
+    )
+    val session = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(sessionTemplate!!)
+        .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
+        .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
+        .produce(),
+    )
+    val referral = testDataGenerator.createReferral(
+      personName = "John Doe",
+      crn = "X123456",
+    )
+    testDataGenerator.createAttendee(referral, session)
+
+    // When
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "/bff/session/${session.id}/edit-session-date-and-time/reschedule",
+      object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
+    )
+
+    // Then
+    assertThat(response.sessionName).isEqualTo("Managing myself one-to-one")
+  }
+
+  @Test
+  fun `getRescheduleSessionDetails returns 200 and reschedule details for post-programme review`() {
+    // Given
+    val programmeTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+    val sessionTemplate = moduleSessionTemplateRepository.findByName("Post programme review")
+
+    val group = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(programmeTemplate)
+        .withCode("RESCHR")
+        .produce(),
+    )
+    val session = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(sessionTemplate!!)
+        .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
+        .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
+        .produce(),
+    )
+    val referral = testDataGenerator.createReferral(
+      personName = "Jane Smith",
+      crn = "Y654321",
+    )
+    testDataGenerator.createAttendee(referral, session)
+
+    // When
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "/bff/session/${session.id}/edit-session-date-and-time/reschedule",
+      object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
+    )
+
+    // Then
+    assertThat(response.sessionName).isEqualTo("Post programme review")
   }
 
   @Test
@@ -327,6 +471,83 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     webTestClient
       .method(HttpMethod.DELETE)
       .uri("/session/$sessionId")
+      .contentType(MediaType.APPLICATION_JSON)
+      .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+      .exchange()
+      .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+      .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+      .returnResult().responseBody!!
+  }
+
+  @Test
+  fun `should GET session details and return 200`() {
+    // Given
+    // Create group
+    val group = testGroupHelper.createGroup()
+    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+    // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+    val referral = testReferralHelper.createReferral()
+    programmeGroupMembershipService.allocateReferralToGroup(
+      referral.id!!,
+      group.id!!,
+      "SYSTEM",
+      "",
+    )
+    val sessionEntity =
+      sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }
+    nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+    val sessionId = sessionEntity!!.id!!
+
+    // When
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "bff/session/$sessionId",
+      object : ParameterizedTypeReference<Session>() {},
+    )
+
+    // Then
+    assertThat(response.id).isEqualTo(sessionId)
+    assertThat(response.type).isEqualTo(sessionEntity.sessionType.value)
+    assertThat(response.name).isEqualTo(sessionEntity.moduleSessionTemplate.module.name)
+    assertThat(response.number).isEqualTo(sessionEntity.sessionNumber)
+    assertThat(response.referrals).isNotEmpty()
+    assertThat(response.referrals.size).isEqualTo(1)
+    assertThat(response.referrals[0].personName).isEqualTo(sessionEntity.attendees[0].personName)
+    assertThat(response.referrals[0].id).isEqualTo(sessionEntity.attendees[0].referral.id)
+    assertThat(response.referrals[0].cohort).isNotNull()
+    assertThat(response.referrals[0].crn).isEqualTo(sessionEntity.attendees[0].referral.crn)
+    assertThat(response.referrals[0].createdAt).isNotNull()
+    assertThat(response.referrals[0].status).isNotNull()
+    assertThat(response.isCatchup).isEqualTo(sessionEntity.isCatchup)
+  }
+
+  @Test
+  fun `should return 404 when a session is not found on GET request`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+
+    // When
+    val exception = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.GET,
+      uri = "bff/session/$sessionId",
+      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+      expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      body = {},
+    )
+
+    // Then
+    assertThat(exception.userMessage).isEqualTo("Not Found: Session with id $sessionId not found.")
+  }
+
+  @Test
+  fun `should return 401 when unauthorised on GET session request`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+
+    // When
+    webTestClient
+      .method(HttpMethod.GET)
+      .uri("bff/session/$sessionId")
       .contentType(MediaType.APPLICATION_JSON)
       .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
       .exchange()

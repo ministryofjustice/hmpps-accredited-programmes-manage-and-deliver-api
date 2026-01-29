@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
@@ -91,6 +93,60 @@ class SessionController(
   fun retrieveSessionDetailsToEdit(
     @PathVariable @Parameter(description = "The unique session identifier") sessionId: UUID,
   ): ResponseEntity<EditSessionDetails> = ResponseEntity.ok(sessionService.getSessionDetailsToEdit(sessionId))
+
+  @Operation(
+    tags = ["Session controller"],
+    summary = "Retrieve details for rescheduling a session",
+    operationId = "getRescheduleSessionDetails",
+    description = "Retrieve the details for a session so they can be rescheduled",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Reschedule session details retrieved successfully",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = RescheduleSessionDetails::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden, requires role ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Session not found",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/bff/session/{sessionId}/edit-session-date-and-time/reschedule", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getRescheduleSessionDetails(
+    @PathVariable @Parameter(description = "The unique session identifier") sessionId: UUID,
+  ): ResponseEntity<RescheduleSessionDetails> = ResponseEntity.ok(sessionService.getRescheduleSessionDetails(sessionId))
 
   @Operation(
     tags = ["Session controller"],
@@ -193,4 +249,58 @@ class SessionController(
     @PathVariable @Parameter(description = "The unique session identifier") sessionId: UUID,
     @RequestBody rescheduleSessionRequest: RescheduleSessionRequest,
   ): ResponseEntity<String> = ResponseEntity.ok(sessionService.rescheduleSessions(sessionId, rescheduleSessionRequest))
+
+  @Operation(
+    tags = ["Session controller"],
+    summary = "Retrieve session by an ID",
+    operationId = "retrieveSessionById",
+    description = "Retrieve the details for a session ",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Session details retrieved successfully",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = Session::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden, requires role ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Session not found",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/bff/session/{sessionId}", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun retrieveSessionById(
+    @PathVariable @Parameter(description = "The unique session identifier") sessionId: UUID,
+  ): ResponseEntity<Session> = ResponseEntity.ok(sessionService.getSession(sessionId))
 }
