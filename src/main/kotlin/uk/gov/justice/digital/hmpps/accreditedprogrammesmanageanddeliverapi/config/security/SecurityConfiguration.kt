@@ -33,6 +33,7 @@ class SecurityConfiguration {
           "/api.yml",
           "/info",
           "/swagger-ui.html",
+          "/dev/seed/referrals",
         ).permitAll()
         .anyRequest().authenticated()
     }

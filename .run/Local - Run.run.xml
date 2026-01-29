@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Local - Run" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
-    <option name="ACTIVE_PROFILES" value="local" />
+    <option name="ACTIVE_PROFILES" value="local,seeding" />
     <module name="hmpps-accredited-programmes-manage-and-deliver-api.main" />
     <selectedOptions>
       <option name="environmentVariables" />

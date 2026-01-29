@@ -22,4 +22,6 @@ interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
   fun findByCrn(crn: String): List<ReferralEntity>
 
   fun findAllByCreatedAtBefore(createdAtBefore: LocalDateTime): MutableList<ReferralEntity>
+
+  fun findAllByIsSeededTrue(): MutableList<ReferralEntity>
 }
