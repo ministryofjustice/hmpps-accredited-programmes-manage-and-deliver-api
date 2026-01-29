@@ -143,7 +143,10 @@ class SessionController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/session/{sessionId}/edit-session-date-and-time/reschedule", produces = [MediaType.APPLICATION_JSON_VALUE])
+  @GetMapping(
+    "/bff/session/{sessionId}/edit-session-date-and-time/reschedule",
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+  )
   fun getRescheduleSessionDetails(
     @PathVariable @Parameter(description = "The unique session identifier") sessionId: UUID,
   ): ResponseEntity<RescheduleSessionDetails> = ResponseEntity.ok(sessionService.getRescheduleSessionDetails(sessionId))
