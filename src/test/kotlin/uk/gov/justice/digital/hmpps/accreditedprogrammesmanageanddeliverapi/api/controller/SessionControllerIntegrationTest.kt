@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
@@ -21,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
@@ -37,6 +39,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var sessionRepository: SessionRepository
+
+  @Autowired
+  private lateinit var moduleSessionTemplateRepository: ModuleSessionTemplateRepository
 
   @Autowired
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
@@ -92,6 +97,144 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     assertThat(response.sessionEndTime.hour).isEqualTo(2)
     assertThat(response.sessionEndTime.minutes).isEqualTo(30)
     assertThat(response.sessionEndTime.amOrPm).isEqualTo(AmOrPm.PM)
+  }
+
+  @Test
+  fun `getRescheduleSessionDetails returns 200 and reschedule details for group session`() {
+    // Given
+    val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+    val sessionTemplate = moduleSessionTemplateRepository.findByName("Future me plan")
+
+    val group = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(programmeTemplate)
+        .produce(),
+    )
+    val session = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(sessionTemplate!!)
+        .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
+        .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
+        .produce(),
+    )
+
+    // When
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "/bff/session/${session.id}/edit-session-date-and-time/reschedule",
+      object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
+    )
+
+    // Then
+    assertThat(response.sessionId).isEqualTo(session.id)
+    assertThat(response.sessionName).isEqualTo("Future me plan")
+    assertThat(response.previousSessionDateAndTime).isEqualTo("Thursday 21 May 2026, 11am to 1:30pm")
+  }
+
+  @Test
+  fun `getRescheduleSessionDetails returns 200 and reschedule details for group catch-up session`() {
+    // Given
+    val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+    val sessionTemplate = moduleSessionTemplateRepository.findByName("Module skills practice")
+
+    val group = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(programmeTemplate)
+        .produce(),
+    )
+    val session = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(sessionTemplate!!)
+        .withIsCatchup(true)
+        .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
+        .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
+        .produce(),
+    )
+
+    // When
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "/bff/session/${session.id}/edit-session-date-and-time/reschedule",
+      object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
+    )
+
+    // Then
+    assertThat(response.sessionName).isEqualTo("Module skills practice catch-up")
+  }
+
+  @Test
+  fun `getRescheduleSessionDetails returns 200 and reschedule details for one-to-one session`() {
+    // Given
+    val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+    val sessionTemplate = moduleSessionTemplateRepository.findByName("Managing myself one-to-one")
+
+    val group = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(programmeTemplate)
+        .produce(),
+    )
+    val session = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(sessionTemplate!!)
+        .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
+        .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
+        .produce(),
+    )
+    val referral = testDataGenerator.createReferral(
+      personName = "John Doe",
+      crn = "X123456",
+    )
+    testDataGenerator.createAttendee(referral, session)
+
+    // When
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "/bff/session/${session.id}/edit-session-date-and-time/reschedule",
+      object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
+    )
+
+    // Then
+    assertThat(response.sessionName).isEqualTo("Managing myself one-to-one")
+  }
+
+  @Test
+  fun `getRescheduleSessionDetails returns 200 and reschedule details for post-programme review`() {
+    // Given
+    val programmeTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+    val sessionTemplate = moduleSessionTemplateRepository.findByName("Post programme review")
+
+    val group = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(programmeTemplate)
+        .withCode("RESCHR")
+        .produce(),
+    )
+    val session = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(sessionTemplate!!)
+        .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
+        .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
+        .produce(),
+    )
+    val referral = testDataGenerator.createReferral(
+      personName = "Jane Smith",
+      crn = "Y654321",
+    )
+    testDataGenerator.createAttendee(referral, session)
+
+    // When
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "/bff/session/${session.id}/edit-session-date-and-time/reschedule",
+      object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
+    )
+
+    // Then
+    assertThat(response.sessionName).isEqualTo("Post programme review")
   }
 
   @Test
