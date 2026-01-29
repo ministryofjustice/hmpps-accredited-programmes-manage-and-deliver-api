@@ -143,7 +143,10 @@ class SessionController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("/bff/session/{sessionId}/edit-session-date-and-time/reschedule", produces = [MediaType.APPLICATION_JSON_VALUE])
+  @GetMapping(
+    "/bff/session/{sessionId}/edit-session-date-and-time/reschedule",
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+  )
   fun getRescheduleSessionDetails(
     @PathVariable @Parameter(description = "The unique session identifier") sessionId: UUID,
   ): ResponseEntity<RescheduleSessionDetails> = ResponseEntity.ok(sessionService.getRescheduleSessionDetails(sessionId))
@@ -303,57 +306,4 @@ class SessionController(
   fun retrieveSessionById(
     @PathVariable @Parameter(description = "The unique session identifier") sessionId: UUID,
   ): ResponseEntity<Session> = ResponseEntity.ok(sessionService.getSession(sessionId))
-
-  @Operation(
-    tags = ["Session controller"],
-    summary = "Endpoint to delete an individual session",
-    operationId = "deleteSession",
-    description = "Delete sessions",
-    responses = [
-      ApiResponse(
-        responseCode = "204",
-        description = "Successfully deleted session",
-      ),
-      ApiResponse(
-        responseCode = "401",
-        description = "Unauthorized",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema = Schema(implementation = ErrorResponse::class),
-          ),
-        ],
-      ),
-      ApiResponse(
-        responseCode = "403",
-        description = "Forbidden, requires role ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema = Schema(implementation = ErrorResponse::class),
-          ),
-        ],
-      ),
-      ApiResponse(
-        responseCode = "404",
-        description = "Session not found",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema = Schema(implementation = ErrorResponse::class),
-          ),
-        ],
-      ),
-    ],
-    security = [SecurityRequirement(name = "bearerAuth")],
-  )
-  @DeleteMapping("/session/{sessionId}")
-  fun deleteSession(@PathVariable sessionId: UUID): ResponseEntity<Unit> {
-    val session =
-      sessionRepository.findByIdOrNull(sessionId) ?: throw NotFoundException("Session with id $sessionId not found.")
-    scheduleService.removeNDeliusAppointments(session.ndeliusAppointments.toList(), listOf(session))
-    sessionRepository.delete(session)
-
-    return ResponseEntity.noContent().build()
-  }
 }
