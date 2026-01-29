@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
@@ -15,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Random
 
@@ -41,12 +43,17 @@ class ReferralSeederService(
 
     repeat(count) { _ ->
       val crn = fakePersonGenerator.generateCrn()
-      val requirementId = generateRequirementId(crn)
+      val seed = crn.hashCode().toLong()
+      val faker = Faker(Random(seed))
+
       val person = fakePersonGenerator.generatePerson(crn)
+      val requirementId = generateRequirementId(faker)
+      val sourcedFrom = generateSourcedFrom(faker)
+      val sentenceEndDate = generateSentenceEndDate(faker)
 
       wiremockStubGenerator.generateStub(person)
 
-      val referral = createReferralEntity(crn, requirementId, person, statusDescription)
+      val referral = createReferralEntity(crn, requirementId, person, statusDescription, sourcedFrom, sentenceEndDate)
 
       createdReferrals.add(
         SeededReferralInfo(
@@ -64,11 +71,18 @@ class ReferralSeederService(
     )
   }
 
-  private fun generateRequirementId(crn: String): String {
-    val seed = crn.hashCode().toLong()
-    val faker = Faker(Random(seed))
+  private fun generateRequirementId(faker: Faker): String = "5" + faker.number().digits(7)
 
-    return "5" + faker.number().digits(7)
+  private fun generateSourcedFrom(faker: Faker): ReferralEntitySourcedFrom = if (faker.bool().bool()) {
+    ReferralEntitySourcedFrom.LICENCE_CONDITION
+  } else {
+    ReferralEntitySourcedFrom.REQUIREMENT
+  }
+
+  private fun generateSentenceEndDate(faker: Faker): LocalDate {
+    val now = LocalDateTime.now()
+    val sentenceDuration = faker.number().numberBetween(12, 48)
+    return now.plusMonths(sentenceDuration.toLong()).toLocalDate()
   }
 
   private fun createReferralEntity(
@@ -76,6 +90,8 @@ class ReferralSeederService(
     requirementId: String,
     person: FakePerson,
     statusDescription: ReferralStatusDescriptionEntity,
+    sourcedFrom: ReferralEntitySourcedFrom,
+    sentenceEndDate: LocalDate? = null,
   ): ReferralEntity {
     val referral = ReferralEntity(
       crn = crn,
@@ -89,7 +105,8 @@ class ReferralSeederService(
       dateOfBirth = person.dateOfBirth,
       eventId = requirementId,
       eventNumber = 1,
-      isSeeded = true,
+      sourcedFrom = sourcedFrom,
+      sentenceEndDate = sentenceEndDate,
     )
 
     val statusHistory = ReferralStatusHistoryEntity(
@@ -114,16 +131,22 @@ class ReferralSeederService(
     return savedReferral
   }
 
+  /**
+   * DANGER: Deletes ALL referrals from the database.
+   *
+   * This method is intentionally destructive and will remove all referral data.
+   * It is only available when the 'seeding' profile is active, which must NEVER
+   * be enabled in production or pre-production environments.
+   */
   @Transactional
-  fun teardownSeededData(): TeardownResult {
-    val referralsToDelete = referralRepository.findAllByIsSeededTrue()
-    val count = referralsToDelete.size
-    referralRepository.deleteAll(referralsToDelete)
-    log.info("Deleted $count seeded referrals.")
+  fun dangerouslyDeleteAllReferrals(): TeardownResult {
+    val count = referralRepository.count()
+    referralRepository.deleteAll()
+    log.warn("DANGER: Deleted ALL $count referrals from the database.")
 
     wiremockStubGenerator.clearSeededStubs()
 
-    return TeardownResult(deletedCount = count)
+    return TeardownResult(deletedCount = count.toInt())
   }
 }
 

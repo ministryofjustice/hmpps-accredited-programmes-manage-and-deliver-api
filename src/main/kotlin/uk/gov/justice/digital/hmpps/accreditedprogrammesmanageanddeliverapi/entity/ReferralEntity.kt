@@ -146,9 +146,6 @@ class ReferralEntity(
     orphanRemoval = true,
   )
   var availabilityEntity: AvailabilityEntity? = null,
-
-  @Column("is_seeded")
-  var isSeeded: Boolean? = false,
 )
 
 enum class ReferralEntitySourcedFrom {

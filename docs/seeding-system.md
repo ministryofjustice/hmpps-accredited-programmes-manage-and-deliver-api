@@ -8,21 +8,11 @@ This seeding system creates semi-realistic data in the database, and creates cor
 
 ## Quick Start
 
-### 0. Install Bun
-
-Bun is a JavaScript run time that can run .ts files directly (a feature also available in newer versions of Node)
-
-To install bun, see the official webpage: https://bun.com/
-
 ### 1. Start the API with the seeding profile
 
 Ensure your application is running with the `seeding` profile active. This can be done by:
 
-**Updating values-dev.yaml**, to make sure the `seeding` profile is present in the `env` block": 
-
-```bash
-SPRING_PROFILES_ACTIVE: "dev,seeding"
-```
+**Updating Run Configurations**, to make sure the `seeding` profile is present in the `env` block" in your "Run Configuration" in IntelliJ.  This should already be commited in the `.xml.run` files in this repo.
 
 ### 2. Generate the data
 
@@ -32,16 +22,16 @@ With the API running, you can either
 
 ```bash
 # Create 50 referrals (default)
-bun ./scripts/seed-data.ts seed
+sh ./scripts/seed-data.sh seed
 
 # Create a specific number of referrals
-bun ./scripts/seed-data.ts seed 100
+sh ./scripts/seed-data.sh seed 100
 
-# Remove all seeded data
-bun ./scripts/seed-data.ts teardown
+# DANGER: Delete ALL referrals from the database
+sh ./scripts/seed-data.sh teardown
 
 # Check if seeding endpoints are available
-bun ./scripts/seed-data.ts health
+sh ./scripts/seed-data.sh health
 ```
 
 **Call the API (e.g. in Postman)**
@@ -53,7 +43,7 @@ curl -X POST "http://localhost:8080/dev/seed/referrals?count=10"
 # Create 100 referrals
 curl -X POST "http://localhost:8080/dev/seed/referrals?count=100"
 
-# Remove all seeded data
+# DANGER: Delete ALL referrals from the database
 curl -X DELETE "http://localhost:8080/dev/seed/referrals"
 
 # Health check
@@ -84,7 +74,6 @@ For each seeded referral, the system creates:
    - Setting: COMMUNITY
    - Cohort: GENERAL_OFFENCE
    - An event ID and number (i.e. relating to the nDelius Requirement)
-   - The `is_seeded` field on the Referral is set to `true` to allow easy clean up
 
 2. **A Wiremock stub** in `wiremock_mappings/seeded/` that returns person details when the API calls nDelius
 
@@ -93,6 +82,8 @@ For each seeded referral, the system creates:
 ### Never activate the seeding profile in (pre-) prod.
 
 The seeding system is only active when the `seeding` profile is enabled.  This should **never** be deployed in production-like environments.
+
+**⚠️ DANGER: The DELETE endpoint (`/dev/seed/referrals`) will delete ALL referrals from the database, not just seeded ones.** This is intentionally destructive for local development convenience, but would be catastrophic in a production environment.
 
 ### Never commit your generated wiremocks
 

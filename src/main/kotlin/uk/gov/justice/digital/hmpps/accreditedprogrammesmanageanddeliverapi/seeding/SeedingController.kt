@@ -9,6 +9,12 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
+/**
+ * DANGER: This controller provides seeding endpoints for local development only.
+ *
+ * The 'seeding' profile must NEVER be enabled in production or pre-production environments.
+ * The DELETE endpoint will destroy ALL referral data in the database.
+ */
 @RestController
 @RequestMapping("/dev/seed")
 @Profile("seeding")
@@ -25,9 +31,15 @@ class SeedingController(
     return ResponseEntity.ok(result)
   }
 
+  /**
+   * DANGER: Deletes ALL referrals from the database.
+   *
+   * This endpoint will remove all referral data, not just seeded data.
+   * Only available when 'seeding' profile is active - must NEVER be used in production.
+   */
   @DeleteMapping("/referrals")
-  fun teardownSeededData(): ResponseEntity<TeardownResult> {
-    val result = referralSeederService.teardownSeededData()
+  fun dangerouslyDeleteAllReferrals(): ResponseEntity<TeardownResult> {
+    val result = referralSeederService.dangerouslyDeleteAllReferrals()
     return ResponseEntity.ok(result)
   }
 
