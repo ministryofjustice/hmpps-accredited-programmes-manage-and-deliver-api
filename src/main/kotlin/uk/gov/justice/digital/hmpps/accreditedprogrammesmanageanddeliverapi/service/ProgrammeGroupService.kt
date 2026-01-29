@@ -216,7 +216,7 @@ class ProgrammeGroupService(
               scheduledSession.endsAt.toLocalTime(),
             ),
             participants = if (sessionTemplate.sessionType == SessionType.GROUP) listOf("All") else scheduledSession.attendees.map { it.personName },
-            facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }.map { it.facilitator!!.personName },
+            facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }.map { it.facilitator.personName },
           )
         } ?: emptyList()
       }.flatten()
@@ -389,7 +389,7 @@ class ProgrammeGroupService(
 
     return GroupSessionResponse(
       groupCode = programmeGroup.code,
-      pageTitle = "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}",
+      pageTitle = groupFormatPageTitle(session),
       sessionType = session.sessionType.value,
       date = session.startsAt.toLocalDate(),
       time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
@@ -397,5 +397,14 @@ class ProgrammeGroupService(
       facilitators = session.sessionFacilitators.map { it.facilitator.personName },
       attendanceAndSessionNotes = listOf(),
     )
+  }
+
+  private fun groupFormatPageTitle(session: SessionEntity): String = when (session.sessionType) {
+    SessionType.GROUP -> "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}"
+    SessionType.ONE_TO_ONE -> if (session.moduleSessionTemplate.name == "Post programme review") {
+      "${session.attendees.first().personName}: Post-programme review"
+    } else {
+      "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name} "
+    }
   }
 }
