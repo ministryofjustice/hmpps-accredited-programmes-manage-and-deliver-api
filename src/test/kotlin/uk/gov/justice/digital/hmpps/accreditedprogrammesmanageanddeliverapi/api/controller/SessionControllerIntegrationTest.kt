@@ -12,6 +12,7 @@ import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
@@ -470,6 +471,83 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     webTestClient
       .method(HttpMethod.DELETE)
       .uri("/session/$sessionId")
+      .contentType(MediaType.APPLICATION_JSON)
+      .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+      .exchange()
+      .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+      .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+      .returnResult().responseBody!!
+  }
+
+  @Test
+  fun `should GET session details and return 200`() {
+    // Given
+    // Create group
+    val group = testGroupHelper.createGroup()
+    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+    // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+    val referral = testReferralHelper.createReferral()
+    programmeGroupMembershipService.allocateReferralToGroup(
+      referral.id!!,
+      group.id!!,
+      "SYSTEM",
+      "",
+    )
+    val sessionEntity =
+      sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }
+    nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+    val sessionId = sessionEntity!!.id!!
+
+    // When
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "bff/session/$sessionId",
+      object : ParameterizedTypeReference<Session>() {},
+    )
+
+    // Then
+    assertThat(response.id).isEqualTo(sessionId)
+    assertThat(response.type).isEqualTo(sessionEntity.sessionType.value)
+    assertThat(response.name).isEqualTo(sessionEntity.moduleSessionTemplate.module.name)
+    assertThat(response.number).isEqualTo(sessionEntity.sessionNumber)
+    assertThat(response.referrals).isNotEmpty()
+    assertThat(response.referrals.size).isEqualTo(1)
+    assertThat(response.referrals[0].personName).isEqualTo(sessionEntity.attendees[0].personName)
+    assertThat(response.referrals[0].id).isEqualTo(sessionEntity.attendees[0].referral.id)
+    assertThat(response.referrals[0].cohort).isNotNull()
+    assertThat(response.referrals[0].crn).isEqualTo(sessionEntity.attendees[0].referral.crn)
+    assertThat(response.referrals[0].createdAt).isNotNull()
+    assertThat(response.referrals[0].status).isNotNull()
+    assertThat(response.isCatchup).isEqualTo(sessionEntity.isCatchup)
+  }
+
+  @Test
+  fun `should return 404 when a session is not found on GET request`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+
+    // When
+    val exception = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.GET,
+      uri = "bff/session/$sessionId",
+      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+      expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      body = {},
+    )
+
+    // Then
+    assertThat(exception.userMessage).isEqualTo("Not Found: Session with id $sessionId not found.")
+  }
+
+  @Test
+  fun `should return 401 when unauthorised on GET session request`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+
+    // When
+    webTestClient
+      .method(HttpMethod.GET)
+      .uri("bff/session/$sessionId")
       .contentType(MediaType.APPLICATION_JSON)
       .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
       .exchange()
