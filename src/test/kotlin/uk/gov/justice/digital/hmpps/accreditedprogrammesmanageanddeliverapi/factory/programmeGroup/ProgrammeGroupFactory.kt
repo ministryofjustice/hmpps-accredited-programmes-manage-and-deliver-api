@@ -64,6 +64,7 @@ class ProgrammeGroupFactory {
   fun withEarliestStartDate(earliestStartDate: LocalDate) = apply { this.earliestStartDate = earliestStartDate }
   fun withSessionSlots(programmeGroupSessionSlots: MutableSet<ProgrammeGroupSessionSlotEntity>) = apply { this.programmeGroupSessionSlots = programmeGroupSessionSlots }
 
+  fun withTreatmentManager(treatmentManager: FacilitatorEntity) = apply { this.treatmentManager = treatmentManager }
   fun withAccreditedProgrammeTemplate(accreditedProgrammeTemplateEntity: AccreditedProgrammeTemplateEntity) = apply { this.accreditedProgrammeTemplate = accreditedProgrammeTemplateEntity }
 
   fun produce(): ProgrammeGroupEntity = ProgrammeGroupEntity(
