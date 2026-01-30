@@ -1546,7 +1546,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response).isNotNull
-      assertThat(response.message).isEqualTo("Session scheduled successfully")
+      assertThat(response.message).isEqualTo("Getting started one-to-one for ${referral.personName} has been added.")
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
@@ -1703,7 +1703,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
       assertThat(response).isNotNull
-      assertThat(response.message).isEqualTo("Session scheduled successfully")
+      assertThat(response.message).isEqualTo("Getting started one-to-one for ${referral.personName} has been added.")
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
@@ -2010,7 +2010,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `returns 404 when group does not exist for schedule`() {
       val nonExistentGroupId = UUID.randomUUID()
-      val module = moduleRepository.findAll().first()
 
       val errorResponse = performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
