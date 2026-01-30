@@ -243,14 +243,14 @@ class ProgrammeGroupService(
 
   private fun formatButtonText(moduleName: String): String = when (moduleName) {
     "Pre-group one-to-ones" -> "Schedule a pre-group session"
-    "Post programme review" -> "Schedule a post-programme review"
+    "Post-programme reviews" -> "Schedule a post-programme review"
     else -> "Schedule a $moduleName session"
   }
 
   private fun formatEstimatedStartText(moduleName: String): String = when (moduleName) {
     "Pre-group one-to-ones" -> "Estimated start date of ${moduleName.lowercase()}"
-    "Post programme review" -> "Post-programme reviews deadline"
-    else -> "Estimated date of $moduleName one to ones"
+    "Post-programme reviews" -> "Post-programme reviews deadline"
+    else -> "Estimated date of $moduleName one-to-ones"
   }
 
   private fun formatTimeOfSession(startTime: LocalTime, endTime: LocalTime): String {
