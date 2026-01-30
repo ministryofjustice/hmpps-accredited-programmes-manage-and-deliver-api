@@ -24,6 +24,9 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-cache")
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1")
 
+  // Seeding
+  implementation("net.datafaker:datafaker:2.4.2")
+
   // Coroutines
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
