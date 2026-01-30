@@ -197,7 +197,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     )
 
     // Then
-    assertThat(response.sessionName).isEqualTo("Managing myself one-to-one")
+    assertThat(response.sessionName).isEqualTo("John Doe: Managing myself one-to-one")
   }
 
   @Test
@@ -234,7 +234,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     )
 
     // Then
-    assertThat(response.sessionName).isEqualTo("Post programme review")
+    assertThat(response.sessionName).isEqualTo("Jane Smith: Post programme review")
   }
 
   @Test
