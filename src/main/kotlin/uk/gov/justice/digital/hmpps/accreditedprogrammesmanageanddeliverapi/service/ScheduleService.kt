@@ -25,7 +25,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toNdeliusAppointmentEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
@@ -98,7 +98,7 @@ class ScheduleService(
     val savedSession = sessionRepository.save(session)
     createNdeliusAppointmentsForSessions(savedSession.attendees)
 
-    return ScheduleSessionResponse(message = "Session scheduled successfully")
+    return ScheduleSessionResponse(message = getScheduleSessionResponseMessage(savedSession))
   }
 
   fun scheduleSessionsForGroup(
@@ -161,7 +161,7 @@ class ScheduleService(
           endsAt = endsAt,
           locationName = group.deliveryLocationName,
           // If we are scheduling One-to-One here it is a placeholder session
-          isPlaceholder = template.sessionType == SessionType.ONE_TO_ONE,
+          isPlaceholder = template.sessionType == ONE_TO_ONE,
         )
         session.sessionFacilitators = group.groupFacilitators.map {
           SessionFacilitatorEntity(
@@ -402,5 +402,15 @@ class ScheduleService(
         log.info("${nDeliusAppointmentsToRemove.size} appointments deleted in NDelius")
       }
     }
+  }
+
+  private fun getScheduleSessionResponseMessage(sessionEntity: SessionEntity): String {
+    if (sessionEntity.sessionType == ONE_TO_ONE && sessionEntity.isCatchup) {
+      return "Getting started one-to-one catch-up for ${sessionEntity.attendees.first().personName} has been added."
+    } else if (sessionEntity.sessionType == ONE_TO_ONE) {
+      return "Getting started one-to-one for ${sessionEntity.attendees.first().personName} has been added."
+    }
+
+    return "Getting started 1 catch-up has been added."
   }
 }
