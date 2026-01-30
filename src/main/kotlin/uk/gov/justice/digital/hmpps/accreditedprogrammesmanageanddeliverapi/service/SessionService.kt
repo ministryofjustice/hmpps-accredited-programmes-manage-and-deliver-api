@@ -53,10 +53,14 @@ class SessionService(
   }
 
   private fun formatSessionName(session: SessionEntity): String {
-    val moduleName = session.moduleSessionTemplate.name
-    val isCatchup = session.isCatchup
+    val moduleSessionName = if (session.sessionType == SessionType.ONE_TO_ONE) {
+      val attendeeName = session.attendees.first().personName
+      "$attendeeName: ${session.moduleSessionTemplate.name}"
+    } else {
+      session.moduleSessionTemplate.name
+    }
 
-    return if (isCatchup) "$moduleName catch-up" else moduleName
+    return if (session.isCatchup) "$moduleSessionName catch-up" else moduleSessionName
   }
 
   private fun formatPreviousSessionDateAndTime(session: SessionEntity): String {
