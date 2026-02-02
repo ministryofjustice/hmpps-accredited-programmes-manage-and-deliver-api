@@ -1956,13 +1956,60 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.modules).isNotNull
       assertThat(response.modules.size).isEqualTo(7)
       assertThat(response.modules.sumOf { it.sessions.count() }).isEqualTo(21)
+      assertThat(response.modules.map { it.name }).containsExactly(
+        "Pre-group one-to-ones",
+        "Getting started",
+        "Managing myself",
+        "Managing life’s problems",
+        "Managing people around me",
+        "Bringing it all together",
+        "Post-programme reviews",
+      )
+      response.modules.forEach { module ->
+        when (module.name) {
+          "Getting started" -> assertThat(module.sessions.map { it.name }).containsExactly(
+            "Getting started 1: Introduction to Building Choices",
+            "Getting started 2: Understanding myself",
+          )
+
+          "Managing myself" -> assertThat(module.sessions.map { it.name }).containsExactly(
+            "Managing myself 1: Understanding my feelings",
+            "Managing myself 2: Helpful and unhelpful feelings",
+            "Managing myself 3: Managing my feelings, part 1",
+            "Managing myself 4: Managing my feelings, part 2",
+            "Managing myself 5: Understanding my thinking",
+            "Managing myself 6: Developing my flexible thinking",
+          )
+
+          "Managing life’s problems" -> assertThat(module.sessions.map { it.name }).containsExactly(
+            "Managing life’s problems 1: Understanding problems",
+            "Managing life’s problems 2: Exploring life’s problems",
+            "Managing life’s problems 3: Planning to manage life’s problems",
+            "Managing life’s problems 4: Putting it into action",
+          )
+
+          "Managing people around me" -> assertThat(module.sessions.map { it.name }).containsExactly(
+            "Managing people around me 1: Understanding the people and influences around me",
+            "Managing people around me 2: My role in relationships",
+            "Managing people around me 3: Relationship skills, part 1",
+            "Managing people around me 4: Relationship skills, part 2",
+            "Managing people around me 5: Practising our relationship skills",
+            "Managing people around me 6: Module skills practice",
+          )
+
+          "Bringing it all together" -> assertThat(module.sessions.map { it.name }).containsExactly(
+            "Bringing it all together 1: Future me plan",
+            "Bringing it all together 2: Future me practice",
+            "Bringing it all together 3: Programme completion",
+          )
+        }
+      }
       response.modules.forEach { module ->
         module.sessions.forEach { session ->
           when (session.type) {
             "Group" -> {
               assertThat(session.participants).isEqualTo(listOf("All"))
             }
-
             "Individual" -> {
               assertThat(session.participants).isNotEqualTo(listOf("All")) // TO be updated when attendees/facilitators tables are added.
             }
