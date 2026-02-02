@@ -25,6 +25,14 @@ data class GroupSchedule(
   @get:JsonProperty("sessions", required = true)
   @Schema(description = "Details of the Group's sessions")
   val modules: List<GroupScheduleSession>,
+
+  @Schema(
+    example = "AP_BIRMINGHAM_NORTH",
+    required = true,
+    description = "A unique code identifying the programme group.",
+  )
+  @get:JsonProperty("code", required = true)
+  val groupCode: String,
 )
 
 data class GroupScheduleSession(
