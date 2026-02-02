@@ -308,6 +308,7 @@ class ProgrammeGroupService(
       gettingStartedModuleStartDate = gettingStartedStartDate,
       endDate = endDate,
       modules = scheduleSessions,
+      groupCode = group.code,
     )
   }
 

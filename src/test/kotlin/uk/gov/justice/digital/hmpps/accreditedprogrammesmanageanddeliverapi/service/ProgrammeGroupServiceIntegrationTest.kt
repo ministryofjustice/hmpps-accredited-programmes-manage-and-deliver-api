@@ -423,6 +423,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(schedule).isNotNull
+      assertThat(schedule.groupCode).isEqualTo("SCHEDULE_GROUP")
       assertThat(schedule.preGroupOneToOneStartDate).isEqualTo("2026-06-01")
       assertThat(schedule.gettingStartedModuleStartDate).isEqualTo("2026-06-15")
       assertThat(schedule.endDate).isEqualTo("2026-07-20")
@@ -484,6 +485,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(schedule).isNotNull
+      assertThat(schedule.groupCode).isEqualTo("SCHEDULE_GROUP")
       assertThat(schedule.preGroupOneToOneStartDate).isEqualTo("2026-06-01")
       assertThat(schedule.gettingStartedModuleStartDate).isEqualTo("2026-06-15")
       assertThat(schedule.endDate).isEqualTo("2026-07-20")
