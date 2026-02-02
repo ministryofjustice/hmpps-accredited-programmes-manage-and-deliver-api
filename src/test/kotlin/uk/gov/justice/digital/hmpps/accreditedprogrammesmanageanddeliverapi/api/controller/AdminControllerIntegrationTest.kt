@@ -55,7 +55,6 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
       expectedResponseStatus = 202,
     )
 
-    Thread.sleep(2000)
     !referralRepository.findById(referralEntity.id!!).isPresent
   }
 

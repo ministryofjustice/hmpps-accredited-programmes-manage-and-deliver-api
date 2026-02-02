@@ -42,7 +42,7 @@ class NDeliusApiStubs {
   private lateinit var objectMapper: ObjectMapper
 
   fun clearAllStubs() {
-    wiremock.resetAll()
+    wiremock.resetRequests()
   }
 
   fun stubAccessCheck(granted: Boolean, vararg crns: String) {

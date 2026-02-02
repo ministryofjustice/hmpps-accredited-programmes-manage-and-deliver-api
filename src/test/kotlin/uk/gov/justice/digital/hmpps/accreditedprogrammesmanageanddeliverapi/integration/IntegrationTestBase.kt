@@ -116,6 +116,7 @@ abstract class IntegrationTestBase {
         .apply {
           withEnv("DEFAULT_REGION", "eu-west-2")
           withServices(Service.SNS, Service.SQS)
+          withReuse(true)
         }
 
     @JvmStatic
