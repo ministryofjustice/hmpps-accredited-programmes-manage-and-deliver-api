@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DeleteSessionCaptionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
@@ -306,4 +307,58 @@ class SessionController(
   fun retrieveSessionById(
     @PathVariable @Parameter(description = "The unique session identifier") sessionId: UUID,
   ): ResponseEntity<Session> = ResponseEntity.ok(sessionService.getSession(sessionId))
+
+  @Operation(
+    tags = ["Session controller"],
+    summary = "Retrieve delete session caption by a session ID",
+    operationId = "retrieveDeleteSessionCaptionBySessionId",
+    description = "Retrieve the caption for a delete session",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Session details retrieved successfully",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = Session::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden, requires role ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Session not found",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/bff/session/{sessionId}/delete-session-caption", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun retrieveDeleteSessionCaptionBySessionId(
+    @PathVariable @Parameter(description = "The unique session identifier") sessionId: UUID,
+  ): ResponseEntity<DeleteSessionCaptionResponse> = ResponseEntity.ok(sessionService.getDeleteSessionCaption(sessionId))
 }
