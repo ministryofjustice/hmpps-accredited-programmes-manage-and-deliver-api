@@ -1,7 +1,9 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DeleteSessionCaptionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
@@ -12,6 +14,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.Duration
 import java.time.LocalDateTime
@@ -121,5 +124,25 @@ class SessionService(
     }
 
     return entity.toApi()
+  }
+
+  fun getDeleteSessionCaption(sessionId: UUID): DeleteSessionCaptionResponse {
+    val sessionEntity = sessionRepository.findByIdOrNull(sessionId) ?: throw NotFoundException(
+      "Session with id $sessionId not found.",
+    )
+
+    return DeleteSessionCaptionResponse(caption = getScheduleSessionResponseMessage(sessionEntity))
+  }
+
+  private fun getScheduleSessionResponseMessage(sessionEntity: SessionEntity): String {
+    if (sessionEntity.moduleName == "Post-programme reviews") {
+      return "Delete ${sessionEntity.attendees.first().personName}: Post-programme review"
+    } else if (sessionEntity.sessionType == ONE_TO_ONE && sessionEntity.isCatchup) {
+      return "Delete ${sessionEntity.attendees.first().personName}: Getting started one-to-one catch-up"
+    } else if (sessionEntity.sessionType == ONE_TO_ONE) {
+      return "Delete ${sessionEntity.attendees.first().personName}: Getting started one-to-one"
+    }
+
+    return "Delete Getting started 1 catch-up"
   }
 }
