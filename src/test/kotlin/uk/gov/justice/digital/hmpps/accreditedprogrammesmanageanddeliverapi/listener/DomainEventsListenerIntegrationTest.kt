@@ -28,7 +28,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.list
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.hmpps.sqs.countMessagesOnQueue
-import java.time.Duration.ofSeconds
+import java.time.Duration.ofMillis
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.UUID
@@ -134,7 +134,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
     // Then
-    await withPollDelay ofSeconds(1) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
     await untilCallTo {
       messageHistoryRepository.findAll().firstOrNull()
     } matches { it != null }
@@ -167,7 +167,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
     // Then
-    await withPollDelay ofSeconds(1) untilCallTo {
+    await withPollDelay ofMillis(100) untilCallTo {
       with(domainEventsQueueConfig) {
         domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
       }
@@ -188,13 +188,13 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
     // Then
-    await withPollDelay ofSeconds(1) untilCallTo {
+    await withPollDelay ofMillis(100) untilCallTo {
       with(domainEventsQueueConfig) {
         domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
       }
     } matches { it == 0 }
 
-    await withPollDelay ofSeconds(1) untilCallTo {
+    await withPollDelay ofMillis(100) untilCallTo {
       referralRepository.findAll().firstOrNull()
     } matches {
       assertThat(it).isNotNull()
@@ -245,7 +245,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
     // Then
-    await withPollDelay ofSeconds(1) untilCallTo {
+    await withPollDelay ofMillis(100) untilCallTo {
       with(domainEventsQueueConfig) {
         domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
       }
@@ -303,7 +303,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
     // Then
-    await withPollDelay ofSeconds(1) untilCallTo {
+    await withPollDelay ofMillis(100) untilCallTo {
       with(domainEventsQueueConfig) {
         domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
       }
@@ -359,7 +359,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
     // Then
-    await withPollDelay ofSeconds(1) untilCallTo {
+    await withPollDelay ofMillis(100) untilCallTo {
       with(domainEventsQueueConfig) {
         domainEventQueueClient.countMessagesOnQueue(domainEventQueue.queueUrl).get()
       }
@@ -410,7 +410,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
 
     // Then
-    await withPollDelay ofSeconds(1) untilCallTo {
+    await withPollDelay ofMillis(100) untilCallTo {
       try {
         throw IllegalStateException("Unexpected event type received: unknown.event.type.created")
       } catch (e: IllegalStateException) {

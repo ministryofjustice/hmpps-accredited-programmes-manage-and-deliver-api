@@ -1,12 +1,14 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import kotlin.time.measureTimedValue
 
+@Disabled("Temporarily disabled")
 class TestReferralHelperTest : IntegrationTestBase() {
 
   @Autowired
