@@ -136,7 +136,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     )
   }
 
-  private fun createReferrals() {
+  private fun initialiseReferrals() {
     referrals = testReferralHelper.createReferrals(
       referralConfigs =
       listOf(
@@ -165,7 +165,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `getGroupDetails returns 200 with valid group and waitlist data`() {
       // Given
-      createReferrals()
+      initialiseReferrals()
       stubAuthTokenEndpoint()
       val group = testGroupHelper.createGroup(groupCode = "TEST001")
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -255,7 +255,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `getGroupDetails returns 200 and uses default filters if none are provided`() {
       // Given
-      createReferrals()
+      initialiseReferrals()
       stubAuthTokenEndpoint()
       val group = ProgrammeGroupFactory().withCode("TEST001").withRegionName("TEST REGION").produce()
       testDataGenerator.createGroup(group)
@@ -317,7 +317,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `getGroupDetails should handle pagination correctly`() {
       // Given
-      createReferrals()
+      initialiseReferrals()
       stubAuthTokenEndpoint()
       val group = ProgrammeGroupFactory().withCode("TEST006").produce()
       testDataGenerator.createGroup(group)
@@ -377,7 +377,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `getGroupDetails filters by multiple reportingTeams on WAITLIST tab`() {
       // Given
-      createReferrals()
+      initialiseReferrals()
       stubAuthTokenEndpoint()
       val group = ProgrammeGroupFactory().withCode("TEST006").produce()
       testDataGenerator.createGroup(group)
@@ -402,7 +402,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `getGroupDetails should ignore reportingTeam if PDU is not also present`() {
       // Given
-      createReferrals()
+      initialiseReferrals()
       stubAuthTokenEndpoint()
       val group = ProgrammeGroupFactory().withCode("TEST006").produce()
       testDataGenerator.createGroup(group)
@@ -427,7 +427,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `getGroupDetails filters by reportingTeam and pdu together`() {
       // Given
-      createReferrals()
+      initialiseReferrals()
       stubAuthTokenEndpoint()
       val group = ProgrammeGroupFactory().withCode("TEST006B").produce()
       testDataGenerator.createGroup(group)
@@ -452,7 +452,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `getGroupDetails returns 200 for ALLOCATED tab with all data when no filters are provided`() {
       // Given
-      createReferrals()
+      initialiseReferrals()
       val group = testGroupHelper.createGroup(groupCode = "TEST008")
       stubAuthTokenEndpoint()
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -1522,7 +1522,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return 201 when scheduling a one-to-one session with valid data`() {
       // Given
-      createReferrals()
+      initialiseReferrals()
       val referral = referrals.first()
       val group = testGroupHelper.createGroup()
       testGroupHelper.allocateToGroup(group, referral)
@@ -1661,7 +1661,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when session template does not exist`() {
       // Given
       val nonExistentTemplateId = UUID.randomUUID()
-      createReferrals()
+      initialiseReferrals()
       val referral = referrals.first()
       val group = testGroupHelper.createGroup()
       testGroupHelper.allocateToGroup(group, referral)
@@ -1689,7 +1689,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return 201 and create facilitator when facilitator does not exist in database`() {
       // Given
-      createReferrals()
+      initialiseReferrals()
       val referral = referrals.first()
       val group = testGroupHelper.createGroup()
       testGroupHelper.allocateToGroup(group, referral)
@@ -1846,7 +1846,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `returns 200 with facilitators and group members for valid group and module`() {
-      createReferrals()
+      initialiseReferrals()
       // Setup nDelius stubs for facilitators
       val members = listOf(
         NDeliusUserTeamMembersFactory().produce(code = "CODE_1", name = FullName("First", null, "Forename")),
