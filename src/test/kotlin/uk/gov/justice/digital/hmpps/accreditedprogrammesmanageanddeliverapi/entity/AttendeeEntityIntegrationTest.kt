@@ -13,7 +13,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import java.time.LocalDateTime
 
-class AttendeeEntityTest : IntegrationTestBase() {
+class AttendeeEntityIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var attendeeRepository: AttendeeRepository
