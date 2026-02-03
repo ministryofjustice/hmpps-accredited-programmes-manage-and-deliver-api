@@ -24,7 +24,9 @@ class HmppsAuthApiExtension :
   }
 
   override fun beforeAll(context: ExtensionContext) {
-    hmppsAuth.start()
+    if (!hmppsAuth.isRunning) {
+      hmppsAuth.start()
+    }
   }
 
   override fun beforeEach(context: ExtensionContext) {
