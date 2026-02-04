@@ -1485,11 +1485,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response).isNotNull
-      assertThat(response.message).isEqualTo("Getting started one-to-one for ${referral.personName} has been added.")
+      assertThat(response.message)
+        .isEqualTo("${sessionTemplate.name} one-to-one for ${referral.personName} has been added.")
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
-      assertThat(retrievedSession.sessionFacilitators.first().facilitator?.personName).isEqualTo("Default facilitator name")
+      assertThat(retrievedSession.sessionFacilitators.first().facilitator?.personName)
+        .isEqualTo("Default facilitator name")
       assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
       assertThat(retrievedSession.attendees).hasSize(1)
       assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
@@ -1655,7 +1657,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
       assertThat(response).isNotNull
-      assertThat(response.message).isEqualTo("Getting started one-to-one for ${referral.personName} has been added.")
+      assertThat(response.message)
+        .isEqualTo("${sessionTemplate.name} one-to-one for ${referral.personName} has been added.")
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
@@ -1964,6 +1967,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
             "Group" -> {
               assertThat(session.participants).isEqualTo(listOf("All"))
             }
+
             "Individual" -> {
               assertThat(session.participants).isNotEqualTo(listOf("All")) // TO be updated when attendees/facilitators tables are added.
             }

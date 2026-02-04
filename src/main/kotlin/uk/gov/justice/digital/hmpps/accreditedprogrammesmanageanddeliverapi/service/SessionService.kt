@@ -140,13 +140,11 @@ class SessionService(
 
   private fun getScheduleSessionResponseMessage(sessionEntity: SessionEntity): String {
     if (sessionEntity.moduleName == "Post-programme reviews") {
-      return "Delete ${sessionEntity.attendees.first().personName}: Post-programme review"
-    } else if (sessionEntity.sessionType == ONE_TO_ONE && sessionEntity.isCatchup) {
-      return "Delete ${sessionEntity.attendees.first().personName}: Getting started one-to-one catch-up"
+      return "${sessionEntity.attendees.first().personName}: post-programme review has been deleted"
     } else if (sessionEntity.sessionType == ONE_TO_ONE) {
-      return "Delete ${sessionEntity.attendees.first().personName}: Getting started one-to-one"
+      return "${sessionEntity.attendees.first().personName}: ${sessionEntity.sessionName} ${sessionEntity.sessionNumber} one-to-one has been deleted."
     }
 
-    return "Delete Getting started 1 catch-up"
+    return "${sessionEntity.sessionName} ${sessionEntity.sessionNumber} catch-up has been deleted."
   }
 }

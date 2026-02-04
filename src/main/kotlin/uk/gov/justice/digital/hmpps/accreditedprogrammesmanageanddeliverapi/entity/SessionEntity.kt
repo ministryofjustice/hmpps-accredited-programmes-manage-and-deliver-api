@@ -104,6 +104,10 @@ class SessionEntity(
     get() = moduleSessionTemplate.sessionNumber
 
   @get:Transient
+  val sessionName: String
+    get() = moduleSessionTemplate.name
+
+  @get:Transient
   val sessionType: SessionType
     get() = moduleSessionTemplate.sessionType
 

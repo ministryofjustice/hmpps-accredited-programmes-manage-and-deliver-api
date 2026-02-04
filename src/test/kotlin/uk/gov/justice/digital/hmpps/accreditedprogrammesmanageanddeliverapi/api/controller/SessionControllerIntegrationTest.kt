@@ -437,9 +437,10 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       "",
     )
 
-    val sessionId =
-      sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }?.id
+    val session =
+      sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }
     nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+    val sessionId = session?.id
 
     // When
     val response = performRequestAndExpectOk(
@@ -449,7 +450,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     )
 
     // Then
-    assertThat(response.caption).isEqualTo("Delete Getting started 1 catch-up")
+    assertThat(response.caption)
+      .isEqualTo("${session?.sessionName} ${session?.sessionNumber} catch-up has been deleted.")
 
     val savedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)
     assertThat(savedGroup!!.sessions.find { it.id == sessionId }).isNull()
