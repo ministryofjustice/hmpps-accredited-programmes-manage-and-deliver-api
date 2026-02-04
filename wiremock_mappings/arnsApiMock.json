@@ -1,0 +1,37 @@
+{
+  "mappings": [
+    {
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/assessments/id/.*/risk/predictors/all"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "outputVersion": "1",
+          "output": {
+            "groupReconvictionScore": {
+              "oneYear": 15,
+              "twoYears": 26,
+              "scoreLevel": "LOW"
+            },
+            "violencePredictorScore": {
+              "ovpStaticWeightedScore": 24
+            },
+            "generalPredictorScore": {
+              "ogpStaticWeightedScore": 16
+            },
+            "riskOfSeriousRecidivismScore": {
+              "source": "OASYS",
+              "algorithmVersion": "5"
+            },
+            "sexualPredictorScore": {}
+          }
+        }
+      }
+    }
+  ]
+}
