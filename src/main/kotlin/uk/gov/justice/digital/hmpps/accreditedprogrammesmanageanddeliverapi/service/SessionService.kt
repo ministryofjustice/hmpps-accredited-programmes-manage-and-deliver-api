@@ -156,7 +156,7 @@ class SessionService(
       return "${sessionEntity.attendees.first().personName}: $sessionName ${sessionEntity.sessionNumber} one-to-one has been deleted."
     }
 
-    return "${sessionEntity.sessionName} ${sessionEntity.sessionNumber} catch-up has been deleted."
+    return "$sessionName ${sessionEntity.sessionNumber} catch-up has been deleted."
   }
 
   private fun formatSessionName(session: SessionEntity): String {
