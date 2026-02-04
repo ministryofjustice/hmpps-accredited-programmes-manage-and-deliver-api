@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 
 @Schema(
-  description = "Response representing attendees for a specific programme session",
+  description = "Response representing facilitators for a specific programme session",
 )
 data class EditSessionFacilitatorsResponse(
   val headingText: String,

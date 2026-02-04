@@ -42,16 +42,8 @@ class SessionFacilitatorEntity(
     get() = id.session
 
   @get:Transient
-  val facilitatorName: String
-    get() = facilitator.personName
-
-  @get:Transient
   val facilitatorCode: String
     get() = facilitator.ndeliusPersonCode
-
-  @get:Transient
-  val teamName: String
-    get() = facilitator.ndeliusTeamName
 
   @get:Transient
   val teamCode: String
