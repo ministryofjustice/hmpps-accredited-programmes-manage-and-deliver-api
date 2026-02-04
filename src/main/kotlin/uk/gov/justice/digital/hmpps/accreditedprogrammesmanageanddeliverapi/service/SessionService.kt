@@ -26,6 +26,7 @@ import java.util.UUID
 @Transactional
 class SessionService(
   private val sessionRepository: SessionRepository,
+  private val scheduleService: ScheduleService,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
@@ -126,23 +127,24 @@ class SessionService(
     return entity.toApi()
   }
 
-  fun getDeleteSessionCaption(sessionId: UUID): DeleteSessionCaptionResponse {
+  fun deleteSession(sessionId: UUID): DeleteSessionCaptionResponse {
     val sessionEntity = sessionRepository.findByIdOrNull(sessionId) ?: throw NotFoundException(
       "Session with id $sessionId not found.",
     )
+    val caption = getScheduleSessionResponseMessage(sessionEntity)
+    scheduleService.removeNDeliusAppointments(sessionEntity.ndeliusAppointments.toList(), listOf(sessionEntity))
+    sessionRepository.delete(sessionEntity)
 
-    return DeleteSessionCaptionResponse(caption = getScheduleSessionResponseMessage(sessionEntity))
+    return DeleteSessionCaptionResponse(caption = caption)
   }
 
   private fun getScheduleSessionResponseMessage(sessionEntity: SessionEntity): String {
     if (sessionEntity.moduleName == "Post-programme reviews") {
-      return "Delete ${sessionEntity.attendees.first().personName}: Post-programme review"
-    } else if (sessionEntity.sessionType == ONE_TO_ONE && sessionEntity.isCatchup) {
-      return "Delete ${sessionEntity.attendees.first().personName}: Getting started one-to-one catch-up"
+      return "${sessionEntity.attendees.first().personName}: post-programme review has been deleted"
     } else if (sessionEntity.sessionType == ONE_TO_ONE) {
-      return "Delete ${sessionEntity.attendees.first().personName}: Getting started one-to-one"
+      return "${sessionEntity.attendees.first().personName}: ${sessionEntity.sessionName} ${sessionEntity.sessionNumber} one-to-one has been deleted."
     }
 
-    return "Delete Getting started 1 catch-up"
+    return "${sessionEntity.sessionName} ${sessionEntity.sessionNumber} catch-up has been deleted."
   }
 }

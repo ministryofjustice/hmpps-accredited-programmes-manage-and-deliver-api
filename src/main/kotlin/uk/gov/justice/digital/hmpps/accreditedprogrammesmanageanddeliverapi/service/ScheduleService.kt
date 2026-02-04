@@ -406,11 +406,11 @@ class ScheduleService(
 
   private fun getScheduleSessionResponseMessage(sessionEntity: SessionEntity): String {
     if (sessionEntity.sessionType == ONE_TO_ONE && sessionEntity.isCatchup) {
-      return "Getting started one-to-one catch-up for ${sessionEntity.attendees.first().personName} has been added."
+      return "${sessionEntity.sessionName} one-to-one catch-up for ${sessionEntity.attendees.first().personName} has been added."
     } else if (sessionEntity.sessionType == ONE_TO_ONE) {
-      return "Getting started one-to-one for ${sessionEntity.attendees.first().personName} has been added."
+      return "${sessionEntity.sessionName} one-to-one for ${sessionEntity.attendees.first().personName} has been added."
     }
 
-    return "Getting started 1 catch-up has been added."
+    return "${sessionEntity.sessionName} ${sessionEntity.sessionNumber} catch-up has been added."
   }
 }

@@ -22,12 +22,14 @@ import java.util.UUID
 
 class SessionServiceTest {
   private val sessionRepository = mockk<SessionRepository>()
+  private val scheduleService = mockk<ScheduleService>()
   private lateinit var service: SessionService
 
   @BeforeEach
   fun setup() {
     service = SessionService(
       sessionRepository,
+      scheduleService,
     )
   }
 
@@ -61,51 +63,17 @@ class SessionServiceTest {
       .produce()
 
     every { sessionRepository.findByIdOrNull(any()) } returns sessionEntity
+    every { sessionRepository.delete(any()) } returns Unit
+    every { scheduleService.removeNDeliusAppointments(any(), any()) } returns Unit
 
     // When
-    val result = service.getDeleteSessionCaption(groupId)
+    val result = service.deleteSession(groupId)
 
     // Then
-    assertThat(result.caption).isEqualTo("Delete John Smith: Post-programme review")
+    assertThat(result.caption).isEqualTo("John Smith: post-programme review has been deleted")
     verify { sessionRepository.findByIdOrNull(any()) }
-  }
-
-  @Test
-  fun `should return a delete session caption for an one-to-one catch up session`() {
-    // Given
-    val groupId = UUID.randomUUID()
-    val facilitator = FacilitatorEntityFactory().produce()
-    val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
-    val module = ModuleEntityFactory().withName("Module 1").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(ONE_TO_ONE)
-      .withModule(module)
-      .withName("Template 1")
-      .produce()
-    val referralEntity = ReferralEntityFactory().withPersonName("John Smith").produce()
-    val sessionEntity = SessionFactory()
-      .withAttendees(
-        listOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ) as MutableList<AttendeeEntity>,
-      )
-      .withIsCatchup(true)
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
-
-    every { sessionRepository.findByIdOrNull(any()) } returns sessionEntity
-
-    // When
-    val result = service.getDeleteSessionCaption(groupId)
-
-    // Then
-    assertThat(result.caption).isEqualTo("Delete John Smith: Getting started one-to-one catch-up")
-    verify { sessionRepository.findByIdOrNull(any()) }
+    verify { scheduleService.removeNDeliusAppointments(any(), any()) }
+    verify { sessionRepository.delete(any()) }
   }
 
   @Test
@@ -118,7 +86,7 @@ class SessionServiceTest {
     val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
       .withSessionType(ONE_TO_ONE)
       .withModule(module)
-      .withName("Temp 1")
+      .withName("Getting started")
       .produce()
     val referralEntity = ReferralEntityFactory().withPersonName("John Smith").produce()
     val sessionEntity = SessionFactory()
@@ -137,13 +105,17 @@ class SessionServiceTest {
       .produce()
 
     every { sessionRepository.findByIdOrNull(any()) } returns sessionEntity
+    every { sessionRepository.delete(any()) } returns Unit
+    every { scheduleService.removeNDeliusAppointments(any(), any()) } returns Unit
 
     // When
-    val result = service.getDeleteSessionCaption(groupId)
+    val result = service.deleteSession(groupId)
 
     // Then
-    assertThat(result.caption).isEqualTo("Delete John Smith: Getting started one-to-one")
+    assertThat(result.caption).isEqualTo("John Smith: Getting started 1 one-to-one has been deleted.")
     verify { sessionRepository.findByIdOrNull(any()) }
+    verify { scheduleService.removeNDeliusAppointments(any(), any()) }
+    verify { sessionRepository.delete(any()) }
   }
 
   @Test
@@ -156,7 +128,7 @@ class SessionServiceTest {
     val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
       .withSessionType(GROUP)
       .withModule(module)
-      .withName("Module 1")
+      .withName("Getting started")
       .produce()
     val referralEntity = ReferralEntityFactory().withPersonName("John Smith").produce()
     val sessionEntity = SessionFactory()
@@ -175,12 +147,16 @@ class SessionServiceTest {
       .produce()
 
     every { sessionRepository.findByIdOrNull(any()) } returns sessionEntity
+    every { sessionRepository.delete(any()) } returns Unit
+    every { scheduleService.removeNDeliusAppointments(any(), any()) } returns Unit
 
     // When
-    val result = service.getDeleteSessionCaption(groupId)
+    val result = service.deleteSession(groupId)
 
     // Then
-    assertThat(result.caption).isEqualTo("Delete Getting started 1 catch-up")
+    assertThat(result.caption).isEqualTo("Getting started 1 catch-up has been deleted.")
     verify { sessionRepository.findByIdOrNull(any()) }
+    verify { scheduleService.removeNDeliusAppointments(any(), any()) }
+    verify { sessionRepository.delete(any()) }
   }
 }
