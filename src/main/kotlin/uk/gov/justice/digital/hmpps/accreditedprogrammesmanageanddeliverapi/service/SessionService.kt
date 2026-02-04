@@ -167,7 +167,7 @@ class SessionService(
       session.moduleSessionTemplate.name
     }
 
-    return "$moduleSessionName ${session.sessionNumber} catch-up has been deleted."
+    return if (session.isCatchup) "$moduleSessionName catch-up" else moduleSessionName
   }
 
   private fun formatPreviousSessionDateAndTime(session: SessionEntity): String {
