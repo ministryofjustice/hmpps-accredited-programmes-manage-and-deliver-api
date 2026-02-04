@@ -17,12 +17,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.util.UUID
 
 class SessionServiceTest {
   private val sessionRepository = mockk<SessionRepository>()
   private val scheduleService = mockk<ScheduleService>()
+  private val programmeGroupMembershipRepository = mockk<ProgrammeGroupMembershipRepository>()
   private lateinit var service: SessionService
 
   @BeforeEach
@@ -30,6 +32,7 @@ class SessionServiceTest {
     service = SessionService(
       sessionRepository,
       scheduleService,
+      programmeGroupMembershipRepository,
     )
   }
 

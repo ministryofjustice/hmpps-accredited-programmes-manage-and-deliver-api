@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -8,13 +9,16 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionAttendeesResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.fromDateTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toLocalTime
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toSessionAttendee
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.Duration
 import java.time.LocalDateTime
@@ -25,8 +29,14 @@ import java.util.UUID
 @Service
 @Transactional
 class SessionService(
+  @Autowired
   private val sessionRepository: SessionRepository,
+
+  @Autowired
   private val scheduleService: ScheduleService,
+
+  @Autowired
+  private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
@@ -54,25 +64,6 @@ class SessionService(
       sessionName = formatSessionName(session),
       previousSessionDateAndTime = formatPreviousSessionDateAndTime(session),
     )
-  }
-
-  private fun formatSessionName(session: SessionEntity): String {
-    val moduleSessionName = if (session.sessionType == SessionType.ONE_TO_ONE) {
-      val attendeeName = session.attendees.first().personName
-      "$attendeeName: ${session.moduleSessionTemplate.name}"
-    } else {
-      session.moduleSessionTemplate.name
-    }
-
-    return if (session.isCatchup) "$moduleSessionName catch-up" else moduleSessionName
-  }
-
-  private fun formatPreviousSessionDateAndTime(session: SessionEntity): String {
-    val date = session.startsAt.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ENGLISH))
-    val startTime = formatTime(session.startsAt)
-    val endTime = formatTime(session.endsAt)
-
-    return "$date, $startTime to $endTime"
   }
 
   private fun formatTime(dateTime: LocalDateTime): String {
@@ -127,6 +118,25 @@ class SessionService(
     return entity.toApi()
   }
 
+  fun getSessionAttendees(sessionId: UUID): SessionAttendeesResponse {
+    val session = sessionRepository.findById(sessionId).orElseThrow {
+      NotFoundException("Session not found with id: $sessionId")
+    }
+    val groupMembers = programmeGroupMembershipRepository.findAllActiveByProgrammeGroupId(session.programmeGroup.id!!)
+      .ifEmpty { throw NotFoundException("Cannot get attendees as there are currently no members allocated to group with id: ${session.programmeGroup.id!!}") }
+
+    val sessionAttendees =
+      groupMembers.map { groupMember -> groupMember.toSessionAttendee(session.attendees.map { session -> session.referralId }) }
+
+    return SessionAttendeesResponse(
+      sessionId = sessionId,
+      sessionName = formatSessionName(session),
+      sessionType = session.sessionType,
+      isCatchup = session.isCatchup,
+      attendees = sessionAttendees,
+    )
+  }
+
   fun deleteSession(sessionId: UUID): DeleteSessionCaptionResponse {
     val sessionEntity = sessionRepository.findByIdOrNull(sessionId) ?: throw NotFoundException(
       "Session with id $sessionId not found.",
@@ -146,6 +156,25 @@ class SessionService(
       return "${sessionEntity.attendees.first().personName}: $sessionName ${sessionEntity.sessionNumber} one-to-one has been deleted."
     }
 
-    return "$sessionName ${sessionEntity.sessionNumber} catch-up has been deleted."
+    return "${sessionEntity.sessionName} ${sessionEntity.sessionNumber} catch-up has been deleted."
+  }
+
+  private fun formatSessionName(session: SessionEntity): String {
+    val moduleSessionName = if (session.sessionType == SessionType.ONE_TO_ONE) {
+      val attendeeName = session.attendees.first().personName
+      "$attendeeName: ${session.moduleSessionTemplate.name}"
+    } else {
+      session.moduleSessionTemplate.name
+    }
+
+    return "$moduleSessionName ${session.sessionNumber} catch-up has been deleted."
+  }
+
+  private fun formatPreviousSessionDateAndTime(session: SessionEntity): String {
+    val date = session.startsAt.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ENGLISH))
+    val startTime = formatTime(session.startsAt)
+    val endTime = formatTime(session.endsAt)
+
+    return "$date, $startTime to $endTime"
   }
 }

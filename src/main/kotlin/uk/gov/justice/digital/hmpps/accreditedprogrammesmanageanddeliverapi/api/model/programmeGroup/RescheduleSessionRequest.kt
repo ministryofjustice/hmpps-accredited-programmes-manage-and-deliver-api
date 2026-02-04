@@ -10,8 +10,8 @@ import java.time.LocalDate
 data class RescheduleSessionRequest(
   @field:NotNull(message = "sessionStartDate must not be null")
   @get:JsonProperty("sessionStartDate", required = true)
-  @Schema(description = "The start date of the session in DD/MM/YYYY format", example = "12/12/2026")
-  @JsonFormat(pattern = "dd/MM/yyyy")
+  @Schema(description = "The start date of the session in YYYY-MM-DD format", example = "2025-12-17")
+  @JsonFormat(pattern = "yyyy-MM-dd")
   val sessionStartDate: LocalDate,
 
   @Valid
