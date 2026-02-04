@@ -33,10 +33,10 @@ class SessionService(
   private val sessionRepository: SessionRepository,
 
   @Autowired
-  private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
+  private val scheduleService: ScheduleService,
 
   @Autowired
-  private val scheduleService: ScheduleService,
+  private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
