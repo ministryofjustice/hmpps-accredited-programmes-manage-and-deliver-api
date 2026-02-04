@@ -67,6 +67,8 @@ class ProgrammeGroupFactory {
   fun withTreatmentManager(treatmentManager: FacilitatorEntity) = apply { this.treatmentManager = treatmentManager }
   fun withAccreditedProgrammeTemplate(accreditedProgrammeTemplateEntity: AccreditedProgrammeTemplateEntity) = apply { this.accreditedProgrammeTemplate = accreditedProgrammeTemplateEntity }
 
+  fun withGroupFacilitators(groupFacilitators: MutableSet<ProgrammeGroupFacilitatorEntity>) = apply { this.groupFacilitators = groupFacilitators }
+
   fun produce(): ProgrammeGroupEntity = ProgrammeGroupEntity(
     id = this.id,
     code = this.code,

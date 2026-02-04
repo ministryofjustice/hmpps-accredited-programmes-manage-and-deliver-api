@@ -8,9 +8,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionAttendeesResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.fromDateTime
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.toEditSessionFacilitator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toLocalTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toSessionAttendee
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
@@ -37,6 +40,7 @@ class SessionService(
 
   @Autowired
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
+
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
@@ -118,7 +122,7 @@ class SessionService(
     return entity.toApi()
   }
 
-  fun getSessionAttendees(sessionId: UUID): SessionAttendeesResponse {
+  fun getSessionAttendees(sessionId: UUID): EditSessionAttendeesResponse {
     val session = sessionRepository.findById(sessionId).orElseThrow {
       NotFoundException("Session not found with id: $sessionId")
     }
@@ -128,12 +132,28 @@ class SessionService(
     val sessionAttendees =
       groupMembers.map { groupMember -> groupMember.toSessionAttendee(session.attendees.map { session -> session.referralId }) }
 
-    return SessionAttendeesResponse(
+    return EditSessionAttendeesResponse(
       sessionId = sessionId,
       sessionName = formatSessionName(session),
       sessionType = session.sessionType,
       isCatchup = session.isCatchup,
       attendees = sessionAttendees,
+    )
+  }
+
+  fun getSessionFacilitators(
+    sessionId: UUID,
+    regionFacilitators: MutableList<UserTeamMember>,
+  ): EditSessionFacilitatorsResponse {
+    val session = sessionRepository.findById(sessionId).orElseThrow {
+      NotFoundException("Session not found with id: $sessionId")
+    }
+
+    val sessionFacilitatorCodes = session.sessionFacilitators.map { it.facilitatorCode }
+
+    return EditSessionFacilitatorsResponse(
+      headingText = formatSessionName(session),
+      facilitators = regionFacilitators.map { it.toEditSessionFacilitator(sessionFacilitatorCodes) },
     )
   }
 
@@ -160,14 +180,17 @@ class SessionService(
   }
 
   private fun formatSessionName(session: SessionEntity): String {
-    val moduleSessionName = if (session.sessionType == SessionType.ONE_TO_ONE) {
-      val attendeeName = session.attendees.first().personName
-      "$attendeeName: ${session.moduleSessionTemplate.name}"
+    val baseName = session.moduleSessionTemplate.name
+
+    // Session attendees could be null if we are editing a session before anyone has been allocated to a group.
+    val name = if (session.sessionType == ONE_TO_ONE) {
+      val attendee = session.attendees.firstOrNull()?.personName?.takeIf { it.isNotBlank() }
+      attendee?.let { "$it: $baseName" } ?: baseName
     } else {
-      session.moduleSessionTemplate.name
+      baseName
     }
 
-    return if (session.isCatchup) "$moduleSessionName catch-up" else moduleSessionName
+    return if (session.isCatchup) "$name catch-up" else name
   }
 
   private fun formatPreviousSessionDateAndTime(session: SessionEntity): String {

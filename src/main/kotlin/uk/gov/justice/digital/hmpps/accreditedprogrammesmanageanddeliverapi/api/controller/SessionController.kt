@@ -21,9 +21,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionAttendeesResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RegionService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SessionService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import java.util.UUID
 
 @Tag(
@@ -34,6 +39,9 @@ import java.util.UUID
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
 class SessionController(
   private val sessionService: SessionService,
+  private val authenticationUtils: AuthenticationUtils,
+  private val userService: UserService,
+  private val regionService: RegionService,
 ) {
 
   @Operation(
@@ -310,7 +318,7 @@ class SessionController(
         content = [
           Content(
             mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema = Schema(implementation = SessionAttendeesResponse::class),
+            schema = Schema(implementation = EditSessionAttendeesResponse::class),
           ),
         ],
       ),
@@ -348,5 +356,64 @@ class SessionController(
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @GetMapping("/bff/session/{sessionId}/attendees", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun retrieveSessionAttendees(@PathVariable sessionId: UUID): ResponseEntity<SessionAttendeesResponse> = ResponseEntity.ok(sessionService.getSessionAttendees(sessionId))
+  fun retrieveSessionAttendees(@PathVariable sessionId: UUID): ResponseEntity<EditSessionAttendeesResponse> = ResponseEntity.ok(sessionService.getSessionAttendees(sessionId))
+
+  @Operation(
+    tags = ["Session controller"],
+    summary = "Retrieve session facilitators by session ID",
+    operationId = "retrieveSessionFacilitators",
+    description = "Retrieve the facilitators for a session",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Session facilitators retrieved successfully",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = EditSessionFacilitatorsResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden, requires role ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Session not found",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/bff/session/{sessionId}/session-facilitators", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun retrieveSessionFacilitators(@PathVariable sessionId: UUID): ResponseEntity<EditSessionFacilitatorsResponse> {
+    val username = authenticationUtils.getUsername()
+    val (userRegion) = userService.getUserRegions(username)
+    val regionFacilitators: MutableList<UserTeamMember> =
+      regionService.getTeamMembersForPdu(userRegion.code).toMutableList()
+
+    return ResponseEntity.ok(sessionService.getSessionFacilitators(sessionId, regionFacilitators))
+  }
 }

@@ -17,15 +17,30 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionAttendeesResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegionWithMembers
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toFullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusRegionWithMembersFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamMembersFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamWithMembersFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -571,7 +586,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
   @Nested
   @DisplayName("Get session attendees /bff/session/{sessionId}/attendees")
-  inner class GetSessionAttendees {
+  inner class GetEditSessionAttendees {
     private lateinit var session: SessionEntity
     private lateinit var referral1: ReferralEntity
     private lateinit var referral2: ReferralEntity
@@ -615,7 +630,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/session/${session.id}/attendees",
-        object : ParameterizedTypeReference<SessionAttendeesResponse>() {},
+        object : ParameterizedTypeReference<EditSessionAttendeesResponse>() {},
       )
 
       // Then
@@ -658,6 +673,103 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       webTestClient
         .method(HttpMethod.GET)
         .uri("/bff/session/${UUID.randomUUID()}/attendees")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+  }
+
+  @Nested
+  @DisplayName("Get session facilitators /bff/session/{sessionId}/session-facilitators")
+  inner class GetSessionFacilitators {
+    private lateinit var group: ProgrammeGroupEntity
+
+    @BeforeEach
+    fun beforeEach() {
+      val facilitators: List<CreateGroupTeamMember> =
+        buildList {
+          add(CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER))
+          repeat(2) { add(CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)) }
+        }
+      group = testGroupHelper.createGroup(teamMembers = facilitators)
+      nDeliusApiStubs.stubUserTeamsResponse(
+        "AUTH_ADM",
+        NDeliusUserTeams(
+          teams = listOf(
+            NDeliusUserTeam(
+              code = "TEAM001",
+              description = "Test Team 1",
+              pdu = CodeDescription("PDU001", "Test PDU 1"),
+              region = CodeDescription("WIREMOCKED_REGION", "WIREMOCKED REGION"),
+            ),
+          ),
+        ),
+      )
+    }
+
+    @Test
+    fun `should return list of facilitators for the session and set currentlyFacilitating to true for facilitators already part of the group`() {
+      // Given
+      // Stub Ndelius Response with 2 facilitators already assigned to the group and one that is just pulled from the full list from Ndelius
+      val groupFacilitators: MutableList<NDeliusRegionWithMembers.NDeliusUserTeamMembers> =
+        group.groupFacilitators.map {
+          NDeliusUserTeamMembersFactory().produce(
+            code = it.facilitatorCode,
+            name = it.facilitatorName.toFullName(),
+          )
+        }.toMutableList()
+      groupFacilitators.add(
+        NDeliusUserTeamMembersFactory().produce(
+          code = randomAlphanumericString(),
+          name = randomFullName(),
+        ),
+      )
+      val teams = listOf(NDeliusUserTeamWithMembersFactory().produce(members = groupFacilitators))
+      val pdu = NDeliusPduWithTeamFactory().produce(team = teams)
+      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(
+        pdus = listOf(pdu),
+        code = "WIREMOCKED_REGION",
+      )
+      nDeliusApiStubs.stubRegionWithMembersResponse("WIREMOCKED_REGION", regionWithMembers)
+      val sessionId = group.sessions.first().id!!
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/session/$sessionId/session-facilitators",
+        object : ParameterizedTypeReference<EditSessionFacilitatorsResponse>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.facilitators).isNotEmpty
+      // Only 1 facilitator that is not in the group currently
+      assertThat(response.facilitators).extracting<Boolean> { it.currentlyFacilitating }.containsOnlyOnce(false)
+    }
+
+    @Test
+    fun `should return NOT FOUND if session does not exist`() {
+      // Given
+      val sessionId = UUID.randomUUID()
+      // When
+      val response = performRequestAndExpectStatus(
+        HttpMethod.GET,
+        "/bff/session/$sessionId/session-facilitators",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(response.userMessage).isEqualTo("Not Found: Session not found with id: $sessionId")
+    }
+
+    @Test
+    fun `return 403 when unauthorised on get session facilitators`() {
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/session/${UUID.randomUUID()}/session-facilitators")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .exchange()

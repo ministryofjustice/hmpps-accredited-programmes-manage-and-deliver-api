@@ -10,6 +10,7 @@ import jakarta.persistence.FetchType
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.Transient
 import jakarta.validation.constraints.NotNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import java.io.Serializable
@@ -39,6 +40,22 @@ class SessionFacilitatorEntity(
 
   val session: SessionEntity
     get() = id.session
+
+  @get:Transient
+  val facilitatorName: String
+    get() = facilitator.personName
+
+  @get:Transient
+  val facilitatorCode: String
+    get() = facilitator.ndeliusPersonCode
+
+  @get:Transient
+  val teamName: String
+    get() = facilitator.ndeliusTeamName
+
+  @get:Transient
+  val teamCode: String
+    get() = facilitator.ndeliusTeamCode
 }
 
 @Embeddable

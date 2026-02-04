@@ -10,6 +10,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.Transient
 import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedDate
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
@@ -43,4 +44,20 @@ class ProgrammeGroupFacilitatorEntity(
   @Column("facilitator_type")
   @Enumerated(EnumType.STRING)
   var facilitatorType: FacilitatorType,
-)
+) {
+  @get:Transient
+  val facilitatorName: String
+    get() = facilitator.personName
+
+  @get:Transient
+  val facilitatorCode: String
+    get() = facilitator.ndeliusPersonCode
+
+  @get:Transient
+  val teamName: String
+    get() = facilitator.ndeliusTeamName
+
+  @get:Transient
+  val teamCode: String
+    get() = facilitator.ndeliusTeamCode
+}
