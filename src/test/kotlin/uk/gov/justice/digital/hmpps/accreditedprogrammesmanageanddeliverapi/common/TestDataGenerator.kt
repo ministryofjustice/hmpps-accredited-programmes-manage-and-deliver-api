@@ -29,13 +29,18 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AttendeeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import java.time.LocalDate
 import java.util.UUID
 
 @Transactional
 @Component
 class TestDataGenerator {
+  @Autowired
+  private lateinit var programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository
+
   @PersistenceContext
   private lateinit var entityManager: EntityManager
 
@@ -122,6 +127,7 @@ class TestDataGenerator {
       entityManager.persist(field)
     }
   }
+
   private fun <T> validateFields(fields: List<T>) {
     // Add to this as we add more fields to the ReferralEntity that want to be persisted through createReferralWithFields.
     val acceptableFieldTypes = listOf(
@@ -200,7 +206,7 @@ class TestDataGenerator {
   ): AccreditedProgrammeTemplateEntity {
     val template = AccreditedProgrammeTemplateEntity(
       name = name,
-      validFrom = java.time.LocalDate.now(),
+      validFrom = LocalDate.now(),
       validUntil = null,
     )
     entityManager.persist(template)
@@ -236,6 +242,19 @@ class TestDataGenerator {
   fun createAttendee(referral: ReferralEntity, session: SessionEntity): AttendeeEntity {
     val attendee = AttendeeEntity(referral = referral, session = session)
     return attendeeRepository.save(attendee)
+  }
+
+  fun allocateReferralsToGroup(
+    referrals: List<ReferralEntity>,
+    group: ProgrammeGroupEntity,
+  ): List<ProgrammeGroupMembershipEntity> {
+    val groupMembershipEntities = referrals.map {
+      ProgrammeGroupMembershipEntity(
+        referral = it,
+        programmeGroup = group,
+      )
+    }
+    return programmeGroupMembershipRepository.saveAll(groupMembershipEntities)
   }
 
   fun createModuleSessionTemplate(

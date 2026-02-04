@@ -1490,7 +1490,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
-      assertThat(retrievedSession.sessionFacilitators.first().facilitator?.personName)
+      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personName)
         .isEqualTo("Default facilitator name")
       assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
       assertThat(retrievedSession.attendees).hasSize(1)
