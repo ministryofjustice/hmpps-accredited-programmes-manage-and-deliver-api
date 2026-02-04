@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
+import jakarta.persistence.Transient
 import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
@@ -58,4 +59,17 @@ class ProgrammeGroupMembershipEntity(
     orphanRemoval = true,
   )
   var attendances: MutableSet<SessionAttendanceEntity> = mutableSetOf(),
-)
+) {
+
+  @get:Transient
+  val referralId: UUID
+    get() = referral.id!!
+
+  @get:Transient
+  val crn: String
+    get() = referral.crn
+
+  @get:Transient
+  val personName: String
+    get() = referral.personName
+}

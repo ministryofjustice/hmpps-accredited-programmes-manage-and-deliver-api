@@ -129,4 +129,7 @@ class ProgrammeGroupEntity(
   @OrderBy("startsAt ASC")
   var sessions: MutableSet<SessionEntity> = mutableSetOf(),
 
+  @OneToMany(fetch = FetchType.LAZY, mappedBy = "programmeGroup")
+  var programmeGroupMemberships: MutableSet<ProgrammeGroupMembershipEntity> = mutableSetOf(),
+
 )

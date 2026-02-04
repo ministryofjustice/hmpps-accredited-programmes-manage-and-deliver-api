@@ -2,6 +2,8 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
@@ -16,8 +18,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionAttendeesResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
@@ -294,7 +300,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     )
 
     val rescheduleRequest = RescheduleSessionRequest(
-      sessionStartDate = java.time.LocalDate.of(2026, 5, 24),
+      sessionStartDate = LocalDate.of(2026, 5, 24),
       sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
       null,
       rescheduleOtherSessions = false,
@@ -561,5 +567,103 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
       .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
       .returnResult().responseBody!!
+  }
+
+  @Nested
+  @DisplayName("Get session attendees /bff/session/{sessionId}/attendees")
+  inner class GetSessionAttendees {
+    private lateinit var session: SessionEntity
+    private lateinit var referral1: ReferralEntity
+    private lateinit var referral2: ReferralEntity
+    private lateinit var group: ProgrammeGroupEntity
+
+    @BeforeEach
+    fun beforeEach() {
+      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+      val sessionTemplate = moduleSessionTemplateRepository.findByName("Managing myself one-to-one")
+
+      group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate!!)
+          .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
+          .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
+          .produce(),
+      )
+      referral1 = testDataGenerator.createReferral(
+        personName = "John Doe",
+        crn = "X123456",
+      )
+      referral2 = testDataGenerator.createReferral(
+        personName = "Alex River",
+        crn = "X654321",
+      )
+    }
+
+    @Test
+    fun `should return list of attendees for session`() {
+      // Given
+      // Assign both referrals to a group but only add one attendee on the session
+      testDataGenerator.allocateReferralsToGroup(listOf(referral1, referral2), group)
+      testDataGenerator.createAttendee(referral1, session)
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/session/${session.id}/attendees",
+        object : ParameterizedTypeReference<SessionAttendeesResponse>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.attendees).isNotEmpty
+      assertThat(response.attendees).extracting<Boolean> { it.currentlyAttending }.containsOnlyOnce(true)
+    }
+
+    @Test
+    fun `should return NOT FOUND if session does not exist`() {
+      // Given
+      val sessionId = UUID.randomUUID()
+      // When
+      val response = performRequestAndExpectStatus(
+        HttpMethod.GET,
+        "/bff/session/$sessionId/attendees",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(response.userMessage).isEqualTo("Not Found: Session not found with id: $sessionId")
+    }
+
+    @Test
+    fun `should return NOT FOUND if group has no members `() {
+      // Given
+      // When
+      val response = performRequestAndExpectStatus(
+        HttpMethod.GET,
+        "/bff/session/${session.id}/attendees",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(response.userMessage).isEqualTo("Not Found: Cannot get attendees as there are currently no members allocated to group with id: ${group.id}")
+    }
+
+    @Test
+    fun `return 403 when unauthorised on get session attendees`() {
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/session/${UUID.randomUUID()}/attendees")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
   }
 }
