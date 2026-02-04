@@ -22,12 +22,14 @@ import java.util.UUID
 
 class SessionServiceTest {
   private val sessionRepository = mockk<SessionRepository>()
+  private val scheduleService = mockk<ScheduleService>()
   private lateinit var service: SessionService
 
   @BeforeEach
   fun setup() {
     service = SessionService(
       sessionRepository,
+      scheduleService,
     )
   }
 
@@ -61,13 +63,17 @@ class SessionServiceTest {
       .produce()
 
     every { sessionRepository.findByIdOrNull(any()) } returns sessionEntity
+    every { sessionRepository.delete(any()) } returns Unit
+    every { scheduleService.removeNDeliusAppointments(any(), any()) } returns Unit
 
     // When
-    val result = service.getDeleteSessionCaption(groupId)
+    val result = service.deleteSession(groupId)
 
     // Then
     assertThat(result.caption).isEqualTo("Delete John Smith: Post-programme review")
     verify { sessionRepository.findByIdOrNull(any()) }
+    verify { scheduleService.removeNDeliusAppointments(any(), any()) }
+    verify { sessionRepository.delete(any()) }
   }
 
   @Test
@@ -99,13 +105,17 @@ class SessionServiceTest {
       .produce()
 
     every { sessionRepository.findByIdOrNull(any()) } returns sessionEntity
+    every { sessionRepository.delete(any()) } returns Unit
+    every { scheduleService.removeNDeliusAppointments(any(), any()) } returns Unit
 
     // When
-    val result = service.getDeleteSessionCaption(groupId)
+    val result = service.deleteSession(groupId)
 
     // Then
     assertThat(result.caption).isEqualTo("Delete John Smith: Getting started one-to-one catch-up")
     verify { sessionRepository.findByIdOrNull(any()) }
+    verify { scheduleService.removeNDeliusAppointments(any(), any()) }
+    verify { sessionRepository.delete(any()) }
   }
 
   @Test
@@ -137,13 +147,17 @@ class SessionServiceTest {
       .produce()
 
     every { sessionRepository.findByIdOrNull(any()) } returns sessionEntity
+    every { sessionRepository.delete(any()) } returns Unit
+    every { scheduleService.removeNDeliusAppointments(any(), any()) } returns Unit
 
     // When
-    val result = service.getDeleteSessionCaption(groupId)
+    val result = service.deleteSession(groupId)
 
     // Then
     assertThat(result.caption).isEqualTo("Delete John Smith: Getting started one-to-one")
     verify { sessionRepository.findByIdOrNull(any()) }
+    verify { scheduleService.removeNDeliusAppointments(any(), any()) }
+    verify { sessionRepository.delete(any()) }
   }
 
   @Test
@@ -175,12 +189,16 @@ class SessionServiceTest {
       .produce()
 
     every { sessionRepository.findByIdOrNull(any()) } returns sessionEntity
+    every { sessionRepository.delete(any()) } returns Unit
+    every { scheduleService.removeNDeliusAppointments(any(), any()) } returns Unit
 
     // When
-    val result = service.getDeleteSessionCaption(groupId)
+    val result = service.deleteSession(groupId)
 
     // Then
     assertThat(result.caption).isEqualTo("Delete Getting started 1 catch-up")
     verify { sessionRepository.findByIdOrNull(any()) }
+    verify { scheduleService.removeNDeliusAppointments(any(), any()) }
+    verify { sessionRepository.delete(any()) }
   }
 }

@@ -26,6 +26,7 @@ import java.util.UUID
 @Transactional
 class SessionService(
   private val sessionRepository: SessionRepository,
+  private val scheduleService: ScheduleService,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
@@ -126,12 +127,15 @@ class SessionService(
     return entity.toApi()
   }
 
-  fun getDeleteSessionCaption(sessionId: UUID): DeleteSessionCaptionResponse {
+  fun deleteSession(sessionId: UUID): DeleteSessionCaptionResponse {
     val sessionEntity = sessionRepository.findByIdOrNull(sessionId) ?: throw NotFoundException(
       "Session with id $sessionId not found.",
     )
+    val caption = getScheduleSessionResponseMessage(sessionEntity)
+    scheduleService.removeNDeliusAppointments(sessionEntity.ndeliusAppointments.toList(), listOf(sessionEntity))
+    sessionRepository.delete(sessionEntity)
 
-    return DeleteSessionCaptionResponse(caption = getScheduleSessionResponseMessage(sessionEntity))
+    return DeleteSessionCaptionResponse(caption = caption)
   }
 
   private fun getScheduleSessionResponseMessage(sessionEntity: SessionEntity): String {
