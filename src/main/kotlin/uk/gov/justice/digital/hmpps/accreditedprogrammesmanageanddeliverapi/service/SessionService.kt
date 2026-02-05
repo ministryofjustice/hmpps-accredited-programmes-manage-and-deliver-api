@@ -192,7 +192,6 @@ class SessionService(
     return "The date and time have been updated."
   }
 
-//  private fun getScheduleSessionResponseMessage(sessionEntity: SessionEntity): String {
   private fun getDeleteSessionResponseMessage(sessionEntity: SessionEntity): String {
     val sessionName = sessionEntity.sessionName.replace(" one-to-one", "")
     if (sessionEntity.moduleName == "Post-programme reviews") {
