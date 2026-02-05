@@ -285,7 +285,7 @@ class ProgrammeGroupService(
         name = session.moduleSessionTemplate.name,
         type = session.sessionType.value,
         date = session.startsAt.toLocalDate(),
-        time = if (session.isPlaceholder) "Various times" else "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${formatTimeForUiDisplay(session.endsAt.toLocalTime())}"
+        time = if (session.isPlaceholder) "Various times" else "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${formatTimeForUiDisplay(session.endsAt.toLocalTime())}",
       )
     }
 
