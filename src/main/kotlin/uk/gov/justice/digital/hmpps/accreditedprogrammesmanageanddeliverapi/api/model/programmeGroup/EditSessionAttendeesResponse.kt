@@ -1,7 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup
 
 import io.swagger.v3.oas.annotations.media.Schema
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionAttendeesResponse.SessionAttendee
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse.EditSessionAttendee
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import java.util.UUID
@@ -9,7 +9,7 @@ import java.util.UUID
 @Schema(
   description = "Response representing attendees for a specific programme session",
 )
-data class SessionAttendeesResponse(
+data class EditSessionAttendeesResponse(
 
   @Schema(
     description = "Unique identifier of the session",
@@ -38,11 +38,11 @@ data class SessionAttendeesResponse(
   @Schema(
     description = "List of attendees for the session",
   )
-  val attendees: List<SessionAttendee>,
+  val attendees: List<EditSessionAttendee>,
 ) {
 
   @Schema(description = "Details about an attendee for a session")
-  data class SessionAttendee(
+  data class EditSessionAttendee(
 
     @Schema(
       description = "Full name of the attendee",
@@ -72,7 +72,7 @@ data class SessionAttendeesResponse(
 
 fun ProgrammeGroupMembershipEntity.toSessionAttendee(
   sessionAttendees: List<UUID>,
-) = SessionAttendee(
+) = EditSessionAttendee(
   name = personName,
   referralId = referralId,
   crn = crn,

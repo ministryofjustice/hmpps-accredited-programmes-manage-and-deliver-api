@@ -93,7 +93,7 @@ class SessionServiceTest {
     val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
       .withSessionType(ONE_TO_ONE)
       .withModule(module)
-      .withName("Getting started")
+      .withName("Getting started one-to-one")
       .produce()
     val referralEntity = ReferralEntityFactory().withPersonName("John Smith").produce()
     val sessionEntity = SessionFactory()

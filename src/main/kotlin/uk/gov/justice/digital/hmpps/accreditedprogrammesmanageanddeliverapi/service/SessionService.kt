@@ -8,9 +8,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionAttendeesResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.fromDateTime
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.toEditSessionFacilitator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toLocalTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toSessionAttendee
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
@@ -123,7 +126,7 @@ class SessionService(
     return entity.toApi()
   }
 
-  fun getSessionAttendees(sessionId: UUID): SessionAttendeesResponse {
+  fun getSessionAttendees(sessionId: UUID): EditSessionAttendeesResponse {
     val session = sessionRepository.findById(sessionId).orElseThrow {
       NotFoundException("Session not found with id: $sessionId")
     }
@@ -133,7 +136,7 @@ class SessionService(
     val sessionAttendees =
       groupMembers.map { groupMember -> groupMember.toSessionAttendee(session.attendees.map { session -> session.referralId }) }
 
-    return SessionAttendeesResponse(
+    return EditSessionAttendeesResponse(
       sessionId = sessionId,
       sessionName = formatSessionName(session),
       sessionType = session.sessionType,
@@ -142,11 +145,27 @@ class SessionService(
     )
   }
 
+  fun getSessionFacilitators(
+    sessionId: UUID,
+    regionFacilitators: MutableList<UserTeamMember>,
+  ): EditSessionFacilitatorsResponse {
+    val session = sessionRepository.findById(sessionId).orElseThrow {
+      NotFoundException("Session not found with id: $sessionId")
+    }
+
+    val sessionFacilitatorCodes = session.sessionFacilitators.map { it.facilitatorCode }
+
+    return EditSessionFacilitatorsResponse(
+      headingText = formatSessionName(session),
+      facilitators = regionFacilitators.map { it.toEditSessionFacilitator(sessionFacilitatorCodes) },
+    )
+  }
+
   fun deleteSession(sessionId: UUID): DeleteSessionCaptionResponse {
     val sessionEntity = sessionRepository.findByIdOrNull(sessionId) ?: throw NotFoundException(
       "Session with id $sessionId not found.",
     )
-    val caption = getScheduleSessionResponseMessage(sessionEntity)
+    val caption = getDeleteSessionResponseMessage(sessionEntity)
     scheduleService.removeNDeliusAppointments(sessionEntity.ndeliusAppointments.toList(), listOf(sessionEntity))
     sessionRepository.delete(sessionEntity)
 
@@ -173,25 +192,30 @@ class SessionService(
     return "The date and time have been updated."
   }
 
-  private fun getScheduleSessionResponseMessage(sessionEntity: SessionEntity): String {
+//  private fun getScheduleSessionResponseMessage(sessionEntity: SessionEntity): String {
+  private fun getDeleteSessionResponseMessage(sessionEntity: SessionEntity): String {
+    val sessionName = sessionEntity.sessionName.replace(" one-to-one", "")
     if (sessionEntity.moduleName == "Post-programme reviews") {
       return "${sessionEntity.attendees.first().personName}: post-programme review has been deleted"
     } else if (sessionEntity.sessionType == ONE_TO_ONE) {
-      return "${sessionEntity.attendees.first().personName}: ${sessionEntity.sessionName} ${sessionEntity.sessionNumber} one-to-one has been deleted."
+      return "${sessionEntity.attendees.first().personName}: $sessionName ${sessionEntity.sessionNumber} one-to-one has been deleted."
     }
 
-    return "${sessionEntity.sessionName} ${sessionEntity.sessionNumber} catch-up has been deleted."
+    return "$sessionName ${sessionEntity.sessionNumber} catch-up has been deleted."
   }
 
   private fun formatSessionName(session: SessionEntity): String {
-    val moduleSessionName = if (session.sessionType == SessionType.ONE_TO_ONE) {
-      val attendeeName = session.attendees.first().personName
-      "$attendeeName: ${session.moduleSessionTemplate.name}"
+    val baseName = session.moduleSessionTemplate.name
+
+    // Session attendees could be null if we are editing a session before anyone has been allocated to a group.
+    val name = if (session.sessionType == ONE_TO_ONE) {
+      val attendee = session.attendees.firstOrNull()?.personName?.takeIf { it.isNotBlank() }
+      attendee?.let { "$it: $baseName" } ?: baseName
     } else {
-      session.moduleSessionTemplate.name
+      baseName
     }
 
-    return if (session.isCatchup) "$moduleSessionName catch-up" else moduleSessionName
+    return if (session.isCatchup) "$name catch-up" else name
   }
 
   private fun formatPreviousSessionDateAndTime(session: SessionEntity): String {
