@@ -24,6 +24,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionDateAndTimeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RegionService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SessionService
@@ -250,7 +251,7 @@ class SessionController(
   fun rescheduleSession(
     @PathVariable @Parameter(description = "The unique session identifier") sessionId: UUID,
     @RequestBody rescheduleSessionRequest: RescheduleSessionRequest,
-  ): ResponseEntity<String> = ResponseEntity.ok(sessionService.rescheduleSessions(sessionId, rescheduleSessionRequest))
+  ): ResponseEntity<EditSessionDateAndTimeResponse> = ResponseEntity.ok(sessionService.rescheduleSessions(sessionId, rescheduleSessionRequest))
 
   @Operation(
     tags = ["Session controller"],

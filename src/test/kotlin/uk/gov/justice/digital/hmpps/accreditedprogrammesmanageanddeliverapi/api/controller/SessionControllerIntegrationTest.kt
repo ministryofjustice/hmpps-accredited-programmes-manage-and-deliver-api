@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionDateAndTimeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
@@ -326,12 +327,12 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       httpMethod = HttpMethod.PUT,
       uri = "/session/${session.id}/reschedule",
       body = rescheduleRequest,
-      returnType = object : ParameterizedTypeReference<String>() {},
+      returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
       expectedResponseStatus = HttpStatus.OK.value(),
     )
 
     // Then
-    assertThat(response).isEqualTo("The date and time have been updated.")
+    assertThat(response.message).isEqualTo("The date and time have been updated.")
     val updatedSession = sessionRepository.findById(session.id!!).get()
     assertThat(updatedSession.startsAt).isEqualTo(LocalDateTime.of(2026, 5, 24, 10, 0))
     assertThat(updatedSession.endsAt).isEqualTo(LocalDateTime.of(2026, 5, 24, 11, 0))
@@ -422,12 +423,12 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       httpMethod = HttpMethod.PUT,
       uri = "/session/${session1.id}/reschedule",
       body = rescheduleRequest,
-      returnType = object : ParameterizedTypeReference<String>() {},
+      returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
       expectedResponseStatus = HttpStatus.OK.value(),
     )
 
     // Then
-    assertThat(response).isEqualTo("The date and time and schedule have been updated.")
+    assertThat(response.message).isEqualTo("The date and time and schedule have been updated.")
     val updatedSession1 = sessionRepository.findById(session1.id!!).get()
     assertThat(updatedSession1.startsAt).isEqualTo(LocalDateTime.of(2026, 4, 23, 11, 0))
     assertThat(updatedSession1.endsAt).isEqualTo(LocalDateTime.of(2026, 4, 23, 12, 0))
