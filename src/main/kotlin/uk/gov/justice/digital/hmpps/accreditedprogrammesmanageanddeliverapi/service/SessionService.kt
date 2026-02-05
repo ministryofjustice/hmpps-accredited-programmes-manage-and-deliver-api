@@ -18,10 +18,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toSessionAttendee
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.Duration
 import java.time.LocalDateTime
@@ -41,6 +43,8 @@ class SessionService(
   @Autowired
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
 
+  @Autowired
+  private val referralRepository: ReferralRepository,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
@@ -166,6 +170,26 @@ class SessionService(
     sessionRepository.delete(sessionEntity)
 
     return DeleteSessionCaptionResponse(caption = caption)
+  }
+
+  fun updateSessionAttendees(sessionId: UUID, referralIds: List<UUID>): String {
+    val session = sessionRepository.findById(sessionId).orElseThrow {
+      NotFoundException("Session not found with id: $sessionId")
+    }
+
+    session.attendees.clear()
+
+    val newAttendees = referralIds.map { referralId ->
+      val referral = referralRepository.findById(referralId).orElseThrow {
+        NotFoundException("Referral not found with id: $referralId")
+      }
+      AttendeeEntity(referral = referral, session = session)
+    }
+
+    session.attendees.addAll(newAttendees)
+    sessionRepository.save(session)
+
+    return "The date and time have been updated."
   }
 
   private fun getDeleteSessionResponseMessage(sessionEntity: SessionEntity): String {
