@@ -433,13 +433,13 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       // Verify individual session formatting
       val gettingStartedSession = schedule.modules.find { it.name.startsWith("Getting started") }
       assertThat(gettingStartedSession).isNotNull
-      assertThat(gettingStartedSession!!.time).isEqualTo("midday")
+      assertThat(gettingStartedSession!!.time).isEqualTo("midday to 2pm")
       assertThat(gettingStartedSession.type).isEqualTo("Individual")
       assertThat(gettingStartedSession.date).isEqualTo(schedule.gettingStartedModuleStartDate)
 
       val preGroupSession = schedule.modules.find { it.name.startsWith("Pre-group") }
       assertThat(preGroupSession!!.type).isEqualTo("Individual")
-      assertThat(preGroupSession.time).isEqualTo("10am")
+      assertThat(preGroupSession.time).isEqualTo("10am to 11am")
       assertThat(preGroupSession.date).isEqualTo(schedule.preGroupOneToOneStartDate)
 
       val lastSession = schedule.modules.last()
