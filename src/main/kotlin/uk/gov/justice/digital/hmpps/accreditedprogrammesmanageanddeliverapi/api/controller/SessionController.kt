@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -21,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.UpdateSessionAttendeesRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionAttendeesResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SessionService
@@ -349,4 +351,59 @@ class SessionController(
   )
   @GetMapping("/bff/session/{sessionId}/attendees", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun retrieveSessionAttendees(@PathVariable sessionId: UUID): ResponseEntity<SessionAttendeesResponse> = ResponseEntity.ok(sessionService.getSessionAttendees(sessionId))
+
+  @Operation(
+    tags = ["Session controller"],
+    summary = "Update session attendees",
+    operationId = "updateAttendeesForSession",
+    description = "Update the attendees for a session",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Session attendees updated successfully",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = String::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden, requires role ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Session not found",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PutMapping("/session/{sessionId}/attendees", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun updateAttendeesForSession(
+    @PathVariable @Parameter(description = "The unique session identifier") sessionId: UUID,
+    @RequestBody @Valid updateAttendeesRequest: UpdateSessionAttendeesRequest,
+  ): ResponseEntity<String> = ResponseEntity.ok(sessionService.updateSessionAttendees(sessionId, updateAttendeesRequest.referralIdList))
 }
