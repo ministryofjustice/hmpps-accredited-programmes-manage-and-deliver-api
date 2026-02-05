@@ -17,7 +17,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -56,6 +55,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TemplateService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.util.UUID
 
@@ -75,6 +75,7 @@ class ProgrammeGroupController(
   private val programmeGroupRepository: ProgrammeGroupRepository,
   private val templateService: TemplateService,
   private val scheduleService: ScheduleService,
+  private val authenticationUtils: AuthenticationUtils,
 ) {
 
   @Operation(
@@ -199,7 +200,7 @@ class ProgrammeGroupController(
     @Parameter(description = "Filter by the sex that the group is being run for: 'Male', 'Female' or 'Mixed'")
     @RequestParam(name = "sex", required = false) sex: String?,
   ): ResponseEntity<GroupsByRegion> {
-    val username = getUsername()
+    val username = authenticationUtils.getUsername()
 
     val groups = programmeGroupService.getProgrammeGroupsForRegion(
       pageable = pageable,
@@ -373,7 +374,7 @@ class ProgrammeGroupController(
     @Valid
     @RequestBody createGroupRequest: CreateGroupRequest,
   ): ResponseEntity<Void> {
-    val username = getUsername()
+    val username = authenticationUtils.getUsername()
     programmeGroupService.createGroup(createGroupRequest, username)
 
     return ResponseEntity.status(HttpStatus.CREATED).build()
@@ -410,7 +411,7 @@ class ProgrammeGroupController(
   )
   @GetMapping("/group/{groupCode}/details")
   fun getGroupInRegion(@PathVariable groupCode: String): ResponseEntity<Group>? {
-    val username = getUsername()
+    val username = authenticationUtils.getUsername()
     return ResponseEntity.ok(programmeGroupService.getGroupInRegion(groupCode, username)?.toApi())
   }
 
@@ -440,7 +441,7 @@ class ProgrammeGroupController(
   )
   @GetMapping("/bff/pdus-for-user-region")
   fun getPdusInUserRegion(): ResponseEntity<List<CodeDescription>> {
-    val username = getUsername()
+    val username = authenticationUtils.getUsername()
     val (userRegion) = userService.getUserRegions(username)
     val pdusForRegion =
       regionService.getPdusForRegion(userRegion.code).map { CodeDescription(it.code, it.description) }
@@ -504,7 +505,7 @@ class ProgrammeGroupController(
   )
   @GetMapping("/bff/region/members")
   fun getMembersInUserRegion(): ResponseEntity<List<UserTeamMember>> {
-    val username = getUsername()
+    val username = authenticationUtils.getUsername()
     val (userRegion) = userService.getUserRegions(username)
     val teamMembers = regionService.getTeamMembersForPdu(userRegion.code)
     return ResponseEntity.ok(teamMembers)
@@ -663,7 +664,7 @@ class ProgrammeGroupController(
     moduleRepository.findByIdOrNull(moduleId)
       ?: throw NotFoundException("Module with id $moduleId not found")
 
-    val username = getUsername()
+    val username = authenticationUtils.getUsername()
     val (userRegion) = userService.getUserRegions(username)
     val facilitators = regionService.getTeamMembersForPdu(userRegion.code)
 
@@ -852,12 +853,4 @@ class ProgrammeGroupController(
   fun getGroupSchedule(
     @PathVariable @Parameter(description = "The UUID of the Programme Group", required = true) groupId: UUID,
   ): ResponseEntity<GroupSchedule> = ResponseEntity.ok(programmeGroupService.getScheduleForGroup(groupId))
-
-  private fun getUsername(): String {
-    val username = authenticationHolder.username
-    if (username.isNullOrBlank()) {
-      throw AuthenticationCredentialsNotFoundException("No authenticated user found")
-    }
-    return username
-  }
 }
