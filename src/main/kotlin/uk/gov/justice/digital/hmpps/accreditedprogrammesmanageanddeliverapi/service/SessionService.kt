@@ -12,6 +12,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.fromDateTime
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionDateAndTimeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.toEditSessionFacilitator
@@ -21,6 +22,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
@@ -37,12 +40,12 @@ import java.util.UUID
 class SessionService(
   @Autowired
   private val sessionRepository: SessionRepository,
-
   @Autowired
   private val scheduleService: ScheduleService,
-
   @Autowired
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
+  @Autowired
+  private val facilitatorService: FacilitatorService,
 
   @Autowired
   private val referralRepository: ReferralRepository,
@@ -160,6 +163,28 @@ class SessionService(
       headingText = formatSessionName(session),
       facilitators = regionFacilitators.map { it.toEditSessionFacilitator(sessionFacilitatorCodes) },
     )
+  }
+
+  fun editSessionFacilitators(
+    sessionId: UUID,
+    editSessionFacilitatorsRequest: List<EditSessionFacilitatorRequest>,
+  ) {
+    val session = sessionRepository.findById(sessionId).orElseThrow {
+      NotFoundException("Session not found with id: $sessionId")
+    }
+
+    val sessionFacilitators = editSessionFacilitatorsRequest.map { facilitatorRequest ->
+      val facilitatorEntity = facilitatorService.findOrCreateFacilitator(facilitatorRequest)
+
+      SessionFacilitatorEntity(
+        facilitator = facilitatorEntity,
+        session = session,
+        facilitatorType = FacilitatorType.REGULAR_FACILITATOR,
+      )
+    }.toMutableSet()
+    session.sessionFacilitators.clear()
+    session.sessionFacilitators.addAll(sessionFacilitators)
+    sessionRepository.save(session)
   }
 
   fun deleteSession(sessionId: UUID): DeleteSessionCaptionResponse {
