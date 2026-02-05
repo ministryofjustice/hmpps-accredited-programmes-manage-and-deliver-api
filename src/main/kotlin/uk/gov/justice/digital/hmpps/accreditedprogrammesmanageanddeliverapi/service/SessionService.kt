@@ -141,21 +141,22 @@ class SessionService(
     val sessionEntity = sessionRepository.findByIdOrNull(sessionId) ?: throw NotFoundException(
       "Session with id $sessionId not found.",
     )
-    val caption = getScheduleSessionResponseMessage(sessionEntity)
+    val caption = getDeleteSessionResponseMessage(sessionEntity)
     scheduleService.removeNDeliusAppointments(sessionEntity.ndeliusAppointments.toList(), listOf(sessionEntity))
     sessionRepository.delete(sessionEntity)
 
     return DeleteSessionCaptionResponse(caption = caption)
   }
 
-  private fun getScheduleSessionResponseMessage(sessionEntity: SessionEntity): String {
+  private fun getDeleteSessionResponseMessage(sessionEntity: SessionEntity): String {
+    val sessionName = sessionEntity.sessionName.replace(" one-to-one", "")
     if (sessionEntity.moduleName == "Post-programme reviews") {
       return "${sessionEntity.attendees.first().personName}: post-programme review has been deleted"
     } else if (sessionEntity.sessionType == ONE_TO_ONE) {
-      return "${sessionEntity.attendees.first().personName}: ${sessionEntity.sessionName} ${sessionEntity.sessionNumber} one-to-one has been deleted."
+      return "${sessionEntity.attendees.first().personName}: $sessionName ${sessionEntity.sessionNumber} one-to-one has been deleted."
     }
 
-    return "${sessionEntity.sessionName} ${sessionEntity.sessionNumber} catch-up has been deleted."
+    return "$sessionName ${sessionEntity.sessionNumber} catch-up has been deleted."
   }
 
   private fun formatSessionName(session: SessionEntity): String {
