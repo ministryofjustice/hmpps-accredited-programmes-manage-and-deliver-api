@@ -23,15 +23,18 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionDateAndTimeResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegionWithMembers
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
@@ -46,6 +49,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
@@ -72,6 +76,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var programmeGroupRepository: ProgrammeGroupRepository
+
+  @Autowired
+  private lateinit var facilitatorRepository: FacilitatorRepository
 
   @Test
   fun `retrieveSessionDetailsToEdit returns 200 and session details`() {
@@ -922,6 +929,120 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         .uri("/bff/session/${UUID.randomUUID()}/session-facilitators")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+  }
+
+  @Nested
+  @DisplayName("PUT session facilitators session/{sessionId}/session-facilitators")
+  inner class PutSessionFacilitators {
+
+    val facilitatorRequest = List(2) {
+      EditSessionFacilitatorRequest(
+        facilitatorName = randomFullName().getNameAsString(),
+        facilitatorCode = randomAlphanumericString(),
+        teamName = randomAlphanumericString(),
+        teamCode = randomUppercaseString(),
+      )
+    }
+
+    @Test
+    fun `should update the list of facilitators on the session`() {
+      // Given
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 2,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Test Session Template",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .withCode("GROUPCODE")
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withStartsAt(LocalDateTime.of(2026, 4, 23, 13, 30))
+          .withEndsAt(LocalDateTime.of(2026, 4, 23, 14, 30))
+          .produce(),
+      )
+
+      assertThat(session.sessionFacilitators).isEmpty()
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        HttpMethod.PUT,
+        uri = "session/${session.id}/session-facilitators",
+        body = facilitatorRequest,
+        returnType = object : ParameterizedTypeReference<String>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response).isEqualTo("The people responsible for this session have been updated.")
+      val savedSession = sessionRepository.findByIdOrNull(session.id!!)!!
+      val sessionFacilitatorCodes = savedSession.sessionFacilitators.map { it.facilitatorCode }
+
+      assertThat(savedSession.sessionFacilitators).hasSize(2)
+      assertThat(sessionFacilitatorCodes).containsAll(facilitatorRequest.map { it.facilitatorCode })
+
+      val savedFacilitatorEntities = facilitatorRepository.findAll()
+      assertThat(sessionFacilitatorCodes).containsAll(savedFacilitatorEntities.map { it.ndeliusPersonCode })
+    }
+
+    @Test
+    fun `should return 404 Not Found if session does not exist`() {
+      // Given
+      val sessionId = UUID.randomUUID()
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        HttpMethod.PUT,
+        "/session/$sessionId/session-facilitators",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        facilitatorRequest,
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(response.userMessage).isEqualTo("Not Found: Session not found with id: $sessionId")
+    }
+
+    @Test
+    fun `should return 400 Bad Request if body is empty`() {
+      // Given
+      val sessionId = UUID.randomUUID()
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        HttpMethod.PUT,
+        "/session/$sessionId/session-facilitators",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        listOf<String>(),
+        HttpStatus.BAD_REQUEST.value(),
+      )
+
+      assertThat(response.userMessage).isEqualTo("Bad request: 400 BAD_REQUEST \"Validation failure\"")
+    }
+
+    @Test
+    fun `return 403 Forbidden when unauthorised on get session facilitators`() {
+      webTestClient
+        .method(HttpMethod.PUT)
+        .uri("/session/${UUID.randomUUID()}/session-facilitators")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .bodyValue(facilitatorRequest)
         .exchange()
         .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})

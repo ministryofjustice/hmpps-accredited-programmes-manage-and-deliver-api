@@ -28,6 +28,7 @@ class SessionServiceTest {
   private val scheduleService = mockk<ScheduleService>()
   private val programmeGroupMembershipRepository = mockk<ProgrammeGroupMembershipRepository>()
   private val referralRepository = mockk<ReferralRepository>()
+  private val facilitatorService = mockk<FacilitatorService>()
   private lateinit var service: SessionService
 
   @BeforeEach
@@ -36,6 +37,7 @@ class SessionServiceTest {
       sessionRepository,
       scheduleService,
       programmeGroupMembershipRepository,
+      facilitatorService,
       referralRepository,
     )
   }
