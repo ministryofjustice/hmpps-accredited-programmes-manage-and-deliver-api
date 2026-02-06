@@ -18,13 +18,16 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import java.util.Optional
 import java.util.UUID
 
 class SessionServiceTest {
   private val sessionRepository = mockk<SessionRepository>()
   private val scheduleService = mockk<ScheduleService>()
   private val programmeGroupMembershipRepository = mockk<ProgrammeGroupMembershipRepository>()
+  private val referralRepository = mockk<ReferralRepository>()
   private lateinit var service: SessionService
 
   @BeforeEach
@@ -33,6 +36,7 @@ class SessionServiceTest {
       sessionRepository,
       scheduleService,
       programmeGroupMembershipRepository,
+      referralRepository,
     )
   }
 
@@ -161,5 +165,42 @@ class SessionServiceTest {
     verify { sessionRepository.findByIdOrNull(any()) }
     verify { scheduleService.removeNDeliusAppointments(any(), any()) }
     verify { sessionRepository.delete(any()) }
+  }
+
+  @Test
+  fun `should update session attendees`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId1 = UUID.randomUUID()
+    val referralId2 = UUID.randomUUID()
+    val referralIds = listOf(referralId1, referralId2)
+
+    val programmeGroup = ProgrammeGroupFactory().produce()
+    val moduleSessionTemplate = ModuleSessionTemplateEntityFactory().withName("Template 1").produce()
+    val session = SessionFactory()
+      .withProgrammeGroup(programmeGroup)
+      .withModuleSessionTemplate(moduleSessionTemplate)
+      .produce()
+    val referral1 = ReferralEntityFactory().withId(referralId1).produce()
+    val referral2 = ReferralEntityFactory().withId(referralId2).produce()
+
+    every { sessionRepository.findById(sessionId) } returns Optional.of(session)
+    every { referralRepository.findById(referralId1) } returns Optional.of(referral1)
+    every { referralRepository.findById(referralId2) } returns Optional.of(referral2)
+    every { sessionRepository.save(session) } returns session
+
+    // When
+    val result = service.updateSessionAttendees(sessionId, referralIds)
+
+    // Then
+    assertThat(result).isEqualTo("The date and time have been updated.")
+    assertThat(session.attendees).hasSize(2)
+    assertThat(session.attendees[0].referral.id).isEqualTo(referralId1)
+    assertThat(session.attendees[1].referral.id).isEqualTo(referralId2)
+
+    verify { sessionRepository.findById(sessionId) }
+    verify { referralRepository.findById(referralId1) }
+    verify { referralRepository.findById(referralId2) }
+    verify { sessionRepository.save(session) }
   }
 }

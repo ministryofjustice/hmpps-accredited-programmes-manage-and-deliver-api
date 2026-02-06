@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.UpdateSessionAttendeesRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse
@@ -680,6 +681,154 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
+    }
+  }
+
+  @Nested
+  @DisplayName("Update session attendees")
+  inner class UpdateSessionAttendees {
+    private lateinit var session: SessionEntity
+    private lateinit var referral1: ReferralEntity
+    private lateinit var referral2: ReferralEntity
+    private lateinit var group: ProgrammeGroupEntity
+
+    @BeforeEach
+    fun beforeEach() {
+      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+      val sessionTemplate = moduleSessionTemplateRepository.findByName("Managing myself one-to-one")
+
+      group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate!!)
+          .produce(),
+      )
+      referral1 = testDataGenerator.createReferral(
+        personName = "John Doe",
+        crn = "X123456",
+      )
+      referral2 = testDataGenerator.createReferral(
+        personName = "Alex River",
+        crn = "X654321",
+      )
+    }
+
+    @Test
+    fun `should update session attendees successfully`() {
+      // Given
+      val request = UpdateSessionAttendeesRequest(referralIdList = listOf(referral1.id!!, referral2.id!!))
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        HttpMethod.PUT,
+        "/session/${session.id}/attendees",
+        object : ParameterizedTypeReference<String>() {},
+        request,
+        HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response).isEqualTo("The date and time have been updated.")
+      val updatedSession = sessionRepository.findById(session.id!!).get()
+      assertThat(updatedSession.attendees).hasSize(2)
+      assertThat(updatedSession.attendees.map { it.referral.id }).containsExactlyInAnyOrder(referral1.id, referral2.id)
+    }
+
+    @Test
+    fun `should return 404 if session does not exist`() {
+      // Given
+      val sessionId = UUID.randomUUID()
+      val request = UpdateSessionAttendeesRequest(referralIdList = listOf(referral1.id!!))
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        HttpMethod.PUT,
+        "/session/$sessionId/attendees",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        request,
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      // Then
+      assertThat(response.userMessage).isEqualTo("Not Found: Session not found with id: $sessionId")
+    }
+
+    @Test
+    fun `should return 404 if referral does not exist`() {
+      // Given
+      val referralId = UUID.randomUUID()
+      val request = UpdateSessionAttendeesRequest(referralIdList = listOf(referralId))
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        HttpMethod.PUT,
+        "/session/${session.id}/attendees",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        request,
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      // Then
+      assertThat(response.userMessage).isEqualTo("Not Found: Referral not found with id: $referralId")
+    }
+
+    @Test
+    fun `should return 403 when unauthorised on update session attendees`() {
+      // Given
+      val request = UpdateSessionAttendeesRequest(referralIdList = listOf(referral1.id!!))
+
+      // When & Then
+      webTestClient
+        .method(HttpMethod.PUT)
+        .uri("/session/${session.id}/attendees")
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(request)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+
+    @Test
+    fun `should return 400 if referralIdList is empty`() {
+      // Given
+      val request = UpdateSessionAttendeesRequest(referralIdList = emptyList())
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        HttpMethod.PUT,
+        "/session/${session.id}/attendees",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        request,
+        HttpStatus.BAD_REQUEST.value(),
+      )
+
+      // Then
+      assertThat(response.userMessage).contains("Invalid value for parameter updateAttendeesRequest")
+    }
+
+    @Test
+    fun `should return 400 if referralIdList is null`() {
+      // Given
+      val request = mapOf("referralIdList" to null)
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        HttpMethod.PUT,
+        "/session/${session.id}/attendees",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        request,
+        HttpStatus.BAD_REQUEST.value(),
+      )
+
+      // Then
+      assertThat(response.userMessage).contains("Bad request")
     }
   }
 
