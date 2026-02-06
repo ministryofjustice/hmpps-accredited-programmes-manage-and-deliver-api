@@ -12,6 +12,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.fromDateTime
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionDateAndTimeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.toEditSessionFacilitator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toLocalTime
@@ -81,7 +82,7 @@ class SessionService(
     return "$hour$minutes$amPm"
   }
 
-  fun rescheduleSessions(sessionId: UUID, request: RescheduleSessionRequest): String {
+  fun rescheduleSessions(sessionId: UUID, request: RescheduleSessionRequest): EditSessionDateAndTimeResponse {
     val session = sessionRepository.findById(sessionId).orElseThrow {
       NotFoundException("Session not found with id: $sessionId")
     }
@@ -107,7 +108,7 @@ class SessionService(
         subsequentSession.endsAt = subsequentSession.endsAt.plus(startOffset)
       }
 
-      return "The date and time and schedule have been updated."
+      return EditSessionDateAndTimeResponse("The date and time and schedule have been updated.")
     }
 
     if (!isGroupSession) {
@@ -115,7 +116,7 @@ class SessionService(
         session.endsAt = LocalDateTime.of(request.sessionStartDate, requestedEndTime.toLocalTime())
       }
     }
-    return "The date and time have been updated."
+    return EditSessionDateAndTimeResponse("The date and time have been updated.")
   }
 
   fun getSession(sessionId: UUID): Session {
