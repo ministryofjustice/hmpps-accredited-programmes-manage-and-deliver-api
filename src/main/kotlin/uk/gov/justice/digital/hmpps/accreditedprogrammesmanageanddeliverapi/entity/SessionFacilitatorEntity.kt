@@ -22,7 +22,7 @@ class SessionFacilitatorEntity(
   var id: SessionFacilitatorId,
 
   @NotNull
-  @Column("facilitator_type")
+  @Column(name = "facilitator_type")
   @Enumerated(EnumType.STRING)
   var facilitatorType: FacilitatorType,
 ) {
