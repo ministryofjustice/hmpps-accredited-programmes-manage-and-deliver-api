@@ -30,11 +30,8 @@ class SessionAttendanceEntity(
   @JoinColumn(name = "group_membership_id")
   var groupMembership: ProgrammeGroupMembershipEntity,
 
-  @Column(name = "arrived_at")
-  var arrivedAt: LocalDateTime? = null,
-
-  @Column(name = "departed_at")
-  var departedAt: LocalDateTime? = null,
+  @Column(name = "attended")
+  var attended: Boolean? = null,
 
   @Column(name = "did_not_engage")
   var didNotEngage: Boolean? = null,
