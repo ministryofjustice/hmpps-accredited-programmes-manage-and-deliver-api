@@ -217,8 +217,7 @@ erDiagram
         uuid id
         uuid session_id
         uuid group_membership_id
-        datetime arrived_at "nullable"
-        datetime departed_at "nullable"
+        boolean attended
         boolean did_not_engage "nullable - facilitator concern flag"
         boolean legitimate_absence "nullable - illness, bereavement, etc"
         text notes "nullable"
