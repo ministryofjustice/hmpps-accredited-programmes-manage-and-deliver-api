@@ -9,7 +9,16 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
   description = "Response representing facilitators for a specific programme session",
 )
 data class EditSessionFacilitatorsResponse(
-  val headingText: String,
+  @Schema(
+    description = "The title of the page",
+    required = true,
+    example = "Attendance and notes for Getting started session",
+  )
+  val pageTitle: String,
+  @Schema(
+    description = "List of the facilitators for the session",
+    required = true,
+  )
   val facilitators: List<EditSessionFacilitator>,
 ) {
   data class EditSessionFacilitator(
