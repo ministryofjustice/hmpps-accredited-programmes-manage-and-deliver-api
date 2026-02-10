@@ -168,7 +168,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
     // Then
     assertThat(response.sessionId).isEqualTo(session.id)
-    assertThat(response.sessionName).isEqualTo("Future me plan")
+    assertThat(response.sessionName).isEqualTo("Bringing it all together 1: Future me plan")
     assertThat(response.previousSessionDateAndTime).isEqualTo("Thursday 21 May 2026, 11am to 1:30pm")
   }
 
@@ -201,7 +201,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     )
 
     // Then
-    assertThat(response.sessionName).isEqualTo("Module skills practice catch-up")
+    assertThat(response.sessionName).isEqualTo("Managing people around me 6: Module skills practice catch-up")
   }
 
   @Test
@@ -237,7 +237,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     )
 
     // Then
-    assertThat(response.sessionName).isEqualTo("John Doe: Managing myself one-to-one")
+    assertThat(response.sessionName).isEqualTo("John Doe: Managing myself 7: Managing myself one-to-one")
   }
 
   @Test
@@ -274,7 +274,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     )
 
     // Then
-    assertThat(response.sessionName).isEqualTo("Jane Smith: Post programme review")
+    assertThat(response.sessionName).isEqualTo("Jane Smith: Post-programme reviews 1: Post programme review")
   }
 
   @Test
