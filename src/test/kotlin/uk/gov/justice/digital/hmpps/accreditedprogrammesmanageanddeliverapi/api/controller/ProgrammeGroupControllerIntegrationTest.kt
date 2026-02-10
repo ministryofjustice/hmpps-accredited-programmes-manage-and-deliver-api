@@ -2112,6 +2112,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.time).isEqualTo("9:30am to midday")
       assertThat(response.scheduledToAttend).isEqualTo(groupWithAllocation.sessions.first().attendees.map { it.personName })
       assertThat(response.facilitators).isEqualTo(group.groupFacilitators.map { it.facilitator.personName })
+      assertThat(response.attendanceAndSessionNotes).hasSize(1)
+      assertThat(response.attendanceAndSessionNotes)
+        .filteredOn { it.crn == groupWithAllocation.programmeGroupMemberships.first().crn }
+        .hasSize(1)
+        .first()
+        .extracting("attendance", "sessionNotes")
+        .containsExactly("To be confirmed", "Not added")
     }
 
     @Test
