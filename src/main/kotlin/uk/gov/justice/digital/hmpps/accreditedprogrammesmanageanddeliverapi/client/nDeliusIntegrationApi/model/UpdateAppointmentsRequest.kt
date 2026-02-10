@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotEmpty
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
 import java.time.LocalDate
 import java.time.LocalTime
-import java.util.*
+import java.util.UUID
 
 data class UpdateAppointmentsRequest(@NotEmpty val appointments: List<UpdateAppointmentRequest>)
 

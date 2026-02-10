@@ -392,7 +392,6 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     val group = testDataGenerator.createGroup(
       ProgrammeGroupFactory()
         .withAccreditedProgrammeTemplate(programmeTemplate)
-//        .withCode("OTHERS")
         .withTreatmentManager(treatmentManager)
         .produce(),
     )
