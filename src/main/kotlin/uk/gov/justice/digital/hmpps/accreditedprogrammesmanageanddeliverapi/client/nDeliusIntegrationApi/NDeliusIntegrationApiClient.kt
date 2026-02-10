@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentsRequest
 
 private const val N_DELIUS_INTEGRATION_API = "NDelius Integration API"
 
@@ -109,6 +110,11 @@ class NDeliusIntegrationApiClient(
   }
 
   fun deleteAppointmentsInDelius(appointments: DeleteAppointmentsRequest) = deleteRequest<Unit>(N_DELIUS_INTEGRATION_API) {
+    path = "/appointments"
+    body = appointments
+  }
+
+  fun updateAppointmentsInDelius(appointments: UpdateAppointmentsRequest) = putRequest<Unit>(N_DELIUS_INTEGRATION_API) {
     path = "/appointments"
     body = appointments
   }

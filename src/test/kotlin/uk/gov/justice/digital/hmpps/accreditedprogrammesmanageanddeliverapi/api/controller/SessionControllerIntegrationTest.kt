@@ -30,6 +30,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegionWithMembers
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequestCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
@@ -41,10 +42,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusRegionWithMembersFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamMembersFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamWithMembersFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UpdateAppointmentRequestFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UpdateAppointmentsRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
@@ -56,6 +60,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.util.UUID
 
 class SessionControllerIntegrationTest : IntegrationTestBase() {
@@ -349,8 +354,10 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `rescheduleSession with rescheduleOtherSessions true updates subsequent group sessions`() {
     // Given
+    stubAuthTokenEndpoint()
     val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
     val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
+
     val sessionTemplate1 = testDataGenerator.createModuleSessionTemplate(
       ModuleSessionTemplateEntity(
         module = module,
@@ -381,12 +388,16 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         durationMinutes = 60,
       ),
     )
+    val treatmentManager = testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce())
     val group = testDataGenerator.createGroup(
       ProgrammeGroupFactory()
         .withAccreditedProgrammeTemplate(programmeTemplate)
-        .withCode("OTHERS")
+//        .withCode("OTHERS")
+        .withTreatmentManager(treatmentManager)
         .produce(),
     )
+
+    val referral = testDataGenerator.createReferral("John Smith", "X123456")
 
     // Session 1: 2026-04-23 10:00 - 11:00
     val session1 = testDataGenerator.createSession(
@@ -397,6 +408,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         .withEndsAt(LocalDateTime.of(2026, 4, 23, 11, 0))
         .produce(),
     )
+    val app1 = testDataGenerator.createNDeliusAppointment(session1, referral)
 
     // Session 2: 2026-04-24 10:00 - 11:00 (Group)
     val session2 = testDataGenerator.createSession(
@@ -407,6 +419,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         .withEndsAt(LocalDateTime.of(2026, 4, 24, 11, 0))
         .produce(),
     )
+    val app2 = testDataGenerator.createNDeliusAppointment(session2, referral)
 
     // Session 3: 2026-04-25 10:00 - 11:00 (Individual)
     val session3 = testDataGenerator.createSession(
@@ -417,6 +430,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         .withEndsAt(LocalDateTime.of(2026, 4, 25, 11, 0))
         .produce(),
     )
+    val app3 = testDataGenerator.createNDeliusAppointment(session3, referral)
+
+    nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
     // Reschedule Session 1 to be 1 hour later: 2026-04-23 11:00
     val rescheduleRequest = RescheduleSessionRequest(
@@ -450,6 +466,113 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     val updatedSession3 = sessionRepository.findById(session3.id!!).get()
     assertThat(updatedSession3.startsAt).isEqualTo(LocalDateTime.of(2026, 4, 25, 10, 0))
     assertThat(updatedSession3.endsAt).isEqualTo(LocalDateTime.of(2026, 4, 25, 11, 0))
+
+    // Verify ndeliusAppointments update request for Session 1
+    val expectedUpdateRequest1 = UpdateAppointmentsRequestFactory()
+      .withAppointments(
+        listOf(
+          UpdateAppointmentRequestFactory()
+            .withReference(app1.ndeliusAppointmentId)
+            .withDate(LocalDate.of(2026, 4, 23))
+            .withStartTime(LocalTime.of(11, 0))
+            .withEndTime(LocalTime.of(12, 0))
+            .withLocation(RequestCode(group.deliveryLocationCode))
+            .withStaff(RequestCode(group.treatmentManager!!.ndeliusPersonCode))
+            .withTeam(RequestCode(group.treatmentManager!!.ndeliusTeamCode))
+            .withNotes(null)
+            .produce(),
+        ),
+      )
+      .produce()
+    nDeliusApiStubs.verifyPutAppointments(1, expectedUpdateRequest1)
+
+    // Verify ndeliusAppointments update request for Session 2
+    val expectedUpdateRequest2 = UpdateAppointmentsRequestFactory()
+      .withAppointments(
+        listOf(
+          UpdateAppointmentRequestFactory()
+            .withReference(app2.ndeliusAppointmentId)
+            .withDate(LocalDate.of(2026, 4, 24))
+            .withStartTime(LocalTime.of(11, 0))
+            .withEndTime(LocalTime.of(12, 0))
+            .withLocation(RequestCode(group.deliveryLocationCode))
+            .withStaff(RequestCode(group.treatmentManager!!.ndeliusPersonCode))
+            .withTeam(RequestCode(group.treatmentManager!!.ndeliusTeamCode))
+            .withNotes(null)
+            .produce(),
+        ),
+      )
+      .produce()
+    nDeliusApiStubs.verifyPutAppointments(1, expectedUpdateRequest2)
+  }
+
+  @Test
+  fun `should reschedule individual session and update its nDelius appointment`() {
+    // Given
+    stubAuthTokenEndpoint()
+    val programmeTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+    val sessionTemplate = moduleSessionTemplateRepository.findByName("Post programme review")
+    val treatmentManager = testDataGenerator.createFacilitator(
+      FacilitatorEntityFactory()
+        .withId(null)
+        .produce(),
+    )
+    val group = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(programmeTemplate)
+        .withTreatmentManager(treatmentManager)
+        .produce(),
+    )
+
+    val referral = testDataGenerator.createReferral("John Doe", "X123457")
+
+    val session = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(sessionTemplate!!)
+        .withStartsAt(LocalDateTime.of(2026, 4, 23, 10, 0))
+        .withEndsAt(LocalDateTime.of(2026, 4, 23, 11, 0))
+        .produce(),
+    )
+    val app = testDataGenerator.createNDeliusAppointment(session, referral)
+
+    nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+
+    // Reschedule Session to be 1 hour later
+    val rescheduleRequest = RescheduleSessionRequest(
+      sessionStartDate = LocalDate.of(2026, 4, 23),
+      sessionStartTime = SessionTime(hour = 11, minutes = 0, amOrPm = AmOrPm.AM),
+      sessionEndTime = SessionTime(hour = 12, minutes = 0, amOrPm = AmOrPm.PM),
+      rescheduleOtherSessions = false,
+    )
+
+    // When
+    performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.PUT,
+      uri = "/session/${session.id}/reschedule",
+      body = rescheduleRequest,
+      returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+      expectedResponseStatus = HttpStatus.OK.value(),
+    )
+
+    // Then
+    val expectedUpdateRequest = UpdateAppointmentsRequestFactory()
+      .withAppointments(
+        listOf(
+          UpdateAppointmentRequestFactory()
+            .withReference(app.ndeliusAppointmentId)
+            .withDate(LocalDate.of(2026, 4, 23))
+            .withStartTime(LocalTime.of(11, 0))
+            .withEndTime(LocalTime.of(12, 0))
+            .withLocation(RequestCode(group.deliveryLocationCode))
+            .withStaff(RequestCode(group.treatmentManager!!.ndeliusPersonCode))
+            .withTeam(RequestCode(group.treatmentManager!!.ndeliusTeamCode))
+            .withNotes(null)
+            .produce(),
+        ),
+      )
+      .produce()
+    nDeliusApiStubs.verifyPutAppointments(1, expectedUpdateRequest)
   }
 
   @Test

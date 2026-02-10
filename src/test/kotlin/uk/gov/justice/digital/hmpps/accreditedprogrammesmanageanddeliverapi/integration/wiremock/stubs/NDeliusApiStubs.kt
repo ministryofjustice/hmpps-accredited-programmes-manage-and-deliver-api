@@ -4,9 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.delete
+import com.github.tomakehurst.wiremock.client.WireMock.equalToJson
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath
 import com.github.tomakehurst.wiremock.client.WireMock.post
+import com.github.tomakehurst.wiremock.client.WireMock.put
+import com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathTemplate
 import org.springframework.beans.factory.annotation.Autowired
@@ -22,6 +25,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
@@ -322,5 +326,26 @@ class NDeliusApiStubs {
             .withStatus(HttpStatus.NO_CONTENT.value()),
         ),
     )
+  }
+
+  fun stubSuccessfulPutAppointmentsResponse(updateAppointmentRequest: UpdateAppointmentsRequest? = null) {
+    val stub = put(urlEqualTo("/appointments"))
+    updateAppointmentRequest?.let {
+      stub.withRequestBody(equalToJson(objectMapper.writeValueAsString(it)))
+    }
+    wiremock.stubFor(
+      stub.willReturn(
+        aResponse()
+          .withStatus(HttpStatus.NO_CONTENT.value()),
+      ),
+    )
+  }
+
+  fun verifyPutAppointments(count: Int, request: UpdateAppointmentsRequest? = null) {
+    val requestPattern = putRequestedFor(urlEqualTo("/appointments"))
+    request?.let {
+      requestPattern.withRequestBody(equalToJson(objectMapper.writeValueAsString(it)))
+    }
+    wiremock.verify(count, requestPattern)
   }
 }
