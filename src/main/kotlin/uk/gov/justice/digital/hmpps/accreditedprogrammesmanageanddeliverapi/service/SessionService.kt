@@ -9,6 +9,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendance
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendee
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
@@ -27,11 +29,15 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AttendeeRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
@@ -56,6 +62,10 @@ class SessionService(
   private val referralRepository: ReferralRepository,
   @Autowired
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
+  @Autowired
+  private val attendeeRepository: AttendeeRepository,
+  @Autowired
+  private val facilitatorRepository: FacilitatorRepository,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
@@ -264,6 +274,44 @@ class SessionService(
     sessionRepository.save(session)
 
     return "The date and time have been updated."
+  }
+
+  fun saveSessionAttendance(sessionId: UUID, sessionAttendance: SessionAttendance): SessionAttendance {
+    val session = sessionRepository.findById(sessionId).orElseThrow {
+      NotFoundException("Session not found with id: $sessionId")
+    }
+
+    val sessionAttendanceEntities = getSessionAttendanceFromAttendees(sessionAttendance.attendees, session)
+    session.attendances.addAll(sessionAttendanceEntities)
+    sessionRepository.save(session)
+    sessionAttendance.responseMessage = "Attendance saved for session $sessionId"
+
+    return sessionAttendance
+  }
+
+  private fun getSessionAttendanceFromAttendees(
+    attendees: List<SessionAttendee>,
+    session: SessionEntity,
+  ): List<SessionAttendanceEntity> {
+    val programmeGroupId = session.programmeGroup.id!!
+
+    return attendees.map {
+      val attendeeId = it.attendeeId
+      val attendeeEntity = attendeeRepository.findById(attendeeId).orElseThrow {
+        NotFoundException("Attendee not found with id: $attendeeId")
+      }
+      val referralId = attendeeEntity.referralId
+      val groupMembershipEntity =
+        programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referralId, programmeGroupId)
+          ?: throw NotFoundException(
+            "Programme group membership not found with referralId: $referralId and programmeGroupId: $programmeGroupId",
+          )
+      val facilitatorId = it.recordedByFacilitatorId
+      val recordedByFacilitator = facilitatorRepository.findById(it.recordedByFacilitatorId).orElseThrow {
+        NotFoundException("Facilitator not found with id: $facilitatorId")
+      }
+      it.toEntity(session, groupMembershipEntity, recordedByFacilitator)
+    }.toList()
   }
 
   private fun getDeleteSessionResponseMessage(sessionEntity: SessionEntity): String {

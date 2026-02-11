@@ -9,12 +9,14 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotEmpty
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
@@ -24,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.UpdateSessionAttendeesRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendance
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
@@ -538,4 +541,64 @@ class SessionController(
     sessionService.editSessionFacilitators(sessionId, editSessionFacilitatorsRequest)
     return ResponseEntity.ok("The people responsible for this session have been updated.")
   }
+
+  @Operation(
+    tags = ["Session controller"],
+    summary = "Create attendance of a session",
+    operationId = "createAttendance",
+    description = "Create new attendance for a session",
+    responses = [
+      ApiResponse(
+        responseCode = "201",
+        description = "Session attendance created successfully",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = SessionAttendance::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden, requires role ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Session not found",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PostMapping(
+    "/session/{sessionId}/attendance",
+    consumes = [MediaType.APPLICATION_JSON_VALUE],
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+  )
+  fun createAttendance(
+    @PathVariable sessionId: UUID,
+    @RequestBody @Valid sessionAttendance: SessionAttendance,
+  ): ResponseEntity<SessionAttendance> = ResponseEntity.status(HttpStatus.CREATED)
+    .body(sessionService.saveSessionAttendance(sessionId, sessionAttendance))
 }
