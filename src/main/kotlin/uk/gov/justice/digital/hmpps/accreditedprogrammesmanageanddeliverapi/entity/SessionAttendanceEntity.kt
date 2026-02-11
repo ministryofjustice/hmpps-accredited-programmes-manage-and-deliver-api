@@ -9,7 +9,9 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendee
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.util.UUID
 
 @Entity
@@ -48,4 +50,16 @@ class SessionAttendanceEntity(
 
   @Column(name = "recorded_at")
   var recordedAt: LocalDateTime? = null,
+)
+
+fun SessionAttendee.toEntity(
+  session: SessionEntity,
+  groupMembershipEntity: ProgrammeGroupMembershipEntity,
+  recordedByFacilitator: FacilitatorEntity,
+) = SessionAttendanceEntity(
+  session = session,
+  groupMembership = groupMembershipEntity,
+  attended = attended,
+  recordedByFacilitator = recordedByFacilitator,
+  recordedAt = recordedAt.atTime(LocalTime.now()),
 )

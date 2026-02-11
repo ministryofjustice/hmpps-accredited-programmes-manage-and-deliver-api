@@ -11,12 +11,16 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.test.web.reactive.server.body
+import org.springframework.web.reactive.function.BodyInserters
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DeleteSessionCaptionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.UpdateSessionAttendeesRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendance
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendee
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse
@@ -1048,5 +1052,118 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
     }
+  }
+
+  @Test
+  fun `should POST session attendance request and return 201`() {
+    // Given
+    // Create group
+    val group = testGroupHelper.createGroup()
+    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+    // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+    val referral = testReferralHelper.createReferral()
+    programmeGroupMembershipService.allocateReferralToGroup(
+      referral.id!!,
+      group.id!!,
+      "SYSTEM",
+      "",
+    )
+    val sessionEntity =
+      sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }
+    nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+    val sessionId = sessionEntity!!.id!!
+
+    val sessionAttendanceRequest = SessionAttendance(
+      attendees = listOf(
+        SessionAttendee(
+          attendeeId = sessionEntity.attendees.first().id!!,
+          name = sessionEntity.attendees.first().personName,
+          attended = true,
+          recordedAt = LocalDate.now(),
+          recordedByFacilitatorId = sessionEntity.sessionFacilitators.first().id.facilitator.id!!,
+        ),
+      ),
+    )
+
+    // When
+    val response = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.POST,
+      uri = "/session/$sessionId/attendance",
+      body = sessionAttendanceRequest,
+      returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+      expectedResponseStatus = HttpStatus.CREATED.value(),
+    )
+
+    // Then
+    assertThat(response.responseMessage).isEqualTo("Attendance saved for session $sessionId")
+    val updatedSessionEntity = sessionRepository.findById(sessionId)
+    assertThat(updatedSessionEntity.isPresent).isTrue()
+    assertThat(updatedSessionEntity.get().attendances.size).isEqualTo(1)
+    assertThat(updatedSessionEntity.get().attendances.first().attended).isTrue()
+    assertThat(updatedSessionEntity.get().attendances.first().recordedByFacilitator?.id)
+      .isEqualTo(sessionEntity.sessionFacilitators.first().id.facilitator.id!!)
+    assertThat(updatedSessionEntity.get().attendances.first().recordedAt?.year).isEqualTo(LocalDate.now().year)
+    assertThat(updatedSessionEntity.get().attendances.first().recordedAt?.month?.value)
+      .isEqualTo(LocalDate.now().month.value)
+    assertThat(updatedSessionEntity.get().attendances.first().recordedAt?.dayOfMonth)
+      .isEqualTo(LocalDate.now().dayOfMonth)
+  }
+
+  @Test
+  fun `should return 404 when a session is not found on POST session attendance request`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val sessionAttendanceRequest = SessionAttendance(
+      attendees = listOf(
+        SessionAttendee(
+          attendeeId = UUID.randomUUID(),
+          name = "John Smith",
+          attended = true,
+          recordedAt = LocalDate.now(),
+          recordedByFacilitatorId = UUID.randomUUID(),
+        ),
+      ),
+    )
+
+    // When
+    val exception = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.POST,
+      uri = "/session/$sessionId/attendance",
+      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+      expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      body = sessionAttendanceRequest,
+    )
+
+    // Then
+    assertThat(exception.userMessage).isEqualTo("Not Found: Session not found with id: $sessionId")
+  }
+
+  @Test
+  fun `should return 401 when unauthorised on POST session session attendance request`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val sessionAttendanceRequest = SessionAttendance(
+      attendees = listOf(
+        SessionAttendee(
+          attendeeId = UUID.randomUUID(),
+          name = "John Smith",
+          attended = true,
+          recordedAt = LocalDate.now(),
+          recordedByFacilitatorId = UUID.randomUUID(),
+        ),
+      ),
+    )
+
+    // When
+    webTestClient
+      .method(HttpMethod.POST)
+      .uri("/session/$sessionId/attendance")
+      .contentType(MediaType.APPLICATION_JSON)
+      .body(BodyInserters.fromValue(sessionAttendanceRequest))
+      .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+      .exchange()
+      .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+      .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+      .returnResult().responseBody!!
   }
 }

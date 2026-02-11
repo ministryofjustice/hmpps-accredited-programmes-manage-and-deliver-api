@@ -4,24 +4,33 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.data.repository.findByIdOrNull
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.GROUP
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ModuleEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ModuleSessionTemplateEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AttendeeRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
-import java.util.Optional
-import java.util.UUID
+import java.util.*
 
 class SessionServiceTest {
   private val sessionRepository = mockk<SessionRepository>()
@@ -29,6 +38,8 @@ class SessionServiceTest {
   private val programmeGroupMembershipRepository = mockk<ProgrammeGroupMembershipRepository>()
   private val referralRepository = mockk<ReferralRepository>()
   private val facilitatorService = mockk<FacilitatorService>()
+  private val attendeeRepository = mockk<AttendeeRepository>()
+  private val facilitatorRepository = mockk<FacilitatorRepository>()
   private lateinit var service: SessionService
 
   @BeforeEach
@@ -39,6 +50,8 @@ class SessionServiceTest {
       programmeGroupMembershipRepository,
       facilitatorService,
       referralRepository,
+      attendeeRepository,
+      facilitatorRepository,
     )
   }
 
@@ -204,5 +217,262 @@ class SessionServiceTest {
     verify { referralRepository.findById(referralId1) }
     verify { referralRepository.findById(referralId2) }
     verify { sessionRepository.save(session) }
+  }
+
+  @Test
+  fun `should save a new session attendance`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val sessionAttendance = SessionAttendanceFactory().produce()
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity = ProgrammeGroupFactory()
+      .withId(UUID.randomUUID())
+      .withTreatmentManager(facilitator)
+      .produce()
+    val module = ModuleEntityFactory().withName("Module 1").produce()
+    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
+      .withSessionType(GROUP)
+      .withModule(module)
+      .withName("Getting started")
+      .produce()
+    val referralEntity = ReferralEntityFactory().withId(UUID.randomUUID()).withPersonName("John Smith").produce()
+    val sessionEntity = SessionFactory()
+      .withAttendees(
+        listOf(
+          AttendeeFactory().withReferral(referralEntity)
+            .withSession(
+              SessionFactory().withProgrammeGroup(programmeGroupEntity)
+                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
+            ).produce(),
+        ) as MutableList<AttendeeEntity>,
+      )
+      .withIsCatchup(true)
+      .withProgrammeGroup(programmeGroupEntity)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .produce()
+    val attendeeFactory = AttendeeFactory()
+      .withId(UUID.randomUUID())
+      .withSession(sessionEntity)
+      .withReferral(referralEntity)
+      .produce()
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every { attendeeRepository.findById(any()) } returns Optional.of(attendeeFactory)
+    every {
+      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(
+        any(),
+        any(),
+      )
+    } returns programmeGroupMembershipEntity
+    every { facilitatorRepository.findById(any()) } returns Optional.of(facilitator)
+    every { sessionRepository.save(any()) } returns sessionEntity
+
+    // When
+    val result = service.saveSessionAttendance(sessionId, sessionAttendance)
+
+    // Then
+    assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
+    verify { sessionRepository.findById(any()) }
+    verify { attendeeRepository.findById(any()) }
+    verify { programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any()) }
+    verify { facilitatorRepository.findById(any()) }
+    verify { sessionRepository.save(any()) }
+  }
+
+  @Test
+  fun `should throw a session not found exception on save a new session attendance`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val sessionAttendance = SessionAttendanceFactory().produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.empty<SessionEntity>()
+
+    // When
+    val exception = assertThrows<NotFoundException> {
+      service.saveSessionAttendance(sessionId, sessionAttendance)
+    }
+
+    // Then
+    assertTrue(exception.message!!.contains("Session not found with id: $sessionId"))
+    verify { sessionRepository.findById(any()) }
+  }
+
+  @Test
+  fun `should throw an attendee not found exception on save a new session attendance`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val attendeeId = UUID.randomUUID()
+    val sessionAttendance = SessionAttendanceFactory()
+      .withAttendees(listOf(SessionAttendeeFactory().withAttendeeId(attendeeId).produce()))
+      .produce()
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity = ProgrammeGroupFactory()
+      .withId(UUID.randomUUID())
+      .withTreatmentManager(facilitator)
+      .produce()
+    val module = ModuleEntityFactory().withName("Module 1").produce()
+    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
+      .withSessionType(GROUP)
+      .withModule(module)
+      .withName("Getting started")
+      .produce()
+    val referralEntity = ReferralEntityFactory().withId(UUID.randomUUID()).withPersonName("John Smith").produce()
+    val sessionEntity = SessionFactory()
+      .withAttendees(
+        listOf(
+          AttendeeFactory().withReferral(referralEntity)
+            .withSession(
+              SessionFactory().withProgrammeGroup(programmeGroupEntity)
+                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
+            ).produce(),
+        ) as MutableList<AttendeeEntity>,
+      )
+      .withIsCatchup(true)
+      .withProgrammeGroup(programmeGroupEntity)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every { attendeeRepository.findById(any()) } returns Optional.empty<AttendeeEntity>()
+
+    // When
+    val exception = assertThrows<NotFoundException> {
+      service.saveSessionAttendance(sessionId, sessionAttendance)
+    }
+
+    // Then
+    assertTrue(exception.message!!.contains("Attendee not found with id: $attendeeId"))
+    verify { sessionRepository.findById(any()) }
+    verify { attendeeRepository.findById(any()) }
+  }
+
+  @Test
+  fun `should throw a programme group membership not found exception on save a new session attendance`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val sessionAttendance = SessionAttendanceFactory().produce()
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupId = UUID.randomUUID()
+    val programmeGroupEntity = ProgrammeGroupFactory()
+      .withId(programmeGroupId)
+      .withTreatmentManager(facilitator)
+      .produce()
+    val module = ModuleEntityFactory().withName("Module 1").produce()
+    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
+      .withSessionType(GROUP)
+      .withModule(module)
+      .withName("Getting started")
+      .produce()
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity = SessionFactory()
+      .withAttendees(
+        listOf(
+          AttendeeFactory().withReferral(referralEntity)
+            .withSession(
+              SessionFactory().withProgrammeGroup(programmeGroupEntity)
+                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
+            ).produce(),
+        ) as MutableList<AttendeeEntity>,
+      )
+      .withIsCatchup(true)
+      .withProgrammeGroup(programmeGroupEntity)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .produce()
+    val attendeeFactory = AttendeeFactory()
+      .withId(UUID.randomUUID())
+      .withSession(sessionEntity)
+      .withReferral(referralEntity)
+      .produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every { attendeeRepository.findById(any()) } returns Optional.of(attendeeFactory)
+    every {
+      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(
+        any(),
+        any(),
+      )
+    } returns null
+
+    // When
+    val exception = assertThrows<NotFoundException> {
+      service.saveSessionAttendance(sessionId, sessionAttendance)
+    }
+
+    // Then
+    assertTrue(
+      exception.message!!
+        .contains("Programme group membership not found with referralId: $referralId and programmeGroupId: $programmeGroupId"),
+    )
+    verify { sessionRepository.findById(any()) }
+    verify { attendeeRepository.findById(any()) }
+    verify { programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any()) }
+  }
+
+  @Test
+  fun `should throw a facilitator not found exception on save a new session attendance`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val facilitatorId = UUID.randomUUID()
+    val sessionAttendance = SessionAttendanceFactory()
+      .withAttendees(listOf(SessionAttendeeFactory().withRecordedByFacilitatorId(facilitatorId).produce()))
+      .produce()
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity = ProgrammeGroupFactory()
+      .withId(UUID.randomUUID())
+      .withTreatmentManager(facilitator)
+      .produce()
+    val module = ModuleEntityFactory().withName("Module 1").produce()
+    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
+      .withSessionType(GROUP)
+      .withModule(module)
+      .withName("Getting started")
+      .produce()
+    val referralEntity = ReferralEntityFactory().withId(UUID.randomUUID()).withPersonName("John Smith").produce()
+    val sessionEntity = SessionFactory()
+      .withAttendees(
+        listOf(
+          AttendeeFactory().withReferral(referralEntity)
+            .withSession(
+              SessionFactory().withProgrammeGroup(programmeGroupEntity)
+                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
+            ).produce(),
+        ) as MutableList<AttendeeEntity>,
+      )
+      .withIsCatchup(true)
+      .withProgrammeGroup(programmeGroupEntity)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .produce()
+    val attendeeFactory = AttendeeFactory()
+      .withId(UUID.randomUUID())
+      .withSession(sessionEntity)
+      .withReferral(referralEntity)
+      .produce()
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every { attendeeRepository.findById(any()) } returns Optional.of(attendeeFactory)
+    every {
+      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(
+        any(),
+        any(),
+      )
+    } returns programmeGroupMembershipEntity
+    every { facilitatorRepository.findById(any()) } returns Optional.empty<FacilitatorEntity>()
+
+    // When
+    val exception = assertThrows<NotFoundException> {
+      service.saveSessionAttendance(sessionId, sessionAttendance)
+    }
+
+    // Then
+    assertTrue(
+      exception.message!!.contains("Facilitator not found with id: $facilitatorId"),
+    )
+    verify { sessionRepository.findById(any()) }
+    verify { attendeeRepository.findById(any()) }
+    verify { programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any()) }
+    verify { facilitatorRepository.findById(any()) }
   }
 }
