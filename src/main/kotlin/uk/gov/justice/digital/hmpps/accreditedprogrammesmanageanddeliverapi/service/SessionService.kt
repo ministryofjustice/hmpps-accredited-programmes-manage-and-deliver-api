@@ -196,7 +196,7 @@ class SessionService(
       .ifEmpty { throw NotFoundException("Cannot get attendees as there are currently no members allocated to group with id: ${session.programmeGroup.id!!}") }
 
     val sessionAttendees =
-      groupMembers.map { groupMember -> groupMember.toSessionAttendee(session.attendees.map { session -> session.referralId }) }
+      groupMembers.map { groupMember -> groupMember.toSessionAttendee(session.attendees.map(AttendeeEntity::referralId)) }
 
     return EditSessionAttendeesResponse(
       sessionId = sessionId,
@@ -218,7 +218,7 @@ class SessionService(
     val sessionFacilitatorCodes = session.sessionFacilitators.map { it.facilitatorCode }
 
     return EditSessionFacilitatorsResponse(
-      headingText = formatSessionName(session),
+      pageTitle = "Edit ${formatSessionName(session)}",
       facilitators = regionFacilitators.map { it.toEditSessionFacilitator(sessionFacilitatorCodes) },
     )
   }
@@ -326,7 +326,8 @@ class SessionService(
   }
 
   private fun formatSessionName(session: SessionEntity): String {
-    val baseName = session.moduleSessionTemplate.name
+    val baseName =
+      "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}"
 
     // Session attendees could be null if we are editing a session before anyone has been allocated to a group.
     val name = if (session.sessionType == ONE_TO_ONE) {

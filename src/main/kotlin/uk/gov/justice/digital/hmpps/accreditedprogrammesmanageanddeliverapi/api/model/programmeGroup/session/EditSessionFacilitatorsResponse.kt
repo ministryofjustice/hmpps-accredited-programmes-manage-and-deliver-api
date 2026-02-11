@@ -9,12 +9,21 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
   description = "Response representing facilitators for a specific programme session",
 )
 data class EditSessionFacilitatorsResponse(
-  val headingText: String,
+  @Schema(
+    description = "The title of the page",
+    required = true,
+    example = "Attendance and notes for Getting started session",
+  )
+  val pageTitle: String,
+  @Schema(
+    description = "List of the facilitators for the session",
+    required = true,
+  )
   val facilitators: List<EditSessionFacilitator>,
 ) {
   data class EditSessionFacilitator(
-    @NotNull(message = "facilitator must not be null")
-    @get:JsonProperty("facilitator", required = true)
+    @NotNull(message = "facilitatorName must not be null")
+    @get:JsonProperty("facilitatorName", required = true)
     @Schema(description = "The full name of the facilitator for the group")
     var facilitatorName: String,
 

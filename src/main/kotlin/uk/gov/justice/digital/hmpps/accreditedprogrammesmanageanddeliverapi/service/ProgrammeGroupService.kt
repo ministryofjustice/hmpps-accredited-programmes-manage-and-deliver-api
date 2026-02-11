@@ -217,7 +217,8 @@ class ProgrammeGroupService(
               scheduledSession.endsAt.toLocalTime(),
             ),
             participants = if (sessionTemplate.sessionType == SessionType.GROUP) listOf("All") else scheduledSession.attendees.map { it.personName },
-            facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }.map { it.facilitator.personName },
+            facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }
+              .map { it.facilitator.personName },
           )
         } ?: emptyList()
       }.flatten()
@@ -260,7 +261,10 @@ class ProgrammeGroupService(
     return "$formattedStartTime to $formattedEndTime"
   }
 
-  private fun getFormattedSessionNameForDisplay(sessionTemplate: ModuleSessionTemplateEntity, scheduledSession: SessionEntity): String = when (sessionTemplate.sessionType) {
+  private fun getFormattedSessionNameForDisplay(
+    sessionTemplate: ModuleSessionTemplateEntity,
+    scheduledSession: SessionEntity,
+  ): String = when (sessionTemplate.sessionType) {
     SessionType.GROUP -> "${sessionTemplate.module.name} ${scheduledSession.sessionNumber}: ${sessionTemplate.name}"
     SessionType.ONE_TO_ONE -> "${scheduledSession.attendees.first().personName} (${scheduledSession.attendees.first().referral.crn}): ${sessionTemplate.name}"
   }
@@ -286,7 +290,15 @@ class ProgrammeGroupService(
         name = session.moduleSessionTemplate.name,
         type = session.sessionType.value,
         date = session.startsAt.toLocalDate(),
-        time = if (session.isPlaceholder) "Various times" else "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${formatTimeForUiDisplay(session.endsAt.toLocalTime())}",
+        time = if (session.isPlaceholder) {
+          "Various times"
+        } else {
+          "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${
+            formatTimeForUiDisplay(
+              session.endsAt.toLocalTime(),
+            )
+          }"
+        },
       )
     }
 
@@ -411,8 +423,9 @@ class ProgrammeGroupService(
     )
   }
 
-  private fun groupFormatPageTitle(session: SessionEntity): String = when (session.sessionType) {
+  fun groupFormatPageTitle(session: SessionEntity): String = when (session.sessionType) {
     SessionType.GROUP -> "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}"
+
     SessionType.ONE_TO_ONE -> if (session.moduleSessionTemplate.name == "Post programme review") {
       "${session.attendees.first().personName}: Post-programme review"
     } else {

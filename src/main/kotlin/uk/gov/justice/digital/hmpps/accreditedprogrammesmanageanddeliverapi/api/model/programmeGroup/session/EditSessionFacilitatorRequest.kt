@@ -12,7 +12,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 data class EditSessionFacilitatorRequest(
   @NotNull(message = "facilitatorName must not be null")
   @NotBlank(message = "facilitatorName must not be blank")
-  @get:JsonProperty("facilitator", required = true)
+  @get:JsonProperty("facilitatorName", required = true)
   @Schema(description = "The full name of the facilitator for the group")
   var facilitatorName: String,
 
