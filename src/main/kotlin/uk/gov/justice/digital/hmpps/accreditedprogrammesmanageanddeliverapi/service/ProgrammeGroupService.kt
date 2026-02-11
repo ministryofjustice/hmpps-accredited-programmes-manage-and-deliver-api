@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.LocationFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AttendanceAndSessionNotes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
@@ -388,6 +389,16 @@ class ProgrammeGroupService(
     val session =
       sessionRepository.findByIdOrNull(sessionId) ?: throw NotFoundException("Session with $sessionId not found")
 
+    val attendanceAndSessionNotes = session.attendees.map { attendee ->
+      val attendanceRecord = session.attendances.find { it.groupMembership.referral.id == attendee.referralId }
+      AttendanceAndSessionNotes(
+        name = attendee.personName,
+        crn = attendee.referral.crn,
+        attendance = attendanceRecord?.attended?.toString() ?: "To be confirmed",
+        sessionNotes = attendanceRecord?.notes ?: "Not added",
+      )
+    }
+
     return GroupSessionResponse(
       groupCode = programmeGroup.code,
       pageTitle = groupFormatPageTitle(session),
@@ -396,7 +407,7 @@ class ProgrammeGroupService(
       time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
       scheduledToAttend = session.attendees.map { it.personName },
       facilitators = session.sessionFacilitators.map { it.facilitator.personName },
-      attendanceAndSessionNotes = listOf(),
+      attendanceAndSessionNotes = attendanceAndSessionNotes,
     )
   }
 

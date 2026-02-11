@@ -35,14 +35,11 @@ data class GroupSessionResponse(
 
   @Schema(description = "The attendance and session notes for each attendee", required = true)
   val attendanceAndSessionNotes: List<AttendanceAndSessionNotes>,
-) {
+)
 
-  data class AttendanceAndSessionNotes(
-    val name: String,
-    val crn: String,
-    // TODO Implement this when we have attendance
-    val attendance: String,
-    // TODO Implement this when we have session notes
-    val sessionNotes: String,
-  )
-}
+data class AttendanceAndSessionNotes(
+  val name: String,
+  val crn: String,
+  val attendance: String,
+  val sessionNotes: String,
+)
