@@ -554,7 +554,7 @@ class SessionController(
         content = [
           Content(
             mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema = Schema(implementation = String::class),
+            schema = Schema(implementation = SessionAttendance::class),
           ),
         ],
       ),
