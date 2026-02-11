@@ -12,6 +12,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnitEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
@@ -242,6 +243,20 @@ class TestDataGenerator {
   fun createAttendee(referral: ReferralEntity, session: SessionEntity): AttendeeEntity {
     val attendee = AttendeeEntity(referral = referral, session = session)
     return attendeeRepository.save(attendee)
+  }
+
+  fun createNDeliusAppointment(
+    session: SessionEntity,
+    referral: ReferralEntity,
+    nDeliusAppointmentId: UUID = UUID.randomUUID(),
+  ): NDeliusAppointmentEntity {
+    val appointment = NDeliusAppointmentEntity(
+      session = session,
+      referral = referral,
+      ndeliusAppointmentId = nDeliusAppointmentId,
+    )
+    entityManager.persist(appointment)
+    return appointment
   }
 
   fun allocateReferralsToGroup(

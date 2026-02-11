@@ -28,6 +28,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffenceFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UpdateAppointmentsRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import java.time.LocalDate
 
@@ -423,6 +424,24 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
       }
 
       else -> fail("Unexpected result: ${response::class.simpleName}")
+    }
+  }
+
+  @Test
+  fun `should update appointments in Delius`() {
+    stubAuthTokenEndpoint()
+    val appointments = UpdateAppointmentsRequestFactory().produce()
+
+    nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse(appointments)
+
+    when (val response = nDeliusIntegrationApiClient.updateAppointmentsInDelius(appointments)) {
+      is ClientResult.Success<*> -> {
+        assertThat(response.status).isEqualTo(HttpStatus.NO_CONTENT)
+      }
+
+      else -> {
+        fail("Unexpected result: ${response::class.simpleName}")
+      }
     }
   }
 }
