@@ -22,8 +22,8 @@ data class EditSessionFacilitatorsResponse(
   val facilitators: List<EditSessionFacilitator>,
 ) {
   data class EditSessionFacilitator(
-    @NotNull(message = "facilitator must not be null")
-    @get:JsonProperty("facilitator", required = true)
+    @NotNull(message = "facilitatorName must not be null")
+    @get:JsonProperty("facilitatorName", required = true)
     @Schema(description = "The full name of the facilitator for the group")
     var facilitatorName: String,
 
