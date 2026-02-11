@@ -29,11 +29,6 @@ data class CreateAppointmentRequest(
   data class Location(val code: String)
   data class Staff(val code: String)
   data class Team(val code: String)
-
-  enum class AppointmentType {
-    PROGRAMME_ATTENDANCE,
-    THREE_WAY_MEETING,
-  }
 }
 
 fun AttendeeEntity.toAppointment(ndeliusAppointmentId: UUID): CreateAppointmentRequest.NdeliusAppointment = CreateAppointmentRequest.NdeliusAppointment(
@@ -49,5 +44,5 @@ fun AttendeeEntity.toAppointment(ndeliusAppointmentId: UUID): CreateAppointmentR
   team = CreateAppointmentRequest.Team(session.programmeGroup.treatmentManager!!.ndeliusTeamCode),
   notes = null,
   sensitive = false,
-  type = CreateAppointmentRequest.AppointmentType.PROGRAMME_ATTENDANCE,
+  type = AppointmentType.PROGRAMME_ATTENDANCE,
 )

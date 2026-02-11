@@ -9,9 +9,16 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.http.HttpStatus
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.GROUP
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
@@ -30,7 +37,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.*
+import java.util.Optional
+import java.util.UUID
 
 class SessionServiceTest {
   private val sessionRepository = mockk<SessionRepository>()
@@ -40,6 +51,7 @@ class SessionServiceTest {
   private val facilitatorService = mockk<FacilitatorService>()
   private val attendeeRepository = mockk<AttendeeRepository>()
   private val facilitatorRepository = mockk<FacilitatorRepository>()
+  private val nDeliusIntegrationApiClient = mockk<NDeliusIntegrationApiClient>()
   private lateinit var service: SessionService
 
   @BeforeEach
@@ -52,6 +64,7 @@ class SessionServiceTest {
       referralRepository,
       attendeeRepository,
       facilitatorRepository,
+      nDeliusIntegrationApiClient,
     )
   }
 
@@ -217,6 +230,110 @@ class SessionServiceTest {
     verify { referralRepository.findById(referralId1) }
     verify { referralRepository.findById(referralId2) }
     verify { sessionRepository.save(session) }
+  }
+
+  @Test
+  fun `rescheduleSessions should update nDelius appointments for single session`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val request = RescheduleSessionRequest(
+      sessionStartDate = LocalDate.now().plusDays(1),
+      sessionStartTime = SessionTime(10, 0, AmOrPm.AM),
+      rescheduleOtherSessions = false,
+    )
+
+    val facilitator = FacilitatorEntityFactory().produce()
+    val group = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
+    val moduleSessionTemplate = ModuleSessionTemplateEntityFactory().withName("session 1").produce()
+    val session = SessionFactory()
+      .withProgrammeGroup(group)
+      .withModuleSessionTemplate(moduleSessionTemplate)
+      .withStartsAt(LocalDateTime.now().plusDays(1))
+      .produce()
+
+    val appointment = NDeliusAppointmentEntity(
+      ndeliusAppointmentId = UUID.randomUUID(),
+      session = session,
+      referral = ReferralEntityFactory().produce(),
+    )
+    session.ndeliusAppointments.add(appointment)
+
+    every { sessionRepository.findById(sessionId) } returns Optional.of(session)
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns ClientResult.Success(
+      status = HttpStatus.OK,
+      body = Unit,
+    )
+
+    // When
+    service.rescheduleSessions(sessionId, request)
+
+    // Then
+    verify { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+  }
+
+  @Test
+  fun `rescheduleSessions should update nDelius appointments for all shifted sessions`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val request = RescheduleSessionRequest(
+      sessionStartDate = LocalDate.now().plusDays(1),
+      sessionStartTime = SessionTime(10, 0, AmOrPm.AM),
+      rescheduleOtherSessions = true,
+    )
+
+    val facilitator = FacilitatorEntityFactory().produce()
+    val group = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
+    val template1 = ModuleSessionTemplateEntityFactory()
+      .withName("session 1")
+      .withSessionNumber(1)
+      .withSessionType(GROUP)
+      .produce()
+    val template2 = ModuleSessionTemplateEntityFactory()
+      .withName("session 2")
+      .withSessionNumber(2)
+      .withSessionType(GROUP)
+      .produce()
+
+    val session1 = SessionFactory()
+      .withProgrammeGroup(group)
+      .withModuleSessionTemplate(template1)
+      .withStartsAt(LocalDateTime.now().plusDays(1))
+      .produce()
+
+    val session2 = SessionFactory()
+      .withProgrammeGroup(group)
+      .withModuleSessionTemplate(template2)
+      .withStartsAt(LocalDateTime.now().plusDays(2))
+      .produce()
+
+    group.sessions.add(session1)
+    group.sessions.add(session2)
+
+    val appointment1 = NDeliusAppointmentEntity(
+      ndeliusAppointmentId = UUID.randomUUID(),
+      session = session1,
+      referral = ReferralEntityFactory().produce(),
+    )
+    session1.ndeliusAppointments.add(appointment1)
+
+    val appointment2 = NDeliusAppointmentEntity(
+      ndeliusAppointmentId = UUID.randomUUID(),
+      session = session2,
+      referral = ReferralEntityFactory().produce(),
+    )
+    session2.ndeliusAppointments.add(appointment2)
+
+    every { sessionRepository.findById(sessionId) } returns Optional.of(session1)
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns ClientResult.Success(
+      status = HttpStatus.OK,
+      body = Unit,
+    )
+
+    // When
+    service.rescheduleSessions(sessionId, request)
+
+    // Then
+    verify(exactly = 2) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
   }
 
   @Test

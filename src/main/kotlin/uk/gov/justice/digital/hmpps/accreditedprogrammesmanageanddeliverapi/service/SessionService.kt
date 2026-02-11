@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -21,6 +22,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toLocalTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toSessionAttendee
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentsRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toUpdateAppointmentRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
@@ -54,6 +60,8 @@ class SessionService(
   private val facilitatorService: FacilitatorService,
   @Autowired
   private val referralRepository: ReferralRepository,
+  @Autowired
+  private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   @Autowired
   private val attendeeRepository: AttendeeRepository,
   @Autowired
@@ -120,6 +128,10 @@ class SessionService(
         subsequentSession.endsAt = subsequentSession.endsAt.plus(startOffset)
       }
 
+      (subsequentGroupSessions + session).forEach {
+        updateNdeliusAppointmentsForSession(it)
+      }
+
       return EditSessionDateAndTimeResponse("The date and time and schedule have been updated.")
     }
 
@@ -128,7 +140,44 @@ class SessionService(
         session.endsAt = LocalDateTime.of(request.sessionStartDate, requestedEndTime.toLocalTime())
       }
     }
+
+    updateNdeliusAppointmentsForSession(session)
+
     return EditSessionDateAndTimeResponse("The date and time have been updated.")
+  }
+
+  fun updateNdeliusAppointmentsForSession(session: SessionEntity) {
+    if (session.ndeliusAppointments.isEmpty()) return
+
+    val updateRequests = session.ndeliusAppointments.map { it.toUpdateAppointmentRequest() }
+
+    when (
+      val response = nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateRequests))
+    ) {
+      is ClientResult.Failure.StatusCode -> {
+        log.warn("Failure to update appointments with reason: ${response.getErrorMessage()}")
+        throw BusinessException("Failure to update appointments", response.toException())
+      }
+
+      is ClientResult.Failure.Other -> {
+        log.warn(
+          "Failure to update appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
+          response.exception,
+        )
+        throw BusinessException(
+          "Failure to update appointments in Ndelius: ${response.exception.message}",
+          response.exception,
+        )
+      }
+
+      is ClientResult.Success -> {
+        log.info("${updateRequests.size} appointments updated in Ndelius for session with id: ${session.id}")
+      }
+    }
+  }
+
+  companion object {
+    private val log = LoggerFactory.getLogger(SessionService::class.java)
   }
 
   fun getSession(sessionId: UUID): Session {

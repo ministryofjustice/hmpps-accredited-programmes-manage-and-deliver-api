@@ -259,7 +259,7 @@ class ScheduleService(
   }
 
   fun createNdeliusAppointmentsForSessions(attendees: List<AttendeeEntity>) {
-    val (ndeliusAppointments, nDeliusAppointmentEntities) = attendees.map { attendee ->
+    val (nDeliusAppointments, nDeliusAppointmentEntities) = attendees.map { attendee ->
       // Generate an appointment ID to be used by NDelius
       val appointmentId = UUID.randomUUID()
       val appointment = attendee.toAppointment(appointmentId)
@@ -269,7 +269,7 @@ class ScheduleService(
 
     when (
       val response =
-        nDeliusIntegrationApiClient.createAppointmentsInDelius(CreateAppointmentRequest(ndeliusAppointments))
+        nDeliusIntegrationApiClient.createAppointmentsInDelius(CreateAppointmentRequest(nDeliusAppointments))
     ) {
       is ClientResult.Failure.StatusCode -> {
         log.warn("Failure to create appointments with reason: ${response.getErrorMessage()}")
@@ -288,7 +288,7 @@ class ScheduleService(
       }
 
       is ClientResult.Success -> {
-        log.info("${ndeliusAppointments.size} appointments created in Ndelius for group with id: ${nDeliusAppointmentEntities.first().session.programmeGroup.id}")
+        log.info("${nDeliusAppointments.size} appointments created in Ndelius for group with id: ${nDeliusAppointmentEntities.first().session.programmeGroup.id}")
         nDeliusAppointmentRepository.saveAll(nDeliusAppointmentEntities)
       }
     }
