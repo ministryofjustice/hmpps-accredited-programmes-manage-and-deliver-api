@@ -25,7 +25,7 @@ dependencies {
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1")
 
   // Seeding
-  implementation("net.datafaker:datafaker:2.5.3")
+  implementation("net.datafaker:datafaker:2.5.4")
 
   // Coroutines
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
@@ -55,7 +55,7 @@ dependencies {
   testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
-  runtimeOnly("org.postgresql:postgresql:42.7.9")
+  runtimeOnly("org.postgresql:postgresql:42.7.10")
 }
 
 kotlin {
