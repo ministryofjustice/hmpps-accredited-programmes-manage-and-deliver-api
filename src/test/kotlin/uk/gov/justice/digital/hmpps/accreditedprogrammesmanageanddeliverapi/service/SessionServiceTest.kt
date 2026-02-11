@@ -39,7 +39,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.*
 import java.util.Optional
 import java.util.UUID
 
@@ -62,9 +61,9 @@ class SessionServiceTest {
       programmeGroupMembershipRepository,
       facilitatorService,
       referralRepository,
+      nDeliusIntegrationApiClient,
       attendeeRepository,
       facilitatorRepository,
-      nDeliusIntegrationApiClient,
     )
   }
 
