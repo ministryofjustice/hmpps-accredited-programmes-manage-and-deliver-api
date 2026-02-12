@@ -11,7 +11,6 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.test.web.reactive.server.body
 import org.springframework.web.reactive.function.BodyInserters
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DeleteSessionCaptionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
@@ -169,7 +168,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
     // Then
     assertThat(response.sessionId).isEqualTo(session.id)
-    assertThat(response.sessionName).isEqualTo("Bringing it all together 1: Future me plan")
+    assertThat(response.sessionName).isEqualTo("Bringing it all together 1")
     assertThat(response.previousSessionDateAndTime).isEqualTo("Thursday 21 May 2026, 11am to 1:30pm")
   }
 
@@ -202,7 +201,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     )
 
     // Then
-    assertThat(response.sessionName).isEqualTo("Managing people around me 6: Module skills practice catch-up")
+    assertThat(response.sessionName).isEqualTo("Managing people around me 6 catch-up")
   }
 
   @Test
@@ -238,14 +237,14 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     )
 
     // Then
-    assertThat(response.sessionName).isEqualTo("John Doe: Managing myself 7: Managing myself one-to-one")
+    assertThat(response.sessionName).isEqualTo("John Doe: Managing myself one-to-one")
   }
 
   @Test
   fun `getRescheduleSessionDetails returns 200 and reschedule details for post-programme review`() {
     // Given
     val programmeTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
-    val sessionTemplate = moduleSessionTemplateRepository.findByName("Post programme review")
+    val sessionTemplate = moduleSessionTemplateRepository.findByName("Post-programme review")
 
     val group = testDataGenerator.createGroup(
       ProgrammeGroupFactory()
@@ -275,7 +274,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     )
 
     // Then
-    assertThat(response.sessionName).isEqualTo("Jane Smith: Post-programme reviews 1: Post programme review")
+    assertThat(response.sessionName).isEqualTo("Jane Smith: Post-programme review")
   }
 
   @Test
@@ -515,7 +514,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     // Given
     stubAuthTokenEndpoint()
     val programmeTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
-    val sessionTemplate = moduleSessionTemplateRepository.findByName("Post programme review")
+    val sessionTemplate = moduleSessionTemplateRepository.findByName("Post-programme review")
     val treatmentManager = testDataGenerator.createFacilitator(
       FacilitatorEntityFactory()
         .withId(null)
@@ -1018,7 +1017,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         code = "WIREMOCKED_REGION",
       )
       nDeliusApiStubs.stubRegionWithMembersResponse("WIREMOCKED_REGION", regionWithMembers)
-      val sessionId = group.sessions.first().id!!
+      val sessionId = group.sessions.find { it.sessionType == SessionType.GROUP }!!.id!!
 
       // When
       val response = performRequestAndExpectOk(
@@ -1032,6 +1031,168 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.facilitators).isNotEmpty
       // Only 1 facilitator that is not in the group currently
       assertThat(response.facilitators).extracting<Boolean> { it.currentlyFacilitating }.containsOnlyOnce(false)
+    }
+
+    @Test
+    fun `should return page title in the correct format for a pre group session`() {
+      // Given
+      // Stub Ndelius Response with 2 facilitators already assigned to the group and one that is just pulled from the full list from Ndelius
+      val groupFacilitators: MutableList<NDeliusRegionWithMembers.NDeliusUserTeamMembers> =
+        group.groupFacilitators.map {
+          NDeliusUserTeamMembersFactory().produce(
+            code = it.facilitatorCode,
+            name = it.facilitatorName.toFullName(),
+          )
+        }.toMutableList()
+      groupFacilitators.add(
+        NDeliusUserTeamMembersFactory().produce(
+          code = randomAlphanumericString(),
+          name = randomFullName(),
+        ),
+      )
+      val teams = listOf(NDeliusUserTeamWithMembersFactory().produce(members = groupFacilitators))
+      val pdu = NDeliusPduWithTeamFactory().produce(team = teams)
+      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(
+        pdus = listOf(pdu),
+        code = "WIREMOCKED_REGION",
+      )
+      nDeliusApiStubs.stubRegionWithMembersResponse("WIREMOCKED_REGION", regionWithMembers)
+      // Given
+      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+      val sessionTemplate = moduleSessionTemplateRepository.findByName("Pre-group one-to-one")
+
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate!!)
+          .produce(),
+      )
+      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val attendee = testDataGenerator.createAttendee(referral, session)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/session/${session.id}/session-facilitators",
+        object : ParameterizedTypeReference<EditSessionFacilitatorsResponse>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.pageTitle).isEqualTo("Edit ${attendee.personName}: Pre-group one-to-one")
+    }
+
+    @Test
+    fun `should return page title in the correct format for a post programme review session`() {
+      // Given
+      // Stub Ndelius Response with 2 facilitators already assigned to the group and one that is just pulled from the full list from Ndelius
+      val groupFacilitators: MutableList<NDeliusRegionWithMembers.NDeliusUserTeamMembers> =
+        group.groupFacilitators.map {
+          NDeliusUserTeamMembersFactory().produce(
+            code = it.facilitatorCode,
+            name = it.facilitatorName.toFullName(),
+          )
+        }.toMutableList()
+      groupFacilitators.add(
+        NDeliusUserTeamMembersFactory().produce(
+          code = randomAlphanumericString(),
+          name = randomFullName(),
+        ),
+      )
+      val teams = listOf(NDeliusUserTeamWithMembersFactory().produce(members = groupFacilitators))
+      val pdu = NDeliusPduWithTeamFactory().produce(team = teams)
+      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(
+        pdus = listOf(pdu),
+        code = "WIREMOCKED_REGION",
+      )
+      nDeliusApiStubs.stubRegionWithMembersResponse("WIREMOCKED_REGION", regionWithMembers)
+      // Given
+      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+      val sessionTemplate = moduleSessionTemplateRepository.findByName("Post-programme review")
+
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate!!)
+          .produce(),
+      )
+      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val attendee = testDataGenerator.createAttendee(referral, session)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/session/${session.id}/session-facilitators",
+        object : ParameterizedTypeReference<EditSessionFacilitatorsResponse>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.pageTitle).isEqualTo("Edit ${attendee.personName}: Post-programme review")
+    }
+
+    @Test
+    fun `should return page title in the correct format for a non pre group or post programme review session`() {
+      // Given
+      // Stub Ndelius Response with 2 facilitators already assigned to the group and one that is just pulled from the full list from Ndelius
+      val groupFacilitators: MutableList<NDeliusRegionWithMembers.NDeliusUserTeamMembers> =
+        group.groupFacilitators.map {
+          NDeliusUserTeamMembersFactory().produce(
+            code = it.facilitatorCode,
+            name = it.facilitatorName.toFullName(),
+          )
+        }.toMutableList()
+      groupFacilitators.add(
+        NDeliusUserTeamMembersFactory().produce(
+          code = randomAlphanumericString(),
+          name = randomFullName(),
+        ),
+      )
+      val teams = listOf(NDeliusUserTeamWithMembersFactory().produce(members = groupFacilitators))
+      val pdu = NDeliusPduWithTeamFactory().produce(team = teams)
+      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(
+        pdus = listOf(pdu),
+        code = "WIREMOCKED_REGION",
+      )
+      nDeliusApiStubs.stubRegionWithMembersResponse("WIREMOCKED_REGION", regionWithMembers)
+      // Given
+      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+      val sessionTemplate = moduleSessionTemplateRepository.findByName("Getting started one-to-one")
+
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate!!)
+          .produce(),
+      )
+      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val attendee = testDataGenerator.createAttendee(referral, session)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/session/${session.id}/session-facilitators",
+        object : ParameterizedTypeReference<EditSessionFacilitatorsResponse>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.pageTitle).isEqualTo("Edit ${attendee.personName}: Getting started one-to-one")
     }
 
     @Test
