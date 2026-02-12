@@ -129,7 +129,7 @@ class SessionService(
       }
 
       (subsequentGroupSessions + session).forEach {
-        updateNdeliusAppointmentsForSession(it)
+        updateNDeliusAppointmentsForSession(it)
       }
 
       return EditSessionDateAndTimeResponse("The date and time and schedule have been updated.")
@@ -141,12 +141,12 @@ class SessionService(
       }
     }
 
-    updateNdeliusAppointmentsForSession(session)
+    updateNDeliusAppointmentsForSession(session)
 
     return EditSessionDateAndTimeResponse("The date and time have been updated.")
   }
 
-  fun updateNdeliusAppointmentsForSession(session: SessionEntity) {
+  fun updateNDeliusAppointmentsForSession(session: SessionEntity) {
     if (session.ndeliusAppointments.isEmpty()) return
 
     val updateRequests = session.ndeliusAppointments.map { it.toUpdateAppointmentRequest() }
@@ -165,13 +165,13 @@ class SessionService(
           response.exception,
         )
         throw BusinessException(
-          "Failure to update appointments in Ndelius: ${response.exception.message}",
+          "Failure to update appointments in nDelius: ${response.exception.message}",
           response.exception,
         )
       }
 
       is ClientResult.Success -> {
-        log.info("${updateRequests.size} appointments updated in Ndelius for session with id: ${session.id}")
+        log.info("${updateRequests.size} appointments updated in nDelius for session with id: ${session.id}")
       }
     }
   }
@@ -284,6 +284,21 @@ class SessionService(
     val sessionAttendanceEntities = getSessionAttendanceFromAttendees(sessionAttendance.attendees, session)
     session.attendances.addAll(sessionAttendanceEntities)
     sessionRepository.save(session)
+
+    val attendeesWithNotes = sessionAttendance.attendees.filter { !it.sessionNotes.isNullOrBlank() }
+    if (attendeesWithNotes.isNotEmpty()) {
+      val updateAppointmentRequests = attendeesWithNotes.mapNotNull { attendeeWithNotes ->
+        val attendeeEntity = attendeeRepository.findByIdOrNull(attendeeWithNotes.attendeeId)
+        val referralId = attendeeEntity?.referralId
+        val nDeliusAppointment = session.ndeliusAppointments.find { it.referral.id == referralId }
+        nDeliusAppointment?.toUpdateAppointmentRequest(attendeeWithNotes.sessionNotes)
+      }
+
+      if (updateAppointmentRequests.isNotEmpty()) {
+        nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateAppointmentRequests))
+      }
+    }
+
     sessionAttendance.responseMessage = "Attendance saved for session $sessionId"
 
     return sessionAttendance
@@ -295,8 +310,8 @@ class SessionService(
   ): List<SessionAttendanceEntity> {
     val programmeGroupId = session.programmeGroup.id!!
 
-    return attendees.map {
-      val attendeeId = it.attendeeId
+    return attendees.map { attendee ->
+      val attendeeId = attendee.attendeeId
       val attendeeEntity = attendeeRepository.findById(attendeeId).orElseThrow {
         NotFoundException("Attendee not found with id: $attendeeId")
       }
@@ -306,11 +321,11 @@ class SessionService(
           ?: throw NotFoundException(
             "Programme group membership not found with referralId: $referralId and programmeGroupId: $programmeGroupId",
           )
-      val facilitatorId = it.recordedByFacilitatorId
-      val recordedByFacilitator = facilitatorRepository.findById(it.recordedByFacilitatorId).orElseThrow {
+      val facilitatorId = attendee.recordedByFacilitatorId
+      val recordedByFacilitator = facilitatorRepository.findById(attendee.recordedByFacilitatorId).orElseThrow {
         NotFoundException("Facilitator not found with id: $facilitatorId")
       }
-      it.toEntity(session, groupMembershipEntity, recordedByFacilitator)
+      attendee.toEntity(session, groupMembershipEntity, recordedByFacilitator)
     }.toList()
   }
 

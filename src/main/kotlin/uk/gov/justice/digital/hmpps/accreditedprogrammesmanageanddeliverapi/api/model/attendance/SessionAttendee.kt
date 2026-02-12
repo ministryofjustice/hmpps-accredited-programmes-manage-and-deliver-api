@@ -39,4 +39,7 @@ data class SessionAttendee(
   @get:JsonProperty(required = true)
   @Schema(description = "ID of a session facilitator")
   var recordedByFacilitatorId: UUID,
+
+  @Schema(description = "Session notes for the attendee")
+  var sessionNotes: String? = null,
 )

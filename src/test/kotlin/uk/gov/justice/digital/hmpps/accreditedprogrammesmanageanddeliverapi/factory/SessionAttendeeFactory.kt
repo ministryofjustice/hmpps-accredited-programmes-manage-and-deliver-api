@@ -11,12 +11,14 @@ class SessionAttendeeFactory {
   private var attended: Boolean = true
   private var recordedAt: LocalDate = LocalDate.now()
   private var recordedByFacilitatorId: UUID = UUID.randomUUID()
+  private var sessionNotes: String? = null
 
   fun withAttendeeId(attendeeId: UUID) = apply { this.attendeeId = attendeeId }
   fun withName(name: String) = apply { this.name = name }
-  fun withName(attended: Boolean) = apply { this.attended = attended }
-  fun withName(recordedAt: LocalDate) = apply { this.recordedAt = recordedAt }
+  fun withAttended(attended: Boolean) = apply { this.attended = attended }
+  fun withRecordedAt(recordedAt: LocalDate) = apply { this.recordedAt = recordedAt }
   fun withRecordedByFacilitatorId(recordedByFacilitatorId: UUID) = apply { this.recordedByFacilitatorId = recordedByFacilitatorId }
+  fun withSessionNotes(sessionNotes: String?) = apply { this.sessionNotes = sessionNotes }
 
   fun produce() = SessionAttendee(
     attendeeId = this.attendeeId,
@@ -24,5 +26,6 @@ class SessionAttendeeFactory {
     attended = this.attended,
     recordedAt = this.recordedAt,
     recordedByFacilitatorId = this.recordedByFacilitatorId,
+    sessionNotes = this.sessionNotes,
   )
 }
