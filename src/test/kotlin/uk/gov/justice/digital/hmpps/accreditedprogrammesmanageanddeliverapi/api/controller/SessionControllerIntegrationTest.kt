@@ -35,6 +35,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequestCode
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
@@ -1203,6 +1204,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           attended = true,
           recordedAt = LocalDate.now(),
           recordedByFacilitatorId = sessionEntity.sessionFacilitators.first().id.facilitator.id!!,
+          sessionNotes = "Test session notes",
         ),
       ),
     )
@@ -1229,6 +1231,27 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       .isEqualTo(LocalDate.now().month.value)
     assertThat(updatedSessionEntity.get().attendances.first().recordedAt?.dayOfMonth)
       .isEqualTo(LocalDate.now().dayOfMonth)
+    assertThat(updatedSessionEntity.get().attendances.first().notesHistory.first().notes).isEqualTo("Test session notes")
+
+    nDeliusApiStubs.verifyPutAppointments(
+      1,
+      UpdateAppointmentsRequest(
+        appointments = listOf(
+          UpdateAppointmentRequestFactory()
+            .withReference(sessionEntity.ndeliusAppointments.first().ndeliusAppointmentId)
+            .withDate(sessionEntity.startsAt.toLocalDate())
+            .withStartTime(sessionEntity.startsAt.toLocalTime())
+            .withEndTime(sessionEntity.endsAt.toLocalTime())
+            .withOutcome(null)
+            .withLocation(RequestCode(group.deliveryLocationCode))
+            .withStaff(RequestCode(group.treatmentManager!!.ndeliusPersonCode))
+            .withTeam(RequestCode(group.treatmentManager!!.ndeliusTeamCode))
+            .withNotes("Test session notes")
+            .withSensitive(false)
+            .produce(),
+        ),
+      ),
+    )
   }
 
   @Test
