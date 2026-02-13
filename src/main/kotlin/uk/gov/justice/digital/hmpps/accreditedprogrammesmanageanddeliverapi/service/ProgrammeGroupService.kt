@@ -14,8 +14,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSchedule
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleSession
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverview
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverviewSession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
@@ -278,28 +278,7 @@ class ProgrammeGroupService(
     sessionTemplateId: UUID,
   ): List<SessionEntity>? = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplateId, groupId)
 
-  fun getRecordAttendanceByGroupIdAndSessionId(groupId: UUID, sessionId: UUID): RecordAttendance {
-    val group = programmeGroupRepository.findById(groupId)
-      .orElseThrow { NotFoundException("Programme Group not found with id: $groupId") }
-    val session = sessionRepository.findById(sessionId)
-      .orElseThrow { NotFoundException("Session not found with id: $sessionId") }
-
-    return RecordAttendance(
-      sessionTitle = session.sessionName,
-      groupRegionName = group.regionName,
-      people = session.attendees.map {
-        Attendee(
-          referralId = it.referralId.toString(),
-          name = it.personName,
-          crn = it.referral.crn,
-          attendance = getSessionAttendanceText(session.attendances, it),
-          options = listOf(),
-        )
-      }.toList(),
-    )
-  }
-
-  fun getScheduleForGroup(groupId: UUID): GroupSchedule {
+  fun getScheduleOverviewForGroup(groupId: UUID): GroupScheduleOverview {
     val group = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
 
@@ -309,23 +288,25 @@ class ProgrammeGroupService(
       throw NotFoundException("No sessions found for group $groupId")
     }
 
-    val scheduleSessions = sessions.map { session ->
-      GroupScheduleSession(
-        id = session.id,
-        name = session.moduleSessionTemplate.name,
-        type = session.sessionType.value,
-        date = session.startsAt.toLocalDate(),
-        time = if (session.isPlaceholder) {
-          "Various times"
-        } else {
-          "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${
-            formatTimeForUiDisplay(
-              session.endsAt.toLocalTime(),
-            )
-          }"
-        },
-      )
-    }
+    val groupSessions =
+      sessions.filter { it.sessionType == SessionType.GROUP || (it.sessionType == SessionType.ONE_TO_ONE && it.isPlaceholder) }
+        .map { session ->
+          GroupScheduleOverviewSession(
+            id = session.id,
+            name = session.moduleSessionTemplate.name,
+            type = session.sessionType.value,
+            date = session.startsAt.toLocalDate(),
+            time = if (session.isPlaceholder) {
+              "Various times"
+            } else {
+              "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${
+                formatTimeForUiDisplay(
+                  session.endsAt.toLocalTime(),
+                )
+              }"
+            },
+          )
+        }
 
     val preGroupOneToOneDate = sessions
       .filter { it.moduleSessionTemplate.module.name.startsWith("Pre-group", ignoreCase = true) }
@@ -341,11 +322,11 @@ class ProgrammeGroupService(
       .maxByOrNull { it.startsAt }
       ?.startsAt?.toLocalDate()
 
-    return GroupSchedule(
+    return GroupScheduleOverview(
       preGroupOneToOneStartDate = preGroupOneToOneDate,
       gettingStartedModuleStartDate = gettingStartedStartDate,
       endDate = endDate,
-      modules = scheduleSessions,
+      sessions = groupSessions,
       groupCode = group.code,
     )
   }
@@ -456,6 +437,27 @@ class ProgrammeGroupService(
     } else {
       "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name} "
     }
+  }
+
+  fun getRecordAttendanceByGroupIdAndSessionId(groupId: UUID, sessionId: UUID): RecordAttendance {
+    val group = programmeGroupRepository.findById(groupId)
+      .orElseThrow { NotFoundException("Programme Group not found with id: $groupId") }
+    val session = sessionRepository.findById(sessionId)
+      .orElseThrow { NotFoundException("Session not found with id: $sessionId") }
+
+    return RecordAttendance(
+      sessionTitle = session.sessionName,
+      groupRegionName = group.regionName,
+      people = session.attendees.map {
+        Attendee(
+          referralId = it.referralId.toString(),
+          name = it.personName,
+          crn = it.referral.crn,
+          attendance = getSessionAttendanceText(session.attendances, it),
+          options = listOf(),
+        )
+      }.toList(),
+    )
   }
 
   private fun getSessionAttendanceText(attendances: Set<SessionAttendanceEntity>, attendee: AttendeeEntity): String? {

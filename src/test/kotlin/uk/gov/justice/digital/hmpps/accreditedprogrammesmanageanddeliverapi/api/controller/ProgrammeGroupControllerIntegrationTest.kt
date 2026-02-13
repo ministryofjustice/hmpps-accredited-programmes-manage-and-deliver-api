@@ -25,7 +25,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSchedule
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverview
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponse
@@ -2006,7 +2006,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `return 401 when unauthorised for schedule`() {
       webTestClient
         .method(HttpMethod.GET)
-        .uri("/bff/group/${UUID.randomUUID()}/schedule")
+        .uri("/bff/group/${UUID.randomUUID()}/schedule-overview")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .exchange()
@@ -2021,7 +2021,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val errorResponse = performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/group/$nonExistentGroupId/schedule",
+        uri = "/bff/group/$nonExistentGroupId/schedule-overview",
         returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
         expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
       )
@@ -2039,14 +2039,14 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/group/${group.id}/schedule",
-        returnType = object : ParameterizedTypeReference<GroupSchedule>() {},
+        uri = "/bff/group/${group.id}/schedule-overview",
+        returnType = object : ParameterizedTypeReference<GroupScheduleOverview>() {},
       )
 
       // Then
       assertThat(response).isNotNull
       assertThat(response.groupCode).isEqualTo(group.code)
-      assertThat(response.modules).isNotEmpty
+      assertThat(response.sessions).isNotEmpty
     }
 
     @Test
@@ -2059,7 +2059,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When & Then
       performRequestAndExpectStatusNoBody(
         HttpMethod.GET,
-        uri = "/bff/group/${group.id}/schedule",
+        uri = "/bff/group/${group.id}/schedule-overview",
         HttpStatus.NOT_FOUND.value(),
       )
     }
