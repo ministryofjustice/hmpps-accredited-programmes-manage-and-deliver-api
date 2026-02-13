@@ -14,8 +14,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSchedule
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleSession
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverview
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverviewSession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
@@ -274,7 +274,7 @@ class ProgrammeGroupService(
     sessionTemplateId: UUID,
   ): List<SessionEntity>? = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplateId, groupId)
 
-  fun getScheduleForGroup(groupId: UUID): GroupSchedule {
+  fun getScheduleOverviewForGroup(groupId: UUID): GroupScheduleOverview {
     val group = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
 
@@ -284,10 +284,10 @@ class ProgrammeGroupService(
       throw NotFoundException("No sessions found for group $groupId")
     }
 
-    val scheduleSessions =
+    val groupSessions =
       sessions.filter { it.sessionType == SessionType.GROUP || (it.sessionType == SessionType.ONE_TO_ONE && it.isPlaceholder) }
         .map { session ->
-          GroupScheduleSession(
+          GroupScheduleOverviewSession(
             id = session.id,
             name = session.moduleSessionTemplate.name,
             type = session.sessionType.value,
@@ -318,11 +318,11 @@ class ProgrammeGroupService(
       .maxByOrNull { it.startsAt }
       ?.startsAt?.toLocalDate()
 
-    return GroupSchedule(
+    return GroupScheduleOverview(
       preGroupOneToOneStartDate = preGroupOneToOneDate,
       gettingStartedModuleStartDate = gettingStartedStartDate,
       endDate = endDate,
-      modules = scheduleSessions,
+      sessions = groupSessions,
       groupCode = group.code,
     )
   }

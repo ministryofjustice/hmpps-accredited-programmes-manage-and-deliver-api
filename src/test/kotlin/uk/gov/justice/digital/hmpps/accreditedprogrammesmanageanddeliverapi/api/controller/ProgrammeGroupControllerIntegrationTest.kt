@@ -23,7 +23,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSchedule
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverview
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponse
@@ -2037,13 +2037,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/bff/group/${group.id}/schedule",
-        returnType = object : ParameterizedTypeReference<GroupSchedule>() {},
+        returnType = object : ParameterizedTypeReference<GroupScheduleOverview>() {},
       )
 
       // Then
       assertThat(response).isNotNull
       assertThat(response.groupCode).isEqualTo(group.code)
-      assertThat(response.modules).isNotEmpty
+      assertThat(response.sessions).isNotEmpty
     }
 
     @Test
