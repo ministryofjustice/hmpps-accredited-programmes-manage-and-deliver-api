@@ -10,6 +10,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.Pageable
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleSession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
@@ -21,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
@@ -401,7 +403,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(programmeGroup)
-          .withModuleSessionTemplate(preGroupModuleSessions.first({ it.name.startsWith("Pre-group") }))
+          .withModuleSessionTemplate(preGroupModuleSessions.first { it.name.startsWith("Pre-group") })
           .withStartsAt(LocalDateTime.of(2026, 6, 1, 10, 0))
           .withEndsAt(LocalDateTime.of(2026, 6, 1, 11, 0))
           .withIsPlaceholder(false)
@@ -506,6 +508,45 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
       val lastSession = schedule.modules.last()
       assertThat(lastSession.date).isEqualTo(schedule.endDate)
+    }
+
+    @Test
+    fun `should not return any individual non placeholder sessions in the schedule`() {
+      // Given
+      // Create getting started session group session
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(gettingStartedModuleSessions.find { it.sessionType == SessionType.GROUP }!!)
+          .withIsPlaceholder(false)
+          .produce(),
+      )
+      // Create getting started session individual placeholder
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(gettingStartedModuleSessions.find { it.sessionType == SessionType.ONE_TO_ONE }!!)
+          .withIsPlaceholder(true)
+          .produce(),
+      )
+      // Create getting started session individual non-placeholder
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(gettingStartedModuleSessions.find { it.sessionType == SessionType.ONE_TO_ONE }!!)
+          .withIsPlaceholder(false)
+          .produce(),
+      )
+
+      // When
+      val schedule = service.getScheduleForGroup(programmeGroup.id!!)
+
+      // Then
+      assertThat(schedule).isNotNull
+      assertThat(schedule.modules).isNotEmpty
+      assertThat(schedule.modules).hasSize(2)
+      assertThat(schedule.modules).extracting<String>(GroupScheduleSession::type).containsOnlyOnce("Individual")
+        .containsOnlyOnce("Group")
     }
 
     @Test

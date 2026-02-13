@@ -284,23 +284,25 @@ class ProgrammeGroupService(
       throw NotFoundException("No sessions found for group $groupId")
     }
 
-    val scheduleSessions = sessions.map { session ->
-      GroupScheduleSession(
-        id = session.id,
-        name = session.moduleSessionTemplate.name,
-        type = session.sessionType.value,
-        date = session.startsAt.toLocalDate(),
-        time = if (session.isPlaceholder) {
-          "Various times"
-        } else {
-          "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${
-            formatTimeForUiDisplay(
-              session.endsAt.toLocalTime(),
-            )
-          }"
-        },
-      )
-    }
+    val scheduleSessions =
+      sessions.filter { it.sessionType == SessionType.GROUP || (it.sessionType == SessionType.ONE_TO_ONE && it.isPlaceholder) }
+        .map { session ->
+          GroupScheduleSession(
+            id = session.id,
+            name = session.moduleSessionTemplate.name,
+            type = session.sessionType.value,
+            date = session.startsAt.toLocalDate(),
+            time = if (session.isPlaceholder) {
+              "Various times"
+            } else {
+              "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${
+                formatTimeForUiDisplay(
+                  session.endsAt.toLocalTime(),
+                )
+              }"
+            },
+          )
+        }
 
     val preGroupOneToOneDate = sessions
       .filter { it.moduleSessionTemplate.module.name.startsWith("Pre-group", ignoreCase = true) }
