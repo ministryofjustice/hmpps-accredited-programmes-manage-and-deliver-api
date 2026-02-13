@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatSessionNameForPage
 import java.util.UUID
 
 @Schema(description = "Details of a session")
@@ -23,6 +24,13 @@ data class Session(
 
   @Schema(description = "A flag if a session is a catchup or not", example = "false")
   val isCatchup: Boolean = false,
+
+  @Schema(
+    description = "The title of the page",
+    required = true,
+    example = "Attendance and notes for Getting started session",
+  )
+  val pageTitle: String,
 )
 
 fun SessionEntity.toApi() = Session(
@@ -32,4 +40,5 @@ fun SessionEntity.toApi() = Session(
   number = sessionNumber,
   referrals = attendees.map { it.referral.toApi() },
   isCatchup = isCatchup,
+  pageTitle = "Delete ${formatSessionNameForPage(this)}",
 )

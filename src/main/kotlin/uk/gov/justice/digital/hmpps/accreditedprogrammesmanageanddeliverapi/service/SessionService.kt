@@ -41,6 +41,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatSessionNameForPage
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -76,7 +77,7 @@ class SessionService(
     return EditSessionDetails(
       sessionId = sessionId,
       groupCode = session.programmeGroup.code,
-      sessionName = "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}",
+      sessionName = formatSessionNameForPage(session),
       sessionDate = session.startsAt.format(DateTimeFormatter.ofPattern("d/M/yyyy")),
       sessionStartTime = fromDateTime(session.startsAt),
       sessionEndTime = fromDateTime(session.endsAt),
@@ -90,7 +91,7 @@ class SessionService(
 
     return RescheduleSessionDetails(
       sessionId = sessionId,
-      sessionName = formatSessionName(session),
+      sessionName = formatSessionNameForPage(session),
       previousSessionDateAndTime = formatPreviousSessionDateAndTime(session),
     )
   }
@@ -129,7 +130,7 @@ class SessionService(
       }
 
       (subsequentGroupSessions + session).forEach {
-        updateNdeliusAppointmentsForSession(it)
+        updateNDeliusAppointmentsForSession(it)
       }
 
       return EditSessionDateAndTimeResponse("The date and time and schedule have been updated.")
@@ -141,12 +142,12 @@ class SessionService(
       }
     }
 
-    updateNdeliusAppointmentsForSession(session)
+    updateNDeliusAppointmentsForSession(session)
 
     return EditSessionDateAndTimeResponse("The date and time have been updated.")
   }
 
-  fun updateNdeliusAppointmentsForSession(session: SessionEntity) {
+  fun updateNDeliusAppointmentsForSession(session: SessionEntity) {
     if (session.ndeliusAppointments.isEmpty()) return
 
     val updateRequests = session.ndeliusAppointments.map { it.toUpdateAppointmentRequest() }
@@ -165,13 +166,13 @@ class SessionService(
           response.exception,
         )
         throw BusinessException(
-          "Failure to update appointments in Ndelius: ${response.exception.message}",
+          "Failure to update appointments in nDelius: ${response.exception.message}",
           response.exception,
         )
       }
 
       is ClientResult.Success -> {
-        log.info("${updateRequests.size} appointments updated in Ndelius for session with id: ${session.id}")
+        log.info("${updateRequests.size} appointments updated in nDelius for session with id: ${session.id}")
       }
     }
   }
@@ -200,7 +201,7 @@ class SessionService(
 
     return EditSessionAttendeesResponse(
       sessionId = sessionId,
-      sessionName = formatSessionName(session),
+      sessionName = formatSessionNameForPage(session),
       sessionType = session.sessionType,
       isCatchup = session.isCatchup,
       attendees = sessionAttendees,
@@ -218,7 +219,7 @@ class SessionService(
     val sessionFacilitatorCodes = session.sessionFacilitators.map { it.facilitatorCode }
 
     return EditSessionFacilitatorsResponse(
-      pageTitle = "Edit ${formatSessionName(session)}",
+      pageTitle = "Edit ${formatSessionNameForPage(session)}",
       facilitators = regionFacilitators.map { it.toEditSessionFacilitator(sessionFacilitatorCodes) },
     )
   }
@@ -284,6 +285,21 @@ class SessionService(
     val sessionAttendanceEntities = getSessionAttendanceFromAttendees(sessionAttendance.attendees, session)
     session.attendances.addAll(sessionAttendanceEntities)
     sessionRepository.save(session)
+
+    val attendeesWithNotes = sessionAttendance.attendees.filter { !it.sessionNotes.isNullOrBlank() }
+    if (attendeesWithNotes.isNotEmpty()) {
+      val updateAppointmentRequests = attendeesWithNotes.mapNotNull { attendeeWithNotes ->
+        val attendeeEntity = attendeeRepository.findByIdOrNull(attendeeWithNotes.attendeeId)
+        val referralId = attendeeEntity?.referralId
+        val nDeliusAppointment = session.ndeliusAppointments.find { it.referral.id == referralId }
+        nDeliusAppointment?.toUpdateAppointmentRequest(attendeeWithNotes.sessionNotes)
+      }
+
+      if (updateAppointmentRequests.isNotEmpty()) {
+        nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateAppointmentRequests))
+      }
+    }
+
     sessionAttendance.responseMessage = "Attendance saved for session $sessionId"
 
     return sessionAttendance
@@ -295,8 +311,8 @@ class SessionService(
   ): List<SessionAttendanceEntity> {
     val programmeGroupId = session.programmeGroup.id!!
 
-    return attendees.map {
-      val attendeeId = it.attendeeId
+    return attendees.map { attendee ->
+      val attendeeId = attendee.attendeeId
       val attendeeEntity = attendeeRepository.findById(attendeeId).orElseThrow {
         NotFoundException("Attendee not found with id: $attendeeId")
       }
@@ -306,11 +322,11 @@ class SessionService(
           ?: throw NotFoundException(
             "Programme group membership not found with referralId: $referralId and programmeGroupId: $programmeGroupId",
           )
-      val facilitatorId = it.recordedByFacilitatorId
-      val recordedByFacilitator = facilitatorRepository.findById(it.recordedByFacilitatorId).orElseThrow {
+      val facilitatorId = attendee.recordedByFacilitatorId
+      val recordedByFacilitator = facilitatorRepository.findById(attendee.recordedByFacilitatorId).orElseThrow {
         NotFoundException("Facilitator not found with id: $facilitatorId")
       }
-      it.toEntity(session, groupMembershipEntity, recordedByFacilitator)
+      attendee.toEntity(session, groupMembershipEntity, recordedByFacilitator)
     }.toList()
   }
 
@@ -323,21 +339,6 @@ class SessionService(
     }
 
     return "$sessionName ${sessionEntity.sessionNumber} catch-up has been deleted."
-  }
-
-  private fun formatSessionName(session: SessionEntity): String {
-    val baseName =
-      "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}"
-
-    // Session attendees could be null if we are editing a session before anyone has been allocated to a group.
-    val name = if (session.sessionType == ONE_TO_ONE) {
-      val attendee = session.attendees.firstOrNull()?.personName?.takeIf { it.isNotBlank() }
-      attendee?.let { "$it: $baseName" } ?: baseName
-    } else {
-      baseName
-    }
-
-    return if (session.isCatchup) "$name catch-up" else name
   }
 
   private fun formatPreviousSessionDateAndTime(session: SessionEntity): String {

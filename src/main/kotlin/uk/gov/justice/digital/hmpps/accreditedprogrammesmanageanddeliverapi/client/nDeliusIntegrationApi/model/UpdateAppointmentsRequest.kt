@@ -23,7 +23,7 @@ data class UpdateAppointmentRequest(
 
 data class RequestCode(val code: String)
 
-fun NDeliusAppointmentEntity.toUpdateAppointmentRequest(): UpdateAppointmentRequest = UpdateAppointmentRequest(
+fun NDeliusAppointmentEntity.toUpdateAppointmentRequest(sessionNotes: String? = null): UpdateAppointmentRequest = UpdateAppointmentRequest(
   reference = ndeliusAppointmentId,
   date = session.startsAt.toLocalDate(),
   startTime = session.startsAt.toLocalTime(),
@@ -32,6 +32,6 @@ fun NDeliusAppointmentEntity.toUpdateAppointmentRequest(): UpdateAppointmentRequ
   location = RequestCode(session.programmeGroup.deliveryLocationCode),
   staff = RequestCode(session.programmeGroup.treatmentManager!!.ndeliusPersonCode),
   team = RequestCode(session.programmeGroup.treatmentManager!!.ndeliusTeamCode),
-  notes = null,
+  notes = sessionNotes,
   sensitive = false,
 )

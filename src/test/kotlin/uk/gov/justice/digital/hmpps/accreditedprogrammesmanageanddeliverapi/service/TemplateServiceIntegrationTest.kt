@@ -79,7 +79,7 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
       assertThat(sessionTemplates).hasSize(1)
       val sessionTemplate = sessionTemplates.first()
       assertThat(sessionTemplate.number).isEqualTo(1)
-      assertThat(sessionTemplate.name).isEqualTo("Pre-group")
+      assertThat(sessionTemplate.name).isEqualTo("Pre-group one-to-one")
       assertThat(sessionTemplate.id).isNotNull
     }
 
