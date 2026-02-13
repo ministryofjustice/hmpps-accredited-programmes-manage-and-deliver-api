@@ -30,7 +30,7 @@ class ModuleSessionTemplateEntityFactory {
   private var sessionNumber: Int? = 1
   private var sessionType: SessionType? = GROUP
   private var pathway: Pathway? = MODERATE_INTENSITY
-  private var name: String? = null
+  private var name: String? = "Module Session Template 1"
   private var description: String? = null
   private var durationMinutes: Int? = 60
 

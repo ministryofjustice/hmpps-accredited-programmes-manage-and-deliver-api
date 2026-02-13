@@ -6,13 +6,18 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ModuleSessionTemplateEntityFactory
 import java.time.LocalDateTime
 import java.util.UUID
 
-class SessionFactory {
+class SessionFactory(
+  programmeGroup: ProgrammeGroupEntity? = null,
+  moduleSessionTemplate: ModuleSessionTemplateEntity? = null,
+) {
   private var id: UUID? = null
-  private var programmeGroup: ProgrammeGroupEntity? = null
-  private var moduleSessionTemplate: ModuleSessionTemplateEntity? = null
+  private var programmeGroup: ProgrammeGroupEntity? = programmeGroup ?: ProgrammeGroupFactory().produce()
+  private var moduleSessionTemplate: ModuleSessionTemplateEntity? =
+    moduleSessionTemplate ?: ModuleSessionTemplateEntityFactory().produce()
   private var isCatchup: Boolean = false
   private var isPlaceholder: Boolean = false
   private var locationName: String? = null
@@ -27,12 +32,14 @@ class SessionFactory {
   fun withId(id: UUID?) = apply { this.id = id }
   fun withProgrammeGroup(programmeGroup: ProgrammeGroupEntity) = apply { this.programmeGroup = programmeGroup }
   fun withModuleSessionTemplate(moduleSessionTemplate: ModuleSessionTemplateEntity) = apply { this.moduleSessionTemplate = moduleSessionTemplate }
+
   fun withIsCatchup(isCatchup: Boolean) = apply { this.isCatchup = isCatchup }
   fun withIsPlaceholder(isPlaceholder: Boolean) = apply { this.isPlaceholder = isPlaceholder }
   fun withLocationName(locationName: String?) = apply { this.locationName = locationName }
   fun withStartsAt(startsAt: LocalDateTime) = apply { this.startsAt = startsAt }
   fun withEndsAt(endsAt: LocalDateTime) = apply { this.endsAt = endsAt }
   fun withSessionFacilitators(sessionFacilitators: MutableSet<SessionFacilitatorEntity>) = apply { this.sessionFacilitators = sessionFacilitators }
+
   fun withCreatedAt(createdAt: LocalDateTime?) = apply { this.createdAt = createdAt }
   fun withCreatedByUsername(createdByUsername: String?) = apply { this.createdByUsername = createdByUsername }
   fun withAttendances(attendances: MutableSet<SessionAttendanceEntity>) = apply { this.attendances = attendances }
