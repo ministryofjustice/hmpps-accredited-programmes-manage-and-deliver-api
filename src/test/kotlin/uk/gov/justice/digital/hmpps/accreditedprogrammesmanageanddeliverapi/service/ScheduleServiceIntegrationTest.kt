@@ -233,14 +233,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     assertThat(updatedGroupBeforeReschedule.sessions).hasSize(27)
     // First scheduled session is Monday 1st December  @ 9.30am
     assertThat(updatedGroupBeforeReschedule.sessions.first().startsAt).isEqualTo(
-      LocalDateTime.of(
-        2025,
-        12,
-        1,
-        9,
-        30,
-        0,
-      ),
+      LocalDateTime.of(2025, 12, 1, 9, 30, 0),
     )
     assertThat(updatedGroupBeforeReschedule.sessions.map { it.attendees }).isNotEmpty
 
@@ -302,14 +295,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     assertThat(updatedGroupBeforeReschedule.sessions).hasSize(27)
     // First scheduled session is Monday 17th  @ 9.30am
     assertThat(updatedGroupBeforeReschedule.sessions.first().startsAt).isEqualTo(
-      LocalDateTime.of(
-        2025,
-        11,
-        17,
-        9,
-        30,
-        0,
-      ),
+      LocalDateTime.of(2025, 11, 17, 9, 30, 0),
     )
     assertThat(updatedGroupBeforeReschedule.sessions.map { it.attendees }).isNotEmpty
 
