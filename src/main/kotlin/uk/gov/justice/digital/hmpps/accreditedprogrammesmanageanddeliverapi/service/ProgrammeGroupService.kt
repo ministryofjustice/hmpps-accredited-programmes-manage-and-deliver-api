@@ -25,6 +25,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponseGroupModule
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponseGroupSession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.StartDateText
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.Attendee
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.RecordAttendance
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
@@ -32,10 +34,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -274,6 +278,27 @@ class ProgrammeGroupService(
     sessionTemplateId: UUID,
   ): List<SessionEntity>? = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplateId, groupId)
 
+  fun getRecordAttendanceByGroupIdAndSessionId(groupId: UUID, sessionId: UUID): RecordAttendance {
+    val group = programmeGroupRepository.findById(groupId)
+      .orElseThrow { NotFoundException("Programme Group not found with id: $groupId") }
+    val session = sessionRepository.findById(sessionId)
+      .orElseThrow { NotFoundException("Session not found with id: $sessionId") }
+
+    return RecordAttendance(
+      sessionTitle = session.sessionName,
+      groupRegionName = group.regionName,
+      people = session.attendees.map {
+        Attendee(
+          referralId = it.referralId.toString(),
+          name = it.personName,
+          crn = it.referral.crn,
+          attendance = getSessionAttendanceText(session.attendances, it),
+          options = listOf(),
+        )
+      }.toList(),
+    )
+  }
+
   fun getScheduleForGroup(groupId: UUID): GroupSchedule {
     val group = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
@@ -431,5 +456,28 @@ class ProgrammeGroupService(
     } else {
       "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name} "
     }
+  }
+
+  private fun getSessionAttendanceText(attendances: Set<SessionAttendanceEntity>, attendee: AttendeeEntity): String? {
+    val filteredAttendances = attendances.filter { it.groupMembership.referral.id == attendee.referralId }.toList()
+
+    if (filteredAttendances.isEmpty()) {
+      return null
+    }
+
+    var attendanceText: String
+
+    val attendance = filteredAttendances.first()
+    if (attendance.attended != null && attendance.attended == true) {
+      attendanceText = "Attended"
+    } else {
+      return "Did not attend"
+    }
+
+    if (attendance.didNotEngage != null && attendance.didNotEngage == true) {
+      return "$attendanceText but failed to comply"
+    }
+
+    return attendanceText
   }
 }

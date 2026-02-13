@@ -16,6 +16,8 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendance
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendee
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
@@ -35,6 +37,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionTypeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.RecordAttendance
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
@@ -2030,7 +2033,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `returns 200 with complete schedule when group has all session types`() {
       // Given
-      val template = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+      accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
       val group = testGroupHelper.createGroup()
 
       // When
@@ -2175,6 +2178,114 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         body = {},
       )
       assertThat(exception.userMessage).isEqualTo("Not Found: Session with $sessionId not found")
+    }
+  }
+
+  @Nested
+  @DisplayName("Get record attendance")
+  inner class GetRecordAttendancePage {
+    @Test
+    fun `should return 200 and data on GET record attendance by group ID and session ID`() {
+      // Given
+      // Create group
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      // Allocate one referral to a group with 'Awaiting allocation'
+      // status to ensure it's not returned as part of our waitlist data
+      val referral = testReferralHelper.createReferral()
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
+      val session =
+        sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+      val sessionId = session!!.id!!
+      val attendee = session.attendees.first()
+
+      val sessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            attendeeId = attendee.id!!,
+            name = attendee.personName,
+            attended = true,
+            recordedAt = LocalDate.now(),
+            recordedByFacilitatorId = session.sessionFacilitators.first().id.facilitator.id!!,
+          ),
+        ),
+      )
+
+      // record attendance
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = sessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/session/${session.id}/record-attendance",
+        returnType = object : ParameterizedTypeReference<RecordAttendance>() {},
+      )
+
+      // Then
+      assertThat(response.sessionTitle).isEqualTo(session.sessionName)
+      assertThat(response.groupRegionName).isEqualTo(group.regionName)
+      assertThat(response.people).isNotEmpty()
+      assertThat(response.people[0].referralId).isEqualTo(attendee.referralId.toString())
+      assertThat(response.people[0].name).isEqualTo(attendee.personName)
+      assertThat(response.people[0].crn).isEqualTo(attendee.referral.crn)
+      assertThat(response.people[0].attendance).isEqualTo("Attended")
+    }
+
+    @Test
+    fun `return 401 when unauthorised on GET record attendance by group ID and session ID`() {
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/group/${UUID.randomUUID()}/session/${UUID.randomUUID()}/record-attendance")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+
+    @Test
+    fun `return 404 when the programme group is not found on GET record attendance by group ID and session ID`() {
+      val groupId = UUID.randomUUID()
+
+      val exception = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/$groupId/session/${UUID.randomUUID()}/record-attendance",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        body = {},
+      )
+      assertThat(exception.userMessage).isEqualTo("Not Found: Programme Group not found with id: $groupId")
+    }
+
+    @Test
+    fun `return 404 when the session is not found on GET record attendance by group ID and session ID`() {
+      val sessionId = UUID.randomUUID()
+
+      // Create group
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      val exception = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/session/$sessionId/record-attendance",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        body = {},
+      )
+      assertThat(exception.userMessage).isEqualTo("Not Found: Session not found with id: $sessionId")
     }
   }
 }
