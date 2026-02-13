@@ -2003,7 +2003,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `return 401 when unauthorised for schedule`() {
       webTestClient
         .method(HttpMethod.GET)
-        .uri("/bff/group/${UUID.randomUUID()}/schedule")
+        .uri("/bff/group/${UUID.randomUUID()}/schedule-overview")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .exchange()
@@ -2018,7 +2018,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val errorResponse = performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/group/$nonExistentGroupId/schedule",
+        uri = "/bff/group/$nonExistentGroupId/schedule-overview",
         returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
         expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
       )
@@ -2036,7 +2036,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/group/${group.id}/schedule",
+        uri = "/bff/group/${group.id}/schedule-overview",
         returnType = object : ParameterizedTypeReference<GroupScheduleOverview>() {},
       )
 
@@ -2056,7 +2056,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When & Then
       performRequestAndExpectStatusNoBody(
         HttpMethod.GET,
-        uri = "/bff/group/${group.id}/schedule",
+        uri = "/bff/group/${group.id}/schedule-overview",
         HttpStatus.NOT_FOUND.value(),
       )
     }

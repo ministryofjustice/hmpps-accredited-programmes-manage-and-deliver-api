@@ -799,7 +799,7 @@ class ProgrammeGroupController(
 
   @Operation(
     tags = ["Programme Group controller"],
-    summary = "bff endpoint to retrieve a schedule overview of a module sessions for a programme group",
+    summary = "bff endpoint to retrieve the schedule overview for a programme group",
     operationId = "getGroupScheduleOverview",
     description = "Retrieve group schedule..",
     responses = [
