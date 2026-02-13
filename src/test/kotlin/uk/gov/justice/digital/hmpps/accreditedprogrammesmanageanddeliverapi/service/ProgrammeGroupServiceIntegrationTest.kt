@@ -364,8 +364,8 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(gettingStartedModule).isNotNull
       val gettingStartedModuleId = gettingStartedModule!!.id!!
 
-      // Find regular last module
-      val regularModule = modules.find { it.moduleNumber == modules.last().moduleNumber }
+      // Find regular module
+      val regularModule = modules.find { it.moduleNumber == modules[3].moduleNumber }
       assertThat(regularModule).isNotNull
       val regularModuleId = regularModule!!.id!!
 
@@ -393,10 +393,10 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(programmeGroup)
-          .withModuleSessionTemplate(gettingStartedModuleSessions.first { it.name.startsWith("Getting started") })
+          .withModuleSessionTemplate(gettingStartedModuleSessions.first { it.name.startsWith("Getting started") && it.sessionType == SessionType.ONE_TO_ONE })
           .withStartsAt(LocalDateTime.of(2026, 6, 15, 12, 0))
           .withEndsAt(LocalDateTime.of(2026, 6, 15, 14, 0))
-          .withIsPlaceholder(false)
+          .withIsPlaceholder(true)
           .produce(),
       )
       // Create pre-group session
@@ -406,14 +406,14 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           .withModuleSessionTemplate(preGroupModuleSessions.first { it.name.startsWith("Pre-group") })
           .withStartsAt(LocalDateTime.of(2026, 6, 1, 10, 0))
           .withEndsAt(LocalDateTime.of(2026, 6, 1, 11, 0))
-          .withIsPlaceholder(false)
+          .withIsPlaceholder(true)
           .produce(),
       )
       // Create regular session
       testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(programmeGroup)
-          .withModuleSessionTemplate(regularModuleSessions.first())
+          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.GROUP })
           .withStartsAt(LocalDateTime.of(2026, 7, 20, 15, 30))
           .withEndsAt(LocalDateTime.of(2026, 7, 20, 17, 30))
           .withIsPlaceholder(false)
@@ -435,13 +435,13 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       // Verify individual session formatting
       val gettingStartedSession = schedule.sessions.find { it.name.startsWith("Getting started") }
       assertThat(gettingStartedSession).isNotNull
-      assertThat(gettingStartedSession!!.time).isEqualTo("midday to 2pm")
+      assertThat(gettingStartedSession!!.time).isEqualTo("Various times")
       assertThat(gettingStartedSession.type).isEqualTo("Individual")
       assertThat(gettingStartedSession.date).isEqualTo(schedule.gettingStartedModuleStartDate)
 
       val preGroupSession = schedule.sessions.find { it.name.startsWith("Pre-group") }
       assertThat(preGroupSession!!.type).isEqualTo("Individual")
-      assertThat(preGroupSession.time).isEqualTo("10am to 11am")
+      assertThat(preGroupSession.time).isEqualTo("Various times")
       assertThat(preGroupSession.date).isEqualTo(schedule.preGroupOneToOneStartDate)
 
       val lastSession = schedule.sessions.last()
