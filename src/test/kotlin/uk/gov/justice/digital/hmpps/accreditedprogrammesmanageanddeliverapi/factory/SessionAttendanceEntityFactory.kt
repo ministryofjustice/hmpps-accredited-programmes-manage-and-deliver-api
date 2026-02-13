@@ -9,7 +9,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.UUID
-import kotlin.String
 
 class SessionAttendanceEntityFactory(
   session: SessionEntity? = null,
@@ -23,7 +22,6 @@ class SessionAttendanceEntityFactory(
   private var attended: Boolean = true
   private var didNotEngage: Boolean = true
   private var legitimateAbsence: Boolean = true
-  private var notes: String = "Notes 1"
   private var recordedByFacilitator: FacilitatorEntity = recordedByFacilitator ?: FacilitatorEntityFactory().produce()
   private var recordedAt: LocalDateTime? = LocalDateTime.now(ZoneId.of("UTC"))
 
@@ -34,7 +32,6 @@ class SessionAttendanceEntityFactory(
   fun withAttended(attended: Boolean) = apply { this.attended = attended }
   fun withDidNotEngage(didNotEngage: Boolean) = apply { this.didNotEngage = didNotEngage }
   fun withLegitimateAbsence(legitimateAbsence: Boolean) = apply { this.legitimateAbsence = legitimateAbsence }
-  fun withNotes(notes: String) = apply { this.notes = notes }
   fun withRecordedByFacilitator(recordedByFacilitator: FacilitatorEntity) = apply { this.recordedByFacilitator = recordedByFacilitator }
 
   fun withRecordedAt(recordedAt: LocalDateTime) = apply { this.recordedAt = recordedAt }
@@ -46,7 +43,6 @@ class SessionAttendanceEntityFactory(
     attended = this.attended,
     didNotEngage = this.didNotEngage,
     legitimateAbsence = this.legitimateAbsence,
-    notes = this.notes,
     recordedByFacilitator = this.recordedByFacilitator,
     recordedAt = this.recordedAt,
   )
