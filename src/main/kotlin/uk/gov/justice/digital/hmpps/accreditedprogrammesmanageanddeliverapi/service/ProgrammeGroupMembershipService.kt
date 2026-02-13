@@ -18,6 +18,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -29,6 +30,7 @@ class ProgrammeGroupMembershipService(
   private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
   private val scheduleService: ScheduleService,
+  private val sessionRepository: SessionRepository,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -115,8 +117,9 @@ class ProgrammeGroupMembershipService(
 
     deleteGroupMembershipForReferralAndGroup(referral, group, removedFromGroupBy)
 
-    val desiredStatus = referralStatusDescriptionRepository.findByIdOrNull(removeFromGroupRequest.referralStatusDescriptionId)
-      ?: throw NotFoundException("No Referral Status Description found for id: ${removeFromGroupRequest.referralStatusDescriptionId}")
+    val desiredStatus =
+      referralStatusDescriptionRepository.findByIdOrNull(removeFromGroupRequest.referralStatusDescriptionId)
+        ?: throw NotFoundException("No Referral Status Description found for id: ${removeFromGroupRequest.referralStatusDescriptionId}")
 
     val statusHistory =
       ReferralStatusHistoryEntity(
@@ -135,8 +138,9 @@ class ProgrammeGroupMembershipService(
     group: ProgrammeGroupEntity,
     deletedByUsername: String,
   ): ProgrammeGroupEntity {
-    val groupMembership = programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referral.id!!, group.id!!)
-      ?: throw NotFoundException("No active Membership found for Referral (${referral.id}) and Group (${group.id})")
+    val groupMembership =
+      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referral.id!!, group.id!!)
+        ?: throw NotFoundException("No active Membership found for Referral (${referral.id}) and Group (${group.id})")
 
     val now = LocalDateTime.now()
     groupMembership.deletedAt = now
@@ -157,6 +161,10 @@ class ProgrammeGroupMembershipService(
 
     // remove the attendees from the sessions
     attendeesToRemove.forEach { it.session.attendees.remove(it) }
+
+    val sessionsToRemove =
+      futureSessions.filter { (it.sessionType == SessionType.ONE_TO_ONE && !it.isPlaceholder) || (it.isCatchup && it.attendees.isEmpty()) }
+    group.sessions.removeAll(sessionsToRemove.toSet())
 
     log.info("...Successfully found Referral (${referral.id}), Group (${group.id}), and Membership (${groupMembership.id}) to remove")
     return programmeGroupRepositoryImpl.save(group)
