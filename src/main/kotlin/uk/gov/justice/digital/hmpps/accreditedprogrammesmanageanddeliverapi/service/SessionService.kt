@@ -41,6 +41,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatSessionNameForPage
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -76,7 +77,7 @@ class SessionService(
     return EditSessionDetails(
       sessionId = sessionId,
       groupCode = session.programmeGroup.code,
-      sessionName = "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}",
+      sessionName = formatSessionNameForPage(session),
       sessionDate = session.startsAt.format(DateTimeFormatter.ofPattern("d/M/yyyy")),
       sessionStartTime = fromDateTime(session.startsAt),
       sessionEndTime = fromDateTime(session.endsAt),
@@ -90,7 +91,7 @@ class SessionService(
 
     return RescheduleSessionDetails(
       sessionId = sessionId,
-      sessionName = formatSessionName(session),
+      sessionName = formatSessionNameForPage(session),
       previousSessionDateAndTime = formatPreviousSessionDateAndTime(session),
     )
   }
@@ -200,7 +201,7 @@ class SessionService(
 
     return EditSessionAttendeesResponse(
       sessionId = sessionId,
-      sessionName = formatSessionName(session),
+      sessionName = formatSessionNameForPage(session),
       sessionType = session.sessionType,
       isCatchup = session.isCatchup,
       attendees = sessionAttendees,
@@ -218,7 +219,7 @@ class SessionService(
     val sessionFacilitatorCodes = session.sessionFacilitators.map { it.facilitatorCode }
 
     return EditSessionFacilitatorsResponse(
-      pageTitle = "Edit ${formatSessionName(session)}",
+      pageTitle = "Edit ${formatSessionNameForPage(session)}",
       facilitators = regionFacilitators.map { it.toEditSessionFacilitator(sessionFacilitatorCodes) },
     )
   }
@@ -338,21 +339,6 @@ class SessionService(
     }
 
     return "$sessionName ${sessionEntity.sessionNumber} catch-up has been deleted."
-  }
-
-  private fun formatSessionName(session: SessionEntity): String {
-    val baseName =
-      "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}"
-
-    // Session attendees could be null if we are editing a session before anyone has been allocated to a group.
-    val name = if (session.sessionType == ONE_TO_ONE) {
-      val attendee = session.attendees.firstOrNull()?.personName?.takeIf { it.isNotBlank() }
-      attendee?.let { "$it: $baseName" } ?: baseName
-    } else {
-      baseName
-    }
-
-    return if (session.isCatchup) "$name catch-up" else name
   }
 
   private fun formatPreviousSessionDateAndTime(session: SessionEntity): String {
