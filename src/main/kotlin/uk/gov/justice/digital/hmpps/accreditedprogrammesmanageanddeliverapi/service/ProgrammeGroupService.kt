@@ -200,7 +200,7 @@ class ProgrammeGroupService(
     // We need to do this as we currently have no direct link from session templates to scheduled sessions.
     // This then builds the api response object with all the required data.
     val modules = group.accreditedProgrammeTemplate?.modules?.map { module ->
-      val sessions = module.sessionTemplates.map { sessionTemplate ->
+      val sessions = module.sessionTemplates.flatMap { sessionTemplate ->
         val scheduledSessions = getScheduledSessionForGroupAndSessionTemplate(
           groupId = group.id!!,
           sessionTemplateId = sessionTemplate.id!!,
@@ -221,7 +221,7 @@ class ProgrammeGroupService(
               .map { it.facilitator.personName },
           )
         } ?: emptyList()
-      }.flatten()
+      }
 
       ProgrammeGroupModuleSessionsResponseGroupModule(
         id = module.id!!,
