@@ -29,7 +29,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupMember
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSchedule
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverview
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
@@ -799,17 +799,17 @@ class ProgrammeGroupController(
 
   @Operation(
     tags = ["Programme Group controller"],
-    summary = "bff endpoint to retrieve a schedule of a module sessions for a programme group",
-    operationId = "getGroupSchedule",
+    summary = "bff endpoint to retrieve the schedule overview for a programme group",
+    operationId = "getGroupScheduleOverview",
     description = "Retrieve group schedule..",
     responses = [
       ApiResponse(
         responseCode = "200",
-        description = "Successfully retrieved group schedule details",
+        description = "Successfully retrieved group schedule overview details",
         content = [
           Content(
             mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema = Schema(implementation = GroupSchedule::class),
+            schema = Schema(implementation = GroupScheduleOverview::class),
           ),
         ],
       ),
@@ -847,10 +847,10 @@ class ProgrammeGroupController(
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @GetMapping(
-    "/bff/group/{groupId}/schedule",
+    "/bff/group/{groupId}/schedule-overview",
     produces = [MediaType.APPLICATION_JSON_VALUE],
   )
-  fun getGroupSchedule(
+  fun getGroupScheduleOverview(
     @PathVariable @Parameter(description = "The UUID of the Programme Group", required = true) groupId: UUID,
-  ): ResponseEntity<GroupSchedule> = ResponseEntity.ok(programmeGroupService.getScheduleForGroup(groupId))
+  ): ResponseEntity<GroupScheduleOverview> = ResponseEntity.ok(programmeGroupService.getScheduleOverviewForGroup(groupId))
 }
