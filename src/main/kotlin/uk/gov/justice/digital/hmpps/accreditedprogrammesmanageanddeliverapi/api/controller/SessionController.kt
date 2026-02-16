@@ -30,6 +30,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.RecordSessionAttendance
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionDateAndTimeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
@@ -601,4 +602,61 @@ class SessionController(
     @RequestBody @Valid sessionAttendance: SessionAttendance,
   ): ResponseEntity<SessionAttendance> = ResponseEntity.status(HttpStatus.CREATED)
     .body(sessionService.saveSessionAttendance(sessionId, sessionAttendance))
+
+  @Operation(
+    tags = ["Session controller"],
+    summary = "BFF endpoint to retrieve a record attendance for a session",
+    operationId = "getSessionRecordAttendance",
+    description = "Retrieve a record attendance for a session",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Successfully retrieved record attendance details",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = RecordSessionAttendance::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden, requires role ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Session not found",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping(
+    "/bff/session/{sessionId}/record-attendance",
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+  )
+  fun getGroupSessionRecordAttendance(
+    @PathVariable @Parameter(description = "Unique identifier of a session", required = true) sessionId: UUID,
+  ): ResponseEntity<RecordSessionAttendance> = ResponseEntity.ok(sessionService.getRecordAttendanceBySessionId(sessionId))
 }

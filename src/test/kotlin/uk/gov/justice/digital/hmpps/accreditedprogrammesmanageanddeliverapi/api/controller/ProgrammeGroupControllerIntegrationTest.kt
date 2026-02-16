@@ -2250,7 +2250,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `returns 200 with complete schedule when group has all session types`() {
       // Given
-      val template = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+      accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
       val group = testGroupHelper.createGroup()
 
       // When
