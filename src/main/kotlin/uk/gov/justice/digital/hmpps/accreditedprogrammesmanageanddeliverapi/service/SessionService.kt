@@ -15,6 +15,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.fromDateTime
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.RecordSessionAttendance
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.SessionAttendancePerson
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionDateAndTimeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
@@ -305,6 +307,26 @@ class SessionService(
     return sessionAttendance
   }
 
+  fun getRecordAttendanceBySessionId(sessionId: UUID): RecordSessionAttendance {
+    val session = sessionRepository.findById(sessionId)
+      .orElseThrow { NotFoundException("Session not found with id: $sessionId") }
+    val group = session.programmeGroup
+
+    return RecordSessionAttendance(
+      sessionTitle = session.sessionName,
+      groupRegionName = group.regionName,
+      people = session.attendees.map {
+        SessionAttendancePerson(
+          referralId = it.referralId,
+          name = it.personName,
+          crn = it.referral.crn,
+          attendance = getSessionAttendanceText(session.attendances, it),
+          options = listOf(),
+        )
+      }.toList(),
+    )
+  }
+
   private fun getSessionAttendanceFromAttendees(
     attendees: List<SessionAttendee>,
     session: SessionEntity,
@@ -347,5 +369,27 @@ class SessionService(
     val endTime = formatTime(session.endsAt)
 
     return "$date, $startTime to $endTime"
+  }
+
+  private fun getSessionAttendanceText(attendances: Set<SessionAttendanceEntity>, attendee: AttendeeEntity): String? {
+    val attendance = attendances.find { it.groupMembership.referral.id == attendee.referralId }
+
+    if (attendance == null) {
+      return null
+    }
+
+    var attendanceText: String
+
+    if (attendance.attended != null && attendance.attended == true) {
+      attendanceText = "Attended"
+    } else {
+      return "Did not attend"
+    }
+
+    if (attendance.didNotEngage != null && attendance.didNotEngage == true) {
+      return "$attendanceText but failed to comply"
+    }
+
+    return attendanceText
   }
 }

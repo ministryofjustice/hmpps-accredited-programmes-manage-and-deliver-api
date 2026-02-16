@@ -42,7 +42,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionTypeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.RecordAttendance
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
@@ -854,62 +853,4 @@ class ProgrammeGroupController(
   fun getGroupScheduleOverview(
     @PathVariable @Parameter(description = "The UUID of the Programme Group", required = true) groupId: UUID,
   ): ResponseEntity<GroupScheduleOverview> = ResponseEntity.ok(programmeGroupService.getScheduleOverviewForGroup(groupId))
-
-  @Operation(
-    tags = ["Programme Group controller"],
-    summary = "bff endpoint to retrieve a record attendance for a programme group and a session",
-    operationId = "getGroupSessionRecordAttendance",
-    description = "Retrieve a record attendance for a programme group and a session",
-    responses = [
-      ApiResponse(
-        responseCode = "200",
-        description = "Successfully retrieved group schedule details",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema = Schema(implementation = RecordAttendance::class),
-          ),
-        ],
-      ),
-      ApiResponse(
-        responseCode = "401",
-        description = "Unauthorized",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema = Schema(implementation = ErrorResponse::class),
-          ),
-        ],
-      ),
-      ApiResponse(
-        responseCode = "403",
-        description = "Forbidden, requires role ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema = Schema(implementation = ErrorResponse::class),
-          ),
-        ],
-      ),
-      ApiResponse(
-        responseCode = "404",
-        description = "Group or module not found",
-        content = [
-          Content(
-            mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema = Schema(implementation = ErrorResponse::class),
-          ),
-        ],
-      ),
-    ],
-    security = [SecurityRequirement(name = "bearerAuth")],
-  )
-  @GetMapping(
-    "/bff/group/{groupId}/session/{sessionId}/record-attendance",
-    produces = [MediaType.APPLICATION_JSON_VALUE],
-  )
-  fun getGroupSessionRecordAttendance(
-    @PathVariable @Parameter(description = "Unique identifier of a Programme Group", required = true) groupId: UUID,
-    @PathVariable @Parameter(description = "Unique identifier of a Session", required = true) sessionId: UUID,
-  ): ResponseEntity<RecordAttendance> = ResponseEntity.ok(programmeGroupService.getRecordAttendanceByGroupIdAndSessionId(groupId, sessionId))
 }

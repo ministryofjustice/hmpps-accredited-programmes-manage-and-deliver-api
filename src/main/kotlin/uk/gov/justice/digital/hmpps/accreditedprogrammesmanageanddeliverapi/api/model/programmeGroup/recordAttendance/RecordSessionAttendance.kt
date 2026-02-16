@@ -1,9 +1,10 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance
 
 import io.swagger.v3.oas.annotations.media.Schema
+import java.util.UUID
 
 @Schema(description = "Details of a Record Attendance")
-data class RecordAttendance(
+data class RecordSessionAttendance(
   @Schema(
     description = "A title of a session",
     example = "Getting started 1",
@@ -19,16 +20,16 @@ data class RecordAttendance(
   @Schema(
     description = "List of attendees",
   )
-  val people: List<Attendee>,
+  val people: List<SessionAttendancePerson>,
 )
 
 @Schema(description = "Details of an Attendee")
-data class Attendee(
+data class SessionAttendancePerson(
   @Schema(
     description = "A UUID string representing a referral ID",
     example = "cb64c21b-cf10-4a6d-a118-f61d4f27f47b",
   )
-  val referralId: String,
+  val referralId: UUID,
 
   @Schema(
     description = "A string representing a full name of an attendee",

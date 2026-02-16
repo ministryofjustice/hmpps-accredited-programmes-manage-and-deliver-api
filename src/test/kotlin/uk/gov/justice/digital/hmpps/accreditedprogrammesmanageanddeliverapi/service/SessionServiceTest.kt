@@ -26,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ModuleEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ModuleSessionTemplateEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
@@ -716,5 +717,226 @@ class SessionServiceTest {
     verify { attendeeRepository.findById(any()) }
     verify { programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any()) }
     verify { facilitatorRepository.findById(any()) }
+  }
+
+  @Test
+  fun `should return a record attendance with attended and complied attendance`() {
+    // Given
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
+    val module = ModuleEntityFactory().withName("Post-programme reviews").produce()
+    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
+      .withSessionType(ONE_TO_ONE)
+      .withName("Template 1")
+      .withModule(module)
+      .produce()
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionId = UUID.randomUUID()
+    val sessionEntity = SessionFactory()
+      .withId(sessionId)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .withAttendees(
+        listOf(
+          AttendeeFactory().withReferral(referralEntity)
+            .withSession(
+              SessionFactory().withProgrammeGroup(programmeGroupEntity)
+                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
+            ).produce(),
+        ) as MutableList<AttendeeEntity>,
+      )
+      .withIsCatchup(true)
+      .withProgrammeGroup(programmeGroupEntity)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .produce()
+
+    sessionEntity.attendances = mutableSetOf(
+      SessionAttendanceEntityFactory()
+        .withSession(sessionEntity)
+        .withDidNotEngage(false)
+        .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
+    )
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+
+    // When
+    val result = service.getRecordAttendanceBySessionId(sessionId)
+
+    // Then
+    assertThat(result).isNotNull()
+    assertThat(result.sessionTitle).isEqualTo("Template 1")
+    assertThat(result.groupRegionName).isEqualTo("TEST REGION")
+    assertThat(result.people).hasSize(1)
+    assertThat(result.people[0].referralId).isEqualTo(referralId)
+    assertThat(result.people[0].crn).isEqualTo(referralEntity.crn)
+    assertThat(result.people[0].name).isEqualTo(referralEntity.personName)
+    assertThat(result.people[0].attendance).isEqualTo("Attended")
+
+    verify { sessionRepository.findById(any()) }
+  }
+
+  @Test
+  fun `should return a record attendance with attended and did not comply attendance`() {
+    // Given
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
+    val module = ModuleEntityFactory().withName("Post-programme reviews").produce()
+    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
+      .withSessionType(ONE_TO_ONE)
+      .withName("Template 1")
+      .withModule(module)
+      .produce()
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionId = UUID.randomUUID()
+    val sessionEntity = SessionFactory()
+      .withId(sessionId)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .withAttendees(
+        listOf(
+          AttendeeFactory().withReferral(referralEntity)
+            .withSession(
+              SessionFactory().withProgrammeGroup(programmeGroupEntity)
+                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
+            ).produce(),
+        ) as MutableList<AttendeeEntity>,
+      )
+      .withIsCatchup(true)
+      .withProgrammeGroup(programmeGroupEntity)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .produce()
+
+    sessionEntity.attendances = mutableSetOf(
+      SessionAttendanceEntityFactory()
+        .withSession(sessionEntity)
+        .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
+    )
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+
+    // When
+    val result = service.getRecordAttendanceBySessionId(sessionId)
+
+    // Then
+    assertThat(result).isNotNull()
+    assertThat(result.people).hasSize(1)
+    assertThat(result.people[0].attendance).isEqualTo("Attended but failed to comply")
+
+    verify { sessionRepository.findById(any()) }
+  }
+
+  @Test
+  fun `should return a record attendance with did not attend attendance`() {
+    // Given
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
+    val module = ModuleEntityFactory().withName("Post-programme reviews").produce()
+    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
+      .withSessionType(ONE_TO_ONE)
+      .withName("Template 1")
+      .withModule(module)
+      .produce()
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionId = UUID.randomUUID()
+    val sessionEntity = SessionFactory()
+      .withId(sessionId)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .withAttendees(
+        listOf(
+          AttendeeFactory().withReferral(referralEntity)
+            .withSession(
+              SessionFactory().withProgrammeGroup(programmeGroupEntity)
+                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
+            ).produce(),
+        ) as MutableList<AttendeeEntity>,
+      )
+      .withIsCatchup(true)
+      .withProgrammeGroup(programmeGroupEntity)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .produce()
+
+    sessionEntity.attendances = mutableSetOf(
+      SessionAttendanceEntityFactory()
+        .withSession(sessionEntity)
+        .withAttended(false)
+        .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
+    )
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+
+    // When
+    val result = service.getRecordAttendanceBySessionId(sessionId)
+
+    // Then
+    assertThat(result).isNotNull()
+    assertThat(result.people).hasSize(1)
+    assertThat(result.people[0].attendance).isEqualTo("Did not attend")
+
+    verify { sessionRepository.findById(any()) }
+  }
+
+  @Test
+  fun `should return a record attendance with no attendance`() {
+    // Given
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
+    val module = ModuleEntityFactory().withName("Post-programme reviews").produce()
+    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
+      .withSessionType(ONE_TO_ONE)
+      .withName("Template 1")
+      .withModule(module)
+      .produce()
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionId = UUID.randomUUID()
+    val sessionEntity = SessionFactory()
+      .withId(sessionId)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .withAttendees(
+        listOf(
+          AttendeeFactory().withReferral(referralEntity)
+            .withSession(
+              SessionFactory().withProgrammeGroup(programmeGroupEntity)
+                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
+            ).produce(),
+        ) as MutableList<AttendeeEntity>,
+      )
+      .withIsCatchup(true)
+      .withProgrammeGroup(programmeGroupEntity)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .produce()
+
+    sessionEntity.attendances = mutableSetOf()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+
+    // When
+    val result = service.getRecordAttendanceBySessionId(sessionId)
+
+    // Then
+    assertThat(result).isNotNull()
+    assertThat(result.people).hasSize(1)
+    assertThat(result.people[0].attendance).isNull()
+
+    verify { sessionRepository.findById(any()) }
+  }
+
+  @Test
+  fun `should throw a not found exception when session id doesn't exist on return a record attendance`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    every { sessionRepository.findById(any()) } returns Optional.empty()
+
+    // When
+    val exception = assertThrows<NotFoundException> {
+      service.getRecordAttendanceBySessionId(sessionId)
+    }
+
+    // Then
+    assertTrue(
+      exception.message!!.contains("Session not found with id: $sessionId"),
+    )
+    verify { sessionRepository.findById(any()) }
   }
 }

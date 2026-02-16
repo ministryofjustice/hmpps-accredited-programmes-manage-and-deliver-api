@@ -25,6 +25,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.RecordSessionAttendance
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionDateAndTimeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
@@ -1471,5 +1472,100 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
       .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
       .returnResult().responseBody!!
+  }
+
+  @Nested
+  @DisplayName("Get record attendance")
+  inner class GetRecordAttendancePage {
+    @Test
+    fun `should return 200 and data on GET record attendance by a session ID`() {
+      // Given
+      // Create group
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      // Allocate one referral to a group with 'Awaiting allocation'
+      // status to ensure it's not returned as part of our waitlist data
+      val referral = testReferralHelper.createReferral()
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
+      val session =
+        sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+      val sessionId = session!!.id!!
+      val attendee = session.attendees.first()
+
+      val sessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            attendeeId = attendee.id!!,
+            name = attendee.personName,
+            attended = true,
+            recordedAt = LocalDate.now(),
+            recordedByFacilitatorId = session.sessionFacilitators.first().id.facilitator.id!!,
+          ),
+        ),
+      )
+
+      // record attendance
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = sessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/session/${session.id}/record-attendance",
+        returnType = object : ParameterizedTypeReference<RecordSessionAttendance>() {},
+      )
+
+      // Then
+      assertThat(response.sessionTitle).isEqualTo(session.sessionName)
+      assertThat(response.groupRegionName).isEqualTo(group.regionName)
+      assertThat(response.people).isNotEmpty()
+      assertThat(response.people[0].referralId).isEqualTo(attendee.referralId)
+      assertThat(response.people[0].name).isEqualTo(attendee.personName)
+      assertThat(response.people[0].crn).isEqualTo(attendee.referral.crn)
+      assertThat(response.people[0].attendance).isEqualTo("Attended")
+    }
+
+    @Test
+    fun `return 401 when unauthorised on GET record attendance by a session ID`() {
+      // When
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/session/${UUID.randomUUID()}/record-attendance")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+
+    @Test
+    fun `return 404 when the session is not found on GET record attendance by a session ID`() {
+      // Given
+      val sessionId = UUID.randomUUID()
+
+      // When
+      val exception = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/session/$sessionId/record-attendance",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        body = {},
+      )
+
+      // Then
+      assertThat(exception.userMessage).isEqualTo("Not Found: Session not found with id: $sessionId")
+    }
   }
 }
