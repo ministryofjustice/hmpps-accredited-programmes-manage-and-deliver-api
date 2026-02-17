@@ -329,13 +329,14 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
   }
 
   @Nested
-  @DisplayName("getScheduleForGroup")
-  inner class GetScheduleForGroup {
+  @DisplayName("getScheduleOverviewForGroup")
+  inner class GetScheduleOverviewForGroup {
 
     private lateinit var groupId: UUID
     private lateinit var preGroupModuleSessions: List<ModuleSessionTemplateEntity>
     private lateinit var gettingStartedModuleSessions: List<ModuleSessionTemplateEntity>
     private lateinit var regularModuleSessions: List<ModuleSessionTemplateEntity>
+    private lateinit var postProgrammeReviewSessions: List<ModuleSessionTemplateEntity>
     private lateinit var programmeGroup: ProgrammeGroupEntity
 
     @AfterEach
@@ -369,6 +370,11 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(regularModule).isNotNull
       val regularModuleId = regularModule!!.id!!
 
+      // Find Post-programme review module
+      val postProgrammeReviewModule = modules.find { it.name.startsWith("Post-programme") }
+      assertThat(postProgrammeReviewModule).isNotNull
+      val postProgrammeReviewModuleId = postProgrammeReviewModule!!.id!!
+
       // Create a test group associated with Building Choices template
       programmeGroup = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
@@ -384,6 +390,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       gettingStartedModuleSessions = moduleSessionTemplateRepository.findByModuleId(gettingStartedModuleId)
       preGroupModuleSessions = moduleSessionTemplateRepository.findByModuleId(preGroupModuleId)
       regularModuleSessions = moduleSessionTemplateRepository.findByModuleId(regularModuleId)
+      postProgrammeReviewSessions = moduleSessionTemplateRepository.findByModuleId(postProgrammeReviewModuleId)
     }
 
     @Test
@@ -548,6 +555,55 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(schedule.sessions).extracting<String>(GroupScheduleOverviewSession::type)
         .containsOnlyOnce("Individual")
         .containsOnlyOnce("Group")
+    }
+
+    @Test
+    fun `should return group schedule with session names in the correct format`() {
+      // Given
+      // Create getting started session ONE-TO-ONE placeholder
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(gettingStartedModuleSessions.first { it.name.startsWith("Getting started") && it.sessionType == SessionType.ONE_TO_ONE })
+          .withIsPlaceholder(true)
+          .produce(),
+      )
+      // Create pre-group session
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(preGroupModuleSessions.first { it.name.startsWith("Pre-group") && it.sessionType == SessionType.ONE_TO_ONE })
+          .withIsPlaceholder(true)
+          .produce(),
+      )
+      // Create post-programme review session
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(postProgrammeReviewSessions.first { it.sessionType == SessionType.ONE_TO_ONE })
+          .withIsPlaceholder(true)
+          .produce(),
+      )
+
+      // Create regular group session
+      val regularSession = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.GROUP })
+          .withIsPlaceholder(false)
+          .produce(),
+      )
+
+      // When
+      val schedule = service.getScheduleOverviewForGroup(programmeGroup.id!!)
+
+      // Then
+      assertThat(schedule.sessions).isNotNull
+      val sessionNames = schedule.sessions.map(GroupScheduleOverviewSession::name)
+      assertThat(sessionNames).contains("Pre-group one-to-ones")
+      assertThat(sessionNames).contains("Getting started one-to-ones")
+      assertThat(sessionNames).contains("Post-programme review deadline")
+      assertThat(sessionNames).contains("${regularSession.moduleName} ${regularSession.sessionNumber}")
     }
 
     @Test
