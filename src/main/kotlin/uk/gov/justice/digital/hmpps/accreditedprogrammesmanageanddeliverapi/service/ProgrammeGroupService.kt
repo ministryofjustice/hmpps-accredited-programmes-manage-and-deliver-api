@@ -287,18 +287,28 @@ class ProgrammeGroupService(
     val groupSessions =
       sessions.filter { it.sessionType == SessionType.GROUP || (it.sessionType == SessionType.ONE_TO_ONE && it.isPlaceholder) }
         .map { session ->
+          // Not using helper function `FormatSessionNameForPage` as this UI page has specific requirements for session naming
+          val sessionName = when {
+            session.moduleName.startsWith("Pre-group") -> session.moduleName
+
+            session.moduleName.startsWith("Post-programme") -> "${session.moduleName} deadline"
+
+            session.sessionType == SessionType.ONE_TO_ONE -> "${session.moduleName} one-to-ones"
+
+            else -> {
+              "${session.moduleName} ${session.sessionNumber}"
+            }
+          }
           GroupScheduleOverviewSession(
             id = session.id,
-            name = session.moduleSessionTemplate.name,
+            name = sessionName,
             type = session.sessionType.value,
             date = session.startsAt.toLocalDate(),
             time = if (session.isPlaceholder) {
               "Various times"
             } else {
               "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${
-                formatTimeForUiDisplay(
-                  session.endsAt.toLocalTime(),
-                )
+                formatTimeForUiDisplay(session.endsAt.toLocalTime())
               }"
             },
           )
@@ -427,11 +437,6 @@ class ProgrammeGroupService(
 
   fun groupFormatPageTitle(session: SessionEntity): String = when (session.sessionType) {
     SessionType.GROUP -> "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}"
-
-    SessionType.ONE_TO_ONE -> if (session.moduleSessionTemplate.name == "Post programme review") {
-      "${session.attendees.first().personName}: Post-programme review"
-    } else {
-      "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name} "
-    }
+    SessionType.ONE_TO_ONE -> "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name} "
   }
 }
