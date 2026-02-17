@@ -287,11 +287,21 @@ class ProgrammeGroupService(
     val groupSessions =
       sessions.filter { it.sessionType == SessionType.GROUP || (it.sessionType == SessionType.ONE_TO_ONE && it.isPlaceholder) }
         .map { session ->
-          // Not using helper function `FormatSessionNameForPage` as this UI page has specific requirements for session naming
+          /**
+           * Not using helper function `FormatSessionNameForPage` as this UI page has specific requirements for session naming
+           *
+           * Session names
+           * The format of the group names is Module name and number. The session name isn’t shown on this overview screen. Module names are in sentence case (only the first word capitalised)
+           * Eg ‘Getting started 1’
+           * One-to-ones are shown as module name followed by ‘one-to-ones’
+           * Eg ‘Pre-group one-to-ones’ or ‘Getting started one-to-ones’
+           * Post-programme reviews specify that the date is the deadline:
+           * ‘Post-programme reviews deadline’
+           */
           val sessionName = when {
             session.moduleName.startsWith("Pre-group") -> session.moduleName
 
-            session.moduleName.startsWith("Post-programme") -> "${session.moduleName} deadline"
+            session.moduleName.startsWith("Post-programme") -> "${session.sessionName} deadline"
 
             session.sessionType == SessionType.ONE_TO_ONE -> "${session.moduleName} one-to-ones"
 
