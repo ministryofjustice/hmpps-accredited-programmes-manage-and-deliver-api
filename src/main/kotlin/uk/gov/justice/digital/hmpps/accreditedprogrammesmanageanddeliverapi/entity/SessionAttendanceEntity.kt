@@ -14,7 +14,6 @@ import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendee
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.util.UUID
 
 @Entity
@@ -51,6 +50,11 @@ class SessionAttendanceEntity(
   @Column(name = "recorded_at")
   var recordedAt: LocalDateTime? = null,
 
+  @NotNull
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "outcome_type_code")
+  var outcomeType: SessionAttendanceOutcomeTypeEntity,
+
   @OneToMany(
     fetch = FetchType.LAZY,
     cascade = [CascadeType.ALL],
@@ -65,12 +69,14 @@ fun SessionAttendee.toEntity(
   session: SessionEntity,
   groupMembershipEntity: ProgrammeGroupMembershipEntity,
   recordedByFacilitator: FacilitatorEntity,
+  outcomeType: SessionAttendanceOutcomeTypeEntity,
 ) = SessionAttendanceEntity(
   session = session,
   groupMembership = groupMembershipEntity,
-  attended = attended,
+  attended = outcomeType.attendance,
   recordedByFacilitator = recordedByFacilitator,
-  recordedAt = recordedAt.atTime(LocalTime.now()),
+  recordedAt = LocalDateTime.now(),
+  outcomeType = outcomeType,
 ).apply {
   sessionNotes?.let {
     notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = it))

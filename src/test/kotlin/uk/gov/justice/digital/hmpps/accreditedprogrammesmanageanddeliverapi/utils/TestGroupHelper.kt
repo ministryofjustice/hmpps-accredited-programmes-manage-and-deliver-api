@@ -100,7 +100,7 @@ class TestGroupHelper {
         teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER,
       ),
       CreateGroupTeamMemberFactory().produceWithRandomValues(
-        teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR,
+        teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR,
       ),
     ),
   ): ProgrammeGroupEntity {
