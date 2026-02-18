@@ -12,7 +12,6 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.BodyInserters
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DeleteSessionCaptionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
@@ -604,12 +603,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     val response = performRequestAndExpectOk(
       HttpMethod.DELETE,
       "session/$sessionId",
-      object : ParameterizedTypeReference<DeleteSessionCaptionResponse>() {},
+      object : ParameterizedTypeReference<String>() {},
     )
 
     // Then
-    assertThat(response.caption)
-      .isEqualTo("${session?.sessionName} ${session?.sessionNumber} catch-up has been deleted.")
+    assertThat(response).isEqualTo("${session?.moduleName} ${session?.sessionNumber} has been deleted.")
 
     val savedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)
     assertThat(savedGroup!!.sessions.find { it.id == sessionId }).isNull()
