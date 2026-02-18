@@ -427,6 +427,7 @@ class ProgrammeGroupService(
       val attendanceRecord = session.attendances.find { it.groupMembership.referral.id == attendee.referralId }
       AttendanceAndSessionNotes(
         name = attendee.personName,
+        referralId = attendee.referralId,
         crn = attendee.referral.crn,
         attendance = attendanceRecord?.attended?.toString() ?: "To be confirmed",
         sessionNotes = attendanceRecord?.notesHistory?.firstOrNull()?.notes ?: "Not added",
