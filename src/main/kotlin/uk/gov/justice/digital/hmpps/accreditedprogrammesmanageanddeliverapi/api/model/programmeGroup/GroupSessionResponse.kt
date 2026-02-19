@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
+import java.util.UUID
 
 data class GroupSessionResponse(
   @Schema(
@@ -39,6 +40,7 @@ data class GroupSessionResponse(
 
 data class AttendanceAndSessionNotes(
   val name: String,
+  val referralId: UUID,
   val crn: String,
   val attendance: String,
   val sessionNotes: String,

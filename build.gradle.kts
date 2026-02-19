@@ -34,7 +34,7 @@ dependencies {
   // security
   implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:4.0.2")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client:4.0.2")
-  implementation("org.springframework.security:spring-security-crypto:7.0.2")
+  implementation("org.springframework.security:spring-security-crypto:7.0.3")
   implementation("com.nimbusds:oauth2-oidc-sdk:11.33")
   implementation("io.github.resilience4j:resilience4j-spring-boot2:2.3.0")
 
@@ -42,7 +42,7 @@ dependencies {
   testImplementation("org.springframework.boot:spring-boot-starter-webclient-test")
   testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
   testImplementation("org.wiremock:wiremock-standalone:3.13.2")
-  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.37") {
+  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.38") {
     exclude(group = "io.swagger.core.v3")
   }
   testImplementation("org.testcontainers:testcontainers:2.0.3")
