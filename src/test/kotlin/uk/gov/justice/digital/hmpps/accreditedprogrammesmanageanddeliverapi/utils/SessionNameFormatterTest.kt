@@ -397,4 +397,112 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       )
     }
   }
+
+  @Nested
+  inner class SessionDetails {
+
+    @Test
+    fun `returns module name sessionNumber templateName for group session`() {
+      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+      val sessionTemplate = moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.GROUP }!!
+
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .produce(),
+      )
+
+      assertEquals(
+        "${sessionTemplate.module.name} ${session.sessionNumber}: ${sessionTemplate.name}",
+        sessionNameFormatter.format(session, SessionNameContext.SessionDetails),
+      )
+    }
+
+    @Test
+    fun `returns module name sessionNumber templateName catch-up for group catchup session`() {
+      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+      val sessionTemplate = moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.GROUP }!!
+
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withIsCatchup(true)
+          .produce(),
+      )
+
+      assertEquals(
+        "${sessionTemplate.module.name} ${session.sessionNumber}: ${sessionTemplate.name} catch-up",
+        sessionNameFormatter.format(session, SessionNameContext.SessionDetails),
+      )
+    }
+
+    @Test
+    fun `returns personName templateName for one-to-one session`() {
+      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+      val sessionTemplate =
+        moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.ONE_TO_ONE }!!
+
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .produce(),
+      )
+      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
+      session.attendees.add(attendee)
+      sessionRepository.save(session)
+
+      assertEquals(
+        "${attendee.personName}: ${sessionTemplate.name}",
+        sessionNameFormatter.format(session, SessionNameContext.SessionDetails),
+      )
+    }
+
+    @Test
+    fun `returns personName templateName catch-up for one-to-one catchup session`() {
+      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+      val sessionTemplate =
+        moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.ONE_TO_ONE }!!
+
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withIsCatchup(true)
+          .produce(),
+      )
+      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
+      session.attendees.add(attendee)
+      sessionRepository.save(session)
+
+      assertEquals(
+        "${attendee.personName}: ${sessionTemplate.name} catch-up",
+        sessionNameFormatter.format(session, SessionNameContext.SessionDetails),
+      )
+    }
+  }
 }

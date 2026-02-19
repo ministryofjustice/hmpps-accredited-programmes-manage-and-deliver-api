@@ -35,6 +35,11 @@ sealed class SessionNameContext {
    * @property sessionTemplate The module session template associated with the scheduled session.
    */
   data class SessionsAndAttendance(val sessionTemplate: ModuleSessionTemplateEntity) : SessionNameContext()
+
+  /**
+   * Formatting for the Session details page.
+   */
+  object SessionDetails : SessionNameContext()
 }
 
 /**
@@ -66,6 +71,7 @@ class SessionNameFormatter {
     is SessionNameContext.ScheduleIndividualSession -> scheduleIndividualSession(session)
     is SessionNameContext.ScheduleOverview -> scheduleOverview(session)
     is SessionNameContext.SessionsAndAttendance -> sessionsAndAttendance(context.sessionTemplate, session)
+    is SessionNameContext.SessionDetails -> sessionDetails(session)
   }
 
   /**
@@ -137,5 +143,23 @@ class SessionNameFormatter {
     session.moduleName.startsWith("Post-programme") -> "${session.sessionName} deadline"
     session.sessionType == SessionType.ONE_TO_ONE -> "${session.moduleName} one-to-ones"
     else -> "${session.moduleName} ${session.sessionNumber}"
+  }
+
+  /**
+   * Formats the session name for use as a page title on session details page.
+   *
+   * - GROUP: `"<module.name> <sessionNumber>: <templateName>"`
+   * - ONE_TO_ONE: `"<personName>: <templateName>"`
+   */
+  private fun sessionDetails(session: SessionEntity): String {
+    val catchupSuffix = if (session.isCatchup) " catch-up" else ""
+    return when (session.sessionType) {
+      SessionType.GROUP -> "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}$catchupSuffix"
+
+      SessionType.ONE_TO_ONE -> {
+        requireNotNull(session.attendees.first()) { "Person name is required for individual sessions" }
+        "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name}$catchupSuffix"
+      }
+    }
   }
 }

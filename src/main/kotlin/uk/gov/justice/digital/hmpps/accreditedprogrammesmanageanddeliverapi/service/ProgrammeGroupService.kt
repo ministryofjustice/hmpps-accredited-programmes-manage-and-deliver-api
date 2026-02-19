@@ -412,7 +412,7 @@ class ProgrammeGroupService(
 
     return GroupSessionResponse(
       groupCode = programmeGroup.code,
-      pageTitle = groupFormatPageTitle(session),
+      pageTitle = sessionNameFormatter.format(session, SessionNameContext.SessionDetails),
       sessionType = session.sessionType.value,
       date = session.startsAt.toLocalDate(),
       time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
@@ -420,10 +420,5 @@ class ProgrammeGroupService(
       facilitators = session.sessionFacilitators.map { it.facilitator.personName },
       attendanceAndSessionNotes = attendanceAndSessionNotes,
     )
-  }
-
-  fun groupFormatPageTitle(session: SessionEntity): String = when (session.sessionType) {
-    SessionType.GROUP -> "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}"
-    SessionType.ONE_TO_ONE -> "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name} "
   }
 }
