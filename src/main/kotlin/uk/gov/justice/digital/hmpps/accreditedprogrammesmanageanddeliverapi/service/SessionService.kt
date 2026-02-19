@@ -42,7 +42,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatSessionNameForPage
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -67,6 +68,8 @@ class SessionService(
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   @Autowired
   private val sessionAttendanceOutcomeTypeRepository: SessionAttendanceOutcomeTypeRepository,
+  @Autowired
+  private val sessionNameFormatter: SessionNameFormatter,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
@@ -77,7 +80,7 @@ class SessionService(
     return EditSessionDetails(
       sessionId = sessionId,
       groupCode = session.programmeGroup.code,
-      sessionName = formatSessionNameForPage(session),
+      sessionName = sessionNameFormatter.format(session, SessionNameContext.Default),
       sessionDate = session.startsAt.format(DateTimeFormatter.ofPattern("d/M/yyyy")),
       sessionStartTime = fromDateTime(session.startsAt),
       sessionEndTime = fromDateTime(session.endsAt),
@@ -91,7 +94,7 @@ class SessionService(
 
     return RescheduleSessionDetails(
       sessionId = sessionId,
-      sessionName = formatSessionNameForPage(session),
+      sessionName = sessionNameFormatter.format(session, SessionNameContext.Default),
       previousSessionDateAndTime = formatPreviousSessionDateAndTime(session),
     )
   }
@@ -186,7 +189,7 @@ class SessionService(
       NotFoundException("Session with id $sessionId not found.")
     }
 
-    return entity.toApi()
+    return entity.toApi(sessionNameFormatter)
   }
 
   fun getSessionAttendees(sessionId: UUID): EditSessionAttendeesResponse {
@@ -201,7 +204,7 @@ class SessionService(
 
     return EditSessionAttendeesResponse(
       sessionId = sessionId,
-      sessionName = formatSessionNameForPage(session),
+      sessionName = sessionNameFormatter.format(session, SessionNameContext.Default),
       sessionType = session.sessionType,
       isCatchup = session.isCatchup,
       attendees = sessionAttendees,
@@ -219,7 +222,7 @@ class SessionService(
     val sessionFacilitatorCodes = session.sessionFacilitators.map { it.facilitatorCode }
 
     return EditSessionFacilitatorsResponse(
-      pageTitle = "Edit ${formatSessionNameForPage(session)}",
+      pageTitle = "Edit ${sessionNameFormatter.format(session, SessionNameContext.Default)}",
       facilitators = regionFacilitators.map { it.toEditSessionFacilitator(sessionFacilitatorCodes) },
     )
   }
@@ -253,7 +256,7 @@ class SessionService(
       "Session with id $sessionId not found.",
     )
     // We have to format the session name here before we delete it as there are some lazily loaded entities that will be removed after session deletion.
-    val formattedSessionName = formatSessionNameForPage(sessionEntity)
+    val formattedSessionName = sessionNameFormatter.format(sessionEntity, SessionNameContext.Default)
     scheduleService.removeNDeliusAppointments(sessionEntity.ndeliusAppointments.toList(), listOf(sessionEntity))
     sessionRepository.delete(sessionEntity)
     return sessionEntity to formattedSessionName

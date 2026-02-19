@@ -2,7 +2,8 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatSessionNameForPage
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.util.UUID
 
 @Schema(description = "Details of a session")
@@ -33,12 +34,12 @@ data class Session(
   val pageTitle: String,
 )
 
-fun SessionEntity.toApi() = Session(
+fun SessionEntity.toApi(formatter: SessionNameFormatter) = Session(
   id = id!!,
   type = sessionType.value,
   name = moduleSessionTemplate.module.name,
   number = sessionNumber,
   referrals = attendees.map { it.referral.toApi() },
   isCatchup = isCatchup,
-  pageTitle = "Delete ${formatSessionNameForPage(this)}",
+  pageTitle = "Delete ${formatter.format(this, SessionNameContext.Default)}",
 )

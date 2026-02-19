@@ -46,8 +46,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatSessionNameForModuleSessionPage
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatSessionNameForScheduleOverview
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay
 import java.time.LocalDate
 import java.time.LocalTime
@@ -65,6 +65,7 @@ class ProgrammeGroupService(
   private val scheduleService: ScheduleService,
   private val sessionRepository: SessionRepository,
   private val facilitatorService: FacilitatorService,
+  private val sessionNameFormatter: SessionNameFormatter,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -210,7 +211,10 @@ class ProgrammeGroupService(
           ProgrammeGroupModuleSessionsResponseGroupSession(
             id = scheduledSession.id!!,
             number = sessionTemplate.sessionNumber,
-            name = formatSessionNameForModuleSessionPage(sessionTemplate, scheduledSession),
+            name = sessionNameFormatter.format(
+              scheduledSession,
+              SessionNameContext.SessionsAndAttendance(sessionTemplate),
+            ),
             type = if (sessionTemplate.sessionType == SessionType.ONE_TO_ONE) "Individual" else "Group",
             dateOfSession = scheduledSession.startsAt.toLocalDate(),
             timeOfSession = formatTimeOfSession(
@@ -280,7 +284,7 @@ class ProgrammeGroupService(
     val groupSessions =
       sessions.filter { it.sessionType == SessionType.GROUP || (it.sessionType == SessionType.ONE_TO_ONE && it.isPlaceholder) }
         .map { session ->
-          val sessionName = formatSessionNameForScheduleOverview(session)
+          val sessionName = sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview)
           GroupScheduleOverviewSession(
             id = session.id,
             name = sessionName,
