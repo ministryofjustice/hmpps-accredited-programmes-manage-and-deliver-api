@@ -2488,7 +2488,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val attendance1 = SessionAttendanceEntity(
         session = session,
         groupMembership = groupMembership1,
-        attended = true,
         outcomeType = SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true),
       ).apply {
         notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 1"))
@@ -2497,7 +2496,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val attendance2 = SessionAttendanceEntity(
         session = session,
         groupMembership = groupMembership2,
-        attended = false,
         outcomeType = SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false),
       ).apply {
         notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 2 - initial"))

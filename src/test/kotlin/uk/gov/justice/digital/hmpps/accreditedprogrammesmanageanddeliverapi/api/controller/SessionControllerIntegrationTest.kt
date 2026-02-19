@@ -1489,7 +1489,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     assertThat(updatedSessionEntity.isPresent).isTrue()
     assertThat(updatedSessionEntity.get().attendances.size).isEqualTo(1)
     val sessionAttendanceEntity = updatedSessionEntity.get().attendances.first()
-    assertThat(sessionAttendanceEntity.attended).isTrue()
+    assertThat(sessionAttendanceEntity.outcomeType.attendance).isTrue()
     assertThat(sessionAttendanceEntity.recordedByFacilitator?.id)
       .isEqualTo(sessionEntity.sessionFacilitators.find { it.facilitatorType == FacilitatorType.LEAD_FACILITATOR }?.facilitator?.id)
     assertThat(sessionAttendanceEntity.recordedAt?.year).isEqualTo(LocalDate.now().year)

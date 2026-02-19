@@ -360,13 +360,13 @@ class SessionService(
 
     var attendanceText: String
 
-    if (attendance.attended != null && attendance.attended == true) {
+    if (attendance.outcomeType.attendance != null && attendance.outcomeType.attendance == true) {
       attendanceText = "Attended"
     } else {
       return "Did not attend"
     }
 
-    if (attendance.didNotEngage != null && attendance.didNotEngage == true) {
+    if (!attendance.outcomeType.compliant) {
       return "$attendanceText but failed to comply"
     }
 

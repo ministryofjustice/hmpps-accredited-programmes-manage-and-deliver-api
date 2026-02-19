@@ -697,7 +697,14 @@ class SessionServiceTest {
     sessionEntity.attendances = mutableSetOf(
       SessionAttendanceEntityFactory()
         .withSession(sessionEntity)
-        .withDidNotEngage(false)
+        .withOutcomeType(
+          SessionAttendanceOutcomeTypeEntity(
+            "ATTC",
+            "Attended - Complied",
+            true,
+            true,
+          ),
+        )
         .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
     )
 
@@ -753,6 +760,7 @@ class SessionServiceTest {
     sessionEntity.attendances = mutableSetOf(
       SessionAttendanceEntityFactory()
         .withSession(sessionEntity)
+        .withOutcomeType(SessionAttendanceOutcomeTypeEntity("AFTC", "Attended - Failed to Comply", true, false))
         .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
     )
 
@@ -803,7 +811,7 @@ class SessionServiceTest {
     sessionEntity.attendances = mutableSetOf(
       SessionAttendanceEntityFactory()
         .withSession(sessionEntity)
-        .withAttended(false)
+        .withOutcomeType(SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false))
         .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
     )
 

@@ -429,7 +429,7 @@ class ProgrammeGroupService(
         name = attendee.personName,
         referralId = attendee.referralId,
         crn = attendee.referral.crn,
-        attendance = attendanceRecord?.attended?.toString() ?: "To be confirmed",
+        attendance = attendanceRecord?.outcomeType?.attendance?.toString() ?: "To be confirmed",
         sessionNotes = attendanceRecord?.notesHistory?.firstOrNull()?.notes ?: "Not added",
       )
     }

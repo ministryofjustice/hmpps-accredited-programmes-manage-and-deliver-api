@@ -20,8 +20,6 @@ class SessionAttendanceEntityFactory(
   private var session: SessionEntity = session ?: SessionFactory().produce()
   private var groupMembership: ProgrammeGroupMembershipEntity =
     groupMembership ?: ProgrammeGroupMembershipFactory().produce()
-  private var attended: Boolean = true
-  private var didNotEngage: Boolean = true
   private var legitimateAbsence: Boolean = true
   private var recordedByFacilitator: FacilitatorEntity = recordedByFacilitator ?: FacilitatorEntityFactory().produce()
   private var recordedAt: LocalDateTime? = LocalDateTime.now(ZoneId.of("UTC"))
@@ -31,8 +29,6 @@ class SessionAttendanceEntityFactory(
   fun withSession(session: SessionEntity) = apply { this.session = session }
   fun withGroupMembership(groupMembership: ProgrammeGroupMembershipEntity) = apply { this.groupMembership = groupMembership }
 
-  fun withAttended(attended: Boolean) = apply { this.attended = attended }
-  fun withDidNotEngage(didNotEngage: Boolean) = apply { this.didNotEngage = didNotEngage }
   fun withLegitimateAbsence(legitimateAbsence: Boolean) = apply { this.legitimateAbsence = legitimateAbsence }
   fun withRecordedByFacilitator(recordedByFacilitator: FacilitatorEntity) = apply { this.recordedByFacilitator = recordedByFacilitator }
 
@@ -44,8 +40,6 @@ class SessionAttendanceEntityFactory(
     id = this.id,
     session = this.session,
     groupMembership = this.groupMembership,
-    attended = this.attended,
-    didNotEngage = this.didNotEngage,
     legitimateAbsence = this.legitimateAbsence,
     recordedByFacilitator = this.recordedByFacilitator,
     recordedAt = this.recordedAt,
