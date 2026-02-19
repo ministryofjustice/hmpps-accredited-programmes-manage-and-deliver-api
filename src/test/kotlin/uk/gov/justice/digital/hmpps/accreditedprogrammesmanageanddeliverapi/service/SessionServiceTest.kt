@@ -709,9 +709,14 @@ class SessionServiceTest {
     )
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every { sessionAttendanceOutcomeTypeRepository.findAll() } returns listOf(
+      SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true),
+      SessionAttendanceOutcomeTypeEntity("AFTC", "Attended - Failed to Comply", true, false),
+      SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false),
+    )
 
     // When
-    val result = service.getRecordAttendanceBySessionId(sessionId)
+    val result = service.getRecordAttendanceBySessionId(sessionId, listOf(referralId))
 
     // Then
     assertThat(result).isNotNull()
@@ -722,8 +727,14 @@ class SessionServiceTest {
     assertThat(result.people[0].crn).isEqualTo(referralEntity.crn)
     assertThat(result.people[0].name).isEqualTo(referralEntity.personName)
     assertThat(result.people[0].attendance).isEqualTo("Attended")
+    assertThat(result.people[0].options).hasSize(3)
+    assertThat(result.people[0].options!!.map { it.value })
+      .containsExactly("ATTC", "AFTC", "UAAB")
+    assertThat(result.people[0].options!!.map { it.text })
+      .containsExactly("Yes - attended", "Attended but failed to comply", "No - did not attend")
 
     verify { sessionRepository.findById(any()) }
+    verify { sessionAttendanceOutcomeTypeRepository.findAll() }
   }
 
   @Test
@@ -765,9 +776,14 @@ class SessionServiceTest {
     )
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every { sessionAttendanceOutcomeTypeRepository.findAll() } returns listOf(
+      SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true),
+      SessionAttendanceOutcomeTypeEntity("AFTC", "Attended - Failed to Comply", true, false),
+      SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false),
+    )
 
     // When
-    val result = service.getRecordAttendanceBySessionId(sessionId)
+    val result = service.getRecordAttendanceBySessionId(sessionId, null)
 
     // Then
     assertThat(result).isNotNull()
@@ -816,9 +832,14 @@ class SessionServiceTest {
     )
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every { sessionAttendanceOutcomeTypeRepository.findAll() } returns listOf(
+      SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true),
+      SessionAttendanceOutcomeTypeEntity("AFTC", "Attended - Failed to Comply", true, false),
+      SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false),
+    )
 
     // When
-    val result = service.getRecordAttendanceBySessionId(sessionId)
+    val result = service.getRecordAttendanceBySessionId(sessionId, null)
 
     // Then
     assertThat(result).isNotNull()
@@ -860,11 +881,16 @@ class SessionServiceTest {
       .produce()
 
     sessionEntity.attendances = mutableSetOf()
+    every { sessionAttendanceOutcomeTypeRepository.findAll() } returns listOf(
+      SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true),
+      SessionAttendanceOutcomeTypeEntity("AFTC", "Attended - Failed to Comply", true, false),
+      SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false),
+    )
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
 
     // When
-    val result = service.getRecordAttendanceBySessionId(sessionId)
+    val result = service.getRecordAttendanceBySessionId(sessionId, null)
 
     // Then
     assertThat(result).isNotNull()
@@ -882,7 +908,7 @@ class SessionServiceTest {
 
     // When
     val exception = assertThrows<NotFoundException> {
-      service.getRecordAttendanceBySessionId(sessionId)
+      service.getRecordAttendanceBySessionId(sessionId, null)
     }
 
     // Then

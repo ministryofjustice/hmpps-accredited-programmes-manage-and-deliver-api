@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
@@ -666,6 +667,8 @@ class SessionController(
     produces = [MediaType.APPLICATION_JSON_VALUE],
   )
   fun getGroupSessionRecordAttendance(
+    @Parameter(description = "Filter by referral IDs. Can pass multiple values: ?referralId=referral-a&referralId=referral-b")
+    @RequestParam(name = "referralId", required = false) referralIds: List<UUID>?,
     @PathVariable @Parameter(description = "Unique identifier of a session", required = true) sessionId: UUID,
-  ): ResponseEntity<RecordSessionAttendance> = ResponseEntity.ok(sessionService.getRecordAttendanceBySessionId(sessionId))
+  ): ResponseEntity<RecordSessionAttendance> = ResponseEntity.ok(sessionService.getRecordAttendanceBySessionId(sessionId, referralIds))
 }
