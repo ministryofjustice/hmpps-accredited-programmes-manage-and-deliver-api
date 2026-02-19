@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils
 
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 
@@ -29,5 +30,39 @@ fun formatSessionNameForPage(session: SessionEntity): String {
       requireNotNull(attendees.first()) { "Person name is required for individual sessions" }
       "${attendees.first().personName}: ${session.sessionName}$catchupSuffix"
     }
+  }
+}
+
+fun formatSessionNameForScheduleIndividualSession(session: SessionEntity): String = when {
+  session.sessionType == SessionType.ONE_TO_ONE && session.isCatchup ->
+    "${session.sessionName} catch-up for ${session.attendees.first().personName} has been added."
+
+  session.sessionType == SessionType.ONE_TO_ONE ->
+    "${session.sessionName} for ${session.attendees.first().personName} has been added."
+
+  session.isCatchup ->
+    "${session.moduleName} ${session.sessionNumber} catch-up has been added."
+
+  else ->
+    "${session.moduleName} ${session.sessionNumber} has been added."
+}
+
+fun formatSessionNameForModuleSessionPage(
+  sessionTemplate: ModuleSessionTemplateEntity,
+  scheduledSession: SessionEntity,
+): String = when (sessionTemplate.sessionType) {
+  SessionType.GROUP -> "${sessionTemplate.module.name} ${scheduledSession.sessionNumber}: ${sessionTemplate.name}"
+  SessionType.ONE_TO_ONE -> "${scheduledSession.attendees.first().personName} (${scheduledSession.attendees.first().referral.crn}): ${sessionTemplate.name}"
+}
+
+fun formatSessionNameForScheduleOverview(session: SessionEntity) = when {
+  session.moduleName.startsWith("Pre-group") -> session.moduleName
+
+  session.moduleName.startsWith("Post-programme") -> "${session.sessionName} deadline"
+
+  session.sessionType == SessionType.ONE_TO_ONE -> "${session.moduleName} one-to-ones"
+
+  else -> {
+    "${session.moduleName} ${session.sessionNumber}"
   }
 }
