@@ -598,16 +598,18 @@ class ProgrammeGroupController(
   ): ResponseEntity<String> {
     val savedSession = scheduleService.scheduleIndividualSession(groupId, scheduleSessionRequest)
 
-    val successMessage = when (savedSession.sessionType) {
-      SessionType.ONE_TO_ONE if savedSession.isCatchup ->
-        "${savedSession.sessionName} one-to-one catch-up for ${savedSession.attendees.first().personName} has been added."
+    val successMessage = when {
+      savedSession.sessionType == SessionType.ONE_TO_ONE && savedSession.isCatchup ->
+        "${savedSession.sessionName} catch-up for ${savedSession.attendees.first().personName} has been added."
 
-      SessionType.ONE_TO_ONE ->
-        "${savedSession.sessionName} one-to-one for ${savedSession.attendees.first().personName} has been added."
+      savedSession.sessionType == SessionType.ONE_TO_ONE ->
+        "${savedSession.sessionName} for ${savedSession.attendees.first().personName} has been added."
 
-      SessionType.GROUP if savedSession.isCatchup -> "${savedSession.sessionName} ${savedSession.sessionNumber} catch-up has been added."
+      savedSession.isCatchup ->
+        "${savedSession.moduleName} ${savedSession.sessionNumber} catch-up has been added."
 
-      else -> "${savedSession.sessionName} ${savedSession.sessionNumber} has been added."
+      else ->
+        "${savedSession.moduleName} ${savedSession.sessionNumber} has been added."
     }
 
     return ResponseEntity.status(HttpStatus.CREATED).body(successMessage)

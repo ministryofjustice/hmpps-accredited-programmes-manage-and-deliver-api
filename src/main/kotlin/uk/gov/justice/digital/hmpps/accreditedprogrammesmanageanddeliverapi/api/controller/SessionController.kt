@@ -37,7 +37,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SessionService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatSessionNameForPage
 import java.util.UUID
 
 @Tag(
@@ -267,7 +266,7 @@ class SessionController(
     @PathVariable sessionId: UUID,
   ): ResponseEntity<String> {
     val deletedSession = sessionService.deleteSession(sessionId)
-    return ResponseEntity.ok("${formatSessionNameForPage(deletedSession)} has been deleted.")
+    return ResponseEntity.ok("${deletedSession.second} has been deleted.")
   }
 
   @Operation(
