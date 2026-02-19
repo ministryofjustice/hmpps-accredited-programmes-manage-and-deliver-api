@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DeleteSessionCaptionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
@@ -37,7 +36,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
@@ -245,15 +243,13 @@ class SessionService(
     sessionRepository.save(session)
   }
 
-  fun deleteSession(sessionId: UUID): DeleteSessionCaptionResponse {
+  fun deleteSession(sessionId: UUID): SessionEntity {
     val sessionEntity = sessionRepository.findByIdOrNull(sessionId) ?: throw NotFoundException(
       "Session with id $sessionId not found.",
     )
-    val caption = getDeleteSessionResponseMessage(sessionEntity)
     scheduleService.removeNDeliusAppointments(sessionEntity.ndeliusAppointments.toList(), listOf(sessionEntity))
     sessionRepository.delete(sessionEntity)
-
-    return DeleteSessionCaptionResponse(caption = caption)
+    return sessionEntity
   }
 
   fun updateSessionAttendees(sessionId: UUID, referralIds: List<UUID>): String {
@@ -328,8 +324,9 @@ class SessionService(
     session: SessionEntity,
   ): List<SessionAttendanceEntity> {
     val programmeGroupId = session.programmeGroup.id!!
-    val recordedByFacilitator = session.sessionFacilitators.find { it.facilitatorType == FacilitatorType.LEAD_FACILITATOR }?.facilitator
-      ?: throw BusinessException("Lead facilitator not found for session: ${session.id}")
+    val recordedByFacilitator =
+      session.sessionFacilitators.find { it.facilitatorType == FacilitatorType.LEAD_FACILITATOR }?.facilitator
+        ?: throw BusinessException("Lead facilitator not found for session: ${session.id}")
 
     return attendees.map { attendee ->
       val referralId = attendee.referralId
@@ -344,17 +341,6 @@ class SessionService(
 
       attendee.toEntity(session, groupMembershipEntity, recordedByFacilitator, outcomeType)
     }.toList()
-  }
-
-  private fun getDeleteSessionResponseMessage(sessionEntity: SessionEntity): String {
-    val sessionName = sessionEntity.sessionName.replace(" one-to-one", "")
-    if (sessionEntity.moduleName == "Post-programme reviews") {
-      return "${sessionEntity.attendees.first().personName}: post-programme review has been deleted"
-    } else if (sessionEntity.sessionType == ONE_TO_ONE) {
-      return "${sessionEntity.attendees.first().personName}: $sessionName ${sessionEntity.sessionNumber} one-to-one has been deleted."
-    }
-
-    return "$sessionName ${sessionEntity.sessionNumber} catch-up has been deleted."
   }
 
   private fun formatPreviousSessionDateAndTime(session: SessionEntity): String {
