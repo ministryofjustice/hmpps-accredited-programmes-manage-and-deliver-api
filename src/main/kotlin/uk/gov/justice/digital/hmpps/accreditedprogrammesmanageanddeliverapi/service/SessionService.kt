@@ -243,6 +243,8 @@ class SessionService(
     sessionRepository.save(session)
   }
 
+  // Deletes session and returns the deleted entity and a properly formatted session name as a string
+  // e.g. 'Getting started 1 catch-up'
   fun deleteSession(sessionId: UUID): Pair<SessionEntity, String> {
     val sessionEntity = sessionRepository.findByIdOrNull(sessionId) ?: throw NotFoundException(
       "Session with id $sessionId not found.",
