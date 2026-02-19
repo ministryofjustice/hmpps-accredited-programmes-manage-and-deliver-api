@@ -45,6 +45,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
@@ -1361,11 +1362,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     val sessionAttendanceRequest = SessionAttendance(
       attendees = listOf(
         SessionAttendee(
-          attendeeId = sessionEntity.attendees.first().id!!,
-          name = sessionEntity.attendees.first().personName,
-          attended = true,
-          recordedAt = LocalDate.now(),
-          recordedByFacilitatorId = sessionEntity.sessionFacilitators.first().id.facilitator.id!!,
+          referralId = sessionEntity.attendees.first().referralId,
+          outcomeCode = "ATTC",
           sessionNotes = "Test session notes",
         ),
       ),
@@ -1385,15 +1383,15 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     val updatedSessionEntity = sessionRepository.findById(sessionId)
     assertThat(updatedSessionEntity.isPresent).isTrue()
     assertThat(updatedSessionEntity.get().attendances.size).isEqualTo(1)
-    assertThat(updatedSessionEntity.get().attendances.first().attended).isTrue()
-    assertThat(updatedSessionEntity.get().attendances.first().recordedByFacilitator?.id)
-      .isEqualTo(sessionEntity.sessionFacilitators.first().id.facilitator.id!!)
-    assertThat(updatedSessionEntity.get().attendances.first().recordedAt?.year).isEqualTo(LocalDate.now().year)
-    assertThat(updatedSessionEntity.get().attendances.first().recordedAt?.month?.value)
-      .isEqualTo(LocalDate.now().month.value)
-    assertThat(updatedSessionEntity.get().attendances.first().recordedAt?.dayOfMonth)
-      .isEqualTo(LocalDate.now().dayOfMonth)
-    assertThat(updatedSessionEntity.get().attendances.first().notesHistory.first().notes).isEqualTo("Test session notes")
+    val sessionAttendanceEntity = updatedSessionEntity.get().attendances.first()
+    assertThat(sessionAttendanceEntity.attended).isTrue()
+    assertThat(sessionAttendanceEntity.recordedByFacilitator?.id)
+      .isEqualTo(sessionEntity.sessionFacilitators.find { it.facilitatorType == FacilitatorType.LEAD_FACILITATOR }?.facilitator?.id)
+    assertThat(sessionAttendanceEntity.recordedAt?.year).isEqualTo(LocalDate.now().year)
+    assertThat(sessionAttendanceEntity.recordedAt?.month?.value).isEqualTo(LocalDate.now().month.value)
+    assertThat(sessionAttendanceEntity.recordedAt?.dayOfMonth).isEqualTo(LocalDate.now().dayOfMonth)
+    assertThat(sessionAttendanceEntity.notesHistory.first().notes).isEqualTo("Test session notes")
+    assertThat(sessionAttendanceEntity.outcomeType.code).isEqualTo("ATTC")
 
     nDeliusApiStubs.verifyPutAppointments(
       1,
@@ -1423,11 +1421,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     val sessionAttendanceRequest = SessionAttendance(
       attendees = listOf(
         SessionAttendee(
-          attendeeId = UUID.randomUUID(),
-          name = "John Smith",
-          attended = true,
-          recordedAt = LocalDate.now(),
-          recordedByFacilitatorId = UUID.randomUUID(),
+          referralId = UUID.randomUUID(),
+          outcomeCode = "ATTC",
         ),
       ),
     )
@@ -1452,11 +1447,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     val sessionAttendanceRequest = SessionAttendance(
       attendees = listOf(
         SessionAttendee(
-          attendeeId = UUID.randomUUID(),
-          name = "John Smith",
-          attended = true,
-          recordedAt = LocalDate.now(),
-          recordedByFacilitatorId = UUID.randomUUID(),
+          referralId = UUID.randomUUID(),
+          outcomeCode = "ATTC",
         ),
       ),
     )
@@ -1501,11 +1493,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       val sessionAttendanceRequest = SessionAttendance(
         attendees = listOf(
           SessionAttendee(
-            attendeeId = attendee.id!!,
-            name = attendee.personName,
-            attended = true,
-            recordedAt = LocalDate.now(),
-            recordedByFacilitatorId = session.sessionFacilitators.first().id.facilitator.id!!,
+            referralId = attendee.referralId,
+            outcomeCode = "ATTC",
           ),
         ),
       )

@@ -50,6 +50,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceOutcomeTypeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionNotesHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusAppointmentEntityFactory
@@ -2447,6 +2448,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         session = session,
         groupMembership = groupMembership1,
         attended = true,
+        outcomeType = SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true),
       ).apply {
         notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 1"))
       }
@@ -2455,6 +2457,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         session = session,
         groupMembership = groupMembership2,
         attended = false,
+        outcomeType = SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false),
       ).apply {
         notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 2 - initial"))
         notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 2 - latest"))

@@ -287,18 +287,38 @@ class ProgrammeGroupService(
     val groupSessions =
       sessions.filter { it.sessionType == SessionType.GROUP || (it.sessionType == SessionType.ONE_TO_ONE && it.isPlaceholder) }
         .map { session ->
+          /**
+           * Not using helper function `FormatSessionNameForPage` as this UI page has specific requirements for session naming
+           *
+           * Session names
+           * The format of the group names is Module name and number. The session name isn’t shown on this overview screen. Module names are in sentence case (only the first word capitalised)
+           * Eg ‘Getting started 1’
+           * One-to-ones are shown as module name followed by ‘one-to-ones’
+           * Eg ‘Pre-group one-to-ones’ or ‘Getting started one-to-ones’
+           * Post-programme reviews specify that the date is the deadline:
+           * ‘Post-programme reviews deadline’
+           */
+          val sessionName = when {
+            session.moduleName.startsWith("Pre-group") -> session.moduleName
+
+            session.moduleName.startsWith("Post-programme") -> "${session.sessionName} deadline"
+
+            session.sessionType == SessionType.ONE_TO_ONE -> "${session.moduleName} one-to-ones"
+
+            else -> {
+              "${session.moduleName} ${session.sessionNumber}"
+            }
+          }
           GroupScheduleOverviewSession(
             id = session.id,
-            name = session.moduleSessionTemplate.name,
+            name = sessionName,
             type = session.sessionType.value,
             date = session.startsAt.toLocalDate(),
             time = if (session.isPlaceholder) {
               "Various times"
             } else {
               "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${
-                formatTimeForUiDisplay(
-                  session.endsAt.toLocalTime(),
-                )
+                formatTimeForUiDisplay(session.endsAt.toLocalTime())
               }"
             },
           )
@@ -407,6 +427,7 @@ class ProgrammeGroupService(
       val attendanceRecord = session.attendances.find { it.groupMembership.referral.id == attendee.referralId }
       AttendanceAndSessionNotes(
         name = attendee.personName,
+        referralId = attendee.referralId,
         crn = attendee.referral.crn,
         attendance = attendanceRecord?.attended?.toString() ?: "To be confirmed",
         sessionNotes = attendanceRecord?.notesHistory?.firstOrNull()?.notes ?: "Not added",
@@ -427,11 +448,6 @@ class ProgrammeGroupService(
 
   fun groupFormatPageTitle(session: SessionEntity): String = when (session.sessionType) {
     SessionType.GROUP -> "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}"
-
-    SessionType.ONE_TO_ONE -> if (session.moduleSessionTemplate.name == "Post programme review") {
-      "${session.attendees.first().personName}: Post-programme review"
-    } else {
-      "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name} "
-    }
+    SessionType.ONE_TO_ONE -> "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name} "
   }
 }
