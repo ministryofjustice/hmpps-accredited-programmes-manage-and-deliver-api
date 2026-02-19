@@ -328,8 +328,9 @@ class SessionService(
     session: SessionEntity,
   ): List<SessionAttendanceEntity> {
     val programmeGroupId = session.programmeGroup.id!!
-    val recordedByFacilitator = session.sessionFacilitators.find { it.facilitatorType == FacilitatorType.LEAD_FACILITATOR }?.facilitator
-      ?: throw BusinessException("Lead facilitator not found for session: ${session.id}")
+    val recordedByFacilitator =
+      session.sessionFacilitators.find { it.facilitatorType == FacilitatorType.LEAD_FACILITATOR }?.facilitator
+        ?: throw BusinessException("Lead facilitator not found for session: ${session.id}")
 
     return attendees.map { attendee ->
       val referralId = attendee.referralId
@@ -374,13 +375,13 @@ class SessionService(
 
     var attendanceText: String
 
-    if (attendance.attended != null && attendance.attended == true) {
+    if (attendance.outcomeType.attendance != null && attendance.outcomeType.attendance == true) {
       attendanceText = "Attended"
     } else {
       return "Did not attend"
     }
 
-    if (attendance.didNotEngage != null && attendance.didNotEngage == true) {
+    if (!attendance.outcomeType.compliant) {
       return "$attendanceText but failed to comply"
     }
 

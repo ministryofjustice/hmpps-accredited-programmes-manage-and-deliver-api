@@ -34,12 +34,6 @@ class SessionAttendanceEntity(
   @JoinColumn(name = "group_membership_id")
   var groupMembership: ProgrammeGroupMembershipEntity,
 
-  @Column(name = "attended")
-  var attended: Boolean? = null,
-
-  @Column(name = "did_not_engage")
-  var didNotEngage: Boolean? = null,
-
   @Column(name = "legitimate_absence")
   var legitimateAbsence: Boolean? = null,
 
@@ -50,7 +44,6 @@ class SessionAttendanceEntity(
   @Column(name = "recorded_at")
   var recordedAt: LocalDateTime? = null,
 
-  @NotNull
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "outcome_type_code")
   var outcomeType: SessionAttendanceOutcomeTypeEntity,
@@ -73,7 +66,6 @@ fun SessionAttendee.toEntity(
 ) = SessionAttendanceEntity(
   session = session,
   groupMembership = groupMembershipEntity,
-  attended = outcomeType.attendance,
   recordedByFacilitator = recordedByFacilitator,
   recordedAt = LocalDateTime.now(),
   outcomeType = outcomeType,

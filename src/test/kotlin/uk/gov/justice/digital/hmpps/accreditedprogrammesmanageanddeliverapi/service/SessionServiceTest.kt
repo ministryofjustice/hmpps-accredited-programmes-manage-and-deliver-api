@@ -382,7 +382,12 @@ class SessionServiceTest {
         any(),
       )
     } returns programmeGroupMembershipEntity
-    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true)
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns SessionAttendanceOutcomeTypeEntity(
+      "ATTC",
+      "Attended - Complied",
+      true,
+      true,
+    )
     every { sessionRepository.save(any()) } returns sessionEntity
 
     // When
@@ -452,9 +457,17 @@ class SessionServiceTest {
         any(),
       )
     } returns programmeGroupMembershipEntity
-    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true)
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns SessionAttendanceOutcomeTypeEntity(
+      "ATTC",
+      "Attended - Complied",
+      true,
+      true,
+    )
     every { sessionRepository.save(any()) } returns sessionEntity
-    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns ClientResult.Success(HttpStatus.NO_CONTENT, Unit)
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns ClientResult.Success(
+      HttpStatus.NO_CONTENT,
+      Unit,
+    )
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -509,7 +522,12 @@ class SessionServiceTest {
         any(),
       )
     } returns programmeGroupMembershipEntity
-    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true)
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns SessionAttendanceOutcomeTypeEntity(
+      "ATTC",
+      "Attended - Complied",
+      true,
+      true,
+    )
     every { sessionRepository.save(any()) } returns sessionEntity
 
     // When
@@ -636,9 +654,10 @@ class SessionServiceTest {
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
 
     // When
-    val exception = assertThrows<uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException> {
-      service.saveSessionAttendance(sessionId, sessionAttendance)
-    }
+    val exception =
+      assertThrows<uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException> {
+        service.saveSessionAttendance(sessionId, sessionAttendance)
+      }
 
     // Then
     assertTrue(exception.message!!.contains("Lead facilitator not found for session: ${sessionEntity.id}"))
@@ -678,7 +697,14 @@ class SessionServiceTest {
     sessionEntity.attendances = mutableSetOf(
       SessionAttendanceEntityFactory()
         .withSession(sessionEntity)
-        .withDidNotEngage(false)
+        .withOutcomeType(
+          SessionAttendanceOutcomeTypeEntity(
+            "ATTC",
+            "Attended - Complied",
+            true,
+            true,
+          ),
+        )
         .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
     )
 
@@ -734,6 +760,7 @@ class SessionServiceTest {
     sessionEntity.attendances = mutableSetOf(
       SessionAttendanceEntityFactory()
         .withSession(sessionEntity)
+        .withOutcomeType(SessionAttendanceOutcomeTypeEntity("AFTC", "Attended - Failed to Comply", true, false))
         .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
     )
 
@@ -784,7 +811,7 @@ class SessionServiceTest {
     sessionEntity.attendances = mutableSetOf(
       SessionAttendanceEntityFactory()
         .withSession(sessionEntity)
-        .withAttended(false)
+        .withOutcomeType(SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false))
         .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
     )
 
