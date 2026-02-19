@@ -39,7 +39,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleIndividualSessionDetailsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionTypeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
@@ -48,6 +47,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
@@ -571,7 +571,7 @@ class ProgrammeGroupController(
       ApiResponse(
         responseCode = "201",
         description = "Session successfully scheduled",
-        content = [Content(schema = Schema(implementation = ScheduleSessionResponse::class))],
+        content = [Content(schema = Schema(implementation = String::class))],
       ),
       ApiResponse(
         responseCode = "400",
@@ -595,10 +595,22 @@ class ProgrammeGroupController(
   fun scheduleSession(
     @PathVariable @Parameter(description = "The UUID of the programme group", required = true) groupId: UUID,
     @Valid @RequestBody scheduleSessionRequest: ScheduleSessionRequest,
-  ): ResponseEntity<ScheduleSessionResponse> {
-    val response = scheduleService.scheduleIndividualSession(groupId, scheduleSessionRequest)
+  ): ResponseEntity<String> {
+    val savedSession = scheduleService.scheduleIndividualSession(groupId, scheduleSessionRequest)
 
-    return ResponseEntity.status(HttpStatus.CREATED).body(response)
+    val successMessage = when (savedSession.sessionType) {
+      SessionType.ONE_TO_ONE if savedSession.isCatchup ->
+        "${savedSession.sessionName} one-to-one catch-up for ${savedSession.attendees.first().personName} has been added."
+
+      SessionType.ONE_TO_ONE ->
+        "${savedSession.sessionName} one-to-one for ${savedSession.attendees.first().personName} has been added."
+
+      SessionType.GROUP if savedSession.isCatchup -> "${savedSession.sessionName} ${savedSession.sessionNumber} catch-up has been added."
+
+      else -> "${savedSession.sessionName} ${savedSession.sessionNumber} has been added."
+    }
+
+    return ResponseEntity.status(HttpStatus.CREATED).body(successMessage)
   }
 
   @Operation(

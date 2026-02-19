@@ -4,9 +4,12 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestComponent
 import org.springframework.context.annotation.Import
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
@@ -15,6 +18,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
@@ -24,8 +28,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.GovUkApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import java.time.LocalDate
 
 /**
@@ -49,6 +55,9 @@ import java.time.LocalDate
 class TestGroupHelper {
 
   @Autowired
+  private lateinit var sessionRepository: SessionRepository
+
+  @Autowired
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
 
   @Autowired
@@ -59,6 +68,9 @@ class TestGroupHelper {
 
   @Autowired
   private lateinit var nDeliusApiStubs: NDeliusApiStubs
+
+  @Autowired
+  private lateinit var scheduleService: ScheduleService
 
   /**
    * Creates and persists a new [ProgrammeGroupEntity] using the
@@ -170,5 +182,48 @@ class TestGroupHelper {
       allocatedToGroupBy = "REFER_MONITOR_PP",
       additionalDetails = additionalDetails,
     )
+  }
+
+  /**
+   * Schedules an individual session for a given [ReferralEntity] within a [ProgrammeGroupEntity]
+   * using the [ScheduleService].
+   *
+   * <p>
+   * This method constructs a [ScheduleSessionRequest] from the provided session template and
+   * referral, then delegates to the service layer to persist the scheduled session, mimicking
+   * the production behaviour in an integration test.
+   * </p>
+   *
+   * <p>
+   * Typically used in test scenarios where a session must be scheduled for a referral before
+   * further actions (e.g., session attendance, reporting) can be tested.
+   * </p>
+   *
+   * @param group the programme group within which the session should be scheduled
+   * @param referral the referral entity to schedule the session for; must have a non-null ID
+   * @param session the session entity providing the module session template; must have a non-null template ID
+   * @param facilitators optional list of facilitators to assign to the session; defaults to a
+   * single lead facilitator with random values if not provided
+   *
+   * @return the persisted [SessionEntity] created by the service
+   */
+  fun scheduleSession(
+    group: ProgrammeGroupEntity,
+    referral: ReferralEntity,
+    session: SessionEntity,
+    facilitators: List<CreateGroupTeamMember>? = null,
+  ): SessionEntity {
+    val scheduleSessionRequest = ScheduleSessionRequest(
+      sessionTemplateId = session.moduleSessionTemplate.id!!,
+      referralIds = listOf(referral.id!!),
+      facilitators = facilitators
+        ?: listOf(
+          CreateGroupTeamMemberFactory().withTeamMemberType(CreateGroupTeamMemberType.LEAD_FACILITATOR).produce(),
+        ),
+      startDate = LocalDate.now().plusDays(1),
+      startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+      endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+    )
+    return scheduleService.scheduleIndividualSession(group.id!!, scheduleSessionRequest)
   }
 }

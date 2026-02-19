@@ -5,6 +5,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -31,7 +32,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleIndividualSessionDetailsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionTypeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
@@ -1222,7 +1222,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   inner class CreateProgrammeGroup {
     val createGroupTeamMemberFactory = CreateGroupTeamMemberFactory()
     val createGroupRequestFactory = CreateGroupRequestFactory()
-    val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
 
     @Test
     fun `create group with all parameters and return 200 when it doesn't already exist`() {
@@ -1700,14 +1699,57 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         httpMethod = HttpMethod.POST,
         uri = "/group/${group.id}/session/schedule",
         body = scheduleSessionRequest,
-        returnType = object : ParameterizedTypeReference<ScheduleSessionResponse>() {},
+        returnType = object : ParameterizedTypeReference<String>() {},
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
 
       // Then
       assertThat(response).isNotNull
-      assertThat(response.message)
-        .isEqualTo("${sessionTemplate.name} one-to-one for ${referral.personName} has been added.")
+      assertThat(response).isEqualTo("${sessionTemplate.name} one-to-one for ${referral.personName} has been added.")
+      val retrievedSession =
+        sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
+          .sortedByDescending { it.createdAt }.first()
+      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personName)
+        .isEqualTo("Default facilitator name")
+      assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
+      assertThat(retrievedSession.attendees).hasSize(1)
+      assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
+      wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
+      assertThat(nDeliusAppointmentRepository.findBySessionId(retrievedSession.id!!)!!).isNotNull
+    }
+
+    // We have not implemented scheduling catch-ups yet but this test will be needed in the future.
+    @Disabled
+    @Test
+    fun `should return 201 when scheduling a one-to-one catch-up session with valid data`() {
+      // Given
+      initialiseReferrals()
+      val referral = referrals.first()
+      val group = testGroupHelper.createGroup()
+      testGroupHelper.allocateToGroup(group, referral)
+      val sessionTemplate = group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first()
+
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = sessionTemplate.id!!,
+        referralIds = listOf(referral.id!!),
+        facilitators = facilitators,
+        startDate = LocalDate.of(2025, 1, 1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<String>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response).isEqualTo("${sessionTemplate.name} one-to-one for ${referral.personName} has been added.")
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
@@ -1874,12 +1916,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         httpMethod = HttpMethod.POST,
         uri = "/group/${group.id}/session/schedule",
         body = scheduleSessionRequest,
-        returnType = object : ParameterizedTypeReference<ScheduleSessionResponse>() {},
+        returnType = object : ParameterizedTypeReference<String>() {},
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
       assertThat(response).isNotNull
-      assertThat(response.message)
-        .isEqualTo("${sessionTemplate.name} one-to-one for ${referral.personName} has been added.")
+      assertThat(response).isEqualTo("${sessionTemplate.name} one-to-one for ${referral.personName} has been added.")
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
