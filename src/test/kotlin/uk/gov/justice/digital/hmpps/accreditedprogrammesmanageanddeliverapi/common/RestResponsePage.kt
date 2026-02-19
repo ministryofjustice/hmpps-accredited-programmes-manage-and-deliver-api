@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupAllocations
 
 // This required to map our Page<> Concrete type so that jackson can deserialize when checking our api responses.
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -32,7 +32,7 @@ data class PagedCaseListReferrals<T>(
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class PagedProgrammeDetails<T>(
   val group: Group,
-  val filters: ProgrammeGroupDetails.Filters,
+  val filters: ProgrammeGroupAllocations.ProgrammeGroupAllocationsFilters,
   val pagedGroupData: RestResponsePage<T>,
   val otherTabTotal: Int,
 )

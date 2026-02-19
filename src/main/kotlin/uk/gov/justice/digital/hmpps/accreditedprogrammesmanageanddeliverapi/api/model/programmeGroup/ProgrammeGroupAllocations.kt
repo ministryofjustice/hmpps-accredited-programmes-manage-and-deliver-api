@@ -8,7 +8,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(description = "Details of a Programme Group including filters and paginated group data.")
-data class ProgrammeGroupDetails(
+data class ProgrammeGroupAllocations(
 
   @Schema(
     required = true,
@@ -22,7 +22,7 @@ data class ProgrammeGroupDetails(
     description = "Filter options available for the group data.",
   )
   @get:JsonProperty("filters", required = true)
-  val filters: Filters,
+  val filters: ProgrammeGroupAllocationsFilters,
 
   @Schema(
     required = true,
@@ -42,7 +42,7 @@ data class ProgrammeGroupDetails(
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
   @Schema(description = "Available filter options for viewing programme group data.")
-  data class Filters(
+  data class ProgrammeGroupAllocationsFilters(
 
     @Schema(
       example = "[\"Male\", \"Female\"]",
