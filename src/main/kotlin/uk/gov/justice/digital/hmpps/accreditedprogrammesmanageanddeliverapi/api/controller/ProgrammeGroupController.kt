@@ -32,8 +32,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverview
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupAllocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
@@ -80,14 +80,14 @@ class ProgrammeGroupController(
 
   @Operation(
     tags = ["Programme Group controller"],
-    summary = "Get group details with allocation and waitlist data",
-    operationId = "getGroupDetails",
-    description = "Retrieve group details including allocation and waitlist data with filtering and pagination support",
+    summary = "Get group with allocation and waitlist data",
+    operationId = "getGroupAllocations",
+    description = "Retrieve group allocations including waitlist data with filtering and pagination support",
     responses = [
       ApiResponse(
         responseCode = "200",
         description = "Group details retrieved successfully",
-        content = [Content(schema = Schema(implementation = ProgrammeGroupDetails::class))],
+        content = [Content(schema = Schema(implementation = ProgrammeGroupAllocations::class))],
       ),
       ApiResponse(
         responseCode = "401",
@@ -113,7 +113,7 @@ class ProgrammeGroupController(
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @GetMapping("/bff/group/{groupId}/{selectedTab}", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun getGroupDetails(
+  fun getGroupAllocations(
     @PageableDefault(
       page = 0,
       size = 10,
@@ -132,7 +132,7 @@ class ProgrammeGroupController(
     @RequestParam(name = "pdu", required = false) pdu: String?,
     @Parameter(description = "Filter by one or more reporting teams. Repeat the parameter to include multiple teams.")
     @RequestParam(name = "reportingTeam", required = false) reportingTeams: List<String>?,
-  ): ResponseEntity<ProgrammeGroupDetails> {
+  ): ResponseEntity<ProgrammeGroupAllocations> {
     // This logic is non-trivial, please see [this doc](docs/2025-11-group-details-page-tabs.md)
     // for an explanation of the flow of data and expected behaviour.
     val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)

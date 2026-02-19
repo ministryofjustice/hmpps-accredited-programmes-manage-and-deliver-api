@@ -18,8 +18,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverviewSession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupAllocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponseGroup
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponseGroupModule
@@ -141,7 +141,7 @@ class ProgrammeGroupService(
     nameOrCRN: String?,
     pdu: String?,
     reportingTeams: List<String>?,
-  ): ProgrammeGroupDetails {
+  ): ProgrammeGroupAllocations {
     // Verify the group exists first
     val group = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Programme group with id $groupId not found")
@@ -159,13 +159,13 @@ class ProgrammeGroupService(
 
     val otherTabCount: Int = groupWaitlistItemViewRepository.count(nonActiveSpecification).toInt()
 
-    return ProgrammeGroupDetails(
+    return ProgrammeGroupAllocations(
       group = Group(
         id = group.id,
         code = group.code,
         regionName = group.regionName,
       ),
-      filters = getGroupFilters(),
+      filters = getGroupAllocationsFilters(),
       pagedGroupData = groupListDataToReturn,
       otherTabTotal = otherTabCount,
     )
@@ -176,14 +176,14 @@ class ProgrammeGroupService(
     return programmeGroupRepository.findByCodeAndRegionName(groupCode, userRegion.description)
   }
 
-  fun getGroupFilters(): ProgrammeGroupDetails.Filters {
+  fun getGroupAllocationsFilters(): ProgrammeGroupAllocations.ProgrammeGroupAllocationsFilters {
     val referralReportingLocations = referralReportingLocationRepository.getPdusAndReportingTeams()
     val pdusWithReportingTeams = referralReportingLocations.groupBy { it.pduName }
       .map { (pduName, reportingTeams) ->
         LocationFilterValues(pduName = pduName, reportingTeams = reportingTeams.map { it.reportingTeam }.distinct())
       }
 
-    return ProgrammeGroupDetails.Filters(
+    return ProgrammeGroupAllocations.ProgrammeGroupAllocationsFilters(
       locationFilterValues = pdusWithReportingTeams,
     )
   }
