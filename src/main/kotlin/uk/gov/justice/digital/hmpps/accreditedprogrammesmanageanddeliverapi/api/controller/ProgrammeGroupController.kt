@@ -80,9 +80,9 @@ class ProgrammeGroupController(
 
   @Operation(
     tags = ["Programme Group controller"],
-    summary = "Get group details with allocation and waitlist data",
-    operationId = "getGroupDetails",
-    description = "Retrieve group details including allocation and waitlist data with filtering and pagination support",
+    summary = "Get group with allocation and waitlist data",
+    operationId = "getGroupAllocations",
+    description = "Retrieve group allocations including waitlist data with filtering and pagination support",
     responses = [
       ApiResponse(
         responseCode = "200",
@@ -113,7 +113,7 @@ class ProgrammeGroupController(
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @GetMapping("/bff/group/{groupId}/{selectedTab}", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun getGroupDetails(
+  fun getGroupAllocations(
     @PageableDefault(
       page = 0,
       size = 10,

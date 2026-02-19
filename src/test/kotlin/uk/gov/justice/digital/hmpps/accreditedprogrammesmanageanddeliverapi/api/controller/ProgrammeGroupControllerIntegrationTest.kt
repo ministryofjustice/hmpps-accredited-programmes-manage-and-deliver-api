@@ -164,9 +164,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
   @Nested
   @DisplayName("Get Group details")
-  inner class GetGroupDetails {
+  inner class GetGroupAllocations {
     @Test
-    fun `getGroupDetails returns 200 with valid group and waitlist data`() {
+    fun `getGroupAllocations returns 200 with valid group and waitlist data`() {
       // Given
       initialiseReferrals()
       stubAuthTokenEndpoint()
@@ -199,7 +199,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getGroupDetails returns empty page when no waitlist data exists`() {
+    fun `getGroupAllocations returns empty page when no waitlist data exists`() {
       // Given
       val group = ProgrammeGroupFactory().withCode("TEST001").produce()
       testDataGenerator.createGroup(group)
@@ -217,7 +217,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getGroupDetails contains a list of filters`() {
+    fun `getGroupAllocations contains a list of filters`() {
       // Given
       stubAuthTokenEndpoint()
       val group = ProgrammeGroupFactory().withCode("TEST001").produce()
@@ -256,7 +256,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getGroupDetails returns 200 and uses default filters if none are provided`() {
+    fun `getGroupAllocations returns 200 and uses default filters if none are provided`() {
       // Given
       initialiseReferrals()
       stubAuthTokenEndpoint()
@@ -303,7 +303,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getGroupDetails returns 404 for non-existent group`() {
+    fun `getGroupAllocations returns 404 for non-existent group`() {
       // Given
       val nonExistentGroupId = UUID.randomUUID()
       stubAuthTokenEndpoint()
@@ -318,7 +318,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getGroupDetails should handle pagination correctly`() {
+    fun `getGroupAllocations should handle pagination correctly`() {
       // Given
       initialiseReferrals()
       stubAuthTokenEndpoint()
@@ -354,7 +354,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getGroupDetails combines multiple filters correctly`() {
+    fun `getGroupAllocations combines multiple filters correctly`() {
       // Given
       stubAuthTokenEndpoint()
       val group = ProgrammeGroupFactory().withCode("TEST007").produce()
@@ -378,7 +378,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getGroupDetails filters by multiple reportingTeams on WAITLIST tab`() {
+    fun `getGroupAllocations filters by multiple reportingTeams on WAITLIST tab`() {
       // Given
       initialiseReferrals()
       stubAuthTokenEndpoint()
@@ -403,7 +403,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getGroupDetails should ignore reportingTeam if PDU is not also present`() {
+    fun `getGroupAllocations should ignore reportingTeam if PDU is not also present`() {
       // Given
       initialiseReferrals()
       stubAuthTokenEndpoint()
@@ -428,7 +428,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getGroupDetails filters by reportingTeam and pdu together`() {
+    fun `getGroupAllocations filters by reportingTeam and pdu together`() {
       // Given
       initialiseReferrals()
       stubAuthTokenEndpoint()
@@ -453,7 +453,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getGroupDetails returns 200 for ALLOCATED tab with all data when no filters are provided`() {
+    fun `getGroupAllocations returns 200 for ALLOCATED tab with all data when no filters are provided`() {
       // Given
       initialiseReferrals()
       val group = testGroupHelper.createGroup(groupCode = "TEST008")
@@ -492,7 +492,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getGroupDetails returns 401 when not authorized`() {
+    fun `getGroupAllocations returns 401 when not authorized`() {
       // Given
       val group = ProgrammeGroupFactory().withCode("TEST009").produce()
       testDataGenerator.createGroup(group)
