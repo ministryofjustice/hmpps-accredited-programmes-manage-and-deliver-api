@@ -39,6 +39,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Optional
@@ -52,6 +53,7 @@ class SessionServiceTest {
   private val facilitatorService = mockk<FacilitatorService>()
   private val sessionAttendanceOutcomeTypeRepository = mockk<SessionAttendanceOutcomeTypeRepository>()
   private val nDeliusIntegrationApiClient = mockk<NDeliusIntegrationApiClient>()
+  private val sessionNameFormatter = SessionNameFormatter()
   private lateinit var service: SessionService
 
   @BeforeEach
@@ -64,6 +66,7 @@ class SessionServiceTest {
       referralRepository,
       nDeliusIntegrationApiClient,
       sessionAttendanceOutcomeTypeRepository,
+      sessionNameFormatter,
     )
   }
 
