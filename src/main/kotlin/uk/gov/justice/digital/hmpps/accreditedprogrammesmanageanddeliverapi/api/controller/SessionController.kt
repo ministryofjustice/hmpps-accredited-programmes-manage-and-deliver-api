@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DeleteSessionCaptionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
@@ -38,6 +37,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SessionService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatSessionNameForPage
 import java.util.UUID
 
 @Tag(
@@ -222,6 +222,12 @@ class SessionController(
       ApiResponse(
         responseCode = "200",
         description = "Successfully deleted session",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = String::class),
+          ),
+        ],
       ),
       ApiResponse(
         responseCode = "401",
@@ -259,7 +265,10 @@ class SessionController(
   @DeleteMapping("/session/{sessionId}")
   fun deleteSession(
     @PathVariable sessionId: UUID,
-  ): ResponseEntity<DeleteSessionCaptionResponse> = ResponseEntity.ok(sessionService.deleteSession(sessionId))
+  ): ResponseEntity<String> {
+    val deletedSession = sessionService.deleteSession(sessionId)
+    return ResponseEntity.ok("${formatSessionNameForPage(deletedSession)} has been deleted.")
+  }
 
   @Operation(
     tags = ["Session controller"],
