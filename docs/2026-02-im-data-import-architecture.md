@@ -1,6 +1,6 @@
 # Loading Legacy IM Data into M&D
 
-> Status: Draft document, not ready for comments or review.  Last reviewed 2026-02-12 by TJWC.
+> Status: Document has been reviewed and approved by the technical team members of the Manage and Deliver team (and some TA support from the Accommodation Service).  The implementation has broadly gone through as proposed below.  Always take the specifics of this document with a pinch of salt: exact implementations _always_ change when code starts getting shipped, and we learn about specifics.
 
 **tl;dr**  I think we should deploy a new Spring Boot Kotlin Service using the Spring Batch framework to describe and orchestrate data loading of IM data into M&D.  I think this is a  pragmatic choice for the team as it exists currently, and is likely to exist for the rest of 2026.
 
