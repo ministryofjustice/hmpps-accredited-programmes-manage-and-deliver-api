@@ -5,6 +5,9 @@ import jakarta.persistence.PersistenceContext
 import jakarta.transaction.Transactional
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.dataimport.staging.entity.StagingIapsLicreqnosEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.dataimport.staging.entity.StagingReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.dataimport.staging.entity.StagingReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AccreditedProgrammeTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
@@ -290,5 +293,20 @@ class TestDataGenerator {
     )
     entityManager.persist(template)
     return template
+  }
+
+  fun createStagingReferral(stagingReferral: StagingReferralEntity): StagingReferralEntity {
+    entityManager.persist(stagingReferral)
+    return stagingReferral
+  }
+
+  fun createStagingReportingLocation(stagingReportingLocation: StagingReportingLocationEntity): StagingReportingLocationEntity {
+    entityManager.persist(stagingReportingLocation)
+    return stagingReportingLocation
+  }
+
+  fun createStagingIapsLicreqno(stagingIapsLicreqno: StagingIapsLicreqnosEntity): StagingIapsLicreqnosEntity {
+    entityManager.persist(stagingIapsLicreqno)
+    return stagingIapsLicreqno
   }
 }
