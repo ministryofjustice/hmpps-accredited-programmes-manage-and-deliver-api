@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.govUkHolidaysApi.GovUkApiClient
@@ -59,7 +58,7 @@ class ScheduleService(
 
   private val log = LoggerFactory.getLogger(this::class.java)
   private lateinit var bankHolidays: Set<LocalDate>
-  fun scheduleIndividualSession(groupId: UUID, request: ScheduleSessionRequest): ScheduleSessionResponse {
+  fun scheduleIndividualSession(groupId: UUID, request: ScheduleSessionRequest): SessionEntity {
     val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id: $groupId could not be found")
 
@@ -98,7 +97,7 @@ class ScheduleService(
     val savedSession = sessionRepository.save(session)
     createNdeliusAppointmentsForSessions(savedSession.attendees)
 
-    return ScheduleSessionResponse(message = getScheduleSessionResponseMessage(savedSession))
+    return savedSession
   }
 
   fun scheduleSessionsForGroup(
@@ -402,15 +401,5 @@ class ScheduleService(
         log.info("${nDeliusAppointmentsToRemove.size} appointments deleted in NDelius")
       }
     }
-  }
-
-  private fun getScheduleSessionResponseMessage(sessionEntity: SessionEntity): String {
-    if (sessionEntity.sessionType == ONE_TO_ONE && sessionEntity.isCatchup) {
-      return "${sessionEntity.sessionName} one-to-one catch-up for ${sessionEntity.attendees.first().personName} has been added."
-    } else if (sessionEntity.sessionType == ONE_TO_ONE) {
-      return "${sessionEntity.sessionName} one-to-one for ${sessionEntity.attendees.first().personName} has been added."
-    }
-
-    return "${sessionEntity.sessionName} ${sessionEntity.sessionNumber} catch-up has been added."
   }
 }

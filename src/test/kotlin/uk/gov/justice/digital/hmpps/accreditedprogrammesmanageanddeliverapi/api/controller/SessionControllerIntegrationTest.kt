@@ -579,67 +579,174 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     nDeliusApiStubs.verifyPutAppointments(1, expectedUpdateRequest)
   }
 
-  @Test
-  fun `return 200 when the session is deleted`() {
-    // Create group
-    val group = testGroupHelper.createGroup()
-    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+  @Nested
+  @DisplayName("Delete session")
+  inner class DeleteSession {
+    @Test
+    fun `return 200 when the session is deleted`() {
+      // Create group
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
-    // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
-    val referral = testReferralHelper.createReferral()
-    programmeGroupMembershipService.allocateReferralToGroup(
-      referral.id!!,
-      group.id!!,
-      "SYSTEM",
-      "",
-    )
+      // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+      val referral = testReferralHelper.createReferral()
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
 
-    val session =
-      sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }
-    nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
-    val sessionId = session?.id
+      val session =
+        sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+      val sessionId = session?.id
 
-    // When
-    val response = performRequestAndExpectOk(
-      HttpMethod.DELETE,
-      "session/$sessionId",
-      object : ParameterizedTypeReference<String>() {},
-    )
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.DELETE,
+        "session/$sessionId",
+        object : ParameterizedTypeReference<String>() {},
+      )
 
-    // Then
-    assertThat(response).isEqualTo("${session?.moduleName} ${session?.sessionNumber} has been deleted.")
+      // Then
+      assertThat(response).isEqualTo("${session?.moduleName} ${session?.sessionNumber} has been deleted.")
 
-    val savedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)
-    assertThat(savedGroup!!.sessions.find { it.id == sessionId }).isNull()
-  }
+      val savedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)
+      assertThat(savedGroup!!.sessions.find { it.id == sessionId }).isNull()
+    }
 
-  @Test
-  fun `return 404 when the session is not found on delete`() {
-    val sessionId = UUID.randomUUID()
+    @Test
+    fun `return correct session name format for pre group session deletion`() {
+      // Create group
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
-    val exception = performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.DELETE,
-      uri = "/session/$sessionId",
-      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-      expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
-      body = {},
-    )
-    assertThat(exception.userMessage).isEqualTo("Not Found: Session with id $sessionId not found.")
-  }
+      // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
 
-  @Test
-  fun `return 401 when unauthorised on delete session`() {
-    val sessionId = UUID.randomUUID()
+      val preGroupSession = group.sessions.find { it.moduleName == "Pre-group one-to-ones" }!!
 
-    webTestClient
-      .method(HttpMethod.DELETE)
-      .uri("/session/$sessionId")
-      .contentType(MediaType.APPLICATION_JSON)
-      .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
-      .exchange()
-      .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
-      .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
-      .returnResult().responseBody!!
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+      val scheduledSession = testGroupHelper.scheduleSession(group, referral, preGroupSession)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.DELETE,
+        "session/${scheduledSession.id}",
+        object : ParameterizedTypeReference<String>() {},
+      )
+
+      // Then
+      assertThat(response).isEqualTo("Alex River: Pre-group one-to-one has been deleted.")
+
+      val savedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)
+      assertThat(savedGroup!!.sessions.find { it.id == scheduledSession }).isNull()
+    }
+
+    @Test
+    fun `return correct session name format for post-programme review deletion`() {
+      // Create group
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
+
+      val postProgrammeSession = group.sessions.find { it.moduleName == "Post-programme reviews" }!!
+
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+      val scheduledSession = testGroupHelper.scheduleSession(group, referral, postProgrammeSession)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.DELETE,
+        "session/${scheduledSession.id}",
+        object : ParameterizedTypeReference<String>() {},
+      )
+
+      // Then
+      assertThat(response).isEqualTo("Alex River: Post-programme review has been deleted.")
+
+      val savedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)
+      assertThat(savedGroup!!.sessions.find { it.id == scheduledSession }).isNull()
+    }
+
+    @Test
+    fun `return correct session name format for other modules deletion`() {
+      // Create group
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
+
+      val groupSession =
+        group.sessions.find { (it.moduleName != "Post-programme reviews" || it.moduleName != "Pre-group one-to-ones") && it.sessionType == SessionType.GROUP }!!
+
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+      val scheduledSession = testGroupHelper.scheduleSession(group, referral, groupSession)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.DELETE,
+        "session/${scheduledSession.id}",
+        object : ParameterizedTypeReference<String>() {},
+      )
+
+      // Then
+      assertThat(response).isEqualTo("${scheduledSession.moduleName} ${scheduledSession.sessionNumber} has been deleted.")
+
+      val savedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)
+      assertThat(savedGroup!!.sessions.find { it.id == scheduledSession }).isNull()
+    }
+
+    @Test
+    fun `return 404 when the session is not found on delete`() {
+      val sessionId = UUID.randomUUID()
+
+      val exception = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.DELETE,
+        uri = "/session/$sessionId",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        body = {},
+      )
+      assertThat(exception.userMessage).isEqualTo("Not Found: Session with id $sessionId not found.")
+    }
+
+    @Test
+    fun `return 401 when unauthorised on delete session`() {
+      val sessionId = UUID.randomUUID()
+
+      webTestClient
+        .method(HttpMethod.DELETE)
+        .uri("/session/$sessionId")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
   }
 
   @Test

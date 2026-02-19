@@ -37,6 +37,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SessionService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatSessionNameForPage
 import java.util.UUID
 
 @Tag(
@@ -264,7 +265,10 @@ class SessionController(
   @DeleteMapping("/session/{sessionId}")
   fun deleteSession(
     @PathVariable sessionId: UUID,
-  ): ResponseEntity<String> = ResponseEntity.ok(sessionService.deleteSession(sessionId))
+  ): ResponseEntity<String> {
+    val deletedSession = sessionService.deleteSession(sessionId)
+    return ResponseEntity.ok("${formatSessionNameForPage(deletedSession)} has been deleted.")
+  }
 
   @Operation(
     tags = ["Session controller"],

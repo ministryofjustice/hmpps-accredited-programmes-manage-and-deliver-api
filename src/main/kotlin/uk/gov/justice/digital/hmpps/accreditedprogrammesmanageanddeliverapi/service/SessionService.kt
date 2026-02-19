@@ -243,14 +243,13 @@ class SessionService(
     sessionRepository.save(session)
   }
 
-  fun deleteSession(sessionId: UUID): String {
+  fun deleteSession(sessionId: UUID): SessionEntity {
     val sessionEntity = sessionRepository.findByIdOrNull(sessionId) ?: throw NotFoundException(
       "Session with id $sessionId not found.",
     )
     scheduleService.removeNDeliusAppointments(sessionEntity.ndeliusAppointments.toList(), listOf(sessionEntity))
     sessionRepository.delete(sessionEntity)
-
-    return "${formatSessionNameForPage(sessionEntity)} has been deleted."
+    return sessionEntity
   }
 
   fun updateSessionAttendees(sessionId: UUID, referralIds: List<UUID>): String {
