@@ -32,7 +32,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
@@ -47,6 +46,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatSessionNameForModuleSessionPage
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatSessionNameForScheduleOverview
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay
 import java.time.LocalDate
 import java.time.LocalTime
@@ -209,7 +210,7 @@ class ProgrammeGroupService(
           ProgrammeGroupModuleSessionsResponseGroupSession(
             id = scheduledSession.id!!,
             number = sessionTemplate.sessionNumber,
-            name = getFormattedSessionNameForDisplay(sessionTemplate, scheduledSession),
+            name = formatSessionNameForModuleSessionPage(sessionTemplate, scheduledSession),
             type = if (sessionTemplate.sessionType == SessionType.ONE_TO_ONE) "Individual" else "Group",
             dateOfSession = scheduledSession.startsAt.toLocalDate(),
             timeOfSession = formatTimeOfSession(
@@ -261,14 +262,6 @@ class ProgrammeGroupService(
     return "$formattedStartTime to $formattedEndTime"
   }
 
-  private fun getFormattedSessionNameForDisplay(
-    sessionTemplate: ModuleSessionTemplateEntity,
-    scheduledSession: SessionEntity,
-  ): String = when (sessionTemplate.sessionType) {
-    SessionType.GROUP -> "${sessionTemplate.module.name} ${scheduledSession.sessionNumber}: ${sessionTemplate.name}"
-    SessionType.ONE_TO_ONE -> "${scheduledSession.attendees.first().personName} (${scheduledSession.attendees.first().referral.crn}): ${sessionTemplate.name}"
-  }
-
   fun getScheduledSessionForGroupAndSessionTemplate(
     groupId: UUID,
     sessionTemplateId: UUID,
@@ -287,28 +280,7 @@ class ProgrammeGroupService(
     val groupSessions =
       sessions.filter { it.sessionType == SessionType.GROUP || (it.sessionType == SessionType.ONE_TO_ONE && it.isPlaceholder) }
         .map { session ->
-          /**
-           * Not using helper function `FormatSessionNameForPage` as this UI page has specific requirements for session naming
-           *
-           * Session names
-           * The format of the group names is Module name and number. The session name isn’t shown on this overview screen. Module names are in sentence case (only the first word capitalised)
-           * Eg ‘Getting started 1’
-           * One-to-ones are shown as module name followed by ‘one-to-ones’
-           * Eg ‘Pre-group one-to-ones’ or ‘Getting started one-to-ones’
-           * Post-programme reviews specify that the date is the deadline:
-           * ‘Post-programme reviews deadline’
-           */
-          val sessionName = when {
-            session.moduleName.startsWith("Pre-group") -> session.moduleName
-
-            session.moduleName.startsWith("Post-programme") -> "${session.sessionName} deadline"
-
-            session.sessionType == SessionType.ONE_TO_ONE -> "${session.moduleName} one-to-ones"
-
-            else -> {
-              "${session.moduleName} ${session.sessionNumber}"
-            }
-          }
+          val sessionName = formatSessionNameForScheduleOverview(session)
           GroupScheduleOverviewSession(
             id = session.id,
             name = sessionName,
