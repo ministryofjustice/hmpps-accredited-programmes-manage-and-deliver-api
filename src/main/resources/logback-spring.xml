@@ -37,10 +37,6 @@
         <appender-ref ref="consoleAppender"/>
     </logger>
 
-    <root level="INFO">
-        <appender-ref ref="consoleAppender"/>
-    </root>
-
     <appender name="sentry" class="io.sentry.logback.SentryAppender"/>
 
     <root level="INFO">
