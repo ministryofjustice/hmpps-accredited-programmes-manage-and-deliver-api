@@ -1,6 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils
 
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -30,7 +30,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
   }
 
   @Nested
-  inner class Default {
+  inner class DefaultFormat {
 
     @Test
     fun `returns moduleName sessionNumber pattern for group session`() {
@@ -49,10 +49,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertEquals(
-        "${sessionTemplate.module.name} ${session.sessionNumber}",
-        sessionNameFormatter.format(session, SessionNameContext.Default),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.Default))
+        .isEqualTo("${sessionTemplate.module.name} ${session.sessionNumber}")
     }
 
     @Test
@@ -73,10 +71,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertEquals(
-        "${sessionTemplate.module.name} ${session.sessionNumber} catch-up",
-        sessionNameFormatter.format(session, SessionNameContext.Default),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.Default))
+        .isEqualTo("${sessionTemplate.module.name} ${session.sessionNumber} catch-up")
     }
 
     @Test
@@ -101,10 +97,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       session.attendees.add(attendee)
       sessionRepository.save(session)
 
-      assertEquals(
-        "${attendee.personName}: ${session.sessionName}",
-        sessionNameFormatter.format(session, SessionNameContext.Default),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.Default))
+        .isEqualTo("${attendee.personName}: ${session.sessionName}")
     }
 
     @Test
@@ -130,10 +124,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       session.attendees.add(attendee)
       sessionRepository.save(session)
 
-      assertEquals(
-        "${attendee.personName}: ${session.sessionName} catch-up",
-        sessionNameFormatter.format(session, SessionNameContext.Default),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.Default))
+        .isEqualTo("${attendee.personName}: ${session.sessionName} catch-up")
     }
   }
 
@@ -162,10 +154,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       session.attendees.add(attendee)
       sessionRepository.save(session)
 
-      assertEquals(
-        "${session.sessionName} for ${attendee.personName} has been added.",
-        sessionNameFormatter.format(session, SessionNameContext.ScheduleIndividualSession),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleIndividualSession))
+        .isEqualTo("${session.sessionName} for ${attendee.personName} has been added.")
     }
 
     @Test
@@ -191,10 +181,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       session.attendees.add(attendee)
       sessionRepository.save(session)
 
-      assertEquals(
-        "${session.sessionName} catch-up for ${attendee.personName} has been added.",
-        sessionNameFormatter.format(session, SessionNameContext.ScheduleIndividualSession),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleIndividualSession))
+        .isEqualTo("${session.sessionName} catch-up for ${attendee.personName} has been added.")
     }
 
     @Test
@@ -214,10 +202,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertEquals(
-        "${session.moduleName} ${session.sessionNumber} has been added.",
-        sessionNameFormatter.format(session, SessionNameContext.ScheduleIndividualSession),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleIndividualSession))
+        .isEqualTo("${session.moduleName} ${session.sessionNumber} has been added.")
     }
 
     @Test
@@ -238,10 +224,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertEquals(
-        "${session.moduleName} ${session.sessionNumber} catch-up has been added.",
-        sessionNameFormatter.format(session, SessionNameContext.ScheduleIndividualSession),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleIndividualSession))
+        .isEqualTo("${session.moduleName} ${session.sessionNumber} catch-up has been added.")
     }
   }
 
@@ -265,10 +249,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertEquals(
-        session.moduleName,
-        sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview))
+        .isEqualTo(session.moduleName)
     }
 
     @Test
@@ -289,10 +271,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertEquals(
-        "${session.sessionName} deadline",
-        sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview))
+        .isEqualTo("${session.sessionName} deadline")
     }
 
     @Test
@@ -313,10 +293,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertEquals(
-        "${session.moduleName} one-to-ones",
-        sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview))
+        .isEqualTo("${session.moduleName} one-to-ones")
     }
 
     @Test
@@ -336,10 +314,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertEquals(
-        "${session.moduleName} ${session.sessionNumber}",
-        sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview))
+        .isEqualTo("${session.moduleName} ${session.sessionNumber}")
     }
   }
 
@@ -363,10 +339,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertEquals(
-        "${sessionTemplate.module.name} ${session.sessionNumber}: ${sessionTemplate.name}",
-        sessionNameFormatter.format(session, SessionNameContext.SessionsAndAttendance(sessionTemplate)),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionsAndAttendance(sessionTemplate)))
+        .isEqualTo("${sessionTemplate.module.name} ${session.sessionNumber}: ${sessionTemplate.name}")
     }
 
     @Test
@@ -391,10 +365,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       session.attendees.add(attendee)
       sessionRepository.save(session)
 
-      assertEquals(
-        "${attendee.personName} (${referral.crn}): ${sessionTemplate.name}",
-        sessionNameFormatter.format(session, SessionNameContext.SessionsAndAttendance(sessionTemplate)),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionsAndAttendance(sessionTemplate)))
+        .isEqualTo("${attendee.personName} (${referral.crn}): ${sessionTemplate.name}")
     }
   }
 
@@ -418,10 +390,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertEquals(
-        "${sessionTemplate.module.name} ${session.sessionNumber}: ${sessionTemplate.name}",
-        sessionNameFormatter.format(session, SessionNameContext.SessionDetails),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionDetails))
+        .isEqualTo("${sessionTemplate.module.name} ${session.sessionNumber}: ${sessionTemplate.name}")
     }
 
     @Test
@@ -442,10 +412,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertEquals(
-        "${sessionTemplate.module.name} ${session.sessionNumber}: ${sessionTemplate.name} catch-up",
-        sessionNameFormatter.format(session, SessionNameContext.SessionDetails),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionDetails))
+        .isEqualTo("${sessionTemplate.module.name} ${session.sessionNumber}: ${sessionTemplate.name} catch-up")
     }
 
     @Test
@@ -470,10 +438,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       session.attendees.add(attendee)
       sessionRepository.save(session)
 
-      assertEquals(
-        "${attendee.personName}: ${sessionTemplate.name}",
-        sessionNameFormatter.format(session, SessionNameContext.SessionDetails),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionDetails))
+        .isEqualTo("${attendee.personName}: ${sessionTemplate.name}")
     }
 
     @Test
@@ -499,10 +465,8 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       session.attendees.add(attendee)
       sessionRepository.save(session)
 
-      assertEquals(
-        "${attendee.personName}: ${sessionTemplate.name} catch-up",
-        sessionNameFormatter.format(session, SessionNameContext.SessionDetails),
-      )
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionDetails))
+        .isEqualTo("${attendee.personName}: ${sessionTemplate.name} catch-up")
     }
   }
 }
