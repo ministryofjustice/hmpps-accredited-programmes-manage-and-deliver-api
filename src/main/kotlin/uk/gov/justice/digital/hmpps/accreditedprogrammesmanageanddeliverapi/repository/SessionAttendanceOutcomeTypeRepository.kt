@@ -3,8 +3,9 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.rep
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceOutcomeTypeEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceOutcomeType
 
 @Repository
-interface SessionAttendanceOutcomeTypeRepository : JpaRepository<SessionAttendanceOutcomeTypeEntity, String> {
-  fun findByCode(code: String): SessionAttendanceOutcomeTypeEntity?
+interface SessionAttendanceOutcomeTypeRepository : JpaRepository<SessionAttendanceOutcomeTypeEntity, SessionAttendanceOutcomeType> {
+  fun findByCode(code: SessionAttendanceOutcomeType): SessionAttendanceOutcomeTypeEntity?
 }

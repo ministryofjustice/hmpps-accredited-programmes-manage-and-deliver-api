@@ -22,6 +22,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType.LEAD_FACILITATOR
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceOutcomeType.AFTC
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceOutcomeType.ATTC
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceOutcomeType.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.GROUP
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
@@ -386,7 +389,7 @@ class SessionServiceTest {
       )
     } returns programmeGroupMembershipEntity
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns SessionAttendanceOutcomeTypeEntity(
-      "ATTC",
+      ATTC,
       "Attended - Complied",
       true,
       true,
@@ -461,7 +464,7 @@ class SessionServiceTest {
       )
     } returns programmeGroupMembershipEntity
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns SessionAttendanceOutcomeTypeEntity(
-      "ATTC",
+      ATTC,
       "Attended - Complied",
       true,
       true,
@@ -526,7 +529,7 @@ class SessionServiceTest {
       )
     } returns programmeGroupMembershipEntity
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns SessionAttendanceOutcomeTypeEntity(
-      "ATTC",
+      ATTC,
       "Attended - Complied",
       true,
       true,
@@ -702,7 +705,7 @@ class SessionServiceTest {
         .withSession(sessionEntity)
         .withOutcomeType(
           SessionAttendanceOutcomeTypeEntity(
-            "ATTC",
+            ATTC,
             "Attended - Complied",
             true,
             true,
@@ -713,9 +716,9 @@ class SessionServiceTest {
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every { sessionAttendanceOutcomeTypeRepository.findAll() } returns listOf(
-      SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true),
-      SessionAttendanceOutcomeTypeEntity("AFTC", "Attended - Failed to Comply", true, false),
-      SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false),
+      SessionAttendanceOutcomeTypeEntity(ATTC, "Attended - Complied", true, true),
+      SessionAttendanceOutcomeTypeEntity(AFTC, "Attended - Failed to Comply", true, false),
+      SessionAttendanceOutcomeTypeEntity(UAAB, "Unacceptable Absence", false, false),
     )
 
     // When
@@ -774,15 +777,15 @@ class SessionServiceTest {
     sessionEntity.attendances = mutableSetOf(
       SessionAttendanceEntityFactory()
         .withSession(sessionEntity)
-        .withOutcomeType(SessionAttendanceOutcomeTypeEntity("AFTC", "Attended - Failed to Comply", true, false))
+        .withOutcomeType(SessionAttendanceOutcomeTypeEntity(AFTC, "Attended - Failed to Comply", true, false))
         .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
     )
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every { sessionAttendanceOutcomeTypeRepository.findAll() } returns listOf(
-      SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true),
-      SessionAttendanceOutcomeTypeEntity("AFTC", "Attended - Failed to Comply", true, false),
-      SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false),
+      SessionAttendanceOutcomeTypeEntity(ATTC, "Attended - Complied", true, true),
+      SessionAttendanceOutcomeTypeEntity(AFTC, "Attended - Failed to Comply", true, false),
+      SessionAttendanceOutcomeTypeEntity(UAAB, "Unacceptable Absence", false, false),
     )
 
     // When
@@ -830,15 +833,15 @@ class SessionServiceTest {
     sessionEntity.attendances = mutableSetOf(
       SessionAttendanceEntityFactory()
         .withSession(sessionEntity)
-        .withOutcomeType(SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false))
+        .withOutcomeType(SessionAttendanceOutcomeTypeEntity(UAAB, "Unacceptable Absence", false, false))
         .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
     )
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every { sessionAttendanceOutcomeTypeRepository.findAll() } returns listOf(
-      SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true),
-      SessionAttendanceOutcomeTypeEntity("AFTC", "Attended - Failed to Comply", true, false),
-      SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false),
+      SessionAttendanceOutcomeTypeEntity(ATTC, "Attended - Complied", true, true),
+      SessionAttendanceOutcomeTypeEntity(AFTC, "Attended - Failed to Comply", true, false),
+      SessionAttendanceOutcomeTypeEntity(UAAB, "Unacceptable Absence", false, false),
     )
 
     // When
@@ -885,9 +888,9 @@ class SessionServiceTest {
 
     sessionEntity.attendances = mutableSetOf()
     every { sessionAttendanceOutcomeTypeRepository.findAll() } returns listOf(
-      SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true),
-      SessionAttendanceOutcomeTypeEntity("AFTC", "Attended - Failed to Comply", true, false),
-      SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false),
+      SessionAttendanceOutcomeTypeEntity(ATTC, "Attended - Complied", true, true),
+      SessionAttendanceOutcomeTypeEntity(AFTC, "Attended - Failed to Comply", true, false),
+      SessionAttendanceOutcomeTypeEntity(UAAB, "Unacceptable Absence", false, false),
     )
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)

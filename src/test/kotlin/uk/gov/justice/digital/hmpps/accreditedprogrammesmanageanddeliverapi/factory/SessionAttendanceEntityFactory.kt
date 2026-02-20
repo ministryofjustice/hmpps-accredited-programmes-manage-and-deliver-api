@@ -5,6 +5,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceOutcomeTypeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceOutcomeType.ATTC
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import java.time.LocalDateTime
@@ -23,7 +24,8 @@ class SessionAttendanceEntityFactory(
   private var legitimateAbsence: Boolean = true
   private var recordedByFacilitator: FacilitatorEntity = recordedByFacilitator ?: FacilitatorEntityFactory().produce()
   private var recordedAt: LocalDateTime? = LocalDateTime.now(ZoneId.of("UTC"))
-  private var outcomeType: SessionAttendanceOutcomeTypeEntity = SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true)
+  private var outcomeType: SessionAttendanceOutcomeTypeEntity =
+    SessionAttendanceOutcomeTypeEntity(ATTC, "Attended - Complied", true, true)
 
   fun withId(id: UUID) = apply { this.id = id }
   fun withSession(session: SessionEntity) = apply { this.session = session }
