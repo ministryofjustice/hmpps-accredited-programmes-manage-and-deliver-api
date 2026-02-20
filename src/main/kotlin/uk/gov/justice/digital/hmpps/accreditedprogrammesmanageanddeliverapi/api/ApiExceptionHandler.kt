@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
+import io.sentry.Sentry
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.BAD_REQUEST
@@ -37,30 +38,36 @@ class ApiExceptionHandler {
           userMessage = "Not Found: ${exception.message}",
           developerMessage = exception.message,
         ),
-      )
+      ).also {
+        Sentry.captureException(exception)
+      }
   }
 
   @ExceptionHandler(MethodArgumentTypeMismatchException::class)
   @ResponseStatus(BAD_REQUEST)
-  fun handleEnumMismatchException(e: MethodArgumentTypeMismatchException): ResponseEntity<ErrorResponse> = ResponseEntity.status(BAD_REQUEST)
+  fun handleEnumMismatchException(exception: MethodArgumentTypeMismatchException): ResponseEntity<ErrorResponse> = ResponseEntity.status(BAD_REQUEST)
     .body(
       ErrorResponse(
         status = BAD_REQUEST.value(),
-        userMessage = "Invalid value for parameter ${e.parameter.parameterName}",
-        developerMessage = e.message,
+        userMessage = "Invalid value for parameter ${exception.parameter.parameterName}",
+        developerMessage = exception.message,
       ),
-    )
+    ).also {
+      Sentry.captureException(exception)
+    }
 
   @ExceptionHandler(MethodArgumentNotValidException::class)
   @ResponseStatus(BAD_REQUEST)
-  fun handleMethodArgumentNotValidException(e: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> = ResponseEntity.status(BAD_REQUEST)
+  fun handleMethodArgumentNotValidException(exception: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> = ResponseEntity.status(BAD_REQUEST)
     .body(
       ErrorResponse(
         status = BAD_REQUEST.value(),
-        userMessage = "Invalid value for parameter ${e.parameter.parameterName}",
-        developerMessage = e.message,
+        userMessage = "Invalid value for parameter ${exception.parameter.parameterName}",
+        developerMessage = exception.message,
       ),
-    )
+    ).also {
+      Sentry.captureException(exception)
+    }
 
   @ExceptionHandler(AccessDeniedException::class)
   fun handleAccessDeniedException(exception: AccessDeniedException): ResponseEntity<ErrorResponse> {
@@ -73,7 +80,9 @@ class ApiExceptionHandler {
           userMessage = "Access denied: ${exception.message}",
           developerMessage = exception.message,
         ),
-      )
+      ).also {
+        Sentry.captureException(exception)
+      }
   }
 
   @ExceptionHandler(HandlerMethodValidationException::class)
@@ -87,7 +96,9 @@ class ApiExceptionHandler {
           userMessage = "Bad request: ${exception.message}",
           developerMessage = exception.message,
         ),
-      )
+      ).also {
+        Sentry.captureException(exception)
+      }
   }
 
   @ExceptionHandler(BusinessException::class)
@@ -101,7 +112,9 @@ class ApiExceptionHandler {
           userMessage = "Bad request: ${exception.message}",
           developerMessage = exception.message,
         ),
-      )
+      ).also {
+        Sentry.captureException(exception)
+      }
   }
 
   @ExceptionHandler(ConflictException::class)
@@ -112,7 +125,9 @@ class ApiExceptionHandler {
         userMessage = "Conflict: ${exception.message}",
         developerMessage = exception.localizedMessage,
       ),
-    )
+    ).also {
+      Sentry.captureException(exception)
+    }
 
   @ExceptionHandler(HttpMessageNotReadableException::class)
   fun handleHttpMessageNotReadableException(exception: HttpMessageNotReadableException): ResponseEntity<ErrorResponse> {
@@ -125,7 +140,9 @@ class ApiExceptionHandler {
           userMessage = "Bad request: ${exception.message}",
           developerMessage = exception.message,
         ),
-      )
+      ).also {
+        Sentry.captureException(exception)
+      }
   }
 
   @ExceptionHandler(IllegalArgumentException::class)
@@ -139,6 +156,22 @@ class ApiExceptionHandler {
           userMessage = "Bad request: ${exception.message}",
           developerMessage = exception.message,
         ),
-      )
+      ).also {
+        Sentry.captureException(exception)
+      }
   }
+
+  @ExceptionHandler(Throwable::class)
+  fun handleException(e: Throwable): ResponseEntity<ErrorResponse> = ResponseEntity
+    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+    .body(
+      ErrorResponse(
+        status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
+        userMessage = "Unexpected error: ${e.message}",
+        developerMessage = e.message,
+      ).also {
+        Sentry.captureException(e)
+        log.error("Unexpected error", e)
+      },
+    )
 }
