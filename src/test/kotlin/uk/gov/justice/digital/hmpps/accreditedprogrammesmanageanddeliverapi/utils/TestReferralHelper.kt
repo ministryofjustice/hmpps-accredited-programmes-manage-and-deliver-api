@@ -203,7 +203,7 @@ class TestReferralHelper {
     val configs = referralConfigs ?: List(count) {
       ReferralConfig(
         crn = randomCrn(),
-        personName = randomFullName().toString(),
+        personName = randomFullName().getNameAsString(),
         referralId = UUID.randomUUID(),
         sourcedFrom = configTemplate.sourcedFrom,
         reportingPdu = configTemplate.reportingPdu,

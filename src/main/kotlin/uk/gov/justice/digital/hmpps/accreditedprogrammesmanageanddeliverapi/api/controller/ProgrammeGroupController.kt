@@ -47,7 +47,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
@@ -56,6 +55,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TemplateService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.util.UUID
 
@@ -76,6 +77,7 @@ class ProgrammeGroupController(
   private val templateService: TemplateService,
   private val scheduleService: ScheduleService,
   private val authenticationUtils: AuthenticationUtils,
+  private val sessionNameFormatter: SessionNameFormatter,
 ) {
 
   @Operation(
@@ -598,17 +600,7 @@ class ProgrammeGroupController(
   ): ResponseEntity<String> {
     val savedSession = scheduleService.scheduleIndividualSession(groupId, scheduleSessionRequest)
 
-    val successMessage = when (savedSession.sessionType) {
-      SessionType.ONE_TO_ONE if savedSession.isCatchup ->
-        "${savedSession.sessionName} one-to-one catch-up for ${savedSession.attendees.first().personName} has been added."
-
-      SessionType.ONE_TO_ONE ->
-        "${savedSession.sessionName} one-to-one for ${savedSession.attendees.first().personName} has been added."
-
-      SessionType.GROUP if savedSession.isCatchup -> "${savedSession.sessionName} ${savedSession.sessionNumber} catch-up has been added."
-
-      else -> "${savedSession.sessionName} ${savedSession.sessionNumber} has been added."
-    }
+    val successMessage = sessionNameFormatter.format(savedSession, SessionNameContext.ScheduleIndividualSession)
 
     return ResponseEntity.status(HttpStatus.CREATED).body(successMessage)
   }
