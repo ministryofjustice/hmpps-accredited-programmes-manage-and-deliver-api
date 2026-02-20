@@ -357,8 +357,6 @@ class SessionService(
     )
 
     UAAB -> Option("No - did not attend", null, outcome.code.name)
-
-    else -> Option(outcome.description ?: outcome.code.name, null, outcome.code.name)
   }
 
   private fun getSessionAttendanceFromAttendees(
