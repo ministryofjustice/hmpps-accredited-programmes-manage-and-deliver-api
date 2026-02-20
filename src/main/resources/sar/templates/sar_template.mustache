@@ -1,0 +1,114 @@
+<h1 class="title">Accredited Programmes - Manage and Deliver</h1>
+{{#.}}
+    <h2>Diet History</h2>
+    <table class="summary-list">
+        <!-- <tr><td>Field History Id</td><td>{{ optionalValue fieldHistoryId }}</td></tr> -->
+        <tr>
+            <td>Created at</td>
+            <td>{{ optionalValue (formatDate createdAt) }}</td>
+        </tr>
+        <tr>
+            <td>Created by</td>
+            <td>{{ getUserLastName createdBy }}</td>
+        </tr>
+        <!-- <tr><td>Prisoner number</td><td>{{ optionalValue prisonerNumber }}</td></tr> -->
+        <tr>
+            <td>Prison</td>
+            <td>{{ getPrisonName prisonId }}</td>
+        </tr>
+        <tr>
+            <td>Field History Type</td>
+            <td>{{ optionalValue fieldHistoryType }}</td>
+        </tr>
+
+    </table>
+
+    {{#if (eq fieldHistoryType "Catering Instructions") }}
+        {{#fieldHistoryValue }}
+            <table class="summary-list">
+                <tr>
+                    <td class="data-column-30">Instructions</td>
+                    <td class="data-column-70">{{ optionalValue fieldHistoryValue }}</td>
+                </tr>
+            </table>
+        {{/fieldHistoryValue}}
+        {{^fieldHistoryValue}}
+            <table class="summary-list">
+                <tr>
+                    <td></td>
+                    <td>No Data Held</td>
+                </tr>
+            </table>
+        {{/fieldHistoryValue}}
+    {{/if}}
+
+    {{#if (eq fieldHistoryType "Medical Dietary Requirements") }}
+        {{#fieldHistoryValue }}
+            <table class="summary-list">
+                <tr>
+                    <td class="data-column-30">Value</td>
+                    <td class="data-column-70">{{ optionalValue value }}</td>
+                </tr>
+                <tr>
+                    <td>Comment</td>
+                    <td>{{ optionalValue comment }}</td>
+                </tr>
+            </table>
+        {{/fieldHistoryValue}}
+        {{^fieldHistoryValue}}
+            <table class="summary-list">
+                <tr>
+                    <td></td>
+                    <td>No Data Held</td>
+                </tr>
+            </table>
+        {{/fieldHistoryValue}}
+    {{/if}}
+
+    {{#if (eq fieldHistoryType "Personalised Dietary Requirements") }}
+        {{#fieldHistoryValue }}
+            <table class="summary-list">
+                <tr>
+                    <td class="data-column-30">Value</td>
+                    <td class="data-column-70">{{ optionalValue value }}</td>
+                </tr>
+                <tr>
+                    <td>Comment</td>
+                    <td>{{ optionalValue comment }}</td>
+                </tr>
+            </table>
+        {{/fieldHistoryValue}}
+        {{^fieldHistoryValue}}
+            <table class="summary-list">
+                <tr>
+                    <td></td>
+                    <td>No Data Held</td>
+                </tr>
+            </table>
+        {{/fieldHistoryValue}}
+    {{/if}}
+
+    {{#if (eq fieldHistoryType "Food Allergies") }}
+        {{#fieldHistoryValue }}
+            <table class="summary-list">
+                <tr>
+                    <td class="data-column-30">Value</td>
+                    <td class="data-column-70">{{ optionalValue value }}</td>
+                </tr>
+                <tr>
+                    <td>Comment</td>
+                    <td>{{ optionalValue comment }}</td>
+                </tr>
+            </table>
+        {{/fieldHistoryValue}}
+        {{^fieldHistoryValue}}
+            <table class="summary-list">
+                <tr>
+                    <td></td>
+                    <td>No Data Held</td>
+                </tr>
+            </table>
+        {{/fieldHistoryValue}}
+    {{/if}}
+
+{{/.}}

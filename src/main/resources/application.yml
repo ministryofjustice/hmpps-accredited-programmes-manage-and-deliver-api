@@ -78,6 +78,10 @@ hmpps:
     queues:
       hmppsdomaineventsqueue:
         asyncQueueClient: true
+  sar:
+    template:
+      path: /path_to_template/sar_template.mustache
+      enabled: true
 
 
 max-response-in-memory-size-bytes: 750000
