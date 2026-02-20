@@ -5,21 +5,19 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 
 class SessionNameFormatterTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var sessionRepository: SessionRepository
-
-  @Autowired
-  private lateinit var moduleSessionTemplateRepository: ModuleSessionTemplateRepository
 
   @Autowired
   private lateinit var sessionNameFormatter: SessionNameFormatter
@@ -34,9 +32,18 @@ class SessionNameFormatterTest : IntegrationTestBase() {
 
     @Test
     fun `returns moduleName sessionNumber pattern for group session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate = moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.GROUP }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Introduction to Building Choices",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -50,14 +57,23 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       )
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.Default))
-        .isEqualTo("${sessionTemplate.module.name} ${session.sessionNumber}")
+        .isEqualTo("Getting started 1")
     }
 
     @Test
     fun `returns moduleName sessionNumber catch-up pattern for group catchup session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate = moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.GROUP }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Introduction to Building Choices",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -72,15 +88,23 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       )
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.Default))
-        .isEqualTo("${sessionTemplate.module.name} ${session.sessionNumber} catch-up")
+        .isEqualTo("Getting started 1 catch-up")
     }
 
     @Test
     fun `returns personName sessionName pattern for one-to-one session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate =
-        moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.ONE_TO_ONE }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 3,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Getting started one-to-one",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -98,15 +122,23 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       sessionRepository.save(session)
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.Default))
-        .isEqualTo("${attendee.personName}: ${session.sessionName}")
+        .isEqualTo("Alex River: Getting started one-to-one")
     }
 
     @Test
     fun `returns personName sessionName catch-up pattern for one-to-one catchup session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate =
-        moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.ONE_TO_ONE }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 3,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Getting started one-to-one",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -125,7 +157,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       sessionRepository.save(session)
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.Default))
-        .isEqualTo("${attendee.personName}: ${session.sessionName} catch-up")
+        .isEqualTo("Alex River: Getting started one-to-one catch-up")
     }
   }
 
@@ -134,10 +166,18 @@ class SessionNameFormatterTest : IntegrationTestBase() {
 
     @Test
     fun `returns sessionName for personName has been added for one-to-one session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate =
-        moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.ONE_TO_ONE }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 3,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Getting started one-to-one",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -155,15 +195,23 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       sessionRepository.save(session)
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleIndividualSession))
-        .isEqualTo("${session.sessionName} for ${attendee.personName} has been added.")
+        .isEqualTo("Getting started one-to-one for Alex River has been added.")
     }
 
     @Test
     fun `returns sessionName catch-up for personName has been added for one-to-one catchup session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate =
-        moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.ONE_TO_ONE }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 3,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Getting started one-to-one",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -182,14 +230,23 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       sessionRepository.save(session)
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleIndividualSession))
-        .isEqualTo("${session.sessionName} catch-up for ${attendee.personName} has been added.")
+        .isEqualTo("Getting started one-to-one catch-up for Alex River has been added.")
     }
 
     @Test
     fun `returns moduleName sessionNumber has been added for group session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate = moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.GROUP }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Introduction to Building Choices",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -203,14 +260,23 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       )
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleIndividualSession))
-        .isEqualTo("${session.moduleName} ${session.sessionNumber} has been added.")
+        .isEqualTo("Getting started 1 has been added.")
     }
 
     @Test
     fun `returns moduleName sessionNumber catch-up has been added for group catchup session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate = moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.GROUP }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Introduction to Building Choices",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -225,7 +291,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       )
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleIndividualSession))
-        .isEqualTo("${session.moduleName} ${session.sessionNumber} catch-up has been added.")
+        .isEqualTo("Getting started 1 catch-up has been added.")
     }
   }
 
@@ -234,9 +300,18 @@ class SessionNameFormatterTest : IntegrationTestBase() {
 
     @Test
     fun `returns moduleName as-is for pre-group session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate = moduleSessionTemplateRepository.findAll().find { it.module.name.startsWith("Pre-group") }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Pre-group one-to-ones", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Pre-group one-to-one",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -250,15 +325,23 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       )
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview))
-        .isEqualTo(session.moduleName)
+        .isEqualTo("Pre-group one-to-ones")
     }
 
     @Test
     fun `returns sessionName deadline for post-programme session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate =
-        moduleSessionTemplateRepository.findAll().find { it.module.name.startsWith("Post-programme") }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Post-programme reviews", 7)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Post-programme review",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -272,15 +355,23 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       )
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview))
-        .isEqualTo("${session.sessionName} deadline")
+        .isEqualTo("Post-programme review deadline")
     }
 
     @Test
     fun `returns moduleName one-to-ones for one-to-one session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate =
-        moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.ONE_TO_ONE }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 3,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Getting started one-to-one",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -294,14 +385,23 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       )
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview))
-        .isEqualTo("${session.moduleName} one-to-ones")
+        .isEqualTo("Getting started one-to-ones")
     }
 
     @Test
     fun `returns moduleName sessionNumber for group session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate = moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.GROUP }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Introduction to Building Choices",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -315,7 +415,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       )
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview))
-        .isEqualTo("${session.moduleName} ${session.sessionNumber}")
+        .isEqualTo("Getting started 1")
     }
   }
 
@@ -324,9 +424,18 @@ class SessionNameFormatterTest : IntegrationTestBase() {
 
     @Test
     fun `returns module name sessionNumber templateName for group session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate = moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.GROUP }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Introduction to Building Choices",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -340,15 +449,23 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       )
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionsAndAttendance(sessionTemplate)))
-        .isEqualTo("${sessionTemplate.module.name} ${session.sessionNumber}: ${sessionTemplate.name}")
+        .isEqualTo("Getting started 1: Introduction to Building Choices")
     }
 
     @Test
     fun `returns personName crn templateName for one-to-one session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate =
-        moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.ONE_TO_ONE }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 3,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Getting started one-to-one",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -366,7 +483,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       sessionRepository.save(session)
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionsAndAttendance(sessionTemplate)))
-        .isEqualTo("${attendee.personName} (${referral.crn}): ${sessionTemplate.name}")
+        .isEqualTo("Alex River (X123456): Getting started one-to-one")
     }
   }
 
@@ -375,9 +492,18 @@ class SessionNameFormatterTest : IntegrationTestBase() {
 
     @Test
     fun `returns module name sessionNumber templateName for group session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate = moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.GROUP }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Introduction to Building Choices",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -391,14 +517,23 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       )
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionDetails))
-        .isEqualTo("${sessionTemplate.module.name} ${session.sessionNumber}: ${sessionTemplate.name}")
+        .isEqualTo("Getting started 1: Introduction to Building Choices")
     }
 
     @Test
     fun `returns module name sessionNumber templateName catch-up for group catchup session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate = moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.GROUP }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Introduction to Building Choices",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -413,15 +548,23 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       )
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionDetails))
-        .isEqualTo("${sessionTemplate.module.name} ${session.sessionNumber}: ${sessionTemplate.name} catch-up")
+        .isEqualTo("Getting started 1: Introduction to Building Choices catch-up")
     }
 
     @Test
     fun `returns personName templateName for one-to-one session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate =
-        moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.ONE_TO_ONE }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 3,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Getting started one-to-one",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -439,15 +582,23 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       sessionRepository.save(session)
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionDetails))
-        .isEqualTo("${attendee.personName}: ${sessionTemplate.name}")
+        .isEqualTo("Alex River: Getting started one-to-one")
     }
 
     @Test
     fun `returns personName templateName catch-up for one-to-one catchup session`() {
-      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-      val sessionTemplate =
-        moduleSessionTemplateRepository.findAll().find { it.sessionType == SessionType.ONE_TO_ONE }!!
-
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 3,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Getting started one-to-one",
+          durationMinutes = 120,
+        ),
+      )
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withAccreditedProgrammeTemplate(programmeTemplate)
@@ -466,7 +617,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       sessionRepository.save(session)
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionDetails))
-        .isEqualTo("${attendee.personName}: ${sessionTemplate.name} catch-up")
+        .isEqualTo("Alex River: Getting started one-to-one catch-up")
     }
   }
 }
