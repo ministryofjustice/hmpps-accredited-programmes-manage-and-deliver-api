@@ -52,6 +52,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceOutcomeTypeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionNotesHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceOutcomeType.ATTC
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceOutcomeType.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusAppointmentEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
@@ -2488,7 +2490,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val attendance1 = SessionAttendanceEntity(
         session = session,
         groupMembership = groupMembership1,
-        outcomeType = SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true),
+        outcomeType = SessionAttendanceOutcomeTypeEntity(ATTC, "Attended - Complied", true, true),
       ).apply {
         notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 1"))
       }
@@ -2496,7 +2498,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val attendance2 = SessionAttendanceEntity(
         session = session,
         groupMembership = groupMembership2,
-        outcomeType = SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false),
+        outcomeType = SessionAttendanceOutcomeTypeEntity(UAAB, "Unacceptable Absence", false, false),
       ).apply {
         notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 2 - initial"))
         notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 2 - latest"))

@@ -46,6 +46,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceOutcomeType.ATTC
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
@@ -1468,7 +1469,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       attendees = listOf(
         SessionAttendee(
           referralId = sessionEntity.attendees.first().referralId,
-          outcomeCode = "ATTC",
+          outcomeCode = ATTC,
           sessionNotes = "Test session notes",
         ),
       ),
@@ -1496,7 +1497,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     assertThat(sessionAttendanceEntity.recordedAt?.month?.value).isEqualTo(LocalDate.now().month.value)
     assertThat(sessionAttendanceEntity.recordedAt?.dayOfMonth).isEqualTo(LocalDate.now().dayOfMonth)
     assertThat(sessionAttendanceEntity.notesHistory.first().notes).isEqualTo("Test session notes")
-    assertThat(sessionAttendanceEntity.outcomeType.code).isEqualTo("ATTC")
+    assertThat(sessionAttendanceEntity.outcomeType.code).isEqualTo(ATTC)
 
     nDeliusApiStubs.verifyPutAppointments(
       1,
@@ -1507,7 +1508,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
             .withDate(sessionEntity.startsAt.toLocalDate())
             .withStartTime(sessionEntity.startsAt.toLocalTime())
             .withEndTime(sessionEntity.endsAt.toLocalTime())
-            .withOutcome(null)
+            .withOutcome(RequestCode(ATTC.name))
             .withLocation(RequestCode(group.deliveryLocationCode))
             .withStaff(RequestCode(group.treatmentManager!!.ndeliusPersonCode))
             .withTeam(RequestCode(group.treatmentManager!!.ndeliusTeamCode))
@@ -1527,7 +1528,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       attendees = listOf(
         SessionAttendee(
           referralId = UUID.randomUUID(),
-          outcomeCode = "ATTC",
+          outcomeCode = ATTC,
         ),
       ),
     )
@@ -1553,7 +1554,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       attendees = listOf(
         SessionAttendee(
           referralId = UUID.randomUUID(),
-          outcomeCode = "ATTC",
+          outcomeCode = ATTC,
         ),
       ),
     )
@@ -1599,7 +1600,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         attendees = listOf(
           SessionAttendee(
             referralId = attendee.referralId,
-            outcomeCode = "ATTC",
+            outcomeCode = ATTC,
           ),
         ),
       )
