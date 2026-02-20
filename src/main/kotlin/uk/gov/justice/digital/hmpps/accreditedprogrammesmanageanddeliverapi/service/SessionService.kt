@@ -14,6 +14,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.fromDateTime
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.Option
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.RecordSessionAttendance
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.SessionAttendancePerson
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionDateAndTimeResponse
@@ -31,6 +32,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceOutcomeTypeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toEntity
@@ -46,6 +48,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
+import kotlin.collections.find
 
 @Service
 @Transactional
@@ -299,24 +302,45 @@ class SessionService(
     return sessionAttendance
   }
 
-  fun getRecordAttendanceBySessionId(sessionId: UUID): RecordSessionAttendance {
+  fun getRecordAttendanceBySessionId(sessionId: UUID, referralIds: List<UUID>?): RecordSessionAttendance {
     val session = sessionRepository.findById(sessionId)
       .orElseThrow { NotFoundException("Session not found with id: $sessionId") }
     val group = session.programmeGroup
 
+    val outcomeOptions = sessionAttendanceOutcomeTypeRepository.findAll().map { outcomeType ->
+      getOptionFromOutcome(outcomeType)
+    }
+
+    val filteredAttendees = if (referralIds.isNullOrEmpty()) {
+      session.attendees
+    } else {
+      session.attendees.filter { attendee ->
+        referralIds.any { referralId ->
+          attendee.referralId == referralId
+        }
+      }
+    }
+
     return RecordSessionAttendance(
       sessionTitle = session.sessionName,
       groupRegionName = group.regionName,
-      people = session.attendees.map {
+      people = filteredAttendees.map { attendee ->
         SessionAttendancePerson(
-          referralId = it.referralId,
-          name = it.personName,
-          crn = it.referral.crn,
-          attendance = getSessionAttendanceText(session.attendances, it),
-          options = listOf(),
+          referralId = attendee.referralId,
+          name = attendee.personName,
+          crn = attendee.referral.crn,
+          attendance = getSessionAttendanceText(session.attendances, attendee),
+          options = outcomeOptions,
         )
       }.toList(),
     )
+  }
+
+  private fun getOptionFromOutcome(outcome: SessionAttendanceOutcomeTypeEntity): Option = when (outcome.code) {
+    "ATTC" -> Option("Yes - attended", null, outcome.code)
+    "AFTC" -> Option("Attended but failed to comply", "For example, they could not participate because of drug or alcohol use", outcome.code)
+    "UAAB" -> Option("No - did not attend", null, outcome.code)
+    else -> Option(outcome.description ?: outcome.code, null, outcome.code)
   }
 
   private fun getSessionAttendanceFromAttendees(
