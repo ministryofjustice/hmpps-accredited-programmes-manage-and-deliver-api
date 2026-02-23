@@ -50,6 +50,12 @@ data class SessionAttendancePerson(
   val attendance: String?,
 
   @Schema(
+    description = "The session notes associated with the attendee",
+    example = "Some session notes here",
+  )
+  val sessionNotes: String?,
+
+  @Schema(
     description = "A list of options",
   )
   val options: List<Option>?,

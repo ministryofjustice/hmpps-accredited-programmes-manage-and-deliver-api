@@ -1600,6 +1600,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           SessionAttendee(
             referralId = attendee.referralId,
             outcomeCode = "ATTC",
+            sessionNotes = "Test session notes",
           ),
         ),
       )
@@ -1628,6 +1629,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.people[0].name).isEqualTo(attendee.personName)
       assertThat(response.people[0].crn).isEqualTo(attendee.referral.crn)
       assertThat(response.people[0].attendance).isEqualTo("Attended")
+      assertThat(response.people[0].sessionNotes).isEqualTo("Test session notes")
     }
 
     @Test
