@@ -14,6 +14,7 @@ generic-service:
     SERVICES_ASSESS-RISKS-AND-NEEDS-API_BASE-URL: "https://assess-risks-and-needs.hmpps.service.justice.gov.uk"
     SERVICES_GOVUK-API_BASE-URL: "https://www.gov.uk"
     CACHE_EVICT_BANK_HOLIDAYS_CRON: "0 0 0 */1 * ?" #every day on PROD
+    SENTRY_ENVIRONMENT: prod
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
 # See https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html#creating-your-own-custom-alerts
