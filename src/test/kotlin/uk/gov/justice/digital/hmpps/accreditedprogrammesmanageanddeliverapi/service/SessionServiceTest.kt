@@ -18,12 +18,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceOutcomeTypeEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType.LEAD_FACILITATOR
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceCode.AFTC
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceCode.UAAB
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.AFTC
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.GROUP
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
@@ -32,7 +32,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceOutcomeTypeEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceNDeliusOutcomeEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
@@ -58,7 +58,7 @@ class SessionServiceTest {
   private val nDeliusIntegrationApiClient = mockk<NDeliusIntegrationApiClient>()
   private val sessionNameFormatter = SessionNameFormatter()
   private lateinit var service: SessionService
-  private lateinit var sessionAttendanceTypeEntities: List<SessionAttendanceOutcomeTypeEntity>
+  private lateinit var sessionAttendanceTypeEntities: List<SessionAttendanceNDeliusOutcomeEntity>
 
   @BeforeEach
   fun setup() {
@@ -74,14 +74,14 @@ class SessionServiceTest {
     )
 
     sessionAttendanceTypeEntities = listOf(
-      SessionAttendanceOutcomeTypeEntityFactory().produce(),
-      SessionAttendanceOutcomeTypeEntityFactory()
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce(),
+      SessionAttendanceNDeliusOutcomeEntityFactory()
         .withCode(AFTC)
         .withDescription("Attended - Failed to Comply")
         .withAttendance(true)
         .withCompliant(false)
         .produce(),
-      SessionAttendanceOutcomeTypeEntityFactory()
+      SessionAttendanceNDeliusOutcomeEntityFactory()
         .withCode(UAAB)
         .withDescription("Unacceptable Absence")
         .withAttendance(false)
@@ -406,7 +406,7 @@ class SessionServiceTest {
       )
     } returns programmeGroupMembershipEntity
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
-      SessionAttendanceOutcomeTypeEntityFactory().produce()
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
 
     // When
@@ -477,7 +477,7 @@ class SessionServiceTest {
       )
     } returns programmeGroupMembershipEntity
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
-      SessionAttendanceOutcomeTypeEntityFactory().produce()
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns ClientResult.Success(
       HttpStatus.NO_CONTENT,
@@ -538,7 +538,7 @@ class SessionServiceTest {
       )
     } returns programmeGroupMembershipEntity
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
-      SessionAttendanceOutcomeTypeEntityFactory().produce()
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
 
     // When
@@ -708,7 +708,7 @@ class SessionServiceTest {
     sessionEntity.attendances = mutableSetOf(
       SessionAttendanceEntityFactory()
         .withSession(sessionEntity)
-        .withOutcomeType(SessionAttendanceOutcomeTypeEntityFactory().produce())
+        .withOutcomeType(SessionAttendanceNDeliusOutcomeEntityFactory().produce())
         .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
     )
 
@@ -772,7 +772,7 @@ class SessionServiceTest {
       SessionAttendanceEntityFactory()
         .withSession(sessionEntity)
         .withOutcomeType(
-          SessionAttendanceOutcomeTypeEntityFactory()
+          SessionAttendanceNDeliusOutcomeEntityFactory()
             .withCode(AFTC)
             .withDescription("Attended - Failed to Comply")
             .withAttendance(true)
@@ -831,7 +831,7 @@ class SessionServiceTest {
       SessionAttendanceEntityFactory()
         .withSession(sessionEntity)
         .withOutcomeType(
-          SessionAttendanceOutcomeTypeEntityFactory()
+          SessionAttendanceNDeliusOutcomeEntityFactory()
             .withCode(UAAB)
             .withDescription("Unacceptable Absence")
             .withAttendance(false)

@@ -2,10 +2,10 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.rep
 
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceOutcomeTypeEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceCode
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
 
 @Repository
-interface SessionAttendanceOutcomeTypeRepository : JpaRepository<SessionAttendanceOutcomeTypeEntity, SessionAttendanceCode> {
-  fun findByCode(code: SessionAttendanceCode): SessionAttendanceOutcomeTypeEntity?
+interface SessionAttendanceOutcomeTypeRepository : JpaRepository<SessionAttendanceNDeliusOutcomeEntity, SessionAttendanceNDeliusCode> {
+  fun findByCode(code: SessionAttendanceNDeliusCode): SessionAttendanceNDeliusOutcomeEntity?
 }

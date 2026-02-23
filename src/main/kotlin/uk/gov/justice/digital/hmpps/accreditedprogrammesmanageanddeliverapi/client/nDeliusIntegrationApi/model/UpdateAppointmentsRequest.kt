@@ -2,7 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 
 import jakarta.validation.constraints.NotEmpty
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceCode
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
@@ -26,7 +26,7 @@ data class RequestCode(val code: String)
 
 fun NDeliusAppointmentEntity.toUpdateAppointmentRequest(
   sessionNotes: String? = null,
-  outcome: SessionAttendanceCode? = null,
+  outcome: SessionAttendanceNDeliusCode? = null,
 ): UpdateAppointmentRequest = UpdateAppointmentRequest(
   reference = ndeliusAppointmentId,
   date = session.startsAt.toLocalDate(),

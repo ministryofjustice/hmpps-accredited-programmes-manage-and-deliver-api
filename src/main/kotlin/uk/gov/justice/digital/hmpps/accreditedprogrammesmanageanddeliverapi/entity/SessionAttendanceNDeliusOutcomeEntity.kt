@@ -6,15 +6,15 @@ import jakarta.persistence.EnumType.STRING
 import jakarta.persistence.Enumerated
 import jakarta.persistence.Id
 import jakarta.persistence.Table
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceCode
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
 
 @Entity
-@Table(name = "session_attendance_outcome_type")
-class SessionAttendanceOutcomeTypeEntity(
+@Table(name = "session_attendance_ndelius_outcome")
+class SessionAttendanceNDeliusOutcomeEntity(
   @Id
   @Column(name = "code", nullable = false, length = 5)
   @Enumerated(STRING)
-  var code: SessionAttendanceCode,
+  var code: SessionAttendanceNDeliusCode,
 
   @Column(name = "description")
   var description: String? = null,

@@ -5,7 +5,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ent
  * AFTC : Attended - Failed to Comply
  * UAAB : Unacceptable Absence
  */
-enum class SessionAttendanceCode {
+enum class SessionAttendanceNDeliusCode {
   ATTC,
   AFTC,
   UAAB,

@@ -46,7 +46,7 @@ class SessionAttendanceEntity(
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "outcome_type_code")
-  var outcomeType: SessionAttendanceOutcomeTypeEntity,
+  var outcomeType: SessionAttendanceNDeliusOutcomeEntity,
 
   @OneToMany(
     fetch = FetchType.LAZY,
@@ -62,7 +62,7 @@ fun SessionAttendee.toEntity(
   session: SessionEntity,
   groupMembershipEntity: ProgrammeGroupMembershipEntity,
   recordedByFacilitator: FacilitatorEntity,
-  outcomeType: SessionAttendanceOutcomeTypeEntity,
+  outcomeType: SessionAttendanceNDeliusOutcomeEntity,
 ) = SessionAttendanceEntity(
   session = session,
   groupMembership = groupMembershipEntity,
