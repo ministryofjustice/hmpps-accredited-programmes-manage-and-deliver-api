@@ -50,7 +50,7 @@ generic-service:
       SPRING_DATASOURCE_USERNAME: "database_username"
       SPRING_DATASOURCE_PASSWORD: "database_password"
 
-    sentry:
+    hmpps-accredited-programmes-manage-and-deliver-api-sentry:
       SENTRY_DSN: SENTRY_DSN
       SENTRY_AUTH_TOKEN: SENTRY_AUTH_TOKEN
 

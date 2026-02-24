@@ -44,5 +44,4 @@
         <appender-ref ref="sentry"/>
     </root>
 
-
 </configuration>
