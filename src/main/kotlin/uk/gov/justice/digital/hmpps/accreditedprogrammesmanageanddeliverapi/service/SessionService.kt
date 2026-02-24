@@ -338,6 +338,7 @@ class SessionService(
           crn = attendee.referral.crn,
           attendance = getSessionAttendanceText(session.attendances, attendee),
           options = outcomeOptions,
+          sessionNotes = session.attendances.find { it.groupMembership.referral.id == attendee.referralId }?.notesHistory?.firstOrNull()?.notes,
         )
       }.toList(),
     )
