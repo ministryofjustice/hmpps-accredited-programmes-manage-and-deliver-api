@@ -296,7 +296,7 @@ class SessionService(
     session.attendances.addAll(sessionAttendanceEntities)
     sessionRepository.save(session)
 
-    if (!isEmpty(attendees)) {
+    if (!attendees.isNullOrEmpty()) {
       val updateAppointmentRequests = attendees.mapNotNull { attendee ->
         val referralId = attendee.referralId
         val nDeliusAppointment = session.ndeliusAppointments.find { it.referral.id == referralId }
