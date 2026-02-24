@@ -1,0 +1,1 @@
+ALTER TABLE session_attendance_outcome_type RENAME TO session_attendance_ndelius_outcome;

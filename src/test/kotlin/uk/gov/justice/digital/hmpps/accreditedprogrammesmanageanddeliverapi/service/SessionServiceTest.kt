@@ -18,10 +18,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceOutcomeTypeEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType.LEAD_FACILITATOR
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.AFTC
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.GROUP
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
@@ -30,6 +32,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceNDeliusOutcomeEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
@@ -55,6 +58,7 @@ class SessionServiceTest {
   private val nDeliusIntegrationApiClient = mockk<NDeliusIntegrationApiClient>()
   private val sessionNameFormatter = SessionNameFormatter()
   private lateinit var service: SessionService
+  private lateinit var sessionAttendanceTypeEntities: List<SessionAttendanceNDeliusOutcomeEntity>
 
   @BeforeEach
   fun setup() {
@@ -67,6 +71,22 @@ class SessionServiceTest {
       nDeliusIntegrationApiClient,
       sessionAttendanceOutcomeTypeRepository,
       sessionNameFormatter,
+    )
+
+    sessionAttendanceTypeEntities = listOf(
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce(),
+      SessionAttendanceNDeliusOutcomeEntityFactory()
+        .withCode(AFTC)
+        .withDescription("Attended - Failed to Comply")
+        .withAttendance(true)
+        .withCompliant(false)
+        .produce(),
+      SessionAttendanceNDeliusOutcomeEntityFactory()
+        .withCode(UAAB)
+        .withDescription("Unacceptable Absence")
+        .withAttendance(false)
+        .withCompliant(false)
+        .produce(),
     )
   }
 
@@ -385,12 +405,8 @@ class SessionServiceTest {
         any(),
       )
     } returns programmeGroupMembershipEntity
-    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns SessionAttendanceOutcomeTypeEntity(
-      "ATTC",
-      "Attended - Complied",
-      true,
-      true,
-    )
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
 
     // When
@@ -460,12 +476,8 @@ class SessionServiceTest {
         any(),
       )
     } returns programmeGroupMembershipEntity
-    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns SessionAttendanceOutcomeTypeEntity(
-      "ATTC",
-      "Attended - Complied",
-      true,
-      true,
-    )
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns ClientResult.Success(
       HttpStatus.NO_CONTENT,
@@ -525,12 +537,8 @@ class SessionServiceTest {
         any(),
       )
     } returns programmeGroupMembershipEntity
-    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns SessionAttendanceOutcomeTypeEntity(
-      "ATTC",
-      "Attended - Complied",
-      true,
-      true,
-    )
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
 
     // When
@@ -700,23 +708,12 @@ class SessionServiceTest {
     sessionEntity.attendances = mutableSetOf(
       SessionAttendanceEntityFactory()
         .withSession(sessionEntity)
-        .withOutcomeType(
-          SessionAttendanceOutcomeTypeEntity(
-            "ATTC",
-            "Attended - Complied",
-            true,
-            true,
-          ),
-        )
+        .withOutcomeType(SessionAttendanceNDeliusOutcomeEntityFactory().produce())
         .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
     )
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
-    every { sessionAttendanceOutcomeTypeRepository.findAll() } returns listOf(
-      SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true),
-      SessionAttendanceOutcomeTypeEntity("AFTC", "Attended - Failed to Comply", true, false),
-      SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false),
-    )
+    every { sessionAttendanceOutcomeTypeRepository.findAll() } returns sessionAttendanceTypeEntities
 
     // When
     val result = service.getRecordAttendanceBySessionId(sessionId, listOf(referralId))
@@ -774,16 +771,19 @@ class SessionServiceTest {
     sessionEntity.attendances = mutableSetOf(
       SessionAttendanceEntityFactory()
         .withSession(sessionEntity)
-        .withOutcomeType(SessionAttendanceOutcomeTypeEntity("AFTC", "Attended - Failed to Comply", true, false))
+        .withOutcomeType(
+          SessionAttendanceNDeliusOutcomeEntityFactory()
+            .withCode(AFTC)
+            .withDescription("Attended - Failed to Comply")
+            .withAttendance(true)
+            .withCompliant(false)
+            .produce(),
+        )
         .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
     )
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
-    every { sessionAttendanceOutcomeTypeRepository.findAll() } returns listOf(
-      SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true),
-      SessionAttendanceOutcomeTypeEntity("AFTC", "Attended - Failed to Comply", true, false),
-      SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false),
-    )
+    every { sessionAttendanceOutcomeTypeRepository.findAll() } returns sessionAttendanceTypeEntities
 
     // When
     val result = service.getRecordAttendanceBySessionId(sessionId, null)
@@ -830,16 +830,20 @@ class SessionServiceTest {
     sessionEntity.attendances = mutableSetOf(
       SessionAttendanceEntityFactory()
         .withSession(sessionEntity)
-        .withOutcomeType(SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false))
-        .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
+        .withOutcomeType(
+          SessionAttendanceNDeliusOutcomeEntityFactory()
+            .withCode(UAAB)
+            .withDescription("Unacceptable Absence")
+            .withAttendance(false)
+            .withCompliant(false)
+            .produce(),
+        )
+        .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce())
+        .produce(),
     )
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
-    every { sessionAttendanceOutcomeTypeRepository.findAll() } returns listOf(
-      SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true),
-      SessionAttendanceOutcomeTypeEntity("AFTC", "Attended - Failed to Comply", true, false),
-      SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false),
-    )
+    every { sessionAttendanceOutcomeTypeRepository.findAll() } returns sessionAttendanceTypeEntities
 
     // When
     val result = service.getRecordAttendanceBySessionId(sessionId, null)
@@ -884,12 +888,7 @@ class SessionServiceTest {
       .produce()
 
     sessionEntity.attendances = mutableSetOf()
-    every { sessionAttendanceOutcomeTypeRepository.findAll() } returns listOf(
-      SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true),
-      SessionAttendanceOutcomeTypeEntity("AFTC", "Attended - Failed to Comply", true, false),
-      SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false),
-    )
-
+    every { sessionAttendanceOutcomeTypeRepository.findAll() } returns sessionAttendanceTypeEntities
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
 
     // When

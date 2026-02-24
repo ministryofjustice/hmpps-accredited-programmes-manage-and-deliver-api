@@ -50,8 +50,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceOutcomeTypeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionNotesHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusAppointmentEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
@@ -60,6 +60,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamMembersFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamWithMembersFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceNDeliusOutcomeEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.NDeliusApiProbationDeliveryUnitWithOfficeLocationsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
@@ -2488,7 +2489,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val attendance1 = SessionAttendanceEntity(
         session = session,
         groupMembership = groupMembership1,
-        outcomeType = SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true),
+        outcomeType = SessionAttendanceNDeliusOutcomeEntityFactory().produce(),
       ).apply {
         notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 1"))
       }
@@ -2496,7 +2497,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val attendance2 = SessionAttendanceEntity(
         session = session,
         groupMembership = groupMembership2,
-        outcomeType = SessionAttendanceOutcomeTypeEntity("UAAB", "Unacceptable Absence", false, false),
+        outcomeType = SessionAttendanceNDeliusOutcomeEntityFactory().withCode(UAAB)
+          .withDescription("Unacceptable Absence")
+          .withAttendance(false).withCompliant(false).produce(),
       ).apply {
         notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 2 - initial"))
         notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 2 - latest"))

@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.util.CollectionUtils.isEmpty
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
@@ -32,11 +33,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceOutcomeTypeEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.AFTC
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.ATTC
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -287,16 +291,16 @@ class SessionService(
       NotFoundException("Session not found with id: $sessionId")
     }
 
-    val sessionAttendanceEntities = getSessionAttendanceFromAttendees(sessionAttendance.attendees, session)
+    val attendees = sessionAttendance.attendees
+    val sessionAttendanceEntities = getSessionAttendanceFromAttendees(attendees, session)
     session.attendances.addAll(sessionAttendanceEntities)
     sessionRepository.save(session)
 
-    val attendeesWithNotes = sessionAttendance.attendees.filter { !it.sessionNotes.isNullOrBlank() }
-    if (attendeesWithNotes.isNotEmpty()) {
-      val updateAppointmentRequests = attendeesWithNotes.mapNotNull { attendeeWithNotes ->
-        val referralId = attendeeWithNotes.referralId
+    if (!attendees.isNullOrEmpty()) {
+      val updateAppointmentRequests = attendees.mapNotNull { attendee ->
+        val referralId = attendee.referralId
         val nDeliusAppointment = session.ndeliusAppointments.find { it.referral.id == referralId }
-        nDeliusAppointment?.toUpdateAppointmentRequest(attendeeWithNotes.sessionNotes)
+        nDeliusAppointment?.toUpdateAppointmentRequest(attendee.sessionNotes, attendee.outcomeCode)
       }
 
       if (updateAppointmentRequests.isNotEmpty()) {
@@ -344,15 +348,20 @@ class SessionService(
     )
   }
 
-  private fun getOptionFromOutcome(outcome: SessionAttendanceOutcomeTypeEntity): Option = when (outcome.code) {
-    "ATTC" -> Option("Yes - attended", null, outcome.code)
-    "AFTC" -> Option("Attended but failed to comply", "For example, they could not participate because of drug or alcohol use", outcome.code)
-    "UAAB" -> Option("No - did not attend", null, outcome.code)
-    else -> Option(outcome.description ?: outcome.code, null, outcome.code)
+  private fun getOptionFromOutcome(outcome: SessionAttendanceNDeliusOutcomeEntity): Option = when (outcome.code) {
+    ATTC -> Option("Yes - attended", null, outcome.code.name)
+
+    AFTC -> Option(
+      "Attended but failed to comply",
+      "For example, they could not participate because of drug or alcohol use",
+      outcome.code.name,
+    )
+
+    UAAB -> Option("No - did not attend", null, outcome.code.name)
   }
 
   private fun getSessionAttendanceFromAttendees(
-    attendees: List<SessionAttendee>,
+    attendees: List<SessionAttendee>?,
     session: SessionEntity,
   ): List<SessionAttendanceEntity> {
     val programmeGroupId = session.programmeGroup.id!!
@@ -360,7 +369,7 @@ class SessionService(
       session.sessionFacilitators.find { it.facilitatorType == FacilitatorType.LEAD_FACILITATOR }?.facilitator
         ?: throw BusinessException("Lead facilitator not found for session: ${session.id}")
 
-    return attendees.map { attendee ->
+    return attendees?.map { attendee ->
       val referralId = attendee.referralId
       val groupMembershipEntity =
         programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referralId, programmeGroupId)
@@ -372,7 +381,7 @@ class SessionService(
         ?: throw NotFoundException("Session attendance outcome type not found with code: ${attendee.outcomeCode}")
 
       attendee.toEntity(session, groupMembershipEntity, recordedByFacilitator, outcomeType)
-    }.toList()
+    }?.toList() ?: listOf()
   }
 
   private fun formatPreviousSessionDateAndTime(session: SessionEntity): String {

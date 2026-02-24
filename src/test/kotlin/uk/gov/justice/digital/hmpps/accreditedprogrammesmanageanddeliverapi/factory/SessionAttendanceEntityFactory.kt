@@ -3,7 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceOutcomeTypeEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
@@ -23,7 +23,8 @@ class SessionAttendanceEntityFactory(
   private var legitimateAbsence: Boolean = true
   private var recordedByFacilitator: FacilitatorEntity = recordedByFacilitator ?: FacilitatorEntityFactory().produce()
   private var recordedAt: LocalDateTime? = LocalDateTime.now(ZoneId.of("UTC"))
-  private var outcomeType: SessionAttendanceOutcomeTypeEntity = SessionAttendanceOutcomeTypeEntity("ATTC", "Attended - Complied", true, true)
+  private var outcomeType: SessionAttendanceNDeliusOutcomeEntity =
+    SessionAttendanceNDeliusOutcomeEntityFactory().produce()
 
   fun withId(id: UUID) = apply { this.id = id }
   fun withSession(session: SessionEntity) = apply { this.session = session }
@@ -34,7 +35,7 @@ class SessionAttendanceEntityFactory(
 
   fun withRecordedAt(recordedAt: LocalDateTime) = apply { this.recordedAt = recordedAt }
 
-  fun withOutcomeType(outcomeType: SessionAttendanceOutcomeTypeEntity) = apply { this.outcomeType = outcomeType }
+  fun withOutcomeType(outcomeType: SessionAttendanceNDeliusOutcomeEntity) = apply { this.outcomeType = outcomeType }
 
   fun produce() = SessionAttendanceEntity(
     id = this.id,

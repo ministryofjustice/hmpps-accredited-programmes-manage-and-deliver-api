@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 
 import jakarta.validation.constraints.NotEmpty
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
@@ -23,12 +24,15 @@ data class UpdateAppointmentRequest(
 
 data class RequestCode(val code: String)
 
-fun NDeliusAppointmentEntity.toUpdateAppointmentRequest(sessionNotes: String? = null): UpdateAppointmentRequest = UpdateAppointmentRequest(
+fun NDeliusAppointmentEntity.toUpdateAppointmentRequest(
+  sessionNotes: String? = null,
+  outcome: SessionAttendanceNDeliusCode? = null,
+): UpdateAppointmentRequest = UpdateAppointmentRequest(
   reference = ndeliusAppointmentId,
   date = session.startsAt.toLocalDate(),
   startTime = session.startsAt.toLocalTime(),
   endTime = session.endsAt.toLocalTime(),
-  outcome = null,
+  outcome = outcome?.let { RequestCode(it.name) },
   location = RequestCode(session.programmeGroup.deliveryLocationCode),
   staff = RequestCode(session.programmeGroup.treatmentManager!!.ndeliusPersonCode),
   team = RequestCode(session.programmeGroup.treatmentManager!!.ndeliusTeamCode),
