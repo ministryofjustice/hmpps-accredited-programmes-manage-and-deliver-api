@@ -16,7 +16,7 @@ data class ModuleSessionTemplate(
   val name: String,
 
   @Schema(description = "The type of session schedule", required = true, example = "SCHEDULED, or CATCH_UP")
-  var sessionScheduleType: SessionScheduleType = SessionScheduleType.SCHEDULED,
+  val sessionScheduleType: SessionScheduleType = SessionScheduleType.SCHEDULED,
 )
 
 fun ModuleSessionTemplateEntity.toApi(): ModuleSessionTemplate {

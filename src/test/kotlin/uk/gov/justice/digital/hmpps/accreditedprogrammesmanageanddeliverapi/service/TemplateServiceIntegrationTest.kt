@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.tuple
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -103,53 +104,17 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(sessionTemplates).hasSize(8)
-      val sessionTemplate1 = sessionTemplates[0]
-      assertThat(sessionTemplate1.number).isEqualTo(1)
-      assertThat(sessionTemplate1.name).isEqualTo("Understanding my feelings")
-      assertThat(sessionTemplate1.sessionScheduleType).isEqualTo(SessionScheduleType.SCHEDULED)
-      assertThat(sessionTemplate1.id).isNotNull
-
-      val sessionTemplate2 = sessionTemplates[1]
-      assertThat(sessionTemplate2.number).isEqualTo(2)
-      assertThat(sessionTemplate2.name).isEqualTo("Helpful and unhelpful feelings")
-      assertThat(sessionTemplate2.sessionScheduleType).isEqualTo(SessionScheduleType.SCHEDULED)
-      assertThat(sessionTemplate2.id).isNotNull
-
-      val sessionTemplate3 = sessionTemplates[2]
-      assertThat(sessionTemplate3.number).isEqualTo(3)
-      assertThat(sessionTemplate3.name).isEqualTo("Managing my feelings, part 1")
-      assertThat(sessionTemplate3.sessionScheduleType).isEqualTo(SessionScheduleType.SCHEDULED)
-      assertThat(sessionTemplate3.id).isNotNull
-
-      val sessionTemplate4 = sessionTemplates[3]
-      assertThat(sessionTemplate4.number).isEqualTo(4)
-      assertThat(sessionTemplate4.name).isEqualTo("Managing my feelings, part 2")
-      assertThat(sessionTemplate4.sessionScheduleType).isEqualTo(SessionScheduleType.SCHEDULED)
-      assertThat(sessionTemplate4.id).isNotNull
-
-      val sessionTemplate5 = sessionTemplates[4]
-      assertThat(sessionTemplate5.number).isEqualTo(5)
-      assertThat(sessionTemplate5.name).isEqualTo("Understanding my thinking")
-      assertThat(sessionTemplate5.sessionScheduleType).isEqualTo(SessionScheduleType.SCHEDULED)
-      assertThat(sessionTemplate5.id).isNotNull
-
-      val sessionTemplate6 = sessionTemplates[5]
-      assertThat(sessionTemplate6.number).isEqualTo(6)
-      assertThat(sessionTemplate6.name).isEqualTo("Developing my flexible thinking")
-      assertThat(sessionTemplate6.sessionScheduleType).isEqualTo(SessionScheduleType.SCHEDULED)
-      assertThat(sessionTemplate6.id).isNotNull
-
-      val sessionTemplate7 = sessionTemplates[6]
-      assertThat(sessionTemplate7.number).isEqualTo(7)
-      assertThat(sessionTemplate7.name).isEqualTo("Managing myself one-to-one")
-      assertThat(sessionTemplate7.sessionScheduleType).isEqualTo(SessionScheduleType.SCHEDULED)
-      assertThat(sessionTemplate7.id).isNotNull
-
-      val sessionTemplate8 = sessionTemplates[7]
-      assertThat(sessionTemplate8.number).isEqualTo(7)
-      assertThat(sessionTemplate8.name).isEqualTo("Managing myself one-to-one catch-up")
-      assertThat(sessionTemplate8.sessionScheduleType).isEqualTo(SessionScheduleType.CATCH_UP)
-      assertThat(sessionTemplate8.id).isNotNull
+        .extracting("name", "number", "sessionScheduleType")
+        .containsExactly(
+          tuple("Understanding my feelings", 1, SessionScheduleType.SCHEDULED),
+          tuple("Helpful and unhelpful feelings", 2, SessionScheduleType.SCHEDULED),
+          tuple("Managing my feelings, part 1", 3, SessionScheduleType.SCHEDULED),
+          tuple("Managing my feelings, part 2", 4, SessionScheduleType.SCHEDULED),
+          tuple("Understanding my thinking", 5, SessionScheduleType.SCHEDULED),
+          tuple("Developing my flexible thinking", 6, SessionScheduleType.SCHEDULED),
+          tuple("Managing myself one-to-one", 7, SessionScheduleType.SCHEDULED),
+          tuple("Managing myself one-to-one catch-up", 7, SessionScheduleType.CATCH_UP),
+        )
     }
 
     @Test
