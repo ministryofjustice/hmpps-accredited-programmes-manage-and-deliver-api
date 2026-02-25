@@ -1976,8 +1976,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(modules).isNotEmpty
 
       // Use the "Getting Started" module (module_number = 2) which has 2 sessions
-      val firstModule = modules.find { it.moduleNumber == 1 }
-      assertThat(firstModule).isNotNull
+      val gettingStartedModule = modules.find { it.name == "Getting started" }
+      assertThat(gettingStartedModule).isNotNull
 
       // Create a test group linked to Building Choices
       val group = ProgrammeGroupFactory()
@@ -1990,14 +1990,21 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/group/${group.id}/module/${firstModule!!.id}/schedule-session-type",
+        uri = "/bff/group/${group.id}/module/${gettingStartedModule!!.id}/schedule-session-type",
         expectedResponseStatus = HttpStatus.OK.value(),
         returnType = object : ParameterizedTypeReference<ScheduleSessionTypeResponse>() {},
         body = " ",
       )
 
       // Then
-      assertThat(response.sessionTemplates).hasSize(1)
+      assertThat(response.sessionTemplates).hasSize(4)
+      assertThat(response.sessionTemplates.map { it.name })
+        .containsExactly(
+          "Introduction to Building Choices",
+          "Understanding myself",
+          "Getting started one-to-one",
+          "Getting started one-to-one catch-up",
+        )
     }
 
     @Test

@@ -5,9 +5,11 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ModuleSessionTemplate
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionScheduleType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
@@ -22,7 +24,7 @@ class TemplateService(
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  fun getOneToOneSessionTemplatesForGroupAndModule(groupId: UUID, moduleId: UUID): List<ModuleSessionTemplate> {
+  fun getSessionTemplatesForGroupAndModule(groupId: UUID, moduleId: UUID): List<ModuleSessionTemplate> {
     log.info("Retrieving session templates for group: $groupId and module: $moduleId")
 
     val group = programmeGroupRepository.findByIdOrNull(groupId)
@@ -40,11 +42,25 @@ class TemplateService(
 
     val sessionTemplates = moduleSessionTemplateRepository.findByModuleId(moduleId)
       .sortedBy { it.sessionNumber }
-      .filter { it.sessionType == SessionType.ONE_TO_ONE }
-      .map { it.toApi() }
+      .flatMap(::addCatchUpModuleSessions)
 
-    log.info("Found ${sessionTemplates.size} One-to-One session templates for module: $moduleId")
+    log.info("Found ${sessionTemplates.size} session templates for module: $moduleId")
 
     return sessionTemplates
+  }
+
+  private fun addCatchUpModuleSessions(entity: ModuleSessionTemplateEntity): List<ModuleSessionTemplate> {
+    val sessionTemplate = entity.toApi()
+    return if (entity.sessionType == SessionType.ONE_TO_ONE) {
+      listOf(
+        sessionTemplate,
+        sessionTemplate.copy(
+          name = "${sessionTemplate.name} catch-up",
+          sessionScheduleType = SessionScheduleType.CATCH_UP,
+        ),
+      )
+    } else {
+      listOf(sessionTemplate)
+    }
   }
 }
