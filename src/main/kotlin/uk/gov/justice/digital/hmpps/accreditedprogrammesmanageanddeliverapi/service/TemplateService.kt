@@ -8,6 +8,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionScheduleType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -24,7 +25,10 @@ class TemplateService(
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  fun getSessionTemplatesForGroupAndModule(groupId: UUID, moduleId: UUID): List<ModuleSessionTemplate> {
+  fun getSessionTemplatesForGroupAndModule(
+    groupId: UUID,
+    moduleId: UUID,
+  ): Pair<ModuleEntity, List<ModuleSessionTemplate>> {
     log.info("Retrieving session templates for group: $groupId and module: $moduleId")
 
     val group = programmeGroupRepository.findByIdOrNull(groupId)
@@ -46,7 +50,7 @@ class TemplateService(
 
     log.info("Found ${sessionTemplates.size} session templates for module: $moduleId")
 
-    return sessionTemplates
+    return module to sessionTemplates
   }
 
   private fun addCatchUpModuleSessions(entity: ModuleSessionTemplateEntity): List<ModuleSessionTemplate> {

@@ -2005,6 +2005,78 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           "Getting started one-to-one",
           "Getting started one-to-one catch-up",
         )
+      assertThat(response.pageHeading).isEqualTo("Schedule a Getting started session")
+    }
+
+    @Test
+    fun `Successfully retrieves session templates for a pre group module and formats title correctly`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val modules = buildingChoicesTemplate.modules
+      assertThat(modules).isNotEmpty
+
+      val preGroupModule = modules.find { it.name == "Pre-group one-to-ones" }
+      assertThat(preGroupModule).isNotNull
+
+      // Create a test group linked to Building Choices
+      val group = ProgrammeGroupFactory()
+        .withCode("TEST_GROUP_001")
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      group.accreditedProgrammeTemplate = buildingChoicesTemplate
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/module/${preGroupModule!!.id}/schedule-session-type",
+        expectedResponseStatus = HttpStatus.OK.value(),
+        returnType = object : ParameterizedTypeReference<ScheduleSessionTypeResponse>() {},
+        body = " ",
+      )
+
+      // Then
+      assertThat(response.sessionTemplates).hasSize(2)
+      assertThat(response.sessionTemplates.map { it.name })
+        .containsExactly("Pre-group one-to-one", "Pre-group one-to-one catch-up")
+      assertThat(response.pageHeading).isEqualTo("Schedule a pre-group one-to-one")
+    }
+
+    @Test
+    fun `Successfully retrieves session templates for a post programme review module and formats title correctly`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val modules = buildingChoicesTemplate.modules
+      assertThat(modules).isNotEmpty
+
+      val postProgrammeReview = modules.find { it.name == "Post-programme reviews" }
+      assertThat(postProgrammeReview).isNotNull
+
+      // Create a test group linked to Building Choices
+      val group = ProgrammeGroupFactory()
+        .withCode("TEST_GROUP_001")
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      group.accreditedProgrammeTemplate = buildingChoicesTemplate
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/module/${postProgrammeReview!!.id}/schedule-session-type",
+        expectedResponseStatus = HttpStatus.OK.value(),
+        returnType = object : ParameterizedTypeReference<ScheduleSessionTypeResponse>() {},
+        body = " ",
+      )
+
+      // Then
+      assertThat(response.sessionTemplates).hasSize(2)
+      assertThat(response.sessionTemplates.map { it.name })
+        .containsOnly(
+          "Post-programme review",
+          "Post-programme review catch-up",
+        )
+      assertThat(response.pageHeading).isEqualTo("Schedule a post-programme review")
     }
 
     @Test
