@@ -726,7 +726,7 @@ class SessionServiceTest {
     assertThat(result.people[0].referralId).isEqualTo(referralId)
     assertThat(result.people[0].crn).isEqualTo(referralEntity.crn)
     assertThat(result.people[0].name).isEqualTo(referralEntity.personName)
-    assertThat(result.people[0].attendance).isEqualTo("Attended")
+    assertThat(result.people[0].attendance!!.text).isEqualTo("Attended")
     assertThat(result.people[0].options).hasSize(3)
     assertThat(result.people[0].options!!.map { it.value })
       .containsExactly("ATTC", "AFTC", "UAAB")
@@ -791,7 +791,8 @@ class SessionServiceTest {
     // Then
     assertThat(result).isNotNull()
     assertThat(result.people).hasSize(1)
-    assertThat(result.people[0].attendance).isEqualTo("Attended but failed to comply")
+    assertThat(result.people[0].attendance!!.text).isEqualTo("Attended but failed to comply")
+    assertThat(result.people[0].attendance!!.code).isEqualTo("AFTC")
 
     verify { sessionRepository.findById(any()) }
   }
@@ -851,7 +852,7 @@ class SessionServiceTest {
     // Then
     assertThat(result).isNotNull()
     assertThat(result.people).hasSize(1)
-    assertThat(result.people[0].attendance).isEqualTo("Did not attend")
+    assertThat(result.people[0].attendance!!.text).isEqualTo("Did not attend")
 
     verify { sessionRepository.findById(any()) }
   }
