@@ -47,7 +47,7 @@ data class SessionAttendancePerson(
     description = "A string an attendance",
     example = "Attended, failed to comply",
   )
-  val attendance: String?,
+  val attendance: SessionPersonAttendance?,
 
   @Schema(
     description = "The session notes associated with the attendee",
@@ -80,4 +80,19 @@ data class Option(
     example = "ndelius-outcome-1",
   )
   val value: String?,
+)
+
+@Schema(description = "Details of attendance")
+data class SessionPersonAttendance(
+  @Schema(
+    description = "A string representing a text",
+    example = "Attended",
+  )
+  val text: String?,
+
+  @Schema(
+    description = "The code value associated with the attendance option",
+    example = "ATTC",
+  )
+  val code: String?,
 )

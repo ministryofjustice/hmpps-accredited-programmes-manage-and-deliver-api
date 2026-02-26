@@ -18,6 +18,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.Option
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.RecordSessionAttendance
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.SessionAttendancePerson
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.SessionPersonAttendance
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionDateAndTimeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
@@ -340,7 +341,7 @@ class SessionService(
           referralId = attendee.referralId,
           name = attendee.personName,
           crn = attendee.referral.crn,
-          attendance = getSessionAttendanceText(session.attendances, attendee),
+          attendance = getSessionAttendance(session.attendances, attendee),
           options = outcomeOptions,
           sessionNotes = session.attendances.find { it.groupMembership.referral.id == attendee.referralId }?.notesHistory?.firstOrNull()?.notes,
         )
@@ -392,25 +393,16 @@ class SessionService(
     return "$date, $startTime to $endTime"
   }
 
-  private fun getSessionAttendanceText(attendances: Set<SessionAttendanceEntity>, attendee: AttendeeEntity): String? {
+  private fun getSessionAttendance(attendances: Set<SessionAttendanceEntity>, attendee: AttendeeEntity): SessionPersonAttendance? {
     val attendance = attendances.find { it.groupMembership.referral.id == attendee.referralId }
 
     if (attendance == null) {
       return null
     }
-
-    var attendanceText: String
-
-    if (attendance.outcomeType.attendance != null && attendance.outcomeType.attendance == true) {
-      attendanceText = "Attended"
-    } else {
-      return "Did not attend"
+    return when (attendance.outcomeType.code) {
+      ATTC -> SessionPersonAttendance("Attended", attendance.outcomeType.code.name)
+      AFTC -> SessionPersonAttendance("Attended but failed to comply", attendance.outcomeType.code.name)
+      UAAB -> SessionPersonAttendance("Did not attend", attendance.outcomeType.code.name)
     }
-
-    if (!attendance.outcomeType.compliant) {
-      return "$attendanceText but failed to comply"
-    }
-
-    return attendanceText
   }
 }
