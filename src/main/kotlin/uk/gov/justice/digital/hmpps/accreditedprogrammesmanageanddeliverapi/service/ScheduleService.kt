@@ -56,6 +56,12 @@ class ScheduleService(
   private val sessionRepository: SessionRepository,
 ) {
 
+  private companion object {
+    private const val POST_PROGRAMME_REVIEWS_MODULE_NAME = "Post-programme reviews"
+    private const val FIRST_SESSION_GAP_WEEKS = 3L
+    private const val POST_PROGRAMME_REVIEWS_GAP_WEEKS = 6L
+  }
+
   private val log = LoggerFactory.getLogger(this::class.java)
   private lateinit var bankHolidays: Set<LocalDate>
   fun scheduleIndividualSession(groupId: UUID, request: ScheduleSessionRequest): SessionEntity {
@@ -134,17 +140,14 @@ class ScheduleService(
     val groupSlots = group.programmeGroupSessionSlots
     require(groupSlots.isNotEmpty()) { "Programme group slots must not be empty" }
 
-    // Priority by (nextDate ASC, startTime ASC)
-    val slotQueue = PriorityQueue(
-      compareBy<SlotInstance>({ it.nextDate }, { it.slot.startTime }),
+    var slotQueue = buildSlotQueue(
+      group = group,
+      groupSlots = groupSlots,
+      startFrom = group.earliestPossibleStartDate,
     )
 
-    groupSlots.forEach { slot ->
-      val firstDate = findNextValidDate(group.earliestPossibleStartDate, slot)
-      slotQueue.add(SlotInstance(slot = slot, nextDate = firstDate))
-    }
-
     var firstSessionScheduledAndGapApplied = false
+    var postProgrammeReviewsGapApplied = false
 
     val generatedSessions = buildList {
       for (template in allSessionTemplates) {
@@ -180,16 +183,30 @@ class ScheduleService(
           firstSessionScheduledAndGapApplied = true
 
           // Regenerate our slot queue plus 3 weeks
-          slotQueue.clear()
-          groupSlots.forEach { slot ->
-            val dateAfterGap = startsAt.toLocalDate().plusWeeks(3)
-            val nextValidDate = findNextValidDate(dateAfterGap, slot)
-            slotQueue.add(SlotInstance(slot = slot, nextDate = nextValidDate))
-          }
+          slotQueue = buildSlotQueue(
+            group = group,
+            groupSlots = groupSlots,
+            startFrom = startsAt.toLocalDate().plusWeeks(FIRST_SESSION_GAP_WEEKS),
+          )
         } else {
           val nextWeekDate = nextSlot.nextDate.plusWeeks(1)
           val nextValidDate = findNextValidDate(nextWeekDate, nextSlot.slot)
           slotQueue.add(nextSlot.copy(nextDate = nextValidDate))
+        }
+
+        if (!postProgrammeReviewsGapApplied && template.module.name != POST_PROGRAMME_REVIEWS_MODULE_NAME
+        ) {
+          val nextTemplate = allSessionTemplates.getOrNull(allSessionTemplates.indexOf(template) + 1)
+          if (nextTemplate?.module?.name == POST_PROGRAMME_REVIEWS_MODULE_NAME) {
+            postProgrammeReviewsGapApplied = true
+
+            // Regenerate our slot queue plus 6 weeks
+            slotQueue = buildSlotQueue(
+              group = group,
+              groupSlots = groupSlots,
+              startFrom = startsAt.toLocalDate().plusWeeks(POST_PROGRAMME_REVIEWS_GAP_WEEKS),
+            )
+          }
         }
       }
     }
@@ -224,6 +241,20 @@ class ScheduleService(
     programmeGroupRepository.save(group)
 
     return group.sessions
+  }
+
+  private fun buildSlotQueue(
+    group: ProgrammeGroupEntity,
+    groupSlots: Collection<ProgrammeGroupSessionSlotEntity>,
+    startFrom: LocalDate,
+  ): PriorityQueue<SlotInstance> {
+    // Priority by (nextDate ASC, startTime ASC)
+    val slotQueue = PriorityQueue(compareBy<SlotInstance>({ it.nextDate }, { it.slot.startTime }))
+    groupSlots.forEach { slot ->
+      val firstDate = findNextValidDate(startFrom, slot)
+      slotQueue.add(SlotInstance(slot = slot, nextDate = firstDate))
+    }
+    return slotQueue
   }
 
   fun rescheduleSessionsForGroup(programmeGroupId: UUID): MutableSet<SessionEntity> {
