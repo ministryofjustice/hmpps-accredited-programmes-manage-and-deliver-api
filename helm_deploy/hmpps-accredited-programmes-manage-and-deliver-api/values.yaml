@@ -32,6 +32,8 @@ generic-service:
   #     [name of environment variable as seen by app]: [key of kubernetes secret to load]
 
   namespace_secrets:
+    hmpps-domain-events-topic:
+      HMPPS_SQS_TOPICS_HMPPSEVENTTOPIC_ARN: "topic_arn"
     sqs-domain-events-secret:
       HMPPS_SQS_QUEUES_HMPPSDOMAINEVENTSQUEUE_QUEUE_NAME: "queue_name"
     sqs-domain-events-dlq-secret:
