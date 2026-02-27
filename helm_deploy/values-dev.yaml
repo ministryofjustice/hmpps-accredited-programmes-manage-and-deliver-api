@@ -11,6 +11,7 @@ generic-service:
     SPRING_PROFILES_ACTIVE: "dev"
     APPLICATIONINSIGHTS_CONFIGURATION_FILE: "applicationinsights.dev.json"
     HMPPS_AUTH_URL: "https://sign-in-dev.hmpps.service.justice.gov.uk/auth"
+    SERVICES_MANAGE-AND_DELIVER-API_BASE-URL: "https://accredited-programmes-manage-and-deliver-api-dev.hmpps.service.justice.gov.uk"
     SERVICES_FIND-AND-REFER-INTERVENTION-API_BASE-URL: "https://find-and-refer-intervention-api-dev.hmpps.service.justice.gov.uk"
     SERVICES_NDELIUS-INTEGRATION-API_BASE-URL: "https://accredited-programmes-and-delius-dev.hmpps.service.justice.gov.uk"
     SERVICES_OASYS-API_BASE-URL: "https://accredited-programmes-and-oasys-dev.hmpps.service.justice.gov.uk"

@@ -1,8 +1,14 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import com.fasterxml.jackson.module.kotlin.readValue
 import io.kotest.matchers.throwable.shouldHaveMessage
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
+import org.awaitility.kotlin.await
+import org.awaitility.kotlin.matches
+import org.awaitility.kotlin.untilCallTo
+import org.awaitility.kotlin.withPollDelay
+import org.awaitility.kotlin.withPollInterval
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -26,6 +32,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
@@ -37,6 +45,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
+import java.time.Duration.ofMillis
 import java.time.LocalDate
 import java.util.UUID
 
@@ -313,7 +322,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
   @DisplayName("UpdateStatusIntegrationTests")
   inner class UpdateStatusIntegrationTests {
     @Test
-    fun `updateStatus should create a new entry in the ReferralStatusHistory log`() {
+    fun `updateStatus should create a new entry in the ReferralStatusHistory log and publish event to hmppsDomainEvent topic`() {
       // Given
       val theCrnNumber = randomUppercaseString()
       val onProgrammeStatusDescriptionId = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
@@ -354,6 +363,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(foundReferral.statusHistories.first().createdBy).isEqualTo("THE_USER_ID")
       assertThat(foundReferral.statusHistories.first().id).isEqualTo(result.referralStatusHistory.id)
       assertThat(foundReferral.statusHistories.first().additionalDetails).isEqualTo("Additional details string")
+      verifyReferralStatusUpdateEventSent()
     }
 
     @Test
@@ -371,6 +381,11 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
           createdBy = "DOES NOT MATTER",
         )
       } shouldHaveMessage "Unable to find Referral Status Description with ID $aRandomUuid"
+      await withPollDelay ofMillis(100) withPollInterval ofMillis(100) untilCallTo {
+        with(domainEventsQueueConfig) {
+          interventionsQueue.countAllMessagesOnQueue()
+        }
+      } matches { it == 0 }
     }
 
     @Test
@@ -406,6 +421,17 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         "Recall",
       )
       assertThat(result.message).isEqualTo("Alex River's referral status is now Recall. They have been removed from group AAA111")
+      verifyReferralStatusUpdateEventSent()
+    }
+
+    private fun verifyReferralStatusUpdateEventSent() {
+      await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { interventionsQueue.countAllMessagesOnQueue() } } matches { it == 1 }
+      val eventBody = objectMapper.readValue<SQSMessage>(
+        with(domainEventsQueueConfig) {
+          interventionsQueue.receiveMessageOnQueue().body()
+        },
+      )
+      assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_CREATED.value)
     }
   }
 

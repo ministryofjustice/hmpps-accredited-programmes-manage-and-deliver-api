@@ -34,6 +34,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.DomainEventPublisher
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.DomainEventsMessage
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.PersonReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -42,7 +46,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.*
+import java.time.ZonedDateTime
+import java.util.UUID
 
 @Service
 @Transactional
@@ -61,6 +66,7 @@ class ReferralService(
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
   private val sentenceService: SentenceService,
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
+  private val domainEventPublisher: DomainEventPublisher,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -325,7 +331,11 @@ class ReferralService(
       (transition == null || !transition.isContinuing) &&
       activeGroupMembership != null
     ) {
-      programmeGroupMembershipService.deleteGroupMembershipForReferralAndGroup(referral, activeGroupMembership.programmeGroup, createdBy)
+      programmeGroupMembershipService.deleteGroupMembershipForReferralAndGroup(
+        referral,
+        activeGroupMembership.programmeGroup,
+        createdBy,
+      )
       if (incomingReferralStatusDescription.description != "Programme complete") {
         message =
           "${referral.personName}'s referral status is now ${incomingReferralStatusDescription.description}. They have been removed from group ${activeGroupMembership.programmeGroup.code}"
@@ -340,6 +350,8 @@ class ReferralService(
         createdBy = createdBy,
       ),
     )
+    // Send event to delius on status update
+    sendReferralStatusUpdatedEvent(referral)
 
     return StatusUpdateResponse(
       referralStatusHistory = historyEntry.toApi(),
@@ -382,5 +394,20 @@ class ReferralService(
   private fun getPersonalDetails(crn: String) = when (val result = ndeliusIntegrationApiClient.getPersonalDetails(crn)) {
     is ClientResult.Success -> result.body
     else -> null
+  }
+
+  private fun sendReferralStatusUpdatedEvent(referral: ReferralEntity) {
+    val hmppsDomainEvent = DomainEventsMessage(
+      eventType = HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_CREATED.value,
+      version = 1,
+      // TODO ADD URL OF DETAILS ENDPOINT HERE ONCE IMPLEMENTED
+      detailUrl = "",
+      occurredAt = ZonedDateTime.now(),
+      description = "An Accredited Programmes referral in community has had it's status updated.",
+      additionalInformation = mutableMapOf(),
+      personReference = PersonReference.fromCrn(referral.crn),
+    )
+    log.info("Publishing ${HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_CREATED.value} event for referralId: ${referral.id}")
+    domainEventPublisher.publish(hmppsDomainEvent)
   }
 }

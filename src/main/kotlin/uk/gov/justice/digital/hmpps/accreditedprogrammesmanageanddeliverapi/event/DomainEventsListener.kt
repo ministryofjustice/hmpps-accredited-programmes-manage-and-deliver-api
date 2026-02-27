@@ -1,10 +1,10 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.awspring.cloud.sqs.annotation.SqsListener
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model.SQSMessage
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 
 @Service
 class DomainEventsListener(
