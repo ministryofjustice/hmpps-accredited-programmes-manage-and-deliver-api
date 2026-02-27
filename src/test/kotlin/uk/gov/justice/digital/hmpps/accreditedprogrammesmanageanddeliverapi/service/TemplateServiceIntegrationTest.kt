@@ -106,12 +106,12 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
       assertThat(sessionTemplates).hasSize(8)
         .extracting("name", "number", "sessionScheduleType")
         .containsExactly(
-          tuple("Understanding my feelings", 1, SessionScheduleType.SCHEDULED),
-          tuple("Helpful and unhelpful feelings", 2, SessionScheduleType.SCHEDULED),
-          tuple("Managing my feelings, part 1", 3, SessionScheduleType.SCHEDULED),
-          tuple("Managing my feelings, part 2", 4, SessionScheduleType.SCHEDULED),
-          tuple("Understanding my thinking", 5, SessionScheduleType.SCHEDULED),
-          tuple("Developing my flexible thinking", 6, SessionScheduleType.SCHEDULED),
+          tuple("Understanding my feelings catch-up", 1, SessionScheduleType.CATCH_UP),
+          tuple("Helpful and unhelpful feelings catch-up", 2, SessionScheduleType.CATCH_UP),
+          tuple("Managing my feelings, part 1 catch-up", 3, SessionScheduleType.CATCH_UP),
+          tuple("Managing my feelings, part 2 catch-up", 4, SessionScheduleType.CATCH_UP),
+          tuple("Understanding my thinking catch-up", 5, SessionScheduleType.CATCH_UP),
+          tuple("Developing my flexible thinking catch-up", 6, SessionScheduleType.CATCH_UP),
           tuple("Managing myself one-to-one", 7, SessionScheduleType.SCHEDULED),
           tuple("Managing myself one-to-one catch-up", 7, SessionScheduleType.CATCH_UP),
         )

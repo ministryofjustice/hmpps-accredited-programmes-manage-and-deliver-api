@@ -64,7 +64,12 @@ class TemplateService(
         ),
       )
     } else {
-      listOf(sessionTemplate)
+      listOf(
+        sessionTemplate.apply {
+          name = "${sessionTemplate.name} catch-up"
+          sessionScheduleType = SessionScheduleType.CATCH_UP
+        },
+      )
     }
   }
 }
