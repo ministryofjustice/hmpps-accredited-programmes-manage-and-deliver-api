@@ -77,7 +77,7 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
     @Test
     fun `Successfully retrieves session templates for Pre-Group module (one session and its catch up)`() {
       // When
-      val sessionTemplates = service.getSessionTemplatesForGroupAndModule(groupId, preGroupModuleId)
+      val sessionTemplates = service.getSessionTemplatesForGroupAndModule(groupId, preGroupModuleId).second
 
       // Then
       assertThat(sessionTemplates).hasSize(2)
@@ -100,7 +100,7 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
       val managingMyselfModule = modules.find { it.name == "Managing myself" }
 
       // When
-      val sessionTemplates = service.getSessionTemplatesForGroupAndModule(groupId, managingMyselfModule?.id!!)
+      val sessionTemplates = service.getSessionTemplatesForGroupAndModule(groupId, managingMyselfModule?.id!!).second
 
       // Then
       assertThat(sessionTemplates).hasSize(8)

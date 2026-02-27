@@ -4,6 +4,9 @@ import io.swagger.v3.oas.annotations.media.Schema
 
 @Schema(description = "Response containing session templates for scheduling")
 data class ScheduleSessionTypeResponse(
+  @Schema(description = "The text for the page heading", required = true)
+  val pageHeading: String,
+
   @Schema(description = "List of available session templates", required = true)
   val sessionTemplates: List<ModuleSessionTemplate>,
 )

@@ -551,9 +551,14 @@ class ProgrammeGroupController(
       required = true,
     ) moduleId: UUID,
   ): ResponseEntity<ScheduleSessionTypeResponse> {
-    val sessionTemplates = templateService.getSessionTemplatesForGroupAndModule(groupId, moduleId)
+    val (module, sessionTemplates) = templateService.getSessionTemplatesForGroupAndModule(groupId, moduleId)
+    val pageHeading = when (module.name) {
+      "Pre-group one-to-ones" -> "Schedule a pre-group one-to-one"
+      "Post-programme reviews" -> "Schedule a post-programme review"
+      else -> "Schedule a ${module.name} session"
+    }
 
-    return ResponseEntity.ok(ScheduleSessionTypeResponse(sessionTemplates))
+    return ResponseEntity.ok(ScheduleSessionTypeResponse(pageHeading, sessionTemplates))
   }
 
   @Operation(
