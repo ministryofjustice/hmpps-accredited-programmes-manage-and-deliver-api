@@ -321,7 +321,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
   @DisplayName("UpdateStatusIntegrationTests")
   inner class UpdateStatusIntegrationTests {
     @Test
-    fun `updateStatus should create a new entry in the ReferralStatusHistory log and send event to delius`() {
+    fun `updateStatus should create a new entry in the ReferralStatusHistory log and publish event to hmppsDomainEvent topic`() {
       // Given
       val theCrnNumber = randomUppercaseString()
       val onProgrammeStatusDescriptionId = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
