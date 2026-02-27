@@ -33,6 +33,10 @@ class TestDataCleaner(
       createNativeQuery("TRUNCATE TABLE session_attendance CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE attendee CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE session CASCADE").executeUpdate()
+      createNativeQuery("TRUNCATE TABLE data_import_record CASCADE").executeUpdate()
+      createNativeQuery("TRUNCATE TABLE im_data_import.iaps_licreqnos CASCADE").executeUpdate()
+      createNativeQuery("TRUNCATE TABLE im_data_import.reporting_location CASCADE").executeUpdate()
+      createNativeQuery("TRUNCATE TABLE im_data_import.referral CASCADE").executeUpdate()
 
       // Add additional tables here as the data model grows
 
