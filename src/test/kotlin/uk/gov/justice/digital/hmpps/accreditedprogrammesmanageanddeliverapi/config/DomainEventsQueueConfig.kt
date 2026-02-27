@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.con
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestComponent
+import software.amazon.awssdk.services.sqs.model.Message
 import software.amazon.awssdk.services.sqs.model.PurgeQueueRequest
 import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.DomainEventsMessage
@@ -47,7 +48,7 @@ class DomainEventsQueueConfig {
 
   fun HmppsQueue.countAllMessagesOnQueue(): Int? = sqsClient.countAllMessagesOnQueue(queueUrl).get()
 
-  fun HmppsQueue.receiveMessageOnQueue() = sqsClient.receiveMessage(ReceiveMessageRequest.builder().queueUrl(queueUrl).build())
+  fun HmppsQueue.receiveMessageOnQueue(): Message = sqsClient.receiveMessage(ReceiveMessageRequest.builder().queueUrl(queueUrl).build())
     .get()
     .messages()
     .single()
