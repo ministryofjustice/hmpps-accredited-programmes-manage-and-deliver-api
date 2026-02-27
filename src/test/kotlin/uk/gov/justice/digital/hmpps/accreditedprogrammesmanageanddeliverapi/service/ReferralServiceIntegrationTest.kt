@@ -8,6 +8,7 @@ import org.awaitility.kotlin.await
 import org.awaitility.kotlin.matches
 import org.awaitility.kotlin.untilCallTo
 import org.awaitility.kotlin.withPollDelay
+import org.awaitility.kotlin.withPollInterval
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -380,6 +381,11 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
           createdBy = "DOES NOT MATTER",
         )
       } shouldHaveMessage "Unable to find Referral Status Description with ID $aRandomUuid"
+      await withPollDelay ofMillis(100) withPollInterval ofMillis(100) untilCallTo {
+        with(domainEventsQueueConfig) {
+          interventionsQueue.countAllMessagesOnQueue()
+        }
+      } matches { it == 0 }
     }
 
     @Test
