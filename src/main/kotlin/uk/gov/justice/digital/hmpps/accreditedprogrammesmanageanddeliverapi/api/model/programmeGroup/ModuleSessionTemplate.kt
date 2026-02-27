@@ -6,17 +6,21 @@ import java.util.UUID
 
 @Schema(description = "A session template item with basic information")
 data class ModuleSessionTemplate(
-  @Schema(description = "The unique identifier of the session template", required = true, example = "123e4567-e89b-12d3-a456-426614174000")
-  val id: UUID,
+  @Schema(
+    description = "The unique identifier of the session template",
+    required = true,
+    example = "123e4567-e89b-12d3-a456-426614174000",
+  )
+  var id: UUID,
 
   @Schema(description = "The sequential number of the session within its module", required = true, example = "1")
-  val number: Int,
+  var number: Int,
 
   @Schema(description = "The display name of the session", required = true, example = "Getting started one-to-one")
-  val name: String,
+  var name: String,
 
   @Schema(description = "The type of session schedule", required = true, example = "SCHEDULED, or CATCH_UP")
-  val sessionScheduleType: SessionScheduleType = SessionScheduleType.SCHEDULED,
+  var sessionScheduleType: SessionScheduleType = SessionScheduleType.SCHEDULED,
 )
 
 fun ModuleSessionTemplateEntity.toApi(): ModuleSessionTemplate {

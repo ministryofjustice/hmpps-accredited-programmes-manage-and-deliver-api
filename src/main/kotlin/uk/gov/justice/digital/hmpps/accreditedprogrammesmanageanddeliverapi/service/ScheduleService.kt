@@ -77,8 +77,9 @@ class ScheduleService(
       startsAt = convertToLocalDateTime(request.startDate, request.startTime),
       endsAt = convertToLocalDateTime(request.startDate, request.endTime),
       locationName = programmeGroup.deliveryLocationName,
-      // Scheduling individual session should not be placeholder
+      // When scheduling session it should not be a placeholder
       isPlaceholder = false,
+      isCatchup = request.sessionScheduleType.isCatchUp,
     )
     val sessionFacilitators = request.facilitators.map {
       SessionFacilitatorEntity(
@@ -194,8 +195,7 @@ class ScheduleService(
           slotQueue.add(nextSlot.copy(nextDate = nextValidDate))
         }
 
-        if (!postProgrammeReviewsGapApplied && template.module.name != POST_PROGRAMME_REVIEWS_MODULE_NAME
-        ) {
+        if (!postProgrammeReviewsGapApplied && template.module.name != POST_PROGRAMME_REVIEWS_MODULE_NAME) {
           val nextTemplate = allSessionTemplates.getOrNull(allSessionTemplates.indexOf(template) + 1)
           if (nextTemplate?.module?.name == POST_PROGRAMME_REVIEWS_MODULE_NAME) {
             postProgrammeReviewsGapApplied = true

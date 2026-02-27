@@ -125,9 +125,12 @@ class SessionNameFormatter {
   private fun sessionsAndAttendance(
     sessionTemplate: ModuleSessionTemplateEntity,
     scheduledSession: SessionEntity,
-  ): String = when (sessionTemplate.sessionType) {
-    SessionType.GROUP -> "${sessionTemplate.module.name} ${scheduledSession.sessionNumber}: ${sessionTemplate.name}"
-    SessionType.ONE_TO_ONE -> "${scheduledSession.attendees.first().personName} (${scheduledSession.attendees.first().referral.crn}): ${sessionTemplate.name}"
+  ): String {
+    val catchupSuffix = if (scheduledSession.isCatchup) " catch-up" else ""
+    return when (sessionTemplate.sessionType) {
+      SessionType.GROUP -> "${sessionTemplate.module.name} ${scheduledSession.sessionNumber}: ${sessionTemplate.name}$catchupSuffix"
+      SessionType.ONE_TO_ONE -> "${scheduledSession.attendees.first().personName} (${scheduledSession.attendees.first().referral.crn}): ${sessionTemplate.name}$catchupSuffix"
+    }
   }
 
   /**
