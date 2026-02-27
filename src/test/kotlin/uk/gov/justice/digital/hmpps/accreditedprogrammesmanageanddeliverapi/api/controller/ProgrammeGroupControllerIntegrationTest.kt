@@ -1749,7 +1749,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response).isNotNull
-      assertThat(response).isEqualTo("${sessionTemplate.name} one-to-one catch-up for ${referral.personName} has been added.")
+      assertThat(response).isEqualTo("${sessionTemplate.name} catch-up for ${referral.personName} has been added.")
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
