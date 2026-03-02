@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -11,6 +12,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusInfo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.UpdateLdc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
@@ -67,6 +69,7 @@ class ReferralService(
   private val sentenceService: SentenceService,
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
   private val domainEventPublisher: DomainEventPublisher,
+  @Value($$"${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -350,8 +353,8 @@ class ReferralService(
         createdBy = createdBy,
       ),
     )
-    // Send event to delius on status update
-    sendReferralStatusUpdatedEvent(referral)
+    // Publish event on status update
+    publishReferralStatusUpdatedEvent(referral, historyEntry.referralStatusDescription.description)
 
     return StatusUpdateResponse(
       referralStatusHistory = historyEntry.toApi(),
@@ -396,14 +399,18 @@ class ReferralService(
     else -> null
   }
 
-  private fun sendReferralStatusUpdatedEvent(referral: ReferralEntity) {
+  private fun publishReferralStatusUpdatedEvent(referral: ReferralEntity, newStatusDescription: String) {
+    // Map our M&D status description to a more readable string
+    // e.g. Awaiting allocation -> The person is ready to be allocated to a programme group.
+    val statusDescriptionForEvent =
+      ReferralStatusInfo.Status.fromDisplayName(newStatusDescription).description
+
     val hmppsDomainEvent = DomainEventsMessage(
       eventType = HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_CREATED.value,
       version = 1,
-      // TODO ADD URL OF DETAILS ENDPOINT HERE ONCE IMPLEMENTED
-      detailUrl = "",
+      detailUrl = "$madBaseUrl/referral/${referral.id}/status-change-details",
       occurredAt = ZonedDateTime.now(),
-      description = "An Accredited Programmes referral in community has had it's status updated.",
+      description = statusDescriptionForEvent,
       additionalInformation = mutableMapOf(),
       personReference = PersonReference.fromCrn(referral.crn),
     )

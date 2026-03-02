@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.com
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import java.time.LocalDate
+import kotlin.math.pow
 import kotlin.random.Random
 
 private val letters: CharRange = 'A'..'Z'
@@ -23,6 +24,15 @@ fun randomSentence(wordRange: IntRange = 1..20, wordLength: IntRange = 3..10): S
   .take(wordRange.random())
   .reduce { left, right -> left + space() + right }
   .asString()
+
+fun randomLong(length: Int = 2): Long {
+  require(length in 1..18) { "Length must be between 1 and 18" }
+
+  val min = 10.0.pow(length - 1).toLong()
+  val max = 10.0.pow(length).toLong() - 1
+
+  return Random.nextLong(min, max + 1)
+}
 
 fun randomNumber(length: Int = 2) = digits(length)
 fun randomNumberAsInt(length: Int = 2) = Random.nextInt()

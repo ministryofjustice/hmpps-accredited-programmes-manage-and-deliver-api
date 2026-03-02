@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusInfo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusTransitions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RemoveReferralFromGroupStatusTransitions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
@@ -1257,6 +1258,32 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         "Recall",
         "Return to court",
       )
+    }
+  }
+
+  @Nested
+  @DisplayName("Get the details of a status change for a referral")
+  inner class GetStatusChangeForReferral {
+    @Test
+    fun `should return 200 response and ReferralStatusInfo`() {
+      // Given
+      // Creates referral and moves to awaiting allocation status
+      val awaitingAllocationStatus = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+      val referral = testReferralHelper.createReferralWithStatus(awaitingAllocationStatus)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral/${referral.id}/status-change-details",
+        returnType = object : ParameterizedTypeReference<ReferralStatusInfo>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.newStatus).isEqualTo(ReferralStatusInfo.Status.AWAITING_ALLOCATION)
+      assertThat(response.sourcedFromEntityId).isEqualTo(referral.eventId!!.toLong())
+      assertThat(response.sourcedFromEntityType).isEqualTo(referral.sourcedFrom)
+      assertThat(response.notes).isNull()
     }
   }
 }

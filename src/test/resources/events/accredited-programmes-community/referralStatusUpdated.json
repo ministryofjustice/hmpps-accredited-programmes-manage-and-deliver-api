@@ -1,0 +1,18 @@
+{
+  "Type": "Notification",
+  "MessageId": "f849d52a-d5d1-4b9c-8c08-c5a430a1b8ad",
+  "Token": null,
+  "TopicArn": "arn:aws:sns:eu-west-2:000000000000:hmpps-domain",
+  "Message": "{\"eventType\":\"accredited-programmes-community.referral.status-updated\",\"version\":1,\"detailUrl\":\"https://accredited-programmes-dev.hmpps.service.justice.gov.uk/referral/3e759ff8-d2f1-43cb-9e19-bd2006e841d8\",\"occurredAt\":\"2025-07-02T14:14:17.51815+01:00\",\"description\":\"An Accredited Programmes referral in community has had it's status updated.\",\"additionalInformation\":{},\"personReference\":{\"identifiers\":[{\"type\":\"CRN\",\"value\":\"X945794\"}]}}",
+  "SubscribeURL": null,
+  "Timestamp": "2026-02-27T06:27:57.028Z",
+  "SignatureVersion": "1",
+  "Signature": "EXAMPLEpH+..",
+  "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-0000000000000000000000.pem",
+  "MessageAttributes": {
+    "eventType": {
+      "Type": "String",
+      "Value": "accredited-programmes-community.referral.status-updated"
+    }
+  }
+}

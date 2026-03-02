@@ -116,7 +116,7 @@ class TestReferralHelper {
       .withPersonReference(crn)
       .withPersonReferenceType(PersonReferenceType.CRN)
       .withSourcedFromReferenceType(sourcedFrom)
-      .withSourcedFromReference("LIC-12345")
+      .withSourcedFromReference("2500876919")
       .withEventNumber(1)
       .produce()
 

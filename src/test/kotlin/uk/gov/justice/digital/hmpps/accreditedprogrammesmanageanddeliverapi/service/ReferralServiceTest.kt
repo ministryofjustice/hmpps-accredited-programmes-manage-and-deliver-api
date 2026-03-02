@@ -1,10 +1,10 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
@@ -77,8 +77,29 @@ class ReferralServiceTest {
   @Mock
   private lateinit var domainEventPublisher: DomainEventPublisher
 
-  @InjectMocks
   private lateinit var referralService: ReferralService
+
+  @BeforeEach
+  fun beforeEach() {
+    referralService = ReferralService(
+      findAndReferInterventionApiClient = findAndReferInterventionApiClient,
+      ndeliusIntegrationApiClient = ndeliusIntegrationApiClient,
+      referralRepository = referralRepository,
+      referralStatusDescriptionRepository = referralStatusDescriptionRepository,
+      referralStatusTransitionRepository = referalStatusTransitionRepository,
+      userService = userService,
+      cohortService = cohortService,
+      pniService = pniService,
+      referralStatusHistoryRepository = referralStatusHistoryRepository,
+      referralLdcHistoryRepository = referralLdcHistoryRepository,
+      ldcService = ldcService,
+      referralReportingLocationRepository = referralReportingLocationRepository,
+      sentenceService = sentenceService,
+      programmeGroupMembershipService = programmeGroupMembershipService,
+      domainEventPublisher = domainEventPublisher,
+      madBaseUrl = "http://localhost:8080",
+    )
+  }
 
   @Test
   fun `getFindAndReferReferralDetails should return referral details when present`() {
