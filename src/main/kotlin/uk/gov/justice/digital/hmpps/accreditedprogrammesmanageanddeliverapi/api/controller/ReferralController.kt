@@ -503,6 +503,7 @@ class ReferralController(
 
   @GetMapping("/referral/{referralId}/status-change-details")
   fun getStatusChangeDetails(@PathVariable referralId: UUID): ResponseEntity<ReferralStatusInfo> {
+    log.info("Request to retrieve details of status change for referral with id: $referralId")
     val statusInfo = referralStatusService.getStatusChangeDetailsForReferral(referralId)
 
     return ResponseEntity.ok(statusInfo)

@@ -56,8 +56,6 @@ class ReferralStatusService(
     requireNotNull(sourcedFrom) { "SourcedFrom must not be null" }
     requireNotNull(eventId) { "EventId must not be null" }
 
-    log.info("Request to retrieve details of status change for referral with id: $referralId")
-
     return ReferralStatusInfo(
       newStatus = ReferralStatusInfo.Status.fromDisplayName(statusHistory.referralStatusDescription.description),
       sourcedFromEntityType = sourcedFrom,
