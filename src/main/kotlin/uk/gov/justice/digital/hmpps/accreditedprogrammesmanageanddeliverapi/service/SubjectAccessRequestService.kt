@@ -34,23 +34,22 @@ class SubjectAccessRequestService(
     val referrals = getSubjectAccessRequestReferrals(crn, fromDate, toDate)
     val groupWaitlistItemViews = getSubjectAccessRequestGroupWaitlistItemViews(crn)
     val referralCaseListItemViews = getSubjectAccessRequestReferralCaseListItemViews(crn)
-    val content =
-      _root_ide_package_.uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.subjectAccessRequest.SubjectAccessRequestContent(
-        referrals,
-        groupWaitlistItemViews,
-        referralCaseListItemViews,
-      )
+    val content = SubjectAccessRequestContent(
+      referrals,
+      groupWaitlistItemViews,
+      referralCaseListItemViews,
+    )
 
     return HmppsSubjectAccessRequestContent(content)
   }
 
-  private fun getSubjectAccessRequestReferralCaseListItemViews(crn: String): List<uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.subjectAccessRequest.SubjectAccessRequestReferralCaseListItemView> {
+  private fun getSubjectAccessRequestReferralCaseListItemViews(crn: String): List<SubjectAccessRequestReferralCaseListItemView> {
     val referralCaseListItemViews = referralCaseListItemRepository.findByCrn(crn)
 
     return referralCaseListItemViews.map { it.toApi() }.toList()
   }
 
-  private fun getSubjectAccessRequestGroupWaitlistItemViews(crn: String): List<uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.subjectAccessRequest.SubjectAccessRequestGroupWaitlistItemView> {
+  private fun getSubjectAccessRequestGroupWaitlistItemViews(crn: String): List<SubjectAccessRequestGroupWaitlistItemView> {
     val groupWaitlistItemViews = groupWaitlistItemViewRepository.findByCrn(crn)
 
     return groupWaitlistItemViews.map { it.toApi() }.toList()
