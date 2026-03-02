@@ -23,7 +23,7 @@ class GroupWaitlistItemViewEntityFactory {
   private var regionName: String = "REGION_1"
   private var activeProgrammeGroupId: UUID = UUID.randomUUID()
 
-  fun withReferralId(referralId: UUID?) = apply { this.referralId }
+  fun withReferralId(referralId: UUID) = apply { this.referralId }
   fun withCrn(crn: String) = apply { this.crn = crn }
   fun withPersonName(personName: String) = apply { this.personName = personName }
   fun withSentenceEndDate(sentenceEndDate: LocalDate) = apply { this.sentenceEndDate = sentenceEndDate }
@@ -38,6 +38,7 @@ class GroupWaitlistItemViewEntityFactory {
   fun withReportingTeam(reportingTeam: String) = apply { this.reportingTeam = reportingTeam }
   fun withRegionName(regionName: String) = apply { this.regionName = regionName }
   fun withActiveProgrammeGroupId(activeProgrammeGroupId: UUID) = apply { this.activeProgrammeGroupId = activeProgrammeGroupId }
+
   fun produce() = GroupWaitlistItemViewEntity(
     referralId = this.referralId,
     crn = this.crn,

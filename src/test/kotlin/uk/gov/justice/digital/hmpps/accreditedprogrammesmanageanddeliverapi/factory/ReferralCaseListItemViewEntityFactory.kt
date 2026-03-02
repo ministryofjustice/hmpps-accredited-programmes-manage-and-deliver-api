@@ -17,7 +17,7 @@ class ReferralCaseListItemViewEntityFactory {
   private var regionName: String = "REGION_1"
   private var sentenceEndDate: LocalDate = LocalDate.now(UTC).plusYears(1)
 
-  fun withReferralId(referralId: UUID?) = apply { this.referralId }
+  fun withReferralId(referralId: UUID) = apply { this.referralId }
   fun withCrn(crn: String) = apply { this.crn = crn }
   fun withPersonName(personName: String) = apply { this.personName = personName }
   fun withCohort(cohort: String) = apply { this.cohort = cohort }
