@@ -1,4 +1,4 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.listener.model
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.MessageHistoryEntity
 import java.time.LocalDateTime
@@ -23,12 +23,13 @@ data class DomainEventsMessage(
 
 data class PersonReference(val identifiers: List<Identifier> = listOf()) {
   fun findCrn() = get("CRN")
-  fun findNomsNumber() = get(NOMS_NUMBER_TYPE)
 
   operator fun get(key: String) = identifiers.find { it.type == key }?.value
 
   companion object {
-    const val NOMS_NUMBER_TYPE = "NOMS"
+    fun fromCrn(crn: String) = PersonReference(
+      identifiers = listOf(Identifier(type = "CRN", value = crn)),
+    )
   }
 
   data class Identifier(val type: String, val value: String)

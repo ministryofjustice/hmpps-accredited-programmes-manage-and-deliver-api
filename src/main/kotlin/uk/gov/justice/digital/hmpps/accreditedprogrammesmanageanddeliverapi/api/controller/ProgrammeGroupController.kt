@@ -551,17 +551,14 @@ class ProgrammeGroupController(
       required = true,
     ) moduleId: UUID,
   ): ResponseEntity<ScheduleSessionTypeResponse> {
-    /**
-     * In the future this endpoint will also need to return Group Sessions (to allow
-     * catch-up Sessions to be Scheduled).  Initial implementation is to *just* schedule
-     * One-to-Ones.
-     * --TJWC 2025-12-17
-     */
-    val sessionTemplates = templateService.getOneToOneSessionTemplatesForGroupAndModule(groupId, moduleId)
+    val (module, sessionTemplates) = templateService.getSessionTemplatesForGroupAndModule(groupId, moduleId)
+    val pageHeading = when (module.name) {
+      "Pre-group one-to-ones" -> "Schedule a pre-group one-to-one"
+      "Post-programme reviews" -> "Schedule a post-programme review"
+      else -> "Schedule a ${module.name} session"
+    }
 
-    val body = ScheduleSessionTypeResponse(sessionTemplates)
-
-    return ResponseEntity.ok(body)
+    return ResponseEntity.ok(ScheduleSessionTypeResponse(pageHeading, sessionTemplates))
   }
 
   @Operation(

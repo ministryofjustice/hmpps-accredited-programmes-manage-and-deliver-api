@@ -1626,11 +1626,21 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.sessionTitle).isEqualTo(session.sessionName)
       assertThat(response.groupRegionName).isEqualTo(group.regionName)
       assertThat(response.people).isNotEmpty()
-      assertThat(response.people[0].referralId).isEqualTo(attendee.referralId)
-      assertThat(response.people[0].name).isEqualTo(attendee.personName)
-      assertThat(response.people[0].crn).isEqualTo(attendee.referral.crn)
-      assertThat(response.people[0].attendance).isEqualTo("Attended")
-      assertThat(response.people[0].sessionNotes).isEqualTo("Test session notes")
+
+      val person = response.people[0]
+      val attendance = person.attendance
+
+      assertThat(person).satisfies(
+        { assertThat(it.referralId).isEqualTo(attendee.referralId) },
+        { assertThat(it.name).isEqualTo(attendee.personName) },
+        { assertThat(it.crn).isEqualTo(attendee.referral.crn) },
+        { assertThat(it.sessionNotes).isEqualTo("Test session notes") },
+      )
+
+      assertThat(attendance).satisfies(
+        { assertThat(it?.text).isEqualTo("Attended") },
+        { assertThat(it?.code).isEqualTo("ATTC") },
+      )
     }
 
     @Test

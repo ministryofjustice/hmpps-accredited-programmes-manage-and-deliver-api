@@ -11,6 +11,7 @@ generic-service:
     SPRING_PROFILES_ACTIVE: "preprod"
     APPLICATIONINSIGHTS_CONFIGURATION_FILE: "applicationinsights.dev.json"
     HMPPS_AUTH_URL: "https://sign-in-preprod.hmpps.service.justice.gov.uk/auth"
+    SERVICES_MANAGE-AND_DELIVER-API_BASE-URL: "https://accredited-programmes-manage-and-deliver-api-preprod.hmpps.service.justice.gov.uk"
     SERVICES_FIND-AND-REFER-INTERVENTION-API_BASE-URL: "https://find-and-refer-intervention-api-preprod.hmpps.service.justice.gov.uk"
     SERVICES_NDELIUS-INTEGRATION-API_BASE-URL: "https://accredited-programmes-and-delius-preprod.hmpps.service.justice.gov.uk"
     SERVICES_OASYS-API_BASE-URL: "https://accredited-programmes-and-oasys-preprod.hmpps.service.justice.gov.uk"

@@ -5,7 +5,6 @@ import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -33,6 +32,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleIndividualSessionDetailsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionTypeResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionScheduleType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
@@ -1719,8 +1719,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(nDeliusAppointmentRepository.findBySessionId(retrievedSession.id!!)!!).isNotNull
     }
 
-    // We have not implemented scheduling catch-ups yet but this test will be needed in the future.
-    @Disabled
     @Test
     fun `should return 201 when scheduling a one-to-one catch-up session with valid data`() {
       // Given
@@ -1737,6 +1735,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         startDate = LocalDate.of(2025, 1, 1),
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+        sessionScheduleType = SessionScheduleType.CATCH_UP,
       )
 
       // When
@@ -1750,7 +1749,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response).isNotNull
-      assertThat(response).isEqualTo("${sessionTemplate.name} one-to-one for ${referral.personName} has been added.")
+      assertThat(response).isEqualTo("${sessionTemplate.name} catch-up for ${referral.personName} has been added.")
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
@@ -1759,6 +1758,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
       assertThat(retrievedSession.attendees).hasSize(1)
       assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
+      assertThat(retrievedSession.isCatchup).isTrue
       wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
       assertThat(nDeliusAppointmentRepository.findBySessionId(retrievedSession.id!!)!!).isNotNull
     }
@@ -1976,8 +1976,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(modules).isNotEmpty
 
       // Use the "Getting Started" module (module_number = 2) which has 2 sessions
-      val firstModule = modules.find { it.moduleNumber == 1 }
-      assertThat(firstModule).isNotNull
+      val gettingStartedModule = modules.find { it.name == "Getting started" }
+      assertThat(gettingStartedModule).isNotNull
 
       // Create a test group linked to Building Choices
       val group = ProgrammeGroupFactory()
@@ -1990,14 +1990,93 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/group/${group.id}/module/${firstModule!!.id}/schedule-session-type",
+        uri = "/bff/group/${group.id}/module/${gettingStartedModule!!.id}/schedule-session-type",
         expectedResponseStatus = HttpStatus.OK.value(),
         returnType = object : ParameterizedTypeReference<ScheduleSessionTypeResponse>() {},
         body = " ",
       )
 
       // Then
-      assertThat(response.sessionTemplates).hasSize(1)
+      assertThat(response.sessionTemplates).hasSize(4)
+      assertThat(response.sessionTemplates.map { it.name })
+        .containsExactly(
+          "Introduction to Building Choices catch-up",
+          "Understanding myself catch-up",
+          "Getting started one-to-one",
+          "Getting started one-to-one catch-up",
+        )
+      assertThat(response.pageHeading).isEqualTo("Schedule a Getting started session")
+    }
+
+    @Test
+    fun `Successfully retrieves session templates for a pre group module and formats title correctly`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val modules = buildingChoicesTemplate.modules
+      assertThat(modules).isNotEmpty
+
+      val preGroupModule = modules.find { it.name == "Pre-group one-to-ones" }
+      assertThat(preGroupModule).isNotNull
+
+      // Create a test group linked to Building Choices
+      val group = ProgrammeGroupFactory()
+        .withCode("TEST_GROUP_001")
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      group.accreditedProgrammeTemplate = buildingChoicesTemplate
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/module/${preGroupModule!!.id}/schedule-session-type",
+        expectedResponseStatus = HttpStatus.OK.value(),
+        returnType = object : ParameterizedTypeReference<ScheduleSessionTypeResponse>() {},
+        body = " ",
+      )
+
+      // Then
+      assertThat(response.sessionTemplates).hasSize(2)
+      assertThat(response.sessionTemplates.map { it.name })
+        .containsExactly("Pre-group one-to-one", "Pre-group one-to-one catch-up")
+      assertThat(response.pageHeading).isEqualTo("Schedule a pre-group one-to-one")
+    }
+
+    @Test
+    fun `Successfully retrieves session templates for a post programme review module and formats title correctly`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val modules = buildingChoicesTemplate.modules
+      assertThat(modules).isNotEmpty
+
+      val postProgrammeReview = modules.find { it.name == "Post-programme reviews" }
+      assertThat(postProgrammeReview).isNotNull
+
+      // Create a test group linked to Building Choices
+      val group = ProgrammeGroupFactory()
+        .withCode("TEST_GROUP_001")
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      group.accreditedProgrammeTemplate = buildingChoicesTemplate
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/module/${postProgrammeReview!!.id}/schedule-session-type",
+        expectedResponseStatus = HttpStatus.OK.value(),
+        returnType = object : ParameterizedTypeReference<ScheduleSessionTypeResponse>() {},
+        body = " ",
+      )
+
+      // Then
+      assertThat(response.sessionTemplates).hasSize(2)
+      assertThat(response.sessionTemplates.map { it.name })
+        .containsOnly(
+          "Post-programme review",
+          "Post-programme review catch-up",
+        )
+      assertThat(response.pageHeading).isEqualTo("Schedule a post-programme review")
     }
 
     @Test

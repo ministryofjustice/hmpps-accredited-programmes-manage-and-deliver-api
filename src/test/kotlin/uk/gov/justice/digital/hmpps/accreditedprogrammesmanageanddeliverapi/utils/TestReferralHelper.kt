@@ -260,7 +260,7 @@ class TestReferralHelper {
    */
   data class ReferralConfig(
     val crn: String = randomCrn(),
-    val personName: String = randomFullName().toString(),
+    val personName: String = randomFullName().getNameAsString(),
     val referralId: UUID = UUID.randomUUID(),
     val sourcedFrom: ReferralEntitySourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION,
     val reportingPdu: String = "PDU 1",

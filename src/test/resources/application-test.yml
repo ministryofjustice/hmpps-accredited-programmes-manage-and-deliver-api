@@ -28,15 +28,20 @@ hmpps:
   sqs:
     provider: localstack
     queues:
+      interventionseventtestqueue:
+        queueName: interventionseventtestqueue
+        dlqName: interventionseventtestqueuedlq
+        subscribeTopicId: hmppseventtopic
+        subscribeFilter: '{"eventType":[ "accredited-programmes-community.referral.status-updated" ]}'
       hmppsdomaineventsqueue:
         queueName: hmpps_domain_events_queue
         dlqName: hmpps_domain_events_dlq
-        subscribeTopicId: hmppsdomaineventstopic
+        subscribeTopicId: hmppseventtopic
         subscribeFilter: '{"eventType":[ "interventions.community-referral.created"] }'
         asyncQueueClient: true
 
     topics:
-      hmppsdomaineventstopic:
+      hmppseventtopic:
         arn: arn:aws:sns:eu-west-2:000000000000:${random.uuid}
 
 services:
