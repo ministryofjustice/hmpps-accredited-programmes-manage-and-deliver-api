@@ -80,9 +80,6 @@ class ReferralServiceTest {
 
   private lateinit var referralService: ReferralService
 
-  @Value($$"${services.manage-and-deliver-api.base-url}")
-  private lateinit var madBaseUrl: String
-
   @BeforeEach
   fun beforeEach() {
     referralService = ReferralService(
