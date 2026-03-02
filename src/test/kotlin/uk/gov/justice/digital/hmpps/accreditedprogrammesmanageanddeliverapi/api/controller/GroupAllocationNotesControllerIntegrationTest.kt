@@ -14,7 +14,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralMotivationBackgroundAndNonAssociationsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.produce
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateOrUpdateReferralMotivationBackgroundAndNonAssociations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -50,9 +49,13 @@ class GroupAllocationNotesControllerIntegrationTest : IntegrationTestBase() {
           referralEntity,
           referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
         )
-      val motivationBackgroundAndNonAssociations = ReferralMotivationBackgroundAndNonAssociationsFactory().produce(referral = referralEntity)
+      val motivationBackgroundAndNonAssociations =
+        ReferralMotivationBackgroundAndNonAssociationsFactory().withReferral(referralEntity).produce()
       referralEntity.referralMotivationBackgroundAndNonAssociations = motivationBackgroundAndNonAssociations
-      testDataGenerator.createReferralWithFields(referralEntity, listOf(statusHistory, motivationBackgroundAndNonAssociations))
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, motivationBackgroundAndNonAssociations),
+      )
 
       // When
       val response = performRequestAndExpectOk(
@@ -109,9 +112,13 @@ class GroupAllocationNotesControllerIntegrationTest : IntegrationTestBase() {
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
-      val motivationBackgroundAndNonAssociations = ReferralMotivationBackgroundAndNonAssociationsFactory().produce(referral = referralEntity)
+      val motivationBackgroundAndNonAssociations =
+        ReferralMotivationBackgroundAndNonAssociationsFactory().withReferral(referralEntity).produce()
       referralEntity.referralMotivationBackgroundAndNonAssociations = motivationBackgroundAndNonAssociations
-      testDataGenerator.createReferralWithFields(referralEntity, listOf(statusHistory, motivationBackgroundAndNonAssociations))
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, motivationBackgroundAndNonAssociations),
+      )
 
       val update = CreateOrUpdateReferralMotivationBackgroundAndNonAssociations(
         maintainsInnocence = false,
@@ -134,7 +141,9 @@ class GroupAllocationNotesControllerIntegrationTest : IntegrationTestBase() {
       assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.motivations).isEqualTo(update.motivations)
       assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.otherConsiderations).isEqualTo(update.otherConsiderations)
       assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.nonAssociations).isEqualTo(update.nonAssociations)
-      assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.createdBy).isEqualTo(motivationBackgroundAndNonAssociations.createdBy)
+      assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.createdBy).isEqualTo(
+        motivationBackgroundAndNonAssociations.createdBy,
+      )
       assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.createdAt).isNotNull
       assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.lastUpdatedBy).isEqualTo("AUTH_ADM")
       assertThat(referral.referralMotivationBackgroundAndNonAssociations!!.lastUpdatedAt).isNotNull

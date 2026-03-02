@@ -12,4 +12,5 @@ interface ReferralCaseListItemRepository :
   JpaSpecificationExecutor<ReferralCaseListItemViewEntity>,
   ReferralCaseListItemRepositoryCustom {
   fun countAllByStatusIn(statuses: List<String>): Int
+  fun findByCrn(crn: String): List<ReferralCaseListItemViewEntity>
 }

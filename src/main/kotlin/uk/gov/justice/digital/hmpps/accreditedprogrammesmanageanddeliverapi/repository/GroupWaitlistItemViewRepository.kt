@@ -7,4 +7,6 @@ import java.util.UUID
 
 interface GroupWaitlistItemViewRepository :
   JpaRepository<GroupWaitlistItemViewEntity, UUID>,
-  JpaSpecificationExecutor<GroupWaitlistItemViewEntity>
+  JpaSpecificationExecutor<GroupWaitlistItemViewEntity> {
+  fun findByCrn(crn: String): List<GroupWaitlistItemViewEntity>
+}
