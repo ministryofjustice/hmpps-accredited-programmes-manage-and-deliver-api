@@ -41,8 +41,4 @@ class ReferralMotivationBackgroundAndNonAssociationsFactory {
     lastUpdatedAt = lastUpdatedAt,
     lastUpdatedBy = lastUpdatedBy,
   )
-
-  fun withr() {
-    TODO("Not yet implemented")
-  }
 }
