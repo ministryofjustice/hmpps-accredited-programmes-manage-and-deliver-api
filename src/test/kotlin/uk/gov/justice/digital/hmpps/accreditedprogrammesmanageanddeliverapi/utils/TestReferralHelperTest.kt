@@ -22,7 +22,7 @@ class TestReferralHelperTest : IntegrationTestBase() {
 
   @Test
   fun `test Referral creation with default 'Awaiting allocation' status`() {
-    val referral = testReferralHelper.createReferralWithStatus()
+    val referral = testReferralHelper.createReferralAndUpdateStatus()
     assertThat(referral.statusHistories.first().referralStatusDescription.description)
       .isEqualTo("Awaiting allocation")
   }
@@ -31,7 +31,7 @@ class TestReferralHelperTest : IntegrationTestBase() {
   fun `test Referral creation with 'Awaiting allocation' status`() {
     val referralStatusDescription =
       referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
-    val referral = testReferralHelper.createReferralWithStatus(referralStatusDescription)
+    val referral = testReferralHelper.createReferralAndUpdateStatus(referralStatusDescription)
     assertThat(referral.statusHistories.first().referralStatusDescription.description)
       .isEqualTo("Programme complete")
   }

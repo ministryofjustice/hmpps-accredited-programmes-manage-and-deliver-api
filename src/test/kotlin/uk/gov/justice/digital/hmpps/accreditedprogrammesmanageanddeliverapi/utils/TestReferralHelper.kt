@@ -116,7 +116,7 @@ class TestReferralHelper {
       .withPersonReference(crn)
       .withPersonReferenceType(PersonReferenceType.CRN)
       .withSourcedFromReferenceType(sourcedFrom)
-      .withSourcedFromReference("LIC-12345")
+      .withSourcedFromReference("2500876919")
       .withEventNumber(1)
       .produce()
 
@@ -238,12 +238,34 @@ class TestReferralHelper {
    * @param statusEntity The status to set. If null, defaults to AWAITING_ALLOCATION status.
    * @return The created and updated [ReferralEntity]
    */
-  fun createReferralWithStatus(statusEntity: ReferralStatusDescriptionEntity? = null): ReferralEntity {
+  fun createReferralAndUpdateStatus(statusEntity: ReferralStatusDescriptionEntity? = null): ReferralEntity {
     val status = statusEntity ?: referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
     val referral = createReferral()
     referralService.updateStatus(referral, status.id, null, "AUTH_USER")
 
     return referralRepository.findByIdOrNull(referral.id!!)!!
+  }
+
+  /**
+   * Updates a referrals status to a given status.
+   *
+   * This is a convenience method that:
+   * 1. Updates the referral's status using the referral service
+   * 3. Retrieves and returns the updated referral entity
+   *
+   * @param referralEntity The referral to update the status of
+   * @param statusEntity The entity that represents the status to update to
+   * @param additionalDetails The additional details provided as part of the status update
+   * @return The updated [ReferralEntity]
+   */
+  fun updateReferralStatus(
+    referralEntity: ReferralEntity,
+    statusEntity: ReferralStatusDescriptionEntity,
+    additionalDetails: String? = null,
+  ): ReferralEntity {
+    referralService.updateStatus(referralEntity, statusEntity.id, additionalDetails, "AUTH_USER")
+
+    return referralRepository.findByIdOrNull(referralEntity.id!!)!!
   }
 
   /**

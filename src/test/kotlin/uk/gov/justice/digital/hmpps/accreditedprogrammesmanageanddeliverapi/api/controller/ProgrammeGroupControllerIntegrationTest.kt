@@ -728,7 +728,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `allocateReferralToGroup throws an error if referral is in a closed state`() {
       val group = testGroupHelper.createGroup()
       val referral =
-        testReferralHelper.createReferralWithStatus(referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription())
+        testReferralHelper.createReferralAndUpdateStatus(referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription())
 
       val exception = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
@@ -744,7 +744,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `allocateReferralToGroup throws an error if referral already allocated to a group`() {
       val group = testGroupHelper.createGroup()
       val referral =
-        testReferralHelper.createReferralWithStatus(referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription())
+        testReferralHelper.createReferralAndUpdateStatus(referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription())
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       programmeGroupMembershipService.allocateReferralToGroup(
@@ -838,7 +838,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val group = testGroupHelper.createGroup()
 
-      val referral = testReferralHelper.createReferralWithStatus(
+      val referral = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -916,7 +916,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val groupCode = "AAA111"
       val group = testGroupHelper.createGroup(groupCode)
 
-      val referral = testReferralHelper.createReferralWithStatus(
+      val referral = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
       )
 
@@ -1005,7 +1005,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val group = testGroupHelper.createGroup()
 
-      val referral = testReferralHelper.createReferralWithStatus(
+      val referral = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -1070,7 +1070,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val group = testGroupHelper.createGroup()
 
-      val referral = testReferralHelper.createReferralWithStatus(
+      val referral = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -1140,10 +1140,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val group = testGroupHelper.createGroup()
 
-      val referralToRemove = testReferralHelper.createReferralWithStatus(
+      val referralToRemove = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
       )
-      val referralNotToRemove = testReferralHelper.createReferralWithStatus(
+      val referralNotToRemove = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
