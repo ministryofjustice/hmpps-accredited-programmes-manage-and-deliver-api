@@ -247,6 +247,28 @@ class TestReferralHelper {
   }
 
   /**
+   * Updates a referrals status to a given status.
+   *
+   * This is a convenience method that:
+   * 1. Updates the referral's status using the referral service
+   * 3. Retrieves and returns the updated referral entity
+   *
+   * @param referralEntity The referral to update the status of
+   * @param statusEntity The entity that represents the status to update to
+   * @param additionalDetails The additional details provided as part of the status update
+   * @return The updated [ReferralEntity]
+   */
+  fun updateReferralStatus(
+    referralEntity: ReferralEntity,
+    statusEntity: ReferralStatusDescriptionEntity,
+    additionalDetails: String? = null,
+  ): ReferralEntity {
+    referralService.updateStatus(referralEntity, statusEntity.id, additionalDetails, "AUTH_USER")
+
+    return referralRepository.findByIdOrNull(referralEntity.id!!)!!
+  }
+
+  /**
    * Configuration for creating a referral.
    *
    * @property crn The Case Reference Number. Defaults to a random CRN.

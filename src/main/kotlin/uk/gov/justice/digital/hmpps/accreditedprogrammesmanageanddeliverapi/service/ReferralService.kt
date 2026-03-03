@@ -353,7 +353,6 @@ class ReferralService(
         createdBy = createdBy,
       ),
     )
-    // Publish event on status update
     publishReferralStatusUpdatedEvent(referral, historyEntry.referralStatusDescription.description)
 
     return StatusUpdateResponse(

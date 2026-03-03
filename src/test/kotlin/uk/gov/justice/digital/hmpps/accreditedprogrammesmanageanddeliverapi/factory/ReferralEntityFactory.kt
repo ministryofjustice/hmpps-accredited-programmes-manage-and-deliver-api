@@ -2,7 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomLong
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomEventId
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomNumberAsInt
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomSentence
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
@@ -26,7 +26,7 @@ class ReferralEntityFactory {
   private var createdAt: LocalDateTime = LocalDateTime.now()
   private var statusHistories: MutableList<ReferralStatusHistoryEntity> = mutableListOf()
   private var setting: SettingType = SettingType.COMMUNITY
-  private var eventId: String = randomLong(10).toString()
+  private var eventId: String = randomEventId(10).toString()
   private var sourcedFrom: ReferralEntitySourcedFrom? = null
   private var eventNumber: Int? = randomNumberAsInt(1)
   private var cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE

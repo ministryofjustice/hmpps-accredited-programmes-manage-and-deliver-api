@@ -28,7 +28,8 @@ class ReferralStatusEventTest : IntegrationTestBase() {
   fun `publish a status change event and retrieve the details via rest endpoint`() {
     // Creates referral and moves to awaiting allocation status
     val awaitingAllocationStatus = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
-    val referral = testReferralHelper.createReferralWithStatus(awaitingAllocationStatus)
+    val referral = testReferralHelper.createReferral()
+    testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus, "TEST ADDITIONAL DETAILS")
 
     // Wait for message to be processed
     await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { interventionsQueue.countAllMessagesOnQueue() } } matches { it == 1 }
@@ -51,7 +52,7 @@ class ReferralStatusEventTest : IntegrationTestBase() {
     )
 
     assertThat(response).isNotNull
-    assertThat(response.notes).isNull()
+    assertThat(response.notes).isEqualTo("TEST ADDITIONAL DETAILS")
     assertThat(response.sourcedFromEntityType).isEqualTo(ReferralEntitySourcedFrom.LICENCE_CONDITION)
     assertThat(response.sourcedFromEntityId).isEqualTo(referral.eventId!!.toLong())
 

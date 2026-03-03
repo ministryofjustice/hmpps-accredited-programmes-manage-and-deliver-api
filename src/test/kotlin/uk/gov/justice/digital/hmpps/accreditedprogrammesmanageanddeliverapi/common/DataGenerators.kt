@@ -25,7 +25,7 @@ fun randomSentence(wordRange: IntRange = 1..20, wordLength: IntRange = 3..10): S
   .reduce { left, right -> left + space() + right }
   .asString()
 
-fun randomLong(length: Int = 2): Long {
+fun randomEventId(length: Int = 8): Long {
   require(length in 1..18) { "Length must be between 1 and 18" }
 
   val min = 10.0.pow(length - 1).toLong()
