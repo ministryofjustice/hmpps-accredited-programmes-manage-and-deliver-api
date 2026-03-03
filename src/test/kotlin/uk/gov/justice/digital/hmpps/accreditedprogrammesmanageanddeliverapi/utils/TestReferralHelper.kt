@@ -238,7 +238,7 @@ class TestReferralHelper {
    * @param statusEntity The status to set. If null, defaults to AWAITING_ALLOCATION status.
    * @return The created and updated [ReferralEntity]
    */
-  fun createReferralWithStatus(statusEntity: ReferralStatusDescriptionEntity? = null): ReferralEntity {
+  fun createReferralAndUpdateStatus(statusEntity: ReferralStatusDescriptionEntity? = null): ReferralEntity {
     val status = statusEntity ?: referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
     val referral = createReferral()
     referralService.updateStatus(referral, status.id, null, "AUTH_USER")
