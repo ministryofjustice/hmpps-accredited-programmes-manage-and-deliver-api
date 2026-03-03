@@ -101,7 +101,7 @@ class ReferralServiceTest {
       sentenceService = sentenceService,
       programmeGroupMembershipService = programmeGroupMembershipService,
       domainEventPublisher = domainEventPublisher,
-      madBaseUrl = madBaseUrl,
+      madBaseUrl = "http://localhost:8080",
     )
   }
 
