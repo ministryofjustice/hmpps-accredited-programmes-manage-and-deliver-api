@@ -1,11 +1,14 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import jakarta.transaction.Transactional
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller.OpenOrClosed
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusInfo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusTransitions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toCurrentStatus
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
@@ -19,6 +22,8 @@ class ReferralStatusService(
   private val referralStatusHistoryRepository: ReferralStatusHistoryRepository,
   private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
 ) {
+
+  private val log = LoggerFactory.getLogger(this::class.java)
 
   fun getStatusTransitionsForReferral(referralId: UUID): ReferralStatusTransitions? {
     val currentStatus =
@@ -38,4 +43,24 @@ class ReferralStatusService(
   }
 
   fun getOpenOrClosedStatusesDescriptions(openOrClosed: OpenOrClosed) = getOpenOrClosedStatuses(openOrClosed).map { it.description }
+
+  fun getStatusChangeDetailsForReferral(referralId: UUID): ReferralStatusInfo {
+    val statusHistory =
+      referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId)
+        ?: throw NotFoundException("Referral with id: $referralId could not be found.")
+
+    val referral = statusHistory.referral
+    val sourcedFrom = referral.sourcedFrom
+    val eventId = referral.eventId
+
+    requireNotNull(sourcedFrom) { "SourcedFrom must not be null" }
+    requireNotNull(eventId) { "EventId must not be null" }
+
+    return ReferralStatusInfo(
+      newStatus = ReferralStatusInfo.Status.fromDisplayName(statusHistory.referralStatusDescription.description),
+      sourcedFromEntityType = sourcedFrom,
+      sourcedFromEntityId = eventId.toLong(),
+      notes = statusHistory.additionalDetails,
+    )
+  }
 }

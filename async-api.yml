@@ -1,0 +1,38 @@
+asyncapi: 3.0.0
+info:
+  title: Accredited Programmes events
+  version: 1.0.0
+  description: Events emitted from Accredited Programmes service related to community referrals.
+servers:
+  development:
+    host: "hmpps-domain-events-dev.live-1.cloud-platform.service.justice.gov.uk"
+    protocol: sqs
+    description: Development Environment
+  preproduction:
+    host: "hmpps-domain-events-preprod.live-1.cloud-platform.service.justice.gov.uk"
+    protocol: sqs
+    description: Pre-production Environment
+  production:
+    host: "hmpps-domain-events-prod.live-1.cloud-platform.service.justice.gov.uk"
+    protocol: sqs
+    description: Production Environment
+components:
+  messages:
+    accredited-programmes-community.referral.status-updated:
+      $ref: https://raw.githubusercontent.com/ministryofjustice/hmpps-domain-events/refs/heads/main/spec/schemas/accredited-programmes/community-referral-status-updated.yml
+channels:
+  hmpps-domain-events:
+    description: HMPPS domain events SNS topic
+    bindings:
+      sns:
+        name: domainevents
+    messages:
+      accredited-programmes-community.referral.status-updated:
+        $ref: '#/components/messages/accredited-programmes-community.referral.status-updated'
+operations:
+  publish-event:
+    action: send
+    channel:
+      $ref: '#/channels/hmpps-domain-events'
+    messages:
+      - $ref: '#/channels/hmpps-domain-events/messages/accredited-programmes-community.referral.status-updated'

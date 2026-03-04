@@ -104,6 +104,8 @@ resilience4j:
           - org.springframework.web.reactive.function.client.WebClientResponseException.BadRequest
 
 services:
+  manage-and-deliver-api:
+    base-url: http://localhost:8080
   find-and-refer-intervention-api:
     base-url: http://localhost:9094
   ndelius-integration-api:
