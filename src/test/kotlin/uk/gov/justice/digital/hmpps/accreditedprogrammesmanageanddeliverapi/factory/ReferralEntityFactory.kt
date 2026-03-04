@@ -6,10 +6,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomNumberAsInt
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomSentence
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralMotivationBackgroundAndNonAssociationsEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
@@ -36,6 +38,8 @@ class ReferralEntityFactory {
   private var sex: String? = null
   private var dateOfBirth: LocalDate? = null
   private var motivationBackgroundAndNonAssociations: ReferralMotivationBackgroundAndNonAssociationsEntity? = null
+  private var programmeGroupMemberships: MutableSet<ProgrammeGroupMembershipEntity> = mutableSetOf()
+  private var referralReportingLocationEntity: ReferralReportingLocationEntity? = null
 
   fun withId(id: UUID?) = apply { this.id = id }
   fun withPersonName(personName: String?) = apply { this.personName = personName }
@@ -62,6 +66,10 @@ class ReferralEntityFactory {
 
   fun withMotivation(motivationBackgroundAndNonAssociations: ReferralMotivationBackgroundAndNonAssociationsEntity = ReferralMotivationBackgroundAndNonAssociationsFactory().produce()) = apply { this.motivationBackgroundAndNonAssociations = motivationBackgroundAndNonAssociations }
 
+  fun withProgrammeGroupMemberships(programmeGroupMemberships: MutableSet<ProgrammeGroupMembershipEntity>) = apply { this.programmeGroupMemberships = programmeGroupMemberships }
+
+  fun withReferralReportingLocationEntity(referralReportingLocationEntity: ReferralReportingLocationEntity) = apply { this.referralReportingLocationEntity = referralReportingLocationEntity }
+
   fun produce() = ReferralEntity(
     id = this.id,
     personName = this.personName!!,
@@ -79,5 +87,9 @@ class ReferralEntityFactory {
     sex = this.sex,
     dateOfBirth = this.dateOfBirth,
     referralLdcHistories = referralLdcHistories,
+    programmeGroupMemberships = programmeGroupMemberships,
+    deliveryLocationPreferences = deliveryLocationPreferences,
+    referralMotivationBackgroundAndNonAssociations = motivationBackgroundAndNonAssociations,
+    referralReportingLocationEntity = referralReportingLocationEntity,
   )
 }

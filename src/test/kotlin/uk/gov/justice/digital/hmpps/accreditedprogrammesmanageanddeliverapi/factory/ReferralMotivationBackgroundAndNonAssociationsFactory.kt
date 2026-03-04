@@ -6,28 +6,39 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import java.time.LocalDateTime
 import java.util.UUID
 
-class ReferralMotivationBackgroundAndNonAssociationsFactory
+class ReferralMotivationBackgroundAndNonAssociationsFactory {
+  private var id: UUID? = null
+  private var referral: ReferralEntity = ReferralEntityFactory().produce()
+  private var maintainsInnocence: Boolean = false
+  private var motivations: String = randomSentence()
+  private var nonAssociations: String = randomSentence()
+  private var otherConsiderations: String = randomSentence()
+  private var createdBy: String = "APerson"
+  private var createdAt: LocalDateTime = LocalDateTime.now()
+  private var lastUpdatedAt: LocalDateTime? = null
+  private var lastUpdatedBy: String? = null
 
-fun ReferralMotivationBackgroundAndNonAssociationsFactory.produce(
-  id: UUID? = null,
-  referral: ReferralEntity = ReferralEntityFactory().produce(),
-  maintainsInnocence: Boolean = false,
-  motivations: String = randomSentence(),
-  nonAssociations: String = randomSentence(),
-  otherConsiderations: String = randomSentence(),
-  createdBy: String = "APerson",
-  createdAt: LocalDateTime = LocalDateTime.now(),
-  lastUpdatedAt: LocalDateTime? = null,
-  lastUpdatedBy: String? = null,
-): ReferralMotivationBackgroundAndNonAssociationsEntity = ReferralMotivationBackgroundAndNonAssociationsEntity(
-  id,
-  referral = referral,
-  maintainsInnocence = maintainsInnocence,
-  motivations = motivations,
-  nonAssociations = nonAssociations,
-  otherConsiderations = otherConsiderations,
-  createdBy = createdBy,
-  createdAt = createdAt,
-  lastUpdatedBy = lastUpdatedBy,
-  lastUpdatedAt = lastUpdatedAt,
-)
+  fun withId(id: UUID) = apply { this.id = id }
+  fun withReferral(referral: ReferralEntity) = apply { this.referral = referral }
+  fun withMaintainsInnocence(maintainsInnocence: Boolean) = apply { this.maintainsInnocence = maintainsInnocence }
+  fun withMotivations(motivations: String) = apply { this.motivations = motivations }
+  fun withNonAssociations(nonAssociations: String) = apply { this.nonAssociations = nonAssociations }
+  fun withOtherConsents(otherConsents: String) = apply { this.otherConsiderations = otherConsents }
+  fun withCreatedBy(createdBy: String) = apply { this.createdBy = createdBy }
+  fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
+  fun withLastUpdatedAt(lastUpdatedAt: LocalDateTime) = apply { this.lastUpdatedAt = lastUpdatedAt }
+  fun withLastUpdatedBy(lastUpdatedBy: String) = apply { this.lastUpdatedBy = lastUpdatedBy }
+
+  fun produce(): ReferralMotivationBackgroundAndNonAssociationsEntity = ReferralMotivationBackgroundAndNonAssociationsEntity(
+    id = id,
+    referral = referral,
+    maintainsInnocence = maintainsInnocence,
+    motivations = motivations,
+    nonAssociations = nonAssociations,
+    otherConsiderations = otherConsiderations,
+    createdBy = createdBy,
+    createdAt = createdAt,
+    lastUpdatedAt = lastUpdatedAt,
+    lastUpdatedBy = lastUpdatedBy,
+  )
+}
