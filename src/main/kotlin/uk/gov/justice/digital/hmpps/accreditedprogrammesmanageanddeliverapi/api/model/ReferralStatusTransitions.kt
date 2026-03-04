@@ -81,23 +81,12 @@ data class CurrentStatus(
   val createdAt: LocalDate,
 )
 
-fun ReferralStatusTransitionEntity.toSuggestedStatus(): SuggestedStatus {
-  val labelText = when (fromStatusStatusName) {
-    "Scheduled" -> "is allocated to"
-    "On programme" -> "has started Building Choices"
-    else -> ""
-  }
-  return SuggestedStatus(
-    labelText = labelText,
-    name = toStatusStatusName,
-    statusDescriptionId = id,
-  )
-}
+fun ReferralStatusTransitionEntity.toSuggestedStatus(): SuggestedStatus = SuggestedStatus(
+  name = toStatusStatusName,
+  statusDescriptionId = toStatus.id,
+)
 
 data class SuggestedStatus(
-  @field:Schema(description = "The label text to be displayed on the UI")
-  @get:JsonProperty("labelText", required = true)
-  val labelText: String,
   @field:Schema(description = "Name of the status description")
   @get:JsonProperty("name", required = true)
   val name: String,
