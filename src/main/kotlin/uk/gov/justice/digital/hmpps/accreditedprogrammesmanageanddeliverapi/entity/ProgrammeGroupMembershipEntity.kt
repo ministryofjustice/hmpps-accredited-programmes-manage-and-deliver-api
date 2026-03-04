@@ -72,4 +72,12 @@ class ProgrammeGroupMembershipEntity(
   @get:Transient
   val personName: String
     get() = referral.personName
+
+  @get:Transient
+  val groupCode: String
+    get() = programmeGroup.code
+
+  @get:Transient
+  val groupId: UUID
+    get() = programmeGroup.id!!
 }
