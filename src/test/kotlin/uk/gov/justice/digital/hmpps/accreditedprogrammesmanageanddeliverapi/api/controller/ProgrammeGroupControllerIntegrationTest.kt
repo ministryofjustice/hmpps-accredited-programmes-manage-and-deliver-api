@@ -785,7 +785,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
-      scheduleService.scheduleIndividualSession(group.id!!, scheduleSessionRequest)
+      scheduleService.scheduleIndividualSessionAndReturnResponse(group.id!!, scheduleSessionRequest)
       // When
 
       val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "the-forename the-surname")

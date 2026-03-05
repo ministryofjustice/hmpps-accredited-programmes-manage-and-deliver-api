@@ -32,6 +32,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -54,6 +56,7 @@ class ScheduleService(
   private val facilitatorService: FacilitatorService,
   private val referralRepository: ReferralRepository,
   private val sessionRepository: SessionRepository,
+  private val sessionNameFormatter: SessionNameFormatter,
 ) {
 
   private companion object {
@@ -64,6 +67,12 @@ class ScheduleService(
 
   private val log = LoggerFactory.getLogger(this::class.java)
   private lateinit var bankHolidays: Set<LocalDate>
+
+  fun scheduleIndividualSessionAndReturnResponse(groupId: UUID, request: ScheduleSessionRequest): String {
+    val scheduledSession = scheduleIndividualSession(groupId, request)
+    return sessionNameFormatter.format(scheduledSession, SessionNameContext.ScheduleIndividualSession)
+  }
+
   fun scheduleIndividualSession(groupId: UUID, request: ScheduleSessionRequest): SessionEntity {
     val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id: $groupId could not be found")

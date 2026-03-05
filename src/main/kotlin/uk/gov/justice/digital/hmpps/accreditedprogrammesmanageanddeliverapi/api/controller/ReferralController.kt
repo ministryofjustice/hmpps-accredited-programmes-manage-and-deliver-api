@@ -25,7 +25,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusInfo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusTransitions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RemoveReferralFromGroupStatusTransitions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
@@ -475,7 +474,7 @@ class ReferralController(
       ApiResponse(
         responseCode = "200",
         description = "Data for Remove Referral from Groupform",
-        content = [Content(array = ArraySchema(schema = Schema(implementation = ReferralStatusTransitions::class)))],
+        content = [Content(array = ArraySchema(schema = Schema(implementation = RemoveReferralFromGroupStatusTransitions::class)))],
       ),
       ApiResponse(
         responseCode = "401",
@@ -499,13 +498,5 @@ class ReferralController(
       ?: throw NotFoundException("Referral status history for referral with id $referralId not found")
     val removeReferralFromGroupStatusTransitions = RemoveReferralFromGroupStatusTransitions.from(data)
     return ResponseEntity.ok(removeReferralFromGroupStatusTransitions)
-  }
-
-  @GetMapping("/referral/{referralId}/status-change-details")
-  fun getStatusChangeDetails(@PathVariable referralId: UUID): ResponseEntity<ReferralStatusInfo> {
-    log.info("Request to retrieve details of status change for referral with id: $referralId")
-    val statusInfo = referralStatusService.getStatusChangeDetailsForReferral(referralId)
-
-    return ResponseEntity.ok(statusInfo)
   }
 }

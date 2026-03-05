@@ -6,6 +6,9 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.Transient
+import jakarta.validation.constraints.NotNull
+import org.hibernate.annotations.ColumnDefault
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -45,4 +48,16 @@ class ReferralStatusTransitionEntity(
   @Column(name = "is_visible")
   val isVisible: Boolean = true,
 
-)
+  @NotNull
+  @ColumnDefault("false")
+  @Column(name = "is_suggested", nullable = false)
+  var isSuggested: Boolean,
+) {
+  @get:Transient
+  val toStatusStatusName: String
+    get() = toStatus.description
+
+  @get:Transient
+  val fromStatusStatusName: String
+    get() = fromStatus.description
+}

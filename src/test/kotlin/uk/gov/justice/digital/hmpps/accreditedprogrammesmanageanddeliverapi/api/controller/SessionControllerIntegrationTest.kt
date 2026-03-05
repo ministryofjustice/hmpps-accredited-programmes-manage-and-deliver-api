@@ -669,6 +669,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       val postProgrammeSession = group.sessions.find { it.moduleName == "Post-programme reviews" }!!
 
       nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+
       val scheduledSession = testGroupHelper.scheduleSession(group, referral, postProgrammeSession)
 
       // When

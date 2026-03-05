@@ -9,7 +9,6 @@ import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
@@ -79,9 +78,6 @@ class ReferralServiceTest {
   private lateinit var domainEventPublisher: DomainEventPublisher
 
   private lateinit var referralService: ReferralService
-
-  @Value($$"${services.manage-and-deliver-api.base-url}")
-  private lateinit var madBaseUrl: String
 
   @BeforeEach
   fun beforeEach() {
