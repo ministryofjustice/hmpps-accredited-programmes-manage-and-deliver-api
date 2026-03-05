@@ -15,12 +15,14 @@ class ReferralStatusTransitionEntityFactory {
     .produce()
   private var description: String? = "Test Transition Description"
   private var priority: Int = 1
+  private var isSuggested: Boolean = false
 
   fun withId(id: UUID) = apply { this.id = id }
   fun withFromStatus(fromStatus: ReferralStatusDescriptionEntity) = apply { this.fromStatus = fromStatus }
   fun withToStatus(toStatus: ReferralStatusDescriptionEntity) = apply { this.toStatus = toStatus }
   fun withDescription(description: String?) = apply { this.description = description }
   fun withPriority(priority: Int) = apply { this.priority = priority }
+  fun withIsSuggested(isSuggested: Boolean) = apply { this.isSuggested = isSuggested }
 
   fun produce() = ReferralStatusTransitionEntity(
     id = this.id,
@@ -28,5 +30,6 @@ class ReferralStatusTransitionEntityFactory {
     toStatus = this.toStatus,
     description = this.description,
     priority = this.priority,
+    isSuggested = isSuggested,
   )
 }
