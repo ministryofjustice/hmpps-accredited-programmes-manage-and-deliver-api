@@ -785,7 +785,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
-      scheduleService.scheduleIndividualSession(group.id!!, scheduleSessionRequest)
+      scheduleService.scheduleIndividualSessionAndReturnResponse(group.id!!, scheduleSessionRequest)
       // When
 
       val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "the-forename the-surname")
@@ -2005,6 +2005,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           "Getting started one-to-one",
           "Getting started one-to-one catch-up",
         )
+      assertThat(response.sessionTemplates.map { it.sessionType })
+        .containsExactly(
+          SessionType.GROUP,
+          SessionType.GROUP,
+          SessionType.ONE_TO_ONE,
+          SessionType.ONE_TO_ONE,
+        )
       assertThat(response.pageHeading).isEqualTo("Schedule a Getting started session")
     }
 
@@ -2039,6 +2046,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.sessionTemplates).hasSize(2)
       assertThat(response.sessionTemplates.map { it.name })
         .containsExactly("Pre-group one-to-one", "Pre-group one-to-one catch-up")
+      assertThat(response.sessionTemplates.map { it.sessionType })
+        .containsExactly(SessionType.ONE_TO_ONE, SessionType.ONE_TO_ONE)
       assertThat(response.pageHeading).isEqualTo("Schedule a pre-group one-to-one")
     }
 
@@ -2075,6 +2084,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .containsOnly(
           "Post-programme review",
           "Post-programme review catch-up",
+        )
+      assertThat(response.sessionTemplates.map { it.sessionType })
+        .containsOnly(
+          SessionType.ONE_TO_ONE,
+          SessionType.ONE_TO_ONE,
         )
       assertThat(response.pageHeading).isEqualTo("Schedule a post-programme review")
     }
