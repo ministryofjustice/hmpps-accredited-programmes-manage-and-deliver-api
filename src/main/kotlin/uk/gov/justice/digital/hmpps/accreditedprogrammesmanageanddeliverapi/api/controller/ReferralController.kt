@@ -474,7 +474,7 @@ class ReferralController(
       ApiResponse(
         responseCode = "200",
         description = "Data for Remove Referral from Groupform",
-        content = [Content(array = ArraySchema(schema = Schema(implementation = ReferralStatusTransitions::class)))],
+        content = [Content(array = ArraySchema(schema = Schema(implementation = RemoveReferralFromGroupStatusTransitions::class)))],
       ),
       ApiResponse(
         responseCode = "401",
