@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.util.CollectionUtils.isEmpty
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
@@ -367,8 +366,8 @@ class SessionService(
   ): List<SessionAttendanceEntity> {
     val programmeGroupId = session.programmeGroup.id!!
     val recordedByFacilitator =
-      session.sessionFacilitators.find { it.facilitatorType == FacilitatorType.LEAD_FACILITATOR }?.facilitator
-        ?: throw BusinessException("Lead facilitator not found for session: ${session.id}")
+      session.sessionFacilitators.find { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }?.facilitator
+        ?: throw BusinessException("Regular facilitator not found for session: ${session.id}")
 
     return attendees?.map { attendee ->
       val referralId = attendee.referralId
@@ -393,7 +392,10 @@ class SessionService(
     return "$date, $startTime to $endTime"
   }
 
-  private fun getSessionAttendance(attendances: Set<SessionAttendanceEntity>, attendee: AttendeeEntity): SessionPersonAttendance? {
+  private fun getSessionAttendance(
+    attendances: Set<SessionAttendanceEntity>,
+    attendee: AttendeeEntity,
+  ): SessionPersonAttendance? {
     val attendance = attendances.find { it.groupMembership.referral.id == attendee.referralId }
 
     if (attendance == null) {
