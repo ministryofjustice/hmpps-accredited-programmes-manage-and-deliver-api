@@ -10,6 +10,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralStatusService
 import java.util.UUID
 
+/**
+ * This controller is secured by a different role other endpoints as it will be called from external services
+ * and we want to restrict any access they may have to only READ data.
+ */
 @RestController
 @PreAuthorize("hasAnyRole('ACCREDITED_PROGRAMMES__MANAGE_AND_DELIVER__READ_ONLY')")
 class StatusChangeDetailsController(
