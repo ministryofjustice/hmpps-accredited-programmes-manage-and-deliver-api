@@ -55,7 +55,7 @@ class UserController(
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @GetMapping("/current-user/region", produces = [MediaType.APPLICATION_JSON_VALUE])
-  suspend fun getCurrentUserRegion(): ResponseEntity<CodeDescription> {
+  fun getCurrentUserRegion(): ResponseEntity<CodeDescription> {
     val username = authenticationUtils.getUsername()
     val (userRegion) = userService.getUserRegions(username)
     return ResponseEntity.ok(userRegion)
