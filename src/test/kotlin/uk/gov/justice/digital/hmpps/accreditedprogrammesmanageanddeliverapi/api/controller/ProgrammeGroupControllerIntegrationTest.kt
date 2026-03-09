@@ -1229,7 +1229,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val teamMember1 =
         createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER)
       val teamMember2 =
-        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
       val teamMember3 =
         createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
       val teamMember4 =
@@ -1363,7 +1363,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val teamMember1 =
         createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER)
       val teamMember2 =
-        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
       val teamMember3 =
         createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
       val teamMember4 =
@@ -1395,7 +1395,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `create group and return 400 when it doesn't already exist and there is no treatment manager`() {
       val teamMember1 =
-        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
       val teamMember2 =
         createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
       val teamMember3 =

@@ -129,7 +129,6 @@ erDiagram
         date earliest_possible_start_date
         date started_at "nullable - set when facilitator clicks start"
         uuid accredited_programme_template_id
-        uuid lead_facilitator_id
         datetime created_at 
         uuid created_by_user_id
         datetime updated_at

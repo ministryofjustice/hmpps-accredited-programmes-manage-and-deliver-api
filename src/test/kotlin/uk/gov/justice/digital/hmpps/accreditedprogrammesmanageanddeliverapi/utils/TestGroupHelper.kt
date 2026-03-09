@@ -112,7 +112,7 @@ class TestGroupHelper {
         teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER,
       ),
       CreateGroupTeamMemberFactory().produceWithRandomValues(
-        teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR,
+        teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR,
       ),
     ),
   ): ProgrammeGroupEntity {
@@ -218,7 +218,7 @@ class TestGroupHelper {
       referralIds = listOf(referral.id!!),
       facilitators = facilitators
         ?: listOf(
-          CreateGroupTeamMemberFactory().withTeamMemberType(CreateGroupTeamMemberType.LEAD_FACILITATOR).produce(),
+          CreateGroupTeamMemberFactory().withTeamMemberType(CreateGroupTeamMemberType.REGULAR_FACILITATOR).produce(),
         ),
       startDate = LocalDate.now().plusDays(1),
       startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
