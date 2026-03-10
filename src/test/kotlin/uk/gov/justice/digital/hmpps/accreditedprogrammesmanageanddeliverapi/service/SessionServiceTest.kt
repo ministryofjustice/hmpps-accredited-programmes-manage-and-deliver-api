@@ -21,7 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType.LEAD_FACILITATOR
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType.REGULAR_FACILITATOR
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.AFTC
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.GROUP
@@ -393,7 +393,7 @@ class SessionServiceTest {
       .produce()
 
     sessionEntity.sessionFacilitators.add(
-      SessionFacilitatorEntity(facilitator, sessionEntity, LEAD_FACILITATOR),
+      SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
     )
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
@@ -456,7 +456,7 @@ class SessionServiceTest {
       .produce()
 
     sessionEntity.sessionFacilitators.add(
-      SessionFacilitatorEntity(facilitator, sessionEntity, LEAD_FACILITATOR),
+      SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
     )
 
     sessionEntity.ndeliusAppointments.add(
@@ -525,7 +525,7 @@ class SessionServiceTest {
       .produce()
 
     sessionEntity.sessionFacilitators.add(
-      SessionFacilitatorEntity(facilitator, sessionEntity, LEAD_FACILITATOR),
+      SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
     )
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
@@ -603,7 +603,7 @@ class SessionServiceTest {
       .produce()
 
     sessionEntity.sessionFacilitators.add(
-      SessionFacilitatorEntity(facilitator, sessionEntity, LEAD_FACILITATOR),
+      SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
     )
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
@@ -671,7 +671,7 @@ class SessionServiceTest {
       }
 
     // Then
-    assertTrue(exception.message!!.contains("Lead facilitator not found for session: ${sessionEntity.id}"))
+    assertTrue(exception.message!!.contains("Regular facilitator not found for session: ${sessionEntity.id}"))
   }
 
   @Test

@@ -728,7 +728,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `allocateReferralToGroup throws an error if referral is in a closed state`() {
       val group = testGroupHelper.createGroup()
       val referral =
-        testReferralHelper.createReferralWithStatus(referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription())
+        testReferralHelper.createReferralAndUpdateStatus(referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription())
 
       val exception = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
@@ -744,7 +744,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `allocateReferralToGroup throws an error if referral already allocated to a group`() {
       val group = testGroupHelper.createGroup()
       val referral =
-        testReferralHelper.createReferralWithStatus(referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription())
+        testReferralHelper.createReferralAndUpdateStatus(referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription())
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       programmeGroupMembershipService.allocateReferralToGroup(
@@ -785,7 +785,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
-      scheduleService.scheduleIndividualSession(group.id!!, scheduleSessionRequest)
+      scheduleService.scheduleIndividualSessionAndReturnResponse(group.id!!, scheduleSessionRequest)
       // When
 
       val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "the-forename the-surname")
@@ -838,7 +838,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val group = testGroupHelper.createGroup()
 
-      val referral = testReferralHelper.createReferralWithStatus(
+      val referral = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -916,7 +916,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val groupCode = "AAA111"
       val group = testGroupHelper.createGroup(groupCode)
 
-      val referral = testReferralHelper.createReferralWithStatus(
+      val referral = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
       )
 
@@ -1005,7 +1005,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val group = testGroupHelper.createGroup()
 
-      val referral = testReferralHelper.createReferralWithStatus(
+      val referral = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -1070,7 +1070,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val group = testGroupHelper.createGroup()
 
-      val referral = testReferralHelper.createReferralWithStatus(
+      val referral = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -1140,10 +1140,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val group = testGroupHelper.createGroup()
 
-      val referralToRemove = testReferralHelper.createReferralWithStatus(
+      val referralToRemove = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
       )
-      val referralNotToRemove = testReferralHelper.createReferralWithStatus(
+      val referralNotToRemove = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -1229,7 +1229,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val teamMember1 =
         createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER)
       val teamMember2 =
-        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
       val teamMember3 =
         createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
       val teamMember4 =
@@ -1363,7 +1363,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val teamMember1 =
         createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER)
       val teamMember2 =
-        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
       val teamMember3 =
         createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
       val teamMember4 =
@@ -1395,7 +1395,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `create group and return 400 when it doesn't already exist and there is no treatment manager`() {
       val teamMember1 =
-        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.LEAD_FACILITATOR)
+        createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
       val teamMember2 =
         createGroupTeamMemberFactory.produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR)
       val teamMember3 =
@@ -2005,6 +2005,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           "Getting started one-to-one",
           "Getting started one-to-one catch-up",
         )
+      assertThat(response.sessionTemplates.map { it.sessionType })
+        .containsExactly(
+          SessionType.GROUP,
+          SessionType.GROUP,
+          SessionType.ONE_TO_ONE,
+          SessionType.ONE_TO_ONE,
+        )
       assertThat(response.pageHeading).isEqualTo("Schedule a Getting started session")
     }
 
@@ -2039,6 +2046,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.sessionTemplates).hasSize(2)
       assertThat(response.sessionTemplates.map { it.name })
         .containsExactly("Pre-group one-to-one", "Pre-group one-to-one catch-up")
+      assertThat(response.sessionTemplates.map { it.sessionType })
+        .containsExactly(SessionType.ONE_TO_ONE, SessionType.ONE_TO_ONE)
       assertThat(response.pageHeading).isEqualTo("Schedule a pre-group one-to-one")
     }
 
@@ -2075,6 +2084,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .containsOnly(
           "Post-programme review",
           "Post-programme review catch-up",
+        )
+      assertThat(response.sessionTemplates.map { it.sessionType })
+        .containsOnly(
+          SessionType.ONE_TO_ONE,
+          SessionType.ONE_TO_ONE,
         )
       assertThat(response.pageHeading).isEqualTo("Schedule a post-programme review")
     }
@@ -2599,11 +2613,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.attendanceAndSessionNotes).hasSize(2)
 
       val notes1 = response.attendanceAndSessionNotes.find { it.crn == referral1.crn }!!
-      assertThat(notes1.attendance).isEqualTo("true")
+      assertThat(notes1.attendance).isEqualTo("Attended - Complied")
       assertThat(notes1.sessionNotes).isEqualTo("Notes for referral 1")
 
       val notes2 = response.attendanceAndSessionNotes.find { it.crn == referral2.crn }!!
-      assertThat(notes2.attendance).isEqualTo("false")
+      assertThat(notes2.attendance).isEqualTo("Unacceptable Absence")
       assertThat(notes2.sessionNotes).isEqualTo("Notes for referral 2 - latest")
     }
   }

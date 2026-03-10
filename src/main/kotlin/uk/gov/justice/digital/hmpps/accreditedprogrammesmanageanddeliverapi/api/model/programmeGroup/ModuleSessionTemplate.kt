@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import java.util.UUID
 
 @Schema(description = "A session template item with basic information")
@@ -21,6 +22,9 @@ data class ModuleSessionTemplate(
 
   @Schema(description = "The type of session schedule", required = true, example = "SCHEDULED, or CATCH_UP")
   var sessionScheduleType: SessionScheduleType = SessionScheduleType.SCHEDULED,
+
+  @Schema(description = "The type of a session", required = true, example = "GROUP or ONE_TO_ONE")
+  var sessionType: SessionType,
 )
 
 fun ModuleSessionTemplateEntity.toApi(): ModuleSessionTemplate {
@@ -29,5 +33,6 @@ fun ModuleSessionTemplateEntity.toApi(): ModuleSessionTemplate {
     id = this.id!!,
     number = this.sessionNumber,
     name = this.name,
+    sessionType = sessionType,
   )
 }

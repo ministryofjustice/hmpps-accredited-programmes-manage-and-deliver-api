@@ -1202,7 +1202,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val theGroup = testGroupHelper.createGroup(groupCode = "AAA111")
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
-      val referralEntity = testReferralHelper.createReferralWithStatus(
+      val referralEntity = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
       )
 
@@ -1227,7 +1227,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       testDataCleaner.cleanAllTables()
       val theGroup = testDataGenerator.createGroup(ProgrammeGroupFactory().withCode("AAA1112").produce())
 
-      val referralEntity = testReferralHelper.createReferralWithStatus(
+      val referralEntity = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
       )
 

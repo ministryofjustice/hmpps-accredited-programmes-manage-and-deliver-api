@@ -55,7 +55,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TemplateService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.util.UUID
@@ -595,9 +594,7 @@ class ProgrammeGroupController(
     @PathVariable @Parameter(description = "The UUID of the programme group", required = true) groupId: UUID,
     @Valid @RequestBody scheduleSessionRequest: ScheduleSessionRequest,
   ): ResponseEntity<String> {
-    val savedSession = scheduleService.scheduleIndividualSession(groupId, scheduleSessionRequest)
-
-    val successMessage = sessionNameFormatter.format(savedSession, SessionNameContext.ScheduleIndividualSession)
+    val successMessage = scheduleService.scheduleIndividualSessionAndReturnResponse(groupId, scheduleSessionRequest)
 
     return ResponseEntity.status(HttpStatus.CREATED).body(successMessage)
   }

@@ -13,7 +13,7 @@ configurations {
 }
 
 dependencies {
-  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:2.0.1")
+  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:2.0.2")
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:7.0.1")
   implementation("org.springframework.boot:spring-boot-starter-webclient")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -23,7 +23,7 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-security")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
   implementation("org.springframework.boot:spring-boot-starter-cache")
-  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1")
+  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.2")
 
   // Seeding
   implementation("net.datafaker:datafaker:2.5.4")
@@ -36,10 +36,10 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:4.0.3")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client:4.0.3")
   implementation("org.springframework.security:spring-security-crypto:7.0.3")
-  implementation("com.nimbusds:oauth2-oidc-sdk:11.33")
+  implementation("com.nimbusds:oauth2-oidc-sdk:11.34")
   implementation("io.github.resilience4j:resilience4j-spring-boot2:2.3.0")
 
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:2.0.1")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:2.0.2")
   testImplementation("org.springframework.boot:spring-boot-starter-webclient-test")
   testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
   testImplementation("org.wiremock:wiremock-standalone:3.13.2")
@@ -51,7 +51,7 @@ dependencies {
   testImplementation("org.testcontainers:postgresql:1.21.4")
   testImplementation("org.testcontainers:junit-jupiter:1.21.4")
   testImplementation("com.ninja-squad:springmockk:5.0.1")
-  testImplementation("io.kotest:kotest-assertions-core:6.1.3")
+  testImplementation("io.kotest:kotest-assertions-core:6.1.5")
   testImplementation("io.mockk:mockk:1.14.9")
   testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
 

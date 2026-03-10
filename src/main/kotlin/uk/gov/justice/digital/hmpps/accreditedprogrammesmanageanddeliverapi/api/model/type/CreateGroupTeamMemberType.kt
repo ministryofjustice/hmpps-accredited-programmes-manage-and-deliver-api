@@ -6,9 +6,6 @@ enum class CreateGroupTeamMemberType {
   @JsonProperty("TREATMENT_MANAGER")
   TREATMENT_MANAGER,
 
-  @JsonProperty("LEAD_FACILITATOR")
-  LEAD_FACILITATOR,
-
   @JsonProperty("REGULAR_FACILITATOR")
   REGULAR_FACILITATOR,
 

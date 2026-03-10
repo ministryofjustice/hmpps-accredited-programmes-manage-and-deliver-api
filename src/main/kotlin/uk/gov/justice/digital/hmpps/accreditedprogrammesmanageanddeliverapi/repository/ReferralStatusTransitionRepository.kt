@@ -10,4 +10,5 @@ interface ReferralStatusTransitionRepository : JpaRepository<ReferralStatusTrans
   fun findByFromStatusIdAndIsVisibleTrueOrderByPriorityAsc(fromStatusId: UUID): MutableList<ReferralStatusTransitionEntity>
   fun findByFromStatusIdAndToStatusId(fromStatusId: UUID, toStatusId: UUID): ReferralStatusTransitionEntity?
   fun findByToStatus(toStatus: ReferralStatusDescriptionEntity): MutableList<ReferralStatusTransitionEntity>
+  fun findFirstByFromStatusIdAndIsSuggestedTrue(fromStatusId: UUID): ReferralStatusTransitionEntity?
 }

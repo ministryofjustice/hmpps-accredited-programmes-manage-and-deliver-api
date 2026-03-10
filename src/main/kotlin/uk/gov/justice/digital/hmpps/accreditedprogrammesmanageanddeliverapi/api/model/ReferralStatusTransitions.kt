@@ -3,7 +3,9 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusTransitionEntity
 import java.time.LocalDate
 import java.util.UUID
 
@@ -16,6 +18,14 @@ data class ReferralStatusTransitions(
   @field:Schema(description = "List of transition statuses")
   @get:JsonProperty("availableStatuses", required = true)
   val availableStatuses: List<ReferralStatus>,
+
+  @field:Schema(description = "Suggested status object for the UI to potentially display")
+  @get:JsonProperty("suggestedStatus", required = false)
+  val suggestedStatus: SuggestedStatus? = null,
+
+  @field:Schema(description = "The details of the group that the user is currently allocated to")
+  @get:JsonProperty("currentGroupDetails", required = false)
+  val currentGroupDetails: CurrentGroupDetails? = null,
 )
 
 @Schema(description = "Status transition information for the Remove Referral from Group form in the M&D UI")
@@ -27,11 +37,22 @@ data class RemoveReferralFromGroupStatusTransitions(
   @field:Schema(description = "List of transition statuses")
   @get:JsonProperty("availableStatuses", required = true)
   val availableStatuses: List<ReferralStatus>,
+
+  @field:Schema(description = "Suggested status object for the UI to potentially display")
+  @get:JsonProperty("suggestedStatus", required = false)
+  val suggestedStatus: SuggestedStatus? = null,
+
+  @field:Schema(description = "The details of the group that the user is currently allocated to")
+  @get:JsonProperty("currentGroupDetails", required = false)
+  val currentGroupDetails: CurrentGroupDetails? = null,
+
 ) {
   companion object {
     fun from(referralStatusTransitions: ReferralStatusTransitions): RemoveReferralFromGroupStatusTransitions = RemoveReferralFromGroupStatusTransitions(
       currentStatus = referralStatusTransitions.currentStatus,
       availableStatuses = referralStatusTransitions.availableStatuses,
+      suggestedStatus = referralStatusTransitions.suggestedStatus,
+      currentGroupDetails = referralStatusTransitions.currentGroupDetails,
     )
   }
 }
@@ -58,6 +79,43 @@ data class CurrentStatus(
   @get:JsonProperty("createdAt", required = true)
   @JsonFormat(pattern = "d MMMM yyyy")
   val createdAt: LocalDate,
+)
+
+fun ReferralStatusTransitionEntity.toSuggestedStatus(): SuggestedStatus = SuggestedStatus(
+  name = toStatusStatusName,
+  statusDescriptionId = toStatus.id,
+)
+
+data class SuggestedStatus(
+  @field:Schema(description = "Name of the status description")
+  @get:JsonProperty("name", required = true)
+  val name: String,
+  @field:Schema(description = "The id of the status description")
+  @get:JsonProperty("statusDescriptionId", required = true)
+  val statusDescriptionId: UUID,
+)
+
+data class CurrentGroupDetails(
+  @Schema(
+    example = "ABC111",
+    required = false,
+    description = "The code of the currently allocated group",
+  )
+  @get:JsonProperty("currentlyAllocatedGroupCode", required = false)
+  val currentlyAllocatedGroupCode: String?,
+
+  @Schema(
+    example = "c98151f4-4081-4c65-9f98-54e63a328c8d",
+    required = false,
+    description = "The unique code of the currently allocated group",
+  )
+  @get:JsonProperty("currentlyAllocatedGroupId", required = false)
+  val currentlyAllocatedGroupId: UUID?,
+)
+
+fun ProgrammeGroupMembershipEntity.toCurrentGroupDetails() = CurrentGroupDetails(
+  currentlyAllocatedGroupCode = groupCode,
+  currentlyAllocatedGroupId = groupId,
 )
 
 fun ReferralStatusHistoryEntity.toCurrentStatus() = CurrentStatus(

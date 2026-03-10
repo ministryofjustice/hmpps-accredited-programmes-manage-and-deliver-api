@@ -435,7 +435,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         .withEndsAt(LocalDateTime.of(2026, 4, 25, 11, 0))
         .produce(),
     )
-    val app3 = testDataGenerator.createNDeliusAppointment(session3, referral)
+    testDataGenerator.createNDeliusAppointment(session3, referral)
 
     nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
@@ -669,6 +669,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       val postProgrammeSession = group.sessions.find { it.moduleName == "Post-programme reviews" }!!
 
       nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+
       val scheduledSession = testGroupHelper.scheduleSession(group, referral, postProgrammeSession)
 
       // When
@@ -1492,7 +1493,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     val sessionAttendanceEntity = updatedSessionEntity.get().attendances.first()
     assertThat(sessionAttendanceEntity.outcomeType.attendance).isTrue()
     assertThat(sessionAttendanceEntity.recordedByFacilitator?.id)
-      .isEqualTo(sessionEntity.sessionFacilitators.find { it.facilitatorType == FacilitatorType.LEAD_FACILITATOR }?.facilitator?.id)
+      .isEqualTo(sessionEntity.sessionFacilitators.find { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }?.facilitator?.id)
     assertThat(sessionAttendanceEntity.recordedAt?.year).isEqualTo(LocalDate.now().year)
     assertThat(sessionAttendanceEntity.recordedAt?.month?.value).isEqualTo(LocalDate.now().month.value)
     assertThat(sessionAttendanceEntity.recordedAt?.dayOfMonth).isEqualTo(LocalDate.now().dayOfMonth)

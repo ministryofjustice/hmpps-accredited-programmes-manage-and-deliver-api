@@ -21,7 +21,7 @@ class GroupWaitlistViewRepositoryIntegrationTest : IntegrationTestBase() {
   override fun beforeEach() {
     testDataCleaner.cleanAllTables()
     // Awaiting allocation status referral
-    testReferralHelper.createReferralWithStatus()
+    testReferralHelper.createReferralAndUpdateStatus()
     testReferralHelper.createReferrals(3)
   }
 
