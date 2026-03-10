@@ -2613,11 +2613,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.attendanceAndSessionNotes).hasSize(2)
 
       val notes1 = response.attendanceAndSessionNotes.find { it.crn == referral1.crn }!!
-      assertThat(notes1.attendance).isEqualTo("true")
+      assertThat(notes1.attendance).isEqualTo("Attended - Complied")
       assertThat(notes1.sessionNotes).isEqualTo("Notes for referral 1")
 
       val notes2 = response.attendanceAndSessionNotes.find { it.crn == referral2.crn }!!
-      assertThat(notes2.attendance).isEqualTo("false")
+      assertThat(notes2.attendance).isEqualTo("Unacceptable Absence")
       assertThat(notes2.sessionNotes).isEqualTo("Notes for referral 2 - latest")
     }
   }
