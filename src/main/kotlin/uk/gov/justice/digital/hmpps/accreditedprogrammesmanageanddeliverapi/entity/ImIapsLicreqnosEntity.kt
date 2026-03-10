@@ -13,10 +13,12 @@ class ImIapsLicreqnosEntity(
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(name = "id")
-  var id: Int? = null,
+  var id: String? = null,
+
   @NotNull
   @Column(name = "source_referral_id", nullable = false)
   var sourceReferralId: String,
+
   @NotNull
   @Column(name = "licreqno", nullable = false)
   var licreqno: String,

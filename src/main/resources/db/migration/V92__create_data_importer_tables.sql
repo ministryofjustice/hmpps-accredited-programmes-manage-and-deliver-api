@@ -20,7 +20,9 @@ CREATE TABLE data_import_record (
                                     id UUID PRIMARY KEY,
                                     entity_type VARCHAR(255) NOT NULL,
                                     source_id VARCHAR(255) NOT NULL,
+                                    source_updated_at TIMESTAMP WITH TIME ZONE,
                                     target_id UUID NOT NULL,
+                                    target_updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
                                     imported_at TIMESTAMP WITH TIME ZONE NOT NULL,
                                     CONSTRAINT uk_data_import_record_entity_type_source_id UNIQUE (entity_type, source_id)
 );
@@ -28,7 +30,9 @@ CREATE TABLE data_import_record (
 COMMENT ON TABLE data_import_record IS 'Records each successfully imported Interventions Manager entity and maps its source system (IM) ID to its M&D ID';
 COMMENT ON COLUMN data_import_record.entity_type IS 'The type of entity imported, e.g. REFERRAL';
 COMMENT ON COLUMN data_import_record.source_id IS 'The ID of the entity in Interventions Manager';
+COMMENT ON COLUMN data_import_record.source_updated_at IS 'The timestamp of when the entity was last updated in Interventions Manager at the time of import.  Can be null, as IM data does not always have this field populated';
 COMMENT ON COLUMN data_import_record.target_id IS 'The ID of the entity created in M&D';
+COMMENT ON COLUMN data_import_record.target_updated_at IS 'The timestamp of when the entity was last updated in M&D at the time of import, not nullable as we expect the record to be created/updated at the time of import';
 COMMENT ON COLUMN data_import_record.imported_at IS 'Timestamp when the import occurred';
 
 CREATE SCHEMA IF NOT EXISTS im_data_import;
