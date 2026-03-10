@@ -393,20 +393,21 @@ class ProgrammeGroupService(
   }
 
   fun getGroupSessionPage(groupId: UUID, sessionId: UUID): GroupSessionResponse {
-    val programmeGroup =
-      programmeGroupRepository.findByIdOrNull(groupId) ?: throw NotFoundException("Group with id $groupId not found")
+    val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
 
-    val session =
-      sessionRepository.findByIdOrNull(sessionId) ?: throw NotFoundException("Session with $sessionId not found")
+    val session = sessionRepository.findByIdOrNull(sessionId)
+      ?: throw NotFoundException("Session with $sessionId not found")
 
     val attendanceAndSessionNotes = session.attendees.map { attendee ->
       val attendanceRecord = session.attendances.find { it.groupMembership.referral.id == attendee.referralId }
+
       AttendanceAndSessionNotes(
         name = attendee.personName,
         referralId = attendee.referralId,
         crn = attendee.referral.crn,
         attendance = attendanceRecord?.outcomeType?.description ?: "To be confirmed",
-        sessionNotes = attendanceRecord?.notesHistory?.firstOrNull()?.notes ?: "Not added",
+        sessionNotes = attendanceRecord?.notesHistory?.maxByOrNull { it.createdAt }?.notes ?: "Not added",
       )
     }
 

@@ -37,10 +37,10 @@ class SessionNotesHistoryEntity(
   @NotNull
   @Column(name = "created_by")
   @CreatedBy
-  var createdBy: String? = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
+  var createdBy: String = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
 
   @NotNull
   @CreatedDate
   @Column(name = "created_at")
-  var createdAt: LocalDateTime? = LocalDateTime.now(),
+  var createdAt: LocalDateTime = LocalDateTime.now(),
 )
