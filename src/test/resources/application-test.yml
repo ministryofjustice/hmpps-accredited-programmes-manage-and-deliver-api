@@ -43,6 +43,8 @@ hmpps:
     topics:
       hmppseventtopic:
         arn: arn:aws:sns:eu-west-2:000000000000:${random.uuid}
+  sar:
+    additionalAccessRole: ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR
 
 services:
   manage-and-deliver-api:

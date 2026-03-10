@@ -203,7 +203,6 @@ class HmppsSubjectAccessRequestControllerIntegrationTest : IntegrationTestBase()
       .headers(
         setAuthorisation(
           roles = listOf(
-            "ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
             "ROLE_OTHER",
           ),
         ),
