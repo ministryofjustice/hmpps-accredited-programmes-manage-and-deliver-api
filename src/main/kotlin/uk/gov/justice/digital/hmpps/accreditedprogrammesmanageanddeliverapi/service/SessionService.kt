@@ -271,9 +271,28 @@ class SessionService(
       NotFoundException("Session not found with id: $sessionId")
     }
 
-    session.attendees.clear()
+    val currentReferralIds = session.attendees.map { it.referralId }.toSet()
+    val newReferralIdsSet = referralIds.toSet()
 
-    val newAttendees = referralIds.map { referralId ->
+    val addedReferralIds = newReferralIdsSet - currentReferralIds
+    val removedReferralIds = currentReferralIds - newReferralIdsSet
+
+    val removedNames = session.attendees
+      .filter { it.referralId in removedReferralIds }
+      .map { it.personName }
+
+    val addedNames = referralIds
+      .filter { it in addedReferralIds }
+      .map { referralId ->
+        val referral = referralRepository.findById(referralId).orElseThrow {
+          NotFoundException("Referral not found with id: $referralId")
+        }
+        referral.personName
+      }
+
+    session.attendees.removeIf { it.referralId in removedReferralIds }
+
+    val newAttendees = addedReferralIds.map { referralId ->
       val referral = referralRepository.findById(referralId).orElseThrow {
         NotFoundException("Referral not found with id: $referralId")
       }
@@ -283,7 +302,18 @@ class SessionService(
     session.attendees.addAll(newAttendees)
     sessionRepository.save(session)
 
-    return "The date and time have been updated."
+    val addedMessage = buildSessionAttendeesUpdateMessage(addedNames, "added to")
+    val removedMessage = buildSessionAttendeesUpdateMessage(removedNames, "removed from")
+
+    return "$addedMessage$removedMessage".trim()
+  }
+
+  fun buildSessionAttendeesUpdateMessage(names: List<String>, action: String): String {
+    if (names.isEmpty()) return ""
+
+    val joinedNames = names.joinToString(", ")
+    val verb = if (names.size == 1) "has" else "have"
+    return "$joinedNames $verb been $action this session. "
   }
 
   fun saveSessionAttendance(sessionId: UUID, sessionAttendance: SessionAttendance): SessionAttendance {
