@@ -190,7 +190,7 @@ class HmppsSubjectAccessRequestControllerIntegrationTest : IntegrationTestBase()
   }
 
   @Test
-  fun `should return 401 when unauthorised on GET subject access request data`() {
+  fun `should return 403 when unauthorised on GET subject access request data`() {
     // Given
     initialiseReferrals()
     val referral1 = referrals[0]
@@ -203,7 +203,6 @@ class HmppsSubjectAccessRequestControllerIntegrationTest : IntegrationTestBase()
       .headers(
         setAuthorisation(
           roles = listOf(
-            "ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
             "ROLE_OTHER",
           ),
         ),
