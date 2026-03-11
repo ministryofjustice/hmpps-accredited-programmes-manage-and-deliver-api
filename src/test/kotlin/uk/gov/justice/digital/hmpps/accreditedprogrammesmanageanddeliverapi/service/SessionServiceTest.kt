@@ -218,7 +218,7 @@ class SessionServiceTest {
   }
 
   @Test
-  fun `should update session attendees`() {
+  fun `should update session attendees and return message for added attendees`() {
     // Given
     val sessionId = UUID.randomUUID()
     val referralId1 = UUID.randomUUID()
@@ -231,8 +231,8 @@ class SessionServiceTest {
       .withProgrammeGroup(programmeGroup)
       .withModuleSessionTemplate(moduleSessionTemplate)
       .produce()
-    val referral1 = ReferralEntityFactory().withId(referralId1).produce()
-    val referral2 = ReferralEntityFactory().withId(referralId2).produce()
+    val referral1 = ReferralEntityFactory().withId(referralId1).withPersonName("John Doe").produce()
+    val referral2 = ReferralEntityFactory().withId(referralId2).withPersonName("Jane Smith").produce()
 
     every { sessionRepository.findById(sessionId) } returns Optional.of(session)
     every { referralRepository.findById(referralId1) } returns Optional.of(referral1)
@@ -243,13 +243,78 @@ class SessionServiceTest {
     val result = service.updateSessionAttendees(sessionId, referralIds)
 
     // Then
-    assertThat(result).isEqualTo("The date and time have been updated.")
+    assertThat(result).isEqualTo("John Doe, Jane Smith have been added to this session.")
     assertThat(session.attendees).hasSize(2)
     assertThat(session.attendees[0].referral.id).isEqualTo(referralId1)
     assertThat(session.attendees[1].referral.id).isEqualTo(referralId2)
 
     verify { sessionRepository.findById(sessionId) }
     verify { referralRepository.findById(referralId1) }
+    verify { referralRepository.findById(referralId2) }
+    verify { sessionRepository.save(session) }
+  }
+
+  @Test
+  fun `should update session attendees and return message for removed attendees`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId1 = UUID.randomUUID()
+    val referralIds = emptyList<UUID>()
+
+    val programmeGroup = ProgrammeGroupFactory().produce()
+    val moduleSessionTemplate = ModuleSessionTemplateEntityFactory().withName("Template 1").produce()
+    val session = SessionFactory()
+      .withProgrammeGroup(programmeGroup)
+      .withModuleSessionTemplate(moduleSessionTemplate)
+      .produce()
+    val referral1 = ReferralEntityFactory().withId(referralId1).withPersonName("John Doe").produce()
+    session.attendees.add(AttendeeEntity(referral = referral1, session = session))
+
+    every { sessionRepository.findById(sessionId) } returns Optional.of(session)
+    every { sessionRepository.save(session) } returns session
+
+    // When
+    val result = service.updateSessionAttendees(sessionId, referralIds)
+
+    // Then
+    assertThat(result).isEqualTo("John Doe has been removed from this session.")
+    assertThat(session.attendees).isEmpty()
+
+    verify { sessionRepository.findById(sessionId) }
+    verify { sessionRepository.save(session) }
+  }
+
+  @Test
+  fun `should update session attendees and return message for both added and removed attendees`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId1 = UUID.randomUUID()
+    val referralId2 = UUID.randomUUID()
+    val referralIds = listOf(referralId2)
+
+    val programmeGroup = ProgrammeGroupFactory().produce()
+    val moduleSessionTemplate = ModuleSessionTemplateEntityFactory().withName("Template 1").produce()
+    val session = SessionFactory()
+      .withProgrammeGroup(programmeGroup)
+      .withModuleSessionTemplate(moduleSessionTemplate)
+      .produce()
+    val referral1 = ReferralEntityFactory().withId(referralId1).withPersonName("John Doe").produce()
+    val referral2 = ReferralEntityFactory().withId(referralId2).withPersonName("Jane Smith").produce()
+    session.attendees.add(AttendeeEntity(referral = referral1, session = session))
+
+    every { sessionRepository.findById(sessionId) } returns Optional.of(session)
+    every { referralRepository.findById(referralId2) } returns Optional.of(referral2)
+    every { sessionRepository.save(session) } returns session
+
+    // When
+    val result = service.updateSessionAttendees(sessionId, referralIds)
+
+    // Then
+    assertThat(result).isEqualTo("Jane Smith has been added to this session. John Doe has been removed from this session.")
+    assertThat(session.attendees).hasSize(1)
+    assertThat(session.attendees[0].referral.id).isEqualTo(referralId2)
+
+    verify { sessionRepository.findById(sessionId) }
     verify { referralRepository.findById(referralId2) }
     verify { sessionRepository.save(session) }
   }
