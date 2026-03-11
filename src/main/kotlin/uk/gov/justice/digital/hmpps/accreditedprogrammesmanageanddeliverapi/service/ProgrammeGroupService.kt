@@ -363,6 +363,31 @@ class ProgrammeGroupService(
     // Apply tab-specific date filter
     val startedAtSpec = Specification<ProgrammeGroupEntity> { root, query, cb ->
       val datePath = root.get<LocalDate>("earliestPossibleStartDate")
+
+      // Subquery to find referrals that DO NOT have "Programme complete" status in their history
+      val subquery: Subquery<Long> = query.subquery(Long::class.java)
+      val membershipRoot = subquery.from(ProgrammeGroupMembershipEntity::class.java)
+      val referralJoin = membershipRoot.join<ProgrammeGroupMembershipEntity, ReferralEntity>("referral")
+
+      // We want to count memberships in this group where the referral DOES NOT have a "Programme complete" status
+      // To do this, we can check if there's no "Programme complete" status history for that referral.
+      val historySubquery: Subquery<Long> = subquery.subquery(Long::class.java)
+      val historyRoot = historySubquery.from(ReferralStatusHistoryEntity::class.java)
+      val statusDescJoin =
+        historyRoot.join<ReferralStatusHistoryEntity, ReferralStatusDescriptionEntity>("referralStatusDescription")
+
+      historySubquery.select(cb.count(historyRoot))
+      historySubquery.where(
+        cb.equal(historyRoot.get<ReferralEntity>("referral"), referralJoin),
+        cb.equal(statusDescJoin.get<String>("description"), "Programme complete"),
+      )
+
+      subquery.select(cb.count(membershipRoot))
+      subquery.where(
+        cb.equal(membershipRoot.get<ProgrammeGroupEntity>("programmeGroup"), root),
+        cb.equal(historySubquery, 0L),
+      )
+
       when (selectedTab) {
         GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS -> {
           val notStartedOrInProgressDateSpec = cb.or(
@@ -370,59 +395,11 @@ class ProgrammeGroupService(
             cb.greaterThan(datePath, LocalDate.now()),
           )
 
-          // Subquery to find referrals that DO NOT have "Programme complete" status in their history
-          val subquery: Subquery<Long> = query.subquery(Long::class.java)
-          val membershipRoot = subquery.from(ProgrammeGroupMembershipEntity::class.java)
-          val referralJoin = membershipRoot.join<ProgrammeGroupMembershipEntity, ReferralEntity>("referral")
-
-          // We want to count memberships in this group where the referral DOES NOT have a "Programme complete" status
-          // To do this, we can check if there's no "Programme complete" status history for that referral.
-          val historySubquery: Subquery<Long> = subquery.subquery(Long::class.java)
-          val historyRoot = historySubquery.from(ReferralStatusHistoryEntity::class.java)
-          val statusDescJoin =
-            historyRoot.join<ReferralStatusHistoryEntity, ReferralStatusDescriptionEntity>("referralStatusDescription")
-
-          historySubquery.select(cb.count(historyRoot))
-          historySubquery.where(
-            cb.equal(historyRoot.get<ReferralEntity>("referral"), referralJoin),
-            cb.equal(statusDescJoin.get<String>("description"), "Programme complete"),
-          )
-
-          subquery.select(cb.count(membershipRoot))
-          subquery.where(
-            cb.equal(membershipRoot.get<ProgrammeGroupEntity>("programmeGroup"), root),
-            cb.equal(historySubquery, 0L),
-          )
-
           cb.or(notStartedOrInProgressDateSpec, cb.greaterThan(subquery, 0L))
         }
 
         GroupPageByRegionTab.COMPLETE -> {
           val completeDateSpec = cb.lessThanOrEqualTo(datePath, LocalDate.now())
-
-          // Subquery to find referrals that DO NOT have "Programme complete" status in their history
-          val subquery: Subquery<Long> = query.subquery(Long::class.java)
-          val membershipRoot = subquery.from(ProgrammeGroupMembershipEntity::class.java)
-          val referralJoin = membershipRoot.join<ProgrammeGroupMembershipEntity, ReferralEntity>("referral")
-
-          // We want to count memberships in this group where the referral DOES NOT have a "Programme complete" status
-          // To do this, we can check if there's no "Programme complete" status history for that referral.
-          val historySubquery: Subquery<Long> = subquery.subquery(Long::class.java)
-          val historyRoot = historySubquery.from(ReferralStatusHistoryEntity::class.java)
-          val statusDescJoin =
-            historyRoot.join<ReferralStatusHistoryEntity, ReferralStatusDescriptionEntity>("referralStatusDescription")
-
-          historySubquery.select(cb.count(historyRoot))
-          historySubquery.where(
-            cb.equal(historyRoot.get<ReferralEntity>("referral"), referralJoin),
-            cb.equal(statusDescJoin.get<String>("description"), "Programme complete"),
-          )
-
-          subquery.select(cb.count(membershipRoot))
-          subquery.where(
-            cb.equal(membershipRoot.get<ProgrammeGroupEntity>("programmeGroup"), root),
-            cb.equal(historySubquery, 0L),
-          )
 
           cb.and(completeDateSpec, cb.equal(subquery, 0L))
         }

@@ -686,7 +686,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.pagedGroupData.totalElements).isEqualTo(2)
       val codes = response.pagedGroupData.content.map { it.code }
       assertThat(codes).containsExactlyInAnyOrder("GROUP-A-C-1", "GROUP-A-S-2")
-      // otherTabTotal should be count of not-started or in progress groups (4)
+      // otherTabTotal should be count of not-started or in progress groups (3)
       assertThat(response.otherTabTotal).isEqualTo(3)
       assertThat(response.regionName).isEqualTo("WIREMOCKED REGION")
     }
@@ -2689,8 +2689,20 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         groupMembership = groupMembership1,
         outcomeType = SessionAttendanceNDeliusOutcomeEntityFactory().produce(),
       ).apply {
-        notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 1", createdAt = LocalDateTime.now().minusMinutes(5)))
-        notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 1 - latest", createdAt = LocalDateTime.now()))
+        notesHistory.add(
+          SessionNotesHistoryEntity(
+            attendance = this,
+            notes = "Notes for referral 1",
+            createdAt = LocalDateTime.now().minusMinutes(5),
+          ),
+        )
+        notesHistory.add(
+          SessionNotesHistoryEntity(
+            attendance = this,
+            notes = "Notes for referral 1 - latest",
+            createdAt = LocalDateTime.now(),
+          ),
+        )
       }
 
       val attendance2 = SessionAttendanceEntity(
@@ -2700,8 +2712,20 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           .withDescription("Unacceptable Absence")
           .withAttendance(false).withCompliant(false).produce(),
       ).apply {
-        notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 2 - initial", createdAt = LocalDateTime.now().minusMinutes(5)))
-        notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 2 - latest", createdAt = LocalDateTime.now()))
+        notesHistory.add(
+          SessionNotesHistoryEntity(
+            attendance = this,
+            notes = "Notes for referral 2 - initial",
+            createdAt = LocalDateTime.now().minusMinutes(5),
+          ),
+        )
+        notesHistory.add(
+          SessionNotesHistoryEntity(
+            attendance = this,
+            notes = "Notes for referral 2 - latest",
+            createdAt = LocalDateTime.now(),
+          ),
+        )
       }
 
       session.attendances.addAll(listOf(attendance1, attendance2))
