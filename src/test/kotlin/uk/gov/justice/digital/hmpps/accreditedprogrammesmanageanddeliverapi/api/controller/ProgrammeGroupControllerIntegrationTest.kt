@@ -2542,6 +2542,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       initialiseReferrals()
       val referral1 = referrals[0]
       val referral2 = referrals[1]
+      val referral3 = referrals[2]
 
       // Create group
       val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
@@ -2560,7 +2561,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val group = programmeGroupRepository.findByCode(body.groupCode)!!
 
       // Allocate referrals to group
-      listOf(referral1, referral2).forEach { referral ->
+      listOf(referral1, referral2, referral3).forEach { referral ->
         performRequestAndExpectStatus(
           httpMethod = HttpMethod.POST,
           uri = "/group/${group.id}/allocate/${referral.id}",
@@ -2578,13 +2579,15 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       stubAuthTokenEndpoint()
       val groupMembership1 = groupWithAllocation.programmeGroupMemberships.first { it.referral.id == referral1.id }
       val groupMembership2 = groupWithAllocation.programmeGroupMemberships.first { it.referral.id == referral2.id }
+      val groupMembership3 = groupWithAllocation.programmeGroupMemberships.first { it.referral.id == referral3.id }
 
       val attendance1 = SessionAttendanceEntity(
         session = session,
         groupMembership = groupMembership1,
         outcomeType = SessionAttendanceNDeliusOutcomeEntityFactory().produce(),
       ).apply {
-        notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 1"))
+        notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 1", createdAt = LocalDateTime.now().minusMinutes(5)))
+        notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 1 - latest", createdAt = LocalDateTime.now()))
       }
 
       val attendance2 = SessionAttendanceEntity(
@@ -2594,8 +2597,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           .withDescription("Unacceptable Absence")
           .withAttendance(false).withCompliant(false).produce(),
       ).apply {
-        notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 2 - initial"))
-        notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 2 - latest"))
+        notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 2 - initial", createdAt = LocalDateTime.now().minusMinutes(5)))
+        notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 2 - latest", createdAt = LocalDateTime.now()))
       }
 
       session.attendances.addAll(listOf(attendance1, attendance2))
@@ -2610,15 +2613,19 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response.groupCode).isEqualTo(body.groupCode)
-      assertThat(response.attendanceAndSessionNotes).hasSize(2)
+      assertThat(response.attendanceAndSessionNotes).hasSize(3)
 
       val notes1 = response.attendanceAndSessionNotes.find { it.crn == referral1.crn }!!
       assertThat(notes1.attendance).isEqualTo("Attended - Complied")
-      assertThat(notes1.sessionNotes).isEqualTo("Notes for referral 1")
+      assertThat(notes1.sessionNotes).isEqualTo("Notes for referral 1 - latest")
 
       val notes2 = response.attendanceAndSessionNotes.find { it.crn == referral2.crn }!!
       assertThat(notes2.attendance).isEqualTo("Unacceptable Absence")
       assertThat(notes2.sessionNotes).isEqualTo("Notes for referral 2 - latest")
+
+      val notes3 = response.attendanceAndSessionNotes.find { it.crn == referral3.crn }!!
+      assertThat(notes3.attendance).isEqualTo("To be confirmed")
+      assertThat(notes3.sessionNotes).isEqualTo("Not added")
     }
   }
 }
