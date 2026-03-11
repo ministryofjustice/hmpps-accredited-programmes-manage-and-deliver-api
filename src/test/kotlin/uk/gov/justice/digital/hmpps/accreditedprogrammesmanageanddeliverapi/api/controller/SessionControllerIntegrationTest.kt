@@ -975,7 +975,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response).isEqualTo("The date and time have been updated.")
+      assertThat(response).isEqualTo("John Doe, Alex River have been added to this session.")
       val updatedSession = sessionRepository.findById(session.id!!).get()
       assertThat(updatedSession.attendees).hasSize(2)
       assertThat(updatedSession.attendees.map { it.referral.id }).containsExactlyInAnyOrder(referral1.id, referral2.id)
