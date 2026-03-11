@@ -23,6 +23,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
@@ -31,6 +32,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -50,6 +52,9 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var moduleRepository: ModuleRepository
+
+  @Autowired
+  private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
 
   @Nested
   @DisplayName("getProgrammeGroupsForRegion")
@@ -152,7 +157,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           deliveryLocations = null,
           cohort = null,
           sex = null,
-          selectedTab = GroupPageByRegionTab.NOT_STARTED,
+          selectedTab = GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS,
           username = "the_username",
         )
       }
@@ -170,7 +175,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         deliveryLocations = null,
         cohort = null,
         sex = "MALE",
-        selectedTab = GroupPageByRegionTab.NOT_STARTED,
+        selectedTab = GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS,
         username = "the_username",
       )
 
@@ -201,7 +206,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         deliveryLocations = null,
         cohort = null,
         sex = null,
-        selectedTab = GroupPageByRegionTab.NOT_STARTED,
+        selectedTab = GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS,
         username = "the_username",
       )
 
@@ -220,7 +225,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         deliveryLocations = null,
         cohort = null,
         sex = "MALE",
-        selectedTab = GroupPageByRegionTab.NOT_STARTED,
+        selectedTab = GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS,
         username = "the_username",
       )
 
@@ -236,6 +241,65 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         "Test PDU 1",
       )
       assertThat(programmeGroups.deliveryLocationNames).containsExactlyInAnyOrder("Location One", "Delivery Location 1")
+    }
+
+    @Test
+    fun `NOT_STARTED_OR_IN_PROGRESS should return groups that have at least one referral without Programme complete status`() {
+      // Given a group that has all referrals completed (should be in COMPLETE tab)
+      val completedGroup = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withCode("COMPLETED_GROUP")
+          .withRegionName("Region Description")
+          .withEarliestStartDate(LocalDate.now().minusDays(10))
+          .produce(),
+      )
+      val referral1 = testDataGenerator.createReferral("Person 1", "CRN1")
+      val statusComplete = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory()
+          .produce(
+            referral = referral1,
+            referralStatusDescription = statusComplete,
+          ),
+      )
+      testDataGenerator.allocateReferralsToGroup(listOf(referral1), completedGroup)
+
+      // Given a group that has one completed and one not completed referral (should be in NOT_STARTED_OR_IN_PROGRESS tab)
+      val partiallyCompletedGroup = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withCode("PARTIALLY_COMPLETED_GROUP")
+          .withRegionName("Region Description")
+          .withEarliestStartDate(LocalDate.now().minusDays(10))
+          .produce(),
+      )
+      val referral2 = testDataGenerator.createReferral("Person 2", "CRN2") // Completed
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory()
+          .produce(
+            referral = referral2,
+            referralStatusDescription = statusComplete,
+          ),
+      )
+      val referral3 = testDataGenerator.createReferral("Person 3", "CRN3") // Not completed
+      testDataGenerator.allocateReferralsToGroup(listOf(referral2, referral3), partiallyCompletedGroup)
+
+      // When
+      val programmeGroups = service.getProgrammeGroupsForRegion(
+        pageable = Pageable.ofSize(10),
+        groupCode = null,
+        pdu = null,
+        deliveryLocations = null,
+        cohort = null,
+        sex = "MALE",
+        selectedTab = GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS,
+        username = "the_username",
+      )
+
+      // Then
+      assertThat(programmeGroups.pagedGroupData.map { it.code }).contains("PARTIALLY_COMPLETED_GROUP")
+      assertThat(programmeGroups.pagedGroupData.map { it.code }).doesNotContain("COMPLETED_GROUP")
     }
   }
 

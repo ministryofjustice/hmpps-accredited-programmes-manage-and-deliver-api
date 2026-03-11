@@ -189,7 +189,7 @@ class ProgrammeGroupController(
       sort = ["startedAtDate"],
       direction = Sort.Direction.ASC,
     ) pageable: Pageable,
-    @PathVariable @Parameter(description = "Return table data for either the Not started tab or the In progress/Completed tab") selectedTab: GroupPageByRegionTab,
+    @PathVariable @Parameter(description = "Return table data for either the Not started/In progress tab or the Completed tab") selectedTab: GroupPageByRegionTab,
     @Parameter(description = "Filter by the unique group code")
     @RequestParam(name = "groupCode", required = false) groupCode: String?,
     @Parameter(description = "Filter by the human readable pdu of the group, i.e. 'All London'")
