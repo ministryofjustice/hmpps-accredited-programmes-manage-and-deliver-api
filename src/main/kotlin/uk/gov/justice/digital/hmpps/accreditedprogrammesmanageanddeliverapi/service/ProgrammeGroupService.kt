@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import jakarta.persistence.criteria.Subquery
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -34,7 +35,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -356,15 +361,48 @@ class ProgrammeGroupService(
     )
 
     // Apply tab-specific date filter
-    val startedAtSpec = Specification<ProgrammeGroupEntity> { root, _, cb ->
+    val startedAtSpec = Specification<ProgrammeGroupEntity> { root, query, cb ->
       val datePath = root.get<LocalDate>("earliestPossibleStartDate")
-      when (selectedTab) {
-        GroupPageByRegionTab.NOT_STARTED -> cb.or(
-          cb.isNull(datePath),
-          cb.greaterThan(datePath, LocalDate.now()),
-        )
 
-        GroupPageByRegionTab.IN_PROGRESS_OR_COMPLETE -> cb.lessThanOrEqualTo(datePath, LocalDate.now())
+      // Subquery to find referrals that DO NOT have "Programme complete" status in their history
+      val subquery: Subquery<Long> = query.subquery(Long::class.java)
+      val membershipRoot = subquery.from(ProgrammeGroupMembershipEntity::class.java)
+      val referralJoin = membershipRoot.join<ProgrammeGroupMembershipEntity, ReferralEntity>("referral")
+
+      // We want to count memberships in this group where the referral DOES NOT have a "Programme complete" status
+      // To do this, we can check if there's no "Programme complete" status history for that referral.
+      val historySubquery: Subquery<Long> = subquery.subquery(Long::class.java)
+      val historyRoot = historySubquery.from(ReferralStatusHistoryEntity::class.java)
+      val statusDescJoin =
+        historyRoot.join<ReferralStatusHistoryEntity, ReferralStatusDescriptionEntity>("referralStatusDescription")
+
+      historySubquery.select(cb.count(historyRoot))
+      historySubquery.where(
+        cb.equal(historyRoot.get<ReferralEntity>("referral"), referralJoin),
+        cb.equal(statusDescJoin.get<String>("description"), "Programme complete"),
+      )
+
+      subquery.select(cb.count(membershipRoot))
+      subquery.where(
+        cb.equal(membershipRoot.get<ProgrammeGroupEntity>("programmeGroup"), root),
+        cb.equal(historySubquery, 0L),
+      )
+
+      when (selectedTab) {
+        GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS -> {
+          val notStartedOrInProgressDateSpec = cb.or(
+            cb.isNull(datePath),
+            cb.greaterThan(datePath, LocalDate.now()),
+          )
+
+          cb.or(notStartedOrInProgressDateSpec, cb.greaterThan(subquery, 0L))
+        }
+
+        GroupPageByRegionTab.COMPLETE -> {
+          val completeDateSpec = cb.lessThanOrEqualTo(datePath, LocalDate.now())
+
+          cb.and(completeDateSpec, cb.equal(subquery, 0L))
+        }
       }
     }
 

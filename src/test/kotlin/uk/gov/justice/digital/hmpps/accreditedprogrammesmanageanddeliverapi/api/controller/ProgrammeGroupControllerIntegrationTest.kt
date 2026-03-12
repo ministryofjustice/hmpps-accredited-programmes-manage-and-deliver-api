@@ -60,6 +60,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamMembersFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamWithMembersFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceNDeliusOutcomeEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.NDeliusApiProbationDeliveryUnitWithOfficeLocationsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
@@ -516,12 +517,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   @DisplayName("Get programme groups by region")
   inner class GetProgrammeGroupsByRegionTests {
     @Test
-    fun `should return NOT_STARTED groups only with correct otherTabTotal`() {
+    fun `should return NOT_STARTED OR IN PROGRESS groups only with correct otherTabTotal`() {
       // Given
       stubAuthTokenEndpoint()
 
       val region = "WIREMOCKED REGION"
-      // Create 3 not started groups, 2 started groups in the same region, plus one in another region
+      // Create 3 not started groups, 2 started groups in the same region, 1 completed group in the same region,
+      // plus one in another region
       val group1 = ProgrammeGroupFactory().withCode("GROUP-A-NS-1")
         .withRegionName(region).withEarliestStartDate(LocalDate.now().plusDays(5)).produce()
       val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2")
@@ -534,28 +536,85 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val group5 = ProgrammeGroupFactory().withCode("GROUP-A-S-2").withRegionName(region)
         .withEarliestStartDate(LocalDate.now().minusDays(1)).produce()
 
+      val group6 = ProgrammeGroupFactory().withCode("GROUP-A-C-1").withRegionName(region)
+        .withEarliestStartDate(LocalDate.now().minusDays(5)).produce()
+
       val groupInOtherRegion = ProgrammeGroupFactory().withCode("GROUP-B-NS-1").withRegionName("South West").produce()
 
-      listOf(group1, group2, group3, group4, group5, groupInOtherRegion).forEach { testDataGenerator.createGroup(it) }
+      listOf(
+        group1,
+        group2,
+        group3,
+        group4,
+        group5,
+        group6,
+        groupInOtherRegion,
+      ).forEach { testDataGenerator.createGroup(it) }
+
+      val referral1 = testDataGenerator.createReferral(personName = "GROUP-A-S-1-Completed", crn = "X123456")
+      val referral2 = testDataGenerator.createReferral(personName = "GROUP-A-S-1-On-Programme", crn = "X123457")
+      val referral3 = testDataGenerator.createReferral(personName = "GROUP-A-C-1-Completed", crn = "X123458")
+
+      testDataGenerator.allocateReferralsToGroup(listOf(referral1, referral2), group4)
+      testDataGenerator.allocateReferralsToGroup(listOf(referral3), group6)
+
+      val referralStatusDescriptionCompleted =
+        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+      val referralStatusDescriptionOnProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(
+          referral1,
+          referralStatusDescriptionOnProgramme,
+        ),
+      )
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(
+          referral1,
+          referralStatusDescriptionCompleted,
+        ),
+      )
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(
+          referral2,
+          referralStatusDescriptionOnProgramme,
+        ),
+      )
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(
+          referral3,
+          referralStatusDescriptionOnProgramme,
+        ),
+      )
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(
+          referral3,
+          referralStatusDescriptionCompleted,
+        ),
+      )
 
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/NOT_STARTED?page=0&size=10",
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
       // Then
-      assertThat(response.pagedGroupData.totalElements).isEqualTo(3)
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(4)
       val codes = response.pagedGroupData.content.map { it.code }
-      assertThat(codes).containsExactlyInAnyOrder("GROUP-A-NS-1", "GROUP-A-NS-2", "GROUP-A-NS-3")
+      assertThat(codes).containsExactlyInAnyOrder(
+        "GROUP-A-NS-1",
+        "GROUP-A-NS-2",
+        "GROUP-A-NS-3",
+        "GROUP-A-S-1",
+      )
       // otherTabTotal should be count of started groups in the region (2)
       assertThat(response.otherTabTotal).isEqualTo(2)
       assertThat(response.regionName).isEqualTo("WIREMOCKED REGION")
     }
 
     @Test
-    fun `should return IN_PROGRESS_OR_COMPLETE groups only with correct otherTabTotal`() {
+    fun `should return COMPLETE groups only with correct otherTabTotal`() {
       // Given
       stubAuthTokenEndpoint()
 
@@ -565,26 +624,70 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2").withRegionName(region)
         .withEarliestStartDate(LocalDate.now().plusDays(5)).produce()
 
-      val group3 = ProgrammeGroupFactory().withCode("GROUP-A-S-1")
-        .withRegionName(region).withEarliestStartDate(LocalDate.now().minusDays(5)).produce()
+      val group3 = ProgrammeGroupFactory().withCode("GROUP-A-S-1").withRegionName(region)
+        .withEarliestStartDate(LocalDate.now().minusDays(5)).produce()
       val group4 = ProgrammeGroupFactory().withCode("GROUP-A-S-2").withRegionName(region)
-        .withRegionName(region).withEarliestStartDate(LocalDate.now().minusDays(2)).produce()
+        .withEarliestStartDate(LocalDate.now().minusDays(1)).produce()
 
-      listOf(group1, group2, group3, group4).forEach { testDataGenerator.createGroup(it) }
+      val group5 = ProgrammeGroupFactory().withCode("GROUP-A-C-1").withRegionName(region)
+        .withEarliestStartDate(LocalDate.now().minusDays(5)).produce()
+
+      listOf(group1, group2, group3, group4, group5).forEach { testDataGenerator.createGroup(it) }
+
+      val referral1 = testDataGenerator.createReferral(personName = "GROUP-A-S-1-Completed", crn = "X123456")
+      val referral2 = testDataGenerator.createReferral(personName = "GROUP-A-S-1-On-Programme", crn = "X123457")
+      val referral3 = testDataGenerator.createReferral(personName = "GROUP-A-C-1-Completed", crn = "X123458")
+
+      testDataGenerator.allocateReferralsToGroup(listOf(referral1, referral2), group3)
+      testDataGenerator.allocateReferralsToGroup(listOf(referral3), group5)
+
+      val referralStatusDescriptionCompleted =
+        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+      val referralStatusDescriptionOnProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(
+          referral1,
+          referralStatusDescriptionOnProgramme,
+        ),
+      )
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(
+          referral1,
+          referralStatusDescriptionCompleted,
+        ),
+      )
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(
+          referral2,
+          referralStatusDescriptionOnProgramme,
+        ),
+      )
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(
+          referral3,
+          referralStatusDescriptionOnProgramme,
+        ),
+      )
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(
+          referral3,
+          referralStatusDescriptionCompleted,
+        ),
+      )
 
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/IN_PROGRESS_OR_COMPLETE?page=0&size=10",
+        "/bff/groups/COMPLETE?page=0&size=10",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
       // Then: should contain only started groups
       assertThat(response.pagedGroupData.totalElements).isEqualTo(2)
       val codes = response.pagedGroupData.content.map { it.code }
-      assertThat(codes).containsExactlyInAnyOrder("GROUP-A-S-1", "GROUP-A-S-2")
-      // otherTabTotal should be count of not-started groups (2)
-      assertThat(response.otherTabTotal).isEqualTo(2)
+      assertThat(codes).containsExactlyInAnyOrder("GROUP-A-C-1", "GROUP-A-S-2")
+      // otherTabTotal should be count of not-started or in progress groups (3)
+      assertThat(response.otherTabTotal).isEqualTo(3)
       assertThat(response.regionName).isEqualTo("WIREMOCKED REGION")
     }
 
@@ -601,12 +704,12 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val page0 = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/NOT_STARTED?page=0&size=1",
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=1",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
       val page1 = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/NOT_STARTED?page=1&size=1",
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=1&size=1",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
@@ -622,7 +725,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When & Then
       webTestClient
         .method(HttpMethod.GET)
-        .uri("/bff/groups/NOT_STARTED?page=0&size=1)")
+        .uri("/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=1)")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .accept(MediaType.APPLICATION_JSON)
@@ -2586,8 +2689,20 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         groupMembership = groupMembership1,
         outcomeType = SessionAttendanceNDeliusOutcomeEntityFactory().produce(),
       ).apply {
-        notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 1", createdAt = LocalDateTime.now().minusMinutes(5)))
-        notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 1 - latest", createdAt = LocalDateTime.now()))
+        notesHistory.add(
+          SessionNotesHistoryEntity(
+            attendance = this,
+            notes = "Notes for referral 1",
+            createdAt = LocalDateTime.now().minusMinutes(5),
+          ),
+        )
+        notesHistory.add(
+          SessionNotesHistoryEntity(
+            attendance = this,
+            notes = "Notes for referral 1 - latest",
+            createdAt = LocalDateTime.now(),
+          ),
+        )
       }
 
       val attendance2 = SessionAttendanceEntity(
@@ -2597,8 +2712,20 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           .withDescription("Unacceptable Absence")
           .withAttendance(false).withCompliant(false).produce(),
       ).apply {
-        notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 2 - initial", createdAt = LocalDateTime.now().minusMinutes(5)))
-        notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 2 - latest", createdAt = LocalDateTime.now()))
+        notesHistory.add(
+          SessionNotesHistoryEntity(
+            attendance = this,
+            notes = "Notes for referral 2 - initial",
+            createdAt = LocalDateTime.now().minusMinutes(5),
+          ),
+        )
+        notesHistory.add(
+          SessionNotesHistoryEntity(
+            attendance = this,
+            notes = "Notes for referral 2 - latest",
+            createdAt = LocalDateTime.now(),
+          ),
+        )
       }
 
       session.attendances.addAll(listOf(attendance1, attendance2))
