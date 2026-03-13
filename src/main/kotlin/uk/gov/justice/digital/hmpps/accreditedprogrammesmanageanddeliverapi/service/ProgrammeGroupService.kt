@@ -40,6 +40,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -438,7 +439,10 @@ class ProgrammeGroupService(
       ?: throw NotFoundException("Session with $sessionId not found")
 
     val attendanceAndSessionNotes = session.attendees.map { attendee ->
-      val attendanceRecord = session.attendances.find { it.groupMembership.referral.id == attendee.referralId }
+      val attendanceRecord = session.attendances
+        .filter { it.groupMembership.referral.id == attendee.referralId }
+        .sortedWith(compareByDescending<SessionAttendanceEntity> { it.createdAt }.thenByDescending { it.id })
+        .firstOrNull()
 
       AttendanceAndSessionNotes(
         name = attendee.personName,

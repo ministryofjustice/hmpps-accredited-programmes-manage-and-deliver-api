@@ -2348,8 +2348,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   inner class GetGroupSessions {
     @Test
     fun `return 200 and bff data if successful`() {
+      stubAuthTokenEndpoint()
       val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
-
       val body = CreateGroupRequestFactory().produce(
         createGroupSessionSlot = setOf(slot1),
       )
@@ -2682,27 +2682,25 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       stubAuthTokenEndpoint()
       val groupMembership1 = groupWithAllocation.programmeGroupMemberships.first { it.referral.id == referral1.id }
       val groupMembership2 = groupWithAllocation.programmeGroupMemberships.first { it.referral.id == referral2.id }
-      val groupMembership3 = groupWithAllocation.programmeGroupMemberships.first { it.referral.id == referral3.id }
 
       val attendance1 = SessionAttendanceEntity(
         session = session,
         groupMembership = groupMembership1,
         outcomeType = SessionAttendanceNDeliusOutcomeEntityFactory().produce(),
+        createdAt = LocalDateTime.now().plusSeconds(2),
       ).apply {
-        notesHistory.add(
-          SessionNotesHistoryEntity(
-            attendance = this,
-            notes = "Notes for referral 1",
-            createdAt = LocalDateTime.now().minusMinutes(5),
-          ),
+        val note1 = SessionNotesHistoryEntity(
+          attendance = this,
+          notes = "Notes for referral 1 - initial",
+          createdAt = LocalDateTime.now().plusSeconds(1),
         )
-        notesHistory.add(
-          SessionNotesHistoryEntity(
-            attendance = this,
-            notes = "Notes for referral 1 - latest",
-            createdAt = LocalDateTime.now(),
-          ),
+        notesHistory.add(note1)
+        val note2 = SessionNotesHistoryEntity(
+          attendance = this,
+          notes = "Notes for referral 1 - latest",
+          createdAt = LocalDateTime.now().plusSeconds(2),
         )
+        notesHistory.add(note2)
       }
 
       val attendance2 = SessionAttendanceEntity(
@@ -2711,24 +2709,32 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         outcomeType = SessionAttendanceNDeliusOutcomeEntityFactory().withCode(UAAB)
           .withDescription("Unacceptable Absence")
           .withAttendance(false).withCompliant(false).produce(),
+        createdAt = LocalDateTime.now().plusSeconds(3),
       ).apply {
-        notesHistory.add(
-          SessionNotesHistoryEntity(
-            attendance = this,
-            notes = "Notes for referral 2 - initial",
-            createdAt = LocalDateTime.now().minusMinutes(5),
-          ),
+        val note3 = SessionNotesHistoryEntity(
+          attendance = this,
+          notes = "Notes for referral 2 - initial",
+          createdAt = LocalDateTime.now().plusSeconds(1),
         )
-        notesHistory.add(
-          SessionNotesHistoryEntity(
-            attendance = this,
-            notes = "Notes for referral 2 - latest",
-            createdAt = LocalDateTime.now(),
-          ),
+        notesHistory.add(note3)
+        val note4 = SessionNotesHistoryEntity(
+          attendance = this,
+          notes = "Notes for referral 2 - latest",
+          createdAt = LocalDateTime.now().plusSeconds(2),
         )
+        notesHistory.add(note4)
       }
 
-      session.attendances.addAll(listOf(attendance1, attendance2))
+      val attendance3 = SessionAttendanceEntity(
+        session = session,
+        groupMembership = groupMembership1,
+        outcomeType = SessionAttendanceNDeliusOutcomeEntityFactory().withCode(UAAB)
+          .withDescription("Unacceptable Absence")
+          .withAttendance(false).withCompliant(false).produce(),
+        createdAt = LocalDateTime.now().plusSeconds(1),
+      )
+
+      session.attendances.addAll(listOf(attendance1, attendance2, attendance3))
       sessionRepository.saveAndFlush(session)
 
       // When
