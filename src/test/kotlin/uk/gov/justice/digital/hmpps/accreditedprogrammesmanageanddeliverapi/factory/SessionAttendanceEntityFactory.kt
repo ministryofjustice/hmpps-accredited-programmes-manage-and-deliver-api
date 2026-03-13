@@ -16,7 +16,7 @@ class SessionAttendanceEntityFactory(
   groupMembership: ProgrammeGroupMembershipEntity? = null,
   recordedByFacilitator: FacilitatorEntity? = null,
 ) {
-  private var id: UUID = UUID.randomUUID()
+  private var id: UUID? = null
   private var session: SessionEntity = session ?: SessionFactory().produce()
   private var groupMembership: ProgrammeGroupMembershipEntity =
     groupMembership ?: ProgrammeGroupMembershipFactory().produce()
@@ -25,6 +25,8 @@ class SessionAttendanceEntityFactory(
   private var recordedAt: LocalDateTime? = LocalDateTime.now(ZoneId.of("UTC"))
   private var outcomeType: SessionAttendanceNDeliusOutcomeEntity =
     SessionAttendanceNDeliusOutcomeEntityFactory().produce()
+  private var createdBy: String = "UNKNOWN_USER"
+  private var createdAt: LocalDateTime = LocalDateTime.now()
 
   fun withId(id: UUID) = apply { this.id = id }
   fun withSession(session: SessionEntity) = apply { this.session = session }
@@ -37,6 +39,9 @@ class SessionAttendanceEntityFactory(
 
   fun withOutcomeType(outcomeType: SessionAttendanceNDeliusOutcomeEntity) = apply { this.outcomeType = outcomeType }
 
+  fun withCreatedBy(createdBy: String) = apply { this.createdBy = createdBy }
+  fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
+
   fun produce() = SessionAttendanceEntity(
     id = this.id,
     session = this.session,
@@ -45,5 +50,7 @@ class SessionAttendanceEntityFactory(
     recordedByFacilitator = this.recordedByFacilitator,
     recordedAt = this.recordedAt,
     outcomeType = this.outcomeType,
+    createdBy = this.createdBy,
+    createdAt = this.createdAt,
   )
 }
