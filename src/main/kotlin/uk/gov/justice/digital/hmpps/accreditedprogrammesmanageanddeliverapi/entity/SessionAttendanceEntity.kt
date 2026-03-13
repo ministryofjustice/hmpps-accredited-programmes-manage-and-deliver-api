@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.OrderBy
 import jakarta.persistence.Table
+import jakarta.persistence.Transient
 import jakarta.validation.constraints.NotNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendee
 import java.time.LocalDateTime
@@ -56,7 +57,15 @@ class SessionAttendanceEntity(
   )
   @OrderBy("createdAt DESC")
   var notesHistory: MutableList<SessionNotesHistoryEntity> = mutableListOf(),
-)
+) {
+  @get:Transient
+  val didAttend: Boolean?
+    get() = outcomeType.attendance
+
+  @get:Transient
+  val didComply: Boolean
+    get() = outcomeType.compliant
+}
 
 fun SessionAttendee.toEntity(
   session: SessionEntity,

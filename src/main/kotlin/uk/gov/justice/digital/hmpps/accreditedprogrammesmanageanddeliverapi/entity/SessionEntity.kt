@@ -17,6 +17,7 @@ import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import org.springframework.security.core.context.SecurityContextHolder
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionRole
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import java.time.LocalDateTime
 import java.util.UUID
@@ -110,6 +111,10 @@ class SessionEntity(
   @get:Transient
   val sessionType: SessionType
     get() = moduleSessionTemplate.sessionType
+
+  @get:Transient
+  val sessionRole: SessionRole
+    get() = moduleSessionTemplate.sessionRole
 
   override fun compareTo(other: SessionEntity): Int = compareValuesBy(
     this,

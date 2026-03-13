@@ -70,6 +70,7 @@ class ReferralService(
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
   private val domainEventPublisher: DomainEventPublisher,
   @Value($$"${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
+  private val attendanceService: AttendanceService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -354,6 +355,11 @@ class ReferralService(
       ),
     )
     publishReferralStatusUpdatedEvent(referral, historyEntry.referralStatusDescription.description)
+
+    // Check if the referral meets the requirements for programme complete and publish event to terminate requirement.
+    if (historyEntry.statusDescription == "Programme complete") {
+      attendanceService.checkProgrammeCompleteStatusForReferralAndPublishEvent(referral.id!!)
+    }
 
     return StatusUpdateResponse(
       referralStatusHistory = historyEntry.toApi(),

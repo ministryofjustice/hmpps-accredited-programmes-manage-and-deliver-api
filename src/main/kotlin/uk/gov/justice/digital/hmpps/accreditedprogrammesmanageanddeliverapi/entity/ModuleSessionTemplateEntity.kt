@@ -12,6 +12,7 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionRole
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import java.util.UUID
 
@@ -52,4 +53,9 @@ class ModuleSessionTemplateEntity(
   @NotNull
   @Column(name = "duration_minutes")
   var durationMinutes: Int,
+
+  @NotNull
+  @Column(name = "session_role")
+  @Enumerated(EnumType.STRING)
+  var sessionRole: SessionRole = SessionRole.STANDARD,
 )

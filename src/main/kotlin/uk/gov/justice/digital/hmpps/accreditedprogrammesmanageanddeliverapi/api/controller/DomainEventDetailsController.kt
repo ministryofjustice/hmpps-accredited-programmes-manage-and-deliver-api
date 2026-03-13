@@ -6,18 +6,21 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ProgrammeCompletionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusInfo
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.DomainEventDetailsService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralStatusService
 import java.util.UUID
 
 /**
- * This controller is secured by a different role other endpoints as it will be called from external services
+ * This controller is secured by a different role other endpoints as it will be called from external services,
  * and we want to restrict any access they may have to only READ data.
  */
 @RestController
 @PreAuthorize("hasAnyRole('ACCREDITED_PROGRAMMES__MANAGE_AND_DELIVER__READ_ONLY')")
-class StatusChangeDetailsController(
+class DomainEventDetailsController(
   private val referralStatusService: ReferralStatusService,
+  private val domainEventDetailsService: DomainEventDetailsService,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -28,5 +31,13 @@ class StatusChangeDetailsController(
     val statusInfo = referralStatusService.getStatusChangeDetailsForReferral(referralId)
 
     return ResponseEntity.ok(statusInfo)
+  }
+
+  @GetMapping("/referral/{referralId}/completion-data")
+  fun getProgrammeCompletionData(@PathVariable referralId: UUID): ResponseEntity<ProgrammeCompletionDetails> {
+    log.info("Request to retrieve details of programme completion for referral with id: $referralId")
+    val programmeCompletionDetails = domainEventDetailsService.getProgrammeCompletionDetailsForReferral(referralId)
+
+    return ResponseEntity.ok(programmeCompletionDetails)
   }
 }

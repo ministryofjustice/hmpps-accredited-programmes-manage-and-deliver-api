@@ -2,9 +2,11 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.rep
 
 import org.springframework.data.jpa.repository.JpaRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionRole
 import java.util.UUID
 
 interface ModuleSessionTemplateRepository : JpaRepository<ModuleSessionTemplateEntity, UUID> {
   fun findByModuleId(moduleId: UUID): List<ModuleSessionTemplateEntity>
   fun findByName(name: String): ModuleSessionTemplateEntity?
+  fun findBySessionRole(sessionRole: SessionRole): ModuleSessionTemplateEntity?
 }

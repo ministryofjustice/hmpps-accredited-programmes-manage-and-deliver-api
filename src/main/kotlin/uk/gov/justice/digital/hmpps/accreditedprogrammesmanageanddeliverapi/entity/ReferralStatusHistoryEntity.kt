@@ -8,6 +8,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.Transient
 import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
 import java.time.LocalDateTime
@@ -42,4 +43,9 @@ class ReferralStatusHistoryEntity(
 
   @Column(name = "start_date")
   var startDate: LocalDateTime? = null,
-)
+) {
+
+  @get:Transient
+  val statusDescription: String
+    get() = referralStatusDescription.description
+}
