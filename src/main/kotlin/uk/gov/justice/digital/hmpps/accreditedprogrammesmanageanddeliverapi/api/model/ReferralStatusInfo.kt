@@ -7,6 +7,7 @@ data class ReferralStatusInfo(
   val sourcedFromEntityType: ReferralEntitySourcedFrom,
   val sourcedFromEntityId: Long,
   val notes: String?,
+  val description: String,
 ) {
   enum class Status(
     val displayName: String,
