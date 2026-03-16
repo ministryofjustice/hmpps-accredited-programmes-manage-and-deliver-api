@@ -4,6 +4,7 @@ import jakarta.annotation.Nullable
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EntityListeners
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
@@ -15,6 +16,8 @@ import jakarta.persistence.OrderBy
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedDate
+import org.springframework.data.annotation.LastModifiedDate
+import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
@@ -24,6 +27,7 @@ import java.util.UUID
 
 @Entity
 @Table(name = "referral")
+@EntityListeners(AuditingEntityListener::class)
 class ReferralEntity(
   @Id
   @GeneratedValue
@@ -146,6 +150,10 @@ class ReferralEntity(
     orphanRemoval = true,
   )
   var availabilityEntity: AvailabilityEntity? = null,
+  @NotNull
+  @Column(name = "updated_at")
+  @LastModifiedDate
+  var updatedAt: LocalDateTime = LocalDateTime.now(),
 )
 
 enum class ReferralEntitySourcedFrom {
