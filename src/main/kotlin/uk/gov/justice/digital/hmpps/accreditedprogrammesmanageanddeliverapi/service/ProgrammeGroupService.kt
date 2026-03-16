@@ -460,7 +460,8 @@ class ProgrammeGroupService(
       date = session.startsAt.toLocalDate(),
       time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
       scheduledToAttend = session.attendees.map { it.personName },
-      facilitators = session.sessionFacilitators.map { it.facilitator.personName },
+      facilitators = session.sessionFacilitators.sortedBy { it.facilitator.personName }
+        .map { it.facilitator.personName },
       attendanceAndSessionNotes = attendanceAndSessionNotes,
     )
   }

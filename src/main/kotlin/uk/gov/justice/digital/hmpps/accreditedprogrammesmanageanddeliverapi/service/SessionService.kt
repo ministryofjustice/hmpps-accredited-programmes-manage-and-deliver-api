@@ -326,7 +326,7 @@ class SessionService(
     session.attendances.addAll(sessionAttendanceEntities)
     sessionRepository.save(session)
 
-    if (!attendees.isNullOrEmpty()) {
+    if (attendees.isNotEmpty()) {
       val updateAppointmentRequests = attendees.mapNotNull { attendee ->
         val referralId = attendee.referralId
         val nDeliusAppointment = session.ndeliusAppointments.find { it.referral.id == referralId }
@@ -346,35 +346,42 @@ class SessionService(
   fun getRecordAttendanceBySessionId(sessionId: UUID, referralIds: List<UUID>?): RecordSessionAttendance {
     val session = sessionRepository.findById(sessionId)
       .orElseThrow { NotFoundException("Session not found with id: $sessionId") }
-    val group = session.programmeGroup
+    val programmeGroup = session.programmeGroup
 
-    val outcomeOptions = sessionAttendanceOutcomeTypeRepository.findAll().map { outcomeType ->
-      getOptionFromOutcome(outcomeType)
-    }
+    val outcomeOptions = sessionAttendanceOutcomeTypeRepository.findAll().map(::getOptionFromOutcome)
+    val referralIdFilter = referralIds?.toSet()
 
-    val filteredAttendees = if (referralIds.isNullOrEmpty()) {
-      session.attendees
-    } else {
-      session.attendees.filter { attendee ->
-        referralIds.any { referralId ->
-          attendee.referralId == referralId
-        }
+    val latestAttendanceByReferralId = session.attendances
+      .groupBy { it.groupMembership.referral.id }
+      .mapValues { (_, attendances) ->
+        attendances.maxWithOrNull(
+          compareBy<SessionAttendanceEntity> { it.createdAt }
+            .thenBy { it.id },
+        )
       }
+
+    val filteredAttendees = session.attendees.filter { attendee ->
+      referralIdFilter == null || attendee.referralId in referralIdFilter
     }
 
     return RecordSessionAttendance(
       sessionTitle = session.sessionName,
-      groupRegionName = group.regionName,
+      groupRegionName = programmeGroup.regionName,
       people = filteredAttendees.map { attendee ->
+        val latestAttendance = latestAttendanceByReferralId[attendee.referralId]
+        val latestNotes = latestAttendance?.notesHistory
+          ?.maxByOrNull { it.createdAt }
+          ?.notes
+
         SessionAttendancePerson(
           referralId = attendee.referralId,
           name = attendee.personName,
           crn = attendee.referral.crn,
-          attendance = getSessionAttendance(session.attendances, attendee),
+          attendance = latestAttendance?.let(::getSessionAttendance),
           options = outcomeOptions,
-          sessionNotes = session.attendances.find { it.groupMembership.referral.id == attendee.referralId }?.notesHistory?.firstOrNull()?.notes,
+          sessionNotes = latestNotes,
         )
-      }.toList(),
+      },
     )
   }
 
@@ -423,18 +430,10 @@ class SessionService(
   }
 
   private fun getSessionAttendance(
-    attendances: Set<SessionAttendanceEntity>,
-    attendee: AttendeeEntity,
-  ): SessionPersonAttendance? {
-    val attendance = attendances.find { it.groupMembership.referral.id == attendee.referralId }
-
-    if (attendance == null) {
-      return null
-    }
-    return when (attendance.outcomeType.code) {
-      ATTC -> SessionPersonAttendance("Attended", attendance.outcomeType.code.name)
-      AFTC -> SessionPersonAttendance("Attended but failed to comply", attendance.outcomeType.code.name)
-      UAAB -> SessionPersonAttendance("Did not attend", attendance.outcomeType.code.name)
-    }
+    attendance: SessionAttendanceEntity,
+  ): SessionPersonAttendance? = when (attendance.outcomeType.code) {
+    ATTC -> SessionPersonAttendance("Attended", attendance.outcomeType.code.name)
+    AFTC -> SessionPersonAttendance("Attended but failed to comply", attendance.outcomeType.code.name)
+    UAAB -> SessionPersonAttendance("Did not attend", attendance.outcomeType.code.name)
   }
 }

@@ -46,6 +46,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.ATTC
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
@@ -1577,7 +1578,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
   @DisplayName("Get record attendance")
   inner class GetRecordAttendancePage {
     @Test
-    fun `should return 200 and data on GET record attendance by a session ID`() {
+    fun `should return 200 and most recent attendance data on GET record attendance by a session ID`() {
       // Given
       // Create group
       val group = testGroupHelper.createGroup()
@@ -1597,7 +1598,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       val sessionId = session!!.id!!
       val attendee = session.attendees.first()
 
-      val sessionAttendanceRequest = SessionAttendance(
+      val sessionAttendanceRequest1 = SessionAttendance(
         attendees = listOf(
           SessionAttendee(
             referralId = attendee.referralId,
@@ -1607,11 +1608,30 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         ),
       )
 
-      // record attendance
+      // record first attendance
       performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/session/$sessionId/attendance",
-        body = sessionAttendanceRequest,
+        body = sessionAttendanceRequest1,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val sessionAttendanceRequest2 = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = attendee.referralId,
+            outcomeCode = SessionAttendanceNDeliusCode.AFTC,
+            sessionNotes = "Latest test session notes",
+          ),
+        ),
+      )
+
+      // record second attendance
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = sessionAttendanceRequest2,
         returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
@@ -1635,12 +1655,12 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         { assertThat(it.referralId).isEqualTo(attendee.referralId) },
         { assertThat(it.name).isEqualTo(attendee.personName) },
         { assertThat(it.crn).isEqualTo(attendee.referral.crn) },
-        { assertThat(it.sessionNotes).isEqualTo("Test session notes") },
+        { assertThat(it.sessionNotes).isEqualTo("Latest test session notes") },
       )
 
       assertThat(attendance).satisfies(
-        { assertThat(it?.text).isEqualTo("Attended") },
-        { assertThat(it?.code).isEqualTo("ATTC") },
+        { assertThat(it?.text).isEqualTo("Attended but failed to comply") },
+        { assertThat(it?.code).isEqualTo("AFTC") },
       )
     }
 
