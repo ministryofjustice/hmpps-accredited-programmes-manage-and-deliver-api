@@ -74,15 +74,15 @@ class ReferralStatusService(
 
     // Map our M&D status description to a more readable string
     // e.g. Awaiting allocation -> The person is ready to be allocated to a programme group.
-    val statusDescriptionForEvent =
-      ReferralStatusInfo.Status.fromDisplayName(statusHistory.referralStatusDescription.description).description
+    val statusInfo =
+      ReferralStatusInfo.Status.fromDisplayName(statusHistory.referralStatusDescription.description)
 
     return ReferralStatusInfo(
-      newStatus = ReferralStatusInfo.Status.fromDisplayName(statusHistory.referralStatusDescription.description),
+      newStatus = statusInfo,
       sourcedFromEntityType = sourcedFrom,
       sourcedFromEntityId = eventId.toLong(),
       notes = statusHistory.additionalDetails,
-      description = statusDescriptionForEvent,
+      description = statusInfo.description,
     )
   }
 }

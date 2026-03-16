@@ -38,6 +38,7 @@ class StatusChangeDetailsControllerIntegrationTest : IntegrationTestBase() {
     assertThat(response.sourcedFromEntityId).isEqualTo(referral.eventId!!.toLong())
     assertThat(response.sourcedFromEntityType).isEqualTo(referral.sourcedFrom)
     assertThat(response.notes).isEqualTo("TEST ADDITIONAL DETAILS")
+    assertThat(response.description).isEqualTo("The person is ready to be allocated to a programme group.")
   }
 
   @Test
