@@ -34,6 +34,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Transactional
@@ -271,6 +272,21 @@ class TestDataGenerator {
     }
     return programmeGroupMembershipRepository.saveAll(groupMembershipEntities)
   }
+
+  fun addUnallocatedReferralsToGroup(
+    referrals: List<ReferralEntity>,
+    group: ProgrammeGroupEntity,
+  ): List<ProgrammeGroupMembershipEntity> {
+    val groupMembershipEntities = referrals.map {
+      ProgrammeGroupMembershipEntity(
+        referral = it,
+        programmeGroup = group,
+        deletedAt = LocalDateTime.now().minusDays(1),
+      )
+    }
+    return programmeGroupMembershipRepository.saveAll(groupMembershipEntities)
+  }
+
 
   fun createModuleSessionTemplate(
     module: ModuleEntity,

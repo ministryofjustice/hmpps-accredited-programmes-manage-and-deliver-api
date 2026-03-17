@@ -115,12 +115,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   @Autowired
   private lateinit var scheduleService: ScheduleService
 
-  @Autowired
-  private lateinit var moduleSessionTemplateRepository: ModuleSessionTemplateRepository
-
-  @Autowired
-  private lateinit var moduleRepository: ModuleRepository
-
   @BeforeEach
   override fun beforeEach() {
     testDataCleaner.cleanAllTables()
@@ -2760,5 +2754,15 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(notes3.attendance).isEqualTo("To be confirmed")
       assertThat(notes3.sessionNotes).isEqualTo("Not added")
     }
+  }
+
+  @Test
+  fun `should return 404 if the group doesnt exist`() {
+    performRequestAndExpectStatus(
+      httpMethod = HttpMethod.GET,
+      uri = "bff/group/${UUID.randomUUID()}/details",
+      object : ParameterizedTypeReference<ErrorResponse>() {},
+      HttpStatus.NOT_FOUND.value(),
+    )
   }
 }
