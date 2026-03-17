@@ -12,7 +12,7 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.OrderBy
 import jakarta.persistence.Table
-import jakarta.validation.constraints.NotNull
+import org.jetbrains.annotations.NotNull
 import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import org.springframework.security.core.context.SecurityContextHolder
@@ -28,16 +28,6 @@ class SessionAttendanceEntity(
   @GeneratedValue
   @Column(name = "id")
   var id: UUID? = null,
-
-  @NotNull
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "session_id")
-  var session: SessionEntity,
-
-  @NotNull
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "group_membership_id")
-  var groupMembership: ProgrammeGroupMembershipEntity,
 
   @Column(name = "legitimate_absence")
   var legitimateAbsence: Boolean? = null,
@@ -70,16 +60,19 @@ class SessionAttendanceEntity(
   @NotNull
   @Column(name = "created_at", updatable = false)
   var createdAt: LocalDateTime = LocalDateTime.now(),
+
+  @NotNull
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "attendee_id")
+  var attendee: AttendeeEntity,
 )
 
 fun SessionAttendee.toEntity(
-  session: SessionEntity,
-  groupMembershipEntity: ProgrammeGroupMembershipEntity,
+  attendee: AttendeeEntity,
   recordedByFacilitator: FacilitatorEntity,
   outcomeType: SessionAttendanceNDeliusOutcomeEntity,
 ) = SessionAttendanceEntity(
-  session = session,
-  groupMembership = groupMembershipEntity,
+  attendee = attendee,
   recordedByFacilitator = recordedByFacilitator,
   recordedAt = LocalDateTime.now(),
   outcomeType = outcomeType,

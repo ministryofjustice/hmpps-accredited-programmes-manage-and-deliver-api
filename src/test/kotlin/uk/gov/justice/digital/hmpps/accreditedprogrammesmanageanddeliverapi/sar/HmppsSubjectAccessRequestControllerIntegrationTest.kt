@@ -20,6 +20,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionNotesHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceNDeliusOutcomeEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -145,20 +146,18 @@ class HmppsSubjectAccessRequestControllerIntegrationTest : IntegrationTestBase()
 
     // Setup attendance and notes for the session
     stubAuthTokenEndpoint()
-    val groupMembership1 = groupWithAllocation.programmeGroupMemberships.first { it.referral.id == referral1.id }
-    val groupMembership2 = groupWithAllocation.programmeGroupMemberships.first { it.referral.id == referral2.id }
+    val attendee1 = AttendeeFactory().withReferral(referral1).withSession(session).produce()
+    val attendee2 = AttendeeFactory().withReferral(referral2).withSession(session).produce()
 
     val attendance1 = SessionAttendanceEntity(
-      session = session,
-      groupMembership = groupMembership1,
+      attendee = attendee1,
       outcomeType = SessionAttendanceNDeliusOutcomeEntityFactory().produce(),
     ).apply {
       notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 1"))
     }
 
     val attendance2 = SessionAttendanceEntity(
-      session = session,
-      groupMembership = groupMembership2,
+      attendee = attendee2,
       outcomeType = SessionAttendanceNDeliusOutcomeEntityFactory().withCode(UAAB)
         .withDescription("Unacceptable Absence")
         .withAttendance(false).withCompliant(false).produce(),
@@ -167,7 +166,7 @@ class HmppsSubjectAccessRequestControllerIntegrationTest : IntegrationTestBase()
       notesHistory.add(SessionNotesHistoryEntity(attendance = this, notes = "Notes for referral 2 - latest"))
     }
 
-    session.attendances.addAll(listOf(attendance1, attendance2))
+    session.attendees.addAll(listOf(attendee1, attendee2))
     sessionRepository.saveAndFlush(session)
 
     // When
