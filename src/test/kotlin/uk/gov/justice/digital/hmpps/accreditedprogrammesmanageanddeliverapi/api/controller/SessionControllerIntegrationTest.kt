@@ -1621,7 +1621,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         attendees = listOf(
           SessionAttendee(
             referralId = attendee.referralId,
-            outcomeCode = SessionAttendanceNDeliusCode.AFTC,
+            outcomeCode = SessionAttendanceNDeliusCode.UAAB,
             sessionNotes = "Latest test session notes",
           ),
         ),
@@ -1659,8 +1659,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(attendance).satisfies(
-        { assertThat(it?.text).isEqualTo("Attended but failed to comply") },
-        { assertThat(it?.code).isEqualTo("AFTC") },
+        { assertThat(it?.text).isEqualTo("Did not attend") },
+        { assertThat(it?.code).isEqualTo("UAAB") },
       )
     }
 

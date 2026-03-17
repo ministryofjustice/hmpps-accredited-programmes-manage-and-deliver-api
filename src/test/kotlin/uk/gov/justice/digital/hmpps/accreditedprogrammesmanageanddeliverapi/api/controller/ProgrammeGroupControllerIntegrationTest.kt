@@ -2559,6 +2559,26 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val groupWithAllocation = programmeGroupRepository.findByCode(body.groupCode)!!
       groupWithAllocation.sessions = group.sessions.filter { !it.isPlaceholder }.toMutableSet()
 
+      val session = groupWithAllocation.sessions.first()
+      val groupMembership = groupWithAllocation.programmeGroupMemberships.first()
+
+      val attendance = SessionAttendanceEntity(
+        session = session,
+        groupMembership = groupMembership,
+        outcomeType = SessionAttendanceNDeliusOutcomeEntityFactory().withCode(UAAB).produce(),
+        createdAt = LocalDateTime.now(),
+      ).apply {
+        val note = SessionNotesHistoryEntity(
+          attendance = this,
+          notes = "Test session notes",
+          createdAt = LocalDateTime.now(),
+        )
+        notesHistory.add(note)
+      }
+
+      session.attendances.add(attendance)
+      sessionRepository.saveAndFlush(session)
+
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
@@ -2580,7 +2600,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .hasSize(1)
         .first()
         .extracting("attendance", "sessionNotes")
-        .containsExactly("To be confirmed", "Not added")
+        .containsExactly("Did not attend", "Test session notes")
     }
 
     @Test
@@ -2753,7 +2773,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(notes1.sessionNotes).isEqualTo("Notes for referral 1 - latest")
 
       val notes2 = response.attendanceAndSessionNotes.find { it.crn == referral2.crn }!!
-      assertThat(notes2.attendance).isEqualTo("Unacceptable Absence")
+      assertThat(notes2.attendance).isEqualTo("Did not attend")
       assertThat(notes2.sessionNotes).isEqualTo("Notes for referral 2 - latest")
 
       val notes3 = response.attendanceAndSessionNotes.find { it.crn == referral3.crn }!!
