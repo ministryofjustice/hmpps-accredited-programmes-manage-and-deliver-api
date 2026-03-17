@@ -41,8 +41,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
@@ -448,7 +450,7 @@ class ProgrammeGroupService(
         name = attendee.personName,
         referralId = attendee.referralId,
         crn = attendee.referral.crn,
-        attendance = attendanceRecord?.outcomeType?.description ?: "To be confirmed",
+        attendance = getAttendanceTextFromOutcome(attendanceRecord?.outcomeType),
         sessionNotes = attendanceRecord?.notesHistory?.maxByOrNull { it.createdAt }?.notes ?: "Not added",
       )
     }
@@ -464,5 +466,11 @@ class ProgrammeGroupService(
         .map { it.facilitator.personName },
       attendanceAndSessionNotes = attendanceAndSessionNotes,
     )
+  }
+
+  private fun getAttendanceTextFromOutcome(attendanceOutcome: SessionAttendanceNDeliusOutcomeEntity?): String = when (attendanceOutcome?.code) {
+    UAAB -> "Did not attend"
+    null -> "To be confirmed"
+    else -> attendanceOutcome.description!!
   }
 }
