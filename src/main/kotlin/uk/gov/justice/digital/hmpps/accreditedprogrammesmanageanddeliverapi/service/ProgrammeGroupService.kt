@@ -14,6 +14,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupDetailsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverview
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverviewSession
@@ -184,6 +185,13 @@ class ProgrammeGroupService(
   fun getGroupInRegion(groupCode: String, username: String): ProgrammeGroupEntity? {
     val (userRegion) = userService.getUserRegions(username)
     return programmeGroupRepository.findByCodeAndRegionName(groupCode, userRegion.description)
+  }
+
+  fun getGroupDetails(groupId: UUID): GroupDetailsResponse {
+    val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
+    val daysAndTimes: List<String> = programmeGroup.programmeGroupSessionSlots.map { "${it.dayOfWeek.toAvailabilityOptions()}, ${formatTimeOfSession(it.startTime, it.startTime.plusMinutes(150))}" }
+    return GroupDetailsResponse.from(programmeGroup, daysAndTimes)
   }
 
   fun getGroupAllocationsFilters(): ProgrammeGroupAllocations.ProgrammeGroupAllocationsFilters {

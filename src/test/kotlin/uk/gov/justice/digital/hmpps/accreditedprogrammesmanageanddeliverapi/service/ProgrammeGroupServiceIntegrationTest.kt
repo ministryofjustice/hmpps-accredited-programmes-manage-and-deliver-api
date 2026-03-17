@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.Pageable
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverviewSession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
@@ -22,7 +23,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
@@ -692,6 +697,105 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       }
 
       assertThat(exception.message).isEqualTo("No sessions found for group ${group.id}")
+    }
+  }
+
+  @Nested
+  @DisplayName("getGroupDetails")
+  inner class GetGroupDetails {
+
+    @AfterEach
+    fun tearDown() {
+      testDataCleaner.cleanAllTables()
+    }
+
+    @Test
+    fun `should return group details with correctly formatted data`() {
+      // Given
+      val treatmentManager = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withPersonName("Alex River").produce())
+      val facilitator1 = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withPersonName("Archibald Quentin").produce())
+      val facilitator2 = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withPersonName("Jane Doe").produce())
+      val coverFacilitator = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withPersonName("John Doe").produce())
+
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withCode("TEST_GROUP_001")
+          .withRegionName("Test Region")
+          .withProbationDeliveryUnit("Test PDU", "PDU001")
+          .withDeliveryLocation("Test Location", "LOC001")
+          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withCohort(OffenceCohort.GENERAL_OFFENCE)
+          .withIsLdc(true)
+          .withEarliestStartDate(LocalDate.of(2026, 4, 1))
+          .withTreatmentManager(treatmentManager)
+          .produce(),
+      )
+
+      // Add session slots to the group
+      val sessionSlot1 = ProgrammeGroupSessionSlotEntity(
+        programmeGroup = group,
+        dayOfWeek = DayOfWeek.MONDAY,
+        startTime = java.time.LocalTime.of(12, 0),
+      )
+      val sessionSlot2 = ProgrammeGroupSessionSlotEntity(
+        programmeGroup = group,
+        dayOfWeek = DayOfWeek.THURSDAY,
+        startTime = java.time.LocalTime.of(14, 30),
+      )
+
+      group.programmeGroupSessionSlots.add(sessionSlot1)
+      group.programmeGroupSessionSlots.add(sessionSlot2)
+
+      // Create facilitators and associate them with the group
+      val programmeGroupFacilitator1 = ProgrammeGroupFacilitatorEntity(
+        facilitator = facilitator1,
+        programmeGroup = group,
+        facilitatorType = FacilitatorType.REGULAR_FACILITATOR,
+      )
+      val programmeGroupFacilitator2 = ProgrammeGroupFacilitatorEntity(
+        facilitator = facilitator2,
+        programmeGroup = group,
+        facilitatorType = FacilitatorType.REGULAR_FACILITATOR,
+      )
+      val programmeGroupCoverFacilitator = ProgrammeGroupFacilitatorEntity(
+        facilitator = coverFacilitator,
+        programmeGroup = group,
+        facilitatorType = FacilitatorType.COVER_FACILITATOR,
+      )
+
+      group.groupFacilitators.add(programmeGroupFacilitator1)
+      group.groupFacilitators.add(programmeGroupFacilitator2)
+      group.groupFacilitators.add(programmeGroupCoverFacilitator)
+
+      programmeGroupRepository.saveAndFlush(group)
+      val referral1 = testDataGenerator.createReferral("Person 1", "CRN1")
+      val referral2 = testDataGenerator.createReferral("Person 2", "CRN2")
+      val referral3 = testDataGenerator.createReferral("Person 3", "CRN3")
+
+      testDataGenerator.allocateReferralsToGroup(listOf(referral1, referral2), group)
+      testDataGenerator.addUnallocatedReferralsToGroup(listOf(referral3), group)
+
+      // When
+      val result = service.getGroupDetails(group.id!!)
+
+      // Then
+      assertThat(result).isNotNull
+      assertThat(result.id).isEqualTo(group.id)
+      assertThat(result.code).isEqualTo("TEST_GROUP_001")
+      assertThat(result.regionName).isEqualTo("Test Region")
+      assertThat(result.startDate).isNotNull
+      assertThat(result.pduName).isEqualTo("Test PDU")
+      assertThat(result.deliveryLocation).isEqualTo("Test Location")
+      assertThat(result.sex).isEqualTo("Male")
+      assertThat(result.cohort).isEqualTo("General offence - LDC")
+      assertThat(result.daysAndTimes).containsExactlyInAnyOrder(
+        "Mondays, midday to 2:30pm",
+        "Thursdays, 2:30pm to 5pm",
+      )
+      assertThat(result.treatmentManager).isEqualTo("Alex River")
+      assertThat(result.currentlyAllocatedNumber).isEqualTo(2)
+      assertThat(result.facilitators).containsExactlyInAnyOrder("Archibald Quentin", "Jane Doe")
+      assertThat(result.coverFacilitators).containsExactlyInAnyOrder("John Doe")
     }
   }
 }
