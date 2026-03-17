@@ -126,8 +126,8 @@ data class GroupDetailsResponse(
       daysAndTimes = daysAndTimes,
       currentlyAllocatedNumber = programmeGroup.programmeGroupMemberships.count { it.deletedAt == null },
       treatmentManager = programmeGroup.treatmentManager?.personName!!,
-      facilitators = programmeGroup.groupFacilitators.filter{ it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR}.map{ it.facilitator.personName },
-      coverFacilitators = programmeGroup.groupFacilitators.filter{ it.facilitatorType == FacilitatorType.COVER_FACILITATOR}.map{ it.facilitator.personName }
+      facilitators = programmeGroup.groupFacilitators.filter { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }.map { it.facilitator.personName },
+      coverFacilitators = programmeGroup.groupFacilitators.filter { it.facilitatorType == FacilitatorType.COVER_FACILITATOR }.map { it.facilitator.personName },
     )
   }
 }

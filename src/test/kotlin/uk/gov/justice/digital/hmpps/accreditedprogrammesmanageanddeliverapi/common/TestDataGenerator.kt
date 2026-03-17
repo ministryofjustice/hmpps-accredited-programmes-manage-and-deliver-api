@@ -287,7 +287,6 @@ class TestDataGenerator {
     return programmeGroupMembershipRepository.saveAll(groupMembershipEntities)
   }
 
-
   fun createModuleSessionTemplate(
     module: ModuleEntity,
     name: String,

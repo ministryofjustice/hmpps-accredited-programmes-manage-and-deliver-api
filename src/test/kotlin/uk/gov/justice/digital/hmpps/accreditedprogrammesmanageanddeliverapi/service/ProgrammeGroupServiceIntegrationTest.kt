@@ -708,7 +708,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     fun tearDown() {
       testDataCleaner.cleanAllTables()
     }
-    
+
     @Test
     fun `should return group details with correctly formatted data`() {
       // Given
@@ -716,7 +716,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       val facilitator1 = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withPersonName("Archibald Quentin").produce())
       val facilitator2 = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withPersonName("Jane Doe").produce())
       val coverFacilitator = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withPersonName("John Doe").produce())
-      
+
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withCode("TEST_GROUP_001")
@@ -730,7 +730,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           .withTreatmentManager(treatmentManager)
           .produce(),
       )
-      
+
       // Add session slots to the group
       val sessionSlot1 = ProgrammeGroupSessionSlotEntity(
         programmeGroup = group,
@@ -742,7 +742,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         dayOfWeek = DayOfWeek.THURSDAY,
         startTime = java.time.LocalTime.of(14, 30),
       )
-      
+
       group.programmeGroupSessionSlots.add(sessionSlot1)
       group.programmeGroupSessionSlots.add(sessionSlot2)
 
@@ -762,11 +762,11 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         programmeGroup = group,
         facilitatorType = FacilitatorType.COVER_FACILITATOR,
       )
-      
+
       group.groupFacilitators.add(programmeGroupFacilitator1)
       group.groupFacilitators.add(programmeGroupFacilitator2)
       group.groupFacilitators.add(programmeGroupCoverFacilitator)
-      
+
       programmeGroupRepository.saveAndFlush(group)
       val referral1 = testDataGenerator.createReferral("Person 1", "CRN1")
       val referral2 = testDataGenerator.createReferral("Person 2", "CRN2")
