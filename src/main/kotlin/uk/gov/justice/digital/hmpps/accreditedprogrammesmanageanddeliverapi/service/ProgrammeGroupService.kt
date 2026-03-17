@@ -187,7 +187,7 @@ class ProgrammeGroupService(
     return programmeGroupRepository.findByCodeAndRegionName(groupCode, userRegion.description)
   }
 
-  fun getGroupDetails(groupId: UUID): GroupDetailsResponse? {
+  fun getGroupDetails(groupId: UUID): GroupDetailsResponse {
     val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
     val daysAndTimes: List<String> = programmeGroup.programmeGroupSessionSlots.map { "${it.dayOfWeek.toAvailabilityOptions()}, ${formatTimeOfSession(it.startTime, it.startTime.plusMinutes(150))}" }

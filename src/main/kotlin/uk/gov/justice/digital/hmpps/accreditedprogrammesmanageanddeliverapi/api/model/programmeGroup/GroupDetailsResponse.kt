@@ -19,7 +19,7 @@ data class GroupDetailsResponse(
     description = "A unique id identifying the programme group.",
   )
   @get:JsonProperty("id", required = true)
-  val id: UUID?,
+  val id: UUID,
 
   @Schema(
     example = "AP_BIRMINGHAM_NORTH",
@@ -115,7 +115,7 @@ data class GroupDetailsResponse(
       programmeGroup: ProgrammeGroupEntity,
       daysAndTimes: List<String>,
     ): GroupDetailsResponse = GroupDetailsResponse(
-      id = programmeGroup.id,
+      id = programmeGroup.id!!,
       code = programmeGroup.code,
       regionName = programmeGroup.regionName,
       startDate = programmeGroup.earliestPossibleStartDate,

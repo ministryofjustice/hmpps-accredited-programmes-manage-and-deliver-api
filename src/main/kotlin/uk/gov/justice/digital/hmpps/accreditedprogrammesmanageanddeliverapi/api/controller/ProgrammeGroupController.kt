@@ -444,7 +444,7 @@ class ProgrammeGroupController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
-  @GetMapping("bff/group/{groupId}/details")
+  @GetMapping("/bff/group/{groupId}/details")
   fun getGroupDetails(@PathVariable groupId: UUID): ResponseEntity<GroupDetailsResponse>? = ResponseEntity.ok(programmeGroupService.getGroupDetails(groupId))
 
   @Operation(

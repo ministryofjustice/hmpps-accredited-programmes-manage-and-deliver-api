@@ -2778,7 +2778,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   fun `should return 404 if the group doesnt exist`() {
     performRequestAndExpectStatus(
       httpMethod = HttpMethod.GET,
-      uri = "bff/group/${UUID.randomUUID()}/details",
+      uri = "/bff/group/${UUID.randomUUID()}/details",
       object : ParameterizedTypeReference<ErrorResponse>() {},
       HttpStatus.NOT_FOUND.value(),
     )

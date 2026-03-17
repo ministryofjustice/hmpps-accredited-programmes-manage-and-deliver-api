@@ -780,7 +780,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(result).isNotNull
-      assertThat(result!!.id).isEqualTo(group.id)
+      assertThat(result.id).isEqualTo(group.id)
       assertThat(result.code).isEqualTo("TEST_GROUP_001")
       assertThat(result.regionName).isEqualTo("Test Region")
       assertThat(result.startDate).isNotNull
