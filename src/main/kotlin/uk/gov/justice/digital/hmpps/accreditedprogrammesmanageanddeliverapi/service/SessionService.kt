@@ -9,6 +9,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendance
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendee
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
@@ -321,50 +322,26 @@ class SessionService(
     }
 
     val attendees = sessionAttendance.attendees
-
-    attendees.forEach { attendeeDto ->
-      val referral = referralService.getReferralById(attendeeDto.referralId)
-
-      val attendeeEntity = attendeeRepository.findByReferralAndSession(referral, session)
-        ?: throw NotFoundException(
-          "Attendee could not be found for referral with id: ${referral.id} and session with id: ${session.id}",
-        )
-
-      val outcomeType = sessionAttendanceOutcomeTypeRepository.findByCode(attendeeDto.outcomeCode)
-        ?: throw NotFoundException(
-          "Session attendance outcome type not found with code: ${attendeeDto.outcomeCode}",
-        )
-
-      val attendanceEntity = attendeeDto.toEntity(
-        attendee = attendeeEntity,
-        recordedByFacilitator = session.sessionFacilitators
-          .find { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }?.facilitator
-          ?: throw BusinessException("Regular facilitator not found for session: ${session.id}"),
-        outcomeType = outcomeType,
-      )
-
+    val sessionAttendanceEntities = getSessionAttendanceFromAttendees(attendees, session)
+    sessionAttendanceEntities.forEach { (attendeeEntity, attendanceEntity) ->
       attendeeEntity.sessionAttendances.add(attendanceEntity)
     }
-
     sessionRepository.save(session)
 
-    val updateAppointmentRequests = attendees.mapNotNull { attendee ->
-      val nDeliusAppointment = session.ndeliusAppointments
-        .find { it.referral.id == attendee.referralId }
+    if (attendees.isNotEmpty()) {
+      val updateAppointmentRequests = attendees.mapNotNull { attendee ->
+        val referralId = attendee.referralId
+        val nDeliusAppointment = session.ndeliusAppointments.find { it.referral.id == referralId }
+        nDeliusAppointment?.toUpdateAppointmentRequest(attendee.sessionNotes, attendee.outcomeCode)
+      }
 
-      nDeliusAppointment?.toUpdateAppointmentRequest(
-        attendee.sessionNotes,
-        attendee.outcomeCode,
-      )
-    }
-
-    if (updateAppointmentRequests.isNotEmpty()) {
-      nDeliusIntegrationApiClient.updateAppointmentsInDelius(
-        UpdateAppointmentsRequest(updateAppointmentRequests),
-      )
+      if (updateAppointmentRequests.isNotEmpty()) {
+        nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateAppointmentRequests))
+      }
     }
 
     sessionAttendance.responseMessage = "Attendance saved for session $sessionId"
+
     return sessionAttendance
   }
 
@@ -376,8 +353,8 @@ class SessionService(
     val outcomeOptions = sessionAttendanceOutcomeTypeRepository.findAll().map(::getOptionFromOutcome)
     val referralIdFilter = referralIds?.toSet()
 
-    val latestAttendanceByAttendeeId = session.attendees.map {
-      sessionAttendanceRepository.findTopByAttendeeIdOrderByCreatedAtDesc(it.id!!)
+    val latestAttendanceByAttendeeId = session.attendees.associate { attendee ->
+      attendee.id!! to sessionAttendanceRepository.findTopByAttendeeIdOrderByCreatedAtDesc(attendee.id!!)
     }
 
     val filteredAttendees = session.attendees.filter { attendee ->
@@ -388,7 +365,7 @@ class SessionService(
       sessionTitle = session.sessionName,
       groupRegionName = programmeGroup.regionName,
       people = filteredAttendees.map { attendee ->
-        val latestAttendance = latestAttendanceByAttendeeId.find { it?.attendee?.id == attendee.id }
+        val latestAttendance = latestAttendanceByAttendeeId[attendee.id!!]
         val latestNotes = latestAttendance?.notesHistory
           ?.maxByOrNull { it.createdAt }
           ?.notes
@@ -415,6 +392,29 @@ class SessionService(
     )
 
     UAAB -> Option("No - did not attend", null, outcome.code.name)
+  }
+
+  private fun getSessionAttendanceFromAttendees(
+    attendees: List<SessionAttendee>?,
+    session: SessionEntity,
+  ): List<Pair<AttendeeEntity, SessionAttendanceEntity>> {
+    val recordedByFacilitator =
+      session.sessionFacilitators.find { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }?.facilitator
+        ?: throw BusinessException("Regular facilitator not found for session: ${session.id}")
+
+    return attendees?.map { attendee ->
+      val referral = referralService.getReferralById(attendee.referralId)
+
+      val attendeeEntity = attendeeRepository.findByReferralAndSession(referral, session)
+        ?: throw NotFoundException(
+          "Attendee could not be found for referral with id: ${referral.id} and session with id: ${session.id}",
+        )
+
+      val outcomeType = sessionAttendanceOutcomeTypeRepository.findByCode(attendee.outcomeCode)
+        ?: throw NotFoundException("Session attendance outcome type not found with code: ${attendee.outcomeCode}")
+
+      attendeeEntity to attendee.toEntity(attendeeEntity, recordedByFacilitator, outcomeType)
+    }?.toList() ?: listOf()
   }
 
   private fun formatPreviousSessionDateAndTime(session: SessionEntity): String {
