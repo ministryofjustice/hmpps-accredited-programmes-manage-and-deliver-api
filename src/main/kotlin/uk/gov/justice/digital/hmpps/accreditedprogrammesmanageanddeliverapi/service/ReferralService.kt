@@ -12,7 +12,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusInfo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.UpdateLdc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
@@ -353,7 +352,7 @@ class ReferralService(
         createdBy = createdBy,
       ),
     )
-    publishReferralStatusUpdatedEvent(referral, historyEntry.referralStatusDescription.description)
+    publishReferralStatusUpdatedEvent(referral)
 
     return StatusUpdateResponse(
       referralStatusHistory = historyEntry.toApi(),
@@ -398,18 +397,13 @@ class ReferralService(
     else -> null
   }
 
-  private fun publishReferralStatusUpdatedEvent(referral: ReferralEntity, newStatusDescription: String) {
-    // Map our M&D status description to a more readable string
-    // e.g. Awaiting allocation -> The person is ready to be allocated to a programme group.
-    val statusDescriptionForEvent =
-      ReferralStatusInfo.Status.fromDisplayName(newStatusDescription).description
-
+  private fun publishReferralStatusUpdatedEvent(referral: ReferralEntity) {
     val hmppsDomainEvent = DomainEventsMessage(
       eventType = HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_CREATED.value,
       version = 1,
       detailUrl = "$madBaseUrl/referral/${referral.id}/status-change-details",
       occurredAt = ZonedDateTime.now(),
-      description = statusDescriptionForEvent,
+      description = "An Accredited Programmes referral in community has had it's status updated.",
       additionalInformation = mutableMapOf(),
       personReference = PersonReference.fromCrn(referral.crn),
     )

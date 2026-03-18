@@ -14,6 +14,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupDetailsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverview
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverviewSession
@@ -40,8 +41,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
@@ -181,6 +185,13 @@ class ProgrammeGroupService(
   fun getGroupInRegion(groupCode: String, username: String): ProgrammeGroupEntity? {
     val (userRegion) = userService.getUserRegions(username)
     return programmeGroupRepository.findByCodeAndRegionName(groupCode, userRegion.description)
+  }
+
+  fun getGroupDetails(groupId: UUID): GroupDetailsResponse {
+    val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
+    val daysAndTimes: List<String> = programmeGroup.programmeGroupSessionSlots.map { "${it.dayOfWeek.toAvailabilityOptions()}, ${formatTimeOfSession(it.startTime, it.startTime.plusMinutes(150))}" }
+    return GroupDetailsResponse.from(programmeGroup, daysAndTimes)
   }
 
   fun getGroupAllocationsFilters(): ProgrammeGroupAllocations.ProgrammeGroupAllocationsFilters {
@@ -438,13 +449,16 @@ class ProgrammeGroupService(
       ?: throw NotFoundException("Session with $sessionId not found")
 
     val attendanceAndSessionNotes = session.attendees.map { attendee ->
-      val attendanceRecord = session.attendances.find { it.groupMembership.referral.id == attendee.referralId }
+      val attendanceRecord = session.attendances
+        .filter { it.groupMembership.referral.id == attendee.referralId }
+        .sortedWith(compareByDescending<SessionAttendanceEntity> { it.createdAt }.thenByDescending { it.id })
+        .firstOrNull()
 
       AttendanceAndSessionNotes(
         name = attendee.personName,
         referralId = attendee.referralId,
         crn = attendee.referral.crn,
-        attendance = attendanceRecord?.outcomeType?.description ?: "To be confirmed",
+        attendance = getAttendanceTextFromOutcome(attendanceRecord?.outcomeType),
         sessionNotes = attendanceRecord?.notesHistory?.maxByOrNull { it.createdAt }?.notes ?: "Not added",
       )
     }
@@ -456,8 +470,15 @@ class ProgrammeGroupService(
       date = session.startsAt.toLocalDate(),
       time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
       scheduledToAttend = session.attendees.map { it.personName },
-      facilitators = session.sessionFacilitators.map { it.facilitator.personName },
+      facilitators = session.sessionFacilitators.sortedBy { it.facilitator.personName }
+        .map { it.facilitator.personName },
       attendanceAndSessionNotes = attendanceAndSessionNotes,
     )
+  }
+
+  private fun getAttendanceTextFromOutcome(attendanceOutcome: SessionAttendanceNDeliusOutcomeEntity?): String = when (attendanceOutcome?.code) {
+    UAAB -> "Did not attend"
+    null -> "To be confirmed"
+    else -> attendanceOutcome.description!!
   }
 }

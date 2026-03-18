@@ -38,21 +38,21 @@ class DeliveryLocationPreferenceEntity(
   @NotNull
   @OneToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "referral_id")
-  val referral: ReferralEntity,
+  var referral: ReferralEntity,
 
   @NotNull
   @Column(name = "created_by")
   @CreatedBy
-  val createdBy: String? = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
+  var createdBy: String? = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
 
   @NotNull
   @CreatedDate
-  val createdAt: LocalDateTime? = LocalDateTime.now(),
+  var createdAt: LocalDateTime? = LocalDateTime.now(),
 
   @NotNull
   @Column(name = "last_updated_at")
   @LastModifiedDate
-  val lastUpdatedAt: LocalDateTime? = LocalDateTime.now(),
+  var lastUpdatedAt: LocalDateTime? = LocalDateTime.now(),
 
   @Nullable
   @Column(name = "locations_cannot_attend_text")
@@ -63,6 +63,7 @@ class DeliveryLocationPreferenceEntity(
   @JoinColumn(name = "delivery_location_preferences_id")
   var preferredDeliveryLocations: MutableSet<PreferredDeliveryLocationEntity> = mutableSetOf(),
 )
+
 fun CreateDeliveryLocationPreferences.toEntity(
   referral: ReferralEntity,
   deliveryLocations: MutableSet<PreferredDeliveryLocationEntity>,

@@ -46,7 +46,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedProgrammeDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
@@ -70,7 +69,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -114,12 +112,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var scheduleService: ScheduleService
-
-  @Autowired
-  private lateinit var moduleSessionTemplateRepository: ModuleSessionTemplateRepository
-
-  @Autowired
-  private lateinit var moduleRepository: ModuleRepository
 
   @BeforeEach
   override fun beforeEach() {
@@ -2348,8 +2340,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   inner class GetGroupSessions {
     @Test
     fun `return 200 and bff data if successful`() {
+      stubAuthTokenEndpoint()
       val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
-
       val body = CreateGroupRequestFactory().produce(
         createGroupSessionSlot = setOf(slot1),
       )
@@ -2559,6 +2551,26 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val groupWithAllocation = programmeGroupRepository.findByCode(body.groupCode)!!
       groupWithAllocation.sessions = group.sessions.filter { !it.isPlaceholder }.toMutableSet()
 
+      val session = groupWithAllocation.sessions.first()
+      val groupMembership = groupWithAllocation.programmeGroupMemberships.first()
+
+      val attendance = SessionAttendanceEntity(
+        session = session,
+        groupMembership = groupMembership,
+        outcomeType = SessionAttendanceNDeliusOutcomeEntityFactory().withCode(UAAB).produce(),
+        createdAt = LocalDateTime.now(),
+      ).apply {
+        val note = SessionNotesHistoryEntity(
+          attendance = this,
+          notes = "Test session notes",
+          createdAt = LocalDateTime.now(),
+        )
+        notesHistory.add(note)
+      }
+
+      session.attendances.add(attendance)
+      sessionRepository.saveAndFlush(session)
+
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
@@ -2580,7 +2592,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .hasSize(1)
         .first()
         .extracting("attendance", "sessionNotes")
-        .containsExactly("To be confirmed", "Not added")
+        .containsExactly("Did not attend", "Test session notes")
     }
 
     @Test
@@ -2682,27 +2694,25 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       stubAuthTokenEndpoint()
       val groupMembership1 = groupWithAllocation.programmeGroupMemberships.first { it.referral.id == referral1.id }
       val groupMembership2 = groupWithAllocation.programmeGroupMemberships.first { it.referral.id == referral2.id }
-      val groupMembership3 = groupWithAllocation.programmeGroupMemberships.first { it.referral.id == referral3.id }
 
       val attendance1 = SessionAttendanceEntity(
         session = session,
         groupMembership = groupMembership1,
         outcomeType = SessionAttendanceNDeliusOutcomeEntityFactory().produce(),
+        createdAt = LocalDateTime.now().plusSeconds(2),
       ).apply {
-        notesHistory.add(
-          SessionNotesHistoryEntity(
-            attendance = this,
-            notes = "Notes for referral 1",
-            createdAt = LocalDateTime.now().minusMinutes(5),
-          ),
+        val note1 = SessionNotesHistoryEntity(
+          attendance = this,
+          notes = "Notes for referral 1 - initial",
+          createdAt = LocalDateTime.now().plusSeconds(1),
         )
-        notesHistory.add(
-          SessionNotesHistoryEntity(
-            attendance = this,
-            notes = "Notes for referral 1 - latest",
-            createdAt = LocalDateTime.now(),
-          ),
+        notesHistory.add(note1)
+        val note2 = SessionNotesHistoryEntity(
+          attendance = this,
+          notes = "Notes for referral 1 - latest",
+          createdAt = LocalDateTime.now().plusSeconds(2),
         )
+        notesHistory.add(note2)
       }
 
       val attendance2 = SessionAttendanceEntity(
@@ -2711,24 +2721,32 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         outcomeType = SessionAttendanceNDeliusOutcomeEntityFactory().withCode(UAAB)
           .withDescription("Unacceptable Absence")
           .withAttendance(false).withCompliant(false).produce(),
+        createdAt = LocalDateTime.now().plusSeconds(3),
       ).apply {
-        notesHistory.add(
-          SessionNotesHistoryEntity(
-            attendance = this,
-            notes = "Notes for referral 2 - initial",
-            createdAt = LocalDateTime.now().minusMinutes(5),
-          ),
+        val note3 = SessionNotesHistoryEntity(
+          attendance = this,
+          notes = "Notes for referral 2 - initial",
+          createdAt = LocalDateTime.now().plusSeconds(1),
         )
-        notesHistory.add(
-          SessionNotesHistoryEntity(
-            attendance = this,
-            notes = "Notes for referral 2 - latest",
-            createdAt = LocalDateTime.now(),
-          ),
+        notesHistory.add(note3)
+        val note4 = SessionNotesHistoryEntity(
+          attendance = this,
+          notes = "Notes for referral 2 - latest",
+          createdAt = LocalDateTime.now().plusSeconds(2),
         )
+        notesHistory.add(note4)
       }
 
-      session.attendances.addAll(listOf(attendance1, attendance2))
+      val attendance3 = SessionAttendanceEntity(
+        session = session,
+        groupMembership = groupMembership1,
+        outcomeType = SessionAttendanceNDeliusOutcomeEntityFactory().withCode(UAAB)
+          .withDescription("Unacceptable Absence")
+          .withAttendance(false).withCompliant(false).produce(),
+        createdAt = LocalDateTime.now().plusSeconds(1),
+      )
+
+      session.attendances.addAll(listOf(attendance1, attendance2, attendance3))
       sessionRepository.saveAndFlush(session)
 
       // When
@@ -2747,12 +2765,22 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(notes1.sessionNotes).isEqualTo("Notes for referral 1 - latest")
 
       val notes2 = response.attendanceAndSessionNotes.find { it.crn == referral2.crn }!!
-      assertThat(notes2.attendance).isEqualTo("Unacceptable Absence")
+      assertThat(notes2.attendance).isEqualTo("Did not attend")
       assertThat(notes2.sessionNotes).isEqualTo("Notes for referral 2 - latest")
 
       val notes3 = response.attendanceAndSessionNotes.find { it.crn == referral3.crn }!!
       assertThat(notes3.attendance).isEqualTo("To be confirmed")
       assertThat(notes3.sessionNotes).isEqualTo("Not added")
     }
+  }
+
+  @Test
+  fun `should return 404 if the group doesnt exist`() {
+    performRequestAndExpectStatus(
+      httpMethod = HttpMethod.GET,
+      uri = "/bff/group/${UUID.randomUUID()}/details",
+      object : ParameterizedTypeReference<ErrorResponse>() {},
+      HttpStatus.NOT_FOUND.value(),
+    )
   }
 }
