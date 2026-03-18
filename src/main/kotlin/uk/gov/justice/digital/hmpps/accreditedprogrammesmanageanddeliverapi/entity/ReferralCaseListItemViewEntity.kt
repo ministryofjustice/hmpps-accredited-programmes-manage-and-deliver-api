@@ -54,4 +54,8 @@ class ReferralCaseListItemViewEntity(
   @Nullable
   @Column(name = "sentence_end_date")
   var sentenceEndDate: LocalDate? = null,
+
+  @Nullable
+  @Column(name = "sentence_end_date_source")
+  var sentenceEndDateSource: String,
 )

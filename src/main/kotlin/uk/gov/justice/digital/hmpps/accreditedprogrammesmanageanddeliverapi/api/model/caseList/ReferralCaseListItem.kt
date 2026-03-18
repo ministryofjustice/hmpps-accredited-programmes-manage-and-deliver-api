@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.reverseNameOrder
+import java.time.LocalDate
 import java.util.UUID
 
 data class ReferralCaseListItem(
@@ -15,6 +16,8 @@ data class ReferralCaseListItem(
   val hasLdc: Boolean,
   val pdu: String,
   val reportingTeam: String,
+  val sentenceEndDate: LocalDate?,
+  val sentenceEndDateSource: String?,
 )
 
 fun ReferralCaseListItemViewEntity.toApi() = ReferralCaseListItem(
@@ -26,6 +29,8 @@ fun ReferralCaseListItemViewEntity.toApi() = ReferralCaseListItem(
   hasLdc = hasLdc,
   pdu = pduName,
   reportingTeam = reportingTeam,
+  sentenceEndDate = sentenceEndDate,
+  sentenceEndDateSource = sentenceEndDateSource,
 )
 
 data class CaseListReferrals(
