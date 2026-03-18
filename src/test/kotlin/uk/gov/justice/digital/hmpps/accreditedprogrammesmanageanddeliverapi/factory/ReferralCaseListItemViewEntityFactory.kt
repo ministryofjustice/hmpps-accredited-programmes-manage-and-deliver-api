@@ -39,6 +39,6 @@ class ReferralCaseListItemViewEntityFactory {
     reportingTeam = this.reportingTeam,
     regionName = this.regionName,
     sentenceEndDate = this.sentenceEndDate,
-    sentenceEndDateSource = this.sentenceEndDateSource
+    sentenceEndDateSource = this.sentenceEndDateSource,
   )
 }
