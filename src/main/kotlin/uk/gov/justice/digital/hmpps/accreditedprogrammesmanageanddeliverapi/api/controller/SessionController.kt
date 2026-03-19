@@ -34,6 +34,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionDateAndTimeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.sessionNotes.SessionNotes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RegionService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SessionService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
@@ -670,4 +671,62 @@ class SessionController(
     @RequestParam(name = "referralId", required = false) referralIds: List<UUID>?,
     @PathVariable @Parameter(description = "Unique identifier of a session", required = true) sessionId: UUID,
   ): ResponseEntity<RecordSessionAttendance> = ResponseEntity.ok(sessionService.getRecordAttendanceBySessionId(sessionId, referralIds))
+
+  @Operation(
+    tags = ["Session controller"],
+    summary = "BFF endpoint to retrieve notes for a session",
+    operationId = "getSessionNotes",
+    description = "Retrieve notes for a session",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Successfully retrieved session notes",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = SessionNotes::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden, requires role ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Session not found",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping(
+    "/bff/session/{sessionId}/referral/{referralId}/session-notes",
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+  )
+  fun getSessionNotes(
+    @PathVariable @Parameter(description = "Unique identifier of a session", required = true) sessionId: UUID,
+    @PathVariable @Parameter(description = "Unique identifier of a referral", required = true) referralId: UUID,
+  ): ResponseEntity<SessionNotes> = ResponseEntity.ok(sessionService.getSessionNotes(sessionId, referralId))
 }
