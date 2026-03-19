@@ -60,5 +60,5 @@ class ReferralCaseListItemViewEntity(
   @Nullable
   @Enumerated(EnumType.STRING)
   @Column(name = "sentence_end_date_source")
-  var sentenceEndDateSource: ReferralEntitySourcedFrom?,
+  var sentenceEndDateSource: ReferralEntitySourcedFrom,
 )
