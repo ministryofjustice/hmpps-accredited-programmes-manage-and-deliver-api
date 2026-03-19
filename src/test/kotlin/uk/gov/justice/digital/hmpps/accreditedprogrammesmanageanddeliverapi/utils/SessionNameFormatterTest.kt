@@ -715,7 +715,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes, "Alex River"))
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes("Alex River")))
         .isEqualTo("Alex River: Getting started 1 session notes")
     }
 
@@ -746,7 +746,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes, "Alex River"))
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes("Alex River")))
         .isEqualTo("Alex River: Getting started 1 catch-up session notes")
     }
 
@@ -780,7 +780,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       session.attendees.add(attendee)
       sessionRepository.save(session)
 
-      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes, "Alex River"))
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes("Alex River")))
         .isEqualTo("Alex River: Getting started one-to-one session notes")
     }
 
@@ -815,7 +815,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       session.attendees.add(attendee)
       sessionRepository.save(session)
 
-      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes, "Alex River"))
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes("Alex River")))
         .isEqualTo("Alex River: Getting started one-to-one catch-up session notes")
     }
 
@@ -845,7 +845,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes, "Alex River"))
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes("Alex River")))
         .isEqualTo("Alex River: Pre-group one-to-one session notes")
     }
 
@@ -875,7 +875,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes, "Alex River"))
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes("Alex River")))
         .isEqualTo("Alex River: Post-programme review session notes")
     }
   }

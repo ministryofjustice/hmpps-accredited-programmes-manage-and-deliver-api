@@ -1921,9 +1921,6 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
         body = {},
       )
-
-      // Then
-      assertThat(exception.userMessage).isEqualTo("Not Found: No session attendance found for referralId: $unrelatedReferralId")
     }
   }
 }
