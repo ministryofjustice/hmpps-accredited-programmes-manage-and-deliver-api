@@ -1,4 +1,4 @@
-DROP MATERIALIZED VIEW referral_caselist_item_view;
+DROP MATERIALIZED VIEW IF EXISTS referral_caselist_item_view;
 
 CREATE MATERIALIZED VIEW referral_caselist_item_view AS
 WITH latest_status AS (SELECT referral_id,
