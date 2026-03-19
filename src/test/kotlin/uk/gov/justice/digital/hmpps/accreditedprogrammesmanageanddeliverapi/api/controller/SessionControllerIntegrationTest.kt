@@ -28,6 +28,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionDateAndTimeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.sessionNotes.SessionNotes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegionWithMembers
@@ -1694,6 +1695,235 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(exception.userMessage).isEqualTo("Not Found: Session not found with id: $sessionId")
+    }
+  }
+
+  @Nested
+  @DisplayName("bff for session notes page")
+  inner class GetSessionNotes {
+
+    @Test
+    fun `should return session notes for a referral`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
+
+      val session = sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
+      val attendee = session.attendees.first()
+
+      // Record attendance with notes
+      val sessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = attendee.referralId,
+            outcomeCode = ATTC,
+            sessionNotes = "Participant engaged well with the material.",
+          ),
+        ),
+      )
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${session.id}/attendance",
+        body = sessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/session/${session.id}/referral/${referral.id}/session-notes",
+        object : ParameterizedTypeReference<SessionNotes>() {},
+      )
+
+      // Then
+      assertThat(response.moduleName).isEqualTo(session.moduleName)
+      assertThat(response.sessionNumber).isEqualTo(session.sessionNumber)
+      assertThat(response.groupId).isEqualTo(group.id)
+      assertThat(response.sessionId).isEqualTo(session.id)
+      assertThat(response.sessionAttendance).isEqualTo("Attended - Complied")
+      assertThat(response.sessionNotes).isEqualTo("Participant engaged well with the material.")
+    }
+
+    @Test
+    fun `should return session notes with null notes when no notes provided`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
+
+      val session = sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
+      val attendee = session.attendees.first()
+
+      // Record attendance without notes
+      val sessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = attendee.referralId,
+            outcomeCode = ATTC,
+            sessionNotes = null,
+          ),
+        ),
+      )
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${session.id}/attendance",
+        body = sessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/session/${session.id}/referral/${referral.id}/session-notes",
+        object : ParameterizedTypeReference<SessionNotes>() {},
+      )
+
+      // Then
+      assertThat(response.sessionNotes).isNull()
+    }
+
+    @Test
+    fun `should return latest session notes when multiple attendances recorded`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
+
+      val session = sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
+      val attendee = session.attendees.first()
+
+      // Record first attendance
+      val firstAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = attendee.referralId,
+            outcomeCode = ATTC,
+            sessionNotes = "Old notes",
+          ),
+        ),
+      )
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${session.id}/attendance",
+        body = firstAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Record second attendance with updated notes
+      val secondAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = attendee.referralId,
+            outcomeCode = SessionAttendanceNDeliusCode.UAAB,
+            sessionNotes = "Latest updated notes",
+          ),
+        ),
+      )
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${session.id}/attendance",
+        body = secondAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/session/${session.id}/referral/${referral.id}/session-notes",
+        object : ParameterizedTypeReference<SessionNotes>() {},
+      )
+
+      // Then
+      assertThat(response.sessionNotes).isEqualTo("Latest updated notes")
+    }
+
+    @Test
+    fun `return 401 when unauthorised on GET session notes`() {
+      // When
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/session/${UUID.randomUUID()}/referral/${UUID.randomUUID()}/session-notes")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+
+    @Test
+    fun `return 404 when session is not found on GET session notes`() {
+      // Given
+      val sessionId = UUID.randomUUID()
+      val referralId = UUID.randomUUID()
+
+      // When
+      val exception = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/session/$sessionId/referral/$referralId/session-notes",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        body = {},
+      )
+
+      // Then
+      assertThat(exception.userMessage).isEqualTo("Not Found: Session with id $sessionId not found.")
+    }
+
+    @Test
+    fun `return 404 when attendance is not found for referral on GET session notes`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
+
+      val session = sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
+      val unrelatedReferralId = UUID.randomUUID()
+
+      // When
+      val exception = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/session/${session.id}/referral/$unrelatedReferralId/session-notes",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        body = {},
+      )
+
+      // Then
+      assertThat(exception.userMessage).isEqualTo("Not Found: No session attendance found for referralId: $unrelatedReferralId")
     }
   }
 }

@@ -40,6 +40,11 @@ sealed class SessionNameContext {
    * Formatting for the Session details page.
    */
   object SessionDetails : SessionNameContext()
+
+  /**
+   * Formatting for the Session notes page.
+   */
+  object SessionNotes : SessionNameContext()
 }
 
 /**
@@ -66,12 +71,13 @@ class SessionNameFormatter {
    * @param context The page context that determines which formatting rules to apply.
    * @return A formatted session name string suitable for display on the target page.
    */
-  fun format(session: SessionEntity, context: SessionNameContext): String = when (context) {
+  fun format(session: SessionEntity, context: SessionNameContext, popName: String? = null): String = when (context) {
     is SessionNameContext.Default -> defaultFormatting(session)
     is SessionNameContext.ScheduleIndividualSession -> scheduleIndividualSession(session)
     is SessionNameContext.ScheduleOverview -> scheduleOverview(session)
     is SessionNameContext.SessionsAndAttendance -> sessionsAndAttendance(context.sessionTemplate, session)
     is SessionNameContext.SessionDetails -> sessionDetails(session)
+    is SessionNameContext.SessionNotes -> sessionNotes(session, popName)
   }
 
   /**
@@ -146,6 +152,23 @@ class SessionNameFormatter {
     session.moduleName.startsWith("Post-programme") -> "${session.sessionName} deadline"
     session.sessionType == SessionType.ONE_TO_ONE -> "${session.moduleName} one-to-ones"
     else -> "${session.moduleName} ${session.sessionNumber}"
+  }
+
+  /**
+   * Formats the session name for use as a page title on session notes page.
+   *
+   * - GROUP: `"<module.name> <sessionNumber>: <templateName>"`
+   * - ONE_TO_ONE: `"<personName>: <templateName>"`
+   */
+  private fun sessionNotes(session: SessionEntity, popName: String?): String {
+    val catchupSuffix = if (session.isCatchup) " catch-up" else ""
+    return when {
+      session.moduleName.startsWith("Pre-group") -> "$popName: ${session.moduleSessionTemplate.name} session notes"
+      session.moduleName.startsWith("Post-programme") -> "$popName: ${session.moduleSessionTemplate.name} session notes"
+      session.sessionType == SessionType.GROUP -> "$popName: ${session.moduleSessionTemplate.module.name} ${session.sessionNumber}$catchupSuffix session notes"
+      session.sessionType == SessionType.ONE_TO_ONE -> "$popName: ${session.moduleSessionTemplate.name}$catchupSuffix session notes"
+      else -> "$popName: ${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}$catchupSuffix session notes"
+    }
   }
 
   /**

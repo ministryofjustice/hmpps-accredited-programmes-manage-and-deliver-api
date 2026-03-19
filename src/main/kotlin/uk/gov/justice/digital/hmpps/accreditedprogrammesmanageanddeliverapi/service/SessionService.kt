@@ -24,6 +24,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.toEditSessionFacilitator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toLocalTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toSessionAttendee
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.sessionNotes.SessionNotes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
@@ -385,6 +386,16 @@ class SessionService(
     )
   }
 
+  fun getSessionNotes(sessionId: UUID, referralId: UUID): SessionNotes {
+    val session = sessionRepository.findById(sessionId).orElseThrow {
+      NotFoundException("Session with id $sessionId not found.")
+    }
+
+    val pageTitle = sessionNameFormatter.format(session, SessionNameContext.SessionNotes)
+    val outcomeText = getAttendanceTextFromOutcome(session.attendances.find { it.groupMembership.referralId == referralId }?.outcomeType)
+    return SessionNotes.from(session, referralId, outcomeText, pageTitle)
+  }
+
   private fun getOptionFromOutcome(outcome: SessionAttendanceNDeliusOutcomeEntity): Option = when (outcome.code) {
     ATTC -> Option("Yes - attended", null, outcome.code.name)
 
@@ -435,5 +446,11 @@ class SessionService(
     ATTC -> SessionPersonAttendance("Attended", attendance.outcomeType.code.name)
     AFTC -> SessionPersonAttendance("Attended but failed to comply", attendance.outcomeType.code.name)
     UAAB -> SessionPersonAttendance("Did not attend", attendance.outcomeType.code.name)
+  }
+
+  private fun getAttendanceTextFromOutcome(attendanceOutcome: SessionAttendanceNDeliusOutcomeEntity?): String = when (attendanceOutcome?.code) {
+    UAAB -> "Did not attend"
+    null -> "To be confirmed"
+    else -> attendanceOutcome.description!!
   }
 }

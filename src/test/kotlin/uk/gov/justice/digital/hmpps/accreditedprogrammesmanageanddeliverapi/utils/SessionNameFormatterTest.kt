@@ -686,4 +686,197 @@ class SessionNameFormatterTest : IntegrationTestBase() {
         .isEqualTo("Alex River: Getting started one-to-one catch-up")
     }
   }
+
+  @Nested
+  inner class SessionNotes {
+    @Test
+    fun `returns popName moduleName sessionNumber session notes for group session`() {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Introduction to Building Choices",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .produce(),
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes, "Alex River"))
+        .isEqualTo("Alex River: Getting started 1 session notes")
+    }
+
+    @Test
+    fun `returns popName moduleName sessionNumber templateName catch-up session notes for group catchup session`() {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Introduction to Building Choices",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withIsCatchup(true)
+          .produce(),
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes, "Alex River"))
+        .isEqualTo("Alex River: Getting started 1 catch-up session notes")
+    }
+
+    @Test
+    fun `returns popName templateName session notes for one-to-one session`() {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 3,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Getting started one-to-one",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .produce(),
+      )
+      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
+      session.attendees.add(attendee)
+      sessionRepository.save(session)
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes, "Alex River"))
+        .isEqualTo("Alex River: Getting started one-to-one session notes")
+    }
+
+    @Test
+    fun `returns popName templateName catch-up session notes for one-to-one catchup session`() {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 3,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Getting started one-to-one",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withIsCatchup(true)
+          .produce(),
+      )
+      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
+      session.attendees.add(attendee)
+      sessionRepository.save(session)
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes, "Alex River"))
+        .isEqualTo("Alex River: Getting started one-to-one catch-up session notes")
+    }
+
+    @Test
+    fun `returns popName templateName session notes for pre-group session`() {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Pre-group one-to-ones", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Pre-group one-to-one",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .produce(),
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes, "Alex River"))
+        .isEqualTo("Alex River: Pre-group one-to-one session notes")
+    }
+
+    @Test
+    fun `returns popName templateName session notes for post-programme session`() {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Post-programme reviews", 7)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Post-programme review",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .produce(),
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotes, "Alex River"))
+        .isEqualTo("Alex River: Post-programme review session notes")
+    }
+  }
 }
