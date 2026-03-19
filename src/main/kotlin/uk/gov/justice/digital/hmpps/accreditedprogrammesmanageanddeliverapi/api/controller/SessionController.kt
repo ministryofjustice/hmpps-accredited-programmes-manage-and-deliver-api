@@ -675,7 +675,7 @@ class SessionController(
   @Operation(
     tags = ["Session controller"],
     summary = "BFF endpoint to retrieve notes for a session",
-    operationId = "getSessionRecordAttendance",
+    operationId = "getSessionNotes",
     description = "Retrieve notes for a session",
     responses = [
       ApiResponse(

@@ -157,8 +157,10 @@ class SessionNameFormatter {
   /**
    * Formats the session name for use as a page title on session notes page.
    *
-   * - GROUP: `"<module.name> <sessionNumber>: <templateName>"`
-   * - ONE_TO_ONE: `"<personName>: <templateName>"`
+   * - Pre-group sessions: `"<popName>: <templateName> session notes"`
+   * - Post-programme sessions: `"<popName>: <templateName> session notes"`
+   * - GROUP: `"<popName>: <moduleName> <sessionNumber>[catch-up] session notes"`
+   * - ONE_TO_ONE: `"<popName>: <templateName>[catch-up] session notes"`
    */
   private fun sessionNotes(session: SessionEntity, popName: String?): String {
     val catchupSuffix = if (session.isCatchup) " catch-up" else ""
