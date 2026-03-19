@@ -261,6 +261,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("referralStatus")
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
+        assertThat(item).hasFieldOrProperty("sentenceEndDate")
+        assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
       }
       assertThat(response.otherTabTotal).isEqualTo(1)
       assertThat(response.filters).isNotNull
@@ -289,6 +291,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("referralStatus")
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
+        assertThat(item).hasFieldOrProperty("sentenceEndDate")
+        assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
       }
       assertThat(response.otherTabTotal).isEqualTo(6)
     }
@@ -363,6 +367,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("referralStatus")
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
+        assertThat(item).hasFieldOrProperty("sentenceEndDate")
+        assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
       }
       assertThat(response.otherTabTotal).isEqualTo(0)
     }
@@ -386,6 +392,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("referralStatus")
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
+        assertThat(item).hasFieldOrProperty("sentenceEndDate")
+        assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
       }
       assertThat(response.otherTabTotal).isEqualTo(0)
     }
