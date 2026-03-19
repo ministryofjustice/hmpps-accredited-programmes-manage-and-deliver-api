@@ -937,7 +937,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     private lateinit var group: ProgrammeGroupEntity
 
     @BeforeEach
-    fun beforeEach() {
+    private fun beforeEach() {
       val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
       val sessionTemplate = moduleSessionTemplateRepository.findByName("Managing myself one-to-one")
 

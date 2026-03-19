@@ -82,7 +82,7 @@ data class SessionNotes(
       sessionAttendance: String,
       pageTitle: String,
     ): SessionNotes {
-      val attendance = session.attendances.filter { it.groupMembership.referralId == referralId }.maxByOrNull { it.createdBy } ?: throw NotFoundException("No session attendance found for referralId: $referralId")
+      val attendance = session.attendances.filter { it.groupMembership.referralId == referralId }.maxByOrNull { it.createdAt } ?: throw NotFoundException("No session attendance found for referralId: $referralId")
       val latestSessionNotes = attendance.notesHistory.maxByOrNull { it.createdAt }
       return SessionNotes(
         pageTitle = pageTitle,
