@@ -391,7 +391,8 @@ class SessionService(
       NotFoundException("Session with id $sessionId not found.")
     }
 
-    val pageTitle = sessionNameFormatter.format(session, SessionNameContext.SessionNotes)
+    val popName = session.attendees.find { it.referralId == referralId }?.personName ?: throw NotFoundException("Attendee with referralId $referralId not found for session with id $sessionId.")
+    val pageTitle = sessionNameFormatter.format(session, SessionNameContext.SessionNotes(popName))
     val outcomeText = getAttendanceTextFromOutcome(session.attendances.find { it.groupMembership.referralId == referralId }?.outcomeType)
     return SessionNotes.from(session, referralId, outcomeText, pageTitle)
   }

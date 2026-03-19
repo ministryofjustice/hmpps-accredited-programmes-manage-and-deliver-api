@@ -44,7 +44,7 @@ sealed class SessionNameContext {
   /**
    * Formatting for the Session notes page.
    */
-  object SessionNotes : SessionNameContext()
+  data class SessionNotes(val popName: String) : SessionNameContext()
 }
 
 /**
@@ -71,13 +71,13 @@ class SessionNameFormatter {
    * @param context The page context that determines which formatting rules to apply.
    * @return A formatted session name string suitable for display on the target page.
    */
-  fun format(session: SessionEntity, context: SessionNameContext, popName: String? = null): String = when (context) {
+  fun format(session: SessionEntity, context: SessionNameContext): String = when (context) {
     is SessionNameContext.Default -> defaultFormatting(session)
     is SessionNameContext.ScheduleIndividualSession -> scheduleIndividualSession(session)
     is SessionNameContext.ScheduleOverview -> scheduleOverview(session)
     is SessionNameContext.SessionsAndAttendance -> sessionsAndAttendance(context.sessionTemplate, session)
     is SessionNameContext.SessionDetails -> sessionDetails(session)
-    is SessionNameContext.SessionNotes -> sessionNotes(session, popName)
+    is SessionNameContext.SessionNotes -> sessionNotes(session, context.popName)
   }
 
   /**
