@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import java.time.LocalDate
 import java.time.ZoneOffset.UTC
 import java.util.UUID
@@ -16,7 +17,7 @@ class ReferralCaseListItemViewEntityFactory {
   private var reportingTeam: String = "TEAM_1"
   private var regionName: String = "REGION_1"
   private var sentenceEndDate: LocalDate = LocalDate.now(UTC).plusYears(1)
-  private var sentenceEndDateSource: String = "LICENCE"
+  private var sentenceEndDateSource: ReferralEntitySourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION
 
   fun withReferralId(referralId: UUID) = apply { this.referralId }
   fun withCrn(crn: String) = apply { this.crn = crn }

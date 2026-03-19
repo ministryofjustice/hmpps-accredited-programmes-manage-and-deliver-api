@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import org.springframework.data.domain.Page
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.reverseNameOrder
 import java.time.LocalDate
 import java.util.UUID
@@ -17,7 +18,7 @@ data class ReferralCaseListItem(
   val pdu: String,
   val reportingTeam: String,
   val sentenceEndDate: LocalDate?,
-  val sentenceEndDateSource: String?,
+  val sentenceEndDateSource: ReferralEntitySourcedFrom?,
 )
 
 fun ReferralCaseListItemViewEntity.toApi() = ReferralCaseListItem(
