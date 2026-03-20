@@ -29,6 +29,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RemoveReferralFromGroupStatusTransitions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.AttendanceHistoryResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
@@ -498,5 +499,42 @@ class ReferralController(
       ?: throw NotFoundException("Referral status history for referral with id $referralId not found")
     val removeReferralFromGroupStatusTransitions = RemoveReferralFromGroupStatusTransitions.from(data)
     return ResponseEntity.ok(removeReferralFromGroupStatusTransitions)
+  }
+
+  @Operation(
+    tags = ["Referrals"],
+    summary = "Retrieve the attendance history for a referral",
+    operationId = "getReferralAttendanceHistory",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Attendance history for a referral",
+        content = [Content(schema = Schema(implementation = AttendanceHistoryResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden.  The client is not authorised to access this referral.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The referral does not exist",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/bff/referral/{referralId}/attendance-history", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getReferralAttendanceHistory(
+    @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) referralId: UUID,
+  ): ResponseEntity<AttendanceHistoryResponse> {
+    val result = referralService.getAttendanceHistory(referralId)
+
+    return ResponseEntity.ok(result)
   }
 }

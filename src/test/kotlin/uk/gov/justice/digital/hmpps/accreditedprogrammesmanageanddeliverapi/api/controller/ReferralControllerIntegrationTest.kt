@@ -19,6 +19,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusTransitions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RemoveReferralFromGroupStatusTransitions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.AttendanceHistoryResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendance
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendee
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.LdcStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
@@ -33,6 +36,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnitEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffenceFactory
@@ -47,6 +52,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.Utils.createCodeDescriptionList
 import java.time.LocalDate
@@ -60,6 +66,9 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
+
+  @Autowired
+  private lateinit var sessionRepository: SessionRepository
 
   @BeforeEach
   fun setup() {
@@ -1256,6 +1265,108 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         "Breach (non-attendance)",
         "Recall",
         "Return to court",
+      )
+    }
+  }
+
+  @Nested
+  @DisplayName("Get referral attendance history endpoint")
+  inner class GetReferralAttendanceHistory {
+    @Test
+    fun `should return attendance history with sessions when referral has attended sessions`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      testGroupHelper.allocateToGroup(group, referral)
+
+      val session = sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
+      val attendee = session.attendees.first()
+
+      // Record attendance
+      val sessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = attendee.referralId,
+            outcomeCode = SessionAttendanceNDeliusCode.ATTC,
+            sessionNotes = "Test session notes",
+          ),
+        ),
+      )
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${session.id}/attendance",
+        body = sessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/referral/${referral.id}/attendance-history",
+        returnType = object : ParameterizedTypeReference<AttendanceHistoryResponse>() {},
+      )
+
+      // Then
+      assertThat(response.popName).isEqualTo("Alex River")
+      assertThat(response.currentlyAllocatedGroupCode).isEqualTo(group.code)
+      assertThat(response.currentlyAllocatedGroupId).isEqualTo(group.id)
+      assertThat(response.sessions).isNotEmpty
+      assertThat(response.sessions.first().attendanceStatus).isEqualTo("Attended")
+      assertThat(response.sessions.first().hasNotes).isTrue()
+    }
+
+    @Test
+    fun `should return empty sessions when referral has no attendance recorded`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      testGroupHelper.allocateToGroup(group, referral)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/referral/${referral.id}/attendance-history",
+        returnType = object : ParameterizedTypeReference<AttendanceHistoryResponse>() {},
+      )
+
+      // Then
+      assertThat(response.popName).isEqualTo("Alex River")
+      assertThat(response.currentlyAllocatedGroupCode).isEqualTo(group.code)
+      assertThat(response.currentlyAllocatedGroupId).isEqualTo(group.id)
+      assertThat(response.sessions).isEmpty()
+    }
+
+    @Test
+    fun `should return attendance history with null group when referral is not allocated`() {
+      // Given
+      val referral = testReferralHelper.createReferral(personName = "Alex River")
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/referral/${referral.id}/attendance-history",
+        returnType = object : ParameterizedTypeReference<AttendanceHistoryResponse>() {},
+      )
+
+      // Then
+      assertThat(response.popName).isEqualTo("Alex River")
+      assertThat(response.currentlyAllocatedGroupCode).isNull()
+      assertThat(response.currentlyAllocatedGroupId).isNull()
+      assertThat(response.sessions).isEmpty()
+    }
+
+    @Test
+    fun `should return 404 when referral is not found`() {
+      // Given
+      val unknownReferralId = UUID.randomUUID()
+
+      // When & Then
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/referral/$unknownReferralId/attendance-history",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
       )
     }
   }
