@@ -45,4 +45,14 @@ interface ProgrammeGroupMembershipRepository : JpaRepository<ProgrammeGroupMembe
     """,
   )
   fun findAllActiveByProgrammeGroupId(programmeGroupId: UUID): List<ProgrammeGroupMembershipEntity>
+
+  @EntityGraph(attributePaths = ["programmeGroup", "attendances", "attendances.session", "attendances.outcomeType", "attendances.notesHistory"])
+  @Query(
+    """
+    SELECT pgm FROM ProgrammeGroupMembershipEntity pgm
+    WHERE pgm.referral.id = :referralId
+    ORDER BY pgm.createdAt DESC
+    """,
+  )
+  fun findAllByReferralIdWithAttendances(referralId: UUID): List<ProgrammeGroupMembershipEntity>
 }

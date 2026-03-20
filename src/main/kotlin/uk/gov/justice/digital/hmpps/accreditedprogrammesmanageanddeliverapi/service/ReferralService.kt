@@ -13,6 +13,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.AttendanceHistoryResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.AttendanceHistorySession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.UpdateLdc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
@@ -35,19 +37,24 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.DomainEventPublisher
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.DomainEventsMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.PersonReference
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 @Service
@@ -63,6 +70,7 @@ class ReferralService(
   private val pniService: PniService,
   private val referralStatusHistoryRepository: ReferralStatusHistoryRepository,
   private val referralLdcHistoryRepository: ReferralLdcHistoryRepository,
+  private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
   private val ldcService: LdcService,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
   private val sentenceService: SentenceService,
@@ -391,6 +399,52 @@ class ReferralService(
   }
 
   fun getCurrentStatusHistory(referral: ReferralEntity): ReferralStatusHistoryEntity? = referral.statusHistories.maxByOrNull { it.createdAt }
+
+  fun getAttendanceHistory(referralId: UUID): AttendanceHistoryResponse {
+    val referral = referralRepository.findByIdOrNull(referralId)
+      ?: throw NotFoundException("Referral with id $referralId not found")
+
+    val currentMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId)
+    val allMemberships = programmeGroupMembershipRepository.findAllByReferralIdWithAttendances(referralId)
+
+    val sessions = allMemberships
+      .flatMap { membership ->
+        membership.attendances.map { attendance ->
+          val session = attendance.session
+          // Get the latest attendance result for each session as we currently add a new record rather than updating the existing one.
+          val latestAttendance = membership.attendances
+            .filter { it.session.id == session.id }
+            .maxByOrNull { it.createdAt }
+
+          AttendanceHistorySession(
+            sessionId = session.id!!,
+            sessionName = session.sessionName,
+            groupCode = membership.programmeGroup.code,
+            date = session.startsAt.format(DateTimeFormatter.ofPattern("d MMMM yyyy")),
+            time = "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${formatTimeForUiDisplay(session.endsAt.toLocalTime())}",
+            attendanceStatus = getAttendanceStatusText(latestAttendance?.outcomeType),
+            hasNotes = latestAttendance?.notesHistory?.isNotEmpty() == true,
+          )
+        }
+      }
+      // Remove any duplicate sessions in the event that there are multiple attendance records for a session.
+      .distinctBy { it.sessionId }
+      .sortedByDescending { it.date }
+
+    return AttendanceHistoryResponse(
+      popName = referral.personName,
+      currentlyAllocatedGroupCode = currentMembership?.programmeGroup?.code,
+      currentlyAllocatedGroupId = currentMembership?.programmeGroup?.id,
+      attendanceHistory = sessions,
+    )
+  }
+
+  private fun getAttendanceStatusText(outcomeType: SessionAttendanceNDeliusOutcomeEntity?): String = when (outcomeType?.code) {
+    SessionAttendanceNDeliusCode.UAAB -> "Not attended"
+    SessionAttendanceNDeliusCode.ATTC -> "Attended"
+    SessionAttendanceNDeliusCode.AFTC -> "Attended"
+    null -> "To be confirmed"
+  }
 
   private fun getPersonalDetails(crn: String) = when (val result = ndeliusIntegrationApiClient.getPersonalDetails(crn)) {
     is ClientResult.Success -> result.body

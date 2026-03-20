@@ -91,6 +91,7 @@ class ReferralServiceTest {
       cohortService = cohortService,
       pniService = pniService,
       referralStatusHistoryRepository = referralStatusHistoryRepository,
+      programmeGroupMembershipRepository = programmeGroupMembershipRepository,
       referralLdcHistoryRepository = referralLdcHistoryRepository,
       ldcService = ldcService,
       referralReportingLocationRepository = referralReportingLocationRepository,
