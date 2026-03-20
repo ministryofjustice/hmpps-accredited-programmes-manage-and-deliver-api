@@ -1282,20 +1282,38 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val session = sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
       val attendee = session.attendees.first()
 
-      // Record attendance
-      val sessionAttendanceRequest = SessionAttendance(
+      // Record first attendance
+      val firstAttendanceRequest = SessionAttendance(
         attendees = listOf(
           SessionAttendee(
             referralId = attendee.referralId,
             outcomeCode = SessionAttendanceNDeliusCode.ATTC,
-            sessionNotes = "Test session notes",
+            sessionNotes = "First attendance notes",
           ),
         ),
       )
       performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/session/${session.id}/attendance",
-        body = sessionAttendanceRequest,
+        body = firstAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Record second attendance (updating the same attendee on the same session)
+      val secondAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = attendee.referralId,
+            outcomeCode = SessionAttendanceNDeliusCode.ATTC,
+            sessionNotes = "Second attendance notes",
+          ),
+        ),
+      )
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${session.id}/attendance",
+        body = secondAttendanceRequest,
         returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
@@ -1311,9 +1329,9 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.popName).isEqualTo("Alex River")
       assertThat(response.currentlyAllocatedGroupCode).isEqualTo(group.code)
       assertThat(response.currentlyAllocatedGroupId).isEqualTo(group.id)
-      assertThat(response.sessions).isNotEmpty
-      assertThat(response.sessions.first().attendanceStatus).isEqualTo("Attended")
-      assertThat(response.sessions.first().hasNotes).isTrue()
+      assertThat(response.attendanceHistory).hasSize(1)
+      assertThat(response.attendanceHistory).allMatch { it.attendanceStatus == "Attended" }
+      assertThat(response.attendanceHistory).allMatch { it.hasNotes }
     }
 
     @Test
@@ -1334,7 +1352,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.popName).isEqualTo("Alex River")
       assertThat(response.currentlyAllocatedGroupCode).isEqualTo(group.code)
       assertThat(response.currentlyAllocatedGroupId).isEqualTo(group.id)
-      assertThat(response.sessions).isEmpty()
+      assertThat(response.attendanceHistory).isEmpty()
     }
 
     @Test
@@ -1353,7 +1371,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.popName).isEqualTo("Alex River")
       assertThat(response.currentlyAllocatedGroupCode).isNull()
       assertThat(response.currentlyAllocatedGroupId).isNull()
-      assertThat(response.sessions).isEmpty()
+      assertThat(response.attendanceHistory).isEmpty()
     }
 
     @Test

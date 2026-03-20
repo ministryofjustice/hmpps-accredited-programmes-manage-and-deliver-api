@@ -24,7 +24,7 @@ data class AttendanceHistoryResponse(
   val currentlyAllocatedGroupId: UUID? = null,
 
   @Schema(description = "List of sessions with attendance information")
-  val sessions: List<AttendanceHistorySession> = emptyList(),
+  val attendanceHistory: List<AttendanceHistorySession> = emptyList(),
 )
 
 @Schema(description = "Session attendance information")
