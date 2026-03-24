@@ -346,7 +346,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
   fun `getNextSlotDate should return group start date for pre-group one-to-one sessions`() {
     val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
     val groupStartDate = LocalDate.of(2126, 5, 1)
-    
+
     val group = testGroupHelper.createGroup(
       earliestStartDate = groupStartDate,
       createGroupSessionSlots = setOf(slot1),
@@ -364,7 +364,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
   fun `getNextSlotDate should return day after programme completion for post-programme review sessions`() {
     val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
     val slot2 = CreateGroupSessionSlotFactory().produce(DayOfWeek.THURSDAY, 12, 0, AmOrPm.PM)
-    
+
     val group = testGroupHelper.createGroup(
       earliestStartDate = LocalDate.of(2126, 5, 1),
       createGroupSessionSlots = setOf(slot1, slot2),
@@ -372,12 +372,12 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
 
     val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
     val postProgrammeModule = buildingChoicesTemplate.modules.first { it.name == "Post-programme reviews" }
-    
+
     // Get the last scheduled "Programme completion" session
     val programmeCompletionModule = buildingChoicesTemplate.modules
       .flatMap { it.sessionTemplates }
       .first { it.name == "Programme completion" }
-    
+
     val bringingItAllTogether3 = group.sessions
       .filter { it.moduleSessionTemplate.id == programmeCompletionModule.id }
       .maxByOrNull { it.startsAt }!!
@@ -391,14 +391,14 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
   fun `getNextSlotDate should calculate next date after last scheduled session for regular module`() {
     val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
     val slot2 = CreateGroupSessionSlotFactory().produce(DayOfWeek.THURSDAY, 12, 0, AmOrPm.PM)
-    
+
     val group = testGroupHelper.createGroup(
       earliestStartDate = LocalDate.of(2126, 5, 1),
       createGroupSessionSlots = setOf(slot1, slot2),
     )
 
     val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
-    
+
     // Get a regular module (not pre-group or post-programme)
     val regularModule = buildingChoicesTemplate.modules.first {
       it.name == "Bringing it all together"
@@ -406,9 +406,9 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
 
     // Get the last scheduled non-catch-up session for this module
     val lastScheduledSession = group.sessions
-      .filter { 
-        it.moduleSessionTemplate.module.id == regularModule.id && 
-        !it.isCatchup 
+      .filter {
+        it.moduleSessionTemplate.module.id == regularModule.id &&
+          !it.isCatchup
       }
       .maxByOrNull { it.startsAt }
 
@@ -426,14 +426,14 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
     val slot2 = CreateGroupSessionSlotFactory().produce(DayOfWeek.WEDNESDAY, 2, 0, AmOrPm.PM)
     val slot3 = CreateGroupSessionSlotFactory().produce(DayOfWeek.FRIDAY, 10, 15, AmOrPm.AM)
-    
+
     val group = testGroupHelper.createGroup(
       earliestStartDate = LocalDate.of(2126, 5, 1),
       createGroupSessionSlots = setOf(slot1, slot2, slot3),
     )
 
     val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
-    
+
     // Get a regular module
     val regularModule = buildingChoicesTemplate.modules.first {
       it.name == "Managing people around me"
@@ -443,7 +443,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
 
     // Should return a date on one of the valid slot days
     assertThat(nextSlotDate.dayOfWeek).isIn(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY)
-    
+
     // Should be the correct date
     assertThat(nextSlotDate).isEqualTo(LocalDate.of(2126, 7, 10))
   }

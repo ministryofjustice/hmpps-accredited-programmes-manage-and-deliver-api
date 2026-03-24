@@ -4,7 +4,6 @@ import jakarta.transaction.Transactional
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 
 class ModuleSessionTemplateRepositoryIntegrationTest : IntegrationTestBase() {
@@ -131,4 +130,3 @@ class ModuleSessionTemplateRepositoryIntegrationTest : IntegrationTestBase() {
     assertThat(isPostProgrammeSession).isFalse()
   }
 }
-

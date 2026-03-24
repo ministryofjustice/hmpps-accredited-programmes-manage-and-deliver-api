@@ -117,17 +117,16 @@ class ScheduleService(
   }
 
   fun getNextSlotDate(programmeGroupId: UUID, moduleId: UUID): LocalDate {
-
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
       ?: throw NotFoundException("Group with id: $programmeGroupId could not be found")
 
     // Pre group should use group start date
-    if(moduleSessionTemplateRepository.isAPreGroupSession(moduleId)){
+    if (moduleSessionTemplateRepository.isAPreGroupSession(moduleId)) {
       return group.earliestPossibleStartDate
     }
 
-    //Post programme should use the next date after the final group session which will be Bringing it all together 3: Programme completion
-    if(moduleSessionTemplateRepository.isAPostProgrammeSession(moduleId)){
+    // Post programme should use the next date after the final group session which will be Bringing it all together 3: Programme completion
+    if (moduleSessionTemplateRepository.isAPostProgrammeSession(moduleId)) {
       val finalModule = moduleSessionTemplateRepository.findByName("Programme completion")
       val finalSessions = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(
         moduleSessionTemplateId = finalModule!!.id!!,
@@ -137,7 +136,7 @@ class ScheduleService(
       return lastScheduledSession!!.startsAt.toLocalDate().plusDays(1)
     }
 
-    //Otherwise get the date of the last scheduled session (not a catch up) for the module and calculate the next date based on that
+    // Otherwise get the date of the last scheduled session (not a catch up) for the module and calculate the next date based on that
     val groupModuleSessions = moduleSessionTemplateRepository.findByModuleIdAndNotCatchUp(moduleId)
     log.info("Found ${groupModuleSessions.size} session templates for module: $moduleId")
 
@@ -159,7 +158,7 @@ class ScheduleService(
     val slotQueue = buildSlotQueue(
       group = group,
       groupSlots = groupSlots,
-      startFrom = dateToScheduleFrom
+      startFrom = dateToScheduleFrom,
     )
 
     val nextSlot = slotQueue.poll()

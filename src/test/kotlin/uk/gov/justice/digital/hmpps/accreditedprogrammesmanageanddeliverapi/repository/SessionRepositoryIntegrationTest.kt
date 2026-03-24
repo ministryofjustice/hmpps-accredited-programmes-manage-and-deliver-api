@@ -129,4 +129,3 @@ class SessionRepositoryIntegrationTest : IntegrationTestBase() {
     assertThat(sessions.all { !it.isCatchup }).isTrue()
   }
 }
-
