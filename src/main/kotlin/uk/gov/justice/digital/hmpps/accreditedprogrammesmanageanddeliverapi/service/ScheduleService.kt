@@ -126,9 +126,9 @@ class ScheduleService(
     }
 
     // Post programme should use the next date after the final group session which will be Bringing it all together 3: Programme completion
-    if (moduleSessionTemplateRepository.isAPostProgrammeSession(moduleId)) {
+    else if (moduleSessionTemplateRepository.isAPostProgrammeSession(moduleId)) {
       val finalModule = moduleSessionTemplateRepository.findByName("Programme completion")
-      val finalSessions = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(
+      val finalSessions = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupIdWhenNotCatchUp(
         moduleSessionTemplateId = finalModule!!.id!!,
         programmeGroupId = programmeGroupId,
       )
@@ -137,7 +137,7 @@ class ScheduleService(
     }
 
     // Otherwise get the date of the last scheduled session (not a catch up) for the module and calculate the next date based on that
-    val groupModuleSessions = moduleSessionTemplateRepository.findByModuleIdAndNotCatchUp(moduleId)
+    val groupModuleSessions = moduleSessionTemplateRepository.findByModuleIdAndNotOneToOne(moduleId)
     log.info("Found ${groupModuleSessions.size} session templates for module: $moduleId")
 
     val sessionsToCheck = mutableListOf<SessionEntity>()

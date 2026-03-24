@@ -24,7 +24,7 @@ class ModuleSessionTemplateRepositoryIntegrationTest : IntegrationTestBase() {
     val moduleId = gettingStartedModule!!.id!!
 
     // When
-    val sessionIds = moduleSessionTemplateRepository.findByModuleIdAndNotCatchUp(moduleId)
+    val sessionIds = moduleSessionTemplateRepository.findByModuleIdAndNotOneToOne(moduleId)
 
     // Verify that the returned IDs are for non-ONE_TO_ONE sessions
     val allSessionsForModule = moduleSessionTemplateRepository.findByModuleId(moduleId)
@@ -46,7 +46,7 @@ class ModuleSessionTemplateRepositoryIntegrationTest : IntegrationTestBase() {
     val moduleId = preGroupModule!!.id!!
 
     // When
-    val sessionIds = moduleSessionTemplateRepository.findByModuleIdAndNotCatchUp(moduleId)
+    val sessionIds = moduleSessionTemplateRepository.findByModuleIdAndNotOneToOne(moduleId)
 
     // Then
     assertThat(sessionIds).isEmpty()

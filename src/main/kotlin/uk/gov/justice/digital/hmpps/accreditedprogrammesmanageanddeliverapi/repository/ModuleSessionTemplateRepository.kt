@@ -14,7 +14,7 @@ interface ModuleSessionTemplateRepository : JpaRepository<ModuleSessionTemplateE
       "WHERE m.module.id = :moduleId " +
       "AND m.sessionType != 'ONE_TO_ONE'",
   )
-  fun findByModuleIdAndNotCatchUp(moduleId: UUID): List<UUID>
+  fun findByModuleIdAndNotOneToOne(moduleId: UUID): List<UUID>
 
   @Query(
     "SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM ModuleSessionTemplateEntity m " +
