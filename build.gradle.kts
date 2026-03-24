@@ -46,10 +46,10 @@ dependencies {
   testImplementation("io.swagger.parser.v3:swagger-parser:2.1.39") {
     exclude(group = "io.swagger.core.v3")
   }
-  testImplementation("org.testcontainers:testcontainers:2.0.3")
-  testImplementation("org.testcontainers:localstack:1.21.4")
-  testImplementation("org.testcontainers:postgresql:1.21.4")
-  testImplementation("org.testcontainers:junit-jupiter:1.21.4")
+  testImplementation("org.testcontainers:testcontainers:2.0.4")
+  testImplementation("org.testcontainers:testcontainers-postgresql:2.0.4")
+  testImplementation("org.testcontainers:testcontainers-localstack:2.0.4")
+  testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.4")
   testImplementation("com.ninja-squad:springmockk:5.0.1")
   testImplementation("io.kotest:kotest-assertions-core:6.1.6")
   testImplementation("io.mockk:mockk:1.14.9")
