@@ -116,6 +116,59 @@ class ScheduleService(
     return savedSession
   }
 
+  fun getNextSlotDate(programmeGroupId: UUID, moduleId: UUID): LocalDate {
+    val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
+      ?: throw NotFoundException("Group with id: $programmeGroupId could not be found")
+
+    // Pre group should use group start date
+    if (moduleSessionTemplateRepository.isAPreGroupSession(moduleId)) {
+      return group.earliestPossibleStartDate
+    }
+
+    // Post programme should use the next date after the final group session which will be Bringing it all together 3: Programme completion
+    else if (moduleSessionTemplateRepository.isAPostProgrammeSession(moduleId)) {
+      val finalModule = moduleSessionTemplateRepository.findByName("Programme completion")
+      val finalSessions = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupIdWhenNotCatchUp(
+        moduleSessionTemplateId = finalModule!!.id!!,
+        programmeGroupId = programmeGroupId,
+      )
+      val lastScheduledSession = finalSessions.maxByOrNull { it.startsAt }
+      return lastScheduledSession!!.startsAt.toLocalDate().plusDays(1)
+    }
+
+    // Otherwise get the date of the last scheduled session (not a catch up) for the module and calculate the next date based on that
+    val groupModuleSessions = moduleSessionTemplateRepository.findByModuleIdAndNotOneToOne(moduleId)
+    log.info("Found ${groupModuleSessions.size} session templates for module: $moduleId")
+
+    val sessionsToCheck = mutableListOf<SessionEntity>()
+    groupModuleSessions.forEach { groupModuleSessionId ->
+      val sessions = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupIdWhenNotCatchUp(
+        moduleSessionTemplateId = groupModuleSessionId,
+        programmeGroupId = programmeGroupId,
+      )
+      sessionsToCheck.addAll(sessions)
+    }
+
+    val lastScheduledSession = sessionsToCheck.maxByOrNull { it.startsAt }
+    val dateToScheduleFrom = lastScheduledSession!!.startsAt.toLocalDate().plusDays(1)
+
+    val groupSlots = group.programmeGroupSessionSlots
+    require(groupSlots.isNotEmpty()) { "Programme group slots must not be empty" }
+
+    val slotQueue = buildSlotQueue(
+      group = group,
+      groupSlots = groupSlots,
+      startFrom = dateToScheduleFrom,
+    )
+
+    val nextSlot = slotQueue.poll()
+    val nextValidDate = findNextValidDate(dateToScheduleFrom, nextSlot.slot)
+    slotQueue.add(nextSlot.copy(nextDate = nextValidDate))
+
+    log.info("generated next valid slot date: $nextValidDate")
+    return nextValidDate
+  }
+
   fun scheduleSessionsForGroup(
     programmeGroupId: UUID,
     mostRecentSession: SessionEntity? = null,
