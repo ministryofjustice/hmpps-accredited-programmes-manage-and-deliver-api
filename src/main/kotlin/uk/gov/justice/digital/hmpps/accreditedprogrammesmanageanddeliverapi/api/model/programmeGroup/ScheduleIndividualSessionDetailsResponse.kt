@@ -15,7 +15,7 @@ data class ScheduleIndividualSessionDetailsResponse(
   val groupMembers: List<GroupMember>,
 
   @get:JsonProperty("suggestedDate", required = true)
-  @JsonFormat(pattern = "d MMMM yyyy")
+  @JsonFormat(pattern = "dd/MM/yyyy")
   @Schema(description = "Suggested date for the next one to one session")
   val suggestedDate: LocalDate,
 )
