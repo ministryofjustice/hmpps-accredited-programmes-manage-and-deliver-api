@@ -693,6 +693,8 @@ class ProgrammeGroupController(
     moduleRepository.findByIdOrNull(moduleId)
       ?: throw NotFoundException("Module with id $moduleId not found")
 
+    val suggestedDate = scheduleService.getNextSlotDate(groupId, moduleId)
+
     val username = authenticationUtils.getUsername()
     val (userRegion) = userService.getUserRegions(username)
     val facilitators = regionService.getTeamMembersForPdu(userRegion.code)
@@ -710,6 +712,7 @@ class ProgrammeGroupController(
       ScheduleIndividualSessionDetailsResponse(
         facilitators = facilitators,
         groupMembers = groupMembers,
+        suggestedDate = suggestedDate,
       ),
     )
   }

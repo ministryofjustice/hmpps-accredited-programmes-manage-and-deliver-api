@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository
 
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import java.util.UUID
@@ -14,4 +15,15 @@ interface SessionRepository : JpaRepository<SessionEntity, UUID> {
   ): List<SessionEntity>
 
   fun findByProgrammeGroupId(programmeGroupId: UUID): List<SessionEntity>
+
+  @Query(
+    "SELECT DISTINCT s FROM SessionEntity s " +
+      "WHERE s.moduleSessionTemplate.id = :moduleSessionTemplateId " +
+      "AND s.programmeGroup.id = :programmeGroupId " +
+      "AND s.isCatchup = false",
+  )
+  fun findByModuleSessionTemplateIdAndProgrammeGroupIdWhenNotCatchUp(
+    moduleSessionTemplateId: UUID,
+    programmeGroupId: UUID,
+  ): List<SessionEntity>
 }
