@@ -341,4 +341,110 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     // Verify ndeliusAppointments are removed from old sessions
     assertThat(rescheduled.flatMap { it.ndeliusAppointments }).isEmpty()
   }
+
+  @Test
+  fun `getNextSlotDate should return group start date for pre-group one-to-one sessions`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+    val groupStartDate = LocalDate.of(2126, 5, 1)
+
+    val group = testGroupHelper.createGroup(
+      earliestStartDate = groupStartDate,
+      createGroupSessionSlots = setOf(slot1),
+    )
+
+    val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+    val preGroupModule = buildingChoicesTemplate.modules.first { it.name == "Pre-group one-to-ones" }
+
+    val nextSlotDate = scheduleService.getNextSlotDate(group.id!!, preGroupModule.id!!)
+
+    assertThat(nextSlotDate).isEqualTo(groupStartDate)
+  }
+
+  @Test
+  fun `getNextSlotDate should return day after programme completion for post-programme review sessions`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+    val slot2 = CreateGroupSessionSlotFactory().produce(DayOfWeek.THURSDAY, 12, 0, AmOrPm.PM)
+
+    val group = testGroupHelper.createGroup(
+      earliestStartDate = LocalDate.of(2126, 5, 1),
+      createGroupSessionSlots = setOf(slot1, slot2),
+    )
+
+    val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+    val postProgrammeModule = buildingChoicesTemplate.modules.first { it.name == "Post-programme reviews" }
+
+    // Get the last scheduled "Programme completion" session
+    val programmeCompletionModule = buildingChoicesTemplate.modules
+      .flatMap { it.sessionTemplates }
+      .first { it.name == "Programme completion" }
+
+    val bringingItAllTogether3 = group.sessions
+      .filter { it.moduleSessionTemplate.id == programmeCompletionModule.id }
+      .maxByOrNull { it.startsAt }!!
+
+    val nextSlotDate = scheduleService.getNextSlotDate(group.id!!, postProgrammeModule.id!!)
+
+    assertThat(nextSlotDate).isEqualTo(bringingItAllTogether3.startsAt.toLocalDate().plusDays(1))
+  }
+
+  @Test
+  fun `getNextSlotDate should calculate next date after last scheduled session for regular module`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+    val slot2 = CreateGroupSessionSlotFactory().produce(DayOfWeek.THURSDAY, 12, 0, AmOrPm.PM)
+
+    val group = testGroupHelper.createGroup(
+      earliestStartDate = LocalDate.of(2126, 5, 1),
+      createGroupSessionSlots = setOf(slot1, slot2),
+    )
+
+    val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+
+    // Get a regular module (not pre-group or post-programme)
+    val regularModule = buildingChoicesTemplate.modules.first {
+      it.name == "Bringing it all together"
+    }
+
+    // Get the last scheduled non-catch-up session for this module
+    val lastScheduledSession = group.sessions
+      .filter {
+        it.moduleSessionTemplate.module.id == regularModule.id &&
+          !it.isCatchup
+      }
+      .maxByOrNull { it.startsAt }
+
+    val nextSlotDate = scheduleService.getNextSlotDate(group.id!!, regularModule.id!!)
+
+    // The next slot should be on one of the valid slot days (Monday or Thursday)
+    assertThat(nextSlotDate.dayOfWeek).isIn(DayOfWeek.MONDAY, DayOfWeek.THURSDAY)
+
+    // The next slot date should be on the correct date
+    assertThat(nextSlotDate).isEqualTo(LocalDate.of(2126, 8, 19))
+  }
+
+  @Test
+  fun `getNextSlotDate should handle multiple session slots correctly`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+    val slot2 = CreateGroupSessionSlotFactory().produce(DayOfWeek.WEDNESDAY, 2, 0, AmOrPm.PM)
+    val slot3 = CreateGroupSessionSlotFactory().produce(DayOfWeek.FRIDAY, 10, 15, AmOrPm.AM)
+
+    val group = testGroupHelper.createGroup(
+      earliestStartDate = LocalDate.of(2126, 5, 1),
+      createGroupSessionSlots = setOf(slot1, slot2, slot3),
+    )
+
+    val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+
+    // Get a regular module
+    val regularModule = buildingChoicesTemplate.modules.first {
+      it.name == "Managing people around me"
+    }
+
+    val nextSlotDate = scheduleService.getNextSlotDate(group.id!!, regularModule.id!!)
+
+    // Should return a date on one of the valid slot days
+    assertThat(nextSlotDate.dayOfWeek).isIn(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY)
+
+    // Should be the correct date
+    assertThat(nextSlotDate).isEqualTo(LocalDate.of(2126, 7, 10))
+  }
 }

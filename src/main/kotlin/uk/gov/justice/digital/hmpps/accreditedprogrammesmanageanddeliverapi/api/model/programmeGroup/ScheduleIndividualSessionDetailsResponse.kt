@@ -1,7 +1,9 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup
 
+import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
+import java.time.LocalDate
 
 data class ScheduleIndividualSessionDetailsResponse(
   @get:JsonProperty("facilitators", required = true)
@@ -11,4 +13,9 @@ data class ScheduleIndividualSessionDetailsResponse(
   @get:JsonProperty("groupMembers", required = true)
   @Schema(description = "Details of the Group's members via their Referrals")
   val groupMembers: List<GroupMember>,
+
+  @get:JsonProperty("suggestedDate", required = true)
+  @JsonFormat(pattern = "dd/MM/yyyy")
+  @Schema(description = "Suggested date for the next one to one session")
+  val suggestedDate: LocalDate,
 )

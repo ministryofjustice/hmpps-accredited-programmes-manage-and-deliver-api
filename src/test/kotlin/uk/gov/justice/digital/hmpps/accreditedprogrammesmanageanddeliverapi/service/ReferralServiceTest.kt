@@ -75,6 +75,9 @@ class ReferralServiceTest {
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
 
   @Mock
+  private lateinit var programmeGroupService: ProgrammeGroupService
+
+  @Mock
   private lateinit var domainEventPublisher: DomainEventPublisher
 
   private lateinit var referralService: ReferralService
@@ -91,14 +94,15 @@ class ReferralServiceTest {
       cohortService = cohortService,
       pniService = pniService,
       referralStatusHistoryRepository = referralStatusHistoryRepository,
-      programmeGroupMembershipRepository = programmeGroupMembershipRepository,
       referralLdcHistoryRepository = referralLdcHistoryRepository,
+      programmeGroupMembershipRepository = programmeGroupMembershipRepository,
       ldcService = ldcService,
       referralReportingLocationRepository = referralReportingLocationRepository,
       sentenceService = sentenceService,
       programmeGroupMembershipService = programmeGroupMembershipService,
       domainEventPublisher = domainEventPublisher,
       madBaseUrl = "http://localhost:8080",
+      programmeGroupService = programmeGroupService,
     )
   }
 
