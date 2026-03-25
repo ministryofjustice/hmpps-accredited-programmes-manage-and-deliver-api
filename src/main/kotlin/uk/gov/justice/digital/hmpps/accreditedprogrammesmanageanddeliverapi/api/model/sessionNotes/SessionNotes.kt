@@ -23,6 +23,12 @@ data class SessionNotes(
   val moduleName: String,
 
   @Schema(
+    description = "The name of the session within a module.",
+    example = "Introduction to Building Choices",
+  )
+  val sessionName: String,
+
+  @Schema(
     description = "The session number within the module",
     example = "1",
   )
@@ -87,6 +93,7 @@ data class SessionNotes(
       return SessionNotes(
         pageTitle = pageTitle,
         moduleName = session.moduleName,
+        sessionName = session.sessionName,
         sessionNumber = session.sessionNumber,
         lastUpdatedBy = attendance.createdBy,
         lastUpdatedDate = attendance.createdAt.toLocalDate(),
