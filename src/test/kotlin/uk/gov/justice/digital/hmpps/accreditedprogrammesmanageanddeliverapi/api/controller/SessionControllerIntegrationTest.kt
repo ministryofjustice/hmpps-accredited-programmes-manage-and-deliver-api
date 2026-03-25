@@ -1746,6 +1746,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response.moduleName).isEqualTo(session.moduleName)
+      assertThat(response.sessionName).isEqualTo(session.sessionName)
       assertThat(response.sessionNumber).isEqualTo(session.sessionNumber)
       assertThat(response.groupId).isEqualTo(group.id)
       assertThat(response.sessionId).isEqualTo(session.id)
