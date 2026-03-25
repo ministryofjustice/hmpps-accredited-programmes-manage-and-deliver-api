@@ -37,8 +37,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.DomainEventPublisher
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.DomainEventsMessage
@@ -77,6 +75,7 @@ class ReferralService(
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
   private val domainEventPublisher: DomainEventPublisher,
   @Value($$"${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
+  private val programmeGroupService: ProgrammeGroupService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -422,7 +421,7 @@ class ReferralService(
             groupCode = membership.programmeGroup.code,
             date = session.startsAt.format(DateTimeFormatter.ofPattern("d MMMM yyyy")),
             time = "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${formatTimeForUiDisplay(session.endsAt.toLocalTime())}",
-            attendanceStatus = getAttendanceStatusText(latestAttendance?.outcomeType),
+            attendanceStatus = programmeGroupService.getAttendanceTextFromOutcome(latestAttendance?.outcomeType),
             hasNotes = latestAttendance?.notesHistory?.isNotEmpty() == true,
           )
         }
@@ -437,13 +436,6 @@ class ReferralService(
       currentlyAllocatedGroupId = currentMembership?.programmeGroup?.id,
       attendanceHistory = sessions,
     )
-  }
-
-  private fun getAttendanceStatusText(outcomeType: SessionAttendanceNDeliusOutcomeEntity?): String = when (outcomeType?.code) {
-    SessionAttendanceNDeliusCode.UAAB -> "Not attended"
-    SessionAttendanceNDeliusCode.ATTC -> "Attended"
-    SessionAttendanceNDeliusCode.AFTC -> "Attended"
-    null -> "To be confirmed"
   }
 
   private fun getPersonalDetails(crn: String) = when (val result = ndeliusIntegrationApiClient.getPersonalDetails(crn)) {
