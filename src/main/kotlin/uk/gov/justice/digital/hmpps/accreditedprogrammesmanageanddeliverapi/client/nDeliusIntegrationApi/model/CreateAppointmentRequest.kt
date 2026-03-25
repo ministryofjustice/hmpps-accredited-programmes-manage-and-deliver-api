@@ -44,5 +44,11 @@ fun AttendeeEntity.toAppointment(ndeliusAppointmentId: UUID): CreateAppointmentR
   team = CreateAppointmentRequest.Team(session.programmeGroup.treatmentManager!!.ndeliusTeamCode),
   notes = null,
   sensitive = false,
-  type = AppointmentType.PROGRAMME_ATTENDANCE,
+  type = getAppointmentTypeFromModuleName(session.moduleSessionTemplate.module.name),
 )
+
+private fun getAppointmentTypeFromModuleName(moduleName: String): AppointmentType = when (moduleName) {
+  "Pre-group one-to-ones" -> AppointmentType.PRE_GROUP_ONE_TO_ONE_MEETING
+  "Post-programme reviews" -> AppointmentType.THREE_WAY_MEETING
+  else -> AppointmentType.PROGRAMME_ATTENDANCE
+}
