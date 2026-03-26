@@ -584,6 +584,7 @@ class ProgrammeGroupService(
       groupCode = programmeGroup.code,
       pageTitle = sessionNameFormatter.format(session, SessionNameContext.SessionDetails),
       sessionType = session.sessionType.value,
+      isCatchup = session.isCatchup,
       date = session.startsAt.toLocalDate(),
       time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
       scheduledToAttend = session.attendees.map { it.personName },
