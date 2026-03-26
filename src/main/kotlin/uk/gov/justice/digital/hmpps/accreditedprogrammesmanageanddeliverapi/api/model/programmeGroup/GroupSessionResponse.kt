@@ -21,6 +21,12 @@ data class GroupSessionResponse(
   @Schema(description = "The type of session", required = true, example = "one-to-one")
   val sessionType: String,
 
+  @Schema(
+    description = "Indicates whether this is a catch-up session",
+    example = "false",
+  )
+  val isCatchup: Boolean,
+
   @Schema(description = "The date of the session", required = true, example = "Thursday 12 January 2023")
   @JsonFormat(pattern = "EEEE d MMMM yyyy")
   val date: LocalDate,
