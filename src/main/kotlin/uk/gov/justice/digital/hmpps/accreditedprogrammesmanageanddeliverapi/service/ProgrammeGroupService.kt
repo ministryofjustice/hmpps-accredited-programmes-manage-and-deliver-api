@@ -27,6 +27,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponseGroupModule
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponseGroupSession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.StartDateText
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
@@ -59,6 +61,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.util
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
@@ -124,6 +127,115 @@ class ProgrammeGroupService(
     scheduleService.scheduleSessionsForGroup(savedGroup.id!!)
 
     return savedGroup
+  }
+
+  fun updateGroup(updateGroupRequest: UpdateGroupRequest, groupId: UUID, username: String): UpdateGroupResponse {
+    val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Programme group with id $groupId not found")
+
+    // Track what was updated for the success message
+    var updatedField: String? = null
+
+    updateGroupRequest.groupCode?.let {
+      programmeGroup.code = it
+      updatedField = "groupCode"
+    }
+    updateGroupRequest.sex?.let {
+      programmeGroup.sex = it
+      updatedField = "sex"
+    }
+    updateGroupRequest.earliestStartDate?.let {
+      programmeGroup.earliestPossibleStartDate = it
+      updatedField = "earliestStartDate"
+    }
+    updateGroupRequest.pduName?.let {
+      programmeGroup.probationDeliveryUnitName = it
+      updatedField = "deliveryLocation"
+    }
+    updateGroupRequest.pduCode?.let {
+      programmeGroup.probationDeliveryUnitCode = it
+      updatedField = "deliveryLocation"
+    }
+    updateGroupRequest.deliveryLocationName?.let {
+      programmeGroup.deliveryLocationName = it
+      updatedField = "deliveryLocation"
+    }
+    updateGroupRequest.deliveryLocationCode?.let {
+      programmeGroup.deliveryLocationCode = it
+      updatedField = "deliveryLocation"
+    }
+
+    // Update cohort and isLdc if cohort is provided
+    updateGroupRequest.cohort?.let { cohort ->
+      val (offenceType, isLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(cohort)
+      programmeGroup.cohort = offenceType
+      programmeGroup.isLdc = isLdc
+      updatedField = "cohort"
+    }
+
+    // Update session slots if provided
+    updateGroupRequest.createGroupSessionSlot?.let { sessionSlots ->
+      programmeGroup.programmeGroupSessionSlots.clear()
+      val slots = createSessionSlots(sessionSlots, programmeGroup)
+      programmeGroup.programmeGroupSessionSlots.addAll(slots)
+      updatedField = "daysAndTimes"
+    }
+
+    // Update team members if provided
+    updateGroupRequest.teamMembers?.let { teamMembers ->
+      if (teamMembers.isNotEmpty()) {
+        val (treatmentManagers, facilitators) = teamMembers.partition {
+          it.teamMemberType == CreateGroupTeamMemberType.TREATMENT_MANAGER
+        }
+
+        // Update treatment manager if provided
+        if (treatmentManagers.isNotEmpty()) {
+          require(treatmentManagers.size == 1) {
+            "Exactly one treatment manager must be specified for a programme group"
+          }
+          programmeGroup.treatmentManager = facilitatorService.findOrCreateFacilitator(treatmentManagers.first())
+        }
+
+        // Update facilitators - clear existing and add new ones
+        programmeGroup.groupFacilitators.clear()
+        facilitators.forEach { facilitatorRequest ->
+          val facilitatorEntity = facilitatorService.findOrCreateFacilitator(facilitatorRequest)
+
+          val groupFacilitator = ProgrammeGroupFacilitatorEntity(
+            facilitator = facilitatorEntity,
+            facilitatorType = facilitatorRequest.teamMemberType.toFacilitatorType(),
+            programmeGroup = programmeGroup,
+          )
+
+          programmeGroup.groupFacilitators.add(groupFacilitator)
+        }
+        updatedField = "teamMembers"
+      }
+    }
+
+    programmeGroup.updatedAt = LocalDateTime.now()
+    programmeGroup.updatedByUsername = username
+
+    val savedGroup = programmeGroupRepository.save(programmeGroup)
+
+    // Reschedule future sessions if requested
+    if (updateGroupRequest.automaticallyRescheduleOtherSessions == true) {
+      scheduleService.rescheduleSessionsForGroup(savedGroup.id!!)
+    }
+
+    val successMessage = getUpdateSuccessMessage(updatedField)
+    return UpdateGroupResponse(successMessage = successMessage)
+  }
+
+  private fun getUpdateSuccessMessage(updatedField: String?): String = when (updatedField) {
+    "groupCode" -> "The group code has been updated."
+    "earliestStartDate" -> "The start date has been updated."
+    "daysAndTimes" -> "The days and times have been updated."
+    "cohort" -> "The cohort has been updated."
+    "sex" -> "The gender has been updated."
+    "deliveryLocation" -> "The delivery location has been updated."
+    "teamMembers" -> "The people responsible for the group have been updated."
+    else -> "The group has been updated."
   }
 
   private fun createSessionSlots(

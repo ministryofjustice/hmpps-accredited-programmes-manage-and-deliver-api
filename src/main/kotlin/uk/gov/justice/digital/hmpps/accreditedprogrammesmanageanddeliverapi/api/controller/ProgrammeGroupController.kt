@@ -17,9 +17,11 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -41,6 +43,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleIndividualSessionDetailsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionTypeResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
@@ -885,4 +889,51 @@ class ProgrammeGroupController(
   fun getGroupScheduleOverview(
     @PathVariable @Parameter(description = "The UUID of the Programme Group", required = true) groupId: UUID,
   ): ResponseEntity<GroupScheduleOverview> = ResponseEntity.ok(programmeGroupService.getScheduleOverviewForGroup(groupId))
+
+  @Operation(
+    summary = "Update programme group information",
+    operationId = "updateProgrammeGroup",
+    description = "Update programme group information",
+    responses =
+    [
+      ApiResponse(
+        responseCode = "200",
+        description = "Programme group information updated",
+        content = [Content(schema = Schema(implementation = UpdateGroupResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Bad Request. Blank or missing values",
+        content = [Content(schema = Schema(implementation = MethodArgumentNotValidException::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The programme group does not exist",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PutMapping(
+    "/group/{groupId}",
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+    consumes = [MediaType.APPLICATION_JSON_VALUE],
+  )
+  fun updateProgrammeGroup(
+    @PathVariable @Parameter(description = "The id (UUID) of a programme group", required = true) groupId: UUID,
+    @Parameter(
+      description = "The delivery location preferences for a referral",
+      required = true,
+    ) @Valid @RequestBody updateGroupRequest: UpdateGroupRequest,
+  ): ResponseEntity<UpdateGroupResponse> {
+    val username = authenticationUtils.getUsername()
+    val response = programmeGroupService.updateGroup(updateGroupRequest, groupId, username)
+
+    return ResponseEntity.ok(response)
+  }
 }
