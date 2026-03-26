@@ -2583,6 +2583,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       assertThat(response.groupCode).isEqualTo(body.groupCode)
       assertThat(response.sessionType).isIn("Group")
+      assertThat(response.isCatchup).isFalse
       assertThat(response.pageTitle).isEqualTo("${groupWithAllocation.sessions.first().moduleSessionTemplate.module.name} ${groupWithAllocation.sessions.first().moduleSessionTemplate.sessionNumber}: ${group.sessions.first().moduleSessionTemplate.name}")
       assertThat(response.date).isNotNull
       assertThat(response.time).isEqualTo("9:30am to midday")
