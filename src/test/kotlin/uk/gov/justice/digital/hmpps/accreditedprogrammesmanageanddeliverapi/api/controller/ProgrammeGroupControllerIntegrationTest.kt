@@ -34,6 +34,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionTypeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionScheduleType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
@@ -2774,13 +2776,375 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
   }
 
-  @Test
-  fun `should return 404 if the group doesnt exist`() {
-    performRequestAndExpectStatus(
-      httpMethod = HttpMethod.GET,
-      uri = "/bff/group/${UUID.randomUUID()}/details",
-      object : ParameterizedTypeReference<ErrorResponse>() {},
-      HttpStatus.NOT_FOUND.value(),
-    )
+  @Nested
+  @DisplayName("Update Programme group")
+  inner class UpdateProgrammeGroup {
+    val createGroupTeamMemberFactory = CreateGroupTeamMemberFactory()
+
+    @Test
+    fun `should return 200 when updating group code`() {
+      // Given
+      val group = testGroupHelper.createGroup(groupCode = "ORIGINAL_CODE")
+      val updateRequest = UpdateGroupRequest(groupCode = "UPDATED_CODE")
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.successMessage).isEqualTo("The group code has been updated.")
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.code).isEqualTo("UPDATED_CODE")
+    }
+
+    @Test
+    fun `should return 200 when updating sex`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val newSex = ProgrammeGroupSexEnum.FEMALE
+      val updateRequest = UpdateGroupRequest(sex = newSex)
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.successMessage).isEqualTo("The gender has been updated.")
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.sex).isEqualTo(newSex)
+    }
+
+    @Test
+    fun `should return 200 when updating cohort from general to sexual`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val updateRequest = UpdateGroupRequest(cohort = ProgrammeGroupCohort.SEXUAL)
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.successMessage).isEqualTo("The cohort has been updated.")
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
+      assertThat(updatedGroup.isLdc).isFalse
+    }
+
+    @Test
+    fun `should return 200 when updating cohort to LDC variant`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val updateRequest = UpdateGroupRequest(cohort = ProgrammeGroupCohort.GENERAL_LDC)
+
+      // When
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+      assertThat(updatedGroup.isLdc).isTrue
+    }
+
+    @Test
+    fun `should return 200 when updating earliest start date`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val newStartDate = LocalDate.now().plusDays(10)
+      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate)
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.successMessage).isEqualTo("The start date has been updated.")
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.earliestPossibleStartDate).isEqualTo(newStartDate)
+    }
+
+    @Test
+    fun `should return 200 when updating PDU details`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val updateRequest = UpdateGroupRequest(
+        pduName = "New PDU Name",
+        pduCode = "NEW_PDU_CODE",
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.successMessage).isEqualTo("The delivery location has been updated.")
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.probationDeliveryUnitName).isEqualTo("New PDU Name")
+      assertThat(updatedGroup.probationDeliveryUnitCode).isEqualTo("NEW_PDU_CODE")
+    }
+
+    @Test
+    fun `should return 200 when updating delivery location`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val updateRequest = UpdateGroupRequest(
+        deliveryLocationName = "New Location Name",
+        deliveryLocationCode = "NEW_LOC_CODE",
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.successMessage).isEqualTo("The delivery location has been updated.")
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.deliveryLocationName).isEqualTo("New Location Name")
+      assertThat(updatedGroup.deliveryLocationCode).isEqualTo("NEW_LOC_CODE")
+    }
+
+    @Test
+    fun `should return 200 when updating session slots`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val newSlots = setOf(
+        CreateGroupSessionSlot(DayOfWeek.WEDNESDAY, 2, 30, AmOrPm.PM),
+        CreateGroupSessionSlot(DayOfWeek.FRIDAY, 10, 0, AmOrPm.AM),
+      )
+      val updateRequest = UpdateGroupRequest(createGroupSessionSlot = newSlots)
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.successMessage).isEqualTo("The days and times have been updated.")
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.programmeGroupSessionSlots).hasSize(2)
+      assertThat(updatedGroup.programmeGroupSessionSlots).anyMatch {
+        it.dayOfWeek == DayOfWeek.WEDNESDAY && it.startTime == LocalTime.of(14, 30)
+      }
+      assertThat(updatedGroup.programmeGroupSessionSlots).anyMatch {
+        it.dayOfWeek == DayOfWeek.FRIDAY && it.startTime == LocalTime.of(10, 0)
+      }
+    }
+
+    @Test
+    fun `should return 200 when updating team members`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val newTreatmentManager = createGroupTeamMemberFactory.produceWithRandomValues(
+        teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER,
+      )
+      val newFacilitator = createGroupTeamMemberFactory.produceWithRandomValues(
+        teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR,
+      )
+      val updateRequest = UpdateGroupRequest(
+        teamMembers = listOf(newTreatmentManager, newFacilitator),
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.successMessage).isEqualTo("The people responsible for the group have been updated.")
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.treatmentManager?.ndeliusPersonCode).isEqualTo(newTreatmentManager.facilitatorCode)
+      assertThat(updatedGroup.groupFacilitators).hasSize(1)
+      assertThat(updatedGroup.groupFacilitators.first().facilitator.ndeliusPersonCode)
+        .isEqualTo(newFacilitator.facilitatorCode)
+    }
+
+    @Test
+    fun `should return 200 when updating multiple fields at once`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val updateRequest = UpdateGroupRequest(
+        groupCode = "UPDATED_GROUP_CODE",
+        sex = ProgrammeGroupSexEnum.FEMALE,
+        cohort = ProgrammeGroupCohort.SEXUAL_LDC,
+        earliestStartDate = LocalDate.of(2026, 12, 25),
+        pduName = "Updated PDU",
+        pduCode = "UPD_PDU",
+        deliveryLocationName = "Updated Location",
+        deliveryLocationCode = "UPD_LOC",
+      )
+
+      // When
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.code).isEqualTo("UPDATED_GROUP_CODE")
+      assertThat(updatedGroup.sex).isEqualTo(ProgrammeGroupSexEnum.FEMALE)
+      assertThat(updatedGroup.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
+      assertThat(updatedGroup.isLdc).isTrue
+      assertThat(updatedGroup.earliestPossibleStartDate).isEqualTo(LocalDate.of(2026, 12, 25))
+      assertThat(updatedGroup.probationDeliveryUnitName).isEqualTo("Updated PDU")
+      assertThat(updatedGroup.probationDeliveryUnitCode).isEqualTo("UPD_PDU")
+      assertThat(updatedGroup.deliveryLocationName).isEqualTo("Updated Location")
+      assertThat(updatedGroup.deliveryLocationCode).isEqualTo("UPD_LOC")
+    }
+
+    @Test
+    fun `should return 200 and not change fields that are not provided`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val originalCode = group.code
+      val originalSex = group.sex
+      val originalCohort = group.cohort
+
+      val updateRequest = UpdateGroupRequest(
+        pduName = "Only PDU Updated",
+      )
+
+      // When
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.code).isEqualTo(originalCode)
+      assertThat(updatedGroup.sex).isEqualTo(originalSex)
+      assertThat(updatedGroup.cohort).isEqualTo(originalCohort)
+      assertThat(updatedGroup.probationDeliveryUnitName).isEqualTo("Only PDU Updated")
+    }
+
+    @Test
+    fun `should return 404 when group does not exist`() {
+      // Given
+      val nonExistentGroupId = UUID.randomUUID()
+      val updateRequest = UpdateGroupRequest(groupCode = "NEW_CODE")
+
+      // When / Then
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/$nonExistentGroupId",
+        body = updateRequest,
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(response.userMessage).contains("Programme group with id $nonExistentGroupId not found")
+    }
+
+    @Test
+    fun `should reschedule sessions when automaticallyRescheduleOtherSessions is true and session slots are updated`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val originalSessionCount = group.sessions.size
+      val newSlots = setOf(
+        CreateGroupSessionSlot(DayOfWeek.THURSDAY, 3, 0, AmOrPm.PM),
+      )
+      val updateRequest = UpdateGroupRequest(
+        createGroupSessionSlot = newSlots,
+        automaticallyRescheduleOtherSessions = true,
+      )
+
+      // When
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.programmeGroupSessionSlots).hasSize(1)
+      assertThat(updatedGroup.programmeGroupSessionSlots.first().dayOfWeek).isEqualTo(DayOfWeek.THURSDAY)
+      // Sessions should still exist (rescheduled, not deleted)
+      assertThat(updatedGroup.sessions.size).isGreaterThanOrEqualTo(originalSessionCount)
+    }
+
+    @Test
+    fun `should not reschedule sessions when automaticallyRescheduleOtherSessions is false`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val newSlots = setOf(
+        CreateGroupSessionSlot(DayOfWeek.MONDAY, 9, 0, AmOrPm.AM),
+      )
+      val updateRequest = UpdateGroupRequest(
+        createGroupSessionSlot = newSlots,
+        automaticallyRescheduleOtherSessions = false,
+      )
+
+      // When
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.programmeGroupSessionSlots).hasSize(1)
+    }
+
+    @Test
+    fun `should return 404 if the group doesnt exist`() {
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${UUID.randomUUID()}/details",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+    }
   }
 }
