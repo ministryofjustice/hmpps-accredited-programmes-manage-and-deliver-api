@@ -147,6 +147,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
       assertThat(response.currentlyAllocatedGroupCode).isEqualTo(groupCode)
       assertThat(response.currentlyAllocatedGroupId).isEqualTo(group.id)
+      assertThat(response.pdu).isEqualTo(nDeliusPersonalDetails.probationDeliveryUnit.description)
+      assertThat(response.reportingTeam).isEqualTo(nDeliusPersonalDetails.team.description)
     }
 
     @Test
@@ -248,6 +250,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.hasLdcDisplayText).isEqualTo(LdcStatus.HAS_LDC.displayText)
       assertThat(response.currentlyAllocatedGroupId).isNull()
       assertThat(response.currentlyAllocatedGroupCode).isNull()
+      assertThat(response.pdu).isEqualTo(nDeliusPersonalDetails.probationDeliveryUnit.description)
+      assertThat(response.reportingTeam).isEqualTo(nDeliusPersonalDetails.team.description)
     }
 
     @Test
@@ -294,6 +298,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner.email)
       assertThat(response.currentlyAllocatedGroupId).isNull()
       assertThat(response.currentlyAllocatedGroupCode).isNull()
+      assertThat(response.pdu).isEqualTo(nDeliusPersonalDetails.probationDeliveryUnit.description)
+      assertThat(response.reportingTeam).isEqualTo(nDeliusPersonalDetails.team.description)
     }
 
     @Test
