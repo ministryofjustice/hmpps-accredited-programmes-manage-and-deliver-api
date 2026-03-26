@@ -133,7 +133,7 @@ data class ReferralDetails(
     description = "The probation delivery unit responsible for this referral.",
   )
   @get:JsonProperty("pdu", required = true)
-  val pdu: String? = null,
+  val pdu: String,
 
   @Schema(
     example = "Team A",
@@ -141,7 +141,7 @@ data class ReferralDetails(
     description = "The reporting team responsible for this referral.",
   )
   @get:JsonProperty("reportingTeam", required = true)
-  val reportingTeam: String? = null,
+  val reportingTeam: String,
 ) {
   companion object {
     fun toModel(
