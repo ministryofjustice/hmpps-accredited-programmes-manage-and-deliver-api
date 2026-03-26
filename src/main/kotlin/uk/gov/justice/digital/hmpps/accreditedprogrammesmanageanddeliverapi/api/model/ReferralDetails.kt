@@ -126,6 +126,22 @@ data class ReferralDetails(
   )
   @get:JsonProperty("currentlyAllocatedGroupId", required = false)
   val currentlyAllocatedGroupId: UUID?,
+
+  @Schema(
+    example = "North London PDU",
+    required = false,
+    description = "The probation delivery unit responsible for this referral.",
+  )
+  @get:JsonProperty("pdu", required = true)
+  val pdu: String? = null,
+
+  @Schema(
+    example = "Team A",
+    required = false,
+    description = "The reporting team responsible for this referral.",
+  )
+  @get:JsonProperty("reportingTeam", required = true)
+  val reportingTeam: String? = null,
 ) {
   companion object {
     fun toModel(
@@ -149,6 +165,8 @@ data class ReferralDetails(
       currentStatusDescription = latestReferralStatus.description,
       currentlyAllocatedGroupCode = currentlyAllocatedGroup?.programmeGroup?.code,
       currentlyAllocatedGroupId = currentlyAllocatedGroup?.programmeGroup?.id,
+      pdu = nDeliusPersonalDetails.probationDeliveryUnit.description,
+      reportingTeam = nDeliusPersonalDetails.team.description,
     )
   }
 }
