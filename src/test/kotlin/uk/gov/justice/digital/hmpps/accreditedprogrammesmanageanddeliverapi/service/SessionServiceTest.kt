@@ -18,6 +18,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
@@ -38,9 +39,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AttendeeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.LocalDate
@@ -52,11 +54,13 @@ class SessionServiceTest {
   private val sessionRepository = mockk<SessionRepository>()
   private val scheduleService = mockk<ScheduleService>()
   private val programmeGroupMembershipRepository = mockk<ProgrammeGroupMembershipRepository>()
-  private val referralRepository = mockk<ReferralRepository>()
   private val facilitatorService = mockk<FacilitatorService>()
   private val sessionAttendanceOutcomeTypeRepository = mockk<SessionAttendanceOutcomeTypeRepository>()
   private val nDeliusIntegrationApiClient = mockk<NDeliusIntegrationApiClient>()
+  private val attendeeRepository = mockk<AttendeeRepository>()
   private val sessionNameFormatter = SessionNameFormatter()
+  private val referralService = mockk<ReferralService>()
+  private val sessionAttendanceRepository = mockk<SessionAttendanceRepository>()
   private lateinit var service: SessionService
   private lateinit var sessionAttendanceTypeEntities: List<SessionAttendanceNDeliusOutcomeEntity>
 
@@ -67,10 +71,12 @@ class SessionServiceTest {
       scheduleService,
       programmeGroupMembershipRepository,
       facilitatorService,
-      referralRepository,
+      referralService,
       nDeliusIntegrationApiClient,
       sessionAttendanceOutcomeTypeRepository,
       sessionNameFormatter,
+      sessionAttendanceRepository,
+      attendeeRepository,
     )
 
     sessionAttendanceTypeEntities = listOf(
@@ -107,10 +113,13 @@ class SessionServiceTest {
       .withModuleSessionTemplate(moduleSessionTemplateEntity)
       .withAttendees(
         listOf(
-          AttendeeFactory().withReferral(referralEntity)
+          AttendeeFactory()
+            .withReferral(referralEntity)
             .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
+              SessionFactory()
+                .withProgrammeGroup(programmeGroupEntity)
+                .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                .produce(),
             ).produce(),
         ) as MutableList<AttendeeEntity>,
       )
@@ -119,6 +128,7 @@ class SessionServiceTest {
       .withModuleSessionTemplate(moduleSessionTemplateEntity)
       .produce()
 
+    every { referralService.getReferralById(any()) } returns referralEntity
     every { sessionRepository.findByIdOrNull(any()) } returns sessionEntity
     every { sessionRepository.delete(any()) } returns Unit
     every { scheduleService.removeNDeliusAppointments(any(), any()) } returns Unit
@@ -161,6 +171,7 @@ class SessionServiceTest {
       .withModuleSessionTemplate(moduleSessionTemplateEntity)
       .produce()
 
+    every { referralService.getReferralById(any()) } returns referralEntity
     every { sessionRepository.findByIdOrNull(any()) } returns sessionEntity
     every { sessionRepository.delete(any()) } returns Unit
     every { scheduleService.removeNDeliusAppointments(any(), any()) } returns Unit
@@ -203,6 +214,7 @@ class SessionServiceTest {
       .withModuleSessionTemplate(moduleSessionTemplateEntity)
       .produce()
 
+    every { referralService.getReferralById(any()) } returns referralEntity
     every { sessionRepository.findByIdOrNull(any()) } returns sessionEntity
     every { sessionRepository.delete(any()) } returns Unit
     every { scheduleService.removeNDeliusAppointments(any(), any()) } returns Unit
@@ -234,9 +246,9 @@ class SessionServiceTest {
     val referral1 = ReferralEntityFactory().withId(referralId1).withPersonName("John Doe").produce()
     val referral2 = ReferralEntityFactory().withId(referralId2).withPersonName("Jane Smith").produce()
 
+    every { referralService.getReferralById(referralId1) } returns referral1
+    every { referralService.getReferralById(referralId2) } returns referral2
     every { sessionRepository.findById(sessionId) } returns Optional.of(session)
-    every { referralRepository.findById(referralId1) } returns Optional.of(referral1)
-    every { referralRepository.findById(referralId2) } returns Optional.of(referral2)
     every { sessionRepository.save(session) } returns session
 
     // When
@@ -249,8 +261,8 @@ class SessionServiceTest {
     assertThat(session.attendees[1].referral.id).isEqualTo(referralId2)
 
     verify { sessionRepository.findById(sessionId) }
-    verify { referralRepository.findById(referralId1) }
-    verify { referralRepository.findById(referralId2) }
+    verify { referralService.getReferralById(referralId1) }
+    verify { referralService.getReferralById(referralId2) }
     verify { sessionRepository.save(session) }
   }
 
@@ -301,9 +313,11 @@ class SessionServiceTest {
     val referral1 = ReferralEntityFactory().withId(referralId1).withPersonName("John Doe").produce()
     val referral2 = ReferralEntityFactory().withId(referralId2).withPersonName("Jane Smith").produce()
     session.attendees.add(AttendeeEntity(referral = referral1, session = session))
+    session.attendees.add(AttendeeEntity(referral = referral2, session = session))
 
+    every { referralService.getReferralById(referralId1) } returns referral1
+    every { referralService.getReferralById(referralId2) } returns referral2
     every { sessionRepository.findById(sessionId) } returns Optional.of(session)
-    every { referralRepository.findById(referralId2) } returns Optional.of(referral2)
     every { sessionRepository.save(session) } returns session
 
     // When
@@ -315,7 +329,7 @@ class SessionServiceTest {
     assertThat(session.attendees[0].referral.id).isEqualTo(referralId2)
 
     verify { sessionRepository.findById(sessionId) }
-    verify { referralRepository.findById(referralId2) }
+    verify { referralService.getReferralById(referralId2) }
     verify { sessionRepository.save(session) }
   }
 
@@ -462,7 +476,10 @@ class SessionServiceTest {
     )
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+    val attendeeEntity = AttendeeFactory().withSession(sessionEntity).withReferral(referralEntity).produce()
 
+    every { attendeeRepository.findByReferralAndSession(any(), any()) } returns attendeeEntity
+    every { referralService.getReferralById(any()) } returns referralEntity
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
       programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(
@@ -533,7 +550,10 @@ class SessionServiceTest {
     )
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+    val attendeeEntity = AttendeeFactory().withSession(sessionEntity).withReferral(referralEntity).produce()
 
+    every { attendeeRepository.findByReferralAndSession(any(), any()) } returns attendeeEntity
+    every { referralService.getReferralById(any()) } returns referralEntity
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
       programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(
@@ -593,8 +613,11 @@ class SessionServiceTest {
       SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
     )
 
+    val attendeeEntity = AttendeeFactory().withSession(sessionEntity).withReferral(referralEntity).produce()
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
 
+    every { attendeeRepository.findByReferralAndSession(any(), any()) } returns attendeeEntity
+    every { referralService.getReferralById(any()) } returns referralEntity
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
       programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(
@@ -671,6 +694,10 @@ class SessionServiceTest {
       SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
     )
 
+    val attendeeEntity = AttendeeFactory().withSession(sessionEntity).withReferral(referralEntity).produce()
+
+    every { attendeeRepository.findByReferralAndSession(any(), any()) } returns attendeeEntity
+    every { referralService.getReferralById(any()) } returns referralEntity
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
       programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(
@@ -727,6 +754,9 @@ class SessionServiceTest {
       .withModuleSessionTemplate(moduleSessionTemplateEntity)
       .produce()
 
+    val attendeeEntity = AttendeeFactory().withSession(sessionEntity).withReferral(referralEntity).produce()
+
+    every { attendeeRepository.findByReferralAndSession(any(), any()) } returns attendeeEntity
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
 
     // When
@@ -753,29 +783,31 @@ class SessionServiceTest {
     val referralId = UUID.randomUUID()
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
     val sessionId = UUID.randomUUID()
+    val attendee = AttendeeFactory()
+      .withReferral(referralEntity)
+      .withSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroupEntity)
+          .withModuleSessionTemplate(moduleSessionTemplateEntity)
+          .produce(),
+      )
+      .produce()
+    attendee.sessionAttendances.add(
+      SessionAttendanceEntityFactory()
+        .withAttendee(attendee)
+        .withOutcomeType(SessionAttendanceNDeliusOutcomeEntityFactory().produce())
+        .produce(),
+    )
     val sessionEntity = SessionFactory()
       .withId(sessionId)
       .withModuleSessionTemplate(moduleSessionTemplateEntity)
       .withAttendees(
-        listOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ) as MutableList<AttendeeEntity>,
+        listOf(attendee).toMutableList(),
       )
       .withIsCatchup(true)
       .withProgrammeGroup(programmeGroupEntity)
       .withModuleSessionTemplate(moduleSessionTemplateEntity)
       .produce()
-
-    sessionEntity.attendances = mutableSetOf(
-      SessionAttendanceEntityFactory()
-        .withSession(sessionEntity)
-        .withOutcomeType(SessionAttendanceNDeliusOutcomeEntityFactory().produce())
-        .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
-    )
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every { sessionAttendanceOutcomeTypeRepository.findAll() } returns sessionAttendanceTypeEntities
@@ -833,19 +865,21 @@ class SessionServiceTest {
       .withModuleSessionTemplate(moduleSessionTemplateEntity)
       .produce()
 
-    sessionEntity.attendances = mutableSetOf(
-      SessionAttendanceEntityFactory()
-        .withSession(sessionEntity)
-        .withOutcomeType(
-          SessionAttendanceNDeliusOutcomeEntityFactory()
-            .withCode(AFTC)
-            .withDescription("Attended - Failed to Comply")
-            .withAttendance(true)
-            .withCompliant(false)
-            .produce(),
-        )
-        .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
-    )
+    sessionEntity.attendees.forEach {
+      it.sessionAttendances = mutableListOf(
+        SessionAttendanceEntityFactory()
+          .withAttendee(it)
+          .withOutcomeType(
+            SessionAttendanceNDeliusOutcomeEntityFactory()
+              .withCode(AFTC)
+              .withDescription("Attended - Failed to Comply")
+              .withAttendance(true)
+              .withCompliant(false)
+              .produce(),
+          )
+          .produce(),
+      )
+    }
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every { sessionAttendanceOutcomeTypeRepository.findAll() } returns sessionAttendanceTypeEntities
@@ -893,20 +927,21 @@ class SessionServiceTest {
       .withModuleSessionTemplate(moduleSessionTemplateEntity)
       .produce()
 
-    sessionEntity.attendances = mutableSetOf(
-      SessionAttendanceEntityFactory()
-        .withSession(sessionEntity)
-        .withOutcomeType(
-          SessionAttendanceNDeliusOutcomeEntityFactory()
-            .withCode(UAAB)
-            .withDescription("Unacceptable Absence")
-            .withAttendance(false)
-            .withCompliant(false)
-            .produce(),
-        )
-        .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce())
-        .produce(),
-    )
+    sessionEntity.attendees.forEach {
+      it.sessionAttendances = mutableListOf(
+        SessionAttendanceEntityFactory()
+          .withAttendee(it)
+          .withOutcomeType(
+            SessionAttendanceNDeliusOutcomeEntityFactory()
+              .withCode(UAAB)
+              .withDescription("Unacceptable Absence")
+              .withAttendance(false)
+              .withCompliant(false)
+              .produce(),
+          )
+          .produce(),
+      )
+    }
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every { sessionAttendanceOutcomeTypeRepository.findAll() } returns sessionAttendanceTypeEntities
@@ -953,7 +988,7 @@ class SessionServiceTest {
       .withModuleSessionTemplate(moduleSessionTemplateEntity)
       .produce()
 
-    sessionEntity.attendances = mutableSetOf()
+    sessionEntity.attendees.forEach { it.sessionAttendances = emptyList<SessionAttendanceEntity>().toMutableList() }
     every { sessionAttendanceOutcomeTypeRepository.findAll() } returns sessionAttendanceTypeEntities
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
 

@@ -43,7 +43,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
@@ -54,6 +53,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
@@ -78,6 +78,7 @@ class ProgrammeGroupService(
   private val sessionRepository: SessionRepository,
   private val facilitatorService: FacilitatorService,
   private val sessionNameFormatter: SessionNameFormatter,
+  private val sessionAttendanceRepository: SessionAttendanceRepository,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -302,7 +303,14 @@ class ProgrammeGroupService(
   fun getGroupDetails(groupId: UUID): GroupDetailsResponse {
     val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
-    val daysAndTimes: List<String> = programmeGroup.programmeGroupSessionSlots.map { "${it.dayOfWeek.toAvailabilityOptions()}, ${formatTimeOfSession(it.startTime, it.startTime.plusMinutes(150))}" }
+    val daysAndTimes: List<String> = programmeGroup.programmeGroupSessionSlots.map {
+      "${it.dayOfWeek.toAvailabilityOptions()}, ${
+        formatTimeOfSession(
+          it.startTime,
+          it.startTime.plusMinutes(150),
+        )
+      }"
+    }
     return GroupDetailsResponse.from(programmeGroup, daysAndTimes)
   }
 
@@ -561,10 +569,8 @@ class ProgrammeGroupService(
       ?: throw NotFoundException("Session with $sessionId not found")
 
     val attendanceAndSessionNotes = session.attendees.map { attendee ->
-      val attendanceRecord = session.attendances
-        .filter { it.groupMembership.referral.id == attendee.referralId }
-        .sortedWith(compareByDescending<SessionAttendanceEntity> { it.createdAt }.thenByDescending { it.id })
-        .firstOrNull()
+
+      val attendanceRecord = sessionAttendanceRepository.findTopByAttendeeIdOrderByCreatedAtDesc(attendee.id!!)
 
       AttendanceAndSessionNotes(
         name = attendee.personName,

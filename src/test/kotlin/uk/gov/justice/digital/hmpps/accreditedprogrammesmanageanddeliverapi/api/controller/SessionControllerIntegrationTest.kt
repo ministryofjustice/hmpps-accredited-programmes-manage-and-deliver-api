@@ -1018,7 +1018,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response.userMessage).isEqualTo("Not Found: Referral not found with id: $referralId")
+      assertThat(response.userMessage).isEqualTo("Not Found: No Referral found for id: $referralId")
     }
 
     @Test
@@ -1491,8 +1491,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     assertThat(response.responseMessage).isEqualTo("Attendance saved for session $sessionId")
     val updatedSessionEntity = sessionRepository.findById(sessionId)
     assertThat(updatedSessionEntity.isPresent).isTrue()
-    assertThat(updatedSessionEntity.get().attendances.size).isEqualTo(1)
-    val sessionAttendanceEntity = updatedSessionEntity.get().attendances.first()
+    assertThat(updatedSessionEntity.get().attendees.size).isEqualTo(1)
+    val sessionAttendanceEntity = updatedSessionEntity.get().attendees.first().sessionAttendances.first()
     assertThat(sessionAttendanceEntity.outcomeType.attendance).isTrue()
     assertThat(sessionAttendanceEntity.recordedByFacilitator?.id)
       .isEqualTo(sessionEntity.sessionFacilitators.find { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }?.facilitator?.id)

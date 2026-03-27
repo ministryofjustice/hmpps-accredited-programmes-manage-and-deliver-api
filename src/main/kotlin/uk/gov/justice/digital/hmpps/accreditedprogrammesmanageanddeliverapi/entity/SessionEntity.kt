@@ -69,13 +69,6 @@ class SessionEntity(
   @OneToMany(
     fetch = FetchType.LAZY,
     cascade = [CascadeType.ALL],
-    mappedBy = "session",
-  )
-  var attendances: MutableSet<SessionAttendanceEntity> = mutableSetOf(),
-
-  @OneToMany(
-    fetch = FetchType.LAZY,
-    cascade = [CascadeType.ALL],
     orphanRemoval = true,
     mappedBy = "session",
   )

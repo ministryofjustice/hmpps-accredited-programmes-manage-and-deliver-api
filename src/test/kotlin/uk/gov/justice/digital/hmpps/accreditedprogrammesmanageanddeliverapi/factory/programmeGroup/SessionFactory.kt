@@ -56,7 +56,6 @@ class SessionFactory(
     sessionFacilitators = this.sessionFacilitators,
     createdAt = this.createdAt,
     createdByUsername = this.createdByUsername,
-    attendances = this.attendances,
     attendees = this.attendees,
     isPlaceholder = this.isPlaceholder,
   )
