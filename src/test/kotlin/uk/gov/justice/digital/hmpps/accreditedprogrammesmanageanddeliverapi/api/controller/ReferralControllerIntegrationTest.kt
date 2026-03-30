@@ -1338,6 +1338,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.attendanceHistory).hasSize(1)
       assertThat(response.attendanceHistory).allMatch { it.attendanceStatus == "Attended - Complied" }
       assertThat(response.attendanceHistory).allMatch { it.hasNotes }
+      assertThat(response.attendanceHistory).allMatch { it.groupId == group.id }
     }
 
     @Test
