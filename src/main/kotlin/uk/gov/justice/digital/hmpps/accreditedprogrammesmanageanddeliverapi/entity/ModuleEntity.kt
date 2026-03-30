@@ -42,4 +42,22 @@ class ModuleEntity(
   )
   @OrderBy("sessionNumber ASC")
   var sessionTemplates: MutableSet<ModuleSessionTemplateEntity> = mutableSetOf(),
-)
+) {
+  /**
+   * Checks if this module is a pre-group module (e.g., "Pre-group one-to-ones").
+   * These are sessions that occur before the main group programme starts.
+   */
+  fun isPreGroupModule(): Boolean = name.startsWith("Pre-group", ignoreCase = true)
+
+  /**
+   * Checks if this module is a post-programme module (e.g., "Post-programme reviews").
+   * These are sessions that occur after the main programme has completed.
+   */
+  fun isPostProgrammeModule(): Boolean = name.startsWith("Post-programme", ignoreCase = true)
+
+  /**
+   * Checks if this module a regular module.
+   * These are sessions that happen between the pre-group and post-programme modules.
+   */
+  fun isDuringGroupModule(): Boolean = !isPreGroupModule() && !isPostProgrammeModule()
+}

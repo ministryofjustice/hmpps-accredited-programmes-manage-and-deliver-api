@@ -114,12 +114,12 @@ data class GroupDetailsResponse(
     fun from(
       programmeGroup: ProgrammeGroupEntity,
       daysAndTimes: List<String>,
-      startDate: LocalDate?,
+      earliestPreGroupSessionDate: LocalDate?,
     ): GroupDetailsResponse = GroupDetailsResponse(
       id = programmeGroup.id!!,
       code = programmeGroup.code,
       regionName = programmeGroup.regionName,
-      startDate = startDate,
+      startDate = earliestPreGroupSessionDate,
       pduName = programmeGroup.probationDeliveryUnitName,
       deliveryLocation = programmeGroup.deliveryLocationName,
       cohort = ProgrammeGroupCohort.from(programmeGroup.cohort, programmeGroup.isLdc).label,
