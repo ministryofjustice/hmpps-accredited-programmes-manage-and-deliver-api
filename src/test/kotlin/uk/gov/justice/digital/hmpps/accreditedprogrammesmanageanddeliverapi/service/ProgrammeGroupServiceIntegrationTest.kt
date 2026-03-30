@@ -716,11 +716,23 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       val facilitator1 = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withPersonName("Archibald Quentin").produce())
       val facilitator2 = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withPersonName("Jane Doe").produce())
       val coverFacilitator = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withPersonName("John Doe").produce())
+      val template = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+      val buildingChoicesTemplateId = template.id!!
+
+      // Get modules
+      val modules = moduleRepository.findByAccreditedProgrammeTemplateId(buildingChoicesTemplateId)
+      assertThat(modules).isNotEmpty
+
+      // Find Pre-Group module
+      val preGroupModule = modules.find { it.name.startsWith("Pre-group") }
+      assertThat(preGroupModule).isNotNull
+      val preGroupModuleId = preGroupModule!!.id!!
 
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withCode("TEST_GROUP_001")
           .withRegionName("Test Region")
+          .withAccreditedProgrammeTemplate(template)
           .withProbationDeliveryUnit("Test PDU", "PDU001")
           .withDeliveryLocation("Test Location", "LOC001")
           .withSex(ProgrammeGroupSexEnum.MALE)
@@ -728,6 +740,19 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           .withIsLdc(true)
           .withEarliestStartDate(LocalDate.of(2026, 4, 1))
           .withTreatmentManager(treatmentManager)
+          .produce(),
+      )
+
+      val preGroupModuleSessions = moduleSessionTemplateRepository.findByModuleId(preGroupModuleId)
+
+      // Create pre-group session
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(preGroupModuleSessions.first { it.name.startsWith("Pre-group") })
+          .withStartsAt(LocalDateTime.of(2026, 6, 1, 10, 0))
+          .withEndsAt(LocalDateTime.of(2026, 6, 1, 11, 0))
+          .withIsPlaceholder(true)
           .produce(),
       )
 
@@ -783,7 +808,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(result.id).isEqualTo(group.id)
       assertThat(result.code).isEqualTo("TEST_GROUP_001")
       assertThat(result.regionName).isEqualTo("Test Region")
-      assertThat(result.startDate).isNotNull
+      assertThat(result.startDate).isEqualTo("2026-06-01")
       assertThat(result.pduName).isEqualTo("Test PDU")
       assertThat(result.deliveryLocation).isEqualTo("Test Location")
       assertThat(result.sex).isEqualTo("Male")

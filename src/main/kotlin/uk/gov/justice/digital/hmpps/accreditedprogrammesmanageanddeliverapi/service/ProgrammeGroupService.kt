@@ -303,7 +303,12 @@ class ProgrammeGroupService(
     val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
     val daysAndTimes: List<String> = programmeGroup.programmeGroupSessionSlots.map { "${it.dayOfWeek.toAvailabilityOptions()}, ${formatTimeOfSession(it.startTime, it.startTime.plusMinutes(150))}" }
-    return GroupDetailsResponse.from(programmeGroup, daysAndTimes)
+    val sessions = sessionRepository.findByProgrammeGroupId(groupId)
+    val earliestPreGroupSessionDate = sessions
+      .filter { it.moduleSessionTemplate.module.isPreGroupModule() }
+      .minByOrNull { it.startsAt }
+      ?.startsAt?.toLocalDate()
+    return GroupDetailsResponse.from(programmeGroup, daysAndTimes, earliestPreGroupSessionDate)
   }
 
   fun getGroupAllocationsFilters(): ProgrammeGroupAllocations.ProgrammeGroupAllocationsFilters {
