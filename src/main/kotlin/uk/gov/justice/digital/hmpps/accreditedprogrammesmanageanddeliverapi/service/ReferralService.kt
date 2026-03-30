@@ -418,6 +418,7 @@ class ReferralService(
           AttendanceHistorySession(
             sessionId = session.id!!,
             sessionName = session.sessionName,
+            groupId = membership.programmeGroup.id,
             groupCode = membership.programmeGroup.code,
             date = session.startsAt.format(DateTimeFormatter.ofPattern("d MMMM yyyy")),
             time = "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${formatTimeForUiDisplay(session.endsAt.toLocalTime())}",
