@@ -357,11 +357,11 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
 
     val nextSlotDate = scheduleService.getNextSlotDate(group.id!!, preGroupModule.id!!)
 
-    assertThat(nextSlotDate).isEqualTo(groupStartDate)
+    assertThat(nextSlotDate).isEqualTo(LocalDate.of(2126, 5, 6))
   }
 
   @Test
-  fun `getNextSlotDate should return day after programme completion for post-programme review sessions`() {
+  fun `getNextSlotDate should a six week buffer after programme completion for post-programme review sessions`() {
     val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
     val slot2 = CreateGroupSessionSlotFactory().produce(DayOfWeek.THURSDAY, 12, 0, AmOrPm.PM)
 
@@ -384,7 +384,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
 
     val nextSlotDate = scheduleService.getNextSlotDate(group.id!!, postProgrammeModule.id!!)
 
-    assertThat(nextSlotDate).isEqualTo(bringingItAllTogether3.startsAt.toLocalDate().plusDays(1))
+    assertThat(nextSlotDate).isEqualTo(LocalDate.of(2126, 9, 26))
   }
 
   @Test

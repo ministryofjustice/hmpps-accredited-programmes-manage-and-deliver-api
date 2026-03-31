@@ -120,20 +120,21 @@ class ScheduleService(
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
       ?: throw NotFoundException("Group with id: $programmeGroupId could not be found")
 
-    // Pre group should use group start date
+    // Pre group should be the date of the first session in the Pre Group Module, or the placeholder date when there are no sessions
     if (moduleSessionTemplateRepository.isAPreGroupSession(moduleId)) {
-      return group.earliestPossibleStartDate
+      val sessions = sessionRepository.findByProgrammeGroupId(programmeGroupId)
+      return sessions
+        .filter { it.moduleSessionTemplate.module.isPreGroupModule() }
+        .minByOrNull { it.startsAt }
+        ?.startsAt!!.toLocalDate()
     }
 
-    // Post programme should use the next date after the final group session which will be Bringing it all together 3: Programme completion
+    // Post programme should use the next date after the final group plus a 6-week buffer
     else if (moduleSessionTemplateRepository.isAPostProgrammeSession(moduleId)) {
-      val finalModule = moduleSessionTemplateRepository.findByName("Programme completion")
-      val finalSessions = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupIdWhenNotCatchUp(
-        moduleSessionTemplateId = finalModule!!.id!!,
-        programmeGroupId = programmeGroupId,
-      )
-      val lastScheduledSession = finalSessions.maxByOrNull { it.startsAt }
-      return lastScheduledSession!!.startsAt.toLocalDate().plusDays(1)
+      val sessions = sessionRepository.findByProgrammeGroupId(programmeGroupId)
+      return sessions
+        .maxByOrNull { it.startsAt }
+        ?.startsAt!!.toLocalDate()
     }
 
     // Otherwise get the date of the last scheduled session (not a catch up) for the module and calculate the next date based on that
