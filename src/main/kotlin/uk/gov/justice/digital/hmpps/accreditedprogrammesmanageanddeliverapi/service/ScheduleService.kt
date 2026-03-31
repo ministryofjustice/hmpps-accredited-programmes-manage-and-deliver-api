@@ -120,7 +120,7 @@ class ScheduleService(
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
       ?: throw NotFoundException("Group with id: $programmeGroupId could not be found")
 
-    // Pre group should use group start date
+    // Pre group should be the date of the first session in the Pre Group Module, or the placeholder date when there are no sessions
     if (moduleSessionTemplateRepository.isAPreGroupSession(moduleId)) {
       val sessions = sessionRepository.findByProgrammeGroupId(programmeGroupId)
       return sessions
