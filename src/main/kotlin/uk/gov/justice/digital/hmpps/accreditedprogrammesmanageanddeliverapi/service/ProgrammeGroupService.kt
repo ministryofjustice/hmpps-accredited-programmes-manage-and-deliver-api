@@ -367,11 +367,7 @@ class ProgrammeGroupService(
         name = module.name,
         startDateText = StartDateText(
           formatEstimatedStartText(module.name),
-          group.sessions
-            .filter { it.moduleSessionTemplate.sessionType == SessionType.ONE_TO_ONE }
-            .minByOrNull { it.startsAt }?.startsAt?.toLocalDate()
-            ?.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy"))
-            .toString(),
+          scheduleService.getNextSlotDate(group.id!!, module.id!!).format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")),
         ),
         scheduleButtonText = formatButtonText(module.name),
         sessions = sessions,

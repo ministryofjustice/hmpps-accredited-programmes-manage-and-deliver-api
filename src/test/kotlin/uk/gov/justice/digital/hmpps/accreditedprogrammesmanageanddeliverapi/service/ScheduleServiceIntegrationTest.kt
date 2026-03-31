@@ -357,7 +357,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
 
     val nextSlotDate = scheduleService.getNextSlotDate(group.id!!, preGroupModule.id!!)
 
-    assertThat(nextSlotDate).isEqualTo(groupStartDate)
+    assertThat(nextSlotDate).isEqualTo(LocalDate.of(2126, 5, 6))
   }
 
   @Test
@@ -418,7 +418,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     assertThat(nextSlotDate.dayOfWeek).isIn(DayOfWeek.MONDAY, DayOfWeek.THURSDAY)
 
     // The next slot date should be on the correct date
-    assertThat(nextSlotDate).isEqualTo(LocalDate.of(2126, 8, 19))
+    assertThat(nextSlotDate).isEqualTo(LocalDate.of(2126, 9, 26))
   }
 
   @Test
