@@ -901,17 +901,18 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should return NOT FOUND if group has no members `() {
+    fun `should return empty attendees list if group has no members`() {
       // Given
       // When
       val response = performRequestAndExpectStatus(
         HttpMethod.GET,
         "/bff/session/${session.id}/attendees",
-        object : ParameterizedTypeReference<ErrorResponse>() {},
-        HttpStatus.NOT_FOUND.value(),
+        object : ParameterizedTypeReference<EditSessionAttendeesResponse>() {},
+        HttpStatus.OK.value(),
       )
 
-      assertThat(response.userMessage).isEqualTo("Not Found: Cannot get attendees as there are currently no members allocated to group with id: ${group.id}")
+      assertThat(response.attendees).isEmpty()
+      assertThat(response.sessionId).isEqualTo(session.id)
     }
 
     @Test

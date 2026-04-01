@@ -36,7 +36,7 @@ data class EditSessionAttendeesResponse(
   val isCatchup: Boolean,
 
   @Schema(
-    description = "List of attendees for the session",
+    description = "List of attendees for the session. May be empty if no members are currently allocated to the programme group.",
   )
   val attendees: List<EditSessionAttendee>,
 ) {
