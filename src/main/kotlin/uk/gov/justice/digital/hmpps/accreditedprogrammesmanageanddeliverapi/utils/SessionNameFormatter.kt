@@ -94,8 +94,12 @@ class SessionNameFormatter {
       SessionType.GROUP -> "${session.moduleName} ${session.sessionNumber}$catchupSuffix"
 
       SessionType.ONE_TO_ONE -> {
-        requireNotNull(session.attendees.first()) { "Person name is required for individual sessions" }
-        "${session.attendees.first().personName}: ${session.sessionName}$catchupSuffix"
+        val attendee = session.attendees.firstOrNull()
+        if (attendee != null) {
+          "${attendee.personName}: ${session.sessionName}$catchupSuffix"
+        } else {
+          "${session.sessionName}$catchupSuffix"
+        }
       }
     }
   }
