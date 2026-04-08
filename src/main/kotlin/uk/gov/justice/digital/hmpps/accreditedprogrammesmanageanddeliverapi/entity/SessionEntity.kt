@@ -15,6 +15,7 @@ import jakarta.persistence.Transient
 import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
+import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import org.springframework.security.core.context.SecurityContextHolder
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -88,6 +89,10 @@ class SessionEntity(
   @NotNull
   @OneToMany(mappedBy = "session", fetch = FetchType.EAGER, cascade = [CascadeType.ALL], orphanRemoval = true)
   var ndeliusAppointments: MutableSet<NDeliusAppointmentEntity> = mutableSetOf(),
+
+  @Column(name = "updated_at")
+  @LastModifiedDate
+  var updatedAt: LocalDateTime = LocalDateTime.now(),
 
 ) : Comparable<SessionEntity> {
   // Compute these values rather than have them duplicated in the db tables
