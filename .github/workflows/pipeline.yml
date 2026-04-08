@@ -117,7 +117,7 @@ jobs:
 
       - name: Send a failure slack message
         if: failure()
-        uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95
+        uses: slackapi/slack-github-action@4414b7f01f5b1da26c98314521dcc5c802d0419e
         with:
           method: chat.postMessage
           token: ${{ secrets.HMPPS_SRE_SLACK_BOT_TOKEN }}
