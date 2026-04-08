@@ -4,13 +4,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.DomainEventsMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.PersonReference
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 class DomainEventsMessageFactory {
   private var eventType: String = "interventions.community-referral.created"
   private var version: Int = 1
   private var description: String? = randomUppercaseString()
-  private var occurredAt: ZonedDateTime = ZonedDateTime.now()
+  private var occurredAt: ZonedDateTime = ZonedDateTime.now(ZoneOffset.UTC)
   private var additionalInformation: Map<String, Any>? = mapOf("nomsNumber" to randomPrisonNumber())
   private var personReference: PersonReference = PersonReference(
     listOf(
