@@ -1,12 +1,13 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupCohort
 
-enum class ProgrammeGroupCohort(val label: String) {
-  GENERAL("General offence"),
-  GENERAL_LDC("General offence - LDC"),
-  SEXUAL("Sexual offence"),
-  SEXUAL_LDC("Sexual offence - LDC"),
+enum class ProgrammeGroupCohort(val label: String, val createAndEditDisplayOption: String) {
+  GENERAL("General offence", "General offence"),
+  GENERAL_LDC("General offence - LDC", "General offence, learning disabilities and challenges (LDC)"),
+  SEXUAL("Sexual offence", "Sexual offence"),
+  SEXUAL_LDC("Sexual offence - LDC", "Sexual offence, learning disabilities and challenges (LDC)"),
   ;
 
   companion object {
@@ -26,5 +27,13 @@ enum class ProgrammeGroupCohort(val label: String) {
     }
 
     fun fromString(label: String): ProgrammeGroupCohort = entries.find { it.label == label } ?: throw IllegalArgumentException("Unknown cohort: $label")
+
+    fun toRadioOptions(selectedCohort: ProgrammeGroupCohort): List<EditGroupCohort.RadioOptions> = ProgrammeGroupCohort.entries.map { cohort ->
+      EditGroupCohort.RadioOptions(
+        text = cohort.createAndEditDisplayOption,
+        value = cohort.name,
+        selected = cohort == selectedCohort,
+      )
+    }
   }
 }
