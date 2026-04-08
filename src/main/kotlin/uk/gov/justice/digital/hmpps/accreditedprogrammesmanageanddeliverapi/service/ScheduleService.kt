@@ -66,7 +66,6 @@ class ScheduleService(
   }
 
   private val log = LoggerFactory.getLogger(this::class.java)
-//  private lateinit var bankHolidays: Set<LocalDate>
 
   fun scheduleIndividualSessionAndReturnResponse(groupId: UUID, request: ScheduleSessionRequest): String {
     val scheduledSession = scheduleIndividualSession(groupId, request)
