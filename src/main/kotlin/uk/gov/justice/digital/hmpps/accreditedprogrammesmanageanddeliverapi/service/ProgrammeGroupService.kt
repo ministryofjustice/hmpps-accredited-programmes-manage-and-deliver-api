@@ -22,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupAllocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort.Companion.toRadioOptions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponseGroup
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponseGroupModule
@@ -29,6 +30,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.StartDateText
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
@@ -302,7 +304,14 @@ class ProgrammeGroupService(
   fun getGroupDetails(groupId: UUID): GroupDetailsResponse {
     val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
-    val daysAndTimes: List<String> = programmeGroup.programmeGroupSessionSlots.map { "${it.dayOfWeek.toAvailabilityOptions()}, ${formatTimeOfSession(it.startTime, it.startTime.plusMinutes(150))}" }
+    val daysAndTimes: List<String> = programmeGroup.programmeGroupSessionSlots.map {
+      "${it.dayOfWeek.toAvailabilityOptions()}, ${
+        formatTimeOfSession(
+          it.startTime,
+          it.startTime.plusMinutes(150),
+        )
+      }"
+    }
     val sessions = sessionRepository.findByProgrammeGroupId(groupId)
     val earliestPreGroupSessionDate = sessions
       .filter { it.moduleSessionTemplate.module.isPreGroupModule() }
@@ -367,7 +376,8 @@ class ProgrammeGroupService(
         name = module.name,
         startDateText = StartDateText(
           formatEstimatedStartText(module.name),
-          scheduleService.getNextSlotDate(group.id!!, module.id!!).format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")),
+          scheduleService.getNextSlotDate(group.id!!, module.id!!)
+            .format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")),
         ),
         scheduleButtonText = formatButtonText(module.name),
         sessions = sessions,
@@ -375,6 +385,23 @@ class ProgrammeGroupService(
     }.orEmpty()
 
     return ProgrammeGroupModuleSessionsResponse(programmeGroupModuleSessionsResponseGroup, modules)
+  }
+
+  fun getEditCohortForGroup(groupId: UUID): EditGroupCohort {
+    val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
+
+    return EditGroupCohort(
+      captionText = "Edit group ${programmeGroup.code}",
+      radios = ProgrammeGroupCohort.toRadioOptions(
+        ProgrammeGroupCohort.from(
+          programmeGroup.cohort,
+          programmeGroup.isLdc,
+        ),
+      ),
+      pageTitle = "Edit the group cohort",
+      submitButtonText = "Submit",
+    )
   }
 
   private fun formatButtonText(moduleName: String): String = when (moduleName) {
