@@ -38,6 +38,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
@@ -49,6 +50,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedProgrammeDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
@@ -3292,28 +3294,28 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Add session slots with various times to test conversion
       group.programmeGroupSessionSlots.add(
-        uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity(
+        ProgrammeGroupSessionSlotEntity(
           programmeGroup = group,
           dayOfWeek = DayOfWeek.MONDAY,
           startTime = LocalTime.of(9, 30), // 9:30 AM
         ),
       )
       group.programmeGroupSessionSlots.add(
-        uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity(
+        ProgrammeGroupSessionSlotEntity(
           programmeGroup = group,
           dayOfWeek = DayOfWeek.WEDNESDAY,
           startTime = LocalTime.of(14, 45), // 2:45 PM
         ),
       )
       group.programmeGroupSessionSlots.add(
-        uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity(
+        ProgrammeGroupSessionSlotEntity(
           programmeGroup = group,
           dayOfWeek = DayOfWeek.FRIDAY,
           startTime = LocalTime.of(0, 0), // Midnight -> 12:00 AM
         ),
       )
       group.programmeGroupSessionSlots.add(
-        uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity(
+        ProgrammeGroupSessionSlotEntity(
           programmeGroup = group,
           dayOfWeek = DayOfWeek.THURSDAY,
           startTime = LocalTime.of(12, 0), // Noon -> 12:00 PM
@@ -3326,7 +3328,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/bff/group/${group.id}/edit-days-and-times",
-        returnType = object : ParameterizedTypeReference<uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes>() {},
+        returnType = (object : ParameterizedTypeReference<EditGroupDaysAndTimes>() {}),
       )
 
       // Then
@@ -3378,7 +3380,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/bff/group/${group.id}/edit-days-and-times",
-        returnType = object : ParameterizedTypeReference<uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes>() {},
+        returnType = (object : ParameterizedTypeReference<EditGroupDaysAndTimes>() {})
       )
 
       // Then
