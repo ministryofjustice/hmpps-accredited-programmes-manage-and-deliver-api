@@ -75,6 +75,8 @@ class SessionService(
   private val sessionAttendanceOutcomeTypeRepository: SessionAttendanceOutcomeTypeRepository,
   @Autowired
   private val sessionNameFormatter: SessionNameFormatter,
+  @Autowired
+  private val referralStatusService: ReferralStatusService,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
@@ -335,6 +337,14 @@ class SessionService(
 
       if (updateAppointmentRequests.isNotEmpty()) {
         nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateAppointmentRequests))
+      }
+    }
+
+    // If this is a post-programme review session, check if completion events should be published
+    val isPostProgrammeReviewSession = session.moduleSessionTemplate.module.isPostProgrammeModule() && !session.isPlaceholder
+    if (isPostProgrammeReviewSession) {
+      attendees.forEach { attendee ->
+        referralStatusService.checkAndPublishCompletionEvent(attendee.referralId)
       }
     }
 

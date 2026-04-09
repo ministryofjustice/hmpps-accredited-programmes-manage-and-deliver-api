@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller.OpenOrClosed
@@ -14,13 +15,20 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toSuggestedStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.DomainEventPublisher
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.DomainEventsMessage
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.PersonReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
+import java.time.ZonedDateTime
 import java.util.UUID
 
 @Service
@@ -32,6 +40,8 @@ class ReferralStatusService(
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
   private val referralRepository: ReferralRepository,
   private val sessionAttendanceRepository: SessionAttendanceRepository,
+  private val domainEventPublisher: DomainEventPublisher,
+  @Value("\${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -126,5 +136,56 @@ class ReferralStatusService(
       requirementId = eventId,
       requirementCompletedAt = completedAt,
     )
+  }
+
+  fun checkAndPublishCompletionEvent(referralId: UUID): Boolean {
+    val referral = referralRepository.findByIdOrNull(referralId) ?: return false
+
+    // Check if the referral status is "Programme complete"
+    val currentStatus = referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId)
+    if (currentStatus?.referralStatusDescription?.description != ReferralStatusType.PROGRAMME_COMPLETE.description) {
+      return false
+    }
+
+    // Check if the referral has attended and complied with the post-programme review
+    if (!hasValidPostProgrammeReviewAttendance(referral)) {
+      return false
+    }
+
+    // Publish the completion event
+    publishReferralCompletedEvent(referral)
+    return true
+  }
+
+  private fun hasValidPostProgrammeReviewAttendance(referral: ReferralEntity): Boolean {
+    val currentGroupMembership = referral.programmeGroupMemberships.maxByOrNull { it.createdAt } ?: return false
+
+    val postProgrammeReviewSession = currentGroupMembership.programmeGroup.sessions
+      .find { it.moduleSessionTemplate.module.isPostProgrammeModule() && !it.isPlaceholder }
+      ?: return false
+
+    val attendance = sessionAttendanceRepository.findFirstBySessionIdAndGroupMembershipIdOrderByRecordedAtDesc(
+      sessionId = postProgrammeReviewSession.id!!,
+      groupMembershipId = currentGroupMembership.id!!,
+    ) ?: return false
+
+    val attended = attendance.outcomeType.attendance == true
+    val complied = attendance.outcomeType.compliant
+
+    return attended && complied
+  }
+
+  private fun publishReferralCompletedEvent(referral: ReferralEntity) {
+    val hmppsDomainEvent = DomainEventsMessage(
+      eventType = HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_COMPLETED.value,
+      version = 1,
+      detailUrl = "$madBaseUrl/referral/${referral.id}/completion-data",
+      occurredAt = ZonedDateTime.now(),
+      description = "An Accredited Programmes referral in community has been completed.",
+      additionalInformation = mutableMapOf(),
+      personReference = PersonReference.fromCrn(referral.crn),
+    )
+    log.info("Publishing ${HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_COMPLETED.value} event for referralId: ${referral.id}")
+    domainEventPublisher.publish(hmppsDomainEvent)
   }
 }
