@@ -66,7 +66,6 @@ class ScheduleService(
   }
 
   private val log = LoggerFactory.getLogger(this::class.java)
-  private lateinit var bankHolidays: Set<LocalDate>
 
   fun scheduleIndividualSessionAndReturnResponse(groupId: UUID, request: ScheduleSessionRequest): String {
     val scheduledSession = scheduleIndividualSession(groupId, request)
@@ -156,14 +155,16 @@ class ScheduleService(
     val groupSlots = group.programmeGroupSessionSlots
     require(groupSlots.isNotEmpty()) { "Programme group slots must not be empty" }
 
+    val bankHolidays = englandAndWalesHolidayDates()
+
     val slotQueue = buildSlotQueue(
-      group = group,
+      bankHolidays = bankHolidays,
       groupSlots = groupSlots,
       startFrom = dateToScheduleFrom,
     )
 
     val nextSlot = slotQueue.poll()
-    val nextValidDate = findNextValidDate(dateToScheduleFrom, nextSlot.slot)
+    val nextValidDate = findNextValidDate(bankHolidays, dateToScheduleFrom, nextSlot.slot)
     slotQueue.add(nextSlot.copy(nextDate = nextValidDate))
 
     log.info("generated next valid slot date: $nextValidDate")
@@ -180,7 +181,7 @@ class ScheduleService(
     val templateId = requireNotNull(group.accreditedProgrammeTemplate?.id) {
       "Group template Id must not be null"
     }
-    bankHolidays = englandAndWalesHolidayDates()
+    val bankHolidays = englandAndWalesHolidayDates()
 
     // Collect all session templates in module/session order
     var allSessionTemplates = moduleRepository
@@ -205,7 +206,7 @@ class ScheduleService(
     require(groupSlots.isNotEmpty()) { "Programme group slots must not be empty" }
 
     var slotQueue = buildSlotQueue(
-      group = group,
+      bankHolidays = bankHolidays,
       groupSlots = groupSlots,
       startFrom = group.earliestPossibleStartDate,
     )
@@ -248,13 +249,13 @@ class ScheduleService(
 
           // Regenerate our slot queue plus 3 weeks
           slotQueue = buildSlotQueue(
-            group = group,
+            bankHolidays = bankHolidays,
             groupSlots = groupSlots,
             startFrom = startsAt.toLocalDate().plusWeeks(FIRST_SESSION_GAP_WEEKS),
           )
         } else {
           val nextWeekDate = nextSlot.nextDate.plusWeeks(1)
-          val nextValidDate = findNextValidDate(nextWeekDate, nextSlot.slot)
+          val nextValidDate = findNextValidDate(bankHolidays, nextWeekDate, nextSlot.slot)
           slotQueue.add(nextSlot.copy(nextDate = nextValidDate))
         }
 
@@ -265,7 +266,7 @@ class ScheduleService(
 
             // Regenerate our slot queue plus 6 weeks
             slotQueue = buildSlotQueue(
-              group = group,
+              bankHolidays = bankHolidays,
               groupSlots = groupSlots,
               startFrom = startsAt.toLocalDate().plusWeeks(POST_PROGRAMME_REVIEWS_GAP_WEEKS),
             )
@@ -307,14 +308,14 @@ class ScheduleService(
   }
 
   private fun buildSlotQueue(
-    group: ProgrammeGroupEntity,
+    bankHolidays: Set<LocalDate>,
     groupSlots: Collection<ProgrammeGroupSessionSlotEntity>,
     startFrom: LocalDate,
   ): PriorityQueue<SlotInstance> {
     // Priority by (nextDate ASC, startTime ASC)
     val slotQueue = PriorityQueue(compareBy<SlotInstance>({ it.nextDate }, { it.slot.startTime }))
     groupSlots.forEach { slot ->
-      val firstDate = findNextValidDate(startFrom, slot)
+      val firstDate = findNextValidDate(bankHolidays, startFrom, slot)
       slotQueue.add(SlotInstance(slot = slot, nextDate = firstDate))
     }
     return slotQueue
@@ -392,6 +393,7 @@ class ScheduleService(
    * on or after the slot's day of week.
    */
   private fun findNextValidDate(
+    bankHolidays: Set<LocalDate>,
     fromDate: LocalDate,
     slot: ProgrammeGroupSessionSlotEntity,
   ): LocalDate {
