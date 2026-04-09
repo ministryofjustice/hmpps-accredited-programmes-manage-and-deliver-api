@@ -47,6 +47,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
@@ -993,4 +994,10 @@ class ProgrammeGroupController(
     produces = [MediaType.APPLICATION_JSON_VALUE],
   )
   fun getBffEditGroupCohort(@PathVariable groupId: UUID): ResponseEntity<EditGroupCohort> = ResponseEntity.ok(programmeGroupService.getEditCohortForGroup(groupId))
+
+  @GetMapping(
+    "/bff/group/{groupId}/edit-days-and-times",
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+  )
+  fun getBffEditGroupDaysAndTimes(@PathVariable groupId: UUID): ResponseEntity<EditGroupDaysAndTimes> = ResponseEntity.ok(programmeGroupService.getEditDaysAndTimesForGroup(groupId))
 }

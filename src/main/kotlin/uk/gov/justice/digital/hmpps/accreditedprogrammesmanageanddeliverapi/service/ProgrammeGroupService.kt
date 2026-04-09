@@ -31,6 +31,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
@@ -304,14 +305,16 @@ class ProgrammeGroupService(
   fun getGroupDetails(groupId: UUID): GroupDetailsResponse {
     val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
-    val daysAndTimes: List<String> = programmeGroup.programmeGroupSessionSlots.map {
-      "${it.dayOfWeek.toAvailabilityOptions()}, ${
-        formatTimeOfSession(
-          it.startTime,
-          it.startTime.plusMinutes(150),
-        )
-      }"
-    }
+    val daysAndTimes: List<String> = programmeGroup.programmeGroupSessionSlots
+      .sortedBy { it.dayOfWeek.value } // Sort by day of week (Monday=1, Sunday=7)
+      .map {
+        "${it.dayOfWeek.toAvailabilityOptions()}, ${
+          formatTimeOfSession(
+            it.startTime,
+            it.startTime.plusMinutes(150),
+          )
+        }"
+      }
     val sessions = sessionRepository.findByProgrammeGroupId(groupId)
     val earliestPreGroupSessionDate = sessions
       .filter { it.moduleSessionTemplate.module.isPreGroupModule() }
@@ -401,6 +404,40 @@ class ProgrammeGroupService(
       ),
       pageTitle = "Edit the group cohort",
       submitButtonText = "Submit",
+    )
+  }
+
+  fun getEditDaysAndTimesForGroup(groupId: UUID): EditGroupDaysAndTimes {
+    val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
+
+    val sessionSlots = programmeGroup.programmeGroupSessionSlots
+      .sortedBy { it.dayOfWeek.value } // Sort by day of week (Monday=1, Sunday=7)
+      .map { session ->
+        val hour24 = session.startTime.hour
+        val minutes = session.startTime.minute
+
+        // Convert 24-hour format to 12-hour format
+        val amOrPm = if (hour24 < 12) AmOrPm.AM else AmOrPm.PM
+        val hour12 = when {
+          hour24 == 0 -> 12 // Midnight (00:xx) -> 12 AM
+          hour24 < 12 -> hour24 // 1-11 AM stays the same
+          hour24 == 12 -> 12 // Noon (12:xx) -> 12 PM
+          else -> hour24 - 12 // 13-23 -> 1-11 PM
+        }
+
+        CreateGroupSessionSlot(
+          dayOfWeek = session.dayOfWeek,
+          hour = hour12,
+          minutes = minutes,
+          amOrPm = amOrPm,
+        )
+      }
+
+    return EditGroupDaysAndTimes(
+      id = programmeGroup.id!!,
+      code = programmeGroup.code,
+      programmeGroupSessionSlots = sessionSlots,
     )
   }
 
