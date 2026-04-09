@@ -26,7 +26,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverview
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupGender
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
@@ -3320,9 +3319,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       val radioValues = response.radios.map { it.value }
       assertThat(radioValues).containsExactlyInAnyOrder(
-        ProgrammeGroupGender.MALE.name,
-        ProgrammeGroupGender.FEMALE.name,
-        ProgrammeGroupGender.MIXED.name,
+        ProgrammeGroupSexEnum.MALE.name,
+        ProgrammeGroupSexEnum.FEMALE.name,
+        ProgrammeGroupSexEnum.MIXED.name,
       )
     }
 
@@ -3344,7 +3343,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       val selectedRadio = response.radios.find { it.selected }
       assertThat(selectedRadio).isNotNull
-      assertThat(selectedRadio!!.value).isEqualTo(ProgrammeGroupGender.MALE.name)
+      assertThat(selectedRadio!!.value).isEqualTo(ProgrammeGroupSexEnum.MALE.name)
     }
 
     @Test
@@ -3367,7 +3366,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       val selectedRadio = response.radios.find { it.selected }
       assertThat(selectedRadio).isNotNull
-      assertThat(selectedRadio!!.value).isEqualTo(ProgrammeGroupGender.MALE.name)
+      assertThat(selectedRadio!!.value).isEqualTo(ProgrammeGroupSexEnum.MALE.name)
     }
 
     @Test
