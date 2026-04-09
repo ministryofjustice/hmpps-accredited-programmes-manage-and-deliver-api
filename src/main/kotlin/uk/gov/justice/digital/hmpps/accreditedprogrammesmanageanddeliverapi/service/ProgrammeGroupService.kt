@@ -410,7 +410,7 @@ class ProgrammeGroupService(
     )
   }
 
-fun getEditGenderForGroup(groupId: UUID): EditGroupGender {
+  fun getEditGenderForGroup(groupId: UUID): EditGroupGender {
     val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
 
@@ -418,7 +418,7 @@ fun getEditGenderForGroup(groupId: UUID): EditGroupGender {
       captionText = "Edit group ${programmeGroup.code}",
       radios = ProgrammeGroupGender.toRadioOptions(
         ProgrammeGroupGender.from(
-          programmeGroup.gender,
+          programmeGroup.sex,
         ),
       ),
       pageTitle = "Edit the gender of the group",
