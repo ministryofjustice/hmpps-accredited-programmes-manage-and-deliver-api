@@ -47,6 +47,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
@@ -993,4 +994,60 @@ class ProgrammeGroupController(
     produces = [MediaType.APPLICATION_JSON_VALUE],
   )
   fun getBffEditGroupCohort(@PathVariable groupId: UUID): ResponseEntity<EditGroupCohort> = ResponseEntity.ok(programmeGroupService.getEditCohortForGroup(groupId))
+
+  @Operation(
+    tags = ["Programme Group controller"],
+    summary = "bff endpoint to retrieve the edit days and times for a programme group",
+    operationId = "getBffEditGroupDaysAndTimes",
+    description = "Retrieve group edit days and times details.",
+    responses =
+    [
+      ApiResponse(
+        responseCode = "200",
+        description = "Successfully retrieved group edit day and times details",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = EditGroupDaysAndTimes::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden, requires role ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Group not found",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping(
+    "/bff/group/{groupId}/edit-days-and-times",
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+  )
+  fun getBffEditGroupDaysAndTimes(@PathVariable groupId: UUID): ResponseEntity<EditGroupDaysAndTimes> = ResponseEntity.ok(programmeGroupService.getEditDaysAndTimesForGroup(groupId))
 }

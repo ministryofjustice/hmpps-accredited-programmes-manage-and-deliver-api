@@ -38,6 +38,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
@@ -49,6 +50,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedProgrammeDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
@@ -3267,6 +3269,153 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       webTestClient
         .method(HttpMethod.GET)
         .uri("/bff/group/${group.id}/edit-cohort")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+  }
+
+  @Nested
+  @DisplayName("getBffEditGroupDaysAndTimes")
+  @WithMockAuthUser(username = "AUTH_ADM", roles = ["ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR"])
+  inner class GetBffEditGroupDaysAndTimes {
+    @Test
+    fun `successfully retrieves group days and times with correct 12-hour format conversion`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val group = ProgrammeGroupFactory()
+        .withCode("TEST_DAYS_001")
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+
+      // Add session slots with various times to test conversion
+      group.programmeGroupSessionSlots.add(
+        ProgrammeGroupSessionSlotEntity(
+          programmeGroup = group,
+          dayOfWeek = DayOfWeek.MONDAY,
+          startTime = LocalTime.of(9, 30), // 9:30 AM
+        ),
+      )
+      group.programmeGroupSessionSlots.add(
+        ProgrammeGroupSessionSlotEntity(
+          programmeGroup = group,
+          dayOfWeek = DayOfWeek.WEDNESDAY,
+          startTime = LocalTime.of(14, 45), // 2:45 PM
+        ),
+      )
+      group.programmeGroupSessionSlots.add(
+        ProgrammeGroupSessionSlotEntity(
+          programmeGroup = group,
+          dayOfWeek = DayOfWeek.FRIDAY,
+          startTime = LocalTime.of(0, 0), // Midnight -> 12:00 AM
+        ),
+      )
+      group.programmeGroupSessionSlots.add(
+        ProgrammeGroupSessionSlotEntity(
+          programmeGroup = group,
+          dayOfWeek = DayOfWeek.THURSDAY,
+          startTime = LocalTime.of(12, 0), // Noon -> 12:00 PM
+        ),
+      )
+
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/edit-days-and-times",
+        returnType = (object : ParameterizedTypeReference<EditGroupDaysAndTimes>() {}),
+      )
+
+      // Then
+      assertThat(response.id).isEqualTo(group.id)
+      assertThat(response.code).isEqualTo("TEST_DAYS_001")
+      assertThat(response.programmeGroupSessionSlots).hasSize(4)
+
+      // Verify Monday 9:30 AM
+      val mondaySlot = response.programmeGroupSessionSlots.find { it.dayOfWeek == DayOfWeek.MONDAY }
+      assertThat(mondaySlot).isNotNull
+      assertThat(mondaySlot!!.hour).isEqualTo(9)
+      assertThat(mondaySlot.minutes).isEqualTo(30)
+      assertThat(mondaySlot.amOrPm).isEqualTo(AmOrPm.AM)
+
+      // Verify Wednesday 2:45 PM
+      val wednesdaySlot = response.programmeGroupSessionSlots.find { it.dayOfWeek == DayOfWeek.WEDNESDAY }
+      assertThat(wednesdaySlot).isNotNull
+      assertThat(wednesdaySlot!!.hour).isEqualTo(2)
+      assertThat(wednesdaySlot.minutes).isEqualTo(45)
+      assertThat(wednesdaySlot.amOrPm).isEqualTo(AmOrPm.PM)
+
+      // Verify Thursday 12:00 PM (Noon)
+      val thursdaySlot = response.programmeGroupSessionSlots.find { it.dayOfWeek == DayOfWeek.THURSDAY }
+      assertThat(thursdaySlot).isNotNull
+      assertThat(thursdaySlot!!.hour).isEqualTo(12)
+      assertThat(thursdaySlot.minutes).isEqualTo(0)
+      assertThat(thursdaySlot.amOrPm).isEqualTo(AmOrPm.PM)
+
+      // Verify Friday 12:00 AM (Midnight)
+      val fridaySlot = response.programmeGroupSessionSlots.find { it.dayOfWeek == DayOfWeek.FRIDAY }
+      assertThat(fridaySlot).isNotNull
+      assertThat(fridaySlot!!.hour).isEqualTo(12)
+      assertThat(fridaySlot.minutes).isEqualTo(0)
+      assertThat(fridaySlot.amOrPm).isEqualTo(AmOrPm.AM)
+    }
+
+    @Test
+    fun `returns empty session slots when group has none`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val group = ProgrammeGroupFactory()
+        .withCode("TEST_DAYS_004")
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/edit-days-and-times",
+        returnType = (object : ParameterizedTypeReference<EditGroupDaysAndTimes>() {}),
+      )
+
+      // Then
+      assertThat(response.id).isEqualTo(group.id)
+      assertThat(response.code).isEqualTo("TEST_DAYS_004")
+      assertThat(response.programmeGroupSessionSlots).isEmpty()
+    }
+
+    @Test
+    fun `returns 404 when group does not exist`() {
+      // Given
+      val nonExistentGroupId = UUID.randomUUID()
+
+      // When / Then
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/$nonExistentGroupId/edit-days-and-times",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        body = {},
+      )
+
+      assertThat(response.userMessage).isEqualTo("Not Found: Group with id $nonExistentGroupId not found")
+    }
+
+    @Test
+    fun `returns 403 when not authorised`() {
+      // Given
+      val group = ProgrammeGroupFactory().withCode("TEST_DAYS_005").produce()
+      testDataGenerator.createGroup(group)
+
+      // When & Then
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/group/${group.id}/edit-days-and-times")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .accept(MediaType.APPLICATION_JSON)
