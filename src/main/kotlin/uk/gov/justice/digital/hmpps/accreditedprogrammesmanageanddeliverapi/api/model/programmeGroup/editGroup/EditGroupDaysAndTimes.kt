@@ -32,4 +32,4 @@ data class EditGroupDaysAndTimes(
   @get:JsonProperty("programmeGroupSessionSlots", required = true)
   var programmeGroupSessionSlots: List<CreateGroupSessionSlot> = emptyList(),
 
-  )
+)
