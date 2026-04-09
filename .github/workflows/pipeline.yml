@@ -93,7 +93,7 @@ jobs:
           node-version: lts/*
 
       - name: SLSA Supply Chain Security
-        uses: ministryofjustice/devsecops-actions/sca/slsa@559ec2408860d9237cc472a5710e61c1c2187ffa # v1.4.0
+        uses: ministryofjustice/devsecops-actions/sca/slsa@f965eb1771ec66cfc41d7d57dc607fa6dfbc10ed # v1.4.0
 
       - name: Install dependencies
         working-directory: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests
