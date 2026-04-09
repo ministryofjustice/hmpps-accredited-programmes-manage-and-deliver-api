@@ -38,6 +38,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupGender
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
@@ -3269,6 +3270,132 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       webTestClient
         .method(HttpMethod.GET)
         .uri("/bff/group/${group.id}/edit-cohort")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+  }
+
+@Nested
+  @DisplayName("Get BFF Edit Group Gender")
+  inner class GetBffEditGroupGender {
+
+    @Test
+    fun `returns 200 with edit gender details for a valid group`() {
+      // Given
+      val group = testGroupHelper.createGroup(groupCode = "TEST001")
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/edit-gender",
+        returnType = object : ParameterizedTypeReference<EditGroupGender>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.captionText).isEqualTo("Edit group ${group.code}")
+      assertThat(response.pageTitle).isEqualTo("Edit the gender of the group")
+      assertThat(response.submitButtonText).isEqualTo("Submit")
+      assertThat(response.radios).isNotEmpty
+    }
+
+    @Test
+    fun `returns 200 with all gender radio options present`() {
+      // Given
+      val group = testGroupHelper.createGroup(groupCode = "TEST002")
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/edit-gender",
+        returnType = object : ParameterizedTypeReference<EditGroupGender>() {},
+      )
+
+      // Then
+      val radioValues = response.radios.map { it.value }
+      assertThat(radioValues).containsExactlyInAnyOrder(
+        ProgrammeGroupGender.MALE.name,
+        ProgrammeGroupGender.FEMALE.name,
+        ProgrammeGroupGender.OTHER.name,
+      )
+    }
+
+    @Test
+    fun `returns 200 with the current gender pre-selected for a general offence group`() {
+      // Given
+      val group = ProgrammeGroupFactory()
+        .withCode("TEST003")
+        .produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/edit-gender",
+        returnType = object : ParameterizedTypeReference<EditGroupGender>() {},
+      )
+
+      // Then
+      val selectedRadio = response.radios.find { it.selected }
+      assertThat(selectedRadio).isNotNull
+      assertThat(selectedRadio!!.value).isEqualTo(ProgrammeGroupGender.MALE.name)
+    }
+
+    @Test
+    fun `returns 200 with the current gender pre-selected for an LDC group`() {
+      // Given
+      val group = ProgrammeGroupFactory()
+        .withCode("TEST004")
+        .withCohort(OffenceCohort.GENERAL_OFFENCE)
+        .withIsLdc(true)
+        .produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/edit-gender",
+        returnType = object : ParameterizedTypeReference<EditGroupGender>() {},
+      )
+
+      // Then
+      val selectedRadio = response.radios.find { it.selected }
+      assertThat(selectedRadio).isNotNull
+      assertThat(selectedRadio!!.value).isEqualTo(ProgrammeGroupGender.MALE.name)
+    }
+
+    @Test
+    fun `returns 404 when group does not exist`() {
+      // Given
+      val nonExistentGroupId = UUID.randomUUID()
+
+      // When / Then
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/$nonExistentGroupId/edit-gender",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        body = {},
+      )
+
+      assertThat(response.userMessage).isEqualTo("Not Found: Group with id $nonExistentGroupId not found")
+    }
+
+    @Test
+    fun `returns 403 when not authorised`() {
+      // Given
+      val group = ProgrammeGroupFactory().withCode("TEST005").produce()
+      testDataGenerator.createGroup(group)
+
+      // When & Then
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/group/${group.id}/edit-gender")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .accept(MediaType.APPLICATION_JSON)
