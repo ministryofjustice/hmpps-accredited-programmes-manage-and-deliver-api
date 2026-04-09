@@ -1001,48 +1001,48 @@ class ProgrammeGroupController(
     operationId = "getBffEditGroupDaysAndTimes",
     description = "Retrieve group edit days and times details.",
     responses =
-      [
-        ApiResponse(
-          responseCode = "200",
-          description = "Successfully retrieved group edit day and times details",
-          content = [
-            Content(
-              mediaType = MediaType.APPLICATION_JSON_VALUE,
-              schema = Schema(implementation = EditGroupDaysAndTimes::class),
-            ),
-          ],
-        ),
-        ApiResponse(
-          responseCode = "401",
-          description = "Unauthorized",
-          content = [
-            Content(
-              mediaType = MediaType.APPLICATION_JSON_VALUE,
-              schema = Schema(implementation = ErrorResponse::class),
-            ),
-          ],
-        ),
-        ApiResponse(
-          responseCode = "403",
-          description = "Forbidden, requires role ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
-          content = [
-            Content(
-              mediaType = MediaType.APPLICATION_JSON_VALUE,
-              schema = Schema(implementation = ErrorResponse::class),
-            ),
-          ],
-        ),
-        ApiResponse(
-          responseCode = "404",
-          description = "Group not found",
-          content = [
-            Content(
-              mediaType = MediaType.APPLICATION_JSON_VALUE,
-              schema = Schema(implementation = ErrorResponse::class),
-            ),
-          ],
-        ),
-      ],
+    [
+      ApiResponse(
+        responseCode = "200",
+        description = "Successfully retrieved group edit day and times details",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = EditGroupDaysAndTimes::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden, requires role ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Group not found",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+    ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @GetMapping(

@@ -3380,7 +3380,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/bff/group/${group.id}/edit-days-and-times",
-        returnType = (object : ParameterizedTypeReference<EditGroupDaysAndTimes>() {})
+        returnType = (object : ParameterizedTypeReference<EditGroupDaysAndTimes>() {}),
       )
 
       // Then
