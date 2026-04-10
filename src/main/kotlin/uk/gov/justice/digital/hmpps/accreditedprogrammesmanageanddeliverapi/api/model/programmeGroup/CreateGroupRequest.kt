@@ -31,7 +31,7 @@ data class CreateGroupRequest(
   @get:JsonProperty("sex", required = true)
   @Schema(
     enumAsRef = true,
-    description = "Sex that the group is being run for",
+    description = "Gender that the group is being run for",
     implementation = ProgrammeGroupGenderEnum::class,
   )
   var gender: ProgrammeGroupGenderEnum,
