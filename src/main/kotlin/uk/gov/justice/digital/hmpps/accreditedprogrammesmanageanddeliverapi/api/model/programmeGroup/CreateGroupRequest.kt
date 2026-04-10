@@ -34,7 +34,7 @@ data class CreateGroupRequest(
     description = "Sex that the group is being run for",
     implementation = ProgrammeGroupGenderEnum::class,
   )
-  var sex: ProgrammeGroupGenderEnum,
+  var gender: ProgrammeGroupGenderEnum,
 
   @NotNull(message = "earliestStartDate must not be null")
   @get:JsonProperty("earliestStartDate", required = true)
