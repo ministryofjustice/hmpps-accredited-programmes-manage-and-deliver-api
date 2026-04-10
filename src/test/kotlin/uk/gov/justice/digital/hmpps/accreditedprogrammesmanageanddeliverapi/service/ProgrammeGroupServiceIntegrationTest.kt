@@ -15,7 +15,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupGenderEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
@@ -90,7 +90,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
       testDataGenerator.createGroup(
         ProgrammeGroupFactory()
-          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withSex(ProgrammeGroupGenderEnum.MALE)
           .withCode("THE_GROUP_CODE")
           .withProbationDeliveryUnit("PDU Description", "PDU_CODE")
           .withDeliveryLocation("Location One", "LOC_ONE")
@@ -101,7 +101,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
       testDataGenerator.createGroup(
         ProgrammeGroupFactory()
-          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withSex(ProgrammeGroupGenderEnum.MALE)
           .withCode("GROUP_TWO_CODE")
           .withProbationDeliveryUnit("Another PDU Description", "ANOTHER_PDU_CODE")
           .withDeliveryLocation("Location Two", "LOC_TWO")
@@ -112,7 +112,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
       testDataGenerator.createGroup(
         ProgrammeGroupFactory()
-          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withSex(ProgrammeGroupGenderEnum.MALE)
           .withCode("GROUP_THREE_CODE")
           .withProbationDeliveryUnit("PDU Description", "PDU_CODE")
           .withRegionName("Region Description")
@@ -122,7 +122,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
       testDataGenerator.createGroup(
         ProgrammeGroupFactory()
-          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withSex(ProgrammeGroupGenderEnum.MALE)
           .withCode("THE_VERY_FAR_AWAY_GROUP")
           .withRegionName("A very far away Region")
           .produce(),
@@ -131,7 +131,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withCode("THE_FEMALE_GROUP_CODE")
-          .withSex(ProgrammeGroupSexEnum.FEMALE)
+          .withSex(ProgrammeGroupGenderEnum.FEMALE)
           .withRegionName("Region Description")
           .withEarliestStartDate(LocalDate.now().plusDays(1))
           .produce(),
@@ -253,7 +253,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       // Given a group that has all referrals completed (should be in COMPLETE tab)
       val completedGroup = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
-          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withSex(ProgrammeGroupGenderEnum.MALE)
           .withCode("COMPLETED_GROUP")
           .withRegionName("Region Description")
           .withEarliestStartDate(LocalDate.now().minusDays(10))
@@ -273,7 +273,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       // Given a group that has one completed and one not completed referral (should be in NOT_STARTED_OR_IN_PROGRESS tab)
       val partiallyCompletedGroup = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
-          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withSex(ProgrammeGroupGenderEnum.MALE)
           .withCode("PARTIALLY_COMPLETED_GROUP")
           .withRegionName("Region Description")
           .withEarliestStartDate(LocalDate.now().minusDays(10))
@@ -353,7 +353,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       val createProgrammeGroup = CreateGroupRequestFactory().produce(
         groupCode = "THE_GROUPCODE",
         cohort = ProgrammeGroupCohort.GENERAL,
-        sex = ProgrammeGroupSexEnum.MALE,
+        sex = ProgrammeGroupGenderEnum.MALE,
         pduName = "THE_PDU_NAME",
         pduCode = "THE_PDU_CODE",
         deliveryLocationName = "THE_DELIVERYLOCATIONNAME",
@@ -447,7 +447,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       // Create a test group associated with Building Choices template
       programmeGroup = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
-          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withSex(ProgrammeGroupGenderEnum.MALE)
           .withCode("SCHEDULE_GROUP")
           .withRegionName("Test Region")
           .withAccreditedProgrammeTemplate(template)
@@ -735,7 +735,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           .withAccreditedProgrammeTemplate(template)
           .withProbationDeliveryUnit("Test PDU", "PDU001")
           .withDeliveryLocation("Test Location", "LOC001")
-          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withSex(ProgrammeGroupGenderEnum.MALE)
           .withCohort(OffenceCohort.GENERAL_OFFENCE)
           .withIsLdc(true)
           .withEarliestStartDate(LocalDate.of(2026, 4, 1))

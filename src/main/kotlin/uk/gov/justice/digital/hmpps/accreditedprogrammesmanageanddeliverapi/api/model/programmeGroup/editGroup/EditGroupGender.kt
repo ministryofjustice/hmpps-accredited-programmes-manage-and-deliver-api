@@ -2,7 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupGenderEnum
 
 @Schema(description = "Response model for the edit gender page")
 data class EditGroupGender(
@@ -50,7 +50,7 @@ data class EditGroupGender(
     @Schema(
       enumAsRef = true,
       description = "Gender for the Programme Group.",
-      implementation = ProgrammeGroupSexEnum::class,
+      implementation = ProgrammeGroupGenderEnum::class,
     )
     @get:JsonProperty("value", required = true)
     val value: String,

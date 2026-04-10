@@ -41,7 +41,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupGender
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupGenderEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
@@ -1339,7 +1339,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val body = CreateGroupRequestFactory().produce(
         "TEST_GROUP",
         ProgrammeGroupCohort.GENERAL,
-        ProgrammeGroupSexEnum.MALE,
+        ProgrammeGroupGenderEnum.MALE,
         LocalDate.parse("2025-01-01"),
         setOf(CreateGroupSessionSlot(DayOfWeek.MONDAY, 1, 1, AmOrPm.AM)),
         "TEST_PDU",
@@ -1360,7 +1360,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(createdGroup.id).isNotNull
       assertThat(createdGroup.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
       assertThat(createdGroup.isLdc).isFalse
-      assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.MALE)
+      assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupGenderEnum.MALE)
       assertThat(createdGroup.regionName).isEqualTo("WIREMOCKED REGION")
       assertThat(createdGroup.earliestPossibleStartDate).isEqualTo(LocalDate.parse("2025-01-01"))
       assertThat(createdGroup.programmeGroupSessionSlots).hasSize(1)
@@ -1425,7 +1425,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `create group and assign correct sex and return 200 when it doesn't already exist`() {
-      val body = createGroupRequestFactory.produce(sex = ProgrammeGroupSexEnum.MALE)
+      val body = createGroupRequestFactory.produce(sex = ProgrammeGroupGenderEnum.MALE)
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -1434,7 +1434,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
       val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
       assertThat(createdGroup.id).isNotNull
-      assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupSexEnum.MALE)
+      assertThat(createdGroup.sex).isEqualTo(ProgrammeGroupGenderEnum.MALE)
     }
 
     @Test
@@ -2811,7 +2811,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 200 when updating sex`() {
       // Given
       val group = testGroupHelper.createGroup()
-      val newSex = ProgrammeGroupSexEnum.FEMALE
+      val newSex = ProgrammeGroupGenderEnum.FEMALE
       val updateRequest = UpdateGroupRequest(sex = newSex)
 
       // When
@@ -3012,7 +3012,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val group = testGroupHelper.createGroup()
       val updateRequest = UpdateGroupRequest(
         groupCode = "UPDATED_GROUP_CODE",
-        sex = ProgrammeGroupSexEnum.FEMALE,
+        sex = ProgrammeGroupGenderEnum.FEMALE,
         cohort = ProgrammeGroupCohort.SEXUAL_LDC,
         earliestStartDate = LocalDate.of(2026, 12, 25),
         pduName = "Updated PDU",
@@ -3032,7 +3032,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
       assertThat(updatedGroup.code).isEqualTo("UPDATED_GROUP_CODE")
-      assertThat(updatedGroup.sex).isEqualTo(ProgrammeGroupSexEnum.FEMALE)
+      assertThat(updatedGroup.sex).isEqualTo(ProgrammeGroupGenderEnum.FEMALE)
       assertThat(updatedGroup.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(updatedGroup.isLdc).isTrue
       assertThat(updatedGroup.earliestPossibleStartDate).isEqualTo(LocalDate.of(2026, 12, 25))
@@ -3319,9 +3319,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       val radioValues = response.radios.map { it.value }
       assertThat(radioValues).containsExactlyInAnyOrder(
-        ProgrammeGroupSexEnum.MALE.name,
-        ProgrammeGroupSexEnum.FEMALE.name,
-        ProgrammeGroupSexEnum.MIXED.name,
+        ProgrammeGroupGenderEnum.MALE.name,
+        ProgrammeGroupGenderEnum.FEMALE.name,
+        ProgrammeGroupGenderEnum.MIXED.name,
       )
     }
 
@@ -3343,7 +3343,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       val selectedRadio = response.radios.find { it.selected }
       assertThat(selectedRadio).isNotNull
-      assertThat(selectedRadio!!.value).isEqualTo(ProgrammeGroupSexEnum.MALE.name)
+      assertThat(selectedRadio!!.value).isEqualTo(ProgrammeGroupGenderEnum.MALE.name)
     }
 
     @Test
@@ -3366,7 +3366,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       val selectedRadio = response.radios.find { it.selected }
       assertThat(selectedRadio).isNotNull
-      assertThat(selectedRadio!!.value).isEqualTo(ProgrammeGroupSexEnum.MALE.name)
+      assertThat(selectedRadio!!.value).isEqualTo(ProgrammeGroupGenderEnum.MALE.name)
     }
 
     @Test

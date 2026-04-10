@@ -3,7 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupGenderEnum
 import java.time.LocalDate
 
 data class UpdateGroupRequest(
@@ -23,9 +23,9 @@ data class UpdateGroupRequest(
   @Schema(
     enumAsRef = true,
     description = "Sex that the group is being run for",
-    implementation = ProgrammeGroupSexEnum::class,
+    implementation = ProgrammeGroupGenderEnum::class,
   )
-  var sex: ProgrammeGroupSexEnum? = null,
+  var sex: ProgrammeGroupGenderEnum? = null,
 
   @get:JsonProperty("earliestStartDate")
   @Schema(description = "The earliest date the group can start")

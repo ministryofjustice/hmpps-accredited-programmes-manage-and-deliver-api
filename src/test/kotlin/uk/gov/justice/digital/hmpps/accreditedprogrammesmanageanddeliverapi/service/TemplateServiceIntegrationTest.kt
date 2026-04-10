@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionScheduleType
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupGenderEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
@@ -59,7 +59,7 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
       // Create a test group associated with Building Choices template
       val group = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
-          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withSex(ProgrammeGroupGenderEnum.MALE)
           .withCode("TEST_GROUP")
           .withRegionName("Test Region")
           .withAccreditedProgrammeTemplate(buildingChoicesTemplate)

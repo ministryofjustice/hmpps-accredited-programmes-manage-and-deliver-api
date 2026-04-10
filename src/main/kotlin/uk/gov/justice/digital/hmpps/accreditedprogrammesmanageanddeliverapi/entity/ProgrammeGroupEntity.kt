@@ -20,7 +20,7 @@ import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.security.core.context.SecurityContextHolder
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupGenderEnum
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -45,7 +45,7 @@ class ProgrammeGroupEntity(
   @NotNull
   @Column("sex")
   @Enumerated(EnumType.STRING)
-  var sex: ProgrammeGroupSexEnum,
+  var sex: ProgrammeGroupGenderEnum,
 
   @NotNull
   @Column(name = "is_ldc")

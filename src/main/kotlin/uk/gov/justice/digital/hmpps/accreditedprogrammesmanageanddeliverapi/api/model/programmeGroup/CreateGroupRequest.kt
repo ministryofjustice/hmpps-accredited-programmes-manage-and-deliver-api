@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotEmpty
 import jakarta.validation.constraints.NotNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupGenderEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import java.time.LocalDate
 
@@ -32,9 +32,9 @@ data class CreateGroupRequest(
   @Schema(
     enumAsRef = true,
     description = "Sex that the group is being run for",
-    implementation = ProgrammeGroupSexEnum::class,
+    implementation = ProgrammeGroupGenderEnum::class,
   )
-  var sex: ProgrammeGroupSexEnum,
+  var sex: ProgrammeGroupGenderEnum,
 
   @NotNull(message = "earliestStartDate must not be null")
   @get:JsonProperty("earliestStartDate", required = true)

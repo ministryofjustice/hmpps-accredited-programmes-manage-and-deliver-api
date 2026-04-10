@@ -4,7 +4,7 @@ import jakarta.persistence.criteria.Predicate
 import org.springframework.data.jpa.domain.Specification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupGenderEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import java.time.LocalDateTime
 
@@ -45,7 +45,7 @@ fun getProgrammeGroupsSpecification(
   }
 
   sex?.let {
-    predicates.add(cb.equal(root.get<ProgrammeGroupSexEnum>("sex"), it))
+    predicates.add(cb.equal(root.get<ProgrammeGroupGenderEnum>("sex"), it))
   }
 
   regionName?.let {

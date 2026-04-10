@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupGenderEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import java.time.LocalDate
 import java.util.UUID
@@ -76,10 +76,10 @@ data class Group(
   @Schema(
     enumAsRef = true,
     description = "Sex that the group is being run for.",
-    implementation = ProgrammeGroupSexEnum::class,
+    implementation = ProgrammeGroupGenderEnum::class,
   )
   @get:JsonProperty("sex")
-  val sex: ProgrammeGroupSexEnum? = null,
+  val sex: ProgrammeGroupGenderEnum? = null,
 )
 
 fun ProgrammeGroupEntity.toApi(): Group = Group(

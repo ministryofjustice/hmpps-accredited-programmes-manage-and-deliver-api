@@ -11,7 +11,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupGenderEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
@@ -99,7 +99,7 @@ class TestGroupHelper {
   fun createGroup(
     groupCode: String = randomAlphanumericString(),
     cohort: ProgrammeGroupCohort = ProgrammeGroupCohort.GENERAL,
-    sex: ProgrammeGroupSexEnum = ProgrammeGroupSexEnum.MALE,
+    sex: ProgrammeGroupGenderEnum = ProgrammeGroupGenderEnum.MALE,
     earliestStartDate: LocalDate = LocalDate.now().plusDays(1),
     createGroupSessionSlots: Set<CreateGroupSessionSlot> =
       CreateGroupSessionSlotFactory().produceUniqueSlots(count = 2),
