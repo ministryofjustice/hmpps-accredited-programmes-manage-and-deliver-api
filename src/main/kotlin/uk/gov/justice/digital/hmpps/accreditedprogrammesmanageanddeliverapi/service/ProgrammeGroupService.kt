@@ -258,14 +258,21 @@ class ProgrammeGroupService(
       scheduleService.rescheduleSessionsForGroup(savedGroup.id!!)
     }
 
-    val successMessage = getUpdateSuccessMessage(updatedField)
+    val successMessage = getUpdateSuccessMessage(updatedField, updateGroupRequest.automaticallyRescheduleOtherSessions ?: false)
     return UpdateGroupResponse(successMessage = successMessage)
   }
-
-  private fun getUpdateSuccessMessage(updatedField: String?): String = when (updatedField) {
+  private fun getUpdateSuccessMessage(updatedField: String?, isScheduleUpdated: Boolean = false): String = when (updatedField) {
     "groupCode" -> "The group code has been updated."
-    "earliestStartDate" -> "The start date has been updated."
-    "daysAndTimes" -> "The days and times have been updated."
+    "earliestStartDate" -> if (isScheduleUpdated) {
+      "The start date and schedule have been updated."
+    } else {
+      "The start date has been updated."
+    }
+    "daysAndTimes" -> if (isScheduleUpdated) {
+      "The days and times and schedule have been updated."
+    } else {
+      "The days and times have been updated."
+    }
     "cohort" -> "The cohort has been updated."
     "sex" -> "The gender has been updated."
     "deliveryLocation" -> "The delivery location has been updated."
