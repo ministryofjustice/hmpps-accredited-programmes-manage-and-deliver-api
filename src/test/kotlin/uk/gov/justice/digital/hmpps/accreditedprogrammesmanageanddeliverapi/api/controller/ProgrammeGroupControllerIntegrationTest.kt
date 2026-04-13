@@ -3389,7 +3389,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Nested
-  @Nested
   @DisplayName("getBffEditGroupDaysAndTimes")
   @WithMockAuthUser(username = "AUTH_ADM", roles = ["ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR"])
   inner class GetBffEditGroupDaysAndTimes {
