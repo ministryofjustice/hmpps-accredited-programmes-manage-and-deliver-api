@@ -39,6 +39,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.GroupSexDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
@@ -2875,7 +2876,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val group = testGroupHelper.createGroup()
       val newStartDate = LocalDate.now().plusDays(10)
-      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate)
+      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -2950,7 +2951,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         CreateGroupSessionSlot(DayOfWeek.WEDNESDAY, 2, 30, AmOrPm.PM),
         CreateGroupSessionSlot(DayOfWeek.FRIDAY, 10, 0, AmOrPm.AM),
       )
-      val updateRequest = UpdateGroupRequest(createGroupSessionSlot = newSlots)
+      val updateRequest = UpdateGroupRequest(createGroupSessionSlot = newSlots, automaticallyRescheduleOtherSessions = false)
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -2963,6 +2964,65 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response.successMessage).isEqualTo("The days and times have been updated.")
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.programmeGroupSessionSlots).hasSize(2)
+      assertThat(updatedGroup.programmeGroupSessionSlots).anyMatch {
+        it.dayOfWeek == DayOfWeek.WEDNESDAY && it.startTime == LocalTime.of(14, 30)
+      }
+      assertThat(updatedGroup.programmeGroupSessionSlots).anyMatch {
+        it.dayOfWeek == DayOfWeek.FRIDAY && it.startTime == LocalTime.of(10, 0)
+      }
+    }
+
+    @Test
+    fun `should return 200 with alternative message when updating earliest start date with automaticallyRescheduleOtherSessions`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val newStartDate = LocalDate.now().plusDays(10)
+      val updateRequest = UpdateGroupRequest(
+        earliestStartDate = newStartDate,
+        automaticallyRescheduleOtherSessions = true,
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.successMessage).isEqualTo("The start date and schedule have been updated.")
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.earliestPossibleStartDate).isEqualTo(newStartDate)
+    }
+
+    @Test
+    fun `should return 200 with alternative message when updating session slots with automaticallyRescheduleOtherSessions`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val newSlots = setOf(
+        CreateGroupSessionSlot(DayOfWeek.WEDNESDAY, 2, 30, AmOrPm.PM),
+        CreateGroupSessionSlot(DayOfWeek.FRIDAY, 10, 0, AmOrPm.AM),
+      )
+      val updateRequest = UpdateGroupRequest(
+        createGroupSessionSlot = newSlots,
+        automaticallyRescheduleOtherSessions = true,
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.successMessage).isEqualTo("The days and times and schedule have been updated.")
       val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
       assertThat(updatedGroup.programmeGroupSessionSlots).hasSize(2)
       assertThat(updatedGroup.programmeGroupSessionSlots).anyMatch {
@@ -3276,6 +3336,114 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
+    }
+  }
+
+  @Nested
+  @DisplayName("Get BFF Edit Group Sex")
+  inner class GetBffEditGroupSex {
+
+    @Test
+    fun `returns 200 with edit sex details for a valid group`() {
+      // Given
+      val group = testGroupHelper.createGroup(groupCode = "TEST001")
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/group-sex-details",
+        returnType = object : ParameterizedTypeReference<GroupSexDetails>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.captionText).isEqualTo("Edit group ${group.code}")
+      assertThat(response.pageTitle).isEqualTo("Edit the gender of the group")
+      assertThat(response.submitButtonText).isEqualTo("Submit")
+      assertThat(response.radios).isNotEmpty
+    }
+
+    @Test
+    fun `returns 200 with the current sex pre-selected for a male group`() {
+      // Given
+      val group = ProgrammeGroupFactory()
+        .withCode("TEST003")
+        .withSex(ProgrammeGroupSexEnum.MALE)
+        .produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/group-sex-details",
+        returnType = object : ParameterizedTypeReference<GroupSexDetails>() {},
+      )
+
+      // Then
+      val selectedRadio = response.radios.find { it.selected }
+      assertThat(selectedRadio).isNotNull
+      assertThat(selectedRadio!!.value).isEqualTo(ProgrammeGroupSexEnum.MALE.name)
+    }
+
+    @Test
+    fun `returns 200 with the current sex pre-selected for a female group`() {
+      // Given
+      val group = ProgrammeGroupFactory()
+        .withCode("TEST004")
+        .withSex(ProgrammeGroupSexEnum.FEMALE)
+        .produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/group-sex-details",
+        returnType = object : ParameterizedTypeReference<GroupSexDetails>() {},
+      )
+
+      // Then
+      val selectedRadio = response.radios.find { it.selected }
+      assertThat(selectedRadio).isNotNull
+      assertThat(selectedRadio!!.value).isEqualTo(ProgrammeGroupSexEnum.FEMALE.name)
+    }
+
+    @Test
+    fun `returns 200 with the current sex pre-selected for a mixed group`() {
+      // Given
+      val group = ProgrammeGroupFactory()
+        .withCode("TEST005")
+        .withSex(ProgrammeGroupSexEnum.MIXED)
+        .produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/group-sex-details",
+        returnType = object : ParameterizedTypeReference<GroupSexDetails>() {},
+      )
+
+      // Then
+      val selectedRadio = response.radios.find { it.selected }
+      assertThat(selectedRadio).isNotNull
+      assertThat(selectedRadio!!.value).isEqualTo(ProgrammeGroupSexEnum.MIXED.name)
+    }
+
+    @Test
+    fun `returns 404 when group does not exist`() {
+      // Given
+      val nonExistentGroupId = UUID.randomUUID()
+
+      // When / Then
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/$nonExistentGroupId/group-sex-details",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        body = {},
+      )
+
+      assertThat(response.userMessage).isEqualTo("Not Found: Group with id $nonExistentGroupId not found")
     }
   }
 

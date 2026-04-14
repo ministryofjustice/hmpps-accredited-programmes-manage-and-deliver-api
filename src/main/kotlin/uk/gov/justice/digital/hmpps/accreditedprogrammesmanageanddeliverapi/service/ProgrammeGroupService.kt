@@ -22,23 +22,27 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupAllocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort.Companion.toRadioOptions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponseGroup
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponseGroupModule
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponseGroupSession
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.StartDateText
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.GroupSexDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.fromDateTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
@@ -55,6 +59,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
@@ -81,8 +86,11 @@ class ProgrammeGroupService(
   private val sessionRepository: SessionRepository,
   private val facilitatorService: FacilitatorService,
   private val sessionNameFormatter: SessionNameFormatter,
+  private val sessionService: SessionService,
+  private val moduleRepository: ModuleRepository,
+  private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
 ) {
-  private val log = LoggerFactory.getLogger(this::class.java)
+  val log = LoggerFactory.getLogger(this::class.java)
 
   fun createGroup(createGroupRequest: CreateGroupRequest, username: String): ProgrammeGroupEntity {
     val (userRegion) = userService.getUserRegions(username)
@@ -150,6 +158,41 @@ class ProgrammeGroupService(
     updateGroupRequest.earliestStartDate?.let {
       programmeGroup.earliestPossibleStartDate = it
       updatedField = "earliestStartDate"
+
+      // Always reschedule the date of the pre group one to one placeholder session if the date has changed.
+      val preGroupOneToOneModule = moduleSessionTemplateRepository.findByName("Pre-group one-to-one")
+
+      if (preGroupOneToOneModule == null) {
+        log.warn("Pre-group one-to-one module template not found when updating earliest start date for group $groupId. Cannot reschedule pre-group session.")
+      } else {
+        val preGroupOneToOnePlaceholderSession = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(
+          preGroupOneToOneModule.id!!,
+          groupId,
+        ).firstOrNull { session -> session.isPlaceholder }
+
+        if (preGroupOneToOnePlaceholderSession == null) {
+          log.warn("Pre-group one-to-one placeholder session not found for group $groupId when updating earliest start date. Cannot reschedule pre-group session.")
+        } else {
+          // Calculate the new pre group one to one placeholder date from the new earliest possible start date.
+          val dateForPreGroupSession = scheduleService.getNextSessionDateFromSuppliedDate(programmeGroup, programmeGroup.earliestPossibleStartDate)
+
+          log.info("Rescheduling pre-group one-to-one placeholder session ${preGroupOneToOnePlaceholderSession.id} for group $groupId to new date: $dateForPreGroupSession")
+
+          val rescheduleRequest = RescheduleSessionRequest(
+            sessionStartDate = dateForPreGroupSession,
+            sessionStartTime = fromDateTime(preGroupOneToOnePlaceholderSession.startsAt),
+            sessionEndTime = null,
+            rescheduleOtherSessions = false,
+          )
+
+          sessionService.rescheduleSessions(
+            preGroupOneToOnePlaceholderSession.id!!,
+            rescheduleRequest,
+          )
+
+          log.info("Successfully rescheduled pre-group one-to-one placeholder session ${preGroupOneToOnePlaceholderSession.id} for group $groupId")
+        }
+      }
     }
     updateGroupRequest.pduName?.let {
       programmeGroup.probationDeliveryUnitName = it
@@ -226,14 +269,21 @@ class ProgrammeGroupService(
       scheduleService.rescheduleSessionsForGroup(savedGroup.id!!)
     }
 
-    val successMessage = getUpdateSuccessMessage(updatedField)
+    val successMessage = getUpdateSuccessMessage(updatedField, updateGroupRequest.automaticallyRescheduleOtherSessions ?: false)
     return UpdateGroupResponse(successMessage = successMessage)
   }
-
-  private fun getUpdateSuccessMessage(updatedField: String?): String = when (updatedField) {
+  private fun getUpdateSuccessMessage(updatedField: String?, isScheduleUpdated: Boolean = false): String = when (updatedField) {
     "groupCode" -> "The group code has been updated."
-    "earliestStartDate" -> "The start date has been updated."
-    "daysAndTimes" -> "The days and times have been updated."
+    "earliestStartDate" -> if (isScheduleUpdated) {
+      "The start date and schedule have been updated."
+    } else {
+      "The start date has been updated."
+    }
+    "daysAndTimes" -> if (isScheduleUpdated) {
+      "The days and times and schedule have been updated."
+    } else {
+      "The days and times have been updated."
+    }
     "cohort" -> "The cohort has been updated."
     "sex" -> "The gender has been updated."
     "deliveryLocation" -> "The delivery location has been updated."
@@ -403,6 +453,24 @@ class ProgrammeGroupService(
         ),
       ),
       pageTitle = "Edit the group cohort",
+      submitButtonText = "Submit",
+    )
+  }
+
+  fun getEditSexForGroup(groupId: UUID): GroupSexDetails {
+    val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
+
+    return GroupSexDetails(
+      captionText = "Edit group ${programmeGroup.code}",
+      radios = ProgrammeGroupSexEnum.entries.map { sex ->
+        GroupSexDetails.RadioOptions(
+          text = sex.label,
+          value = sex.name,
+          selected = sex == programmeGroup.sex,
+        )
+      },
+      pageTitle = "Edit the gender of the group",
       submitButtonText = "Submit",
     )
   }
