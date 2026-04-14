@@ -32,12 +32,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.GroupSexDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.fromDateTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
@@ -451,6 +453,24 @@ class ProgrammeGroupService(
         ),
       ),
       pageTitle = "Edit the group cohort",
+      submitButtonText = "Submit",
+    )
+  }
+
+  fun getEditSexForGroup(groupId: UUID): GroupSexDetails {
+    val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
+
+    return GroupSexDetails(
+      captionText = "Edit group ${programmeGroup.code}",
+      radios = ProgrammeGroupSexEnum.entries.map { sex ->
+        GroupSexDetails.RadioOptions(
+          text = sex.label,
+          value = sex.name,
+          selected = sex == programmeGroup.sex,
+        )
+      },
+      pageTitle = "Edit the gender of the group",
       submitButtonText = "Submit",
     )
   }
