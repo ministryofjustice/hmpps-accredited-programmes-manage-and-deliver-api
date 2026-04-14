@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniAssessment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAccommodation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysLearning
 import java.time.LocalDate
@@ -39,9 +40,17 @@ data class LearningNeeds(
 
   @Schema(example = "Ms Puckett spoke of wanting to secure suitable employment although she knows that she will first need to fully address her drug issues.")
   @get:JsonProperty("basicSkillsScoreDescription") val basicSkillsScoreDescription: String? = null,
+
+  @Schema(example = "2")
+  @get:JsonProperty("ldcScore") val ldcScore: Int? = null,
 )
 
-fun buildLearningNeeds(assessmentCompleted: LocalDate?, oasysLearning: OasysLearning?, oasysAccommodation: OasysAccommodation): LearningNeeds = LearningNeeds(
+fun buildLearningNeeds(
+  assessmentCompleted: LocalDate?,
+  oasysLearning: OasysLearning?,
+  oasysAccommodation: OasysAccommodation,
+  pniAssessment: PniAssessment?,
+): LearningNeeds = LearningNeeds(
   noFixedAbodeOrTransient = oasysAccommodation.noFixedAbodeOrTransient == "Yes",
   assessmentCompleted = assessmentCompleted,
   workRelatedSkills = oasysLearning?.workRelatedSkills,
@@ -51,4 +60,5 @@ fun buildLearningNeeds(assessmentCompleted: LocalDate?, oasysLearning: OasysLear
   qualifications = oasysLearning?.qualifications,
   basicSkillsScore = oasysLearning?.basicSkillsScore,
   basicSkillsScoreDescription = oasysLearning?.eTEIssuesDetails,
+  ldcScore = pniAssessment?.ldc?.score,
 )

@@ -22,11 +22,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.RoshAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.ThinkingAndBehaviour
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.arnsApi.model.type.ScoreLevel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysOffenceAnalysis.WhatOccurred
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.Timeline
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.getLatestCompletedLayerThreeAssessment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.arns.AllPredictorVersionedLegacyDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.arns.RiskScoresDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysAlcoholMisuseDetailsFactory
@@ -347,6 +350,12 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       val oasysLearning = OasysLearningFactory().withCrn(crn).produce()
       oasysApiStubs.stubSuccessfulOasysLearningResponse(assessmentId, oasysLearning)
       oasysApiStubs.stubSuccessfulOasysAccommodationResponse(assessmentId)
+      oasysApiStubs.stubSuccessfulPniResponse(
+        crn,
+        PniResponseFactory().withAssessment(
+          PniAssessmentFactory().withLdc(Ldc(4, 4)).produce(),
+        ).produce(),
+      )
 
       // When
       val response = performRequestAndExpectOk(
@@ -366,6 +375,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).hasFieldOrProperty("qualifications")
       assertThat(response).hasFieldOrProperty("basicSkillsScore")
       assertThat(response).hasFieldOrProperty("basicSkillsScoreDescription")
+      assertThat(response).hasFieldOrProperty("ldcScore")
 
       assertThat(response.assessmentCompleted).isEqualTo(assessment.getLatestCompletedLayerThreeAssessment()?.completedAt?.toLocalDate())
       assertThat(response.noFixedAbodeOrTransient).isTrue
@@ -376,6 +386,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.qualifications).isEqualTo("NVQ Level 2")
       assertThat(response.basicSkillsScore).isEqualTo("3")
       assertThat(response.basicSkillsScoreDescription).isEqualTo("ete issues")
+      assertThat(response.ldcScore).isEqualTo(4)
     }
 
     @Test
