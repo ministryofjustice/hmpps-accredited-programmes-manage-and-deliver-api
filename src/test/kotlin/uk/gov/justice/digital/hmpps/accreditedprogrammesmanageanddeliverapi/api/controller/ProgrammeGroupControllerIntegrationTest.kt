@@ -39,7 +39,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupSex
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.GroupSexDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
@@ -3293,7 +3293,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/bff/group/${group.id}/edit-sex",
-        returnType = object : ParameterizedTypeReference<EditGroupSex>() {},
+        returnType = object : ParameterizedTypeReference<GroupSexDetails>() {},
       )
 
       // Then
@@ -3317,7 +3317,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/bff/group/${group.id}/edit-sex",
-        returnType = object : ParameterizedTypeReference<EditGroupSex>() {},
+        returnType = object : ParameterizedTypeReference<GroupSexDetails>() {},
       )
 
       // Then
@@ -3339,7 +3339,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/bff/group/${group.id}/edit-sex",
-        returnType = object : ParameterizedTypeReference<EditGroupSex>() {},
+        returnType = object : ParameterizedTypeReference<GroupSexDetails>() {},
       )
 
       // Then
@@ -3361,7 +3361,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/bff/group/${group.id}/edit-sex",
-        returnType = object : ParameterizedTypeReference<EditGroupSex>() {},
+        returnType = object : ParameterizedTypeReference<GroupSexDetails>() {},
       )
 
       // Then

@@ -48,7 +48,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupSex
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.GroupSexDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
@@ -1009,7 +1009,7 @@ class ProgrammeGroupController(
         content = [
           Content(
             mediaType = MediaType.APPLICATION_JSON_VALUE,
-            schema = Schema(implementation = EditGroupSex::class),
+            schema = Schema(implementation = GroupSexDetails::class),
           ),
         ],
       ),
@@ -1050,7 +1050,7 @@ class ProgrammeGroupController(
     "/bff/group/{groupId}/edit-sex",
     produces = [MediaType.APPLICATION_JSON_VALUE],
   )
-  fun getBffEditGroupSex(@PathVariable groupId: UUID): ResponseEntity<EditGroupSex> = ResponseEntity.ok(programmeGroupService.getEditSexForGroup(groupId))
+  fun getBffEditGroupSex(@PathVariable groupId: UUID): ResponseEntity<GroupSexDetails> = ResponseEntity.ok(programmeGroupService.getEditSexForGroup(groupId))
 
   @Operation(
     tags = ["Programme Group controller"],
