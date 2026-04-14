@@ -37,6 +37,8 @@ class RisksAndNeedsService(
   private val oasysApiClient: OasysApiClient,
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val assessRiskAndNeedsApiClient: AssessRiskAndNeedsApiClient,
+  private val pniService: PniService,
+
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -57,6 +59,7 @@ class RisksAndNeedsService(
       assessmentCompletedDate?.toLocalDate(),
       getDetails(assessmentId, oasysApiClient::getLearning, "LearningNeeds"),
       getDetails(assessmentId, oasysApiClient::getAccommodation, "OasysAccommodation"),
+      pniService.getPniCalculation(crn).assessment,
     )
   }
 
