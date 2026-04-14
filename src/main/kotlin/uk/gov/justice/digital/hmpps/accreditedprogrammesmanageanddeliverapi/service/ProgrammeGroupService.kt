@@ -159,28 +159,37 @@ class ProgrammeGroupService(
 
       // Always reschedule the date of the pre group one to one placeholder session if the date has changed.
       val preGroupOneToOneModule = moduleSessionTemplateRepository.findByName("Pre-group one-to-one")
-      val preGroupOneToOnePlaceholderSession = preGroupOneToOneModule?.id?.let { moduleId ->
-        sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(
-          moduleId,
+
+      if (preGroupOneToOneModule == null) {
+        log.warn("Pre-group one-to-one module template not found when updating earliest start date for group $groupId. Cannot reschedule pre-group session.")
+      } else {
+        val preGroupOneToOnePlaceholderSession = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(
+          preGroupOneToOneModule.id!!,
           groupId,
         ).firstOrNull { session -> session.isPlaceholder }
-      }
-      // Calculate the new pre group one to one placeholder date from the new earliest possible start date.
-      val dateForPreGroupSession = scheduleService.getNextSessionDateFromSuppliedDate(programmeGroup, programmeGroup.earliestPossibleStartDate)
 
-      // Only reschedule if we have both the session
-      if (preGroupOneToOnePlaceholderSession != null) {
-        val rescheduleRequest = RescheduleSessionRequest(
-          sessionStartDate = dateForPreGroupSession,
-          sessionStartTime = fromDateTime(preGroupOneToOnePlaceholderSession.startsAt),
-          sessionEndTime = null,
-          rescheduleOtherSessions = false,
-        )
+        if (preGroupOneToOnePlaceholderSession == null) {
+          log.warn("Pre-group one-to-one placeholder session not found for group $groupId when updating earliest start date. Cannot reschedule pre-group session.")
+        } else {
+          // Calculate the new pre group one to one placeholder date from the new earliest possible start date.
+          val dateForPreGroupSession = scheduleService.getNextSessionDateFromSuppliedDate(programmeGroup, programmeGroup.earliestPossibleStartDate)
 
-        sessionService.rescheduleSessions(
-          preGroupOneToOnePlaceholderSession.id!!,
-          rescheduleRequest,
-        )
+          log.info("Rescheduling pre-group one-to-one placeholder session ${preGroupOneToOnePlaceholderSession.id} for group $groupId to new date: $dateForPreGroupSession")
+
+          val rescheduleRequest = RescheduleSessionRequest(
+            sessionStartDate = dateForPreGroupSession,
+            sessionStartTime = fromDateTime(preGroupOneToOnePlaceholderSession.startsAt),
+            sessionEndTime = null,
+            rescheduleOtherSessions = false,
+          )
+
+          sessionService.rescheduleSessions(
+            preGroupOneToOnePlaceholderSession.id!!,
+            rescheduleRequest,
+          )
+
+          log.info("Successfully rescheduled pre-group one-to-one placeholder session ${preGroupOneToOnePlaceholderSession.id} for group $groupId")
+        }
       }
     }
     updateGroupRequest.pduName?.let {
