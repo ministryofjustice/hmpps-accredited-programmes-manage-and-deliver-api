@@ -3351,7 +3351,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/group/${group.id}/edit-sex",
+        uri = "/bff/group/${group.id}/group-sex-details",
         returnType = object : ParameterizedTypeReference<GroupSexDetails>() {},
       )
 
@@ -3375,7 +3375,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/group/${group.id}/edit-sex",
+        uri = "/bff/group/${group.id}/group-sex-details",
         returnType = object : ParameterizedTypeReference<GroupSexDetails>() {},
       )
 
@@ -3397,7 +3397,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/group/${group.id}/edit-sex",
+        uri = "/bff/group/${group.id}/group-sex-details",
         returnType = object : ParameterizedTypeReference<GroupSexDetails>() {},
       )
 
@@ -3419,7 +3419,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/group/${group.id}/edit-sex",
+        uri = "/bff/group/${group.id}/group-sex-details",
         returnType = object : ParameterizedTypeReference<GroupSexDetails>() {},
       )
 
@@ -3437,7 +3437,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When / Then
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/group/$nonExistentGroupId/edit-sex",
+        uri = "/bff/group/$nonExistentGroupId/group-sex-details",
         returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
         expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
         body = {},
