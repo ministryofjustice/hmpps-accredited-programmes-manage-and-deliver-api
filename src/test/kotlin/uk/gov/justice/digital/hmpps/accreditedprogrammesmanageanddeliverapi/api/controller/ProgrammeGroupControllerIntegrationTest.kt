@@ -2876,7 +2876,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val group = testGroupHelper.createGroup()
       val newStartDate = LocalDate.now().plusDays(10)
-      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate)
+      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -2951,7 +2951,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         CreateGroupSessionSlot(DayOfWeek.WEDNESDAY, 2, 30, AmOrPm.PM),
         CreateGroupSessionSlot(DayOfWeek.FRIDAY, 10, 0, AmOrPm.AM),
       )
-      val updateRequest = UpdateGroupRequest(createGroupSessionSlot = newSlots)
+      val updateRequest = UpdateGroupRequest(createGroupSessionSlot = newSlots, automaticallyRescheduleOtherSessions = false)
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -2964,6 +2964,65 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response.successMessage).isEqualTo("The days and times have been updated.")
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.programmeGroupSessionSlots).hasSize(2)
+      assertThat(updatedGroup.programmeGroupSessionSlots).anyMatch {
+        it.dayOfWeek == DayOfWeek.WEDNESDAY && it.startTime == LocalTime.of(14, 30)
+      }
+      assertThat(updatedGroup.programmeGroupSessionSlots).anyMatch {
+        it.dayOfWeek == DayOfWeek.FRIDAY && it.startTime == LocalTime.of(10, 0)
+      }
+    }
+
+    @Test
+    fun `should return 200 with alternative message when updating earliest start date with automaticallyRescheduleOtherSessions`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val newStartDate = LocalDate.now().plusDays(10)
+      val updateRequest = UpdateGroupRequest(
+        earliestStartDate = newStartDate,
+        automaticallyRescheduleOtherSessions = true,
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.successMessage).isEqualTo("The start date and schedule have been updated.")
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.earliestPossibleStartDate).isEqualTo(newStartDate)
+    }
+
+    @Test
+    fun `should return 200 with alternative message when updating session slots with automaticallyRescheduleOtherSessions`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val newSlots = setOf(
+        CreateGroupSessionSlot(DayOfWeek.WEDNESDAY, 2, 30, AmOrPm.PM),
+        CreateGroupSessionSlot(DayOfWeek.FRIDAY, 10, 0, AmOrPm.AM),
+      )
+      val updateRequest = UpdateGroupRequest(
+        createGroupSessionSlot = newSlots,
+        automaticallyRescheduleOtherSessions = true,
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.successMessage).isEqualTo("The days and times and schedule have been updated.")
       val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
       assertThat(updatedGroup.programmeGroupSessionSlots).hasSize(2)
       assertThat(updatedGroup.programmeGroupSessionSlots).anyMatch {
