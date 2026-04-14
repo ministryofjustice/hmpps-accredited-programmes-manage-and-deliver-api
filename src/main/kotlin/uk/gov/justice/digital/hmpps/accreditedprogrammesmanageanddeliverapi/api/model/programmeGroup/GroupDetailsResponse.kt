@@ -53,6 +53,13 @@ data class GroupDetailsResponse(
   val pduName: String,
 
   @Schema(
+    example = "N02CLE",
+    description = "The Probation Delivery Unit (PDU) code.",
+  )
+  @get:JsonProperty("pduCode", required = true)
+  val pduCode: String,
+
+  @Schema(
     example = "County Durham Probation Office",
     description = "The location description where the group programme will be delivered.",
   )
@@ -121,6 +128,7 @@ data class GroupDetailsResponse(
       regionName = programmeGroup.regionName,
       startDate = earliestPreGroupSessionDate,
       pduName = programmeGroup.probationDeliveryUnitName,
+      pduCode = programmeGroup.probationDeliveryUnitCode,
       deliveryLocation = programmeGroup.deliveryLocationName,
       cohort = ProgrammeGroupCohort.from(programmeGroup.cohort, programmeGroup.isLdc).label,
       sex = programmeGroup.sex.label,
