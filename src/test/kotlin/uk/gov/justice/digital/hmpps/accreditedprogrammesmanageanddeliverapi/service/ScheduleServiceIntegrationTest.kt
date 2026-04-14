@@ -447,4 +447,163 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     // Should be the correct date
     assertThat(nextSlotDate).isEqualTo(LocalDate.of(2126, 7, 10))
   }
+
+  @Test
+  fun `getNextSessionDateFromSuppliedDate should return next available slot date when starting from a Monday`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+    val slot2 = CreateGroupSessionSlotFactory().produce(DayOfWeek.THURSDAY, 12, 0, AmOrPm.PM)
+
+    val group = testGroupHelper.createGroup(
+      earliestStartDate = LocalDate.of(2026, 4, 1),
+      createGroupSessionSlots = setOf(slot1, slot2),
+    )
+
+    // Starting from Monday April 13, 2026
+    val dateToScheduleFrom = LocalDate.of(2026, 4, 13)
+
+    val nextDate = scheduleService.getNextSessionDateFromSuppliedDate(
+      programmeGroupRepository.findByIdOrNull(group.id!!)!!,
+      dateToScheduleFrom,
+    )
+
+    // Should return the same Monday (next or same Monday)
+    assertThat(nextDate).isEqualTo(LocalDate.of(2026, 4, 13))
+    assertThat(nextDate.dayOfWeek).isEqualTo(DayOfWeek.MONDAY)
+  }
+
+  @Test
+  fun `getNextSessionDateFromSuppliedDate should skip bank holidays`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+
+    val group = testGroupHelper.createGroup(
+      earliestStartDate = LocalDate.of(2026, 3, 30),
+      createGroupSessionSlots = setOf(slot1),
+    )
+
+    // Starting from Monday March 30, 2026 (not a bank holiday)
+    // Next Monday would be April 6, 2026 which IS a bank holiday (Easter Monday)
+    val dateToScheduleFrom = LocalDate.of(2026, 3, 30)
+
+    val nextDate = scheduleService.getNextSessionDateFromSuppliedDate(
+      programmeGroupRepository.findByIdOrNull(group.id!!)!!,
+      dateToScheduleFrom,
+    )
+
+    // Should return March 30 as it's a valid Monday, not a bank holiday
+    assertThat(nextDate).isEqualTo(LocalDate.of(2026, 3, 30))
+    assertThat(nextDate.dayOfWeek).isEqualTo(DayOfWeek.MONDAY)
+  }
+
+  @Test
+  fun `getNextSessionDateFromSuppliedDate should skip to next week if current date slot is a bank holiday`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+
+    val group = testGroupHelper.createGroup(
+      earliestStartDate = LocalDate.of(2026, 4, 1),
+      createGroupSessionSlots = setOf(slot1),
+    )
+
+    // Starting from Easter Monday April 6, 2026 (bank holiday)
+    val dateToScheduleFrom = LocalDate.of(2026, 4, 6)
+
+    val nextDate = scheduleService.getNextSessionDateFromSuppliedDate(
+      programmeGroupRepository.findByIdOrNull(group.id!!)!!,
+      dateToScheduleFrom,
+    )
+
+    // Should skip Easter Monday and return Monday April 13
+    assertThat(nextDate).isEqualTo(LocalDate.of(2026, 4, 13))
+    assertThat(nextDate.dayOfWeek).isEqualTo(DayOfWeek.MONDAY)
+  }
+
+  @Test
+  fun `getNextSessionDateFromSuppliedDate should handle multiple slots and return earliest available`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+    val slot2 = CreateGroupSessionSlotFactory().produce(DayOfWeek.WEDNESDAY, 2, 0, AmOrPm.PM)
+    val slot3 = CreateGroupSessionSlotFactory().produce(DayOfWeek.FRIDAY, 10, 15, AmOrPm.AM)
+
+    val group = testGroupHelper.createGroup(
+      earliestStartDate = LocalDate.of(2026, 4, 1),
+      createGroupSessionSlots = setOf(slot1, slot2, slot3),
+    )
+
+    // Starting from Tuesday April 14, 2026
+    val dateToScheduleFrom = LocalDate.of(2026, 4, 14)
+
+    val nextDate = scheduleService.getNextSessionDateFromSuppliedDate(
+      programmeGroupRepository.findByIdOrNull(group.id!!)!!,
+      dateToScheduleFrom,
+    )
+
+    // Wednesday April 15 is the next available slot after Tuesday April 14
+    assertThat(nextDate).isEqualTo(LocalDate.of(2026, 4, 15))
+    assertThat(nextDate.dayOfWeek).isEqualTo(DayOfWeek.WEDNESDAY)
+  }
+
+  @Test
+  fun `getNextSessionDateFromSuppliedDate should handle consecutive bank holidays`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+
+    val group = testGroupHelper.createGroup(
+      earliestStartDate = LocalDate.of(2026, 4, 1),
+      createGroupSessionSlots = setOf(slot1),
+    )
+
+    // Starting from April 6, 2026 (Easter Monday - bank holiday)
+    // The real bank holidays API will include this date
+    val dateToScheduleFrom = LocalDate.of(2026, 4, 6)
+
+    val nextDate = scheduleService.getNextSessionDateFromSuppliedDate(
+      programmeGroupRepository.findByIdOrNull(group.id!!)!!,
+      dateToScheduleFrom,
+    )
+
+    // Should skip Easter Monday April 6 and return Monday April 13
+    assertThat(nextDate).isEqualTo(LocalDate.of(2026, 4, 13))
+    assertThat(nextDate.dayOfWeek).isEqualTo(DayOfWeek.MONDAY)
+  }
+
+  @Test
+  fun `getNextSessionDateFromSuppliedDate should work with single slot configuration`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.WEDNESDAY, 10, 0, AmOrPm.AM)
+
+    val group = testGroupHelper.createGroup(
+      earliestStartDate = LocalDate.of(2026, 4, 1),
+      createGroupSessionSlots = setOf(slot1),
+    )
+
+    // Starting from Monday April 13, 2026
+    val dateToScheduleFrom = LocalDate.of(2026, 4, 13)
+
+    val nextDate = scheduleService.getNextSessionDateFromSuppliedDate(
+      programmeGroupRepository.findByIdOrNull(group.id!!)!!,
+      dateToScheduleFrom,
+    )
+
+    // Should return Wednesday April 15 (next Wednesday)
+    assertThat(nextDate).isEqualTo(LocalDate.of(2026, 4, 15))
+    assertThat(nextDate.dayOfWeek).isEqualTo(DayOfWeek.WEDNESDAY)
+  }
+
+  @Test
+  fun `getNextSessionDateFromSuppliedDate should return same day if it matches a slot and is not a bank holiday`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.THURSDAY, 12, 0, AmOrPm.PM)
+
+    val group = testGroupHelper.createGroup(
+      earliestStartDate = LocalDate.of(2026, 4, 1),
+      createGroupSessionSlots = setOf(slot1),
+    )
+
+    // Starting from Thursday April 16, 2026 (not a bank holiday)
+    val dateToScheduleFrom = LocalDate.of(2026, 4, 16)
+
+    val nextDate = scheduleService.getNextSessionDateFromSuppliedDate(
+      programmeGroupRepository.findByIdOrNull(group.id!!)!!,
+      dateToScheduleFrom,
+    )
+
+    // Should return the same Thursday
+    assertThat(nextDate).isEqualTo(LocalDate.of(2026, 4, 16))
+    assertThat(nextDate.dayOfWeek).isEqualTo(DayOfWeek.THURSDAY)
+  }
 }
