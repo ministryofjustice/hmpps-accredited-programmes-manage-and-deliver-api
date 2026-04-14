@@ -170,14 +170,14 @@ class ReferralStatusService(
     ) ?: return false
 
     val attended = attendance.outcomeType.attendance == true
-    val complied = attendance.outcomeType.compliant
+    val complied = attendance.outcomeType.compliant == true
 
     return attended && complied
   }
 
   private fun publishReferralCompletedEvent(referral: ReferralEntity) {
     val hmppsDomainEvent = DomainEventsMessage(
-      eventType = HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_COMPLETED.value,
+      eventType = HmppsDomainEventTypes.ACP_COMMUNITY_PROGRAMME_COMPLETE.value,
       version = 1,
       detailUrl = "$madBaseUrl/referral/${referral.id}/completion-data",
       occurredAt = ZonedDateTime.now(),
@@ -185,7 +185,7 @@ class ReferralStatusService(
       additionalInformation = mutableMapOf(),
       personReference = PersonReference.fromCrn(referral.crn),
     )
-    log.info("Publishing ${HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_COMPLETED.value} event for referralId: ${referral.id}")
+    log.info("Publishing ${HmppsDomainEventTypes.ACP_COMMUNITY_PROGRAMME_COMPLETE.value} event for referralId: ${referral.id}")
     domainEventPublisher.publish(hmppsDomainEvent)
   }
 }
