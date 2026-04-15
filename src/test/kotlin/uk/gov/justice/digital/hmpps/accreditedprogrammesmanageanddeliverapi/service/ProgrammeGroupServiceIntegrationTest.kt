@@ -812,6 +812,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(result.pduName).isEqualTo("Test PDU")
       assertThat(result.pduCode).isEqualTo("PDU001")
       assertThat(result.deliveryLocation).isEqualTo("Test Location")
+      assertThat(result.deliveryLocationCode).isEqualTo("LOC001")
       assertThat(result.sex).isEqualTo("Male")
       assertThat(result.cohort).isEqualTo("General offence - LDC")
       assertThat(result.daysAndTimes).containsExactlyInAnyOrder(

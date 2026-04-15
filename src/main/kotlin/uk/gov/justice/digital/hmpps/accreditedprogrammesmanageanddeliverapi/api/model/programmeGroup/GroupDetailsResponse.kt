@@ -67,6 +67,13 @@ data class GroupDetailsResponse(
   val deliveryLocation: String,
 
   @Schema(
+    example = "DTVBOR1",
+    description = "The location code for where the group programme will be delivered.",
+  )
+  @get:JsonProperty("deliveryLocationCode", required = true)
+  val deliveryLocationCode: String,
+
+  @Schema(
     enumAsRef = true,
     description = "Cohort for the Programme Group.",
     implementation = ProgrammeGroupCohort::class,
@@ -130,6 +137,7 @@ data class GroupDetailsResponse(
       pduName = programmeGroup.probationDeliveryUnitName,
       pduCode = programmeGroup.probationDeliveryUnitCode,
       deliveryLocation = programmeGroup.deliveryLocationName,
+      deliveryLocationCode = programmeGroup.deliveryLocationCode,
       cohort = ProgrammeGroupCohort.from(programmeGroup.cohort, programmeGroup.isLdc).label,
       sex = programmeGroup.sex.label,
       daysAndTimes = daysAndTimes,
