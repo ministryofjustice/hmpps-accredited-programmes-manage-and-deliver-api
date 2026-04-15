@@ -57,6 +57,7 @@ class SessionServiceTest {
   private val sessionAttendanceOutcomeTypeRepository = mockk<SessionAttendanceOutcomeTypeRepository>()
   private val nDeliusIntegrationApiClient = mockk<NDeliusIntegrationApiClient>()
   private val sessionNameFormatter = SessionNameFormatter()
+  private val referralStatusService = mockk<ReferralStatusService>()
   private lateinit var service: SessionService
   private lateinit var sessionAttendanceTypeEntities: List<SessionAttendanceNDeliusOutcomeEntity>
 
@@ -71,6 +72,7 @@ class SessionServiceTest {
       nDeliusIntegrationApiClient,
       sessionAttendanceOutcomeTypeRepository,
       sessionNameFormatter,
+      referralStatusService,
     )
 
     sessionAttendanceTypeEntities = listOf(
@@ -984,5 +986,237 @@ class SessionServiceTest {
       exception.message!!.contains("Session not found with id: $sessionId"),
     )
     verify { sessionRepository.findById(any()) }
+  }
+
+  @Test
+  fun `should check and publish completion event when saving attendance on post-programme review session`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId = UUID.randomUUID()
+    val sessionAttendee = SessionAttendeeFactory().withReferralId(referralId).produce()
+    val sessionAttendance = SessionAttendanceFactory().withAttendees(listOf(sessionAttendee)).produce()
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity = ProgrammeGroupFactory()
+      .withId(UUID.randomUUID())
+      .withTreatmentManager(facilitator)
+      .produce()
+    val postProgrammeModule = ModuleEntityFactory().withName("Post-programme reviews").produce()
+    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
+      .withSessionType(ONE_TO_ONE)
+      .withModule(postProgrammeModule)
+      .withName("Post-programme review")
+      .produce()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity = SessionFactory()
+      .withAttendees(
+        mutableListOf(
+          AttendeeFactory().withReferral(referralEntity)
+            .withSession(
+              SessionFactory().withProgrammeGroup(programmeGroupEntity)
+                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
+            ).produce(),
+        ),
+      )
+      .withIsPlaceholder(false)
+      .withProgrammeGroup(programmeGroupEntity)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .produce()
+
+    sessionEntity.sessionFacilitators.add(
+      SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
+    )
+
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every {
+      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any())
+    } returns programmeGroupMembershipEntity
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
+    every { sessionRepository.save(any()) } returns sessionEntity
+    every { referralStatusService.checkAndPublishCompletionEvent(any()) } returns true
+
+    // When
+    val result = service.saveSessionAttendance(sessionId, sessionAttendance)
+
+    // Then
+    assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
+    verify { referralStatusService.checkAndPublishCompletionEvent(referralId) }
+  }
+
+  @Test
+  fun `should not check completion event when saving attendance on non post-programme review session`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId = UUID.randomUUID()
+    val sessionAttendee = SessionAttendeeFactory().withReferralId(referralId).produce()
+    val sessionAttendance = SessionAttendanceFactory().withAttendees(listOf(sessionAttendee)).produce()
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity = ProgrammeGroupFactory()
+      .withId(UUID.randomUUID())
+      .withTreatmentManager(facilitator)
+      .produce()
+    val regularModule = ModuleEntityFactory().withName("Module 1").produce()
+    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
+      .withSessionType(GROUP)
+      .withModule(regularModule)
+      .withName("Getting started")
+      .produce()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity = SessionFactory()
+      .withAttendees(
+        mutableListOf(
+          AttendeeFactory().withReferral(referralEntity)
+            .withSession(
+              SessionFactory().withProgrammeGroup(programmeGroupEntity)
+                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
+            ).produce(),
+        ),
+      )
+      .withIsPlaceholder(false)
+      .withProgrammeGroup(programmeGroupEntity)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .produce()
+
+    sessionEntity.sessionFacilitators.add(
+      SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
+    )
+
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every {
+      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any())
+    } returns programmeGroupMembershipEntity
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
+    every { sessionRepository.save(any()) } returns sessionEntity
+
+    // When
+    service.saveSessionAttendance(sessionId, sessionAttendance)
+
+    // Then
+    verify(exactly = 0) { referralStatusService.checkAndPublishCompletionEvent(any()) }
+  }
+
+  @Test
+  fun `should not check completion event when saving attendance on placeholder post-programme review session`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId = UUID.randomUUID()
+    val sessionAttendee = SessionAttendeeFactory().withReferralId(referralId).produce()
+    val sessionAttendance = SessionAttendanceFactory().withAttendees(listOf(sessionAttendee)).produce()
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity = ProgrammeGroupFactory()
+      .withId(UUID.randomUUID())
+      .withTreatmentManager(facilitator)
+      .produce()
+    val postProgrammeModule = ModuleEntityFactory().withName("Post-programme reviews").produce()
+    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
+      .withSessionType(ONE_TO_ONE)
+      .withModule(postProgrammeModule)
+      .withName("Post-programme review")
+      .produce()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity = SessionFactory()
+      .withAttendees(
+        mutableListOf(
+          AttendeeFactory().withReferral(referralEntity)
+            .withSession(
+              SessionFactory().withProgrammeGroup(programmeGroupEntity)
+                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
+            ).produce(),
+        ),
+      )
+      .withIsPlaceholder(true)
+      .withProgrammeGroup(programmeGroupEntity)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .produce()
+
+    sessionEntity.sessionFacilitators.add(
+      SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
+    )
+
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every {
+      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any())
+    } returns programmeGroupMembershipEntity
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
+    every { sessionRepository.save(any()) } returns sessionEntity
+
+    // When
+    service.saveSessionAttendance(sessionId, sessionAttendance)
+
+    // Then
+    verify(exactly = 0) { referralStatusService.checkAndPublishCompletionEvent(any()) }
+  }
+
+  @Test
+  fun `should check completion event for each attendee when saving attendance on post-programme review session`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId1 = UUID.randomUUID()
+    val referralId2 = UUID.randomUUID()
+    val sessionAttendee1 = SessionAttendeeFactory().withReferralId(referralId1).produce()
+    val sessionAttendee2 = SessionAttendeeFactory().withReferralId(referralId2).produce()
+    val sessionAttendance = SessionAttendanceFactory().withAttendees(listOf(sessionAttendee1, sessionAttendee2)).produce()
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity = ProgrammeGroupFactory()
+      .withId(UUID.randomUUID())
+      .withTreatmentManager(facilitator)
+      .produce()
+    val postProgrammeModule = ModuleEntityFactory().withName("Post-programme reviews").produce()
+    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
+      .withSessionType(ONE_TO_ONE)
+      .withModule(postProgrammeModule)
+      .withName("Post-programme review")
+      .produce()
+    val referralEntity1 = ReferralEntityFactory().withId(referralId1).withPersonName("John Smith").produce()
+    val referralEntity2 = ReferralEntityFactory().withId(referralId2).withPersonName("Jane Doe").produce()
+    val sessionEntity = SessionFactory()
+      .withAttendees(
+        mutableListOf(
+          AttendeeFactory().withReferral(referralEntity1)
+            .withSession(
+              SessionFactory().withProgrammeGroup(programmeGroupEntity)
+                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
+            ).produce(),
+          AttendeeFactory().withReferral(referralEntity2)
+            .withSession(
+              SessionFactory().withProgrammeGroup(programmeGroupEntity)
+                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
+            ).produce(),
+        ),
+      )
+      .withIsPlaceholder(false)
+      .withProgrammeGroup(programmeGroupEntity)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .produce()
+
+    sessionEntity.sessionFacilitators.add(
+      SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
+    )
+
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every {
+      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any())
+    } returns programmeGroupMembershipEntity
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
+    every { sessionRepository.save(any()) } returns sessionEntity
+    every { referralStatusService.checkAndPublishCompletionEvent(any()) } returns true
+
+    // When
+    service.saveSessionAttendance(sessionId, sessionAttendance)
+
+    // Then
+    verify { referralStatusService.checkAndPublishCompletionEvent(referralId1) }
+    verify { referralStatusService.checkAndPublishCompletionEvent(referralId2) }
   }
 }

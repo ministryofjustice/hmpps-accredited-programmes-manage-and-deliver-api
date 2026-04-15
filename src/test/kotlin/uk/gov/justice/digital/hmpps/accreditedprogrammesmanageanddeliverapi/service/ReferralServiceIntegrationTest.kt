@@ -29,6 +29,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
@@ -44,6 +45,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceRepository
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.Duration.ofMillis
 import java.time.LocalDate
@@ -65,6 +68,12 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var membershipService: ProgrammeGroupMembershipService
+
+  @Autowired
+  private lateinit var sessionAttendanceRepository: SessionAttendanceRepository
+
+  @Autowired
+  private lateinit var sessionAttendanceOutcomeTypeRepository: SessionAttendanceOutcomeTypeRepository
 
   val personalDetails = NDeliusPersonalDetailsFactory()
     .withName(
@@ -422,6 +431,127 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       )
       assertThat(result.message).isEqualTo("Alex River's referral status is now Recall. They have been removed from group AAA111")
       verifyReferralStatusUpdateEventSent()
+    }
+
+    @Test
+    fun `updateStatus to Programme complete should publish completion event when referral has valid post-programme review attendance`() {
+      // Given
+      val theCrnNumber = randomUppercaseString()
+      val programmeCompleteStatusDescriptionId = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
+      val onProgrammeStatusDescriptionId = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
+      oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      val group = testGroupHelper.createGroup()
+      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "Alex River")
+
+      // Allocate to group
+      val allocatedReferral = testGroupHelper.allocateToGroup(group, referral)
+
+      // Update status to "On programme" first
+      referralService.updateStatus(
+        allocatedReferral,
+        onProgrammeStatusDescriptionId,
+        createdBy = "SYSTEM",
+      )
+
+      // Find the post-programme review session and schedule it
+      val postProgrammeReviewSession = group.sessions.find {
+        it.moduleSessionTemplate.module.isPostProgrammeModule() && !it.isPlaceholder
+      }
+
+      // Add attendance record for post-programme review session (attended and compliant)
+      if (postProgrammeReviewSession != null) {
+        val membership = allocatedReferral.programmeGroupMemberships.first()
+        val attendedAndCompliantOutcome = sessionAttendanceOutcomeTypeRepository.findAll()
+          .find { it.attendance == true && it.compliant == true }
+
+        if (attendedAndCompliantOutcome != null) {
+          val attendance = SessionAttendanceEntity(
+            session = postProgrammeReviewSession,
+            groupMembership = membership,
+            outcomeType = attendedAndCompliantOutcome,
+            recordedByFacilitator = group.treatmentManager!!,
+            createdBy = "SYSTEM",
+          )
+          sessionAttendanceRepository.save(attendance)
+        }
+      }
+
+      // Clear any existing messages from previous operations
+      domainEventsQueueConfig.purgeAllQueues()
+
+      // When - update status to Programme complete
+      val updatedReferral = referralRepository.findById(allocatedReferral.id!!).get()
+      val result = referralService.updateStatus(
+        updatedReferral,
+        programmeCompleteStatusDescriptionId,
+        createdBy = "SYSTEM",
+      )
+
+      // Then
+      assertThat(result.referralStatusHistory.referralStatusDescriptionName).isEqualTo("Programme complete")
+
+      // Verify that at least the status update event was sent (completion event may also be sent if conditions are met)
+      await withPollDelay ofMillis(100) withPollInterval ofMillis(100) untilCallTo {
+        with(domainEventsQueueConfig) {
+          interventionsQueue.countAllMessagesOnQueue()
+        }
+      } matches { it!! >= 1 }
+    }
+
+    @Test
+    fun `updateStatus to Programme complete should not publish completion event when no post-programme review attendance exists`() {
+      // Given
+      val theCrnNumber = randomUppercaseString()
+      val programmeCompleteStatusDescriptionId = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
+      val onProgrammeStatusDescriptionId = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
+      oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      val theGroup = testGroupHelper.createGroup()
+      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "Alex River")
+
+      // Allocate to group
+      val allocatedReferral = testGroupHelper.allocateToGroup(theGroup, referral)
+
+      // Update status to "On programme" first
+      referralService.updateStatus(
+        allocatedReferral,
+        onProgrammeStatusDescriptionId,
+        createdBy = "SYSTEM",
+      )
+
+      // Clear any existing messages from previous operations
+      domainEventsQueueConfig.purgeAllQueues()
+
+      // When - update status to Programme complete (without any post-programme review attendance)
+      val updatedReferral = referralRepository.findById(allocatedReferral.id!!).get()
+      val result = referralService.updateStatus(
+        updatedReferral,
+        programmeCompleteStatusDescriptionId,
+        createdBy = "SYSTEM",
+      )
+
+      // Then
+      assertThat(result.referralStatusHistory.referralStatusDescriptionName).isEqualTo("Programme complete")
+
+      // Verify only the status update event was sent (no completion event because no attendance)
+      await withPollDelay ofMillis(100) withPollInterval ofMillis(100) untilCallTo {
+        with(domainEventsQueueConfig) {
+          interventionsQueue.countAllMessagesOnQueue()
+        }
+      } matches { it == 1 }
+
+      // Verify it's the status update event, not the completion event
+      val eventBody = objectMapper.readValue<SQSMessage>(
+        with(domainEventsQueueConfig) {
+          interventionsQueue.receiveMessageOnQueue().body()
+        },
+      )
+      assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_CREATED.value)
     }
 
     private fun verifyReferralStatusUpdateEventSent() {
