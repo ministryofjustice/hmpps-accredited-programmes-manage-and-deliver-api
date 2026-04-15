@@ -1109,9 +1109,7 @@ class ProgrammeGroupController(
   )
   fun getBffEditGroupDaysAndTimes(@PathVariable groupId: UUID): ResponseEntity<EditGroupDaysAndTimes> = ResponseEntity.ok(programmeGroupService.getEditDaysAndTimesForGroup(groupId))
 
-
-
- @Operation(
+  @Operation(
     tags = ["Programme Group controller"],
     summary = "endpoint to retrieve the edit treatment manager and facilitator details for a programme group",
     operationId = "getGroupTreatmentManagerAndFacilitatorDetails",
@@ -1166,7 +1164,4 @@ class ProgrammeGroupController(
     produces = [MediaType.APPLICATION_JSON_VALUE],
   )
   fun getGroupTreatmentManagerAndFacilitatorDetails(@PathVariable groupId: UUID): ResponseEntity<GroupTreatmentManagerAndFacilitatorDetails> = ResponseEntity.ok(programmeGroupService.getEditTreatmentManagerAndFacilitatorForGroup(groupId))
-
-
-
 }
