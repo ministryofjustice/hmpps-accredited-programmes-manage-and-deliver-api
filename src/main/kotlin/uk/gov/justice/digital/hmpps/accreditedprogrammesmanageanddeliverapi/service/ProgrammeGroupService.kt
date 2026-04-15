@@ -32,6 +32,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.GroupTreatmentManagerAndFacilitatorDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.GroupSexDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.fromDateTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
@@ -53,6 +54,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -255,6 +257,8 @@ class ProgrammeGroupService(
 
           programmeGroup.groupFacilitators.add(groupFacilitator)
         }
+
+        updateFutureSessionFacilitatorsForGroup(programmeGroup)
         updatedField = "teamMembers"
       }
     }
@@ -272,6 +276,30 @@ class ProgrammeGroupService(
     val successMessage = getUpdateSuccessMessage(updatedField, updateGroupRequest.automaticallyRescheduleOtherSessions ?: false)
     return UpdateGroupResponse(successMessage = successMessage)
   }
+
+  private fun updateFutureSessionFacilitatorsForGroup(programmeGroup: ProgrammeGroupEntity) {
+    val groupId = programmeGroup.id ?: return
+    val now = LocalDateTime.now()
+
+    val futureSessions = sessionRepository.findByProgrammeGroupId(groupId)
+      .filter { it.startsAt.isAfter(now) }
+
+    futureSessions.forEach { session ->
+      val updatedFacilitators = programmeGroup.groupFacilitators.map { groupFacilitator ->
+        SessionFacilitatorEntity(
+          facilitator = groupFacilitator.facilitator,
+          session = session,
+          facilitatorType = groupFacilitator.facilitatorType,
+        )
+      }.toMutableSet()
+
+      session.sessionFacilitators.clear()
+      session.sessionFacilitators.addAll(updatedFacilitators)
+    }
+
+    sessionRepository.saveAll(futureSessions)
+  }
+
   private fun getUpdateSuccessMessage(updatedField: String?, isScheduleUpdated: Boolean = false): String = when (updatedField) {
     "groupCode" -> "The group code has been updated."
     "earliestStartDate" -> if (isScheduleUpdated) {
@@ -506,6 +534,29 @@ class ProgrammeGroupService(
       id = programmeGroup.id!!,
       code = programmeGroup.code,
       programmeGroupSessionSlots = sessionSlots,
+    )
+  }
+
+  fun getEditTreatmentManagerAndFacilitatorForGroup(groupId: UUID): GroupTreatmentManagerAndFacilitatorDetails {
+    val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
+
+    val regularFacilitators = programmeGroup.groupFacilitators
+      .filter { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }
+      .map { it.facilitator.personName }
+
+    val coverFacilitators = programmeGroup.groupFacilitators
+      .filter { it.facilitatorType == FacilitatorType.COVER_FACILITATOR }
+      .map { it.facilitator.personName }
+
+    return GroupTreatmentManagerAndFacilitatorDetails(
+      captionText = "Edit group ${programmeGroup.code}",
+      pageTitle = "Edit who is responsible for the group",
+      submitButtonText = "Submit",
+      successMessage = "The people responsible for the group have been updated.",
+      treatmentManager = programmeGroup.treatmentManager?.personName.orEmpty(),
+      regularFacilitators = regularFacilitators,
+      coverFacilitators = coverFacilitators,
     )
   }
 
