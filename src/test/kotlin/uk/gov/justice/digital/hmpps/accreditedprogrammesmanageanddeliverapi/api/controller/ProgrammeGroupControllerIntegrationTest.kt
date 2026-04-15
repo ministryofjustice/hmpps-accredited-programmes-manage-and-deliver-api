@@ -3351,7 +3351,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/group/${group.id}/group-sex-details",
+        uri = "/bff/group/${group.id}/edit-sex",
         returnType = object : ParameterizedTypeReference<GroupSexDetails>() {},
       )
 
@@ -3375,7 +3375,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/group/${group.id}/group-sex-details",
+        uri = "/bff/group/${group.id}/edit-sex",
         returnType = object : ParameterizedTypeReference<GroupSexDetails>() {},
       )
 
@@ -3397,7 +3397,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/group/${group.id}/group-sex-details",
+        uri = "/bff/group/${group.id}/edit-sex",
         returnType = object : ParameterizedTypeReference<GroupSexDetails>() {},
       )
 
@@ -3419,7 +3419,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/group/${group.id}/group-sex-details",
+        uri = "/bff/group/${group.id}/edit-sex",
         returnType = object : ParameterizedTypeReference<GroupSexDetails>() {},
       )
 
@@ -3437,13 +3437,32 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When / Then
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/group/$nonExistentGroupId/group-sex-details",
+        uri = "/bff/group/$nonExistentGroupId/edit-sex",
         returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
         expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
         body = {},
       )
 
       assertThat(response.userMessage).isEqualTo("Not Found: Group with id $nonExistentGroupId not found")
+    }
+
+    @Test
+    fun `returns 403 when not authorised`() {
+      // Given
+      val group = ProgrammeGroupFactory().withCode("TEST006").produce()
+      testDataGenerator.createGroup(group)
+
+      // When & Then
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/group/${group.id}/edit-sex")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
     }
   }
 

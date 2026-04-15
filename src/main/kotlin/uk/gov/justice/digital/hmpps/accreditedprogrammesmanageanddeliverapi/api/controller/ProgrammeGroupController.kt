@@ -998,8 +998,8 @@ class ProgrammeGroupController(
 
   @Operation(
     tags = ["Programme Group controller"],
-    summary = "endpoint to retrieve the edit gender details for a programme group",
-    operationId = "getGroupSexDetails",
+    summary = "bff endpoint to retrieve the edit gender details for a programme group",
+    operationId = "getBffEditGroupSex",
     description = "Retrieve group edit gender details.",
     responses =
     [
@@ -1047,10 +1047,10 @@ class ProgrammeGroupController(
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @GetMapping(
-    "/bff/group/{groupId}/group-sex-details",
+    "/bff/group/{groupId}/edit-sex",
     produces = [MediaType.APPLICATION_JSON_VALUE],
   )
-  fun getGroupSexDetails(@PathVariable groupId: UUID): ResponseEntity<GroupSexDetails> = ResponseEntity.ok(programmeGroupService.getEditSexForGroup(groupId))
+  fun getBffEditGroupSex(@PathVariable groupId: UUID): ResponseEntity<GroupSexDetails> = ResponseEntity.ok(programmeGroupService.getEditSexForGroup(groupId))
 
   @Operation(
     tags = ["Programme Group controller"],
