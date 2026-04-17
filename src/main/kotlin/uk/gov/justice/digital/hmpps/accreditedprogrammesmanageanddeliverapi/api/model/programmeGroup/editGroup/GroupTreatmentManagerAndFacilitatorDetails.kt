@@ -28,14 +28,6 @@ data class GroupTreatmentManagerAndFacilitatorDetails(
   val submitButtonText: String,
 
   @Schema(
-    example = "The people responsible for the group have been updated.",
-    required = true,
-    description = "Success message to display after the form is submitted",
-  )
-  @get:JsonProperty("successMessage", required = true)
-  val successMessage: String,
-
-  @Schema(
     example = "Archibald Queenie",
     required = true,
     description = "Treatment manager for the group",
@@ -53,9 +45,8 @@ data class GroupTreatmentManagerAndFacilitatorDetails(
 
   @Schema(
     example = "[\"James Samhim\"]",
-    required = true,
     description = "List of cover facilitators assigned to the group",
   )
-  @get:JsonProperty("coverFacilitators", required = true)
+  @get:JsonProperty("coverFacilitators")
   val coverFacilitators: List<String>,
 )

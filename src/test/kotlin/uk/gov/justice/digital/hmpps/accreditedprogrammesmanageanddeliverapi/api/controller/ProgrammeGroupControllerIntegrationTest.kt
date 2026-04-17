@@ -3673,7 +3673,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.captionText).isEqualTo("Edit group ${group.code}")
       assertThat(response.pageTitle).isEqualTo("Edit who is responsible for the group")
       assertThat(response.submitButtonText).isEqualTo("Submit")
-      assertThat(response.successMessage).isEqualTo("The people responsible for the group have been updated.")
       assertThat(response.treatmentManager).isEqualTo("Archibald Queenie")
       assertThat(response.regularFacilitators).containsExactly("Chloe Ransom")
       assertThat(response.coverFacilitators).containsExactly("James Samhim")

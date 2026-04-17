@@ -278,11 +278,8 @@ class ProgrammeGroupService(
   }
 
   private fun updateFutureSessionFacilitatorsForGroup(programmeGroup: ProgrammeGroupEntity) {
-    val groupId = programmeGroup.id ?: return
-    val now = LocalDateTime.now()
-
-    val futureSessions = sessionRepository.findByProgrammeGroupId(groupId)
-      .filter { it.startsAt.isAfter(now) }
+    val futureSessions = sessionRepository.findByProgrammeGroupId(programmeGroup.id!!)
+      .filter { it.startsAt.isAfter(LocalDateTime.now()) }
 
     futureSessions.forEach { session ->
       val updatedFacilitators = programmeGroup.groupFacilitators.map { groupFacilitator ->
@@ -296,8 +293,8 @@ class ProgrammeGroupService(
       session.sessionFacilitators.clear()
       session.sessionFacilitators.addAll(updatedFacilitators)
     }
-
     sessionRepository.saveAll(futureSessions)
+    sessionService.updateNDeliusAppointmentsForMultipleSessions(futureSessions)
   }
 
   private fun getUpdateSuccessMessage(updatedField: String?, isScheduleUpdated: Boolean = false): String = when (updatedField) {
@@ -541,19 +538,16 @@ class ProgrammeGroupService(
     val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
 
-    val regularFacilitators = programmeGroup.groupFacilitators
-      .filter { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }
-      .map { it.facilitator.personName }
-
-    val coverFacilitators = programmeGroup.groupFacilitators
-      .filter { it.facilitatorType == FacilitatorType.COVER_FACILITATOR }
-      .map { it.facilitator.personName }
+    val (regularFacilitators, coverFacilitators) = programmeGroup.groupFacilitators
+      .partition { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }
+      .let { (regular, cover) ->
+        regular.map { it.facilitator.personName } to cover.map { it.facilitator.personName }
+      }
 
     return GroupTreatmentManagerAndFacilitatorDetails(
       captionText = "Edit group ${programmeGroup.code}",
       pageTitle = "Edit who is responsible for the group",
       submitButtonText = "Submit",
-      successMessage = "The people responsible for the group have been updated.",
       treatmentManager = programmeGroup.treatmentManager?.personName.orEmpty(),
       regularFacilitators = regularFacilitators,
       coverFacilitators = coverFacilitators,
