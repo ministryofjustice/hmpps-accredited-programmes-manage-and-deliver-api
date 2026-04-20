@@ -2101,8 +2101,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.sessionTemplates).hasSize(4)
       assertThat(response.sessionTemplates.map { it.name })
         .containsExactly(
-          "Introduction to Building Choices catch-up",
-          "Understanding myself catch-up",
+          "Getting started 1 catch-up",
+          "Getting started 2 catch-up",
           "Getting started one-to-one",
           "Getting started one-to-one catch-up",
         )

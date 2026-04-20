@@ -106,14 +106,32 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
       assertThat(sessionTemplates).hasSize(8)
         .extracting("name", "number", "sessionScheduleType")
         .containsExactly(
-          tuple("Understanding my feelings catch-up", 1, SessionScheduleType.CATCH_UP),
-          tuple("Helpful and unhelpful feelings catch-up", 2, SessionScheduleType.CATCH_UP),
-          tuple("Managing my feelings, part 1 catch-up", 3, SessionScheduleType.CATCH_UP),
-          tuple("Managing my feelings, part 2 catch-up", 4, SessionScheduleType.CATCH_UP),
-          tuple("Understanding my thinking catch-up", 5, SessionScheduleType.CATCH_UP),
-          tuple("Developing my flexible thinking catch-up", 6, SessionScheduleType.CATCH_UP),
+          tuple("Managing myself 1 catch-up", 1, SessionScheduleType.CATCH_UP),
+          tuple("Managing myself 2 catch-up", 2, SessionScheduleType.CATCH_UP),
+          tuple("Managing myself 3 catch-up", 3, SessionScheduleType.CATCH_UP),
+          tuple("Managing myself 4 catch-up", 4, SessionScheduleType.CATCH_UP),
+          tuple("Managing myself 5 catch-up", 5, SessionScheduleType.CATCH_UP),
+          tuple("Managing myself 6 catch-up", 6, SessionScheduleType.CATCH_UP),
           tuple("Managing myself one-to-one", 7, SessionScheduleType.SCHEDULED),
           tuple("Managing myself one-to-one catch-up", 7, SessionScheduleType.CATCH_UP),
+        )
+    }
+
+    @Test
+    fun `Successfully retrieves all session templates for Bringing it all together module`() {
+      // Given
+      val bringingItAllTogetherModule = modules.find { it.name == "Bringing it all together" }
+
+      // When
+      val sessionTemplates = service.getSessionTemplatesForGroupAndModule(groupId, bringingItAllTogetherModule?.id!!).second
+
+      // Then
+      assertThat(sessionTemplates).hasSize(3)
+        .extracting("name", "number", "sessionScheduleType")
+        .containsExactly(
+          tuple("Bringing it all together 1 catch-up", 1, SessionScheduleType.CATCH_UP),
+          tuple("Bringing it all together 2 catch-up", 2, SessionScheduleType.CATCH_UP),
+          tuple("Bringing it all together 3 catch-up", 3, SessionScheduleType.CATCH_UP),
         )
     }
 
