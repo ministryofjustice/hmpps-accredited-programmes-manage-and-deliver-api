@@ -8,9 +8,9 @@ import java.util.UUID
 data class CreateGroupResponse(
   @get:JsonProperty("id", required = true)
   @Schema(description = "The id for the group")
-  var id: UUID,
+  val id: UUID,
 
-  @get:JsonProperty("successMessage")
+  @get:JsonProperty("successMessage", required = true)
   @Schema(description = "A message describing what was updated on the group")
   val successMessage: String,
 )
