@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusInfo
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.eventDetails.ReferralCompletionData
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralStatusService
 import java.util.UUID
 
@@ -16,7 +17,7 @@ import java.util.UUID
  */
 @RestController
 @PreAuthorize("hasAnyRole('ACCREDITED_PROGRAMMES__MANAGE_AND_DELIVER__READ_ONLY')")
-class StatusChangeDetailsController(
+class EventDetailsController(
   private val referralStatusService: ReferralStatusService,
 ) {
 
@@ -26,6 +27,14 @@ class StatusChangeDetailsController(
   fun getStatusChangeDetails(@PathVariable referralId: UUID): ResponseEntity<ReferralStatusInfo> {
     log.info("Request to retrieve details of status change for referral with id: $referralId")
     val statusInfo = referralStatusService.getStatusChangeDetailsForReferral(referralId)
+
+    return ResponseEntity.ok(statusInfo)
+  }
+
+  @GetMapping("/referral/{referralId}/completion-data")
+  fun getCompletionData(@PathVariable referralId: UUID): ResponseEntity<ReferralCompletionData> {
+    log.info("Request to retrieve completion data for referral with id: $referralId")
+    val statusInfo = referralStatusService.getCompletionDataForReferral(referralId)
 
     return ResponseEntity.ok(statusInfo)
   }
