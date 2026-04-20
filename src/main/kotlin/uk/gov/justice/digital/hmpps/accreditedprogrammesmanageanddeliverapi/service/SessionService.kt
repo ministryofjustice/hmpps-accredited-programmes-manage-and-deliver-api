@@ -155,6 +155,35 @@ class SessionService(
     return EditSessionDateAndTimeResponse("The date and time have been updated.")
   }
 
+  fun updateNDeliusAppointmentsForMultipleSessions(sessions: List<SessionEntity>) {
+    val sessionsWithAppointment = sessions.filter { it.ndeliusAppointments.isNotEmpty() }.ifEmpty { return }
+    val updateRequests = sessionsWithAppointment.flatMap { session -> session.ndeliusAppointments.map { it.toUpdateAppointmentRequest() } }
+
+    when (
+      val response = nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateRequests))
+    ) {
+      is ClientResult.Failure.StatusCode -> {
+        log.warn("Failure to update appointments with reason: ${response.getErrorMessage()}")
+        throw BusinessException("Failure to update appointments", response.toException())
+      }
+
+      is ClientResult.Failure.Other -> {
+        log.warn(
+          "Failure to update appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
+          response.exception,
+        )
+        throw BusinessException(
+          "Failure to update appointments in nDelius: ${response.exception.message}",
+          response.exception,
+        )
+      }
+
+      is ClientResult.Success -> {
+        log.info("${updateRequests.size} appointments updated in nDelius for sessions with ids: ${sessionsWithAppointment.map { it.id }.joinToString(", ")}")
+      }
+    }
+  }
+
   fun updateNDeliusAppointmentsForSession(session: SessionEntity) {
     if (session.ndeliusAppointments.isEmpty()) return
 
