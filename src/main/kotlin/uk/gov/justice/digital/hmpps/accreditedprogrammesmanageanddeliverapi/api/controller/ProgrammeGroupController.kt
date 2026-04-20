@@ -29,6 +29,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupDetailsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupMember
@@ -353,7 +354,7 @@ class ProgrammeGroupController(
       ApiResponse(
         responseCode = "201",
         description = "Programme group successfully created",
-        content = [Content(schema = Schema(implementation = Void::class))],
+        content = [Content(schema = Schema(implementation = CreateGroupResponse::class))],
       ),
       ApiResponse(
         responseCode = "400",
@@ -381,11 +382,11 @@ class ProgrammeGroupController(
   fun createProgrammeGroup(
     @Valid
     @RequestBody createGroupRequest: CreateGroupRequest,
-  ): ResponseEntity<Void> {
+  ): ResponseEntity<CreateGroupResponse> {
     val username = authenticationUtils.getUsername()
-    programmeGroupService.createGroup(createGroupRequest, username)
-
-    return ResponseEntity.status(HttpStatus.CREATED).build()
+    val createdGroup = programmeGroupService.createGroup(createGroupRequest, username)
+    val successMessage = "Group ${createdGroup.code} created."
+    return ResponseEntity.status(HttpStatus.CREATED).body(CreateGroupResponse(createdGroup.id!!, successMessage))
   }
 
   @Operation(

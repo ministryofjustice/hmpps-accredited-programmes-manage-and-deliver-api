@@ -19,6 +19,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
@@ -1554,6 +1555,27 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
       assertThat(createdGroup).isNotNull
       assertThat(createdGroup.sessions).isNotEmpty()
+    }
+
+    @Test
+    fun `create group returns response body with id and successMessage`() {
+      // Given
+      val groupCode = "TEST"
+      val body = createGroupRequestFactory.produce(groupCode = groupCode)
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        returnType = object : ParameterizedTypeReference<CreateGroupResponse>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Then
+      val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
+      assertThat(response.id).isEqualTo(createdGroup.id)
+      assertThat(response.successMessage).isEqualTo("Group ${body.groupCode} created.")
+      assertThat(response.successMessage).contains(groupCode)
     }
 
     @Test
