@@ -40,6 +40,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.GroupSexDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.GroupTreatmentManagerAndFacilitatorDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
@@ -3037,14 +3038,30 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 200 when updating team members`() {
       // Given
       val group = testGroupHelper.createGroup()
+      val referenceTime = LocalDateTime.now()
+      val originalFacilitatorCode = group.groupFacilitators.first().facilitator.ndeliusPersonCode
+
+      val groupSessions = sessionRepository.findByProgrammeGroupId(group.id!!).sortedBy { it.startsAt }
+      val pastSession = groupSessions.first()
+      pastSession.startsAt = referenceTime.minusDays(1)
+      pastSession.endsAt = referenceTime.minusDays(1).plusHours(2)
+
+      val futureSession = groupSessions[1]
+      futureSession.startsAt = referenceTime.plusDays(1)
+      futureSession.endsAt = referenceTime.plusDays(1).plusHours(2)
+      sessionRepository.saveAll(listOf(pastSession, futureSession))
+
       val newTreatmentManager = createGroupTeamMemberFactory.produceWithRandomValues(
         teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER,
       )
       val newFacilitator = createGroupTeamMemberFactory.produceWithRandomValues(
         teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR,
       )
+      val newCoverFacilitator = createGroupTeamMemberFactory.produceWithRandomValues(
+        teamMemberType = CreateGroupTeamMemberType.COVER_FACILITATOR,
+      )
       val updateRequest = UpdateGroupRequest(
-        teamMembers = listOf(newTreatmentManager, newFacilitator),
+        teamMembers = listOf(newTreatmentManager, newFacilitator, newCoverFacilitator),
       )
 
       // When
@@ -3060,9 +3077,27 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.successMessage).isEqualTo("The people responsible for the group have been updated.")
       val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
       assertThat(updatedGroup.treatmentManager?.ndeliusPersonCode).isEqualTo(newTreatmentManager.facilitatorCode)
-      assertThat(updatedGroup.groupFacilitators).hasSize(1)
-      assertThat(updatedGroup.groupFacilitators.first().facilitator.ndeliusPersonCode)
-        .isEqualTo(newFacilitator.facilitatorCode)
+      assertThat(updatedGroup.groupFacilitators).hasSize(2)
+      assertThat(updatedGroup.groupFacilitators.map { it.facilitator.ndeliusPersonCode })
+        .containsExactlyInAnyOrder(newFacilitator.facilitatorCode, newCoverFacilitator.facilitatorCode)
+
+      val refreshedSessions = sessionRepository.findByProgrammeGroupId(group.id!!)
+      val futureSessionFacilitators = refreshedSessions
+        .filter { it.startsAt.isAfter(referenceTime) }
+        .map { session -> session.sessionFacilitators.map { it.facilitator.ndeliusPersonCode }.toSet() }
+
+      assertThat(futureSessionFacilitators).allSatisfy { facilitatorCodes ->
+        assertThat(facilitatorCodes).containsExactlyInAnyOrder(newFacilitator.facilitatorCode, newCoverFacilitator.facilitatorCode)
+      }
+
+      val pastSessionFacilitators = refreshedSessions
+        .filter { !it.startsAt.isAfter(referenceTime) }
+        .map { session -> session.sessionFacilitators.map { it.facilitator.ndeliusPersonCode }.toSet() }
+
+      assertThat(pastSessionFacilitators).allSatisfy { facilitatorCodes ->
+        assertThat(facilitatorCodes).contains(originalFacilitatorCode)
+        assertThat(facilitatorCodes).doesNotContain(newFacilitator.facilitatorCode, newCoverFacilitator.facilitatorCode)
+      }
     }
 
     @Test
@@ -3584,6 +3619,92 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       webTestClient
         .method(HttpMethod.GET)
         .uri("/bff/group/${group.id}/edit-days-and-times")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
+  }
+
+  @Nested
+  @DisplayName("Get Group Treatment Manager And Facilitator Details")
+  inner class GetGroupTreatmentManagerAndFacilitatorDetails {
+
+    @Test
+    fun `returns 200 with treatment manager and facilitator text fields for a valid group`() {
+      // Given
+      val teamMembers = listOf(
+        CreateGroupTeamMember(
+          facilitator = "Archibald Queenie",
+          facilitatorCode = "TM001",
+          teamName = "Management Team",
+          teamCode = "TEAM001",
+          teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER,
+        ),
+        CreateGroupTeamMember(
+          facilitator = "Chloe Ransom",
+          facilitatorCode = "RF001",
+          teamName = "Facilitator Team",
+          teamCode = "TEAM002",
+          teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR,
+        ),
+        CreateGroupTeamMember(
+          facilitator = "James Samhim",
+          facilitatorCode = "CF001",
+          teamName = "Cover Team",
+          teamCode = "TEAM003",
+          teamMemberType = CreateGroupTeamMemberType.COVER_FACILITATOR,
+        ),
+      )
+      val group = testGroupHelper.createGroup(groupCode = "TEST_TM_001", teamMembers = teamMembers)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/group-treatment-manager-and-facilitator",
+        returnType = object : ParameterizedTypeReference<GroupTreatmentManagerAndFacilitatorDetails>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.captionText).isEqualTo("Edit group ${group.code}")
+      assertThat(response.pageTitle).isEqualTo("Edit who is responsible for the group")
+      assertThat(response.submitButtonText).isEqualTo("Submit")
+      assertThat(response.treatmentManager).isEqualTo("Archibald Queenie")
+      assertThat(response.regularFacilitators).containsExactly("Chloe Ransom")
+      assertThat(response.coverFacilitators).containsExactly("James Samhim")
+    }
+
+    @Test
+    fun `returns 404 when group does not exist`() {
+      // Given
+      val nonExistentGroupId = UUID.randomUUID()
+
+      // When / Then
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/$nonExistentGroupId/group-treatment-manager-and-facilitator",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        body = {},
+      )
+
+      assertThat(response.userMessage).isEqualTo("Not Found: Group with id $nonExistentGroupId not found")
+    }
+
+    @Test
+    fun `returns 403 when not authorised`() {
+      // Given
+      val group = ProgrammeGroupFactory().withCode("TEST_TM_003").produce()
+      testDataGenerator.createGroup(group)
+
+      // When & Then
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("/bff/group/${group.id}/group-treatment-manager-and-facilitator")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .accept(MediaType.APPLICATION_JSON)
