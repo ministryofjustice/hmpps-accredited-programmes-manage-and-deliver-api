@@ -72,6 +72,9 @@ class ReferralServiceTest {
   private lateinit var sentenceService: SentenceService
 
   @Mock
+  private lateinit var referralStatusService: ReferralStatusService
+
+  @Mock
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
 
   @Mock
@@ -103,6 +106,7 @@ class ReferralServiceTest {
       domainEventPublisher = domainEventPublisher,
       madBaseUrl = "http://localhost:8080",
       programmeGroupService = programmeGroupService,
+      referralStatusService = referralStatusService,
     )
   }
 

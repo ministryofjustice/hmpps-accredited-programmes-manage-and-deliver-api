@@ -74,8 +74,9 @@ class ReferralService(
   private val sentenceService: SentenceService,
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
   private val domainEventPublisher: DomainEventPublisher,
-  @Value($$"${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
+  @Value("\${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
   private val programmeGroupService: ProgrammeGroupService,
+  private val referralStatusService: ReferralStatusService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -360,6 +361,11 @@ class ReferralService(
       ),
     )
     publishReferralStatusUpdatedEvent(referral)
+
+    // If status changed to "Programme complete", check if completion event should be published
+    if (incomingReferralStatusDescription.description == "Programme complete") {
+      referralStatusService.checkAndPublishCompletionEvent(referral.id!!)
+    }
 
     return StatusUpdateResponse(
       referralStatusHistory = historyEntry.toApi(),
