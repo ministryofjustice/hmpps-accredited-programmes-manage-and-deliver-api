@@ -11,6 +11,6 @@ data class CreateGroupResponse(
   val id: UUID,
 
   @get:JsonProperty("successMessage", required = true)
-  @Schema(description = "A message describing what was updated on the group")
+  @Schema(description = "Success message for creating a group")
   val successMessage: String,
 )
