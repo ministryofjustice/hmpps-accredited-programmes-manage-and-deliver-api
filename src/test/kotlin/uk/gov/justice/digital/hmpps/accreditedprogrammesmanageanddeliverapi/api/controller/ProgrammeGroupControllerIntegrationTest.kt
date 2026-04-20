@@ -1557,6 +1557,27 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `create group returns response body with id and successMessage`() {
+      // Given
+      val groupCode = "TEST"
+      val body = createGroupRequestFactory.produce(groupCode = groupCode)
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        returnType = object : ParameterizedTypeReference<uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupResponse>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Then
+      val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
+      assertThat(response.id).isEqualTo(createdGroup.id)
+      assertThat(response.successMessage).isEqualTo("Group ${body.groupCode} created.")
+      assertThat(response.successMessage).contains(groupCode)
+    }
+
+    @Test
     fun `return 401 when unauthorised`() {
       val body = createGroupRequestFactory.produce()
       webTestClient
