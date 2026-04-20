@@ -1339,6 +1339,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.attendanceHistory).allMatch { it.attendanceStatus == "Attended - Complied" }
       assertThat(response.attendanceHistory).allMatch { it.hasNotes }
       assertThat(response.attendanceHistory).allMatch { it.groupId == group.id }
+      assertThat(response.attendanceHistory).allMatch { it.popName == "Alex River" }
+      assertThat(response.attendanceHistory).allMatch { it.isCatchup == false }
     }
 
     @Test

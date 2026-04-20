@@ -48,6 +48,12 @@ data class AttendanceHistorySession(
   val groupCode: String,
 
   @Schema(
+    description = "The name of the person",
+    example = "Alex River",
+  )
+  val popName: String,
+
+  @Schema(
     description = "The group id for the session",
     example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   )
@@ -76,4 +82,10 @@ data class AttendanceHistorySession(
     example = "true",
   )
   val hasNotes: Boolean,
+
+  @Schema(
+    description = "Whether the session is a catch-up session",
+    example = "true",
+  )
+  val isCatchup: Boolean,
 )

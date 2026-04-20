@@ -388,6 +388,22 @@ class ScheduleService(
     }
   }
 
+  fun getNextSessionDateFromSuppliedDate(group: ProgrammeGroupEntity, dateToScheduleFrom: LocalDate): LocalDate {
+    val groupSlots = group.programmeGroupSessionSlots
+    require(groupSlots.isNotEmpty()) { "Programme group slots must not be empty" }
+
+    val bankHolidays = englandAndWalesHolidayDates()
+
+    val slotQueue = buildSlotQueue(
+      bankHolidays = bankHolidays,
+      groupSlots = groupSlots,
+      startFrom = dateToScheduleFrom,
+    )
+
+    val nextSlot = slotQueue.poll()
+    return findNextValidDate(bankHolidays, dateToScheduleFrom, nextSlot.slot)
+  }
+
   /**
    * Finds the next valid date (not a bank holiday) starting from the given date,
    * on or after the slot's day of week.

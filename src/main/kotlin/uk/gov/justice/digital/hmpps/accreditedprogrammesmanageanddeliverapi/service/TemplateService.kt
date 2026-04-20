@@ -55,18 +55,30 @@ class TemplateService(
 
   private fun addCatchUpModuleSessions(entity: ModuleSessionTemplateEntity): List<ModuleSessionTemplate> {
     val sessionTemplate = entity.toApi()
+    val module = entity.module
     return if (entity.sessionType == SessionType.ONE_TO_ONE) {
+      // If it's a one-to-one catchup:
+      // If the module name is "Post-programme reviews" or "Pre-group one-to-ones", drop the s (e.g. "Pre-group one-to-ones" -> "Pre-group one-to-one")
+      // and append "catch-up" directly -> (e.g. "Pre-group one-to-one catch-up", "Post-programme review catch-up").
+      // Otherwise, just add "one-to-one catch-up"-> (e.g. "Getting started one-to-one catch-up").
+      // If it's not a one-to-one catchup:
+      // Return the module name and session number and append catch-up -> (e.g. "Getting started 1 catch-up")
+      val catchUpName = if (module.name in listOf("Post-programme reviews", "Pre-group one-to-ones")) {
+        "${module.name.dropLast(1)} catch-up"
+      } else {
+        "${module.name} one-to-one catch-up"
+      }
       listOf(
         sessionTemplate,
         sessionTemplate.copy(
-          name = "${sessionTemplate.name} catch-up",
+          name = catchUpName,
           sessionScheduleType = SessionScheduleType.CATCH_UP,
         ),
       )
     } else {
       listOf(
         sessionTemplate.apply {
-          name = "${sessionTemplate.name} catch-up"
+          name = "${module.name} ${sessionTemplate.number} catch-up"
           sessionScheduleType = SessionScheduleType.CATCH_UP
         },
       )

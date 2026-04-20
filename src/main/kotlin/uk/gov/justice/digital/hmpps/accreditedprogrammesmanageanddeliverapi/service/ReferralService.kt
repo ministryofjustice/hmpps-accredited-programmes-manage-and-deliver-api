@@ -426,10 +426,12 @@ class ReferralService(
             sessionName = session.sessionName,
             groupId = membership.programmeGroup.id,
             groupCode = membership.programmeGroup.code,
+            popName = referral.personName,
             date = session.startsAt.format(DateTimeFormatter.ofPattern("d MMMM yyyy")),
             time = "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${formatTimeForUiDisplay(session.endsAt.toLocalTime())}",
             attendanceStatus = programmeGroupService.getAttendanceTextFromOutcome(latestAttendance?.outcomeType),
             hasNotes = latestAttendance?.notesHistory?.isNotEmpty() == true,
+            isCatchup = session.isCatchup,
           )
         }
       }

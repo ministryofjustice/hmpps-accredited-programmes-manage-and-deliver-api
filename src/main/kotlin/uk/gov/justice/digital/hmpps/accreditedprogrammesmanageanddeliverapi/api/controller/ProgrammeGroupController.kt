@@ -48,6 +48,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.EditGroupDaysAndTimes
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.GroupSexDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.editGroup.GroupTreatmentManagerAndFacilitatorDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
@@ -997,6 +999,62 @@ class ProgrammeGroupController(
 
   @Operation(
     tags = ["Programme Group controller"],
+    summary = "endpoint to retrieve the edit gender details for a programme group",
+    operationId = "getGroupSexDetails",
+    description = "Retrieve group edit gender details.",
+    responses =
+    [
+      ApiResponse(
+        responseCode = "200",
+        description = "Successfully retrieved group edit gender details",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = GroupSexDetails::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden, requires role ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Group not found",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping(
+    "/bff/group/{groupId}/group-sex-details",
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+  )
+  fun getGroupSexDetails(@PathVariable groupId: UUID): ResponseEntity<GroupSexDetails> = ResponseEntity.ok(programmeGroupService.getEditSexForGroup(groupId))
+
+  @Operation(
+    tags = ["Programme Group controller"],
     summary = "bff endpoint to retrieve the edit days and times for a programme group",
     operationId = "getBffEditGroupDaysAndTimes",
     description = "Retrieve group edit days and times details.",
@@ -1050,4 +1108,60 @@ class ProgrammeGroupController(
     produces = [MediaType.APPLICATION_JSON_VALUE],
   )
   fun getBffEditGroupDaysAndTimes(@PathVariable groupId: UUID): ResponseEntity<EditGroupDaysAndTimes> = ResponseEntity.ok(programmeGroupService.getEditDaysAndTimesForGroup(groupId))
+
+  @Operation(
+    tags = ["Programme Group controller"],
+    summary = "endpoint to retrieve the edit treatment manager and facilitator details for a programme group",
+    operationId = "getGroupTreatmentManagerAndFacilitatorDetails",
+    description = "Retrieve group edit treatment manager and facilitator details.",
+    responses =
+    [
+      ApiResponse(
+        responseCode = "200",
+        description = "Successfully retrieved group edit treatment manager and facilitator details",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = GroupTreatmentManagerAndFacilitatorDetails::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden, requires role ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Group not found",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping(
+    "/bff/group/{groupId}/group-treatment-manager-and-facilitator",
+    produces = [MediaType.APPLICATION_JSON_VALUE],
+  )
+  fun getGroupTreatmentManagerAndFacilitatorDetails(@PathVariable groupId: UUID): ResponseEntity<GroupTreatmentManagerAndFacilitatorDetails> = ResponseEntity.ok(programmeGroupService.getEditTreatmentManagerAndFacilitatorForGroup(groupId))
 }
