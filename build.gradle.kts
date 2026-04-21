@@ -35,7 +35,7 @@ dependencies {
   // security
   implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:4.0.5")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client:4.0.5")
-  implementation("org.springframework.security:spring-security-crypto:7.0.4")
+  implementation("org.springframework.security:spring-security-crypto:7.0.5")
   implementation("com.nimbusds:oauth2-oidc-sdk:11.37")
   implementation("io.github.resilience4j:resilience4j-spring-boot2:2.3.0")
 
@@ -46,10 +46,10 @@ dependencies {
   testImplementation("io.swagger.parser.v3:swagger-parser:2.1.40") {
     exclude(group = "io.swagger.core.v3")
   }
-  testImplementation("org.testcontainers:testcontainers:2.0.4")
-  testImplementation("org.testcontainers:testcontainers-postgresql:2.0.4")
-  testImplementation("org.testcontainers:testcontainers-localstack:2.0.4")
-  testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.4")
+  testImplementation("org.testcontainers:testcontainers:2.0.5")
+  testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
+  testImplementation("org.testcontainers:testcontainers-localstack:2.0.5")
+  testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.5")
   testImplementation("com.ninja-squad:springmockk:5.0.1")
   testImplementation("io.kotest:kotest-assertions-core:6.1.11")
   testImplementation("io.mockk:mockk:1.14.9")
