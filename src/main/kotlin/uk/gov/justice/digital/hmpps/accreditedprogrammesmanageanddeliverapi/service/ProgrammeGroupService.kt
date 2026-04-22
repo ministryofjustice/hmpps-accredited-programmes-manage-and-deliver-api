@@ -589,6 +589,7 @@ class ProgrammeGroupService(
 
     val groupSessions =
       sessions.filter { it.sessionType == SessionType.GROUP || (it.sessionType == SessionType.ONE_TO_ONE && it.isPlaceholder) }
+        .filter { !it.isCatchup }
         .map { session ->
           val sessionName = sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview)
           GroupScheduleOverviewSession(
