@@ -158,6 +158,8 @@ class ProgrammeGroupService(
       updatedField = "sex"
     }
     updateGroupRequest.earliestStartDate?.let {
+      log.warn("PupdateGroupRequest $updateGroupRequest")
+
       programmeGroup.earliestPossibleStartDate = it
       updatedField = "earliestStartDate"
 
@@ -175,13 +177,11 @@ class ProgrammeGroupService(
         if (preGroupOneToOnePlaceholderSession == null) {
           log.warn("Pre-group one-to-one placeholder session not found for group $groupId when updating earliest start date. Cannot reschedule pre-group session.")
         } else {
-          // Calculate the new pre group one to one placeholder date from the new earliest possible start date.
-          val dateForPreGroupSession = scheduleService.getNextSessionDateFromSuppliedDate(programmeGroup, programmeGroup.earliestPossibleStartDate)
-
-          log.info("Rescheduling pre-group one-to-one placeholder session ${preGroupOneToOnePlaceholderSession.id} for group $groupId to new date: $dateForPreGroupSession")
+          
+          log.info("Rescheduling pre-group one-to-one placeholder session ${preGroupOneToOnePlaceholderSession.id} for group $groupId to new date: ${updateGroupRequest.earliestStartDate}")
 
           val rescheduleRequest = RescheduleSessionRequest(
-            sessionStartDate = dateForPreGroupSession,
+            sessionStartDate = updateGroupRequest.earliestStartDate!!,
             sessionStartTime = fromDateTime(preGroupOneToOnePlaceholderSession.startsAt),
             sessionEndTime = null,
             rescheduleOtherSessions = false,
@@ -270,7 +270,7 @@ class ProgrammeGroupService(
 
     // Reschedule future sessions if requested
     if (updateGroupRequest.automaticallyRescheduleOtherSessions == true) {
-      scheduleService.rescheduleSessionsForGroup(savedGroup.id!!)
+      scheduleService.rescheduleSessionsForGroup(savedGroup.id!!, skipPreGroupOneToOnePlaceholder = true)
     }
 
     val successMessage = getUpdateSuccessMessage(updatedField, updateGroupRequest.automaticallyRescheduleOtherSessions ?: false)

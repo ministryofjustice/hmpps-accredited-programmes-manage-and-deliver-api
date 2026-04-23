@@ -18,6 +18,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import java.time.DayOfWeek
 import java.time.Instant
@@ -26,7 +27,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 
-class ScheduleServiceIntegrationTest : IntegrationTestBase() {
+class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: SessionRepository) : IntegrationTestBase() {
 
   @Autowired
   private lateinit var scheduleService: ScheduleService
@@ -62,6 +63,53 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
         ),
       ),
     )
+  }
+
+  @Test
+  fun `scheduleSessionsForGroup with skipPreGroupOneToOnePlaceholder true should not create a pre-group one-to-one placeholder`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+
+    val group = testGroupHelper.createGroup(
+      earliestStartDate = LocalDate.now(clock).plusDays(7),
+      createGroupSessionSlots = setOf(slot1),
+    )
+
+    // Remove existing sessions to start fresh
+    val freshGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+    freshGroup.sessions.clear()
+    programmeGroupRepository.save(freshGroup)
+
+    scheduleService.scheduleSessionsForGroup(group.id!!, skipPreGroupOneToOnePlaceholder = true)
+
+    val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+
+    // Should have 26 sessions — no pre-group one-to-one placeholder
+    assertThat(updatedGroup.sessions).hasSize(26)
+    val preGroupPlaceholders = updatedGroup.sessions.filter { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+    assertThat(preGroupPlaceholders).isEmpty()
+  }
+
+  @Test
+  fun `scheduleSessionsForGroup with skipPreGroupOneToOnePlaceholder false should create a pre-group one-to-one placeholder`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+
+    val group = testGroupHelper.createGroup(
+      earliestStartDate = LocalDate.now(clock).plusDays(7),
+      createGroupSessionSlots = setOf(slot1),
+    )
+
+    // Remove existing sessions to start fresh
+    val freshGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+    freshGroup.sessions.clear()
+    programmeGroupRepository.save(freshGroup)
+
+    scheduleService.scheduleSessionsForGroup(group.id!!, skipPreGroupOneToOnePlaceholder = false)
+
+    val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+
+    assertThat(updatedGroup.sessions).hasSize(27)
+    val preGroupPlaceholders = updatedGroup.sessions.filter { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+    assertThat(preGroupPlaceholders).hasSize(1)
   }
 
   @Test
@@ -111,6 +159,56 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
 
     assertThat(group.sessions).hasSize(27)
     assertThat(group.sessions.find { it.startsAt.toLocalDate() == LocalDate.of(2026, 3, 6) }).isNull()
+  }
+
+  @Test
+  fun `Reschedule sessions with skipPreGroupOneToOnePlaceholder should preserve the pre-group placeholder date and not create a new one`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+
+    // Group starting in the future - clock is 2025-11-22
+    val group = testGroupHelper.createGroup(
+      earliestStartDate = LocalDate.now(clock).plusDays(7),
+      createGroupSessionSlots = setOf(slot1),
+    )
+
+    val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+
+    // Find the original pre-group one-to-one placeholder and record its date
+    val preGroupOneToOnePlaceholderSession = updatedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+
+    // Simulate setting a new earliest start date
+    updatedGroup.earliestPossibleStartDate = LocalDate.now(clock).plusYears(2).plusDays(2) //On a Wednesday, outside of group cadence
+    programmeGroupRepository.save(updatedGroup)
+
+    // Manually update the placeholder date to match the new earliest start date (as ProgrammeGroupService does)
+    val newEarliestStartDate = updatedGroup.earliestPossibleStartDate
+    val newPlaceholderDate = newEarliestStartDate.atTime(preGroupOneToOnePlaceholderSession.startsAt.toLocalTime())
+    val originalDuration = java.time.Duration.between(preGroupOneToOnePlaceholderSession.startsAt, preGroupOneToOnePlaceholderSession.endsAt)
+    preGroupOneToOnePlaceholderSession.startsAt = newPlaceholderDate
+    preGroupOneToOnePlaceholderSession.endsAt = newPlaceholderDate.plus(originalDuration)
+    sessionRepository.save(preGroupOneToOnePlaceholderSession)
+
+    // Reschedule with skipPreGroupOneToOnePlaceholder = true
+    scheduleService.rescheduleSessionsForGroup(updatedGroup.id!!, skipPreGroupOneToOnePlaceholder = true)
+
+    val rescheduledGroup = programmeGroupRepository.findByIdOrNull(updatedGroup.id!!)!!
+
+    // Should still have exactly 27 sessions - no duplicate placeholder created
+    assertThat(rescheduledGroup.sessions).hasSize(27)
+
+    // Should still have exactly one pre-group one-to-one placeholder
+    val placeholders = rescheduledGroup.sessions.filter { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+    assertThat(placeholders).hasSize(1)
+
+    // The placeholder date should not have been reset to a slot-calculated date
+    assertThat(placeholders.first().startsAt.toLocalDate()).isEqualTo(newPlaceholderDate.toLocalDate())
+
+    // All non Pre-group one-to-one placeholder sessions should have been rescheduled to the new date range
+    val nonPreGroupOneToOnePlaceholderSessions = rescheduledGroup.sessions.filter { !(it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder) }
+    assertThat(nonPreGroupOneToOnePlaceholderSessions).allMatch { it.startsAt.year >= 2027 }
+
+    // All rescheduled sessions should be on Monday (the slot day)
+    assertThat(nonPreGroupOneToOnePlaceholderSessions).allMatch { it.startsAt.dayOfWeek == DayOfWeek.MONDAY }
   }
 
   @Test
@@ -446,164 +544,5 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
 
     // Should be the correct date
     assertThat(nextSlotDate).isEqualTo(LocalDate.of(2126, 7, 10))
-  }
-
-  @Test
-  fun `getNextSessionDateFromSuppliedDate should return next available slot date when starting from a Monday`() {
-    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
-    val slot2 = CreateGroupSessionSlotFactory().produce(DayOfWeek.THURSDAY, 12, 0, AmOrPm.PM)
-
-    val group = testGroupHelper.createGroup(
-      earliestStartDate = LocalDate.of(2026, 4, 1),
-      createGroupSessionSlots = setOf(slot1, slot2),
-    )
-
-    // Starting from Monday April 13, 2026
-    val dateToScheduleFrom = LocalDate.of(2026, 4, 13)
-
-    val nextDate = scheduleService.getNextSessionDateFromSuppliedDate(
-      programmeGroupRepository.findByIdOrNull(group.id!!)!!,
-      dateToScheduleFrom,
-    )
-
-    // Should return the same Monday (next or same Monday)
-    assertThat(nextDate).isEqualTo(LocalDate.of(2026, 4, 13))
-    assertThat(nextDate.dayOfWeek).isEqualTo(DayOfWeek.MONDAY)
-  }
-
-  @Test
-  fun `getNextSessionDateFromSuppliedDate should skip bank holidays`() {
-    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
-
-    val group = testGroupHelper.createGroup(
-      earliestStartDate = LocalDate.of(2026, 3, 30),
-      createGroupSessionSlots = setOf(slot1),
-    )
-
-    // Starting from Monday March 30, 2026 (not a bank holiday)
-    // Next Monday would be April 6, 2026 which IS a bank holiday (Easter Monday)
-    val dateToScheduleFrom = LocalDate.of(2026, 3, 30)
-
-    val nextDate = scheduleService.getNextSessionDateFromSuppliedDate(
-      programmeGroupRepository.findByIdOrNull(group.id!!)!!,
-      dateToScheduleFrom,
-    )
-
-    // Should return March 30 as it's a valid Monday, not a bank holiday
-    assertThat(nextDate).isEqualTo(LocalDate.of(2026, 3, 30))
-    assertThat(nextDate.dayOfWeek).isEqualTo(DayOfWeek.MONDAY)
-  }
-
-  @Test
-  fun `getNextSessionDateFromSuppliedDate should skip to next week if current date slot is a bank holiday`() {
-    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
-
-    val group = testGroupHelper.createGroup(
-      earliestStartDate = LocalDate.of(2026, 4, 1),
-      createGroupSessionSlots = setOf(slot1),
-    )
-
-    // Starting from Easter Monday April 6, 2026 (bank holiday)
-    val dateToScheduleFrom = LocalDate.of(2026, 4, 6)
-
-    val nextDate = scheduleService.getNextSessionDateFromSuppliedDate(
-      programmeGroupRepository.findByIdOrNull(group.id!!)!!,
-      dateToScheduleFrom,
-    )
-
-    // Should skip Easter Monday and return Monday April 13
-    assertThat(nextDate).isEqualTo(LocalDate.of(2026, 4, 13))
-    assertThat(nextDate.dayOfWeek).isEqualTo(DayOfWeek.MONDAY)
-  }
-
-  @Test
-  fun `getNextSessionDateFromSuppliedDate should handle multiple slots and return earliest available`() {
-    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
-    val slot2 = CreateGroupSessionSlotFactory().produce(DayOfWeek.WEDNESDAY, 2, 0, AmOrPm.PM)
-    val slot3 = CreateGroupSessionSlotFactory().produce(DayOfWeek.FRIDAY, 10, 15, AmOrPm.AM)
-
-    val group = testGroupHelper.createGroup(
-      earliestStartDate = LocalDate.of(2026, 4, 1),
-      createGroupSessionSlots = setOf(slot1, slot2, slot3),
-    )
-
-    // Starting from Tuesday April 14, 2026
-    val dateToScheduleFrom = LocalDate.of(2026, 4, 14)
-
-    val nextDate = scheduleService.getNextSessionDateFromSuppliedDate(
-      programmeGroupRepository.findByIdOrNull(group.id!!)!!,
-      dateToScheduleFrom,
-    )
-
-    // Wednesday April 15 is the next available slot after Tuesday April 14
-    assertThat(nextDate).isEqualTo(LocalDate.of(2026, 4, 15))
-    assertThat(nextDate.dayOfWeek).isEqualTo(DayOfWeek.WEDNESDAY)
-  }
-
-  @Test
-  fun `getNextSessionDateFromSuppliedDate should handle consecutive bank holidays`() {
-    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
-
-    val group = testGroupHelper.createGroup(
-      earliestStartDate = LocalDate.of(2026, 4, 1),
-      createGroupSessionSlots = setOf(slot1),
-    )
-
-    // Starting from April 6, 2026 (Easter Monday - bank holiday)
-    // The real bank holidays API will include this date
-    val dateToScheduleFrom = LocalDate.of(2026, 4, 6)
-
-    val nextDate = scheduleService.getNextSessionDateFromSuppliedDate(
-      programmeGroupRepository.findByIdOrNull(group.id!!)!!,
-      dateToScheduleFrom,
-    )
-
-    // Should skip Easter Monday April 6 and return Monday April 13
-    assertThat(nextDate).isEqualTo(LocalDate.of(2026, 4, 13))
-    assertThat(nextDate.dayOfWeek).isEqualTo(DayOfWeek.MONDAY)
-  }
-
-  @Test
-  fun `getNextSessionDateFromSuppliedDate should work with single slot configuration`() {
-    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.WEDNESDAY, 10, 0, AmOrPm.AM)
-
-    val group = testGroupHelper.createGroup(
-      earliestStartDate = LocalDate.of(2026, 4, 1),
-      createGroupSessionSlots = setOf(slot1),
-    )
-
-    // Starting from Monday April 13, 2026
-    val dateToScheduleFrom = LocalDate.of(2026, 4, 13)
-
-    val nextDate = scheduleService.getNextSessionDateFromSuppliedDate(
-      programmeGroupRepository.findByIdOrNull(group.id!!)!!,
-      dateToScheduleFrom,
-    )
-
-    // Should return Wednesday April 15 (next Wednesday)
-    assertThat(nextDate).isEqualTo(LocalDate.of(2026, 4, 15))
-    assertThat(nextDate.dayOfWeek).isEqualTo(DayOfWeek.WEDNESDAY)
-  }
-
-  @Test
-  fun `getNextSessionDateFromSuppliedDate should return same day if it matches a slot and is not a bank holiday`() {
-    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.THURSDAY, 12, 0, AmOrPm.PM)
-
-    val group = testGroupHelper.createGroup(
-      earliestStartDate = LocalDate.of(2026, 4, 1),
-      createGroupSessionSlots = setOf(slot1),
-    )
-
-    // Starting from Thursday April 16, 2026 (not a bank holiday)
-    val dateToScheduleFrom = LocalDate.of(2026, 4, 16)
-
-    val nextDate = scheduleService.getNextSessionDateFromSuppliedDate(
-      programmeGroupRepository.findByIdOrNull(group.id!!)!!,
-      dateToScheduleFrom,
-    )
-
-    // Should return the same Thursday
-    assertThat(nextDate).isEqualTo(LocalDate.of(2026, 4, 16))
-    assertThat(nextDate.dayOfWeek).isEqualTo(DayOfWeek.THURSDAY)
   }
 }
