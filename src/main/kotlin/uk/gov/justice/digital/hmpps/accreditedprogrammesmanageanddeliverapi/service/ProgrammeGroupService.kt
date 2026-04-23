@@ -175,7 +175,7 @@ class ProgrammeGroupService(
         if (preGroupOneToOnePlaceholderSession == null) {
           log.warn("Pre-group one-to-one placeholder session not found for group $groupId when updating earliest start date. Cannot reschedule pre-group session.")
         } else {
-          log.info("Rescheduling pre-group one-to-one placeholder session ${preGroupOneToOnePlaceholderSession.id} for group $groupId to new date: ${it}")
+          log.info("Rescheduling pre-group one-to-one placeholder session ${preGroupOneToOnePlaceholderSession.id} for group $groupId to new date: $it")
 
           val rescheduleRequest = RescheduleSessionRequest(
             sessionStartDate = it,
