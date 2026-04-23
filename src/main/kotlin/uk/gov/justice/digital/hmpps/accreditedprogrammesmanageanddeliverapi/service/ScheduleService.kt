@@ -339,7 +339,7 @@ class ScheduleService(
 
     val now = LocalDateTime.now(clock)
     var futureSessions = group.sessions.filter { it.startsAt > now }.toSet()
-    if (skipPreGroupOneToOnePlaceholder){
+    if (skipPreGroupOneToOnePlaceholder) {
       futureSessions = futureSessions.filterNot { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }.toSet()
     }
     val futureNDeliusAppointmentsToRemove = futureSessions.flatMap { session -> session.ndeliusAppointments }

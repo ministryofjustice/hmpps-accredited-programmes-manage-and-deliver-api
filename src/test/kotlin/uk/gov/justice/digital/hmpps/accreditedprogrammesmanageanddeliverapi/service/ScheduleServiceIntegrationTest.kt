@@ -177,7 +177,7 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     val preGroupOneToOnePlaceholderSession = updatedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
 
     // Simulate setting a new earliest start date
-    updatedGroup.earliestPossibleStartDate = LocalDate.now(clock).plusYears(2).plusDays(2) //On a Wednesday, outside of group cadence
+    updatedGroup.earliestPossibleStartDate = LocalDate.now(clock).plusYears(2).plusDays(2) // On a Wednesday, outside of group cadence
     programmeGroupRepository.save(updatedGroup)
 
     // Manually update the placeholder date to match the new earliest start date (as ProgrammeGroupService does)
