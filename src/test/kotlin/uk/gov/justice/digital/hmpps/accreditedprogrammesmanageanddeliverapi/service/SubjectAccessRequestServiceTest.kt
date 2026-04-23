@@ -22,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AttendeeRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
@@ -35,6 +36,7 @@ class SubjectAccessRequestServiceTest {
   private val referralRepository = mockk<ReferralRepository>()
   private val messageHistoryRepository = mockk<MessageHistoryRepository>()
   private val attendeeRepository = mockk<AttendeeRepository>()
+  private val availabilityRepository = mockk<AvailabilityRepository>()
   private val groupWaitlistItemViewRepository = mockk<GroupWaitlistItemViewRepository>()
   private val referralCaseListItemRepository = mockk<ReferralCaseListItemRepository>()
   private lateinit var service: SubjectAccessRequestService
@@ -48,6 +50,7 @@ class SubjectAccessRequestServiceTest {
       referralRepository,
       messageHistoryRepository,
       attendeeRepository,
+      availabilityRepository,
       groupWaitlistItemViewRepository,
       referralCaseListItemRepository,
     )
@@ -113,6 +116,7 @@ class SubjectAccessRequestServiceTest {
     every { referralRepository.findByCrn(any()) } returns listOf(referralEntity1, referralEntity2, referralEntity3)
     every { messageHistoryRepository.findByReferral(any()) } returns listOf(messageHistoryEntity)
     every { attendeeRepository.findByReferral(any()) } returns listOf(attendeeEntity)
+    every { availabilityRepository.findByReferralId(any()) } returns null
     every { groupWaitlistItemViewRepository.findByCrn(any()) } returns listOf(groupWaitlistItemViewEntity)
     every { referralCaseListItemRepository.findByCrn(any()) } returns listOf(referralCaseListItemViewEntity)
 
