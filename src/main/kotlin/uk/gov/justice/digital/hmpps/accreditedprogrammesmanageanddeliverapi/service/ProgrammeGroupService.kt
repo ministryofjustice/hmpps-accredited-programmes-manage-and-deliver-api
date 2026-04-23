@@ -158,8 +158,6 @@ class ProgrammeGroupService(
       updatedField = "sex"
     }
     updateGroupRequest.earliestStartDate?.let {
-      log.warn("PupdateGroupRequest $updateGroupRequest")
-
       programmeGroup.earliestPossibleStartDate = it
       updatedField = "earliestStartDate"
 

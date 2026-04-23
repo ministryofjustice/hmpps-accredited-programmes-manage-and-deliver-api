@@ -206,7 +206,7 @@ class ScheduleService(
     // If skipping pre-group one-to-one placeholder, exclude that template
     if (skipPreGroupOneToOnePlaceholder) {
       allSessionTemplates = allSessionTemplates.filter { template ->
-        !(template.sessionType == ONE_TO_ONE && template.module.name.startsWith("Pre-group", ignoreCase = true))
+        !(template.sessionType == ONE_TO_ONE && template.module.name == "Pre-group one-to-ones")
       }
     }
 
