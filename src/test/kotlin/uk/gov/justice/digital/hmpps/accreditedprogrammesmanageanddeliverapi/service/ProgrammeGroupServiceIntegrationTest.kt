@@ -676,6 +676,48 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should not return catch-up sessions in the schedule overview`() {
+      // Given - a mix of sessions that are catch-up and non-catch-up
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.GROUP })
+          .withStartsAt(LocalDateTime.of(2026, 7, 20, 15, 30))
+          .withEndsAt(LocalDateTime.of(2026, 7, 20, 17, 30))
+          .withIsPlaceholder(false)
+          .withIsCatchup(false)
+          .produce(),
+      )
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.GROUP })
+          .withStartsAt(LocalDateTime.of(2026, 7, 27, 15, 30))
+          .withEndsAt(LocalDateTime.of(2026, 7, 27, 17, 30))
+          .withIsPlaceholder(false)
+          .withIsCatchup(true)
+          .produce(),
+      )
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.ONE_TO_ONE })
+          .withStartsAt(LocalDateTime.of(2026, 7, 27, 15, 30))
+          .withEndsAt(LocalDateTime.of(2026, 7, 27, 17, 30))
+          .withIsPlaceholder(false)
+          .withIsCatchup(true)
+          .produce(),
+      )
+
+      // When
+      val schedule = service.getScheduleOverviewForGroup(programmeGroup.id!!)
+
+      // Then - only the non-catch-up session should be returned
+      assertThat(schedule.sessions).hasSize(1)
+      assertThat(schedule.sessions.first().date).isEqualTo(LocalDate.of(2026, 7, 20))
+    }
+
+    @Test
     fun `should throw NotFoundException if group does not exist`() {
       val randomId = UUID.randomUUID()
       val exception = assertThrows<NotFoundException> {
