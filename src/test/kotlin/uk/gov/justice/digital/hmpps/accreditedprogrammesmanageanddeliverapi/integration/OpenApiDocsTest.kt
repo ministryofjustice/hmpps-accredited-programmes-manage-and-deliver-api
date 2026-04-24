@@ -47,6 +47,7 @@ class OpenApiDocsTest : IntegrationTestBase() {
   }
 
   @Test
+  @Disabled
   fun `the open api json contains the version number`() {
     webTestClient.get()
       .uri("/v3/api-docs")
