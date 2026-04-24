@@ -3267,6 +3267,79 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         HttpStatus.NOT_FOUND.value(),
       )
     }
+
+    @Test
+    fun `updating earliestStartDate updates the pre-group one-to-one placeholder date`() {
+      // Given
+      val slot = CreateGroupSessionSlotFactory().produce(DayOfWeek.WEDNESDAY, 10, 0, AmOrPm.AM)
+      val group = testGroupHelper.createGroup(
+        earliestStartDate = LocalDate.of(2027, 1, 4),
+        createGroupSessionSlots = setOf(slot),
+      )
+
+      val savedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      val originalPlaceholder = savedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+
+      assertThat(originalPlaceholder.startsAt.toLocalDate()).isEqualTo(LocalDate.of(2027, 1, 6))
+
+      val newStartDate = LocalDate.of(2027, 6, 30) // A Tuesday
+      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        body = updateRequest,
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.successMessage).isEqualTo("The start date has been updated.")
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.earliestPossibleStartDate).isEqualTo(newStartDate)
+
+      val updatedPlaceholder = updatedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+      assertThat(updatedPlaceholder.startsAt.toLocalDate()).isEqualTo(newStartDate)
+    }
+
+    @Test
+    fun `updating earliestStartDate with automaticallyRescheduleOtherSessions true reschedules other sessions but preserves placeholder date`() {
+      // Given — group starting in the future so all sessions are future sessions
+      val slot = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+      val group = testGroupHelper.createGroup(
+        earliestStartDate = LocalDate.of(2027, 1, 4),
+        createGroupSessionSlots = setOf(slot),
+      )
+
+      assertThat(programmeGroupRepository.findByIdOrNull(group.id!!)!!.sessions).hasSize(27)
+
+      val newStartDate = LocalDate.of(2028, 3, 6) // A Tuesday
+      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = true)
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        body = updateRequest,
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.successMessage).isEqualTo("The start date and schedule have been updated.")
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+      assertThat(updatedGroup.sessions).hasSize(27)
+
+      // Placeholder should be set to the exact new start date (not recalculated to next Monday slot)
+      val placeholder = updatedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+      assertThat(placeholder.startsAt.toLocalDate()).isEqualTo(newStartDate)
+
+      // All non-placeholder sessions should be on or after the new start date and on Mondays
+      val nonPlaceholderSessions = updatedGroup.sessions.filter { !it.isPlaceholder }
+      assertThat(nonPlaceholderSessions).allMatch { it.startsAt.toLocalDate() >= newStartDate }
+      assertThat(nonPlaceholderSessions).allMatch { it.startsAt.dayOfWeek == DayOfWeek.MONDAY }
+    }
   }
 
   @Nested

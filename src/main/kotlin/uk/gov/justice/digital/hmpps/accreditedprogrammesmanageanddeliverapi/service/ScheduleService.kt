@@ -174,6 +174,7 @@ class ScheduleService(
   fun scheduleSessionsForGroup(
     programmeGroupId: UUID,
     mostRecentSession: SessionEntity? = null,
+    skipPreGroupOneToOnePlaceholder: Boolean = false,
   ): MutableSet<SessionEntity> {
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
       ?: throw NotFoundException("Group with id: $programmeGroupId could not be found")
@@ -199,6 +200,13 @@ class ScheduleService(
             template.module.moduleNumber == mostRecentSession.moduleNumber &&
               template.sessionNumber > mostRecentSession.sessionNumber
             )
+      }
+    }
+
+    // If skipping pre-group one-to-one placeholder, exclude that template
+    if (skipPreGroupOneToOnePlaceholder) {
+      allSessionTemplates = allSessionTemplates.filter { template ->
+        !(template.sessionType == ONE_TO_ONE && template.module.name == "Pre-group one-to-ones")
       }
     }
 
@@ -321,7 +329,7 @@ class ScheduleService(
     return slotQueue
   }
 
-  fun rescheduleSessionsForGroup(programmeGroupId: UUID): MutableSet<SessionEntity> {
+  fun rescheduleSessionsForGroup(programmeGroupId: UUID, skipPreGroupOneToOnePlaceholder: Boolean = false): MutableSet<SessionEntity> {
     val group = requireNotNull(programmeGroupRepository.findByIdOrNull(programmeGroupId)) {
       "Group must not be null"
     }
@@ -330,7 +338,10 @@ class ScheduleService(
     }
 
     val now = LocalDateTime.now(clock)
-    val futureSessions = group.sessions.filter { it.startsAt > now }.toSet()
+    var futureSessions = group.sessions.filter { it.startsAt > now }.toSet()
+    if (skipPreGroupOneToOnePlaceholder) {
+      futureSessions = futureSessions.filterNot { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }.toSet()
+    }
     val futureNDeliusAppointmentsToRemove = futureSessions.flatMap { session -> session.ndeliusAppointments }
     val mostRecentSession = group.sessions.filter { it.startsAt <= now }.maxByOrNull { it.startsAt }
 
@@ -341,7 +352,7 @@ class ScheduleService(
     }
 
     // If there is no prior session, just schedule from start
-    return scheduleSessionsForGroup(programmeGroupId, mostRecentSession)
+    return scheduleSessionsForGroup(programmeGroupId, mostRecentSession, skipPreGroupOneToOnePlaceholder)
   }
 
   fun removeFutureSessionsForIndividual(group: ProgrammeGroupEntity, referralId: UUID) {
@@ -386,22 +397,6 @@ class ScheduleService(
         nDeliusAppointmentRepository.saveAll(nDeliusAppointmentEntities)
       }
     }
-  }
-
-  fun getNextSessionDateFromSuppliedDate(group: ProgrammeGroupEntity, dateToScheduleFrom: LocalDate): LocalDate {
-    val groupSlots = group.programmeGroupSessionSlots
-    require(groupSlots.isNotEmpty()) { "Programme group slots must not be empty" }
-
-    val bankHolidays = englandAndWalesHolidayDates()
-
-    val slotQueue = buildSlotQueue(
-      bankHolidays = bankHolidays,
-      groupSlots = groupSlots,
-      startFrom = dateToScheduleFrom,
-    )
-
-    val nextSlot = slotQueue.poll()
-    return findNextValidDate(bankHolidays, dateToScheduleFrom, nextSlot.slot)
   }
 
   /**
