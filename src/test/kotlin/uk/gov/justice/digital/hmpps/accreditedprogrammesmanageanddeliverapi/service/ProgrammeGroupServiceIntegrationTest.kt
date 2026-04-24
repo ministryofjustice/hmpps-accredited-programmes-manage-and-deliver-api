@@ -861,10 +861,14 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         "Mondays, midday to 2:30pm",
         "Thursdays, 2:30pm to 5pm",
       )
-      assertThat(result.treatmentManager).isEqualTo("Alex River")
+      assertThat(result.treatmentManager.personName).isEqualTo("Alex River")
+      assertThat(result.treatmentManager.ndeliusPersonCode).isEqualTo("123456")
+      assertThat(result.treatmentManager.ndeliusTeamCode).isEqualTo("12345")
+      assertThat(result.treatmentManager.ndeliusTeamName).isEqualTo("Team 1")
       assertThat(result.currentlyAllocatedNumber).isEqualTo(2)
-      assertThat(result.facilitators).containsExactlyInAnyOrder("Archibald Quentin", "Jane Doe")
-      assertThat(result.coverFacilitators).containsExactlyInAnyOrder("John Doe")
+      assertThat(result.facilitators).anyMatch { it.facilitatorName == "Archibald Quentin" && it.facilitatorCode == "123456" && it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }
+      assertThat(result.facilitators).anyMatch { it.facilitatorName == "Jane Doe" }
+      assertThat(result.coverFacilitators!!).anyMatch { it.facilitatorName == "John Doe" && it.facilitatorCode == "123456" && it.facilitatorType == FacilitatorType.COVER_FACILITATOR }
     }
   }
 }
