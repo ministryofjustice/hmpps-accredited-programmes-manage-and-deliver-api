@@ -862,13 +862,13 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         "Thursdays, 2:30pm to 5pm",
       )
       assertThat(result.treatmentManager.personName).isEqualTo("Alex River")
-      assertThat(result.treatmentManager.ndeliusPersonCode).isEqualTo("123456")
-      assertThat(result.treatmentManager.ndeliusTeamCode).isEqualTo("12345")
-      assertThat(result.treatmentManager.ndeliusTeamName).isEqualTo("Team 1")
+      assertThat(result.treatmentManager.personCode).isEqualTo("123456")
+      assertThat(result.treatmentManager.teamCode).isEqualTo("12345")
+      assertThat(result.treatmentManager.teamName).isEqualTo("Team 1")
       assertThat(result.currentlyAllocatedNumber).isEqualTo(2)
-      assertThat(result.facilitators).anyMatch { it.facilitatorName == "Archibald Quentin" && it.facilitatorCode == "123456" && it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }
-      assertThat(result.facilitators).anyMatch { it.facilitatorName == "Jane Doe" }
-      assertThat(result.coverFacilitators!!).anyMatch { it.facilitatorName == "John Doe" && it.facilitatorCode == "123456" && it.facilitatorType == FacilitatorType.COVER_FACILITATOR }
+      assertThat(result.facilitators).anyMatch { it.personName == "Archibald Quentin" && it.personCode == "123456" }
+      assertThat(result.facilitators).anyMatch { it.personName == "Jane Doe" }
+      assertThat(result.coverFacilitators!!).anyMatch { it.personName == "John Doe" && it.personCode == "123456" }
     }
   }
 }
