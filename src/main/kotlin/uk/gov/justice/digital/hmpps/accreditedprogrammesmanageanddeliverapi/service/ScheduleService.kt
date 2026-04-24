@@ -329,7 +329,10 @@ class ScheduleService(
     return slotQueue
   }
 
-  fun rescheduleSessionsForGroup(programmeGroupId: UUID, skipPreGroupOneToOnePlaceholder: Boolean = false): MutableSet<SessionEntity> {
+  fun rescheduleSessionsForGroup(
+    programmeGroupId: UUID,
+    skipPreGroupOneToOnePlaceholder: Boolean = false,
+  ): MutableSet<SessionEntity> {
     val group = requireNotNull(programmeGroupRepository.findByIdOrNull(programmeGroupId)) {
       "Group must not be null"
     }
@@ -377,12 +380,12 @@ class ScheduleService(
         nDeliusIntegrationApiClient.createAppointmentsInDelius(CreateAppointmentRequest(nDeliusAppointments))
     ) {
       is ClientResult.Failure.StatusCode -> {
-        log.warn("Failure to create appointments with reason: ${response.getErrorMessage()}")
+        log.error("Failure to create appointments with reason: ${response.getErrorMessage()}")
         throw BusinessException("Failure to create appointments", response.toException())
       }
 
       is ClientResult.Failure.Other -> {
-        log.warn(
+        log.error(
           "Failure to create appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
           response.exception,
         )
