@@ -5,7 +5,9 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import java.time.LocalDate
 import java.util.UUID
@@ -108,21 +110,21 @@ data class GroupDetailsResponse(
     description = "The treatment manager for this group.",
   )
   @get:JsonProperty("treatmentManager", required = true)
-  val treatmentManager: String,
+  val treatmentManager: FacilitatorEntity,
 
   @Schema(
     example = "[Harpreet Singh, Tom Bassett]",
     description = "The list of facilitators for this group.",
   )
   @get:JsonProperty("facilitators", required = true)
-  val facilitators: List<String>,
+  val facilitators: List<ProgrammeGroupFacilitatorEntity>,
 
   @Schema(
     example = "[Tom Saunders]",
     description = "The list of coverFacilitators for this group.",
   )
   @get:JsonProperty("coverFacilitators")
-  val coverFacilitators: List<String>? = null,
+  val coverFacilitators: List<ProgrammeGroupFacilitatorEntity>? = null,
 ) {
   companion object {
     fun from(
@@ -142,9 +144,9 @@ data class GroupDetailsResponse(
       sex = programmeGroup.sex.label,
       daysAndTimes = daysAndTimes,
       currentlyAllocatedNumber = programmeGroup.programmeGroupMemberships.count { it.deletedAt == null },
-      treatmentManager = programmeGroup.treatmentManager?.personName!!,
-      facilitators = programmeGroup.groupFacilitators.filter { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }.map { it.facilitator.personName },
-      coverFacilitators = programmeGroup.groupFacilitators.filter { it.facilitatorType == FacilitatorType.COVER_FACILITATOR }.map { it.facilitator.personName },
+      treatmentManager = programmeGroup.treatmentManager!!,
+      facilitators = programmeGroup.groupFacilitators.filter { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR },
+      coverFacilitators = programmeGroup.groupFacilitators.filter { it.facilitatorType == FacilitatorType.COVER_FACILITATOR },
     )
   }
 }
