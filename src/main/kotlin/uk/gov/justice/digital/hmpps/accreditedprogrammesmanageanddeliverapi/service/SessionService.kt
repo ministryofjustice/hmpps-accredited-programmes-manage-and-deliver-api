@@ -54,7 +54,6 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
-import kotlin.collections.find
 
 @Service
 @Transactional
@@ -159,7 +158,8 @@ class SessionService(
 
   fun updateNDeliusAppointmentsForMultipleSessions(sessions: List<SessionEntity>) {
     val sessionsWithAppointment = sessions.filter { it.ndeliusAppointments.isNotEmpty() }.ifEmpty { return }
-    val updateRequests = sessionsWithAppointment.flatMap { session -> session.ndeliusAppointments.map { it.toUpdateAppointmentRequest() } }
+    val updateRequests =
+      sessionsWithAppointment.flatMap { session -> session.ndeliusAppointments.map { it.toUpdateAppointmentRequest() } }
 
     when (
       val response = nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateRequests))
@@ -181,7 +181,11 @@ class SessionService(
       }
 
       is ClientResult.Success -> {
-        log.info("${updateRequests.size} appointments updated in nDelius for sessions with ids: ${sessionsWithAppointment.map { it.id }.joinToString(", ")}")
+        log.info(
+          "${updateRequests.size} appointments updated in nDelius for sessions with ids: ${
+            sessionsWithAppointment.map { it.id }.joinToString(", ")
+          }",
+        )
       }
     }
   }
@@ -365,12 +369,36 @@ class SessionService(
       }
 
       if (updateAppointmentRequests.isNotEmpty()) {
-        nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateAppointmentRequests))
+        when (
+          val response =
+            nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateAppointmentRequests))
+        ) {
+          is ClientResult.Failure.StatusCode -> {
+            log.error("Failure to update appointments with reason: ${response.getErrorMessage()}")
+            throw BusinessException("Failure to update appointments", response.toException())
+          }
+
+          is ClientResult.Failure.Other -> {
+            log.error(
+              "Failure to update appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
+              response.exception,
+            )
+            throw BusinessException(
+              "Failure to update appointments in Ndelius: ${response.exception.message}",
+              response.exception,
+            )
+          }
+
+          is ClientResult.Success -> {
+            log.info("${updateAppointmentRequests.size} appointments created in Ndelius for group with id: ${session.programmeGroup.id}")
+          }
+        }
       }
     }
 
     // If this is a post-programme review session, check if completion events should be published
-    val isPostProgrammeReviewSession = session.moduleSessionTemplate.module.isPostProgrammeModule() && !session.isPlaceholder
+    val isPostProgrammeReviewSession =
+      session.moduleSessionTemplate.module.isPostProgrammeModule() && !session.isPlaceholder
     if (isPostProgrammeReviewSession) {
       attendees.forEach { attendee ->
         referralStatusService.checkAndPublishCompletionEvent(attendee.referralId)
@@ -435,7 +463,11 @@ class SessionService(
 
     val popName = referral.personName
     val pageTitle = sessionNameFormatter.format(session, SessionNameContext.SessionNotes(popName))
-    val outcomeText = getAttendanceTextFromOutcome(session.attendances.filter { it.groupMembership.referralId == referralId }.maxByOrNull { it.createdAt }?.outcomeType)
+    val outcomeText =
+      getAttendanceTextFromOutcome(
+        session.attendances.filter { it.groupMembership.referralId == referralId }
+          .maxByOrNull { it.createdAt }?.outcomeType,
+      )
     return SessionNotes.from(session, referralId, outcomeText, pageTitle)
   }
 
