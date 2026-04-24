@@ -3,10 +3,10 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.2.1"
-  kotlin("plugin.spring") version "2.3.20"
-  kotlin("plugin.jpa") version "2.3.20"
-  kotlin("plugin.allopen") version "2.3.20"
-  id("io.sentry.jvm.gradle") version "6.4.0"
+  kotlin("plugin.spring") version "2.3.21"
+  kotlin("plugin.jpa") version "2.3.21"
+  kotlin("plugin.allopen") version "2.3.21"
+  id("io.sentry.jvm.gradle") version "6.5.0"
 }
 
 configurations {
@@ -34,8 +34,8 @@ dependencies {
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
 
   // security
-  implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:4.0.5")
-  implementation("org.springframework.boot:spring-boot-starter-oauth2-client:4.0.5")
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:4.0.6")
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-client:4.0.6")
   implementation("org.springframework.security:spring-security-crypto:7.0.5")
   implementation("com.nimbusds:oauth2-oidc-sdk:11.37")
   implementation("io.github.resilience4j:resilience4j-spring-boot2:2.3.0")
