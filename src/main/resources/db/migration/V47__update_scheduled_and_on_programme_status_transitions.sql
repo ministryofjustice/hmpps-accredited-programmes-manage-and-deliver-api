@@ -13,7 +13,7 @@ INSERT INTO referral_status_transition(id, from_status, to_status, description, 
 VALUES ('019a7da9-55be-7bab-91bf-48e48585e514',
         (SELECT id FROM referral_status_description WHERE description_text = 'Scheduled'),
         (SELECT id FROM referral_status_description WHERE description_text = 'Awaiting allocation'),
-        'The person has been assessed as suitable and can be allocated to a group.',
+        'The person cannot start the programme now but may be able to join another group soon.',
         now(),
         null,
         null);
