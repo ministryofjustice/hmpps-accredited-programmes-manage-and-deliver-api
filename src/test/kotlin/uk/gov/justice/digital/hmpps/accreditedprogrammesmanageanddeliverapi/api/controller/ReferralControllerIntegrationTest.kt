@@ -1298,12 +1298,13 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
           ),
         ),
       )
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
       performRequestAndExpectStatusWithBody(
+        expectedResponseStatus = HttpStatus.CREATED.value(),
         httpMethod = HttpMethod.POST,
         uri = "/session/${session.id}/attendance",
         body = firstAttendanceRequest,
         returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
-        expectedResponseStatus = HttpStatus.CREATED.value(),
       )
 
       // Record second attendance (updating the same attendee on the same session)
