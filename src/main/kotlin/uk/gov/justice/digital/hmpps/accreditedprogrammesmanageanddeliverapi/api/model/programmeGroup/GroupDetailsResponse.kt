@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
@@ -104,25 +105,22 @@ data class GroupDetailsResponse(
   val currentlyAllocatedNumber: Int,
 
   @Schema(
-    example = "{\"personCode\": \"CP001\", \"personName\": \"Chloe Pascal\", \"teamName\": \"Management Team\", \"teamCode\": \"TEAM001\"}",
     description = "The treatment manager for this group.",
   )
   @get:JsonProperty("treatmentManager", required = true)
-  val treatmentManager: UserTeamMember,
+  val treatmentManager: CreateGroupTeamMember,
 
   @Schema(
-    example = "[{\"personCode\": \"HS001\", \"personName\": \"Harpreet Singh\", \"teamName\": \"Facilitator Team\", \"teamCode\": \"TEAM002\"}, {\"personCode\": \"TB001\", \"personName\": \"Tom Bassett\", \"teamName\": \"Facilitator Team\", \"teamCode\": \"TEAM002\"}]",
     description = "The list of facilitators for this group.",
   )
   @get:JsonProperty("facilitators", required = true)
-  val facilitators: List<UserTeamMember>,
+  val facilitators: List<CreateGroupTeamMember>,
 
   @Schema(
-    example = "[{\"personCode\": \"TS001\", \"personName\": \"Tom Saunders\", \"teamName\": \"Cover Team\", \"teamCode\": \"TEAM003\"}]",
     description = "The list of coverFacilitators for this group.",
   )
   @get:JsonProperty("coverFacilitators")
-  val coverFacilitators: List<UserTeamMember>? = null,
+  val coverFacilitators: List<CreateGroupTeamMember>? = null,
 ) {
   companion object {
     fun from(
@@ -143,14 +141,14 @@ data class GroupDetailsResponse(
       daysAndTimes = daysAndTimes,
       currentlyAllocatedNumber = programmeGroup.programmeGroupMemberships.count { it.deletedAt == null },
       treatmentManager = programmeGroup.treatmentManager!!.let {
-        UserTeamMember(personCode = it.ndeliusPersonCode, personName = it.personName, teamName = it.ndeliusTeamName, teamCode = it.ndeliusTeamCode)
+        CreateGroupTeamMember(facilitatorCode = it.ndeliusPersonCode, facilitator = it.personName, teamName = it.ndeliusTeamName, teamCode = it.ndeliusTeamCode, teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER)
       },
       facilitators = programmeGroup.groupFacilitators
         .filter { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }
-        .map { UserTeamMember(personCode = it.facilitatorCode, personName = it.facilitatorName, teamName = it.teamName, teamCode = it.teamCode) },
+        .map { CreateGroupTeamMember(facilitatorCode = it.facilitatorCode, facilitator = it.facilitatorName, teamName = it.teamName, teamCode = it.teamCode, teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR) },
       coverFacilitators = programmeGroup.groupFacilitators
         .filter { it.facilitatorType == FacilitatorType.COVER_FACILITATOR }
-        .map { UserTeamMember(personCode = it.facilitatorCode, personName = it.facilitatorName, teamName = it.teamName, teamCode = it.teamCode) },
+        .map { CreateGroupTeamMember(facilitatorCode = it.facilitatorCode, facilitator = it.facilitatorName, teamName = it.teamName, teamCode = it.teamCode, teamMemberType = CreateGroupTeamMemberType.COVER_FACILITATOR) },
     )
   }
 }
