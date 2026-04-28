@@ -879,4 +879,190 @@ class SessionNameFormatterTest : IntegrationTestBase() {
         .isEqualTo("Alex River: Post-programme review session notes")
     }
   }
+
+  @Nested
+  inner class AttendanceHistory {
+    @Test
+    fun `returns correct attendance history name for regular group session`() {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Introduction to Building Choices",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .produce(),
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.AttendanceHistory))
+        .isEqualTo("Getting started 1")
+    }
+
+    @Test
+    fun `returns correct attendance history name for catch up group session`() {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 3,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Introduction to Building Choices",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withIsCatchup(true)
+          .produce(),
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.AttendanceHistory))
+        .isEqualTo("Getting started 3 catch-up")
+    }
+
+    @Test
+    fun `returns correct attendance history name for one to one session`() {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 2,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Introduction to Building Choices",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .produce(),
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.AttendanceHistory))
+        .isEqualTo("Getting started 2 one-to-one")
+    }
+
+    @Test
+    fun `returns correct attendance history name for one to one catch up session`() {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 2,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Introduction to Building Choices",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withIsCatchup(true)
+          .produce(),
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.AttendanceHistory))
+        .isEqualTo("Getting started 2 one-to-one catch-up")
+    }
+
+    @Test
+    fun `returns correct attendance history name for pre group one to one session`() {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Pre-group one-to-ones", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 2,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Pre-group one-to-one",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .produce(),
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.AttendanceHistory))
+        .isEqualTo("Pre-group one-to-one")
+    }
+
+    @Test
+    fun `returns correct attendance history name for post programme review catch up session`() {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Post-programme reviews", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 2,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Post-programme review",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withIsCatchup(true)
+          .produce(),
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.AttendanceHistory))
+        .isEqualTo("Post-programme review catch-up")
+    }
+  }
 }

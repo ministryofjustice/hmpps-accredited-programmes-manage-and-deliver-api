@@ -45,6 +45,11 @@ sealed class SessionNameContext {
    * Formatting for the Session notes page.
    */
   data class SessionNotes(val popName: String) : SessionNameContext()
+
+  /**
+   * Formatting for the Attendance History page.
+   */
+  object AttendanceHistory : SessionNameContext()
 }
 
 /**
@@ -78,6 +83,7 @@ class SessionNameFormatter {
     is SessionNameContext.SessionsAndAttendance -> sessionsAndAttendance(context.sessionTemplate, session)
     is SessionNameContext.SessionDetails -> sessionDetails(session)
     is SessionNameContext.SessionNotes -> sessionNotes(session, context.popName)
+    is SessionNameContext.AttendanceHistory -> attendanceHistory(session)
   }
 
   /**
@@ -192,6 +198,42 @@ class SessionNameFormatter {
         requireNotNull(session.attendees.first()) { "Person name is required for individual sessions" }
         "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name}$catchupSuffix"
       }
+    }
+  }
+
+  /**
+   * Formats the session name for use on the attendance history page.
+   *
+   * - GROUP: `"<module.name> <sessionNumber>"`
+   * - GROUP CATCH_UP: `"<module.name> <sessionNumber> catch-up"`
+   * - ONE_TO_ONE: `"<module.name> <sessionNumber> one-to-one"`
+   * - ONE_TO_ONE CATCH_UP: `"<module.name> <sessionNumber> one-to-one catch-up"`
+   * - PRE-GROUP and POST-PROGRAMME SESSIONS: `"<module.name>"`
+   * - PRE-GROUP and POST-PROGRAMME CATCH UP SESSIONS: `"<module.name> catch-up"`
+   */
+  private fun attendanceHistory(session: SessionEntity): String {
+    val catchupSuffix = if (session.isCatchup) " catch-up" else ""
+    val moduleName = session.moduleSessionTemplate.module.name
+    var prefix = ""
+    var isPreOrPost = false
+    if (moduleName in listOf("Post-programme reviews", "Pre-group one-to-ones")) {
+      prefix = moduleName.dropLast(1)
+      isPreOrPost = true
+    } else {
+      prefix = "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}"
+    }
+    return when {
+      session.sessionType == SessionType.GROUP -> "$prefix$catchupSuffix"
+
+      session.sessionType == SessionType.ONE_TO_ONE && !isPreOrPost -> {
+        "$prefix one-to-one$catchupSuffix"
+      }
+
+      session.sessionType == SessionType.ONE_TO_ONE && isPreOrPost -> {
+        "$prefix$catchupSuffix"
+      }
+
+      else -> "$prefix$catchupSuffix"
     }
   }
 }

@@ -48,6 +48,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -76,6 +78,7 @@ class ReferralService(
   private val domainEventPublisher: DomainEventPublisher,
   @Value("\${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
   private val programmeGroupService: ProgrammeGroupService,
+  private val sessionNameFormatter: SessionNameFormatter,
   private val referralStatusService: ReferralStatusService,
 ) {
   companion object {
@@ -421,13 +424,16 @@ class ReferralService(
             .filter { it.session.id == session.id }
             .maxByOrNull { it.createdAt }
 
+          log.warn("IN here ${sessionNameFormatter.format(session, SessionNameContext.AttendanceHistory)}")
+
           AttendanceHistorySession(
             sessionId = session.id!!,
-            sessionName = session.sessionName,
+            sessionName = sessionNameFormatter.format(session, SessionNameContext.AttendanceHistory),
             groupId = membership.programmeGroup.id,
             groupCode = membership.programmeGroup.code,
             popName = referral.personName,
             date = session.startsAt.format(DateTimeFormatter.ofPattern("d MMMM yyyy")),
+            unformattedDate = session.startsAt,
             time = "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${formatTimeForUiDisplay(session.endsAt.toLocalTime())}",
             attendanceStatus = programmeGroupService.getAttendanceTextFromOutcome(latestAttendance?.outcomeType),
             hasNotes = latestAttendance?.notesHistory?.isNotEmpty() == true,
@@ -437,7 +443,7 @@ class ReferralService(
       }
       // Remove any duplicate sessions in the event that there are multiple attendance records for a session.
       .distinctBy { it.sessionId }
-      .sortedByDescending { it.date }
+      .sortedBy { it.unformattedDate }
 
     return AttendanceHistoryResponse(
       popName = referral.personName,
