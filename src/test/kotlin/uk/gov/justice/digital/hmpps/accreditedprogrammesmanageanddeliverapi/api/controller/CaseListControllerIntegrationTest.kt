@@ -384,7 +384,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       assertThat(response).isNotNull
       assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
-      assertThat(referralCaseListItems.first().personName).isEqualTo("River Alex")
+      assertThat(referralCaseListItems.first().personName).isEqualTo("Alex River")
 
       referralCaseListItems.forEach { item ->
         assertThat(item).hasFieldOrProperty("crn")
@@ -411,7 +411,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
 
       val referral = referralCaseListItems[0]
-      assertThat(referral.personName).isEqualTo("River Alex")
+      assertThat(referral.personName).isEqualTo("Alex River")
       assertThat(referral.crn).isEqualTo("CRN-999999")
       assertThat(referral.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(referral.referralStatus).isEqualTo("Awaiting assessment")
