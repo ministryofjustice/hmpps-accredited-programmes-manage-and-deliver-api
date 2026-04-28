@@ -1167,6 +1167,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response).isNotNull
       assertThat(response.currentStatus.title).isEqualTo("Awaiting assessment")
       assertThat(response.availableStatuses).isNotEmpty
+      assertThat(response.availableStatuses.first { it.status == "Awaiting allocation" }.transitionDescription)
+        .isEqualTo("The person has been assessed as suitable and can be allocated to a group.")
     }
 
     @Test
