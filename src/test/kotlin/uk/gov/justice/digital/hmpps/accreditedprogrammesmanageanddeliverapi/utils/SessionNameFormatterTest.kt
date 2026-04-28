@@ -970,7 +970,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       )
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.AttendanceHistory))
-        .isEqualTo("Getting started 2 one-to-one")
+        .isEqualTo("Getting started one-to-one")
     }
 
     @Test
@@ -1001,7 +1001,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       )
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.AttendanceHistory))
-        .isEqualTo("Getting started 2 one-to-one catch-up")
+        .isEqualTo("Getting started one-to-one catch-up")
     }
 
     @Test

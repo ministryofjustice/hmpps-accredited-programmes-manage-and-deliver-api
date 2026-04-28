@@ -220,10 +220,10 @@ class SessionNameFormatter {
       prefix = moduleName.dropLast(1)
       isPreOrPost = true
     } else {
-      prefix = "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}"
+      prefix = session.moduleSessionTemplate.module.name
     }
     return when {
-      session.sessionType == SessionType.GROUP -> "$prefix$catchupSuffix"
+      session.sessionType == SessionType.GROUP -> "$prefix ${session.sessionNumber}$catchupSuffix"
 
       session.sessionType == SessionType.ONE_TO_ONE && !isPreOrPost -> {
         "$prefix one-to-one$catchupSuffix"
