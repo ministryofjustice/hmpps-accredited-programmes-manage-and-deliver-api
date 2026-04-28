@@ -424,8 +424,6 @@ class ReferralService(
             .filter { it.session.id == session.id }
             .maxByOrNull { it.createdAt }
 
-          log.warn("IN here ${sessionNameFormatter.format(session, SessionNameContext.AttendanceHistory)}")
-
           AttendanceHistorySession(
             sessionId = session.id!!,
             sessionName = sessionNameFormatter.format(session, SessionNameContext.AttendanceHistory),
