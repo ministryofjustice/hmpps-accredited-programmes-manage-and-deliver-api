@@ -21,7 +21,7 @@ data class SubjectAccessRequestModule(
 data class SubjectAccessRequestModuleSessionTemplate(
   val description: String?,
   val durationMinutes: Int,
-  val moduleId: UUID,
+  val moduleId: UUID?,
   val name: String,
   val pathway: String,
   val sessionNumber: Int,
@@ -39,7 +39,7 @@ fun SessionEntity.toApi() = SubjectAccessRequestSession(
   moduleSessionTemplate = SubjectAccessRequestModuleSessionTemplate(
     description = moduleSessionTemplate.description,
     durationMinutes = moduleSessionTemplate.durationMinutes,
-    moduleId = moduleSessionTemplate.module.id!!,
+    moduleId = moduleSessionTemplate.module.id,
     name = moduleSessionTemplate.name,
     pathway = moduleSessionTemplate.pathway.name,
     sessionNumber = moduleSessionTemplate.sessionNumber,

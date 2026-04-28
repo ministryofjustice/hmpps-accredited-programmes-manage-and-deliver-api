@@ -51,7 +51,7 @@ fun ReferralEntity.toApi(
   interventionType = interventionType.name,
   setting = setting.name,
   sourcedFrom = sourcedFrom?.name,
-  deliveryLocationPreference = deliveryLocationPreferences?. toApi(),
+  deliveryLocationPreference = deliveryLocationPreferences?.toApi(),
   programmeGroupMemberships = programmeGroupMemberships.map { it.toApi() }.toMutableSet(),
   statusHistories = statusHistories.map { it.toApi() }.toMutableList(),
   messageHistories = messageHistoryEntities.map { it.toApi() }.toMutableList(),
