@@ -67,7 +67,7 @@ data class AttendanceHistorySession(
   )
   val date: String,
 
-  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss")
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
   @Schema(
     description = "The unformatted date of the session for sorting",
   )

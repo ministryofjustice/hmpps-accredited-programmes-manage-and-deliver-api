@@ -86,6 +86,7 @@ class ReferralServiceTest {
 
   private lateinit var referralService: ReferralService
 
+  @Mock
   private lateinit var sessionNameFormatter: SessionNameFormatter
 
   @BeforeEach
