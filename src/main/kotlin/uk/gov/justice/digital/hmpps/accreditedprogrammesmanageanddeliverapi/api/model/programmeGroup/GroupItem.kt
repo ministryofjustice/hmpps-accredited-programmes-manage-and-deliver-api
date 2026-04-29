@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.GroupWaitlistItemViewEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.reverseNameOrder
 import java.time.LocalDate
 import java.time.Period
 import java.util.UUID
@@ -132,7 +131,7 @@ fun GroupWaitlistItemViewEntity.toApi() = GroupItem(
   referralId = referralId,
   sourcedFrom = sourcedFrom?.toDisplayString(),
   crn = crn,
-  personName = personName.reverseNameOrder(),
+  personName = personName,
   sentenceEndDate = sentenceEndDate,
   cohort = cohort.let { OffenceCohort.fromDisplayName(it) },
   hasLdc = hasLdc,

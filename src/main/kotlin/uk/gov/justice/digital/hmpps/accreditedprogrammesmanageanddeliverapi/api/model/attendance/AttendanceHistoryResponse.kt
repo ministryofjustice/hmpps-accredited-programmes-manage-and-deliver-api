@@ -1,6 +1,8 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance
 
+import com.fasterxml.jackson.annotation.JsonFormat
 import io.swagger.v3.oas.annotations.media.Schema
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Schema(description = "Response containing attendance history for a referral")
@@ -64,6 +66,12 @@ data class AttendanceHistorySession(
     example = "11 July 2025",
   )
   val date: String,
+
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+  @Schema(
+    description = "The unformatted date of the session for sorting",
+  )
+  val unformattedDate: LocalDateTime,
 
   @Schema(
     description = "The time range of the session",
