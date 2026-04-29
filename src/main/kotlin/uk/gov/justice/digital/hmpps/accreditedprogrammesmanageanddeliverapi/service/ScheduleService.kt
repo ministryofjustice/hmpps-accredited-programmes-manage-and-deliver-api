@@ -367,7 +367,15 @@ class ScheduleService(
   }
 
   fun createNdeliusAppointmentsForSessions(attendees: List<AttendeeEntity>) {
-    val (nDeliusAppointments, nDeliusAppointmentEntities) = attendees.map { attendee ->
+    val now = LocalDateTime.now(clock)
+    val futureAttendees = attendees.filter { it.session.startsAt > now }
+
+    if (futureAttendees.isEmpty()) {
+      log.info("No future appointments to create in NDelius - all sessions are in the past")
+      return
+    }
+
+    val (nDeliusAppointments, nDeliusAppointmentEntities) = futureAttendees.map { attendee ->
       // Generate an appointment ID to be used by NDelius
       val appointmentId = UUID.randomUUID()
       val appointment = attendee.toAppointment(appointmentId)
