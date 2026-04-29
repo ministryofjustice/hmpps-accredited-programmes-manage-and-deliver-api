@@ -45,6 +45,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
@@ -884,7 +885,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         sessionTemplateId = group.sessions.find { it.sessionType == SessionType.ONE_TO_ONE }!!.moduleSessionTemplate.id!!,
         referralIds = listOf(alreadyAllocatedReferral.id!!),
         facilitators = facilitators,
-        startDate = LocalDate.of(2025, 1, 1),
+        startDate = LocalDate.now().plusDays(1),
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
@@ -927,6 +928,79 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val attendeeList =
         foundReferral.programmeGroupMemberships.first().programmeGroup.sessions.flatMap { sessionEntity -> sessionEntity.attendees.map { it.personName } }
       assertThat(attendeeList).allMatch { attendeeList.contains(it) }
+    }
+
+    @Test
+    fun `allocateReferralToGroup only creates nDelius appointments for future sessions when group has past sessions`() {
+      // Given - create a group with a start date in the past so some sessions will be in the past
+      val theCrnNumber = randomUppercaseString()
+      val pastStartDate = LocalDate.now().minusWeeks(4)
+      val group = testGroupHelper.createGroup(earliestStartDate = pastStartDate)
+
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory().withName(
+          FullName(
+            forename = "forename",
+            middleNames = null,
+            surname = "surname",
+          ),
+        ).produce(),
+      )
+      oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "forename surname")
+      val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "Allocating to group with past sessions")
+
+      val now = LocalDateTime.now()
+      val today = now.toLocalDate()
+      val futureGroupSessionsCount = group.sessions.count { it.startsAt > now && it.sessionType == SessionType.GROUP }
+      val pastGroupSessionsCount = group.sessions.count { it.startsAt <= now && it.sessionType == SessionType.GROUP }
+
+      // Verify there are some past sessions (test setup validation)
+      assertThat(pastGroupSessionsCount).isGreaterThan(0)
+      assertThat(futureGroupSessionsCount).isGreaterThan(0)
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/allocate/${referral.id}",
+        expectedResponseStatus = HttpStatus.OK.value(),
+        body = allocateToGroupRequest,
+        returnType = object : ParameterizedTypeReference<AllocateToGroupResponse>() {},
+      )
+
+      val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
+
+      // Then
+      assertThat(response.message).isEqualTo("forename surname was added to this group. Their referral status is now Scheduled.")
+
+      // Verify that nDelius API was called to create appointments
+      wiremock.verify(1, postRequestedFor(urlEqualTo("/appointments")))
+
+      // Capture the request body sent to nDelius and verify it only contains future sessions
+      val appointmentRequests = wiremock.findAll(postRequestedFor(urlEqualTo("/appointments")))
+      assertThat(appointmentRequests).hasSize(1)
+
+      val requestBody = appointmentRequests.first().bodyAsString
+      val createAppointmentRequest = objectMapper.readValue(
+        requestBody,
+        CreateAppointmentRequest::class.java,
+      )
+
+      // Verify that only future sessions were sent to nDelius
+      assertThat(createAppointmentRequest.appointments).hasSize(futureGroupSessionsCount)
+
+      // Verify that none of the appointment dates are in the past
+      createAppointmentRequest.appointments.forEach { appointment ->
+        assertThat(appointment.date).isAfterOrEqualTo(today)
+      }
+
+      // Verify the referral is still added as attendee to all group sessions (past and future)
+      val allGroupSessions = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
+        .filter { it.sessionType == SessionType.GROUP }
+      assertThat(allGroupSessions.sumOf { it.attendees.count() }).isEqualTo(21)
     }
   }
 
@@ -1816,7 +1890,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         sessionTemplateId = sessionTemplate.id!!,
         referralIds = listOf(referral.id!!),
         facilitators = facilitators,
-        startDate = LocalDate.of(2025, 1, 1),
+        startDate = LocalDate.now().plusDays(1),
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
@@ -1858,7 +1932,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         sessionTemplateId = sessionTemplate.id!!,
         referralIds = listOf(referral.id!!),
         facilitators = facilitators,
-        startDate = LocalDate.of(2025, 1, 1),
+        startDate = LocalDate.now().plusDays(1),
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
         sessionScheduleType = SessionScheduleType.CATCH_UP,
@@ -2033,7 +2107,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         sessionTemplateId = sessionTemplate.id!!,
         referralIds = listOf(referral.id!!),
         facilitators = listOf(nonExistentFacilitator),
-        startDate = LocalDate.of(2025, 1, 1),
+        startDate = LocalDate.now().plusDays(1),
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
