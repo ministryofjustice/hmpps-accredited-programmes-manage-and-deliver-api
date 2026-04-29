@@ -892,11 +892,12 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       scheduleService.scheduleIndividualSessionAndReturnResponse(group.id!!, scheduleSessionRequest)
 
       val groupSessionId = group.sessions.find { it.sessionType == SessionType.GROUP }!!.id!!
-      sessionRepository.findById(groupSessionId).ifPresent { sessionEntity ->
-        sessionEntity.startsAt = LocalDateTime.now().minusDays(1)
-        sessionEntity.endsAt = LocalDateTime.now().minusDays(1).plusHours(1)
-        sessionRepository.save(sessionEntity)
-      }
+      val optionalGroupSession = sessionRepository.findById(groupSessionId)
+      assertThat(optionalGroupSession).isPresent
+      val savedGroupSession = optionalGroupSession.get()
+      savedGroupSession.startsAt = LocalDateTime.now().minusDays(1)
+      savedGroupSession.endsAt = LocalDateTime.now().minusDays(1).plusHours(1)
+      sessionRepository.save(savedGroupSession)
 
       val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "the-forename the-surname")
       val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "The additional details for the test")
