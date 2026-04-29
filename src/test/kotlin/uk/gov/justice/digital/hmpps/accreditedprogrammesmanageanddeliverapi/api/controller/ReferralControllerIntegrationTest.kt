@@ -1167,6 +1167,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response).isNotNull
       assertThat(response.currentStatus.title).isEqualTo("Awaiting assessment")
       assertThat(response.availableStatuses).isNotEmpty
+      assertThat(response.availableStatuses.first { it.status == "Awaiting allocation" }.transitionDescription)
+        .isEqualTo("The person has been assessed as suitable and can be allocated to a group.")
     }
 
     @Test
@@ -1341,6 +1343,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.attendanceHistory).allMatch { it.hasNotes }
       assertThat(response.attendanceHistory).allMatch { it.groupId == group.id }
       assertThat(response.attendanceHistory).allMatch { it.popName == "Alex River" }
+      assertThat(response.attendanceHistory).allMatch { it.sessionName == "Getting started 1" }
       assertThat(response.attendanceHistory).allMatch { it.isCatchup == false }
     }
 
@@ -1396,6 +1399,68 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
         expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
       )
+    }
+
+    @Test
+    fun `should return attendance history in session date order`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      testGroupHelper.allocateToGroup(group, referral)
+
+      val groupSessions = sessionRepository.findByProgrammeGroupId(group.id!!)
+        .filter { it.sessionType == SessionType.GROUP }
+        .sortedBy { it.startsAt }
+
+      val earlierSession = groupSessions[0]
+      val laterSession = groupSessions[1]
+
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+
+      // Record attendance on the later session first
+      performRequestAndExpectStatusWithBody(
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${laterSession.id}/attendance",
+        body = SessionAttendance(
+          attendees = listOf(
+            SessionAttendee(
+              referralId = laterSession.attendees.first().referralId,
+              outcomeCode = SessionAttendanceNDeliusCode.ATTC,
+              sessionNotes = "Later session notes",
+            ),
+          ),
+        ),
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+      )
+
+      // Record attendance on the earlier session second
+      performRequestAndExpectStatusWithBody(
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${earlierSession.id}/attendance",
+        body = SessionAttendance(
+          attendees = listOf(
+            SessionAttendee(
+              referralId = earlierSession.attendees.first().referralId,
+              outcomeCode = SessionAttendanceNDeliusCode.ATTC,
+              sessionNotes = "Earlier session notes",
+            ),
+          ),
+        ),
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/referral/${referral.id}/attendance-history",
+        returnType = object : ParameterizedTypeReference<AttendanceHistoryResponse>() {},
+      )
+
+      // Then
+      assertThat(response.attendanceHistory).hasSize(2)
+      assertThat(response.attendanceHistory[0].unformattedDate).isBeforeOrEqualTo(response.attendanceHistory[1].unformattedDate)
     }
   }
 }
