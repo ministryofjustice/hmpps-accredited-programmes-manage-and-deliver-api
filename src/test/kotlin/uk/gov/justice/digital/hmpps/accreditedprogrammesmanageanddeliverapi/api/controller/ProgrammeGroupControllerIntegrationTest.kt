@@ -943,6 +943,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val referral = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+        personName = "Alex River",
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
@@ -989,7 +990,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
 
       // Then
-      assertThat(response.message).contains("Future scheduled sessions for this PoP have been deleted in nDelius and the Digital Service.")
+      assertThat(response.message).contains("Alex River was removed from this group. Their referral status is now Awaiting allocation")
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
 
@@ -1021,6 +1022,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val referral = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
+        personName = "Alex River",
       )
 
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -1084,7 +1086,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
 
       // Then
-      assertThat(response.message).contains("Future scheduled sessions for this PoP have been deleted in nDelius and the Digital Service.")
+      assertThat(response.message).contains("Alex River was removed from this group. Their referral status is now Return to court")
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
 
