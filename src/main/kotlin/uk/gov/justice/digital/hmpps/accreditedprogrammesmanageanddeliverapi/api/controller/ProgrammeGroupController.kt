@@ -331,15 +331,11 @@ class ProgrammeGroupController(
     @Valid
     @RequestBody removeFromGroupRequest: RemoveFromGroupRequest,
   ): ResponseEntity<RemoveFromGroupResponse> {
-    programmeGroupMembershipService.removeReferralFromGroup(
+    val response = programmeGroupMembershipService.removeReferralFromGroup(
       referralId,
       groupId,
       authenticationHolder.username ?: "SYSTEM",
       removeFromGroupRequest,
-    )
-
-    val response = RemoveFromGroupResponse(
-      message = "Future scheduled sessions for this PoP have been deleted in nDelius and the Digital Service.",
     )
 
     return ResponseEntity.status(HttpStatus.OK).body(response)

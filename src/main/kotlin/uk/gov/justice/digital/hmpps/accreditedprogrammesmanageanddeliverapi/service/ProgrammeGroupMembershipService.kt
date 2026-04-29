@@ -5,6 +5,7 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -104,7 +105,7 @@ class ProgrammeGroupMembershipService(
     groupId: UUID,
     removedFromGroupBy: String,
     removeFromGroupRequest: RemoveFromGroupRequest,
-  ): ReferralEntity {
+  ): RemoveFromGroupResponse {
     log.info("Attempting to remove Referral with id: $referralId from group with id: $groupId...")
 
     val group = (
@@ -130,7 +131,11 @@ class ProgrammeGroupMembershipService(
       )
 
     referral.statusHistories.add(statusHistory)
-    return referralRepository.save(referral)
+    referralRepository.save(referral)
+
+    return RemoveFromGroupResponse(
+      message = "${referral.personName} was removed from this group. Their referral status is now ${desiredStatus.description}",
+    )
   }
 
   fun deleteGroupMembershipForReferralAndGroup(
