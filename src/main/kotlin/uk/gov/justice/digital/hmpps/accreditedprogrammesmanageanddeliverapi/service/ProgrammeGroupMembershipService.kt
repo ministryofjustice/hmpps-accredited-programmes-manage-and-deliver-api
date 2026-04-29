@@ -71,7 +71,7 @@ class ProgrammeGroupMembershipService(
     val currentGroupMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId)
       ?: throw NotFoundException("No group membership found for referral $referralId")
 
-    // Filter out individual sessions and sessions in the past
+    // Filter out individual sessions
     val coreGroupSessions =
       group.sessions.filter { it.sessionType == SessionType.GROUP }
 
