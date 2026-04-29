@@ -85,6 +85,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SessionService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.DayOfWeek
@@ -93,7 +94,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.UUID
 
-class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
+class ProgrammeGroupControllerIntegrationTest(@Autowired private val sessionService: SessionService) : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralService: ReferralService
@@ -868,7 +869,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `allocateReferralToGroup will only add PoP to core group sessions and not any individual scheduled sessions`() {
+    fun `allocateReferralToGroup will only add PoP to core group sessions and sessions with start date in the future`() {
       // Given
       val theCrnNumber = randomUppercaseString()
       val facilitators = listOf(CreateGroupTeamMemberFactory().produce())
@@ -889,11 +890,17 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
       scheduleService.scheduleIndividualSessionAndReturnResponse(group.id!!, scheduleSessionRequest)
-      // When
+
+      val groupSessionId = group.sessions.find { it.sessionType == SessionType.GROUP }!!.id!!
+      sessionRepository.findById(groupSessionId).ifPresent { sessionEntity ->
+        sessionEntity.startsAt = LocalDateTime.now().minusDays(1)
+        sessionEntity.endsAt = LocalDateTime.now().minusDays(1).plusHours(1)
+        sessionRepository.save(sessionEntity)
+      }
 
       val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "the-forename the-surname")
-
       val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "The additional details for the test")
+
       // When
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
@@ -917,7 +924,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       wiremock.verify(3, postRequestedFor(urlEqualTo("/appointments")))
       val nDeliusAppointments = nDeliusAppointmentRepository.findAll()
-      assertThat(nDeliusAppointments.size).isEqualTo(43)
+      assertThat(nDeliusAppointments.size).isEqualTo(42)
       assertThat(foundReferral.eventId).isIn(nDeliusAppointments.mapNotNull { it.referral.eventId })
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
@@ -2899,7 +2906,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val group = testGroupHelper.createGroup()
       val newStartDate = LocalDate.now().plusDays(10)
-      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
+      val updateRequest =
+        UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -2974,7 +2982,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         CreateGroupSessionSlot(DayOfWeek.WEDNESDAY, 2, 30, AmOrPm.PM),
         CreateGroupSessionSlot(DayOfWeek.FRIDAY, 10, 0, AmOrPm.AM),
       )
-      val updateRequest = UpdateGroupRequest(createGroupSessionSlot = newSlots, automaticallyRescheduleOtherSessions = false)
+      val updateRequest =
+        UpdateGroupRequest(createGroupSessionSlot = newSlots, automaticallyRescheduleOtherSessions = false)
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -3109,7 +3118,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .map { session -> session.sessionFacilitators.map { it.facilitator.ndeliusPersonCode }.toSet() }
 
       assertThat(futureSessionFacilitators).allSatisfy { facilitatorCodes ->
-        assertThat(facilitatorCodes).containsExactlyInAnyOrder(newFacilitator.facilitatorCode, newCoverFacilitator.facilitatorCode)
+        assertThat(facilitatorCodes).containsExactlyInAnyOrder(
+          newFacilitator.facilitatorCode,
+          newCoverFacilitator.facilitatorCode,
+        )
       }
 
       val pastSessionFacilitators = refreshedSessions
@@ -3278,12 +3290,14 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       val savedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
-      val originalPlaceholder = savedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+      val originalPlaceholder =
+        savedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
 
       assertThat(originalPlaceholder.startsAt.toLocalDate()).isEqualTo(LocalDate.of(2027, 1, 6))
 
       val newStartDate = LocalDate.of(2027, 6, 30) // A Tuesday
-      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
+      val updateRequest =
+        UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -3299,7 +3313,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
       assertThat(updatedGroup.earliestPossibleStartDate).isEqualTo(newStartDate)
 
-      val updatedPlaceholder = updatedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+      val updatedPlaceholder =
+        updatedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
       assertThat(updatedPlaceholder.startsAt.toLocalDate()).isEqualTo(newStartDate)
     }
 
@@ -3315,7 +3330,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(programmeGroupRepository.findByIdOrNull(group.id!!)!!.sessions).hasSize(27)
 
       val newStartDate = LocalDate.of(2028, 3, 6) // A Tuesday
-      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = true)
+      val updateRequest =
+        UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = true)
 
       // When
       val response = performRequestAndExpectStatusWithBody(
