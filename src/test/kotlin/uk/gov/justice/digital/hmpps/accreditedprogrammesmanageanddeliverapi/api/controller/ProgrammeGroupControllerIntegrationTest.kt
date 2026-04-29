@@ -869,7 +869,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `allocateReferralToGroup will only add PoP to core group sessions and sessions with start date in the future`() {
+    fun `allocateReferralToGroup will only add PoP to core group sessions and not any individual scheduled sessions`() {
       // Given
       val theCrnNumber = randomUppercaseString()
       val facilitators = listOf(CreateGroupTeamMemberFactory().produce())
