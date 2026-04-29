@@ -740,6 +740,97 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
       assertThat(exception.message).isEqualTo("No sessions found for group ${group.id}")
     }
+
+    @Test
+    fun `should return sessions sorted by date and time ascending`() {
+      // Given - create sessions in random date order to prove sorting is applied
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.GROUP })
+          .withStartsAt(LocalDateTime.of(2026, 9, 1, 10, 0))
+          .withEndsAt(LocalDateTime.of(2026, 9, 1, 12, 0))
+          .withIsPlaceholder(false)
+          .withIsCatchup(false)
+          .produce(),
+      )
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.GROUP })
+          .withStartsAt(LocalDateTime.of(2026, 7, 1, 10, 0))
+          .withEndsAt(LocalDateTime.of(2026, 7, 1, 12, 0))
+          .withIsPlaceholder(false)
+          .withIsCatchup(false)
+          .produce(),
+      )
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.GROUP })
+          .withStartsAt(LocalDateTime.of(2026, 8, 1, 10, 0))
+          .withEndsAt(LocalDateTime.of(2026, 8, 1, 12, 0))
+          .withIsPlaceholder(false)
+          .withIsCatchup(false)
+          .produce(),
+      )
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.GROUP })
+          .withStartsAt(LocalDateTime.of(2026, 8, 1, 8, 0))
+          .withEndsAt(LocalDateTime.of(2026, 8, 1, 10, 0))
+          .withIsPlaceholder(false)
+          .withIsCatchup(false)
+          .produce(),
+      )
+
+      // When
+      val schedule = service.getScheduleOverviewForGroup(programmeGroup.id!!)
+
+      // Then - sessions should be in ascending date order
+      assertThat(schedule.sessions).hasSize(4)
+      assertThat(schedule.sessions[0].date).isEqualTo(LocalDate.of(2026, 7, 1))
+      assertThat(schedule.sessions[1].date).isEqualTo(LocalDate.of(2026, 8, 1))
+      assertThat(schedule.sessions[2].date).isEqualTo(LocalDate.of(2026, 8, 1))
+      assertThat(schedule.sessions[1].time).isEqualTo("8am to 10am")
+      assertThat(schedule.sessions[2].time).isEqualTo("10am to midday")
+      assertThat(schedule.sessions[3].date).isEqualTo(LocalDate.of(2026, 9, 1))
+    }
+
+    @Test
+    fun `should return sessions on the same date with Various times (placeholder) sessions appearing before timed sessions`() {
+      // Given - a placeholder one-to-one and a group session on the same date
+      // The placeholder has "Various times" and should sort as midnight (before the 10am group session)
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.GROUP })
+          .withStartsAt(LocalDateTime.of(2026, 7, 1, 10, 0))
+          .withEndsAt(LocalDateTime.of(2026, 7, 1, 12, 0))
+          .withIsPlaceholder(false)
+          .withIsCatchup(false)
+          .produce(),
+      )
+      testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(programmeGroup)
+          .withModuleSessionTemplate(gettingStartedModuleSessions.first { it.sessionType == SessionType.ONE_TO_ONE })
+          .withStartsAt(LocalDateTime.of(2026, 7, 1, 9, 0))
+          .withEndsAt(LocalDateTime.of(2026, 7, 1, 10, 0))
+          .withIsPlaceholder(true)
+          .withIsCatchup(false)
+          .produce(),
+      )
+
+      // When
+      val schedule = service.getScheduleOverviewForGroup(programmeGroup.id!!)
+
+      // Then - on the same date, the placeholder session ("Various times" = midnight) should come before the group session
+      assertThat(schedule.sessions).hasSize(2)
+      assertThat(schedule.sessions[0].time).isEqualTo("Various times")
+      assertThat(schedule.sessions[1].time).isNotEqualTo("Various times")
+    }
   }
 
   @Nested
