@@ -73,7 +73,7 @@ class ProgrammeGroupMembershipService(
 
     // Filter out individual sessions and sessions in the past
     val coreGroupSessions =
-      group.sessions.filter { it.sessionType == SessionType.GROUP && it.startsAt > LocalDateTime.now() }
+      group.sessions.filter { it.sessionType == SessionType.GROUP }
 
     val newAttendees = coreGroupSessions.map { session ->
       val attendeeEntity = AttendeeEntity(
