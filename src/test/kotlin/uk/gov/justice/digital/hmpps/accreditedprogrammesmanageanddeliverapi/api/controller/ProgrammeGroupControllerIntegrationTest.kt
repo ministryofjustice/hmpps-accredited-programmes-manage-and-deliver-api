@@ -885,7 +885,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         sessionTemplateId = group.sessions.find { it.sessionType == SessionType.ONE_TO_ONE }!!.moduleSessionTemplate.id!!,
         referralIds = listOf(alreadyAllocatedReferral.id!!),
         facilitators = facilitators,
-        startDate = LocalDate.of(2025, 1, 1),
+        startDate = LocalDate.now().plusDays(1),
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
@@ -1888,7 +1888,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         sessionTemplateId = sessionTemplate.id!!,
         referralIds = listOf(referral.id!!),
         facilitators = facilitators,
-        startDate = LocalDate.of(2025, 1, 1),
+        startDate = LocalDate.now().plusDays(1),
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
@@ -1930,7 +1930,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         sessionTemplateId = sessionTemplate.id!!,
         referralIds = listOf(referral.id!!),
         facilitators = facilitators,
-        startDate = LocalDate.of(2025, 1, 1),
+        startDate = LocalDate.now().plusDays(1),
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
         sessionScheduleType = SessionScheduleType.CATCH_UP,
@@ -2105,7 +2105,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         sessionTemplateId = sessionTemplate.id!!,
         referralIds = listOf(referral.id!!),
         facilitators = listOf(nonExistentFacilitator),
-        startDate = LocalDate.of(2025, 1, 1),
+        startDate = LocalDate.now().plusDays(1),
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
