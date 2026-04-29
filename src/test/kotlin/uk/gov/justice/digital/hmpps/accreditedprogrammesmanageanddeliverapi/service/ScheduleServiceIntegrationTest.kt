@@ -26,6 +26,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.temporal.TemporalAdjusters
 
 class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: SessionRepository) : IntegrationTestBase() {
 
@@ -85,7 +86,8 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
 
     // Should have 26 sessions — no pre-group one-to-one placeholder
     assertThat(updatedGroup.sessions).hasSize(26)
-    val preGroupPlaceholders = updatedGroup.sessions.filter { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+    val preGroupPlaceholders =
+      updatedGroup.sessions.filter { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
     assertThat(preGroupPlaceholders).isEmpty()
   }
 
@@ -108,7 +110,8 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
 
     assertThat(updatedGroup.sessions).hasSize(27)
-    val preGroupPlaceholders = updatedGroup.sessions.filter { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+    val preGroupPlaceholders =
+      updatedGroup.sessions.filter { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
     assertThat(preGroupPlaceholders).hasSize(1)
   }
 
@@ -174,16 +177,19 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
 
     // Find the original pre-group one-to-one placeholder and record its date
-    val preGroupOneToOnePlaceholderSession = updatedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+    val preGroupOneToOnePlaceholderSession =
+      updatedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
 
     // Simulate setting a new earliest start date
-    updatedGroup.earliestPossibleStartDate = LocalDate.now(clock).plusYears(2).plusDays(2) // On a Wednesday, outside of group cadence
+    updatedGroup.earliestPossibleStartDate =
+      LocalDate.now(clock).plusYears(2).plusDays(2) // On a Wednesday, outside of group cadence
     programmeGroupRepository.save(updatedGroup)
 
     // Manually update the placeholder date to match the new earliest start date (as ProgrammeGroupService does)
     val newEarliestStartDate = updatedGroup.earliestPossibleStartDate
     val newPlaceholderDate = newEarliestStartDate.atTime(preGroupOneToOnePlaceholderSession.startsAt.toLocalTime())
-    val originalDuration = java.time.Duration.between(preGroupOneToOnePlaceholderSession.startsAt, preGroupOneToOnePlaceholderSession.endsAt)
+    val originalDuration =
+      java.time.Duration.between(preGroupOneToOnePlaceholderSession.startsAt, preGroupOneToOnePlaceholderSession.endsAt)
     preGroupOneToOnePlaceholderSession.startsAt = newPlaceholderDate
     preGroupOneToOnePlaceholderSession.endsAt = newPlaceholderDate.plus(originalDuration)
     sessionRepository.save(preGroupOneToOnePlaceholderSession)
@@ -204,7 +210,8 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     assertThat(placeholders.first().startsAt.toLocalDate()).isEqualTo(newPlaceholderDate.toLocalDate())
 
     // All non Pre-group one-to-one placeholder sessions should have been rescheduled to the new date range
-    val nonPreGroupOneToOnePlaceholderSessions = rescheduledGroup.sessions.filter { !(it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder) }
+    val nonPreGroupOneToOnePlaceholderSessions =
+      rescheduledGroup.sessions.filter { !(it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder) }
     assertThat(nonPreGroupOneToOnePlaceholderSessions).allMatch { it.startsAt.year >= 2027 }
 
     // All rescheduled sessions should be on Monday (the slot day)
@@ -302,9 +309,10 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
   @Test
   fun `Reschedule sessions should remove all attendees and reschedule when group has not started yet`() {
     val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
-    // Earliest start date plus 7 days 2025-11-29 so we will have 0 slot completed
+    // Earliest start monday's date plus 7 days so we will have 0 slots completed
+    val earliestMondayDate = LocalDate.now().with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY)).plusDays(7)
     val group = testGroupHelper.createGroup(
-      earliestStartDate = LocalDate.now(clock).plusDays(7),
+      earliestStartDate = earliestMondayDate,
       createGroupSessionSlots = setOf(slot1),
     )
 
@@ -329,9 +337,9 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
 
     val updatedGroupBeforeReschedule = programmeGroupRepository.findByIdOrNull(group.id!!)!!
     assertThat(updatedGroupBeforeReschedule.sessions).hasSize(27)
-    // First scheduled session is Monday 1st December  @ 9.30am
+    // The first scheduled session is Monday @ 9.30am
     assertThat(updatedGroupBeforeReschedule.sessions.first().startsAt).isEqualTo(
-      LocalDateTime.of(2025, 12, 1, 9, 30, 0),
+      LocalDateTime.of(earliestMondayDate.year, earliestMondayDate.month, earliestMondayDate.dayOfMonth, 9, 30, 0),
     )
     assertThat(updatedGroupBeforeReschedule.sessions.map { it.attendees }).isNotEmpty
 
@@ -344,7 +352,8 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     }
 
     // Alter group start date for rescheduling
-    updatedGroupBeforeReschedule.earliestPossibleStartDate = LocalDate.now(clock).plusYears(2)
+    val yearsToAdd = 2L
+    updatedGroupBeforeReschedule.earliestPossibleStartDate = LocalDate.now().plusYears(yearsToAdd)
     programmeGroupRepository.save(updatedGroupBeforeReschedule)
 
     scheduleService.rescheduleSessionsForGroup(updatedGroupBeforeReschedule.id!!)
@@ -352,7 +361,7 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     val updatedGroup = programmeGroupRepository.findByIdOrNull(updatedGroupBeforeReschedule.id!!)!!
     assertThat(updatedGroup.sessions).hasSize(27)
     val (originalSessions, rescheduleSessions) = updatedGroup.sessions.partition { it.startsAt.year <= 2026 }
-    assertThat(rescheduleSessions).allMatch { it.startsAt.year >= 2027 }
+    assertThat(rescheduleSessions).allMatch { it.startsAt.year >= earliestMondayDate.year + yearsToAdd }
 
     assertThat(originalSessions).hasSize(0)
     assertThat(rescheduleSessions).hasSize(27)
@@ -363,10 +372,12 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
 
   @Test
   fun `Reschedule sessions should remove old attendances and keep ones related to sessions that have ran`() {
+    whenever(clock.instant()).thenReturn(Instant.now())
     val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
-    // Earliest start date minus 7 days 2025-11-15 so we will have 1 slot completed
+    // Earliest Monday's start date minus 7 days, so we will have 1 slot completed
+    val earliestMondayDate = LocalDate.now().with(TemporalAdjusters.previous(DayOfWeek.MONDAY)).minusDays(7)
     val group = testGroupHelper.createGroup(
-      earliestStartDate = LocalDate.now(clock).minusDays(7),
+      earliestStartDate = earliestMondayDate,
       createGroupSessionSlots = setOf(slot1),
     )
 
@@ -391,9 +402,9 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
 
     val updatedGroupBeforeReschedule = programmeGroupRepository.findByIdOrNull(group.id!!)!!
     assertThat(updatedGroupBeforeReschedule.sessions).hasSize(27)
-    // First scheduled session is Monday 17th  @ 9.30am
+    // The First scheduled session is Monday @ 9.30am
     assertThat(updatedGroupBeforeReschedule.sessions.first().startsAt).isEqualTo(
-      LocalDateTime.of(2025, 11, 17, 9, 30, 0),
+      LocalDateTime.of(earliestMondayDate.year, earliestMondayDate.month, earliestMondayDate.dayOfMonth, 9, 30, 0),
     )
     assertThat(updatedGroupBeforeReschedule.sessions.map { it.attendees }).isNotEmpty
 
@@ -420,9 +431,18 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     val updatedGroup = programmeGroupRepository.findByIdOrNull(updatedGroupBeforeReschedule.id!!)!!
     assertThat(updatedGroup.sessions).hasSize(27)
 
-    // First session should be same as original after reschedule Monday 17th  @ 9.30am
+    // The first session should be the same as the original after rescheduling Monday @ 9.30am
     val firstSession = updatedGroup.sessions.first()
-    assertThat(firstSession.startsAt).isEqualTo(LocalDateTime.of(2025, 11, 17, 9, 30, 0))
+    assertThat(firstSession.startsAt).isEqualTo(
+      LocalDateTime.of(
+        earliestMondayDate.year,
+        earliestMondayDate.month,
+        earliestMondayDate.dayOfMonth,
+        9,
+        30,
+        0,
+      ),
+    )
     // It should still have its appointments IF it was a GROUP session
     if (firstSession.sessionType == SessionType.GROUP) {
       assertThat(firstSession.ndeliusAppointments).hasSize(2)
