@@ -586,6 +586,8 @@ class ProgrammeGroupService(
 
     val groupSessions =
       sessions.filter { (it.sessionType == SessionType.GROUP && !it.isCatchup) || (it.sessionType == SessionType.ONE_TO_ONE && it.isPlaceholder && !it.isCatchup) }
+        // Sort by date and start time, if time is various (placeholder session) then set start time to be midnight
+        .sortedWith(compareBy({ it.startsAt.toLocalDate() }, { if (it.isPlaceholder) LocalTime.MIDNIGHT else it.startsAt.toLocalTime() }))
         .map { session ->
           val sessionName = sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview)
           GroupScheduleOverviewSession(
