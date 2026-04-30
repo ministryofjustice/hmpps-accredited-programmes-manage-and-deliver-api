@@ -84,7 +84,7 @@ class ProgrammeGroupMembershipService(
       attendeeEntity
     }
 
-    // Create appointment in NDelius for each session object
+    // Create appointments in NDelius for each session object
     scheduleService.createNdeliusAppointmentsForSessions(newAttendees)
 
     return referralRepository.save(referral)
