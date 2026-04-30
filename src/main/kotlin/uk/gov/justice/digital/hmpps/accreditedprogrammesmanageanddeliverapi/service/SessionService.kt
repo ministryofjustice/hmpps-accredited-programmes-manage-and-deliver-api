@@ -165,12 +165,12 @@ class SessionService(
       val response = nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateRequests))
     ) {
       is ClientResult.Failure.StatusCode -> {
-        log.warn("Failure to update appointments with reason: ${response.getErrorMessage()}")
+        log.error("Failure to update appointments with reason: ${response.getErrorMessage()}")
         throw BusinessException("Failure to update appointments", response.toException())
       }
 
       is ClientResult.Failure.Other -> {
-        log.warn(
+        log.error(
           "Failure to update appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
           response.exception,
         )
@@ -360,13 +360,17 @@ class SessionService(
     val sessionAttendanceEntities = getSessionAttendanceFromAttendees(attendees, session)
     session.attendances.addAll(sessionAttendanceEntities)
     sessionRepository.save(session)
-
+    log.warn("attendees: ${attendees}")
+    log.warn("sessionAttendanceEntities: ${sessionAttendanceEntities}")
     if (attendees.isNotEmpty()) {
       val updateAppointmentRequests = attendees.mapNotNull { attendee ->
         val referralId = attendee.referralId
         val nDeliusAppointment = session.ndeliusAppointments.find { it.referral.id == referralId }
         nDeliusAppointment?.toUpdateAppointmentRequest(attendee.sessionNotes, attendee.outcomeCode)
       }
+
+      log.warn("updateAppointmentRequests: ${updateAppointmentRequests}")
+
 
       if (updateAppointmentRequests.isNotEmpty()) {
         when (
