@@ -8,6 +8,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.subjectAccessRequest.SubjectAccessRequestReferralCaseListItemView
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.subjectAccessRequest.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AttendeeRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
@@ -22,6 +23,7 @@ class SubjectAccessRequestService(
   private val referralRepository: ReferralRepository,
   private val messageHistoryRepository: MessageHistoryRepository,
   private val attendeeRepository: AttendeeRepository,
+  private val availabilityRepository: AvailabilityRepository,
   private val groupWaitlistItemViewRepository: GroupWaitlistItemViewRepository,
   private val referralCaseListItemRepository: ReferralCaseListItemRepository,
 ) : HmppsProbationSubjectAccessRequestService {
@@ -69,7 +71,8 @@ class SubjectAccessRequestService(
     }.map { referralEntity ->
       val messageHistoryEntities = messageHistoryRepository.findByReferral(referralEntity)
       val attendeeEntities = attendeeRepository.findByReferral(referralEntity)
-      referralEntity.toApi(messageHistoryEntities, attendeeEntities)
+      val availabilityEntity = referralEntity.id?.let { availabilityRepository.findByReferralId(it) }
+      referralEntity.toApi(messageHistoryEntities, attendeeEntities, availabilityEntity)
     }.toList()
   }
 }
