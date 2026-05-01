@@ -13,8 +13,9 @@ data class RecordSessionAttendance(
 
   @Schema(
     description = "A module name of a session",
-    example = "Getting started",
+    example = "Getting started 1",
   )
+  val sessionModule: String,
 
   @Schema(
     description = "Region name of a programme group",
