@@ -27,4 +27,4 @@ jobs:
             exit 1
           fi
 
-          echo "✅ Branch name is valid."
+          echo "✅ Branch name is valid. Changed version"
