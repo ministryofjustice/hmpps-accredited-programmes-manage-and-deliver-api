@@ -81,7 +81,7 @@ class ReferralServiceTest {
   private lateinit var programmeGroupService: ProgrammeGroupService
 
   @Mock
-  private lateinit var domainEventService: DomainEventService
+  private lateinit var referralEventService: ReferralEventService
 
   private lateinit var referralService: ReferralService
 
@@ -106,7 +106,7 @@ class ReferralServiceTest {
       referralReportingLocationRepository = referralReportingLocationRepository,
       sentenceService = sentenceService,
       programmeGroupMembershipService = programmeGroupMembershipService,
-      domainEventService = domainEventService,
+      referralEventService = referralEventService,
       programmeGroupService = programmeGroupService,
       referralStatusService = referralStatusService,
       sessionNameFormatter = sessionNameFormatter,

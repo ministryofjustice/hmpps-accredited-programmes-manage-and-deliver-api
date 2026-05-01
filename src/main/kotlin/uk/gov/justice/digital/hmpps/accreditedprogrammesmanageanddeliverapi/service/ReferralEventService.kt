@@ -3,7 +3,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.DomainEventPublisher
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes
@@ -12,12 +11,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.even
 import java.time.ZonedDateTime
 
 @Service
-@Transactional
-class DomainEventService(
+class ReferralEventService(
   private val domainEventPublisher: DomainEventPublisher,
-
-  @Value("\${services.manage-and-deliver-api.base-url}")
-  private val madBaseUrl: String,
+  @Value("\${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)

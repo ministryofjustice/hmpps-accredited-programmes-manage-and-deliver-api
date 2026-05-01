@@ -6,7 +6,6 @@ import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.ArgumentMatchers.anyList
 import org.springframework.data.repository.findByIdOrNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
@@ -26,7 +25,7 @@ class ProgrammeGroupMembershipServiceTest {
   private val referralStatusDescriptionRepository = mockk<ReferralStatusDescriptionRepository>()
   private val programmeGroupMembershipRepository = mockk<ProgrammeGroupMembershipRepository>()
   private val scheduleService = mockk<ScheduleService>()
-  private val domainEventService = mockk<DomainEventService>()
+  private val referralEventService = mockk<ReferralEventService>()
   private lateinit var service: ProgrammeGroupMembershipService
 
   @BeforeEach
@@ -37,7 +36,7 @@ class ProgrammeGroupMembershipServiceTest {
       referralStatusDescriptionRepository = referralStatusDescriptionRepository,
       programmeGroupMembershipRepository = programmeGroupMembershipRepository,
       scheduleService = scheduleService,
-      domainEventService = domainEventService,
+      referralEventService = referralEventService,
     )
   }
 
@@ -60,8 +59,8 @@ class ProgrammeGroupMembershipServiceTest {
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns null andThen programmeGroupMembershipEntity
     every { referralStatusDescriptionRepository.getScheduledStatusDescription() } returns referralStatusDescriptionEntity
     every { referralRepository.save(referralEntity) } returns referralEntity
-    every { scheduleService.createNdeliusAppointmentsForSessions(anyList()) } returns Unit
-    every { domainEventService.publishReferralStatusUpdatedEvent(referralEntity) } returns Unit
+    every { scheduleService.createNdeliusAppointmentsForSessions(any()) } returns Unit
+    every { referralEventService.publishReferralStatusUpdatedEvent(referralEntity) } returns Unit
 
     // When
     val result = service.allocateReferralToGroup(referralId, groupId, allocatedToGroupBy, additionalDetails)
@@ -76,7 +75,7 @@ class ProgrammeGroupMembershipServiceTest {
     verify { referralStatusDescriptionRepository.getScheduledStatusDescription() }
     verify { referralRepository.save(referralEntity) }
     verify { scheduleService.createNdeliusAppointmentsForSessions(any()) }
-    verify { domainEventService.publishReferralStatusUpdatedEvent(referralEntity) }
+    verify { referralEventService.publishReferralStatusUpdatedEvent(referralEntity) }
   }
 
   @Test
@@ -101,11 +100,11 @@ class ProgrammeGroupMembershipServiceTest {
         groupId,
       )
     } returns programmeGroupMembershipEntity
-    every { scheduleService.removeNDeliusAppointments(anyList(), anyList()) } returns Unit
+    every { scheduleService.removeNDeliusAppointments(any(), any()) } returns Unit
     every { programmeGroupRepositoryImpl.save(programmeGroupEntity) } returns programmeGroupEntity
     every { referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId) } returns referralStatusDescriptionEntity
     every { referralRepository.save(referralEntity) } returns referralEntity
-    every { domainEventService.publishReferralStatusUpdatedEvent(referralEntity) } returns Unit
+    every { referralEventService.publishReferralStatusUpdatedEvent(referralEntity) } returns Unit
 
     // When
     val result = service.removeReferralFromGroup(referralId, groupId, removedFromGroupBy, removeFromGroupRequest)
@@ -116,10 +115,10 @@ class ProgrammeGroupMembershipServiceTest {
     verify { programmeGroupRepositoryImpl.findByIdOrNull(groupId) }
     verify { referralRepository.findByIdOrNull(referralId) }
     verify { programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referralId, groupId) }
-    verify { scheduleService.removeNDeliusAppointments(anyList(), anyList()) }
+    verify { scheduleService.removeNDeliusAppointments(any(), any()) }
     verify { programmeGroupRepositoryImpl.save(programmeGroupEntity) }
     verify { referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId) }
     verify { referralRepository.save(referralEntity) }
-    verify { domainEventService.publishReferralStatusUpdatedEvent(referralEntity) }
+    verify { referralEventService.publishReferralStatusUpdatedEvent(referralEntity) }
   }
 }

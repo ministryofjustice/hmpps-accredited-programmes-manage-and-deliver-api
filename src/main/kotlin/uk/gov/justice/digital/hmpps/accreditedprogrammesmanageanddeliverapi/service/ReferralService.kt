@@ -72,7 +72,7 @@ class ReferralService(
   private val programmeGroupService: ProgrammeGroupService,
   private val sessionNameFormatter: SessionNameFormatter,
   private val referralStatusService: ReferralStatusService,
-  private val domainEventService: DomainEventService,
+  private val referralEventService: ReferralEventService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -357,7 +357,7 @@ class ReferralService(
       ),
     )
 
-    domainEventService.publishReferralStatusUpdatedEvent(referral)
+    referralEventService.publishReferralStatusUpdatedEvent(referral)
 
     // If status changed to "Programme complete", check if completion event should be published
     if (incomingReferralStatusDescription.description == "Programme complete") {

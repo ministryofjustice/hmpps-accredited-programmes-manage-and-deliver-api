@@ -30,7 +30,7 @@ class ProgrammeGroupMembershipService(
   private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
   private val scheduleService: ScheduleService,
-  private val domainEventService: DomainEventService,
+  private val referralEventService: ReferralEventService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -86,7 +86,7 @@ class ProgrammeGroupMembershipService(
     // Create appointments in NDelius for each session object
     scheduleService.createNdeliusAppointmentsForSessions(newAttendees)
 
-    domainEventService.publishReferralStatusUpdatedEvent(referral)
+    referralEventService.publishReferralStatusUpdatedEvent(referral)
 
     return referralRepository.save(referral)
   }
@@ -133,7 +133,7 @@ class ProgrammeGroupMembershipService(
 
     referral.statusHistories.add(statusHistory)
     referralRepository.save(referral)
-    domainEventService.publishReferralStatusUpdatedEvent(referral)
+    referralEventService.publishReferralStatusUpdatedEvent(referral)
 
     return RemoveFromGroupResponse(
       message = "${referral.personName} was removed from this group. Their referral status is now ${desiredStatus.description}",

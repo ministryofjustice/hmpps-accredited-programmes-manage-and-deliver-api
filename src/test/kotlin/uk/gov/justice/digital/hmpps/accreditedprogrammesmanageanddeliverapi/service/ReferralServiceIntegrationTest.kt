@@ -557,13 +557,16 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     }
 
     private fun verifyReferralStatusUpdateEventSent() {
-      await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { interventionsQueue.countAllMessagesOnQueue() } } matches { it == 1 }
-      val eventBody = objectMapper.readValue<SQSMessage>(
-        with(domainEventsQueueConfig) {
-          interventionsQueue.receiveMessageOnQueue().body()
-        },
-      )
-      assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_STATUS_UPDATED.value)
+      await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { interventionsQueue.countAllMessagesOnQueue() } } matches { it == 2 }
+
+      repeat(2) {
+        val eventBody = objectMapper.readValue<SQSMessage>(
+          with(domainEventsQueueConfig) {
+            interventionsQueue.receiveMessageOnQueue().body()
+          },
+        )
+        assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_STATUS_UPDATED.value)
+      }
     }
   }
 
