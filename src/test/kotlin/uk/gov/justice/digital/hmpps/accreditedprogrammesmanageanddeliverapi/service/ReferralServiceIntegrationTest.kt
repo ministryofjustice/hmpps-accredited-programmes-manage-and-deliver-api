@@ -349,6 +349,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
           "THE_USER_WHO_ADDED_TO_GROUP",
           "",
         )
+      domainEventsQueueConfig.purgeAllQueues()
 
       // When
       val numberOfHistoriesBeforeUpdate = referralFromAllocateToGroup.statusHistories.size
@@ -415,6 +416,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       membershipService.allocateReferralToGroup(theReferral.id!!, theGroup.id!!, "SYSTEM", "")
 
       val theReferralWithGroup = referralRepository.findByCrn(theCrnNumber).first()
+      domainEventsQueueConfig.purgeAllQueues()
 
       // When
       assertThat(theReferralWithGroup.programmeGroupMemberships.find { it.programmeGroup.id == theGroup.id }).isNotNull()
@@ -557,16 +559,14 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     }
 
     private fun verifyReferralStatusUpdateEventSent() {
-      await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { interventionsQueue.countAllMessagesOnQueue() } } matches { it == 2 }
+      await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { interventionsQueue.countAllMessagesOnQueue() } } matches { it == 1 }
 
-      repeat(2) {
-        val eventBody = objectMapper.readValue<SQSMessage>(
-          with(domainEventsQueueConfig) {
-            interventionsQueue.receiveMessageOnQueue().body()
-          },
-        )
-        assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_STATUS_UPDATED.value)
-      }
+      val eventBody = objectMapper.readValue<SQSMessage>(
+        with(domainEventsQueueConfig) {
+          interventionsQueue.receiveMessageOnQueue().body()
+        },
+      )
+      assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_STATUS_UPDATED.value)
     }
   }
 
