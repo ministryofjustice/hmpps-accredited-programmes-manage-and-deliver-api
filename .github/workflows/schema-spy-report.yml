@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    if: github.ref == 'refs/heads/main'
     name: Generate Database Schema Report
     steps:
       - name: Checkout code
