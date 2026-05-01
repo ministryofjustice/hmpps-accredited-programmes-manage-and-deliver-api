@@ -26,7 +26,7 @@ class ProgrammeGroupMembershipServiceTest {
   private val referralStatusDescriptionRepository = mockk<ReferralStatusDescriptionRepository>()
   private val programmeGroupMembershipRepository = mockk<ProgrammeGroupMembershipRepository>()
   private val scheduleService = mockk<ScheduleService>()
-  private val referralService = mockk<ReferralService>()
+  private val domainEventService = mockk<DomainEventService>()
   private lateinit var service: ProgrammeGroupMembershipService
 
   @BeforeEach
@@ -37,7 +37,7 @@ class ProgrammeGroupMembershipServiceTest {
       referralStatusDescriptionRepository = referralStatusDescriptionRepository,
       programmeGroupMembershipRepository = programmeGroupMembershipRepository,
       scheduleService = scheduleService,
-      referralService = referralService,
+      domainEventService = domainEventService,
     )
   }
 
@@ -61,7 +61,7 @@ class ProgrammeGroupMembershipServiceTest {
     every { referralStatusDescriptionRepository.getScheduledStatusDescription() } returns referralStatusDescriptionEntity
     every { referralRepository.save(referralEntity) } returns referralEntity
     every { scheduleService.createNdeliusAppointmentsForSessions(anyList()) } returns Unit
-    every { referralService.publishReferralStatusUpdatedEvent(referralEntity) } returns Unit
+    every { domainEventService.publishReferralStatusUpdatedEvent(referralEntity) } returns Unit
 
     // When
     val result = service.allocateReferralToGroup(referralId, groupId, allocatedToGroupBy, additionalDetails)
@@ -76,7 +76,7 @@ class ProgrammeGroupMembershipServiceTest {
     verify { referralStatusDescriptionRepository.getScheduledStatusDescription() }
     verify { referralRepository.save(referralEntity) }
     verify { scheduleService.createNdeliusAppointmentsForSessions(any()) }
-    verify { referralService.publishReferralStatusUpdatedEvent(referralEntity) }
+    verify { domainEventService.publishReferralStatusUpdatedEvent(referralEntity) }
   }
 
   @Test
@@ -105,7 +105,7 @@ class ProgrammeGroupMembershipServiceTest {
     every { programmeGroupRepositoryImpl.save(programmeGroupEntity) } returns programmeGroupEntity
     every { referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId) } returns referralStatusDescriptionEntity
     every { referralRepository.save(referralEntity) } returns referralEntity
-    every { referralService.publishReferralStatusUpdatedEvent(referralEntity) } returns Unit
+    every { domainEventService.publishReferralStatusUpdatedEvent(referralEntity) } returns Unit
 
     // When
     val result = service.removeReferralFromGroup(referralId, groupId, removedFromGroupBy, removeFromGroupRequest)
@@ -120,6 +120,6 @@ class ProgrammeGroupMembershipServiceTest {
     verify { programmeGroupRepositoryImpl.save(programmeGroupEntity) }
     verify { referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId) }
     verify { referralRepository.save(referralEntity) }
-    verify { referralService.publishReferralStatusUpdatedEvent(referralEntity) }
+    verify { domainEventService.publishReferralStatusUpdatedEvent(referralEntity) }
   }
 }
