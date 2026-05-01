@@ -456,9 +456,9 @@ class ReferralService(
     else -> null
   }
 
-  private fun publishReferralStatusUpdatedEvent(referral: ReferralEntity) {
+  fun publishReferralStatusUpdatedEvent(referral: ReferralEntity) {
     val hmppsDomainEvent = DomainEventsMessage(
-      eventType = HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_CREATED.value,
+      eventType = HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_STATUS_UPDATED.value,
       version = 1,
       detailUrl = "$madBaseUrl/referral/${referral.id}/status-change-details",
       occurredAt = ZonedDateTime.now(),
@@ -466,7 +466,7 @@ class ReferralService(
       additionalInformation = mutableMapOf(),
       personReference = PersonReference.fromCrn(referral.crn),
     )
-    log.info("Publishing ${HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_CREATED.value} event for referralId: ${referral.id}")
+    log.info("Publishing ${HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_STATUS_UPDATED.value} event for referralId: ${referral.id}")
     domainEventPublisher.publish(hmppsDomainEvent)
   }
 }

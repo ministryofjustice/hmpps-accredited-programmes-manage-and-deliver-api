@@ -38,7 +38,7 @@ class ReferralStatusEventTest : IntegrationTestBase() {
         interventionsQueue.receiveMessageOnQueue().body()
       },
     )
-    assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_CREATED.value)
+    assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_STATUS_UPDATED.value)
 
     val hmppsDomainEvent: DomainEventsMessage = objectMapper.readValue(eventBody.message)
 

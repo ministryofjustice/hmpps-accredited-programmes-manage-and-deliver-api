@@ -437,7 +437,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     fun `updateStatus to Programme complete should publish completion event when referral has valid post-programme review attendance`() {
       // Given
       val theCrnNumber = randomUppercaseString()
-      val programmeCompleteStatusDescriptionId = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
+      val programmeCompleteStatusDescriptionId =
+        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
       val onProgrammeStatusDescriptionId = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
@@ -505,7 +506,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     fun `updateStatus to Programme complete should not publish completion event when no post-programme review attendance exists`() {
       // Given
       val theCrnNumber = randomUppercaseString()
-      val programmeCompleteStatusDescriptionId = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
+      val programmeCompleteStatusDescriptionId =
+        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
       val onProgrammeStatusDescriptionId = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
@@ -551,7 +553,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
           interventionsQueue.receiveMessageOnQueue().body()
         },
       )
-      assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_CREATED.value)
+      assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_STATUS_UPDATED.value)
     }
 
     private fun verifyReferralStatusUpdateEventSent() {
@@ -561,7 +563,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
           interventionsQueue.receiveMessageOnQueue().body()
         },
       )
-      assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_CREATED.value)
+      assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_STATUS_UPDATED.value)
     }
   }
 
