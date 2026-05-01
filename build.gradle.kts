@@ -6,7 +6,7 @@ plugins {
   kotlin("plugin.spring") version "2.3.21"
   kotlin("plugin.jpa") version "2.3.21"
   kotlin("plugin.allopen") version "2.3.21"
-  id("io.sentry.jvm.gradle") version "6.5.0"
+  id("io.sentry.jvm.gradle") version "6.6.0"
 }
 
 configurations {
