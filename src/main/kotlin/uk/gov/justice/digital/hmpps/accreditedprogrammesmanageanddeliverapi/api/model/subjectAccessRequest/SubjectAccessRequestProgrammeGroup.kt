@@ -1,13 +1,14 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.subjectAccessRequest
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import java.util.UUID
 
 data class SubjectAccessRequestProgrammeGroup(
-  val treatmentManager: SubjectAccessRequestFacilitator?,
-  val updatedByUsername: String?,
+  val id: UUID?,
+  val accreditedProgrammeTemplate: SubjectAccessRequestAccreditedProgrammeTemplate?,
 )
 
 fun ProgrammeGroupEntity.toApi() = SubjectAccessRequestProgrammeGroup(
-  treatmentManager = treatmentManager?.toApi(),
-  updatedByUsername = updatedByUsername,
+  id = id,
+  accreditedProgrammeTemplate = accreditedProgrammeTemplate?.toApi(),
 )

@@ -6,6 +6,7 @@ import java.time.LocalDateTime
 data class SubjectAccessRequestReferralStatusHistory(
   val additionalDetails: String?,
   val createdBy: String,
+  val createdAt: LocalDateTime,
   val startDate: LocalDateTime?,
   val referralStatusDescription: SubjectAccessRequestReferralStatusDescription,
 )
@@ -13,6 +14,7 @@ data class SubjectAccessRequestReferralStatusHistory(
 fun ReferralStatusHistoryEntity.toApi() = SubjectAccessRequestReferralStatusHistory(
   additionalDetails = additionalDetails,
   createdBy = createdBy,
+  createdAt = createdAt,
   startDate = startDate,
   referralStatusDescription = referralStatusDescription.toApi(),
 )

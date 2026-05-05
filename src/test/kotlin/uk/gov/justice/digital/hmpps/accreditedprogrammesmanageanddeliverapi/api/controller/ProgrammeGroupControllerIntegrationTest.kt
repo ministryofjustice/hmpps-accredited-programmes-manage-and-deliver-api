@@ -1,8 +1,13 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
+import org.awaitility.kotlin.await
+import org.awaitility.kotlin.matches
+import org.awaitility.kotlin.untilCallTo
+import org.awaitility.kotlin.withPollDelay
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -61,6 +66,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionNotesHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusAppointmentEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
@@ -89,6 +96,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.DayOfWeek
+import java.time.Duration.ofMillis
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -740,6 +748,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   @Nested
   @DisplayName("Allocate to Programme group")
   inner class AllocateToProgrammeGroup {
+
     @Test
     fun `allocateReferralToGroup can successfully allocate a referral to a group`() {
       // Given
@@ -761,6 +770,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "the-forename the-surname")
       val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "The additional details for the test")
+      domainEventsQueueConfig.purgeAllQueues()
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -795,6 +805,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val attendeeList =
         foundReferral.programmeGroupMemberships.first().programmeGroup.sessions.flatMap { sessionEntity -> sessionEntity.attendees.map { it.personName } }
       assertThat(attendeeList).allMatch { attendeeList.contains(it) }
+      verifyReferralStatusUpdateEventSent()
     }
 
     @Test
@@ -890,11 +901,18 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
       scheduleService.scheduleIndividualSessionAndReturnResponse(group.id!!, scheduleSessionRequest)
-      // When
+
+      val groupSessionId = group.sessions.find { it.sessionType == SessionType.GROUP }!!.id!!
+      val optionalGroupSession = sessionRepository.findById(groupSessionId)
+      assertThat(optionalGroupSession).isPresent
+      val savedGroupSession = optionalGroupSession.get()
+      savedGroupSession.startsAt = LocalDateTime.now().minusDays(1)
+      savedGroupSession.endsAt = LocalDateTime.now().minusDays(1).plusHours(1)
+      sessionRepository.save(savedGroupSession)
 
       val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "the-forename the-surname")
-
       val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "The additional details for the test")
+
       // When
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
@@ -918,7 +936,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       wiremock.verify(3, postRequestedFor(urlEqualTo("/appointments")))
       val nDeliusAppointments = nDeliusAppointmentRepository.findAll()
-      assertThat(nDeliusAppointments.size).isEqualTo(43)
+      assertThat(nDeliusAppointments.size).isEqualTo(42)
       assertThat(foundReferral.eventId).isIn(nDeliusAppointments.mapNotNull { it.referral.eventId })
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
@@ -1007,7 +1025,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   @Nested
   @DisplayName("Remove from Programme group")
   inner class RemoveFromProgrammeGroup {
-
     val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
 
     @Test
@@ -1052,6 +1069,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
       sessionRepository.save(session)
 
+      domainEventsQueueConfig.purgeAllQueues()
+
       // When
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
@@ -1086,6 +1105,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Validate that associated ndelius appointments have been removed from the DB
       val foundNdeliusAppointment = nDeliusAppointmentRepository.findBySessionId(session.id!!)
       assertThat(foundNdeliusAppointment).isNull()
+      verifyReferralStatusUpdateEventSent()
     }
 
     @Test
@@ -2975,7 +2995,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val group = testGroupHelper.createGroup()
       val newStartDate = LocalDate.now().plusDays(10)
-      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
+      val updateRequest =
+        UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -3050,7 +3071,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         CreateGroupSessionSlot(DayOfWeek.WEDNESDAY, 2, 30, AmOrPm.PM),
         CreateGroupSessionSlot(DayOfWeek.FRIDAY, 10, 0, AmOrPm.AM),
       )
-      val updateRequest = UpdateGroupRequest(createGroupSessionSlot = newSlots, automaticallyRescheduleOtherSessions = false)
+      val updateRequest =
+        UpdateGroupRequest(createGroupSessionSlot = newSlots, automaticallyRescheduleOtherSessions = false)
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -3185,7 +3207,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .map { session -> session.sessionFacilitators.map { it.facilitator.ndeliusPersonCode }.toSet() }
 
       assertThat(futureSessionFacilitators).allSatisfy { facilitatorCodes ->
-        assertThat(facilitatorCodes).containsExactlyInAnyOrder(newFacilitator.facilitatorCode, newCoverFacilitator.facilitatorCode)
+        assertThat(facilitatorCodes).containsExactlyInAnyOrder(
+          newFacilitator.facilitatorCode,
+          newCoverFacilitator.facilitatorCode,
+        )
       }
 
       val pastSessionFacilitators = refreshedSessions
@@ -3354,12 +3379,14 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       val savedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
-      val originalPlaceholder = savedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+      val originalPlaceholder =
+        savedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
 
       assertThat(originalPlaceholder.startsAt.toLocalDate()).isEqualTo(LocalDate.of(2027, 1, 6))
 
       val newStartDate = LocalDate.of(2027, 6, 30) // A Tuesday
-      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
+      val updateRequest =
+        UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -3375,7 +3402,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
       assertThat(updatedGroup.earliestPossibleStartDate).isEqualTo(newStartDate)
 
-      val updatedPlaceholder = updatedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+      val updatedPlaceholder =
+        updatedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
       assertThat(updatedPlaceholder.startsAt.toLocalDate()).isEqualTo(newStartDate)
     }
 
@@ -3391,7 +3419,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(programmeGroupRepository.findByIdOrNull(group.id!!)!!.sessions).hasSize(27)
 
       val newStartDate = LocalDate.of(2028, 3, 6) // A Tuesday
-      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = true)
+      val updateRequest =
+        UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = true)
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -3884,5 +3913,16 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
     }
+  }
+
+  private fun verifyReferralStatusUpdateEventSent() {
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { interventionsQueue.countAllMessagesOnQueue() } } matches { it == 1 }
+
+    val eventBody = objectMapper.readValue<SQSMessage>(
+      with(domainEventsQueueConfig) {
+        interventionsQueue.receiveMessageOnQueue().body()
+      },
+    )
+    assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_STATUS_UPDATED.value)
   }
 }
