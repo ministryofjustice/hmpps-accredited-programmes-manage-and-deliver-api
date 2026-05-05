@@ -789,6 +789,7 @@ class SessionServiceTest {
     assertThat(result).isNotNull()
     assertThat(result.sessionTitle).isEqualTo("Template 1")
     assertThat(result.groupRegionName).isEqualTo("TEST REGION")
+    assertThat(result.sessionModule).isEqualTo("Getting started 1")
     assertThat(result.people).hasSize(1)
     assertThat(result.people[0].referralId).isEqualTo(referralId)
     assertThat(result.people[0].crn).isEqualTo(referralEntity.crn)
