@@ -124,12 +124,12 @@ class SessionService(
     session.endsAt = session.endsAt.plus(startOffset)
 
     val isGroupSession = session.sessionType == SessionType.GROUP
-    val shouldShiftOtherGroupSessions = request.rescheduleOtherSessions && isGroupSession
 
-    if (shouldShiftOtherGroupSessions) {
+    // Reschedule group sessions, place-holder one-to-ones, but not catch-up sessions
+    if (request.rescheduleOtherSessions) {
       val subsequentGroupSessions = session.programmeGroup.sessions
         .asSequence()
-        .filter { it.sessionType == SessionType.GROUP }
+        .filter { !it.isCatchup }
         .filter { it.startsAt.isAfter(session.startsAt) }
         .toList()
 
