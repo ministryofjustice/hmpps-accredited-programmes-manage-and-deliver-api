@@ -746,9 +746,9 @@ class SessionServiceTest {
     // Given
     val facilitator = FacilitatorEntityFactory().produce()
     val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
-    val module = ModuleEntityFactory().withName("Post-programme reviews").produce()
+    val module = ModuleEntityFactory().withName("Getting started").produce()
     val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(ONE_TO_ONE)
+      .withSessionType(GROUP)
       .withName("Template 1")
       .withModule(module)
       .produce()

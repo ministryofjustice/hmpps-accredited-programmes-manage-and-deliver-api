@@ -6,13 +6,13 @@ import java.util.UUID
 @Schema(description = "Details of a Record Attendance")
 data class RecordSessionAttendance(
   @Schema(
-    description = "The name of the session template",
+    description = "The name of the session",
     example = "Introduction to Building Choices",
   )
   val sessionTitle: String,
 
   @Schema(
-    description = "A module name and session number or type of a session",
+    description = "The name of the module",
     example = "Getting started 1",
   )
   val sessionModule: String,
