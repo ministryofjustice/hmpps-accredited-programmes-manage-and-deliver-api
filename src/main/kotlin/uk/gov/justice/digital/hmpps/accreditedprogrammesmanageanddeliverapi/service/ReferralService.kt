@@ -4,7 +4,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -37,10 +36,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.DomainEventPublisher
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.DomainEventsMessage
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.PersonReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
@@ -53,7 +48,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.util
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
@@ -75,11 +69,10 @@ class ReferralService(
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
   private val sentenceService: SentenceService,
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
-  private val domainEventPublisher: DomainEventPublisher,
-  @Value("\${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
   private val programmeGroupService: ProgrammeGroupService,
   private val sessionNameFormatter: SessionNameFormatter,
   private val referralStatusService: ReferralStatusService,
+  private val referralEventService: ReferralEventService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -363,7 +356,8 @@ class ReferralService(
         createdBy = createdBy,
       ),
     )
-    publishReferralStatusUpdatedEvent(referral)
+
+    referralEventService.publishReferralStatusUpdatedEvent(referral)
 
     // If status changed to "Programme complete", check if completion event should be published
     if (incomingReferralStatusDescription.description == "Programme complete") {
@@ -454,19 +448,5 @@ class ReferralService(
   private fun getPersonalDetails(crn: String) = when (val result = ndeliusIntegrationApiClient.getPersonalDetails(crn)) {
     is ClientResult.Success -> result.body
     else -> null
-  }
-
-  private fun publishReferralStatusUpdatedEvent(referral: ReferralEntity) {
-    val hmppsDomainEvent = DomainEventsMessage(
-      eventType = HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_CREATED.value,
-      version = 1,
-      detailUrl = "$madBaseUrl/referral/${referral.id}/status-change-details",
-      occurredAt = ZonedDateTime.now(),
-      description = "An Accredited Programmes referral in community has had it's status updated.",
-      additionalInformation = mutableMapOf(),
-      personReference = PersonReference.fromCrn(referral.crn),
-    )
-    log.info("Publishing ${HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_CREATED.value} event for referralId: ${referral.id}")
-    domainEventPublisher.publish(hmppsDomainEvent)
   }
 }

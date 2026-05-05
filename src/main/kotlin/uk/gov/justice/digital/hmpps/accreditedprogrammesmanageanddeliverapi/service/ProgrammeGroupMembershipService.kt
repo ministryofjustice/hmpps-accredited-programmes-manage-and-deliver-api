@@ -19,7 +19,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -31,7 +30,7 @@ class ProgrammeGroupMembershipService(
   private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
   private val scheduleService: ScheduleService,
-  private val sessionRepository: SessionRepository,
+  private val referralEventService: ReferralEventService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -87,6 +86,8 @@ class ProgrammeGroupMembershipService(
     // Create appointments in NDelius for each session object
     scheduleService.createNdeliusAppointmentsForSessions(newAttendees)
 
+    referralEventService.publishReferralStatusUpdatedEvent(referral)
+
     return referralRepository.save(referral)
   }
 
@@ -132,6 +133,7 @@ class ProgrammeGroupMembershipService(
 
     referral.statusHistories.add(statusHistory)
     referralRepository.save(referral)
+    referralEventService.publishReferralStatusUpdatedEvent(referral)
 
     return RemoveFromGroupResponse(
       message = "${referral.personName} was removed from this group. Their referral status is now ${desiredStatus.description}",

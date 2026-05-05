@@ -349,6 +349,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
           "THE_USER_WHO_ADDED_TO_GROUP",
           "",
         )
+      domainEventsQueueConfig.purgeAllQueues()
 
       // When
       val numberOfHistoriesBeforeUpdate = referralFromAllocateToGroup.statusHistories.size
@@ -415,6 +416,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       membershipService.allocateReferralToGroup(theReferral.id!!, theGroup.id!!, "SYSTEM", "")
 
       val theReferralWithGroup = referralRepository.findByCrn(theCrnNumber).first()
+      domainEventsQueueConfig.purgeAllQueues()
 
       // When
       assertThat(theReferralWithGroup.programmeGroupMemberships.find { it.programmeGroup.id == theGroup.id }).isNotNull()
@@ -437,7 +439,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     fun `updateStatus to Programme complete should publish completion event when referral has valid post-programme review attendance`() {
       // Given
       val theCrnNumber = randomUppercaseString()
-      val programmeCompleteStatusDescriptionId = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
+      val programmeCompleteStatusDescriptionId =
+        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
       val onProgrammeStatusDescriptionId = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
@@ -505,7 +508,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     fun `updateStatus to Programme complete should not publish completion event when no post-programme review attendance exists`() {
       // Given
       val theCrnNumber = randomUppercaseString()
-      val programmeCompleteStatusDescriptionId = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
+      val programmeCompleteStatusDescriptionId =
+        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
       val onProgrammeStatusDescriptionId = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
@@ -551,17 +555,18 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
           interventionsQueue.receiveMessageOnQueue().body()
         },
       )
-      assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_CREATED.value)
+      assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_STATUS_UPDATED.value)
     }
 
     private fun verifyReferralStatusUpdateEventSent() {
       await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { interventionsQueue.countAllMessagesOnQueue() } } matches { it == 1 }
+
       val eventBody = objectMapper.readValue<SQSMessage>(
         with(domainEventsQueueConfig) {
           interventionsQueue.receiveMessageOnQueue().body()
         },
       )
-      assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_CREATED.value)
+      assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_STATUS_UPDATED.value)
     }
   }
 
