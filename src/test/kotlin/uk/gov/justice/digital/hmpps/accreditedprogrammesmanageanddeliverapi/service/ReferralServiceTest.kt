@@ -15,7 +15,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.FindAndReferInterventionApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.DomainEventPublisher
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
@@ -82,7 +81,7 @@ class ReferralServiceTest {
   private lateinit var programmeGroupService: ProgrammeGroupService
 
   @Mock
-  private lateinit var domainEventPublisher: DomainEventPublisher
+  private lateinit var referralEventService: ReferralEventService
 
   private lateinit var referralService: ReferralService
 
@@ -107,8 +106,7 @@ class ReferralServiceTest {
       referralReportingLocationRepository = referralReportingLocationRepository,
       sentenceService = sentenceService,
       programmeGroupMembershipService = programmeGroupMembershipService,
-      domainEventPublisher = domainEventPublisher,
-      madBaseUrl = "http://localhost:8080",
+      referralEventService = referralEventService,
       programmeGroupService = programmeGroupService,
       referralStatusService = referralStatusService,
       sessionNameFormatter = sessionNameFormatter,

@@ -1,8 +1,13 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
+import org.awaitility.kotlin.await
+import org.awaitility.kotlin.matches
+import org.awaitility.kotlin.untilCallTo
+import org.awaitility.kotlin.withPollDelay
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -61,6 +66,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionNotesHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusAppointmentEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPduWithTeamFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
@@ -89,6 +96,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.DayOfWeek
+import java.time.Duration.ofMillis
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -740,6 +748,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   @Nested
   @DisplayName("Allocate to Programme group")
   inner class AllocateToProgrammeGroup {
+
     @Test
     fun `allocateReferralToGroup can successfully allocate a referral to a group`() {
       // Given
@@ -761,6 +770,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "the-forename the-surname")
       val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "The additional details for the test")
+      domainEventsQueueConfig.purgeAllQueues()
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -795,6 +805,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val attendeeList =
         foundReferral.programmeGroupMemberships.first().programmeGroup.sessions.flatMap { sessionEntity -> sessionEntity.attendees.map { it.personName } }
       assertThat(attendeeList).allMatch { attendeeList.contains(it) }
+      verifyReferralStatusUpdateEventSent()
     }
 
     @Test
@@ -1014,7 +1025,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   @Nested
   @DisplayName("Remove from Programme group")
   inner class RemoveFromProgrammeGroup {
-
     val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
 
     @Test
@@ -1059,6 +1069,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
       sessionRepository.save(session)
 
+      domainEventsQueueConfig.purgeAllQueues()
+
       // When
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
@@ -1093,6 +1105,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Validate that associated ndelius appointments have been removed from the DB
       val foundNdeliusAppointment = nDeliusAppointmentRepository.findBySessionId(session.id!!)
       assertThat(foundNdeliusAppointment).isNull()
+      verifyReferralStatusUpdateEventSent()
     }
 
     @Test
@@ -3900,5 +3913,16 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
     }
+  }
+
+  private fun verifyReferralStatusUpdateEventSent() {
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { interventionsQueue.countAllMessagesOnQueue() } } matches { it == 1 }
+
+    val eventBody = objectMapper.readValue<SQSMessage>(
+      with(domainEventsQueueConfig) {
+        interventionsQueue.receiveMessageOnQueue().body()
+      },
+    )
+    assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_STATUS_UPDATED.value)
   }
 }
