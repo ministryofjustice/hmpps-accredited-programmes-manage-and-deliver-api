@@ -120,17 +120,22 @@ class SessionService(
     val requestedStartsAt = LocalDateTime.of(request.sessionStartDate, request.sessionStartTime.toLocalTime())
     val startOffset = Duration.between(session.startsAt, requestedStartsAt)
 
+    val originalSessionStartsAt = session.startsAt
+
+    // update the start time of the requested session
     session.startsAt = requestedStartsAt
     session.endsAt = session.endsAt.plus(startOffset)
 
     val isGroupSession = session.sessionType == SessionType.GROUP
-    val shouldShiftOtherGroupSessions = request.rescheduleOtherSessions && isGroupSession
 
-    if (shouldShiftOtherGroupSessions) {
+    // Reschedule later group sessions, place-holder one-to-ones, but not catch-up sessions
+    if (request.rescheduleOtherSessions) {
       val subsequentGroupSessions = session.programmeGroup.sessions
         .asSequence()
-        .filter { it.sessionType == SessionType.GROUP }
-        .filter { it.startsAt.isAfter(session.startsAt) }
+        .filter { it.sessionType == SessionType.GROUP || it.isPlaceholder }
+        .filter { it.id != session.id } // filter out the original session
+        .filter { !it.isCatchup }
+        .filter { it.startsAt.isAfter(originalSessionStartsAt) }
         .toList()
 
       subsequentGroupSessions.forEach { subsequentSession ->

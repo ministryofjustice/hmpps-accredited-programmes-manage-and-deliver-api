@@ -6,8 +6,7 @@ Every script takes one argument, `-ns <env>` ,that defines the namespace that it
 
 ## The scripts and their function:
 - `get-token` Acquires a token from the hmpps-auth service for the named environment. Printed to stdout. 
-   environment.  The script should be invoked from the directory containing the files
-- `get-courses` Invoke the `GET /courses` end-point and output the response to stdout
+   The script should be invoked from the directory containing the files
 - `start-db-portforward-pod` Starts a pod in the named environment that forwards the Postgresql port for the API 
    instance to the pod. 
 - `setup-servic-pod.bash` starts a service pod in the named namespace with IRSA based authentication, and opens a bash session which then can be used to run authorised commands.
