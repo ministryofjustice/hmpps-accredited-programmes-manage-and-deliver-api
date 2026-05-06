@@ -2539,10 +2539,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       }
 
       val allSessions = response.modules.flatMap { it.sessions }
-      assertThat(allSessions).anySatisfy { session ->
-        assertThat(session.isCatchup).isTrue()
-        assertThat(session.name).contains("catch-up")
-      }
+      assertThat(allSessions).anyMatch { it.isCatchup && it.name.contains("catch-up") }
 
       response.modules.forEach { module ->
         module.sessions.forEach { session ->
