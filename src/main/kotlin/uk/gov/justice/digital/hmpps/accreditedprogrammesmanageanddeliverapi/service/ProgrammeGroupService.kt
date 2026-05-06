@@ -161,7 +161,7 @@ class ProgrammeGroupService(
       programmeGroup.earliestPossibleStartDate = it
       updatedField = "earliestStartDate"
 
-      if (updateGroupRequest.automaticallyRescheduleOtherSessions == false) {
+      if (updateGroupRequest.automaticallyRescheduleOtherSessions != true) {
         reschedulePreGroupOneToOneSession(groupId, it)
       }
     }
