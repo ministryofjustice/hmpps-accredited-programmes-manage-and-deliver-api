@@ -433,6 +433,7 @@ class ProgrammeGroupService(
               SessionNameContext.SessionsAndAttendance(sessionTemplate),
             ),
             type = if (sessionTemplate.sessionType == SessionType.ONE_TO_ONE) "Individual" else "Group",
+            isCatchup = scheduledSession.isCatchup,
             dateOfSession = scheduledSession.startsAt.toLocalDate(),
             timeOfSession = formatTimeOfSession(
               scheduledSession.startsAt.toLocalTime(),

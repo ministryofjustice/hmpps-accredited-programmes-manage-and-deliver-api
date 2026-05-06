@@ -67,6 +67,9 @@ data class ProgrammeGroupModuleSessionsResponseGroupSession(
   @Schema(description = "The type of session", required = true, example = "one-to-one")
   val type: String,
 
+  @Schema(description = "Whether the session is a catch-up session", required = true, example = "false")
+  val isCatchup: Boolean,
+
   @Schema(description = "The date of the session", required = true, example = "Thursday 12 January 2023")
   @JsonFormat(pattern = "EEEE d MMMM yyyy")
   val dateOfSession: LocalDate,
