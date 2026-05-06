@@ -2470,6 +2470,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val body = CreateGroupRequestFactory().produce(
         createGroupSessionSlot = setOf(slot1),
       )
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -2478,6 +2479,28 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       val group = programmeGroupRepository.findByCode(body.groupCode)!!
+      initialiseReferrals()
+      val referral = referrals.first()
+      testGroupHelper.allocateToGroup(group, referral)
+
+      val sessionTemplate = group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first()
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = sessionTemplate.id!!,
+        referralIds = listOf(referral.id!!),
+        facilitators = listOf(CreateGroupTeamMemberFactory().produce()),
+        startDate = LocalDate.now().plusDays(1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+        sessionScheduleType = SessionScheduleType.CATCH_UP,
+      )
+
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<String>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
 
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
@@ -2488,7 +2511,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.group).isNotNull
       assertThat(response.modules).isNotNull
       assertThat(response.modules.size).isEqualTo(7)
-      assertThat(response.modules.sumOf { it.sessions.count() }).isEqualTo(21)
+      assertThat(response.modules.sumOf { it.sessions.count() }).isEqualTo(22)
       assertThat(response.modules.map { it.name }).containsExactly(
         "Pre-group one-to-ones",
         "Getting started",
@@ -2538,8 +2561,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         }
       }
 
-      val allSessions = response.modules.flatMap { it.sessions }
-      assertThat(allSessions).anyMatch { it.isCatchup && it.name.contains("catch-up") }
+      val catchupSessions = response.modules.flatMap { it.sessions }.filter { it.isCatchup }
+      assertThat(catchupSessions).hasSize(1)
+      assertThat(catchupSessions.single().name).contains("catch-up")
 
       response.modules.forEach { module ->
         module.sessions.forEach { session ->
