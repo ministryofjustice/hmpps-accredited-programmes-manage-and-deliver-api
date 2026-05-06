@@ -2562,8 +2562,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       }
 
       val catchupSessions = response.modules.flatMap { it.sessions }.filter { it.isCatchup }
+      val nonCatchupSessions = response.modules.flatMap { it.sessions }.filter { !it.isCatchup }
       assertThat(catchupSessions).hasSize(1)
-      assertThat(catchupSessions.single().name).contains("catch-up")
+      assertThat(nonCatchupSessions).hasSize(21)
+      assertThat(catchupSessions.single().name)
+        .isEqualTo("${referral.personName} (${referral.crn}): ${sessionTemplate.name} catch-up")
 
       response.modules.forEach { module ->
         module.sessions.forEach { session ->
