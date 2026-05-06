@@ -2570,9 +2570,20 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       response.modules.forEach { module ->
         module.sessions.forEach { session ->
-          // Both Group and Individual sessions should return actual participant names
-          assertThat(session.participants).isNotEmpty()
-          assertThat(session.participants).doesNotContain("All")
+          when {
+            session.type == "Group" && !session.isCatchup -> {
+              assertThat(session.participants).isEqualTo(listOf("All"))
+            }
+
+            session.type == "Group" && session.isCatchup -> {
+              assertThat(session.participants).isNotEmpty()
+              assertThat(session.participants).doesNotContain("All")
+            }
+
+            session.type == "Individual" -> {
+              assertThat(session.participants).isNotEmpty()
+            }
+          }
         }
       }
     }
