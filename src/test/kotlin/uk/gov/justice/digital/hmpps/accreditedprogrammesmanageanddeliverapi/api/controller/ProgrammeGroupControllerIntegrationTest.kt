@@ -2571,13 +2571,18 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       response.modules.forEach { module ->
         module.sessions.forEach { session ->
-          when (session.type) {
-            "Group" -> {
+          when {
+            session.type == "Group" && !session.isCatchup -> {
               assertThat(session.participants).isEqualTo(listOf("All"))
             }
 
-            "Individual" -> {
-              assertThat(session.participants).isNotEqualTo(listOf("All")) // TO be updated when attendees/facilitators tables are added.
+            session.type == "Group" && session.isCatchup -> {
+              assertThat(session.participants).isNotEmpty()
+              assertThat(session.participants).doesNotContain("All")
+            }
+
+            session.type == "Individual" -> {
+              assertThat(session.participants).isNotEmpty()
             }
           }
         }
