@@ -455,7 +455,7 @@ class ProgrammeGroupService(
             participants = when {
               sessionTemplate.sessionType == SessionType.GROUP && !scheduledSession.isCatchup -> listOf("All")
               sessionTemplate.sessionType == SessionType.ONE_TO_ONE -> scheduledSession.attendees.map { it.personName }
-              else -> scheduledSession.attendees.map { it.personName } 
+              else -> scheduledSession.attendees.map { it.personName }
             },
             facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }
               .map { it.facilitator.personName },
