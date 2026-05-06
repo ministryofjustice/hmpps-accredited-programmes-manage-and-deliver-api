@@ -439,7 +439,7 @@ class ProgrammeGroupService(
               scheduledSession.startsAt.toLocalTime(),
               scheduledSession.endsAt.toLocalTime(),
             ),
-            participants = if (sessionTemplate.sessionType == SessionType.GROUP) listOf("All") else scheduledSession.attendees.map { it.personName },
+            participants = scheduledSession.attendees.map { it.personName },
             facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }
               .map { it.facilitator.personName },
           )
