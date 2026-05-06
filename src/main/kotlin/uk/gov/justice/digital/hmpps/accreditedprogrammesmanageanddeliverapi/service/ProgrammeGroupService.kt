@@ -161,36 +161,8 @@ class ProgrammeGroupService(
       programmeGroup.earliestPossibleStartDate = it
       updatedField = "earliestStartDate"
 
-      // Always reschedule the date of the pre group one to one placeholder session if the date has changed.
-      val preGroupOneToOneModule = moduleSessionTemplateRepository.findByName("Pre-group one-to-one")
-
-      if (preGroupOneToOneModule == null) {
-        log.warn("Pre-group one-to-one module template not found when updating earliest start date for group $groupId. Cannot reschedule pre-group session.")
-      } else {
-        val preGroupOneToOnePlaceholderSession = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(
-          preGroupOneToOneModule.id!!,
-          groupId,
-        ).firstOrNull { session -> session.isPlaceholder }
-
-        if (preGroupOneToOnePlaceholderSession == null) {
-          log.warn("Pre-group one-to-one placeholder session not found for group $groupId when updating earliest start date. Cannot reschedule pre-group session.")
-        } else {
-          log.info("Rescheduling pre-group one-to-one placeholder session ${preGroupOneToOnePlaceholderSession.id} for group $groupId to new date: $it")
-
-          val rescheduleRequest = RescheduleSessionRequest(
-            sessionStartDate = it,
-            sessionStartTime = fromDateTime(preGroupOneToOnePlaceholderSession.startsAt),
-            sessionEndTime = null,
-            rescheduleOtherSessions = false,
-          )
-
-          sessionService.rescheduleSessions(
-            preGroupOneToOnePlaceholderSession.id!!,
-            rescheduleRequest,
-          )
-
-          log.info("Successfully rescheduled pre-group one-to-one placeholder session ${preGroupOneToOnePlaceholderSession.id} for group $groupId")
-        }
+      if (updateGroupRequest.automaticallyRescheduleOtherSessions != true) {
+        reschedulePreGroupOneToOneSession(groupId, it)
       }
     }
     updateGroupRequest.pduName?.let {
@@ -267,10 +239,11 @@ class ProgrammeGroupService(
 
     // Reschedule future sessions if requested
     if (updateGroupRequest.automaticallyRescheduleOtherSessions == true) {
-      scheduleService.rescheduleSessionsForGroup(savedGroup.id!!, skipPreGroupOneToOnePlaceholder = true)
+      scheduleService.rescheduleSessionsForGroup(savedGroup.id!!)
     }
 
-    val successMessage = getUpdateSuccessMessage(updatedField, updateGroupRequest.automaticallyRescheduleOtherSessions ?: false)
+    val successMessage =
+      getUpdateSuccessMessage(updatedField, updateGroupRequest.automaticallyRescheduleOtherSessions ?: false)
     return UpdateGroupResponse(successMessage = successMessage)
   }
 
@@ -294,22 +267,62 @@ class ProgrammeGroupService(
     sessionService.updateNDeliusAppointmentsForMultipleSessions(futureSessions)
   }
 
+  private fun reschedulePreGroupOneToOneSession(groupId: UUID, sessionStartDate: LocalDate) {
+    val preGroupOneToOneModule = moduleSessionTemplateRepository.findByName("Pre-group one-to-one")
+
+    if (preGroupOneToOneModule == null) {
+      log.warn("Pre-group one-to-one module template not found when updating earliest start date for group $groupId. Cannot reschedule pre-group session.")
+    } else {
+      val preGroupOneToOnePlaceholderSession = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(
+        preGroupOneToOneModule.id!!,
+        groupId,
+      ).firstOrNull { session -> session.isPlaceholder }
+
+      if (preGroupOneToOnePlaceholderSession == null) {
+        log.warn("Pre-group one-to-one placeholder session not found for group $groupId when updating earliest start date. Cannot reschedule pre-group session.")
+      } else {
+        log.info("Rescheduling pre-group one-to-one placeholder session ${preGroupOneToOnePlaceholderSession.id} for group $groupId to new date: $sessionStartDate")
+
+        val rescheduleRequest = RescheduleSessionRequest(
+          sessionStartDate = sessionStartDate,
+          sessionStartTime = fromDateTime(preGroupOneToOnePlaceholderSession.startsAt),
+          sessionEndTime = null,
+          rescheduleOtherSessions = false,
+        )
+
+        sessionService.rescheduleSessions(
+          preGroupOneToOnePlaceholderSession.id!!,
+          rescheduleRequest,
+        )
+
+        log.info("Successfully rescheduled pre-group one-to-one placeholder session ${preGroupOneToOnePlaceholderSession.id} for group $groupId")
+      }
+    }
+  }
+
   private fun getUpdateSuccessMessage(updatedField: String?, isScheduleUpdated: Boolean = false): String = when (updatedField) {
     "groupCode" -> "The group code has been updated."
+
     "earliestStartDate" -> if (isScheduleUpdated) {
       "The start date and schedule have been updated."
     } else {
       "The start date has been updated."
     }
+
     "daysAndTimes" -> if (isScheduleUpdated) {
       "The days and times and schedule have been updated."
     } else {
       "The days and times have been updated."
     }
+
     "cohort" -> "The cohort has been updated."
+
     "sex" -> "The gender has been updated."
+
     "deliveryLocation" -> "The delivery location has been updated."
+
     "teamMembers" -> "The people responsible for the group have been updated."
+
     else -> "The group has been updated."
   }
 
@@ -515,9 +528,15 @@ class ProgrammeGroupService(
         // Convert 24-hour format to 12-hour format
         val amOrPm = if (hour24 < 12) AmOrPm.AM else AmOrPm.PM
         val hour12 = when {
-          hour24 == 0 -> 12 // Midnight (00:xx) -> 12 AM
-          hour24 < 12 -> hour24 // 1-11 AM stays the same
-          hour24 == 12 -> 12 // Noon (12:xx) -> 12 PM
+          hour24 == 0 -> 12
+
+          // Midnight (00:xx) -> 12 AM
+          hour24 < 12 -> hour24
+
+          // 1-11 AM stays the same
+          hour24 == 12 -> 12
+
+          // Noon (12:xx) -> 12 PM
           else -> hour24 - 12 // 13-23 -> 1-11 PM
         }
 
@@ -592,7 +611,12 @@ class ProgrammeGroupService(
     val groupSessions =
       sessions.filter { (it.sessionType == SessionType.GROUP && !it.isCatchup) || (it.sessionType == SessionType.ONE_TO_ONE && it.isPlaceholder && !it.isCatchup) }
         // Sort by date and start time, if time is various (placeholder session) then set start time to be midnight
-        .sortedWith(compareBy({ it.startsAt.toLocalDate() }, { if (it.isPlaceholder) LocalTime.MIDNIGHT else it.startsAt.toLocalTime() }))
+        .sortedWith(
+          compareBy(
+            { it.startsAt.toLocalDate() },
+            { if (it.isPlaceholder) LocalTime.MIDNIGHT else it.startsAt.toLocalTime() },
+          ),
+        )
         .map { session ->
           val sessionName = sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview)
           GroupScheduleOverviewSession(

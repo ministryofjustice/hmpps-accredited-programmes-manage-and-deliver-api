@@ -100,6 +100,7 @@ import java.time.Duration.ofMillis
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
@@ -3154,6 +3155,12 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.successMessage).isEqualTo("The start date and schedule have been updated.")
       val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
       assertThat(updatedGroup.earliestPossibleStartDate).isEqualTo(newStartDate)
+      assertThat(updatedGroup.sessions).isNotEmpty().hasSizeGreaterThan(2)
+      val daysApartBetweenStartsAt = ChronoUnit.DAYS.between(
+        updatedGroup.sessions.first().startsAt,
+        updatedGroup.sessions.elementAt(1).startsAt,
+      )
+      assertThat(daysApartBetweenStartsAt).isGreaterThan(1L)
     }
 
     @Test
