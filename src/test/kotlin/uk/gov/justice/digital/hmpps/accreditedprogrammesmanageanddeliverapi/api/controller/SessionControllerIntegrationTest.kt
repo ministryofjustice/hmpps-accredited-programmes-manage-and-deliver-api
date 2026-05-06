@@ -1736,6 +1736,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response.sessionTitle).isEqualTo(session.sessionName)
+      assertThat(response.sessionModule).isEqualTo("${session.moduleSessionTemplate.module.name} ${session.sessionNumber}")
       assertThat(response.groupRegionName).isEqualTo(group.regionName)
       assertThat(response.people).isNotEmpty()
 

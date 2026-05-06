@@ -438,6 +438,7 @@ class SessionService(
 
     return RecordSessionAttendance(
       sessionTitle = session.sessionName,
+      sessionModule = sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview),
       groupRegionName = programmeGroup.regionName,
       people = filteredAttendees.map { attendee ->
         val latestAttendance = latestAttendanceByReferralId[attendee.referralId]

@@ -85,7 +85,8 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
 
     // Should have 26 sessions — no pre-group one-to-one placeholder
     assertThat(updatedGroup.sessions).hasSize(26)
-    val preGroupPlaceholders = updatedGroup.sessions.filter { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+    val preGroupPlaceholders =
+      updatedGroup.sessions.filter { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
     assertThat(preGroupPlaceholders).isEmpty()
   }
 
@@ -108,7 +109,8 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
 
     assertThat(updatedGroup.sessions).hasSize(27)
-    val preGroupPlaceholders = updatedGroup.sessions.filter { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+    val preGroupPlaceholders =
+      updatedGroup.sessions.filter { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
     assertThat(preGroupPlaceholders).hasSize(1)
   }
 
@@ -174,16 +176,19 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
 
     // Find the original pre-group one-to-one placeholder and record its date
-    val preGroupOneToOnePlaceholderSession = updatedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
+    val preGroupOneToOnePlaceholderSession =
+      updatedGroup.sessions.first { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }
 
     // Simulate setting a new earliest start date
-    updatedGroup.earliestPossibleStartDate = LocalDate.now(clock).plusYears(2).plusDays(2) // On a Wednesday, outside of group cadence
+    updatedGroup.earliestPossibleStartDate =
+      LocalDate.now(clock).plusYears(2).plusDays(2) // On a Wednesday, outside of group cadence
     programmeGroupRepository.save(updatedGroup)
 
     // Manually update the placeholder date to match the new earliest start date (as ProgrammeGroupService does)
     val newEarliestStartDate = updatedGroup.earliestPossibleStartDate
     val newPlaceholderDate = newEarliestStartDate.atTime(preGroupOneToOnePlaceholderSession.startsAt.toLocalTime())
-    val originalDuration = java.time.Duration.between(preGroupOneToOnePlaceholderSession.startsAt, preGroupOneToOnePlaceholderSession.endsAt)
+    val originalDuration =
+      java.time.Duration.between(preGroupOneToOnePlaceholderSession.startsAt, preGroupOneToOnePlaceholderSession.endsAt)
     preGroupOneToOnePlaceholderSession.startsAt = newPlaceholderDate
     preGroupOneToOnePlaceholderSession.endsAt = newPlaceholderDate.plus(originalDuration)
     sessionRepository.save(preGroupOneToOnePlaceholderSession)
@@ -204,7 +209,8 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     assertThat(placeholders.first().startsAt.toLocalDate()).isEqualTo(newPlaceholderDate.toLocalDate())
 
     // All non Pre-group one-to-one placeholder sessions should have been rescheduled to the new date range
-    val nonPreGroupOneToOnePlaceholderSessions = rescheduledGroup.sessions.filter { !(it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder) }
+    val nonPreGroupOneToOnePlaceholderSessions =
+      rescheduledGroup.sessions.filter { !(it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder) }
     assertThat(nonPreGroupOneToOnePlaceholderSessions).allMatch { it.startsAt.year >= 2027 }
 
     // All rescheduled sessions should be on Monday (the slot day)
