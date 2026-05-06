@@ -364,9 +364,10 @@ class SessionServiceTest {
   fun `rescheduleSessions should update nDelius appointments for all shifted sessions`() {
     // Given
     val sessionId = UUID.randomUUID()
+    val sessionStartDate = LocalDate.of(2026, 4, 23)
     val request = RescheduleSessionRequest(
-      sessionStartDate = LocalDate.now().plusDays(1),
-      sessionStartTime = SessionTime(10, 0, AmOrPm.AM),
+      sessionStartDate = sessionStartDate,
+      sessionStartTime = SessionTime(11, 0, AmOrPm.AM),
       rescheduleOtherSessions = true,
     )
 
@@ -384,15 +385,17 @@ class SessionServiceTest {
       .produce()
 
     val session1 = SessionFactory()
+      .withId(sessionId)
       .withProgrammeGroup(group)
       .withModuleSessionTemplate(template1)
-      .withStartsAt(LocalDateTime.now().plusDays(1))
+      .withStartsAt(LocalDateTime.of(2026, 4, 23, 10, 0))
       .produce()
 
     val session2 = SessionFactory()
+      .withId(UUID.randomUUID())
       .withProgrammeGroup(group)
       .withModuleSessionTemplate(template2)
-      .withStartsAt(LocalDateTime.now().plusDays(2))
+      .withStartsAt(LocalDateTime.of(2026, 4, 24, 10, 0))
       .produce()
 
     group.sessions.add(session1)
