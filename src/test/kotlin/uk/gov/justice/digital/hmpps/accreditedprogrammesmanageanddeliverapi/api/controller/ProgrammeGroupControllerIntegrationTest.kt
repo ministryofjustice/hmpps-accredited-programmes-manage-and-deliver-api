@@ -2686,6 +2686,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Create group
       val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
       val body = CreateGroupRequestFactory().produce(
+        earliestStartDate = LocalDate.of(2126, 5, 7),
         createGroupSessionSlot = setOf(slot1),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -2745,8 +2746,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.sessionType).isIn("Group")
       assertThat(response.isCatchup).isFalse
       assertThat(response.pageTitle).isEqualTo("${groupWithAllocation.sessions.first().moduleSessionTemplate.module.name} ${groupWithAllocation.sessions.first().moduleSessionTemplate.sessionNumber}: ${group.sessions.first().moduleSessionTemplate.name}")
-      assertThat(response.date).isNotNull
+      assertThat(response.date).isEqualTo(LocalDate.of(2126, 6, 3))
       assertThat(response.time).isEqualTo("9:30am to midday")
+      assertThat(response.unformattedEndDate).isEqualTo(LocalDateTime.of(2126, 6, 3, 12, 0))
       assertThat(response.scheduledToAttend).isEqualTo(groupWithAllocation.sessions.first().attendees.map { it.personName })
       assertThat(response.facilitators).isEqualTo(group.groupFacilitators.map { it.facilitator.personName })
       assertThat(response.attendanceAndSessionNotes).hasSize(1)

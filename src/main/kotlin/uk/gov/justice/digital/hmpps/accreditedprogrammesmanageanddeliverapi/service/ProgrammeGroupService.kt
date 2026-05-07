@@ -788,6 +788,7 @@ class ProgrammeGroupService(
       isCatchup = session.isCatchup,
       date = session.startsAt.toLocalDate(),
       time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
+      unformattedEndDate = session.endsAt,
       scheduledToAttend = session.attendees.map { it.personName },
       facilitators = session.sessionFacilitators.sortedBy { it.facilitator.personName }
         .map { it.facilitator.personName },
