@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 data class GroupSessionResponse(
@@ -26,6 +27,12 @@ data class GroupSessionResponse(
     example = "false",
   )
   val isCatchup: Boolean,
+
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+  @Schema(
+    description = "The unformatted end date and time of the session for sorting",
+  )
+  val unformattedEndDate: LocalDateTime,
 
   @Schema(description = "The date of the session", required = true, example = "Thursday 12 January 2023")
   @JsonFormat(pattern = "EEEE d MMMM yyyy")
