@@ -130,7 +130,11 @@ sealed interface ClientResult<ResponseType> {
       val status: HttpStatusCode,
       val body: String?,
     ) : Failure<ResponseType> {
-      override fun toException(): Throwable = RuntimeException("Unable to complete $method request to $path: $status")
+      override fun toException(): Throwable = RuntimeException(
+        "Unable to complete $method request to $path: $status" +
+          (body?.takeIf { it.isNotEmpty() }?.let { " with error: $it" } ?: ""),
+      )
+
       override fun getErrorMessage() = body ?: ""
 
       inline fun <reified ResponseType> deserializeTo(): ResponseType = jacksonObjectMapper().readValue(body, ResponseType::class.java)
