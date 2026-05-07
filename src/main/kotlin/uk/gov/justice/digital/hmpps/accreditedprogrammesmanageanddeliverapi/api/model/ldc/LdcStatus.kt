@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 
 @Schema(description = "Learning disabilities and challenges for a referral")
 enum class LdcStatus(val value: Boolean, val displayText: String) {
-  HAS_LDC(value = true, displayText = "May need an LDC-adapted programme(Building Choices Plus)"),
+  HAS_LDC(value = true, displayText = "May need an LDC-adapted programme (Building Choices Plus)"),
   NO_LDC(value = false, displayText = "Does not need an LDC-adapted programme"),
   ;
 
