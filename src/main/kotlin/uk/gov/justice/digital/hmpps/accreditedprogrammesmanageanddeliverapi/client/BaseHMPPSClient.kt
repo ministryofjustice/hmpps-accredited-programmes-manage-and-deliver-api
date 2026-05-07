@@ -130,7 +130,10 @@ sealed interface ClientResult<ResponseType> {
       val status: HttpStatusCode,
       val body: String?,
     ) : Failure<ResponseType> {
-      override fun toException(): Throwable = RuntimeException("Unable to complete $method request to $path: $status with error: ${getErrorMessage()}")
+      override fun toException(): Throwable = RuntimeException(
+        "Unable to complete $method request to $path: $status" +
+          (body?.takeIf { it.isNotEmpty() }?.let { " with error: $it" } ?: ""),
+      )
 
       override fun getErrorMessage() = body ?: ""
 
