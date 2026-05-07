@@ -96,7 +96,7 @@ data class ReferralDetails(
   val hasLdc: Boolean = LdcStatus.NO_LDC.value,
 
   @Schema(
-    example = "May need an LDC-adapted programme(Building Choices Plus)",
+    example = "May need an LDC-adapted programme (Building Choices Plus)",
     required = true,
     description = "The text to display in the UI for the LDC status of this referral",
   )
