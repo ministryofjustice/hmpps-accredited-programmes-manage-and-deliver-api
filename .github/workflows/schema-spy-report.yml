@@ -37,7 +37,7 @@ jobs:
         run: |
           export JAVA_OPTS="${{ inputs.java_options }}"
            ./gradlew initialiseDatabase
-      - uses: ministryofjustice/hmpps-github-shared-actions/.github/actions/database_schema_report@c9b92b85a2aa7e313fb377a81fec08dd4f6f15b8 # v1
+      - uses: ministryofjustice/hmpps-github-shared-actions/.github/actions/database_schema_report@e0e6abc2f67f2bbb81a74610d6c307ab468a1a77 # v1
         with:
           database_name: postgres
           schema: public
