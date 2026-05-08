@@ -100,7 +100,6 @@ class ReferralCaseListItemService(
     } else {
       withRegionNames(baseSpec, userRegions)
     }
-
     val crns = referralCaseListItemRepository.findAllCrns(specWithRegions)
 
     if (crns.isEmpty()) {
@@ -108,9 +107,12 @@ class ReferralCaseListItemService(
       return PageImpl(emptyList(), pageable, 0)
     }
 
-    // This endpoint is currently failing in preprod. While PI team are investigating we are temporarily disabling it.
-    val allowedCrns = crns.toSet()
-//    val allowedCrns = userService.getAccessibleOffenders(username, crns)
+    // Only fetch up to 500 referrals at a time as this is the limit for our LAO check request
+    // We are overfetching so that when we filter out LAO referrals we should still enough referrals for a page of 50
+    val batchSize = if (pageable.pageSize * 2 > 500) 500 else pageable.pageSize * 2
+    val crnBatch =
+      referralCaseListItemRepository.findAllCrns(specWithRegions, pageable.offset.toInt(), batchSize)
+    val allowedCrns = userService.getAccessibleOffenders(username, crnBatch)
 
     if (allowedCrns.isEmpty()) {
       log.warn("No CRNs are allowed for user: $username. Returning empty list for ReferralCaseList.")
@@ -118,6 +120,9 @@ class ReferralCaseListItemService(
     }
 
     val restrictedSpec = withAllowedCrns(specWithRegions, allowedCrns)
+    val caseListReferrals = referralCaseListItemRepository.findAll(restrictedSpec, pageable)
+
+    if (caseListReferrals.totalElements < 50) log.warn("Only ${caseListReferrals.totalElements} out of ${pageable.pageSize} referrals returned due to Limited Access Offender check ")
     return referralCaseListItemRepository.findAll(restrictedSpec, pageable)
   }
 
