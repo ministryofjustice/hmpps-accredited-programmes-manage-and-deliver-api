@@ -108,7 +108,9 @@ class ReferralCaseListItemService(
       return PageImpl(emptyList(), pageable, 0)
     }
 
-    val allowedCrns = userService.getAccessibleOffenders(username, crns)
+    // This endpoint is currently failing in preprod. While PI team are investigating we are temporarily disabling it.
+    val allowedCrns = crns.toSet()
+//    val allowedCrns = userService.getAccessibleOffenders(username, crns)
 
     if (allowedCrns.isEmpty()) {
       log.warn("No CRNs are allowed for user: $username. Returning empty list for ReferralCaseList.")
