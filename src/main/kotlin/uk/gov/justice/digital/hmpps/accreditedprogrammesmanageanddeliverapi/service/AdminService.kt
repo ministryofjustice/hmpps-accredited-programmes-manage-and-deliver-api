@@ -2,8 +2,11 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.transaction.support.TransactionTemplate
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.time.LocalDateTime
 import java.util.UUID
@@ -21,6 +24,8 @@ class AdminService(
   private val sentenceService: SentenceService,
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val pniService: PniService,
+  private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
+  private val transactionTemplate: TransactionTemplate,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -62,7 +67,7 @@ class AdminService(
    */
 
   fun cleanUpReferralsWithNoDeliusOrOasysData() {
-    val cutoff = LocalDateTime.now().minusDays(7)
+    val cutoff = LocalDateTime.now()
     val referrals = referralRepository.findAllByCreatedAtBefore(cutoff)
 
     log.info("Found {} referrals", referrals.size)
@@ -76,7 +81,7 @@ class AdminService(
       }
       if (!personalDetails) {
         log.info("Missing NDelius personal details for crn ${referral.crn}. Deleting referral ${referral.id}...")
-        referralRepository.deleteById(referral.id!!)
+        deleteReferralAndDependents(referral)
         return@mapIndexed ProcessingResult.DELETED
       }
 
@@ -95,7 +100,7 @@ class AdminService(
 
       if (sentenceEndDate == null) {
         log.info("Missing sentence end date for crn ${referral.crn}. Deleting referral ${referral.id}...")
-        referralRepository.deleteById(referral.id!!)
+        deleteReferralAndDependents(referral)
         return@mapIndexed ProcessingResult.DELETED
       }
 
@@ -108,7 +113,7 @@ class AdminService(
 
       if (pni == null) {
         log.info("Missing pni for crn ${referral.crn}. Deleting referral ${referral.id}...")
-        referralRepository.deleteById(referral.id!!)
+        deleteReferralAndDependents(referral)
         return@mapIndexed ProcessingResult.DELETED
       }
 
@@ -122,6 +127,14 @@ class AdminService(
       summary[ProcessingResult.DELETED] ?: 0,
       summary[ProcessingResult.SKIPPED] ?: 0,
     )
+  }
+
+  private fun deleteReferralAndDependents(referral: ReferralEntity) {
+    log.info("Deleting referral ${referral.id}...")
+    transactionTemplate.execute {
+      nDeliusAppointmentRepository.deleteByReferral(referral)
+      referralRepository.delete(referral)
+    }
   }
 
   private enum class ProcessingResult {

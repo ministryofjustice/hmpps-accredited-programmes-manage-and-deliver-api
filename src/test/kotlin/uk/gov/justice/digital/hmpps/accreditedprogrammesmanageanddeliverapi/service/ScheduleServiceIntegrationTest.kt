@@ -363,8 +363,10 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     assertThat(originalSessions).hasSize(0)
     assertThat(rescheduleSessions).hasSize(27)
 
-    // Verify ndeliusAppointments are removed from old sessions
-    assertThat(rescheduleSessions.flatMap { it.ndeliusAppointments }).isEmpty()
+    // Verify ndeliusAppointments are removed from old sessions and created for rescheduled sessions
+    val rescheduledAppointments = rescheduleSessions.flatMap { it.ndeliusAppointments }
+    assertThat(rescheduledAppointments).isNotEmpty()
+    rescheduledAppointments.forEach { it -> assertThat(rescheduleSessions).contains(it.session) }
   }
 
   @Test
@@ -442,8 +444,10 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
       it.startsAt.dayOfWeek == DayOfWeek.WEDNESDAY && it.startsAt.toLocalTime() == LocalTime.of(15, 0)
     }
 
-    // Verify ndeliusAppointments are removed from old sessions
-    assertThat(rescheduled.flatMap { it.ndeliusAppointments }).isEmpty()
+    // Verify ndeliusAppointments are removed from old sessions and created for new sessions
+    val rescheduledAppointments = rescheduled.flatMap { it.ndeliusAppointments }
+    assertThat(rescheduledAppointments).isNotEmpty()
+    rescheduledAppointments.forEach { it -> assertThat(rescheduled).contains(it.session) }
   }
 
   @Test
