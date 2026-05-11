@@ -85,7 +85,7 @@ class ReferralEntity(
   //  The Delius event number representing a specific court case event
   @Nullable
   @Column("event_number")
-  val eventNumber: Int? = null,
+  var eventNumber: Int? = null,
 
   @Nullable
   @Column("sentence_end_date")

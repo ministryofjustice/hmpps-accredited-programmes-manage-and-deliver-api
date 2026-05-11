@@ -11,4 +11,4 @@ class TelemetryClientConfig {
   fun telemetryClient(): TelemetryClient = TelemetryClient()
 }
 
-fun TelemetryClient.logToAppInsights(page: String, messages: Map<String, String>) = this.trackEvent(page, messages, null)
+fun TelemetryClient.logToAppInsights(eventName: String, properties: Map<String, String>) = this.trackEvent(eventName, properties, null)

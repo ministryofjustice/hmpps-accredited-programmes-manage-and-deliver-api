@@ -463,6 +463,38 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
   @DisplayName("Get personal details endpoint")
   inner class GetPersonalDetails {
     @Test
+    fun `should resolve and persist event number when referral event number is zero`() {
+      val nDeliusPersonalDetails =
+        NDeliusPersonalDetailsFactory().withDateOfBirth(LocalDate.of(1990, 1, 1)).produce()
+      val referralEntity = ReferralEntityFactory()
+        .withCrn(nDeliusPersonalDetails.crn)
+        .withEventNumber(0)
+        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
+        .produce()
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+      nDeliusApiStubs.stubNotFoundSentenceInformationResponse(referralEntity.crn, "1")
+      nDeliusApiStubs.stubNotFoundSentenceInformationResponse(referralEntity.crn, "2")
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(referralEntity.crn, 3)
+
+      performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}/personal-details",
+        returnType = object : ParameterizedTypeReference<PersonalDetails>() {},
+      )
+
+      val updatedReferral = referralRepository.findById(savedReferral.id!!).orElseThrow()
+      assertThat(updatedReferral.eventNumber).isEqualTo(3)
+    }
+
+    @Test
     fun `should return personal details when access granted is true`() {
       val nDeliusPersonalDetails =
         NDeliusPersonalDetailsFactory().withDateOfBirth(LocalDate.of(1990, 1, 1)).produce()
