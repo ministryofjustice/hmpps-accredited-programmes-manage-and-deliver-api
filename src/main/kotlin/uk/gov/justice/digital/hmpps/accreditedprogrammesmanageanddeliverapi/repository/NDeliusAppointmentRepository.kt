@@ -6,4 +6,5 @@ import java.util.UUID
 
 interface NDeliusAppointmentRepository : JpaRepository<NDeliusAppointmentEntity, UUID> {
   fun findBySessionId(sessionId: UUID): NDeliusAppointmentEntity?
+  fun deleteByReferralId(referralId: UUID)
 }
