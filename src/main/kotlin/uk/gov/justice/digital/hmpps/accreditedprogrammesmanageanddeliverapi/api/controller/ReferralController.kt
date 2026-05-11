@@ -96,9 +96,7 @@ class ReferralController(
   ): ResponseEntity<ReferralDetails> {
     withContext(Dispatchers.IO) {
       referralEventNumberResolverService.resolveIfEventNumberIsZero(
-        withContext(Dispatchers.IO) {
-          referralService.getReferralById(id)
-        },
+        referralService.getReferralById(id),
       )
     }
 

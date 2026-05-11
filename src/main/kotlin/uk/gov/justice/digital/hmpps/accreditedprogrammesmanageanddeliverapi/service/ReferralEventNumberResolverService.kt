@@ -39,11 +39,7 @@ class ReferralEventNumberResolverService(
     }
 
     log.info(
-      "Referral {} has event number 0. Attempting to resolve by checking nDelius sentence endpoint for CRN {} ({}..{}).",
-      referral.id,
-      referral.crn,
-      FIRST_VALID_EVENT_NUMBER,
-      LAST_VALID_EVENT_NUMBER,
+      "Referral with IT '${referral.id}' has event number 0. Attempting to resolve by checking nDelius sentence endpoint for CRN '${referral.crn}' (${FIRST_VALID_EVENT_NUMBER}..${LAST_VALID_EVENT_NUMBER}).",
     )
 
     for (candidateEventNumber in FIRST_VALID_EVENT_NUMBER..LAST_VALID_EVENT_NUMBER) {
@@ -57,19 +53,13 @@ class ReferralEventNumberResolverService(
 
         is ClientResult.Failure.StatusCode -> {
           log.info(
-            "Event number {} was not valid for Referral with ID '{}' (status {}). Trying next.",
-            candidateEventNumber,
-            referral.id,
-            response.status.value(),
+            "Event number $candidateEventNumber was not valid for Referral with ID '${referral.id}' (status ${response.status.value()}). Trying next.",
           )
         }
 
         is ClientResult.Failure.Other -> {
           log.warn(
-            "Could not validate event number {} for Referral with ID '{}' due to: {}. Trying next.",
-            candidateEventNumber,
-            referral.id,
-            response.getErrorMessage(),
+            "Could not validate event number $candidateEventNumber for Referral with ID '${referral.id}' due to: ${response.getErrorMessage()}. Trying next.",
           )
         }
       }
@@ -81,10 +71,7 @@ class ReferralEventNumberResolverService(
 
   private fun logFailureEvent(referral: ReferralEntity) {
     log.warn(
-      "Could not resolve a valid event number for Referral with ID '{}' after checking {} to {}. Keeping event number as 0.",
-      referral.id,
-      FIRST_VALID_EVENT_NUMBER,
-      LAST_VALID_EVENT_NUMBER,
+      "Could not resolve a valid event number for Referral with ID '${referral.id}' after checking ${FIRST_VALID_EVENT_NUMBER} to ${LAST_VALID_EVENT_NUMBER}. Keeping event number as 0.",
     )
 
     telemetryClient.logToAppInsights(
@@ -97,9 +84,7 @@ class ReferralEventNumberResolverService(
 
   private fun logSuccess(referral: ReferralEntity, newEventNumber: Int) {
     log.info(
-      "Resolved event number for Referral with ID '{}' - New event number is '{}'.",
-      referral.id,
-      newEventNumber,
+      "Resolved event number for Referral with ID '${referral.id}' - New event number is '$newEventNumber'.",
     )
 
     telemetryClient.logToAppInsights(
