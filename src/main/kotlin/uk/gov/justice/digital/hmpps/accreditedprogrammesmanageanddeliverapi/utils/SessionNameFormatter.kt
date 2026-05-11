@@ -145,7 +145,7 @@ class SessionNameFormatter {
     val catchupSuffix = if (scheduledSession.isCatchup) " catch-up" else ""
     return when (sessionTemplate.sessionType) {
       SessionType.GROUP -> "${sessionTemplate.module.name} ${scheduledSession.sessionNumber}: ${sessionTemplate.name}$catchupSuffix"
-      SessionType.ONE_TO_ONE -> "${scheduledSession.attendees.first().personName} (${scheduledSession.attendees.first().referral.crn}): ${sessionTemplate.name}$catchupSuffix"
+      SessionType.ONE_TO_ONE -> if (scheduledSession.attendees.isEmpty()) "${sessionTemplate.name}$catchupSuffix" else "${scheduledSession.attendees.first().personName} (${scheduledSession.attendees.first().referral.crn}): ${sessionTemplate.name}$catchupSuffix"
     }
   }
 
