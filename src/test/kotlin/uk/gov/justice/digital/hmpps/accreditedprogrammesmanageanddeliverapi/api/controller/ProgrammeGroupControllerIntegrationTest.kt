@@ -100,6 +100,7 @@ import java.time.Duration.ofMillis
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
@@ -2470,6 +2471,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val body = CreateGroupRequestFactory().produce(
         createGroupSessionSlot = setOf(slot1),
       )
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.POST,
         uri = "/group",
@@ -2478,6 +2480,28 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       val group = programmeGroupRepository.findByCode(body.groupCode)!!
+      initialiseReferrals()
+      val referral = referrals.first()
+      testGroupHelper.allocateToGroup(group, referral)
+
+      val sessionTemplate = group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first()
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = sessionTemplate.id!!,
+        referralIds = listOf(referral.id!!),
+        facilitators = listOf(CreateGroupTeamMemberFactory().produce()),
+        startDate = LocalDate.now().plusDays(1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+        sessionScheduleType = SessionScheduleType.CATCH_UP,
+      )
+
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<String>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
 
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
@@ -2488,7 +2512,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.group).isNotNull
       assertThat(response.modules).isNotNull
       assertThat(response.modules.size).isEqualTo(7)
-      assertThat(response.modules.sumOf { it.sessions.count() }).isEqualTo(21)
+      assertThat(response.modules.sumOf { it.sessions.count() }).isEqualTo(22)
       assertThat(response.modules.map { it.name }).containsExactly(
         "Pre-group one-to-ones",
         "Getting started",
@@ -2537,15 +2561,28 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           )
         }
       }
+
+      val catchupSessions = response.modules.flatMap { it.sessions }.filter { it.isCatchup }
+      val nonCatchupSessions = response.modules.flatMap { it.sessions }.filter { !it.isCatchup }
+      assertThat(catchupSessions).hasSize(1)
+      assertThat(nonCatchupSessions).hasSize(21)
+      assertThat(catchupSessions.single().name)
+        .isEqualTo("${referral.personName} (${referral.crn}): ${sessionTemplate.name} catch-up")
+
       response.modules.forEach { module ->
         module.sessions.forEach { session ->
-          when (session.type) {
-            "Group" -> {
+          when {
+            session.type == "Group" && !session.isCatchup -> {
               assertThat(session.participants).isEqualTo(listOf("All"))
             }
 
-            "Individual" -> {
-              assertThat(session.participants).isNotEqualTo(listOf("All")) // TO be updated when attendees/facilitators tables are added.
+            session.type == "Group" && session.isCatchup -> {
+              assertThat(session.participants).isNotEmpty()
+              assertThat(session.participants).doesNotContain("All")
+            }
+
+            session.type == "Individual" -> {
+              assertThat(session.participants).isNotEmpty()
             }
           }
         }
@@ -2649,6 +2686,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Create group
       val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
       val body = CreateGroupRequestFactory().produce(
+        earliestStartDate = LocalDate.of(2126, 5, 7),
         createGroupSessionSlot = setOf(slot1),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -2708,8 +2746,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.sessionType).isIn("Group")
       assertThat(response.isCatchup).isFalse
       assertThat(response.pageTitle).isEqualTo("${groupWithAllocation.sessions.first().moduleSessionTemplate.module.name} ${groupWithAllocation.sessions.first().moduleSessionTemplate.sessionNumber}: ${group.sessions.first().moduleSessionTemplate.name}")
-      assertThat(response.date).isNotNull
+      assertThat(response.date).isEqualTo(LocalDate.of(2126, 6, 3))
       assertThat(response.time).isEqualTo("9:30am to midday")
+      assertThat(response.unformattedEndDate).isEqualTo(LocalDateTime.of(2126, 6, 3, 12, 0))
       assertThat(response.scheduledToAttend).isEqualTo(groupWithAllocation.sessions.first().attendees.map { it.personName })
       assertThat(response.facilitators).isEqualTo(group.groupFacilitators.map { it.facilitator.personName })
       assertThat(response.attendanceAndSessionNotes).hasSize(1)
@@ -3118,6 +3157,12 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.successMessage).isEqualTo("The start date and schedule have been updated.")
       val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
       assertThat(updatedGroup.earliestPossibleStartDate).isEqualTo(newStartDate)
+      assertThat(updatedGroup.sessions).isNotEmpty().hasSizeGreaterThan(2)
+      val daysApartBetweenStartsAt = ChronoUnit.DAYS.between(
+        updatedGroup.sessions.first().startsAt,
+        updatedGroup.sessions.elementAt(1).startsAt,
+      )
+      assertThat(daysApartBetweenStartsAt).isGreaterThan(1L)
     }
 
     @Test

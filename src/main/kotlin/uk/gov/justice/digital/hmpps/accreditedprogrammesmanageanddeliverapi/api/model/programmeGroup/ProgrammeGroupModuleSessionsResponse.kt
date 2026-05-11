@@ -67,6 +67,9 @@ data class ProgrammeGroupModuleSessionsResponseGroupSession(
   @Schema(description = "The type of session", required = true, example = "one-to-one")
   val type: String,
 
+  @Schema(description = "Whether the session is a catch-up session", required = true, example = "false")
+  val isCatchup: Boolean,
+
   @Schema(description = "The date of the session", required = true, example = "Thursday 12 January 2023")
   @JsonFormat(pattern = "EEEE d MMMM yyyy")
   val dateOfSession: LocalDate,
@@ -74,10 +77,10 @@ data class ProgrammeGroupModuleSessionsResponseGroupSession(
   @Schema(description = "The time of the session", required = true, example = "11am")
   val timeOfSession: String,
 
-  @Schema(description = "The names of the participants in the session", required = true, example = "[John Doe, Jane Smith]")
+  @Schema(description = "The names of the participants in the session", required = true, example = "[\"John Doe\", \"Jane Smith\"]")
   val participants: List<String>,
 
-  @Schema(description = "The names of the facilitators in the session", required = true, example = "[John Doe, Jane Smith]")
+  @Schema(description = "The names of the facilitators in the session", required = true, example = "[\"John Doe\", \"Jane Smith\"]")
   val facilitators: List<String>,
 )
 

@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -269,6 +270,60 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.filters.statusFilterValues.open).contains("Breach", "On programme")
       assertThat(response.filters.locationFilterValues.map { it.pduName }).contains("PDU1", "PDU2")
       assertThat(response.filters.cohort).containsAll(ProgrammeGroupCohort.entries.map { it.label })
+    }
+
+    @Test
+    fun `getCaseListItems for OPEN referrals return 200 and paged list of referral case list items where some referrals are LAO`() {
+      // Given
+      testReferralHelper.createReferrals(10)
+      // & When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+      val referralCaseListItems = response.pagedReferrals.content
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(6)
+      assertThat(referralCaseListItems.map { it.crn })
+        .containsExactlyInAnyOrder("X7182552", "CRN-999999", "CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555")
+
+      referralCaseListItems.forEach { item ->
+        assertThat(item).hasFieldOrProperty("crn")
+        assertThat(item).hasFieldOrProperty("personName")
+        assertThat(item).hasFieldOrProperty("referralStatus")
+        assertThat(item).hasFieldOrProperty("cohort")
+        assertThat(item).hasFieldOrProperty("hasLdc")
+        assertThat(item).hasFieldOrProperty("sentenceEndDate")
+        assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
+      }
+      assertThat(response.otherTabTotal).isEqualTo(1)
+      assertThat(response.filters).isNotNull
+      assertThat(response.filters.statusFilterValues.open).contains("Breach", "On programme")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).contains("PDU1", "PDU2")
+      assertThat(response.filters.cohort).containsAll(ProgrammeGroupCohort.entries.map { it.label })
+    }
+
+    @Test
+    @Disabled("Disabled due to running time of test creating 501 referrals")
+    fun `getCaseListItems for OPEN referrals returns smaller page when 500 referrals are LAO`() {
+      // Given
+      testReferralHelper.createReferrals(510)
+      // & When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+      val referralCaseListItems = response.pagedReferrals.content
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(6)
+      assertThat(referralCaseListItems.map { it.crn })
+        .containsExactlyInAnyOrder("X7182552", "CRN-999999", "CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555")
     }
 
     @Test

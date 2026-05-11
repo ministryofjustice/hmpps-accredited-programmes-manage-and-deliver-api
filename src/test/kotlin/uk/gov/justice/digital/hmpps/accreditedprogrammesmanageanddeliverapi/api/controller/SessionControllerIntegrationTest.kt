@@ -366,7 +366,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
     val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
 
-    val sessionTemplate1 = testDataGenerator.createModuleSessionTemplate(
+    val groupSessionTemplate1 = testDataGenerator.createModuleSessionTemplate(
       ModuleSessionTemplateEntity(
         module = module,
         sessionNumber = 1,
@@ -376,7 +376,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         durationMinutes = 60,
       ),
     )
-    val sessionTemplate2 = testDataGenerator.createModuleSessionTemplate(
+    val groupSessionTemplate2 = testDataGenerator.createModuleSessionTemplate(
       ModuleSessionTemplateEntity(
         module = module,
         sessionNumber = 2,
@@ -386,13 +386,33 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         durationMinutes = 60,
       ),
     )
-    val sessionTemplate3 = testDataGenerator.createModuleSessionTemplate(
+    val oneToOneSessionTemplate = testDataGenerator.createModuleSessionTemplate(
       ModuleSessionTemplateEntity(
         module = module,
         sessionNumber = 3,
         sessionType = SessionType.ONE_TO_ONE,
         pathway = Pathway.MODERATE_INTENSITY,
         name = "Session 3",
+        durationMinutes = 60,
+      ),
+    )
+    val catchUpSessionTemplate = testDataGenerator.createModuleSessionTemplate(
+      ModuleSessionTemplateEntity(
+        module = module,
+        sessionNumber = 4,
+        sessionType = SessionType.GROUP,
+        pathway = Pathway.MODERATE_INTENSITY,
+        name = "Session 4",
+        durationMinutes = 60,
+      ),
+    )
+    val oneToOneNonPlaceholder = testDataGenerator.createModuleSessionTemplate(
+      ModuleSessionTemplateEntity(
+        module = module,
+        sessionNumber = 5,
+        sessionType = SessionType.ONE_TO_ONE,
+        pathway = Pathway.MODERATE_INTENSITY,
+        name = "Session 5",
         durationMinutes = 60,
       ),
     )
@@ -406,38 +426,74 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
     val referral = testDataGenerator.createReferral("John Smith", "X123456")
 
+    // Session before the rescheduled session should not move
+    val previousSession = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(groupSessionTemplate1)
+        .withStartsAt(LocalDateTime.of(2026, 4, 22, 10, 0))
+        .withEndsAt(LocalDateTime.of(2026, 4, 22, 11, 0))
+        .produce(),
+    )
+    testDataGenerator.createNDeliusAppointment(previousSession, referral)
+
     // Session 1: 2026-04-23 10:00 - 11:00
     val session1 = testDataGenerator.createSession(
       SessionFactory()
         .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate1)
+        .withModuleSessionTemplate(groupSessionTemplate1)
         .withStartsAt(LocalDateTime.of(2026, 4, 23, 10, 0))
         .withEndsAt(LocalDateTime.of(2026, 4, 23, 11, 0))
         .produce(),
     )
-    val app1 = testDataGenerator.createNDeliusAppointment(session1, referral)
+    val appointment1 = testDataGenerator.createNDeliusAppointment(session1, referral)
 
-    // Session 2: 2026-04-24 10:00 - 11:00 (Group)
+    // Session 2: 2026-04-24 10:00 - 11:00 (Group) - subsequent group session should move
     val session2 = testDataGenerator.createSession(
       SessionFactory()
         .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate2)
+        .withModuleSessionTemplate(groupSessionTemplate2)
         .withStartsAt(LocalDateTime.of(2026, 4, 24, 10, 0))
         .withEndsAt(LocalDateTime.of(2026, 4, 24, 11, 0))
         .produce(),
     )
-    val app2 = testDataGenerator.createNDeliusAppointment(session2, referral)
+    val appointment2 = testDataGenerator.createNDeliusAppointment(session2, referral)
 
-    // Session 3: 2026-04-25 10:00 - 11:00 (Individual)
-    val session3 = testDataGenerator.createSession(
+    // Session 3: subsequent placeholder one-to-one session should move
+    val placeholderOneToOneSession = testDataGenerator.createSession(
       SessionFactory()
         .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate3)
+        .withModuleSessionTemplate(oneToOneSessionTemplate)
         .withStartsAt(LocalDateTime.of(2026, 4, 25, 10, 0))
         .withEndsAt(LocalDateTime.of(2026, 4, 25, 11, 0))
+        .withIsPlaceholder(true)
         .produce(),
     )
-    testDataGenerator.createNDeliusAppointment(session3, referral)
+    val placeholderOneToOneAppointment = testDataGenerator.createNDeliusAppointment(placeholderOneToOneSession, referral)
+
+    // Session 4: subsequent catch-up session should not move
+    val catchUpSession = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(catchUpSessionTemplate)
+        .withStartsAt(LocalDateTime.of(2026, 4, 26, 10, 0))
+        .withEndsAt(LocalDateTime.of(2026, 4, 26, 11, 0))
+        .withIsCatchup(true)
+        .produce(),
+    )
+    testDataGenerator.createNDeliusAppointment(catchUpSession, referral)
+
+    // Session 5: subsequent one to one (non-placeholder) session should not move
+    val oneToOneNonPlaceholderSession = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(oneToOneNonPlaceholder)
+        .withStartsAt(LocalDateTime.of(2026, 4, 27, 10, 0))
+        .withEndsAt(LocalDateTime.of(2026, 4, 27, 11, 0))
+        .withIsPlaceholder(false)
+        .produce(),
+    )
+    testDataGenerator.createNDeliusAppointment(oneToOneNonPlaceholderSession, referral)
 
     nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
@@ -460,6 +516,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
     // Then
     assertThat(response.message).isEqualTo("The date and time and schedule have been updated.")
+
+    val updatedPreviousSession = sessionRepository.findById(previousSession.id!!).get()
+    assertThat(updatedPreviousSession.startsAt).isEqualTo(LocalDateTime.of(2026, 4, 22, 10, 0))
+    assertThat(updatedPreviousSession.endsAt).isEqualTo(LocalDateTime.of(2026, 4, 22, 11, 0))
+
     val updatedSession1 = sessionRepository.findById(session1.id!!).get()
     assertThat(updatedSession1.startsAt).isEqualTo(LocalDateTime.of(2026, 4, 23, 11, 0))
     assertThat(updatedSession1.endsAt).isEqualTo(LocalDateTime.of(2026, 4, 23, 12, 0))
@@ -469,17 +530,27 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     assertThat(updatedSession2.startsAt).isEqualTo(LocalDateTime.of(2026, 4, 24, 11, 0))
     assertThat(updatedSession2.endsAt).isEqualTo(LocalDateTime.of(2026, 4, 24, 12, 0))
 
-    // Session 3 should NOT be moved as it is INDIVIDUAL
-    val updatedSession3 = sessionRepository.findById(session3.id!!).get()
-    assertThat(updatedSession3.startsAt).isEqualTo(LocalDateTime.of(2026, 4, 25, 10, 0))
-    assertThat(updatedSession3.endsAt).isEqualTo(LocalDateTime.of(2026, 4, 25, 11, 0))
+    // Session 3 should be rescheduled as it is a ONE_TO_ONE place holder session
+    val updatedPlaceholderOneToOneSession = sessionRepository.findById(placeholderOneToOneSession.id!!).get()
+    assertThat(updatedPlaceholderOneToOneSession.startsAt).isEqualTo(LocalDateTime.of(2026, 4, 25, 11, 0))
+    assertThat(updatedPlaceholderOneToOneSession.endsAt).isEqualTo(LocalDateTime.of(2026, 4, 25, 12, 0))
+
+    // Session 4 : Catch up sessions shouldn't be rescheduled
+    val updatedCatchUpSession = sessionRepository.findById(catchUpSession.id!!).get()
+    assertThat(updatedCatchUpSession.startsAt).isEqualTo(LocalDateTime.of(2026, 4, 26, 10, 0))
+    assertThat(updatedCatchUpSession.endsAt).isEqualTo(LocalDateTime.of(2026, 4, 26, 11, 0))
+
+    // Session 5 : One to one non placeholder shouldn't be rescheduled
+    val updatedOneToOneNonPlaceholderSession = sessionRepository.findById(oneToOneNonPlaceholderSession.id!!).get()
+    assertThat(updatedOneToOneNonPlaceholderSession.startsAt).isEqualTo(LocalDateTime.of(2026, 4, 27, 10, 0))
+    assertThat(updatedOneToOneNonPlaceholderSession.endsAt).isEqualTo(LocalDateTime.of(2026, 4, 27, 11, 0))
 
     // Verify ndeliusAppointments update request for Session 1
     val expectedUpdateRequest1 = UpdateAppointmentsRequestFactory()
       .withAppointments(
         listOf(
           UpdateAppointmentRequestFactory()
-            .withReference(app1.ndeliusAppointmentId)
+            .withReference(appointment1.ndeliusAppointmentId)
             .withDate(LocalDate.of(2026, 4, 23))
             .withStartTime(LocalTime.of(11, 0))
             .withEndTime(LocalTime.of(12, 0))
@@ -498,7 +569,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       .withAppointments(
         listOf(
           UpdateAppointmentRequestFactory()
-            .withReference(app2.ndeliusAppointmentId)
+            .withReference(appointment2.ndeliusAppointmentId)
             .withDate(LocalDate.of(2026, 4, 24))
             .withStartTime(LocalTime.of(11, 0))
             .withEndTime(LocalTime.of(12, 0))
@@ -511,6 +582,24 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
       .produce()
     nDeliusApiStubs.verifyPutAppointments(1, expectedUpdateRequest2)
+    // Verify ndeliusAppointments update request for placeholder one-to-one (session 3)
+    val expectedPlaceholderOneToOneUpdateRequest = UpdateAppointmentsRequestFactory()
+      .withAppointments(
+        listOf(
+          UpdateAppointmentRequestFactory()
+            .withReference(placeholderOneToOneAppointment.ndeliusAppointmentId)
+            .withDate(LocalDate.of(2026, 4, 25))
+            .withStartTime(LocalTime.of(11, 0))
+            .withEndTime(LocalTime.of(12, 0))
+            .withLocation(RequestCode(group.deliveryLocationCode))
+            .withStaff(RequestCode(group.treatmentManager!!.ndeliusPersonCode))
+            .withTeam(RequestCode(group.treatmentManager!!.ndeliusTeamCode))
+            .withNotes(null)
+            .produce(),
+        ),
+      )
+      .produce()
+    nDeliusApiStubs.verifyPutAppointments(1, expectedPlaceholderOneToOneUpdateRequest)
   }
 
   @Test
@@ -938,7 +1027,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     private lateinit var group: ProgrammeGroupEntity
 
     @BeforeEach
-    private fun beforeEach() {
+    fun beforeEach() {
       val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
       val sessionTemplate = moduleSessionTemplateRepository.findByName("Managing myself one-to-one")
 
