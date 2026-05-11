@@ -2,9 +2,10 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.rep
 
 import org.springframework.data.jpa.repository.JpaRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import java.util.UUID
 
 interface NDeliusAppointmentRepository : JpaRepository<NDeliusAppointmentEntity, UUID> {
   fun findBySessionId(sessionId: UUID): NDeliusAppointmentEntity?
-  fun deleteByReferralId(referralId: UUID)
+  fun deleteByReferral(referral: ReferralEntity)
 }

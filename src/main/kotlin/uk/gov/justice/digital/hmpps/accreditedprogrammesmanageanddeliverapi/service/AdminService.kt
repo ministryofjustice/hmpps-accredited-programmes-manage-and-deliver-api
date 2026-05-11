@@ -132,7 +132,7 @@ class AdminService(
   private fun deleteReferralAndDependents(referral: ReferralEntity) {
     log.info("Deleting referral ${referral.id}...")
     transactionTemplate.execute {
-      nDeliusAppointmentRepository.deleteByReferralId(referral.id!!)
+      nDeliusAppointmentRepository.deleteByReferral(referral)
       referralRepository.delete(referral)
     }
   }
