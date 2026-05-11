@@ -57,7 +57,7 @@ class ReferralEventNumberResolverService(
 
         is ClientResult.Failure.StatusCode -> {
           log.info(
-            "Event number {} was not valid for referral {} (status {}). Trying next.",
+            "Event number {} was not valid for Referral with ID '{}' (status {}). Trying next.",
             candidateEventNumber,
             referral.id,
             response.status.value(),
@@ -66,7 +66,7 @@ class ReferralEventNumberResolverService(
 
         is ClientResult.Failure.Other -> {
           log.warn(
-            "Could not validate event number {} for referral {} due to: {}. Trying next.",
+            "Could not validate event number {} for Referral with ID '{}' due to: {}. Trying next.",
             candidateEventNumber,
             referral.id,
             response.getErrorMessage(),
@@ -81,7 +81,7 @@ class ReferralEventNumberResolverService(
 
   private fun logFailureEvent(referral: ReferralEntity) {
     log.warn(
-      "Could not resolve a valid event number for referral {} after checking {} to {}. Keeping event number as 0.",
+      "Could not resolve a valid event number for Referral with ID '{}' after checking {} to {}. Keeping event number as 0.",
       referral.id,
       FIRST_VALID_EVENT_NUMBER,
       LAST_VALID_EVENT_NUMBER,
@@ -97,9 +97,8 @@ class ReferralEventNumberResolverService(
 
   private fun logSuccess(referral: ReferralEntity, newEventNumber: Int) {
     log.info(
-      "Resolved event number for referral {}. Using {} after {} attempt(s).",
+      "Resolved event number for Referral with ID '{}' - New event number is '{}'.",
       referral.id,
-      newEventNumber,
       newEventNumber,
     )
 

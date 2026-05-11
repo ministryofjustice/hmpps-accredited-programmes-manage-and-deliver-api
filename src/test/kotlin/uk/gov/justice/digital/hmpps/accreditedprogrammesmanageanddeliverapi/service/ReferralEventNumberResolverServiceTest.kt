@@ -89,5 +89,35 @@ class ReferralEventNumberResolverServiceTest {
     }
   }
 
+  @Test
+  fun `continues to next candidate when an unexpected error occurs`() {
+    val referral = ReferralEntityFactory().withEventNumber(0).produce()
+    val service = ReferralEventNumberResolverService(nDeliusIntegrationApiClient, referralRepository, telemetryClient)
+
+    `when`(nDeliusIntegrationApiClient.getSentenceInformation(referral.crn, 1)).thenReturn(
+      ClientResult.Failure.Other(
+        HttpMethod.GET,
+        "/case/${referral.crn}/sentence/1",
+        RuntimeException("Connection refused"),
+        "nDelius",
+      ),
+    )
+    `when`(nDeliusIntegrationApiClient.getSentenceInformation(referral.crn, 2)).thenReturn(
+      ClientResult.Failure.StatusCode(HttpMethod.GET, "/case/${referral.crn}/sentence/2", HttpStatusCode.valueOf(400), null),
+    )
+
+    `when`(nDeliusIntegrationApiClient.getSentenceInformation(referral.crn, 3)).thenReturn(
+      ClientResult.Success(HttpStatusCode.valueOf(400), mockSentenceResponse()),
+    )
+
+    val result = service.resolveIfEventNumberIsZero(referral)
+
+    assertThat(result).isEqualTo(3)
+    assertThat(referral.eventNumber).isEqualTo(3)
+    verify(referralRepository).save(referral)
+    verify(nDeliusIntegrationApiClient).getSentenceInformation(referral.crn, 1)
+    verify(nDeliusIntegrationApiClient).getSentenceInformation(referral.crn, 2)
+  }
+
   private fun mockSentenceResponse() = NDeliusSentenceResponseFactory().produce()
 }
