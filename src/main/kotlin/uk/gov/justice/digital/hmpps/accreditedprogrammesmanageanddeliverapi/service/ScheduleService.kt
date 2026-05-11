@@ -355,7 +355,11 @@ class ScheduleService(
     }
 
     // If there is no prior session, just schedule from start
-    return scheduleSessionsForGroup(programmeGroupId, mostRecentSession, skipPreGroupOneToOnePlaceholder)
+    val sessions = scheduleSessionsForGroup(programmeGroupId, mostRecentSession, skipPreGroupOneToOnePlaceholder)
+    val attendees = sessions.flatMap { it.attendees }.toList()
+    createNdeliusAppointmentsForSessions(attendees)
+
+    return sessions
   }
 
   fun removeFutureSessionsForIndividual(group: ProgrammeGroupEntity, referralId: UUID) {
