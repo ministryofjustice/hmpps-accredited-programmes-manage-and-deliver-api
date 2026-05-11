@@ -38,6 +38,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.DeliveryLocationPreferencesService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.OffenceService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralEventNumberResolverService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralStatusService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SentenceService
@@ -48,6 +49,7 @@ import java.util.UUID
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
 class ReferralController(
   private val referralService: ReferralService,
+  private val referralEventNumberResolverService: ReferralEventNumberResolverService,
   private val userService: UserService,
   private val offenceService: OffenceService,
   private val sentenceService: SentenceService,
@@ -127,6 +129,7 @@ class ReferralController(
     @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) id: UUID,
   ): ResponseEntity<PersonalDetails> {
     val referral = referralService.getReferralById(id)
+    referralEventNumberResolverService.resolveIfEventNumberIsZero(referral)
     return userService.getPersonalDetailsByIdentifier(referral.crn).let {
       ResponseEntity.ok(it.toModel(referral.setting))
     }
