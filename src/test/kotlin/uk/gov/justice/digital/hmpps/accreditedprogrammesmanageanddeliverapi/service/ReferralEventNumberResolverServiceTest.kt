@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import com.microsoft.applicationinsights.TelemetryClient
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -13,6 +14,7 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 
@@ -25,22 +27,26 @@ class ReferralEventNumberResolverServiceTest {
   @Mock
   private lateinit var referralRepository: ReferralRepository
 
+  @Mock
+  private lateinit var telemetryClient: TelemetryClient
+
   @Test
   fun `does not attempt resolution when event number is already non-zero`() {
     val referral = ReferralEntityFactory().withEventNumber(4).produce()
-    val service = ReferralEventNumberResolverService(nDeliusIntegrationApiClient, referralRepository)
+    val service = ReferralEventNumberResolverService(nDeliusIntegrationApiClient, referralRepository, telemetryClient)
 
     val result = service.resolveIfEventNumberIsZero(referral)
 
     assertThat(result).isEqualTo(4)
     verifyNoInteractions(nDeliusIntegrationApiClient)
     verifyNoInteractions(referralRepository)
+    verifyNoInteractions(telemetryClient)
   }
 
   @Test
   fun `updates referral event number when a valid number is found`() {
     val referral = ReferralEntityFactory().withEventNumber(0).produce()
-    val service = ReferralEventNumberResolverService(nDeliusIntegrationApiClient, referralRepository)
+    val service = ReferralEventNumberResolverService(nDeliusIntegrationApiClient, referralRepository, telemetryClient)
 
     `when`(nDeliusIntegrationApiClient.getSentenceInformation(referral.crn, 1)).thenReturn(
       ClientResult.Failure.StatusCode(HttpMethod.GET, "/case/${referral.crn}/sentence/1", HttpStatusCode.valueOf(404), null),
@@ -65,7 +71,7 @@ class ReferralEventNumberResolverServiceTest {
   @Test
   fun `keeps event number as zero when no valid number is found`() {
     val referral = ReferralEntityFactory().withEventNumber(0).produce()
-    val service = ReferralEventNumberResolverService(nDeliusIntegrationApiClient, referralRepository)
+    val service = ReferralEventNumberResolverService(nDeliusIntegrationApiClient, referralRepository, telemetryClient)
 
     (1..20).forEach { candidate ->
       `when`(nDeliusIntegrationApiClient.getSentenceInformation(referral.crn, candidate)).thenReturn(
@@ -83,5 +89,5 @@ class ReferralEventNumberResolverServiceTest {
     }
   }
 
-  private fun mockSentenceResponse() = uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory().produce()
+  private fun mockSentenceResponse() = NDeliusSentenceResponseFactory().produce()
 }
