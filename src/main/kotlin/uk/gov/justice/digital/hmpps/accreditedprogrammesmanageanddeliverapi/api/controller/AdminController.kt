@@ -125,8 +125,10 @@ class AdminController(
   )
   @PostMapping("/admin/clear-missing-data-referrals")
   fun clearMissingDataReferrals(): ResponseEntity<Void> {
-    CoroutineScope(dispatcher).launch {
+    try {
       adminService.cleanUpReferralsWithNoDeliusOrOasysData()
+    } catch (e: Exception) {
+      log.error("Error during cleanup", e)
     }
     return ResponseEntity.accepted().build()
   }
