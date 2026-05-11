@@ -26,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffenceFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UpdateAppointmentsRequestFactory
@@ -161,6 +162,19 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
     when (val response = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(crn))) {
       is ClientResult.Failure.StatusCode<*> -> assertThat(response.status).isEqualTo(HttpStatus.FORBIDDEN)
       else -> fail("Unexpected result: ${response::class.simpleName}")
+    }
+  }
+
+  @Test
+  fun `should return error when making request for more than 500 crns`() {
+    stubAuthTokenEndpoint()
+    val username = "john.doe"
+    val crnList = List(501) { randomCrn() }
+
+    try {
+      nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, crnList)
+    } catch (exception: IllegalArgumentException) {
+      assertThat(exception.message).isEqualTo("Identifier limit exceeded: ${crnList.size} identifiers provided, maximum is 500")
     }
   }
 

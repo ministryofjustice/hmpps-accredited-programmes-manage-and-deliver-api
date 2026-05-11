@@ -10,7 +10,11 @@ class ReferralCaseListItemRepositoryImpl(
   private val entityManager: EntityManager,
 ) : ReferralCaseListItemRepositoryCustom {
 
-  override fun findAllCrns(spec: Specification<ReferralCaseListItemViewEntity>): List<String> {
+  override fun findAllCrns(
+    spec: Specification<ReferralCaseListItemViewEntity>,
+    offset: Int,
+    limit: Int,
+  ): List<String> {
     val builder = entityManager.criteriaBuilder
     val query = builder.createQuery(String::class.java)
     val root = query.from(ReferralCaseListItemViewEntity::class.java)
@@ -19,6 +23,9 @@ class ReferralCaseListItemRepositoryImpl(
 
     spec.toPredicate(root, query, builder)?.let { query.where(it) }
 
-    return entityManager.createQuery(query).resultList
+    return entityManager.createQuery(query)
+      .setFirstResult(offset)
+      .setMaxResults(limit)
+      .resultList
   }
 }

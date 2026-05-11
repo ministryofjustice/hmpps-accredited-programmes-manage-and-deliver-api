@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.BaseHMPPSClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.DeleteAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
@@ -34,11 +35,18 @@ class NDeliusIntegrationApiClient(
     path = "/case/$crn/sentence/$eventNumber"
   }
 
-  fun verifyLimitedAccessOffenderCheck(username: String, identifiers: List<String>) = postRequest<LimitedAccessOffenderCheckResponse>(
-    N_DELIUS_INTEGRATION_API,
-  ) {
-    path = "/user/$username/access"
-    body = identifiers
+  fun verifyLimitedAccessOffenderCheck(
+    username: String,
+    identifiers: List<String>,
+  ): ClientResult<LimitedAccessOffenderCheckResponse> {
+    require(identifiers.size <= 500) { "Identifier limit exceeded: ${identifiers.size} identifiers provided, maximum is 500" }
+
+    return postRequest<LimitedAccessOffenderCheckResponse>(
+      N_DELIUS_INTEGRATION_API,
+    ) {
+      path = "/user/$username/access"
+      body = identifiers
+    }
   }
 
   fun getOffences(crn: String, eventNumber: Int) = getRequest<Offences>(N_DELIUS_INTEGRATION_API) {

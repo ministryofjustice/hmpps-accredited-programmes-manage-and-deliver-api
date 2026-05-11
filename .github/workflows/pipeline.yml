@@ -43,7 +43,7 @@ jobs:
     steps:
       - id: app_version
         name: Application version creators
-        uses: ministryofjustice/hmpps-github-shared-actions/.github/actions/build-test-and-deploy/create_app_version@c9b92b85a2aa7e313fb377a81fec08dd4f6f15b8 # v1
+        uses: ministryofjustice/hmpps-github-shared-actions/.github/actions/build-test-and-deploy/create_app_version@e0e6abc2f67f2bbb81a74610d6c307ab468a1a77 # v1
   kotlin_validate:
     name: Validate the kotlin
     uses: ministryofjustice/hmpps-github-actions/.github/workflows/gradle_verify.yml@v2 # WORKFLOW_VERSION
@@ -104,7 +104,7 @@ jobs:
           node-version: lts/*
 
       - name: SLSA Supply Chain Security
-        uses: ministryofjustice/devsecops-actions/sca/slsa@8c77d3a65a46d1d4b5416eafae5b84371ecd797d # v1.5.0
+        uses: ministryofjustice/devsecops-actions/sca/slsa@7dc13c20e2bf541b8a77fa1320a04983b18846f6 # v1.6.0
 
       - name: Install dependencies
         working-directory: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests
@@ -154,7 +154,6 @@ jobs:
     needs:
       - build
       - deploy_dev
-      - e2e-tests
     uses: ministryofjustice/hmpps-github-actions/.github/workflows/deploy_env.yml@v2 # WORKFLOW_VERSION
     secrets: inherit
     with:
