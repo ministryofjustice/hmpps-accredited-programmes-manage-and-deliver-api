@@ -59,7 +59,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedProgrammeDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
@@ -68,7 +67,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionNotesHistoryEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.ATTC
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -91,6 +89,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -141,6 +140,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var sessionAttendanceRepository: SessionAttendanceRepository
+
+  @Autowired
+  private lateinit var moduleSessionTemplateRepository: ModuleSessionTemplateRepository
 
   @Autowired
   private lateinit var scheduleService: ScheduleService
@@ -564,24 +566,12 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     private fun setupPostProgrammeReviewForGroup(group: ProgrammeGroupEntity, memberships: List<ProgrammeGroupMembershipEntity>, attended: Boolean = true) {
-      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
-      val module = testDataGenerator.createModule(programmeTemplate, "Post-programme reviews", 1)
-
-      val moduleSessionTemplate = testDataGenerator.createModuleSessionTemplate(
-        ModuleSessionTemplateEntity(
-          module = module,
-          sessionNumber = 1,
-          sessionType = SessionType.GROUP,
-          pathway = Pathway.MODERATE_INTENSITY,
-          name = "Post-programme review",
-          durationMinutes = 120,
-        ),
-      )
+      val postProgrammeReviewSessionTemplate = moduleSessionTemplateRepository.findByName("Post-programme review")
 
       val session = testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(group)
-          .withModuleSessionTemplate(moduleSessionTemplate)
+          .withModuleSessionTemplate(postProgrammeReviewSessionTemplate!!)
           .produce(),
       )
 
