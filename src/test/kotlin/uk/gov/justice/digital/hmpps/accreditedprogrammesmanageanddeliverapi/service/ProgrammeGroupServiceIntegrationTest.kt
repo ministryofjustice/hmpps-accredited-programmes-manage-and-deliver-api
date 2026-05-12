@@ -25,10 +25,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceNDeliusOutcomeEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
@@ -38,6 +41,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -60,6 +64,9 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
+
+  @Autowired
+  private lateinit var sessionAttendanceOutcomeTypeRepository: SessionAttendanceOutcomeTypeRepository
 
   @Nested
   @DisplayName("getProgrammeGroupsForRegion")
@@ -268,7 +275,30 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
             referralStatusDescription = statusComplete,
           ),
       )
-      testDataGenerator.allocateReferralsToGroup(listOf(referral1), completedGroup)
+      val memberships = testDataGenerator.allocateReferralsToGroup(listOf(referral1), completedGroup)
+
+      // Setup post-programme review attendance to make it "complete"
+      val template = testDataGenerator.createAccreditedProgrammeTemplate("Template")
+      val module = testDataGenerator.createModule(template, "post-programme review", 1)
+      val moduleSessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        module = module,
+        name = "Post Programme Session",
+        sessionNumber = 1,
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory(programmeGroup = completedGroup, moduleSessionTemplate = moduleSessionTemplate).produce(),
+      )
+      val outcome = sessionAttendanceOutcomeTypeRepository.findByCode(SessionAttendanceNDeliusCode.ATTC)
+        ?: testDataGenerator.createSessionAttendanceOutcome(
+          SessionAttendanceNDeliusOutcomeEntityFactory().withCode(SessionAttendanceNDeliusCode.ATTC).produce(),
+        )
+      testDataGenerator.createSessionAttendance(
+        SessionAttendanceEntity(
+          session = session,
+          groupMembership = memberships.first(),
+          outcomeType = outcome,
+        ),
+      )
 
       // Given a group that has one completed and one not completed referral (should be in NOT_STARTED_OR_IN_PROGRESS tab)
       val partiallyCompletedGroup = testDataGenerator.createGroup(
