@@ -547,22 +547,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
     @BeforeEach
     fun setupOutcomes() {
-      attendedCompliedOutcome = sessionAttendanceOutcomeTypeRepository.save(
-        SessionAttendanceNDeliusOutcomeEntity(
-          code = ATTC,
-          description = "Attended - Complied",
-          attendance = true,
-          compliant = true,
-        ),
-      )
-      unacceptableAbsenceOutcome = sessionAttendanceOutcomeTypeRepository.save(
-        SessionAttendanceNDeliusOutcomeEntity(
-          code = UAAB,
-          description = "Unacceptable Absence",
-          attendance = false,
-          compliant = false,
-        ),
-      )
+      attendedCompliedOutcome = sessionAttendanceOutcomeTypeRepository.findByCode(ATTC)!!
+      unacceptableAbsenceOutcome = sessionAttendanceOutcomeTypeRepository.findByCode(UAAB)!!
     }
 
     private fun setupPostProgrammeReviewForGroup(group: ProgrammeGroupEntity, memberships: List<ProgrammeGroupMembershipEntity>, attended: Boolean = true) {
