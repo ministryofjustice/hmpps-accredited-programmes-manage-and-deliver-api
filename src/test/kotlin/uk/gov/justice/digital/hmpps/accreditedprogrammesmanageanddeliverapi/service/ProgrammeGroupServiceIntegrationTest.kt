@@ -264,6 +264,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           .withCode("COMPLETED_GROUP")
           .withRegionName("Region Description")
           .withEarliestStartDate(LocalDate.now().minusDays(10))
+          .withDeletedAt(LocalDateTime.now())
           .produce(),
       )
       val referral1 = testDataGenerator.createReferral("Person 1", "CRN1")

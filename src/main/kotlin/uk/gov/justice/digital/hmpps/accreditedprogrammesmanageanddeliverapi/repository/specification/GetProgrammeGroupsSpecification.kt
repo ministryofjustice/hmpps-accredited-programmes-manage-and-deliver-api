@@ -136,12 +136,12 @@ fun incompleteMembershipCountSubquery(
   val isMembershipComplete = cb.and(
     isLatestReferralStatusProgrammeComplete(query, cb, referralJoin),
     hasAttendedPostProgrammeReview(incompleteMembershipCountSubquery, cb, groupMembershipRoot),
+    cb.isNotNull(groupMembershipRoot.get<LocalDateTime>("deletedAt")),
   )
 
   incompleteMembershipCountSubquery.select(cb.count(groupMembershipRoot))
   incompleteMembershipCountSubquery.where(
     cb.equal(groupMembershipRoot.get<ProgrammeGroupEntity>("programmeGroup"), root),
-    cb.isNull(groupMembershipRoot.get<LocalDateTime>("deletedAt")),
     cb.not(isMembershipComplete),
   )
   return incompleteMembershipCountSubquery

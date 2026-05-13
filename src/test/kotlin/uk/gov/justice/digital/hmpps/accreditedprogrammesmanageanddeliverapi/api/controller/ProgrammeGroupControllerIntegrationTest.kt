@@ -661,16 +661,17 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response.pagedGroupData.totalElements).isEqualTo(4)
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(5)
       val codes = response.pagedGroupData.content.map { it.code }
       assertThat(codes).containsExactlyInAnyOrder(
         "GROUP-A-NS-1",
         "GROUP-A-NS-2",
         "GROUP-A-NS-3",
         "GROUP-A-S-1",
+        "GROUP-A-C-1",
       )
-      // otherTabTotal should be count of started groups in the region (2)
-      assertThat(response.otherTabTotal).isEqualTo(2)
+      // otherTabTotal should be count of completed groups in the region
+      assertThat(response.otherTabTotal).isEqualTo(1)
       assertThat(response.regionName).isEqualTo("WIREMOCKED REGION")
     }
 
@@ -747,11 +748,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Then: should contain only groups where all members are complete AND attended a post programme review
       // group5 is complete. group4 has no members. group3 is NOT complete because referral2 is "On Programme"
-      assertThat(response.pagedGroupData.totalElements).isEqualTo(2)
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(1)
+
       val groupCodes = response.pagedGroupData.content.map { it.code }
-      assertThat(groupCodes).containsExactlyInAnyOrder("GROUP-A-C-1", "GROUP-A-S-2")
-      // otherTabTotal should be count of not-started or in progress groups (3: group1, group2, group3)
-      assertThat(response.otherTabTotal).isEqualTo(3)
+      assertThat(groupCodes).containsExactlyInAnyOrder("GROUP-A-S-2")
+
+      // otherTabTotal should be count of not-started or in progress groups (4: group1, group2, group3, group4)
+      assertThat(response.otherTabTotal).isEqualTo(4)
       assertThat(response.regionName).isEqualTo("WIREMOCKED REGION")
     }
 
