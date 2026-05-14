@@ -35,5 +35,14 @@ data class IndividualRiskScores(
       rsr = pniResponse.assessment?.rsrPercentage?.let { BigDecimal.valueOf(it) }.toString(),
       sara = Sara.from(pniResponse),
     )
+
+    fun empty() = IndividualRiskScores(
+      ogrs3Risk = null,
+      ovpRisk = null,
+      ospDc = null,
+      ospIic = null,
+      rsr = null,
+      sara = Sara.empty(),
+    )
   }
 }

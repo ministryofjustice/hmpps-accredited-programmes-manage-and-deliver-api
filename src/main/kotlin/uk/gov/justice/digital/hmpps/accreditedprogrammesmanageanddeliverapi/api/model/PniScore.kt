@@ -8,7 +8,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 data class PniScore(
 
   @Schema(description = "The overall intensity level derived from the PNI assessment", example = "HIGH")
-  val overallIntensity: OverallIntensity,
+  val overallIntensity: OverallIntensity? = null,
   @Schema(description = "Detailed scores across different assessment domains")
   val domainScores: DomainScores,
 
@@ -27,4 +27,13 @@ data class PniScore(
   @get:JsonProperty("RiskScore") val riskScore: RiskScore,
   @Schema(example = "['impulsivity is missing ']", required = true)
   @get:JsonProperty("validationErrors") val validationErrors: List<String>,
-)
+) {
+  companion object {
+    fun empty() = PniScore(
+      overallIntensity = OverallIntensity.MISSING_INFORMATION,
+      domainScores = DomainScores.empty(),
+      riskScore = RiskScore.empty(),
+      validationErrors = emptyList(),
+    )
+  }
+}

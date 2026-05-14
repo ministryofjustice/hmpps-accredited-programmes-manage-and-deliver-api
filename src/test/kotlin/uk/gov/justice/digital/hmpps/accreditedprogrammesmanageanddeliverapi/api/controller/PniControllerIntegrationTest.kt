@@ -88,19 +88,47 @@ class PniControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should return HTTP 404 not found when retrieving PNI score for an unknown CRN`() {
+  fun `should return empty PNI score when retrieving PNI score for an unknown CRN`() {
     // Given
     stubAuthTokenEndpoint()
     val crn = "UNKNOWN_CRN"
     oasysApiStubs.stubNotFoundPniResponse(crn)
 
-    // When & Then
-    performRequestAndExpectStatus(
+    // When
+    val response = performRequestAndExpectOk(
       HttpMethod.GET,
       "/pni-score/$crn",
-      object : ParameterizedTypeReference<ErrorResponse>() {},
-      HttpStatus.NOT_FOUND.value(),
+      object : ParameterizedTypeReference<PniScore>() {},
     )
+
+    // Then
+    assertThat(response).isNotNull
+    assertThat(response).isEqualTo(PniScore.empty())
+    assertThat(response.overallIntensity).isEqualTo(OverallIntensity.MISSING_INFORMATION)
+    assertThat(response.domainScores).isNotNull
+    assertThat(response.domainScores.sexDomainScore).isNotNull
+    assertThat(response.domainScores.sexDomainScore.individualSexScores).isNotNull
+    assertThat(response.domainScores.sexDomainScore.individualSexScores.sexualPreOccupation).isNull()
+    assertThat(response.domainScores.sexDomainScore.overallSexDomainLevel).isNull()
+    assertThat(response.domainScores.thinkingDomainScore).isNotNull
+    assertThat(response.domainScores.thinkingDomainScore.individualThinkingScores).isNotNull
+    assertThat(response.domainScores.thinkingDomainScore.individualThinkingScores.proCriminalAttitudes).isNull()
+    assertThat(response.domainScores.thinkingDomainScore.overallThinkingDomainLevel).isNull()
+    assertThat(response.domainScores.relationshipDomainScore).isNotNull
+    assertThat(response.domainScores.relationshipDomainScore.individualRelationshipScores).isNotNull
+    assertThat(response.domainScores.relationshipDomainScore.individualRelationshipScores.easilyInfluenced).isNull()
+    assertThat(response.domainScores.relationshipDomainScore.overallRelationshipDomainLevel).isNull()
+    assertThat(response.domainScores.selfManagementDomainScore).isNotNull
+    assertThat(response.domainScores.selfManagementDomainScore.overallSelfManagementDomainLevel).isNull()
+    assertThat(response.domainScores.selfManagementDomainScore.individualSelfManagementScores).isNotNull
+    assertThat(response.domainScores.selfManagementDomainScore.individualSelfManagementScores.problemSolvingSkills).isNull()
+    assertThat(response.riskScore).isNotNull
+    assertThat(response.riskScore.individualRiskScores).isNotNull
+    assertThat(response.riskScore.individualRiskScores.rsr).isNull()
+    assertThat(response.riskScore.individualRiskScores.sara).isNotNull
+    assertThat(response.riskScore.individualRiskScores.sara?.highestRisk).isNull()
+    assertThat(response.riskScore.individualRiskScores.ovpRisk).isNull()
+    assertThat(response.riskScore.individualRiskScores.ospDc).isNull()
   }
 
   @Test

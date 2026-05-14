@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.toPniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.PniService
 
 @RestController
@@ -43,7 +42,7 @@ class PniController(
       ),
       ApiResponse(
         responseCode = "404",
-        description = "The PNI Score does not exist for this CRN",
+        description = "The person resource itself is not found",
         content = [Content(schema = Schema(implementation = ErrorResponse::class))],
       ),
     ],
@@ -54,5 +53,5 @@ class PniController(
   fun getPniScoreByCrn(
     @Parameter(description = "The unique crn of an individual", required = true)
     @PathVariable("crn") crn: String,
-  ) = pniService.getPniCalculation(crn).toPniScore()
+  ) = pniService.getPniCalculation(crn)
 }

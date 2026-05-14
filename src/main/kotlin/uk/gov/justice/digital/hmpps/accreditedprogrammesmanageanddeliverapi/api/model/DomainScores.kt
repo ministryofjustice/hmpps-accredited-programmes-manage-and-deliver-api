@@ -53,6 +53,13 @@ data class DomainScores(
         ),
       ),
     )
+
+    fun empty() = DomainScores(
+      sexDomainScore = SexDomainScore.empty(),
+      thinkingDomainScore = ThinkingDomainScore.empty(),
+      relationshipDomainScore = RelationshipDomainScore.empty(),
+      selfManagementDomainScore = SelfManagementDomainScore.empty(),
+    )
   }
 }
 
@@ -60,19 +67,47 @@ data class SexDomainScore(
   @Schema(example = "2", required = true)
   @get:JsonProperty("overallSexDomainLevel") val overallSexDomainLevel: NeedLevel?,
   @get:JsonProperty("individualSexScores") val individualSexScores: IndividualSexScores,
-)
+) {
+  companion object {
+    fun empty() = SexDomainScore(
+      overallSexDomainLevel = null,
+      individualSexScores = IndividualSexScores.empty(),
+    )
+  }
+}
 
 data class ThinkingDomainScore(
   @get:JsonProperty("overallThinkingDomainLevel") val overallThinkingDomainLevel: NeedLevel?,
   @get:JsonProperty("individualThinkingScores") val individualThinkingScores: IndividualCognitiveScores,
-)
+) {
+  companion object {
+    fun empty() = ThinkingDomainScore(
+      overallThinkingDomainLevel = null,
+      individualThinkingScores = IndividualCognitiveScores.empty(),
+    )
+  }
+}
 
 data class RelationshipDomainScore(
   @get:JsonProperty("overallRelationshipDomainLevel") val overallRelationshipDomainLevel: NeedLevel?,
   @get:JsonProperty("individualRelationshipScores") val individualRelationshipScores: IndividualRelationshipScores,
-)
+) {
+  companion object {
+    fun empty() = RelationshipDomainScore(
+      overallRelationshipDomainLevel = null,
+      individualRelationshipScores = IndividualRelationshipScores.empty(),
+    )
+  }
+}
 
 data class SelfManagementDomainScore(
   @get:JsonProperty("overallSelfManagementDomainLevel") val overallSelfManagementDomainLevel: NeedLevel?,
   @get:JsonProperty("individualSelfManagementScores") val individualSelfManagementScores: IndividualSelfManagementScores,
-)
+) {
+  companion object {
+    fun empty() = SelfManagementDomainScore(
+      overallSelfManagementDomainLevel = null,
+      individualSelfManagementScores = IndividualSelfManagementScores.empty(),
+    )
+  }
+}

@@ -10,11 +10,11 @@ import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.OasysApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.OverallIntensity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Type
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.toPniScore
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 
@@ -28,7 +28,7 @@ class PniServiceTest {
   private lateinit var pniService: PniService
 
   @Test
-  fun `when getPniScore has pniCalculation in oasys return pniScore `() {
+  fun `when getPniScore has pniCalculation in oasys return pniScore`() {
     val crn = randomCrn()
     val pniResponse = PniResponseFactory().produce()
 
@@ -39,13 +39,13 @@ class PniServiceTest {
       ),
     )
 
-    val result = pniService.getPniCalculation(crn).toPniScore()
+    val result = pniService.getPniCalculation(crn)
     assertThat(result).isNotNull
     assertThat(result.overallIntensity).isEqualTo(Type.toIntensity(pniResponse.pniCalculation?.pni))
   }
 
   @Test
-  fun `when getPniScore has no pniCalculation in oasys throw exception`() {
+  fun `when getPniScore returns 404 from oasys return empty pniScore`() {
     val crn = randomCrn()
 
     `when`(oasysApiClient.getPniCalculation(crn)).thenReturn(
@@ -57,6 +57,24 @@ class PniServiceTest {
       ),
     )
 
-    assertThrows<NotFoundException> { pniService.getPniCalculation(crn) }
+    val result = pniService.getPniCalculation(crn)
+    assertThat(result).isEqualTo(PniScore.empty())
+    assertThat(result.overallIntensity).isEqualTo(OverallIntensity.MISSING_INFORMATION)
+  }
+
+  @Test
+  fun `when getPniScore returns non-404 failure from oasys throw exception`() {
+    val crn = randomCrn()
+
+    `when`(oasysApiClient.getPniCalculation(crn)).thenReturn(
+      ClientResult.Failure.StatusCode(
+        HttpMethod.GET,
+        "/assessments/pni/$crn?community=true",
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        "Internal Server Error",
+      ),
+    )
+
+    assertThrows<RuntimeException> { pniService.getPniCalculation(crn) }
   }
 }
