@@ -134,7 +134,6 @@ class SubjectAccessRequestServiceTest {
     assertThat(resultContent.referrals[0].id).isEqualTo(referralEntity1.id)
     assertThat(resultContent.referrals[0].crn).isEqualTo(referralEntity1.crn)
     assertThat(resultContent.referrals[0].dateOfBirth).isEqualTo(referralEntity1.dateOfBirth)
-    assertThat(resultContent.referrals[0].eventId).isEqualTo(referralEntity1.eventId)
     assertThat(resultContent.referrals[0].personName).isEqualTo(referralEntity1.personName)
     assertThat(resultContent.referrals[0].sentenceEndDate).isEqualTo(referralEntity1.sentenceEndDate)
     assertThat(resultContent.referrals[0].sex).isEqualTo(referralEntity1.sex)

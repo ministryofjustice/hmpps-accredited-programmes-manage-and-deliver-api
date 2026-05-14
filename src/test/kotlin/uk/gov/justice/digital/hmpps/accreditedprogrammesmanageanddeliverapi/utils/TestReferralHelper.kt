@@ -22,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension
@@ -33,6 +34,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import java.time.LocalDate
 import java.util.UUID
 
 /**
@@ -106,8 +108,11 @@ class TestReferralHelper {
     sourcedFrom: ReferralEntitySourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION,
     reportingPdu: String = "PDU 1",
     reportingTeam: String = "Team A",
+    regionName: String? = null,
     sex: String = "Male",
     cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE,
+    dateOfBirth: LocalDate? = null,
+    sentenceEndDate: LocalDate? = null,
   ): ReferralEntity {
     val findAndReferReferralDetails = FindAndReferReferralDetailsFactory()
       .withInterventionName("Test Intervention")
@@ -143,9 +148,21 @@ class TestReferralHelper {
     oasysApiStubs.stubSuccessfulPniResponse(crn, pniResponse)
 
     // Stub sentence information
+    val sentenceResponse = NDeliusSentenceResponseFactory(sourcedFrom)
+      .apply {
+        sentenceEndDate?.let {
+          if (sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION) {
+            withLicenceExpiryDate(it)
+          } else {
+            withExpectedEndDate(it)
+          }
+        }
+      }
+      .produce()
     nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
       crn = crn,
       eventNumber = findAndReferReferralDetails.eventNumber,
+      nDeliusSentenceResponse = sentenceResponse,
       sourcedFrom = sourcedFrom,
     )
 
@@ -158,6 +175,8 @@ class TestReferralHelper {
         .withName(personName.toFullName())
         .withProbationDeliveryUnit(CodeDescription(randomUppercaseString(), reportingPdu))
         .withTeam(CodeDescription(randomUppercaseString(), reportingTeam))
+        .apply { dateOfBirth?.let { withDateOfBirth(it) } }
+        .apply { regionName?.let { withRegionStrings(description = it) } }
         .produce(),
     )
 
@@ -221,8 +240,11 @@ class TestReferralHelper {
         sourcedFrom = config.sourcedFrom,
         reportingPdu = config.reportingPdu,
         reportingTeam = config.reportingTeam,
+        regionName = config.regionName,
         sex = config.sex,
         cohort = config.cohort,
+        dateOfBirth = config.dateOfBirth,
+        sentenceEndDate = config.sentenceEndDate,
       )
     }
   }
@@ -287,8 +309,11 @@ class TestReferralHelper {
     val sourcedFrom: ReferralEntitySourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION,
     val reportingPdu: String = "PDU 1",
     val reportingTeam: String = "Team A",
+    val regionName: String? = null,
     val sex: String = "Male",
     val cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE,
+    val dateOfBirth: LocalDate? = null,
+    val sentenceEndDate: LocalDate? = null,
   )
 
   /**

@@ -212,4 +212,26 @@ class HmppsSubjectAccessRequestControllerIntegrationTest : IntegrationTestBase()
       .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
       .returnResult().responseBody!!
   }
+
+  @Test
+  fun `should return SAR template when authorised`() {
+    // When
+    val response = webTestClient
+      .method(HttpMethod.GET)
+      .uri("/subject-access-request/template")
+      .headers(
+        setAuthorisation(
+          roles = listOf(
+            "ROLE_SAR_DATA_ACCESS",
+          ),
+        ),
+      )
+      .exchange()
+      .expectStatus().isOk
+      .expectBody(String::class.java)
+      .returnResult().responseBody!!
+
+    // Then
+    assertThat(response).contains("Manage and Deliver - Accredited Programmes")
+  }
 }

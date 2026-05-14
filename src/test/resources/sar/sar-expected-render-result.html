@@ -1,0 +1,761 @@
+<style>
+    * {
+        font-family: "HelveticaNeue", "Helvetica Neue", "Arial", "Helvetica", sans-serif;
+        font-size: 12pt;
+        color: #0b0c0c;
+    }
+    /* --- HEADINGS --- */
+
+    .title {
+        font-size: 20pt;
+        text-align: center;
+    }
+
+    h1, h2, h3 {
+        color: #0b0c0c;
+        font-weight: 700;
+        display: block;
+        margin-top: 0;
+        margin-inline-start: 0;
+        margin-inline-end: 0;
+    }
+
+    h1 {
+        font-size: 18pt;
+        line-height: 1.09375;
+        margin-top: 20px;
+        margin-bottom: 10px;
+        margin-block-start: 0.67em;
+        margin-block-end: 0.67em;
+    }
+
+    h2 {
+        font-size: 17pt;
+        line-height: 1.0416666667;
+        margin-top: 15px;
+        margin-bottom: 5px;
+        margin-block-start: 0.83em;
+        margin-block-end: 0.83em;
+    }
+
+    h3 {
+        font-size: 16pt;
+        line-height: 1.0416666667;
+        margin-top: 15px;
+        margin-bottom: 5px;
+        margin-block-start: 0.83em;
+        margin-block-end: 0.83em;
+    }
+
+    h4 {
+        font-size: 15pt;
+        line-height: 1.0416666667;
+        margin-top: 15px;
+        margin-bottom: 5px;
+        margin-block-start: 0.83em;
+        margin-block-end: 0.83em;
+    }
+
+    h5 {
+        font-size: 14pt;
+        line-height: 1.0416666667;
+        margin-top: 15px;
+        margin-bottom: 5px;
+        margin-block-start: 0.83em;
+        margin-block-end: 0.83em;
+    }
+
+    /* --- SUMMARY LIST --- */
+
+    table.summary-list {
+        display: table;
+        width: 700px;
+        table-layout: fixed;
+        border-collapse: collapse;
+        margin: 0 0 5px;
+        margin-block-start: 1em;
+        margin-block-end: 1em;
+        margin-inline-start: 0;
+        margin-inline-end: 0;
+    }
+
+    table.summary-list tr {
+        display: table-row;
+        margin: 0 0 20px;
+    }
+
+    table.summary-list tr td {
+        border-bottom: 1px solid #b1b4b6;
+        /*margin-bottom: 5px;*/
+        overflow-wrap: break-word;
+        display: table-cell;
+        /*padding-top: 2px;*/
+        /*padding-bottom: 2px;*/
+        /*padding-right: 0;*/
+        margin-inline-start: 40px;
+        width: 70%;
+        table-layout: fixed;
+        border-collapse: collapse;
+        line-height: 1.25;
+        font-weight: 400;
+        white-space: normal;
+        vertical-align: top;
+    }
+
+    table.summary-list tr td:first-child {
+        font-size: 12pt;
+        width: 30%;
+        font-weight: 700;
+        padding-right: 20px;
+        vertical-align: top;
+    }
+
+    /* --- DATA TABLE --- */
+
+    table.data-table {
+        display: table;
+        width: 700px;
+        table-layout: fixed;
+        border-collapse: collapse;
+        margin: 0 0 5px;
+        margin-block-start: 1em;
+        margin-block-end: 1em;
+        margin-inline-start: 0;
+        margin-inline-end: 0;
+    }
+
+    table.data-table tr {
+        display: table-row;
+        margin: 0 0 20px;
+    }
+
+    table.data-table tr td {
+        border-bottom: 1px solid #b1b4b6;
+        margin-bottom: 5px;
+        overflow-wrap: break-word;
+        display: table-cell;
+        padding-top: 2px;
+        padding-bottom: 2px;
+        padding-right: 0;
+        margin-inline-start: 40px;
+        table-layout: fixed;
+        border-collapse: collapse;
+        line-height: 1.25;
+        font-weight: 400;
+        white-space: pre-wrap;
+        vertical-align: top;
+    }
+
+    table.data-table tr:first-child td {
+        font-size: 12pt;
+        width: 30%;
+        font-weight: 700;
+        padding-right: 20px;
+        border-bottom: none;
+        vertical-align: top;
+    }
+
+    table.data-table tr td.data-column-5 { width: 5% }
+    table.data-table tr td.data-column-10 { width: 10% }
+    table.data-table tr td.data-column-15 { width: 15% }
+    table.data-table tr td.data-column-20 { width: 20% }
+    table.data-table tr td.data-column-25 { width: 25% }
+    table.data-table tr td.data-column-30 { width: 30% }
+    table.data-table tr td.data-column-35 { width: 35% }
+    table.data-table tr td.data-column-40 { width: 40% }
+    table.data-table tr td.data-column-45 { width: 45% }
+    table.data-table tr td.data-column-50 { width: 50% }
+    table.data-table tr td.data-column-55 { width: 55% }
+    table.data-table tr td.data-column-60 { width: 60% }
+    table.data-table tr td.data-column-65 { width: 65% }
+    table.data-table tr td.data-column-70 { width: 70% }
+    table.data-table tr td.data-column-75 { width: 75% }
+    table.data-table tr td.data-column-80 { width: 80% }
+    table.data-table tr td.data-column-85 { width: 85% }
+    table.data-table tr td.data-column-90 { width: 90% }
+    table.data-table tr td.data-column-95 { width: 95% }
+
+    table tr td.data-column-5 { width: 5% }
+    table tr td.data-column-10 { width: 10% }
+    table tr td.data-column-15 { width: 15% }
+    table tr td.data-column-20 { width: 20% }
+    table tr td.data-column-25 { width: 25% }
+    table tr td.data-column-30 { width: 30% }
+    table tr td.data-column-35 { width: 35% }
+    table tr td.data-column-40 { width: 40% }
+    table tr td.data-column-45 { width: 45% }
+    table tr td.data-column-50 { width: 50% }
+    table tr td.data-column-55 { width: 55% }
+    table tr td.data-column-60 { width: 60% }
+    table tr td.data-column-65 { width: 65% }
+    table tr td.data-column-70 { width: 70% }
+    table tr td.data-column-75 { width: 75% }
+    table tr td.data-column-80 { width: 80% }
+    table tr td.data-column-85 { width: 85% }
+    table tr td.data-column-90 { width: 90% }
+    table tr td.data-column-95 { width: 95% }
+
+    table.summary-list tr td.data-column-5 { width: 5% }
+    table.summary-list tr td.data-column-10 { width: 10% }
+    table.summary-list tr td.data-column-15 { width: 15% }
+    table.summary-list tr td.data-column-20 { width: 20% }
+    table.summary-list tr td.data-column-25 { width: 25% }
+    table.summary-list tr td.data-column-30 { width: 30% }
+    table.summary-list tr td.data-column-35 { width: 35% }
+    table.summary-list tr td.data-column-40 { width: 40% }
+    table.summary-list tr td.data-column-45 { width: 45% }
+    table.summary-list tr td.data-column-50 { width: 50% }
+    table.summary-list tr td.data-column-55 { width: 55% }
+    table.summary-list tr td.data-column-60 { width: 60% }
+    table.summary-list tr td.data-column-65 { width: 65% }
+    table.summary-list tr td.data-column-70 { width: 70% }
+    table.summary-list tr td.data-column-75 { width: 75% }
+    table.summary-list tr td.data-column-80 { width: 80% }
+    table.summary-list tr td.data-column-85 { width: 85% }
+    table.summary-list tr td.data-column-90 { width: 90% }
+    table.summary-list tr td.data-column-95 { width: 95% }
+
+    ul {
+        padding: 0 0 0 10px;
+    }
+
+</style>
+
+<h1 class="title">Manage and Deliver - Accredited Programmes</h1>
+
+
+<section class="referral">
+  <h2>Referral Details</h2>
+  <table class="summary-list">
+    <tr><td>Person Name</td><td>Test Person SAR</td></tr>
+    <tr><td>CRN</td><td>X123456</td></tr>
+    <tr><td>Date of Birth</td><td>13 April 1994</td></tr>
+    <tr><td>Sex</td><td>Male</td></tr>
+    <tr><td>Sentence End Date</td><td>12 May 2028</td></tr>
+    <tr><td>Intervention Name</td><td>Test Intervention</td></tr>
+    <tr><td>Intervention Type</td><td>ACP</td></tr>
+    <tr><td>Setting</td><td>COMMUNITY</td></tr>
+    <tr><td>Cohort</td><td>SEXUAL_OFFENCE</td></tr>
+    <tr><td>Sourced From</td><td>LICENCE_CONDITION</td></tr>
+    <tr><td>Created At</td><td><DATE_TIME></td></tr>
+  </table>
+
+  <h3>Reporting Location</h3>
+  
+  <table class="summary-list">
+    <tr><td>Region</td><td>WIREMOCKED REGION</td></tr>
+    <tr><td>PDU</td><td>PDU 1</td></tr>
+    <tr><td>Reporting Team</td><td>Team A</td></tr>
+  </table>
+  
+  
+
+  <h3>Motivation, Background and Non-Associations</h3>
+  
+  
+  <p>No Data Held</p>
+  
+
+  <h3>Delivery Location Preferences</h3>
+  
+  
+  <p>No Data Held</p>
+  
+
+  <h3>Availability</h3>
+  
+  
+  <p>No Data Held</p>
+  
+
+  <h3>Status History</h3>
+  
+  <table class="data-table">
+    <tr>
+      <td class="data-column-25">Status</td>
+      <td class="data-column-20">Created By</td>
+      <td class="data-column-20">Created At</td>
+      <td class="data-column-20">Start Date</td>
+      <td class="data-column-15">Additional Details</td>
+    </tr>
+    
+    <tr>
+      <td>Scheduled</td>
+      <td>Johnson</td>
+      <td><DATE_TIME></td>
+      <td></td>
+      <td>Test allocation</td>
+    </tr>
+    
+    <tr>
+      <td>Awaiting allocation</td>
+      <td>Johnson</td>
+      <td><DATE_TIME></td>
+      <td></td>
+      <td>Test allocation</td>
+    </tr>
+    
+    <tr>
+      <td>Awaiting assessment</td>
+      <td>Johnson</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test allocation</td>
+    </tr>
+    
+  </table>
+  
+  
+
+  <h3>LDC History</h3>
+  
+  <table class="data-table">
+    <tr>
+      <td class="data-column-35">Has LDC</td>
+      <td class="data-column-35">Created By</td>
+      <td class="data-column-30">Created At</td>
+    </tr>
+    
+    <tr>
+      <td>No</td>
+      <td>Johnson</td>
+      <td><DATE_TIME></td>
+    </tr>
+    
+  </table>
+  
+  
+
+  <h3>Programme Group Memberships</h3>
+  
+  
+  <div class="group-membership">
+    <h4>Group Allocation 1</h4>
+    <table class="summary-list">
+      <tr><td>Created By</td><td>Johnson</td></tr>
+      <tr><td>Created At</td><td><DATE_TIME></td></tr>
+      
+      
+      <tr><td>Programme</td><td>Building Choices</td></tr>
+      
+    </table>
+
+    <h4>Session Attendance</h4>
+    
+    <table class="data-table">
+      <tr>
+        <td class="data-column-20">Outcome</td>
+        <td class="data-column-15">Legitimate Absence</td>
+        <td class="data-column-20">Recorded By</td>
+        <td class="data-column-20">Recorded At</td>
+        <td class="data-column-15">Created By</td>
+        <td class="data-column-10">Created At</td>
+      </tr>
+      
+      <tr>
+        <td>No Data Held</td>
+        <td>No Data Held</td>
+        <td>No Data Held</td>
+        <td></td>
+        <td>Johnson</td>
+        <td><DATE_TIME></td>
+      </tr>
+      
+    </table>
+
+    
+    
+    <h5>Session Notes</h5>
+    <table class="data-table">
+      <tr>
+        <td class="data-column-60">Notes</td>
+        <td class="data-column-20">Created By</td>
+        <td class="data-column-20">Created At</td>
+      </tr>
+      
+      <tr>
+        <td>No Data Held</td>
+        <td>Johnson</td>
+        <td><DATE_TIME></td>
+      </tr>
+      
+    </table>
+    
+    
+    
+    
+  </div>
+  
+  
+  
+
+  <h3>Sessions Scheduled</h3>
+  
+  <table class="data-table">
+    <tr>
+      <td class="data-column-15">Module</td>
+      <td class="data-column-15">Session</td>
+      <td class="data-column-10">Type</td>
+      <td class="data-column-15">Starts At</td>
+      <td class="data-column-15">Ends At</td>
+      <td class="data-column-15">Location</td>
+      <td class="data-column-15">Facilitators</td>
+    </tr>
+    
+    <tr>
+      <td>Getting started</td>
+      <td>Introduction to Building Choices</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Getting started</td>
+      <td>Understanding myself</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Managing myself</td>
+      <td>Understanding my feelings</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Managing myself</td>
+      <td>Helpful and unhelpful feelings</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Managing myself</td>
+      <td>Managing my feelings, part 1</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Managing myself</td>
+      <td>Managing my feelings, part 2</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Managing myself</td>
+      <td>Understanding my thinking</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Managing myself</td>
+      <td>Developing my flexible thinking</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Managing life’s problems</td>
+      <td>Understanding problems</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Managing life’s problems</td>
+      <td>Exploring life’s problems</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Managing life’s problems</td>
+      <td>Planning to manage life’s problems</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Managing life’s problems</td>
+      <td>Putting it into action</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Managing people around me</td>
+      <td>Understanding the people and influences around me</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Managing people around me</td>
+      <td>My role in relationships</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Managing people around me</td>
+      <td>Relationship skills, part 1</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Managing people around me</td>
+      <td>Relationship skills, part 2</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Managing people around me</td>
+      <td>Practising our relationship skills</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Managing people around me</td>
+      <td>Module skills practice</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Bringing it all together</td>
+      <td>Future me plan</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Bringing it all together</td>
+      <td>Future me practice</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+    <tr>
+      <td>Bringing it all together</td>
+      <td>Programme completion</td>
+      <td>GROUP</td>
+      <td><DATE_TIME></td>
+      <td><DATE_TIME></td>
+      <td>Test Delivery Location</td>
+      <td>
+        
+        No Data Held
+      </td>
+    </tr>
+    
+  </table>
+  
+  
+
+  <h3>Message History</h3>
+  
+  <table class="data-table">
+    <tr>
+      <td class="data-column-15">Event Type</td>
+      <td class="data-column-20">Description</td>
+      <td class="data-column-30">Message</td>
+      <td class="data-column-20">Occurred At</td>
+      <td class="data-column-15">Created At</td>
+    </tr>
+    
+    <tr>
+      <td>No Data Held</td>
+      <td>test description</td>
+      <td>test message</td>
+      <td></td>
+      <td><DATE_TIME></td>
+    </tr>
+    
+  </table>
+  
+  
+
+</section>
+<hr/>
+
+
+<h2>Group Waitlist Items</h2>
+
+<section class="waitlist">
+  <table class="data-table">
+    <tr>
+      <td class="data-column-20">Person Name</td>
+      <td class="data-column-15">CRN</td>
+      <td class="data-column-15">Date of Birth</td>
+      <td class="data-column-10">Sex</td>
+      <td class="data-column-15">Sentence End Date</td>
+      <td class="data-column-10">Has LDC</td>
+      <td class="data-column-15">Status</td>
+    </tr>
+    
+    <tr>
+      <td>Test Person SAR</td>
+      <td>X123456</td>
+      <td>13 April 1994</td>
+      <td>Male</td>
+      <td>12 May 2028</td>
+      <td>No</td>
+      <td>Scheduled</td>
+    </tr>
+    
+  </table>
+</section>
+
+
+
+<h2>Referral Case List Items</h2>
+
+<section class="caselist">
+  <table class="data-table">
+    <tr>
+      <td class="data-column-25">Person Name</td>
+      <td class="data-column-20">CRN</td>
+      <td class="data-column-20">Sentence End Date</td>
+      <td class="data-column-15">Has LDC</td>
+      <td class="data-column-20">Status</td>
+    </tr>
+    
+    <tr>
+      <td>Test Person SAR</td>
+      <td>X123456</td>
+      <td>12 May 2028</td>
+      <td>No</td>
+      <td>Scheduled</td>
+    </tr>
+    
+  </table>
+</section>
+
+

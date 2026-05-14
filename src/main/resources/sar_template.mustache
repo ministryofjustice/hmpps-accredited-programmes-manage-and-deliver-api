@@ -1,0 +1,321 @@
+<h1 class="title">Manage and Deliver - Accredited Programmes</h1>
+
+{{#referrals}}
+<section class="referral">
+  <h2>Referral Details</h2>
+  <table class="summary-list">
+    <tr><td>Person Name</td><td>{{ optionalValue personName }}</td></tr>
+    <tr><td>CRN</td><td>{{ optionalValue crn }}</td></tr>
+    <tr><td>Date of Birth</td><td>{{ formatDate dateOfBirth }}</td></tr>
+    <tr><td>Sex</td><td>{{ optionalValue sex }}</td></tr>
+    <tr><td>Sentence End Date</td><td>{{ formatDate sentenceEndDate }}</td></tr>
+    <tr><td>Intervention Name</td><td>{{ optionalValue interventionName }}</td></tr>
+    <tr><td>Intervention Type</td><td>{{ optionalValue interventionType }}</td></tr>
+    <tr><td>Setting</td><td>{{ optionalValue setting }}</td></tr>
+    <tr><td>Cohort</td><td>{{ optionalValue cohort }}</td></tr>
+    <tr><td>Sourced From</td><td>{{ optionalValue sourcedFrom }}</td></tr>
+    <tr><td>Created At</td><td>{{ formatDate createdAt }}</td></tr>
+  </table>
+
+  <h3>Reporting Location</h3>
+  {{#referralReportingLocation}}
+  <table class="summary-list">
+    <tr><td>Region</td><td>{{ optionalValue regionName }}</td></tr>
+    <tr><td>PDU</td><td>{{ optionalValue pduName }}</td></tr>
+    <tr><td>Reporting Team</td><td>{{ optionalValue reportingTeam }}</td></tr>
+  </table>
+  {{/referralReportingLocation}}
+  {{^referralReportingLocation}}
+  <p>No Data Held</p>
+  {{/referralReportingLocation}}
+
+  <h3>Motivation, Background and Non-Associations</h3>
+  {{#referralMotivationBackgroundAndNonAssociation}}
+  <table class="summary-list">
+    <tr><td>Motivation</td><td>{{ optionalValue motivation }}</td></tr>
+    <tr><td>Maintains Innocence</td><td>{{ convertBoolean maintainsInnocence }}</td></tr>
+    <tr><td>Non-Associations</td><td>{{ optionalValue nonAssociation }}</td></tr>
+    <tr><td>Other Considerations</td><td>{{ optionalValue otherConsideration }}</td></tr>
+    <tr><td>Created By</td><td>{{ getUserLastName createdBy }}</td></tr>
+    <tr><td>Created At</td><td>{{ formatDate createdAt }}</td></tr>
+    <tr><td>Last Updated By</td><td>{{ getUserLastName lastUpdatedBy }}</td></tr>
+  </table>
+  {{/referralMotivationBackgroundAndNonAssociation}}
+  {{^referralMotivationBackgroundAndNonAssociation}}
+  <p>No Data Held</p>
+  {{/referralMotivationBackgroundAndNonAssociation}}
+
+  <h3>Delivery Location Preferences</h3>
+  {{#deliveryLocationPreference}}
+  <table class="summary-list">
+    <tr><td>Locations Cannot Attend</td><td>{{ optionalValue locationCannotAttendText }}</td></tr>
+    <tr><td>Created By</td><td>{{ getUserLastName createdBy }}</td></tr>
+    <tr><td>Created At</td><td>{{ formatDate createdAt }}</td></tr>
+    <tr><td>Last Updated At</td><td>{{ formatDate lastUpdatedAt }}</td></tr>
+  </table>
+  {{#preferredDeliveryLocations}}
+  <p><strong>Preferred Location:</strong> {{ optionalValue deliusDescription }}</p>
+  {{/preferredDeliveryLocations}}
+  {{^preferredDeliveryLocations}}
+  <p><strong>Preferred Locations:</strong> No Data Held</p>
+  {{/preferredDeliveryLocations}}
+  {{/deliveryLocationPreference}}
+  {{^deliveryLocationPreference}}
+  <p>No Data Held</p>
+  {{/deliveryLocationPreference}}
+
+  <h3>Availability</h3>
+  {{#availability}}
+  <table class="summary-list">
+    <tr><td>Start Date</td><td>{{ formatDate startDate }}</td></tr>
+    <tr><td>End Date</td><td>{{ formatDate endDate }}</td></tr>
+    <tr><td>Other Details</td><td>{{ optionalValue otherDetails }}</td></tr>
+    <tr><td>Last Modified By</td><td>{{ getUserLastName lastModifiedBy }}</td></tr>
+    <tr><td>Last Modified At</td><td>{{ formatDate lastModifiedAt }}</td></tr>
+  </table>
+  {{#slots}}
+  <p><strong>Slot:</strong> {{ optionalValue dayOfWeek }} - {{ optionalValue slotName }}</p>
+  {{/slots}}
+  {{^slots}}
+  <p><strong>Slots:</strong> No Data Held</p>
+  {{/slots}}
+  {{/availability}}
+  {{^availability}}
+  <p>No Data Held</p>
+  {{/availability}}
+
+  <h3>Status History</h3>
+  {{#statusHistories.0}}
+  <table class="data-table">
+    <tr>
+      <td class="data-column-25">Status</td>
+      <td class="data-column-20">Created By</td>
+      <td class="data-column-20">Created At</td>
+      <td class="data-column-20">Start Date</td>
+      <td class="data-column-15">Additional Details</td>
+    </tr>
+    {{#statusHistories}}
+    <tr>
+      <td>{{ optionalValue referralStatusDescription.description }}</td>
+      <td>{{ getUserLastName createdBy }}</td>
+      <td>{{ formatDate createdAt }}</td>
+      <td>{{ formatDate startDate }}</td>
+      <td>{{ optionalValue additionalDetails }}</td>
+    </tr>
+    {{/statusHistories}}
+  </table>
+  {{/statusHistories.0}}
+  {{^statusHistories.0}}
+  <p>No Data Held</p>
+  {{/statusHistories.0}}
+
+  <h3>LDC History</h3>
+  {{#referralLdcHistories.0}}
+  <table class="data-table">
+    <tr>
+      <td class="data-column-35">Has LDC</td>
+      <td class="data-column-35">Created By</td>
+      <td class="data-column-30">Created At</td>
+    </tr>
+    {{#referralLdcHistories}}
+    <tr>
+      <td>{{ convertBoolean hasLdc }}</td>
+      <td>{{ getUserLastName createdBy }}</td>
+      <td>{{ formatDate createdAt }}</td>
+    </tr>
+    {{/referralLdcHistories}}
+  </table>
+  {{/referralLdcHistories.0}}
+  {{^referralLdcHistories.0}}
+  <p>No Data Held</p>
+  {{/referralLdcHistories.0}}
+
+  <h3>Programme Group Memberships</h3>
+  {{#programmeGroupMemberships.0}}
+  {{#programmeGroupMemberships}}
+  <div class="group-membership">
+    <h4>Group Allocation {{ optionalValue (getIndexPlusOne @index) }}</h4>
+    <table class="summary-list">
+      <tr><td>Created By</td><td>{{ getUserLastName createdByUsername }}</td></tr>
+      <tr><td>Created At</td><td>{{ formatDate createdAt }}</td></tr>
+      {{#deletedByUsername}}
+      <tr><td>Removed By</td><td>{{ getUserLastName deletedByUsername }}</td></tr>
+      {{/deletedByUsername}}
+      {{#programmeGroup.accreditedProgrammeTemplate}}
+      <tr><td>Programme</td><td>{{ optionalValue name }}</td></tr>
+      {{/programmeGroup.accreditedProgrammeTemplate}}
+    </table>
+
+    <h4>Session Attendance</h4>
+    {{#attendances.0}}
+    <table class="data-table">
+      <tr>
+        <td class="data-column-20">Outcome</td>
+        <td class="data-column-15">Legitimate Absence</td>
+        <td class="data-column-20">Recorded By</td>
+        <td class="data-column-20">Recorded At</td>
+        <td class="data-column-15">Created By</td>
+        <td class="data-column-10">Created At</td>
+      </tr>
+      {{#attendances}}
+      <tr>
+        <td>{{ optionalValue outcomeType.description }}</td>
+        <td>{{ convertBoolean legitimateAbsence }}</td>
+        <td>{{ optionalValue recordedByFacilitator.personName }}</td>
+        <td>{{ formatDate recordedAt }}</td>
+        <td>{{ getUserLastName createdBy }}</td>
+        <td>{{ formatDate createdAt }}</td>
+      </tr>
+      {{/attendances}}
+    </table>
+
+    {{#attendances}}
+    {{#noteHistory.0}}
+    <h5>Session Notes</h5>
+    <table class="data-table">
+      <tr>
+        <td class="data-column-60">Notes</td>
+        <td class="data-column-20">Created By</td>
+        <td class="data-column-20">Created At</td>
+      </tr>
+      {{#noteHistory}}
+      <tr>
+        <td>{{ optionalValue notes }}</td>
+        <td>{{ getUserLastName createdBy }}</td>
+        <td>{{ formatDate createdAt }}</td>
+      </tr>
+      {{/noteHistory}}
+    </table>
+    {{/noteHistory.0}}
+    {{/attendances}}
+    {{/attendances.0}}
+    {{^attendances.0}}
+    <p>No Data Held</p>
+    {{/attendances.0}}
+  </div>
+  {{/programmeGroupMemberships}}
+  {{/programmeGroupMemberships.0}}
+  {{^programmeGroupMemberships.0}}
+  <p>No Data Held</p>
+  {{/programmeGroupMemberships.0}}
+
+  <h3>Sessions Scheduled</h3>
+  {{#attendees.0}}
+  <table class="data-table">
+    <tr>
+      <td class="data-column-15">Module</td>
+      <td class="data-column-15">Session</td>
+      <td class="data-column-10">Type</td>
+      <td class="data-column-15">Starts At</td>
+      <td class="data-column-15">Ends At</td>
+      <td class="data-column-15">Location</td>
+      <td class="data-column-15">Facilitators</td>
+    </tr>
+    {{#attendees}}
+    <tr>
+      <td>{{ optionalValue session.module.name }}</td>
+      <td>{{ optionalValue session.moduleSessionTemplate.name }}</td>
+      <td>{{ optionalValue session.moduleSessionTemplate.sessionType }}</td>
+      <td>{{ formatDate session.startsAt }}</td>
+      <td>{{ formatDate session.endsAt }}</td>
+      <td>{{ optionalValue session.locationName }}</td>
+      <td>
+        {{#session.sessionFacilitators}}
+        {{ optionalValue facilitator.personName }} ({{ optionalValue facilitatorType }})<br/>
+        {{/session.sessionFacilitators}}
+        {{^session.sessionFacilitators}}No Data Held{{/session.sessionFacilitators}}
+      </td>
+    </tr>
+    {{/attendees}}
+  </table>
+  {{/attendees.0}}
+  {{^attendees.0}}
+  <p>No Data Held</p>
+  {{/attendees.0}}
+
+  <h3>Message History</h3>
+  {{#messageHistories.0}}
+  <table class="data-table">
+    <tr>
+      <td class="data-column-15">Event Type</td>
+      <td class="data-column-20">Description</td>
+      <td class="data-column-30">Message</td>
+      <td class="data-column-20">Occurred At</td>
+      <td class="data-column-15">Created At</td>
+    </tr>
+    {{#messageHistories}}
+    <tr>
+      <td>{{ optionalValue eventType }}</td>
+      <td>{{ optionalValue description }}</td>
+      <td>{{ optionalValue message }}</td>
+      <td>{{ formatDate occurredAt }}</td>
+      <td>{{ formatDate createdAt }}</td>
+    </tr>
+    {{/messageHistories}}
+  </table>
+  {{/messageHistories.0}}
+  {{^messageHistories.0}}
+  <p>No Data Held</p>
+  {{/messageHistories.0}}
+
+</section>
+<hr/>
+{{/referrals}}
+
+<h2>Group Waitlist Items</h2>
+{{#groupWaitlistItemViews.0}}
+<section class="waitlist">
+  <table class="data-table">
+    <tr>
+      <td class="data-column-20">Person Name</td>
+      <td class="data-column-15">CRN</td>
+      <td class="data-column-15">Date of Birth</td>
+      <td class="data-column-10">Sex</td>
+      <td class="data-column-15">Sentence End Date</td>
+      <td class="data-column-10">Has LDC</td>
+      <td class="data-column-15">Status</td>
+    </tr>
+    {{#groupWaitlistItemViews}}
+    <tr>
+      <td>{{ optionalValue personName }}</td>
+      <td>{{ optionalValue crn }}</td>
+      <td>{{ formatDate dateOfBirth }}</td>
+      <td>{{ optionalValue sex }}</td>
+      <td>{{ formatDate sentenceEndDate }}</td>
+      <td>{{ convertBoolean hasLdc }}</td>
+      <td>{{ optionalValue status }}</td>
+    </tr>
+    {{/groupWaitlistItemViews}}
+  </table>
+</section>
+{{/groupWaitlistItemViews.0}}
+{{^groupWaitlistItemViews.0}}
+<p>No Data Held</p>
+{{/groupWaitlistItemViews.0}}
+
+<h2>Referral Case List Items</h2>
+{{#referralCaseListItemViews.0}}
+<section class="caselist">
+  <table class="data-table">
+    <tr>
+      <td class="data-column-25">Person Name</td>
+      <td class="data-column-20">CRN</td>
+      <td class="data-column-20">Sentence End Date</td>
+      <td class="data-column-15">Has LDC</td>
+      <td class="data-column-20">Status</td>
+    </tr>
+    {{#referralCaseListItemViews}}
+    <tr>
+      <td>{{ optionalValue personName }}</td>
+      <td>{{ optionalValue crn }}</td>
+      <td>{{ formatDate sentenceEndDate }}</td>
+      <td>{{ convertBoolean hasLdc }}</td>
+      <td>{{ optionalValue status }}</td>
+    </tr>
+    {{/referralCaseListItemViews}}
+  </table>
+</section>
+{{/referralCaseListItemViews.0}}
+{{^referralCaseListItemViews.0}}
+<p>No Data Held</p>
+{{/referralCaseListItemViews.0}}
