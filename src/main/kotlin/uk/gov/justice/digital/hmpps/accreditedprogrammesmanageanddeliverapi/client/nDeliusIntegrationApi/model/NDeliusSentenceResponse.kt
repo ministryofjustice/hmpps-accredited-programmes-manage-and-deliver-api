@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model
 
-import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.LocalDate
@@ -17,7 +16,6 @@ data class NDeliusSentenceResponse(
   val expectedEndDate: LocalDate? = null,
 
   @get:JsonProperty("licenceExpiryDate", required = false)
-  @JsonFormat(pattern = "d MMMM yyyy")
   val licenceExpiryDate: LocalDate? = null,
 
   @get:JsonProperty("postSentenceSupervisionEndDate", required = false)

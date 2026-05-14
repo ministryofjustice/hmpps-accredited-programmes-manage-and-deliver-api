@@ -23,6 +23,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -155,6 +157,16 @@ class TestDataGenerator {
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(referral, it)
       entityManager.persist(statusHistory)
     }
+  }
+
+  fun createSessionAttendance(sessionAttendance: SessionAttendanceEntity): SessionAttendanceEntity {
+    entityManager.persist(sessionAttendance)
+    return sessionAttendance
+  }
+
+  fun createSessionAttendanceOutcome(outcome: SessionAttendanceNDeliusOutcomeEntity): SessionAttendanceNDeliusOutcomeEntity {
+    entityManager.persist(outcome)
+    return outcome
   }
 
   fun createGroupMembership(

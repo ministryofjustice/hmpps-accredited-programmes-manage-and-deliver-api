@@ -4,8 +4,10 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestMethodOrder
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
@@ -24,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.time.LocalDateTime
 
@@ -32,8 +35,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
 
+  @Autowired
+  private lateinit var referralCaseListItemRepository: ReferralCaseListItemRepository
+
   @Nested
   @DisplayName("GetCaseListReferrals")
+  @TestMethodOrder(MethodOrderer.MethodName::class)
   inner class GetCaseListReferrals {
     @BeforeEach
     fun beforeEach() {
@@ -238,6 +245,19 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         statusHistory7,
         referralReportingLocation7,
       )
+
+      val referralCaseListItemViews = referralCaseListItemRepository.findAll()
+      assertThat(referralCaseListItemViews).hasSize(7)
+      assertThat(referralCaseListItemViews.map { it.crn })
+        .containsExactlyInAnyOrder(
+          "X7182552",
+          "CRN-999999",
+          "CRN-888888",
+          "CRN-777777",
+          "CRN-66666",
+          "CRN-555555",
+          "CRN-111111",
+        )
     }
 
     @Test

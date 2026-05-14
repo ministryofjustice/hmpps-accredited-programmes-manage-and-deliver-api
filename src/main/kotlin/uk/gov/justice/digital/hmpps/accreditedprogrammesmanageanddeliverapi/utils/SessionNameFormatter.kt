@@ -145,7 +145,7 @@ class SessionNameFormatter {
     val catchupSuffix = if (scheduledSession.isCatchup) " catch-up" else ""
     return when (sessionTemplate.sessionType) {
       SessionType.GROUP -> "${sessionTemplate.module.name} ${scheduledSession.sessionNumber}: ${sessionTemplate.name}$catchupSuffix"
-      SessionType.ONE_TO_ONE -> "${scheduledSession.attendees.first().personName} (${scheduledSession.attendees.first().referral.crn}): ${sessionTemplate.name}$catchupSuffix"
+      SessionType.ONE_TO_ONE -> if (scheduledSession.attendees.isEmpty()) "${sessionTemplate.name}$catchupSuffix" else "${scheduledSession.attendees.first().personName} (${scheduledSession.attendees.first().referral.crn}): ${sessionTemplate.name}$catchupSuffix"
     }
   }
 
@@ -195,8 +195,7 @@ class SessionNameFormatter {
       SessionType.GROUP -> "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}$catchupSuffix"
 
       SessionType.ONE_TO_ONE -> {
-        requireNotNull(session.attendees.first()) { "Person name is required for individual sessions" }
-        "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name}$catchupSuffix"
+        if (session.attendees.isEmpty()) "${session.moduleSessionTemplate.name}$catchupSuffix" else "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name}$catchupSuffix"
       }
     }
   }
