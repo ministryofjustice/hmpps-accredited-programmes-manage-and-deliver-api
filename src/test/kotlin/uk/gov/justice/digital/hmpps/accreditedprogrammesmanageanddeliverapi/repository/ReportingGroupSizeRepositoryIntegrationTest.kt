@@ -92,8 +92,8 @@ class ReportingGroupSizeRepositoryIntegrationTest : IntegrationTestBase() {
 
     val row = rows.single()
     assertThat(row.code).isEqualTo("GROUP01")
-    assertThat(row.sex).isEqualTo("Mixed")
-    assertThat(row.cohort).isEqualTo("SEXUAL_OFFENCE")
+    assertThat(row.sex).isEqualTo(ProgrammeGroupSexEnum.MIXED)
+    assertThat(row.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
     assertThat(row.isLdc).isTrue()
     assertThat(row.regionName).isEqualTo("North East")
     assertThat(row.pduCode).isEqualTo("LDS01")

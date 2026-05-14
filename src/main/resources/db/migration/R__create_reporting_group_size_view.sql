@@ -11,12 +11,7 @@ WITH active_group_memberships AS (
 SELECT pg.id,
        pg.code,
        pg.created_at,
-       CASE pg.sex
-           WHEN 'MALE' THEN 'Male'
-           WHEN 'FEMALE' THEN 'Female'
-           WHEN 'MIXED' THEN 'Mixed'
-           ELSE pg.sex
-           END                            AS sex,
+       pg.sex,
        pg.cohort,
        pg.is_ldc,
        pg.earliest_possible_start_date,
@@ -35,3 +30,30 @@ WHERE pg.deleted_at IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_reporting_group_size_id ON reporting_group_size (id);
 CREATE INDEX IF NOT EXISTS idx_reporting_group_size_created_at ON reporting_group_size (created_at);
 CREATE INDEX IF NOT EXISTS idx_reporting_group_size_earliest_possible_start_date ON reporting_group_size (earliest_possible_start_date);
+
+CREATE OR REPLACE FUNCTION refresh_reporting_group_size_view()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    REFRESH MATERIALIZED VIEW CONCURRENTLY reporting_group_size;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trigger_refresh_programme_group_reporting_group_size
+    AFTER INSERT OR UPDATE OR DELETE
+    ON programme_group
+    FOR EACH STATEMENT
+EXECUTE FUNCTION refresh_reporting_group_size_view();
+
+CREATE OR REPLACE TRIGGER trigger_refresh_programme_group_membership_reporting_group_size
+    AFTER INSERT OR UPDATE OR DELETE
+    ON programme_group_membership
+    FOR EACH STATEMENT
+EXECUTE FUNCTION refresh_reporting_group_size_view();
+
+CREATE OR REPLACE TRIGGER trigger_refresh_facilitator_reporting_group_size
+    AFTER INSERT OR UPDATE OR DELETE
+    ON facilitator
+    FOR EACH STATEMENT
+EXECUTE FUNCTION refresh_reporting_group_size_view();
