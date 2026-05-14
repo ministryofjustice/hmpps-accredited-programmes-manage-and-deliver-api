@@ -13,7 +13,11 @@ data class IndividualSexScores(
 
   @Schema(example = "1", description = "")
   @get:JsonProperty("emotionalCongruence") val emotionalCongruence: Int? = null,
-)
+) {
+  companion object {
+    fun empty() = IndividualSexScores()
+  }
+}
 
 data class IndividualCognitiveScores(
 
@@ -22,7 +26,11 @@ data class IndividualCognitiveScores(
 
   @Schema(example = "2", description = "")
   @get:JsonProperty("hostileOrientation") val hostileOrientation: Int? = null,
-)
+) {
+  companion object {
+    fun empty() = IndividualCognitiveScores()
+  }
+}
 
 data class IndividualSelfManagementScores(
   @Schema(example = "2", description = "")
@@ -36,7 +44,11 @@ data class IndividualSelfManagementScores(
 
   @Schema(example = "", description = "")
   @get:JsonProperty("difficultiesCoping") val difficultiesCoping: Int? = null,
-)
+) {
+  companion object {
+    fun empty() = IndividualSelfManagementScores()
+  }
+}
 
 data class IndividualRelationshipScores(
 
@@ -51,4 +63,8 @@ data class IndividualRelationshipScores(
 
   @Schema(example = "1", description = "")
   @get:JsonProperty("aggressiveControllingBehaviour") val aggressiveControllingBehaviour: Int? = null,
-)
+) {
+  companion object {
+    fun empty() = IndividualRelationshipScores()
+  }
+}

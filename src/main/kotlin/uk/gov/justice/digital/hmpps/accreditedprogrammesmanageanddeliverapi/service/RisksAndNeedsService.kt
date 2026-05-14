@@ -59,7 +59,7 @@ class RisksAndNeedsService(
       assessmentCompletedDate?.toLocalDate(),
       getDetails(assessmentId, oasysApiClient::getLearning, "LearningNeeds"),
       getDetails(assessmentId, oasysApiClient::getAccommodation, "OasysAccommodation"),
-      pniService.getPniCalculation(crn).assessment,
+      pniService.getPniResponse(crn)?.assessment,
     )
   }
 

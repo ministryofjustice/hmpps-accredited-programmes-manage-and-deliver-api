@@ -82,7 +82,7 @@ class ReferralService(
     val referral = referralRepository.findByIdWithMemberships(referralId) ?: return@coroutineScope null
 
     val hasLdcDeferred = async(Dispatchers.IO) {
-      pniService.getPniCalculation(referral.crn).hasLdc()
+      pniService.getPniResponse(referral.crn)?.hasLdc() ?: false
     }
 
     val personalDetailsDeferred = async(Dispatchers.IO) {
@@ -187,7 +187,7 @@ class ReferralService(
     var pniResponse: PniResponse? = null
 
     try {
-      pniResponse = pniService.getPniCalculation(findAndReferReferralDetails.personReference)
+      pniResponse = pniService.getPniResponse(findAndReferReferralDetails.personReference)
     } catch (_: Exception) {
       log.info("Failure to retrieve PNI score for crn : ${findAndReferReferralDetails.personReference} falling back to defaults")
     }

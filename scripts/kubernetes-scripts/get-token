@@ -14,8 +14,8 @@ if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
 get_auth_string() {
     case "$NS_KEY" in
     dev | preprod | prod)
-      API_SECRET=$(kubectl get secret hmpps-manage-and-deliver-accredited-programmes-ui -n "$NAMESPACE" -o json | jq -r ".data.SYSTEM_CLIENT_SECRET | @base64d")
-      API_ID=$(kubectl get secret hmpps-manage-and-deliver-accredited-programmes-ui -n "$NAMESPACE" -o json | jq -r ".data.SYSTEM_CLIENT_ID | @base64d")
+      API_SECRET=$(kubectl get secret hmpps-accredited-programmes-manage-and-deliver-ui-client-creds -n "$NAMESPACE" -o json | jq -r ".data.SYSTEM_CLIENT_SECRET | @base64d")
+      API_ID=$(kubectl get secret hmpps-accredited-programmes-manage-and-deliver-ui-client-creds -n "$NAMESPACE" -o json | jq -r ".data.SYSTEM_CLIENT_ID | @base64d")
       ;;
     *)
       echo "-ns must be 'dev', 'preprod' or 'prod'"
@@ -28,7 +28,7 @@ get_auth_string() {
 get_auth_string
 
 # Ask kubernetes for information about the pods in our namespace and extract the name of one of the api pods.
-POD_NAME="$(kubectl get  -n "$NAMESPACE" --output=json pods | jq -r '.items |  map(select(.metadata.labels.app=="hmpps-manage-and-deliver-accredited-programmes-api")) | .[0].metadata.name')"
+POD_NAME="$(kubectl get  -n "$NAMESPACE" --output=json pods | jq -r '.items |  map(select(.metadata.labels.app=="hmpps-accredited-programmes-manage-and-deliver-api")) | .[0].metadata.name')"
 
 AUTH_URL=${AUTH_URLS[$NS_KEY]}
 

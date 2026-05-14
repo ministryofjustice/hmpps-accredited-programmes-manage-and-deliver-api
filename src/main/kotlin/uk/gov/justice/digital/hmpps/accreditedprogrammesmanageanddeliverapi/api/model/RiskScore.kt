@@ -9,8 +9,14 @@ data class RiskScore(
     example = "HIGH_RISK",
     description = "classification associated with PNI Eg. HIGH_RISK, MEDIUM_RISK, LOW_RISK",
   )
-  @get:JsonProperty("classification") val classification: String,
+  @get:JsonProperty("classification") val classification: String? = null,
 
   @Schema(example = "2", description = "")
   @get:JsonProperty("IndividualRiskScores") val individualRiskScores: IndividualRiskScores,
-)
+) {
+  companion object {
+    fun empty() = RiskScore(
+      individualRiskScores = IndividualRiskScores.empty(),
+    )
+  }
+}

@@ -35,5 +35,12 @@ data class Sara(
         assessmentId = pniResponse.assessment?.id.toString(),
       )
     }
+
+    fun empty() = Sara(
+      highestRisk = null,
+      saraRiskOfViolenceTowardsPartner = null,
+      saraRiskOfViolenceTowardsOthers = null,
+      assessmentId = null,
+    )
   }
 }
