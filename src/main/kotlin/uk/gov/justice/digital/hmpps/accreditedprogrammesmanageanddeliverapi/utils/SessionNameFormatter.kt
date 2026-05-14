@@ -195,8 +195,7 @@ class SessionNameFormatter {
       SessionType.GROUP -> "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}$catchupSuffix"
 
       SessionType.ONE_TO_ONE -> {
-        requireNotNull(session.attendees.first()) { "Person name is required for individual sessions" }
-        "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name}$catchupSuffix"
+        if (session.attendees.isEmpty()) "${session.moduleSessionTemplate.name}$catchupSuffix" else "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name}$catchupSuffix"
       }
     }
   }
