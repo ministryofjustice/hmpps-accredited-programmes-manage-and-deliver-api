@@ -59,11 +59,15 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedProgrammeDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionNotesHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.ATTC
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes
@@ -85,10 +89,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
@@ -127,6 +134,15 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var nDeliusAppointmentRepository: NDeliusAppointmentRepository
+
+  @Autowired
+  private lateinit var sessionAttendanceOutcomeTypeRepository: SessionAttendanceOutcomeTypeRepository
+
+  @Autowired
+  private lateinit var sessionAttendanceRepository: SessionAttendanceRepository
+
+  @Autowired
+  private lateinit var moduleSessionTemplateRepository: ModuleSessionTemplateRepository
 
   @Autowired
   private lateinit var scheduleService: ScheduleService
@@ -526,6 +542,36 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   @Nested
   @DisplayName("Get programme groups by region")
   inner class GetProgrammeGroupsByRegionTests {
+    private lateinit var attendedCompliedOutcome: SessionAttendanceNDeliusOutcomeEntity
+    private lateinit var unacceptableAbsenceOutcome: SessionAttendanceNDeliusOutcomeEntity
+
+    @BeforeEach
+    fun setupOutcomes() {
+      attendedCompliedOutcome = sessionAttendanceOutcomeTypeRepository.findByCode(ATTC)!!
+      unacceptableAbsenceOutcome = sessionAttendanceOutcomeTypeRepository.findByCode(UAAB)!!
+    }
+
+    private fun setupPostProgrammeReviewForGroup(group: ProgrammeGroupEntity, memberships: List<ProgrammeGroupMembershipEntity>, attended: Boolean = true) {
+      val postProgrammeReviewSessionTemplate = moduleSessionTemplateRepository.findByName("Post-programme review")
+
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(postProgrammeReviewSessionTemplate!!)
+          .produce(),
+      )
+
+      memberships.forEach { membership ->
+        sessionAttendanceRepository.save(
+          SessionAttendanceEntity(
+            session = session,
+            groupMembership = membership,
+            outcomeType = if (attended) attendedCompliedOutcome else unacceptableAbsenceOutcome,
+          ),
+        )
+      }
+    }
+
     @Test
     fun `should return NOT_STARTED OR IN PROGRESS groups only with correct otherTabTotal`() {
       // Given
@@ -565,40 +611,45 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val referral2 = testDataGenerator.createReferral(personName = "GROUP-A-S-1-On-Programme", crn = "X123457")
       val referral3 = testDataGenerator.createReferral(personName = "GROUP-A-C-1-Completed", crn = "X123458")
 
-      testDataGenerator.allocateReferralsToGroup(listOf(referral1, referral2), group4)
-      testDataGenerator.allocateReferralsToGroup(listOf(referral3), group6)
+      val groupMembership1 = testDataGenerator.allocateReferralsToGroup(listOf(referral1), group4).first()
+      val groupMembership2 = testDataGenerator.allocateReferralsToGroup(listOf(referral2), group4).first()
+      val groupMembership3 = testDataGenerator.allocateReferralsToGroup(listOf(referral3), group6).first()
 
-      val referralStatusDescriptionCompleted =
-        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
-      val referralStatusDescriptionOnProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
+      // Set up PPR for group6 (Completed group)
+      setupPostProgrammeReviewForGroup(group6, listOf(groupMembership3), attended = true)
+      // Set up PPR for group4 (Started group) but one member has not attended
+      setupPostProgrammeReviewForGroup(group4, listOf(groupMembership1, groupMembership2), attended = false)
+
+      val programmeCompleteReferralStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+      val onProgrammeReferralStatus = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral1,
-          referralStatusDescriptionOnProgramme,
+          onProgrammeReferralStatus,
         ),
       )
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral1,
-          referralStatusDescriptionCompleted,
+          programmeCompleteReferralStatus,
         ),
       )
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral2,
-          referralStatusDescriptionOnProgramme,
+          onProgrammeReferralStatus,
         ),
       )
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral3,
-          referralStatusDescriptionOnProgramme,
+          onProgrammeReferralStatus,
         ),
       )
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral3,
-          referralStatusDescriptionCompleted,
+          programmeCompleteReferralStatus,
         ),
       )
 
@@ -610,16 +661,17 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response.pagedGroupData.totalElements).isEqualTo(4)
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(5)
       val codes = response.pagedGroupData.content.map { it.code }
       assertThat(codes).containsExactlyInAnyOrder(
         "GROUP-A-NS-1",
         "GROUP-A-NS-2",
         "GROUP-A-NS-3",
         "GROUP-A-S-1",
+        "GROUP-A-C-1",
       )
-      // otherTabTotal should be count of started groups in the region (2)
-      assertThat(response.otherTabTotal).isEqualTo(2)
+      // otherTabTotal should be count of completed groups in the region
+      assertThat(response.otherTabTotal).isEqualTo(1)
       assertThat(response.regionName).isEqualTo("WIREMOCKED REGION")
     }
 
@@ -633,12 +685,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .withEarliestStartDate(LocalDate.now().plusDays(5)).produce()
       val group2 = ProgrammeGroupFactory().withCode("GROUP-A-NS-2").withRegionName(region)
         .withEarliestStartDate(LocalDate.now().plusDays(5)).produce()
-
       val group3 = ProgrammeGroupFactory().withCode("GROUP-A-S-1").withRegionName(region)
         .withEarliestStartDate(LocalDate.now().minusDays(5)).produce()
       val group4 = ProgrammeGroupFactory().withCode("GROUP-A-S-2").withRegionName(region)
         .withEarliestStartDate(LocalDate.now().minusDays(1)).produce()
-
       val group5 = ProgrammeGroupFactory().withCode("GROUP-A-C-1").withRegionName(region)
         .withEarliestStartDate(LocalDate.now().minusDays(5)).produce()
 
@@ -648,40 +698,44 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val referral2 = testDataGenerator.createReferral(personName = "GROUP-A-S-1-On-Programme", crn = "X123457")
       val referral3 = testDataGenerator.createReferral(personName = "GROUP-A-C-1-Completed", crn = "X123458")
 
-      testDataGenerator.allocateReferralsToGroup(listOf(referral1, referral2), group3)
-      testDataGenerator.allocateReferralsToGroup(listOf(referral3), group5)
+      val groupMembership1 = testDataGenerator.allocateReferralsToGroup(listOf(referral1), group3).first()
+      val groupMembership2 = testDataGenerator.allocateReferralsToGroup(listOf(referral2), group3).first()
+      val groupMembership3 = testDataGenerator.allocateReferralsToGroup(listOf(referral3), group5).first()
 
-      val referralStatusDescriptionCompleted =
-        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
-      val referralStatusDescriptionOnProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
+      // Set up PPR attendance
+      setupPostProgrammeReviewForGroup(group5, listOf(groupMembership3), attended = true)
+      setupPostProgrammeReviewForGroup(group3, listOf(groupMembership1, groupMembership2), attended = true)
+
+      val programmeCompleteReferralStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+      val onProgrammeReferralStatus = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral1,
-          referralStatusDescriptionOnProgramme,
+          onProgrammeReferralStatus,
         ),
       )
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral1,
-          referralStatusDescriptionCompleted,
+          programmeCompleteReferralStatus,
         ),
       )
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral2,
-          referralStatusDescriptionOnProgramme,
+          onProgrammeReferralStatus,
         ),
       )
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral3,
-          referralStatusDescriptionOnProgramme,
+          onProgrammeReferralStatus,
         ),
       )
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral3,
-          referralStatusDescriptionCompleted,
+          programmeCompleteReferralStatus,
         ),
       )
 
@@ -692,12 +746,15 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
-      // Then: should contain only started groups
-      assertThat(response.pagedGroupData.totalElements).isEqualTo(2)
-      val codes = response.pagedGroupData.content.map { it.code }
-      assertThat(codes).containsExactlyInAnyOrder("GROUP-A-C-1", "GROUP-A-S-2")
-      // otherTabTotal should be count of not-started or in progress groups (3)
-      assertThat(response.otherTabTotal).isEqualTo(3)
+      // Then: should contain only groups where all members are complete AND attended a post programme review
+      // group5 is complete. group4 has no members. group3 is NOT complete because referral2 is "On Programme"
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(1)
+
+      val groupCodes = response.pagedGroupData.content.map { it.code }
+      assertThat(groupCodes).containsExactlyInAnyOrder("GROUP-A-S-2")
+
+      // otherTabTotal should be count of not-started or in progress groups (4: group1, group2, group3, group4)
+      assertThat(response.otherTabTotal).isEqualTo(4)
       assertThat(response.regionName).isEqualTo("WIREMOCKED REGION")
     }
 

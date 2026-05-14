@@ -150,6 +150,7 @@ class ProgrammeGroupMembershipService(
         ?: throw NotFoundException("No active Membership found for Referral (${referral.id}) and Group (${group.id})")
 
     val now = LocalDateTime.now()
+    //  Group membership is soft deleted
     groupMembership.deletedAt = now
     groupMembership.deletedByUsername = deletedByUsername
 
