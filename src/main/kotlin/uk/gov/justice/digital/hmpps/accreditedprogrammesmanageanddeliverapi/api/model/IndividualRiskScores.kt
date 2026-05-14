@@ -3,8 +3,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniResponse
-import java.math.BigDecimal
-import kotlin.let
 
 data class IndividualRiskScores(
 
@@ -32,7 +30,7 @@ data class IndividualRiskScores(
       ovpRisk = pniResponse.assessment?.ovpRisk?.type,
       ospDc = pniResponse.assessment?.osp?.cdc?.type,
       ospIic = pniResponse.assessment?.osp?.iiic?.type,
-      rsr = pniResponse.assessment?.rsrPercentage?.let { BigDecimal.valueOf(it) }.toString(),
+      rsr = pniResponse.assessment?.rsrPercentage?.toString(),
       sara = Sara.from(pniResponse),
     )
 

@@ -78,11 +78,11 @@ class PniControllerIntegrationTest : IntegrationTestBase() {
     assertThat(individualRiskScores.ovpRisk).isNull()
     assertThat(individualRiskScores.ospDc).isNull()
     assertThat(individualRiskScores.ospIic).isNull()
-    assertThat(individualRiskScores.rsr).isEqualTo("null")
+    assertThat(individualRiskScores.rsr).isNull()
 
     val sara = individualRiskScores.sara
     assertThat(sara?.highestRisk).isEqualTo(SaraRisk.MEDIUM)
-    assertThat(sara?.saraRiskOfViolenceTowardsOthers).isEqualTo("Medium")
+    assertThat(sara?.saraRiskOfViolenceTowardsPartner).isEqualTo("Not Applicable")
     assertThat(sara?.saraRiskOfViolenceTowardsOthers).isEqualTo("Medium")
     assertThat(sara?.assessmentId).isEqualTo("10082385")
   }
