@@ -15,7 +15,7 @@ fun getGroupWaitlistItemSpecification(
   nameOrCRN: String?,
   pdu: String?,
   reportingTeams: List<String>?,
-): Specification<GroupWaitlistItemViewEntity> = Specification<GroupWaitlistItemViewEntity> { root, _, criteriaBuilder ->
+): Specification<GroupWaitlistItemViewEntity> = Specification { root, _, criteriaBuilder ->
   val predicates = mutableListOf<Predicate>()
 
   /**

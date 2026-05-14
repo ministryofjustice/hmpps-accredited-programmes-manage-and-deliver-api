@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.2.5"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.3.0"
   kotlin("plugin.spring") version "2.3.21"
   kotlin("plugin.jpa") version "2.3.21"
   kotlin("plugin.allopen") version "2.3.21"
@@ -44,7 +44,7 @@ dependencies {
   testImplementation("org.springframework.boot:spring-boot-starter-webclient-test")
   testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
   testImplementation("org.wiremock:wiremock-standalone:3.13.2")
-  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.41") {
+  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.42") {
     exclude(group = "io.swagger.core.v3")
   }
   testImplementation("org.testcontainers:testcontainers:2.0.5")
