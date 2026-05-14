@@ -80,7 +80,9 @@ hmpps:
         asyncQueueClient: true
   sar:
     additionalAccessRole: ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR
-
+    template:
+      path: /sar_template.mustache
+      enabled: true
 
 max-response-in-memory-size-bytes: 750000
 

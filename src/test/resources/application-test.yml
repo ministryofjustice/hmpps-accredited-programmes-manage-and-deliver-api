@@ -45,6 +45,18 @@ hmpps:
         arn: arn:aws:sns:eu-west-2:000000000000:${random.uuid}
   sar:
     additionalAccessRole: ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR
+    template:
+      path: /sar_template.mustache
+      enabled: true
+    tests:
+      expected-api-response:
+        path: /sar/sar-api-response.json
+      expected-render-result:
+        path: /sar/sar-api-expected-render-result.html
+      attachments-expected: false
+      expected-flyway-schema-version: 101
+      expected-jpa-entity-schema:
+        path: /sar/entity-schema-snapshot.json
 
 services:
   manage-and-deliver-api:
