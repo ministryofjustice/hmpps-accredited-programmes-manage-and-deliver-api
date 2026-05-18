@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.ExampleObject
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import jakarta.validation.constraints.Past
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -25,6 +26,7 @@ import java.util.Date
 
 @RestController
 @Validated
+@ConditionalOnProperty(prefix = "reporting", name = ["enabled"], havingValue = "true")
 class ReportingController(
   private val reportingService: ReportingService,
   private val clock: Clock,
