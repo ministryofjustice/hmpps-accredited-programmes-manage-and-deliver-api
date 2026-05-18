@@ -18,7 +18,6 @@ import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import java.time.LocalDate
@@ -54,11 +53,6 @@ class ReferralEntity(
   @Enumerated(EnumType.STRING)
   var setting: SettingType,
 
-  @NotNull
-  @Column(name = "cohort")
-  @Enumerated(EnumType.STRING)
-  var cohort: OffenceCohort,
-
   @Column(name = "created_at")
   @CreatedDate
   var createdAt: LocalDateTime = LocalDateTime.now(),
@@ -80,7 +74,7 @@ class ReferralEntity(
   //  This is an alias to the sourced_from_id, i.e. the Requirement or Licence ID
   @Nullable
   @Column("event_id")
-  val eventId: String? = null,
+  var eventId: String? = null,
 
   //  The Delius event number representing a specific court case event
   @Nullable
@@ -106,7 +100,7 @@ class ReferralEntity(
     cascade = [CascadeType.REMOVE],
     orphanRemoval = true,
   )
-  val deliveryLocationPreferences: DeliveryLocationPreferenceEntity? = null,
+  var deliveryLocationPreferences: DeliveryLocationPreferenceEntity? = null,
 
   @OneToMany(
     fetch = FetchType.LAZY,
@@ -115,6 +109,14 @@ class ReferralEntity(
     orphanRemoval = true,
   )
   var referralLdcHistories: MutableSet<ReferralLdcHistoryEntity> = mutableSetOf(),
+
+  @OneToMany(
+    fetch = FetchType.LAZY,
+    cascade = [CascadeType.ALL],
+    mappedBy = "referral",
+    orphanRemoval = true,
+  )
+  var referralCohortHistories: MutableSet<ReferralCohortHistoryEntity> = mutableSetOf(),
 
   @Nullable
   @OneToOne(
@@ -150,6 +152,7 @@ class ReferralEntity(
     orphanRemoval = true,
   )
   var availabilityEntity: AvailabilityEntity? = null,
+
   @NotNull
   @Column(name = "updated_at")
   @LastModifiedDate

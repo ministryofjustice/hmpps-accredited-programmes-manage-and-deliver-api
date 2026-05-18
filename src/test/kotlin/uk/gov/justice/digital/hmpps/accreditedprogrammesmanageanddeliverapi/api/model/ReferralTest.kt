@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -17,9 +18,7 @@ internal class ReferralTest {
     val personName = "John Doe"
     val crn = "X12345"
     val createdAt = LocalDateTime.now()
-    val activeStatus = "Created"
     val setting = SettingType.COMMUNITY
-    val cohort = OffenceCohort.SEXUAL_OFFENCE
 
     val referralEntity = ReferralEntity(
       id = id,
@@ -32,8 +31,12 @@ internal class ReferralTest {
       interventionName = "Building Choices",
       eventNumber = 1,
       eventId = "2500828798",
-      cohort = OffenceCohort.SEXUAL_OFFENCE,
+      referralCohortHistories = mutableSetOf(),
     )
+    val cohortHistoryEntry =
+      ReferralCohortHistoryFactory().withReferral(referralEntity).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
+
+    referralEntity.referralCohortHistories.add(cohortHistoryEntry)
 
     // Act
     val referral = referralEntity.toApi()
@@ -43,7 +46,7 @@ internal class ReferralTest {
     assertEquals(personName, referral.personName)
     assertEquals(crn, referral.crn)
     assertEquals(createdAt, referral.createdAt)
-    assertEquals(cohort, OffenceCohort.SEXUAL_OFFENCE)
+    assertEquals(cohortHistoryEntry.cohort, OffenceCohort.SEXUAL_OFFENCE)
   }
 
   @Test
@@ -67,8 +70,13 @@ internal class ReferralTest {
       interventionName = "Building Choices",
       eventId = "2500828798",
       eventNumber = 1,
-      cohort = cohort,
+      referralCohortHistories = mutableSetOf(),
     )
+
+    val cohortHistoryEntry =
+      ReferralCohortHistoryFactory().withReferral(referralEntity).withCohort(OffenceCohort.GENERAL_OFFENCE).produce()
+
+    referralEntity.referralCohortHistories.add(cohortHistoryEntry)
 
     // Act
     val referral = referralEntity.toApi()
