@@ -14,8 +14,8 @@ COMMENT ON COLUMN referral_cohort_history.created_by IS 'The username of the use
 COMMENT ON COLUMN referral_cohort_history.created_at IS 'Timestamp of when the cohort was updated';
 
 -- Drop dependent views so we can drop cohort from referral table
-DROP MATERIALIZED VIEW referral_caselist_item_view;
-DROP MATERIALIZED VIEW group_waitlist_item_view;
+DROP MATERIALIZED VIEW IF EXISTS referral_caselist_item_view;
+DROP MATERIALIZED VIEW IF EXISTS group_waitlist_item_view;
 
 ALTER TABLE referral
     DROP COLUMN cohort CASCADE;

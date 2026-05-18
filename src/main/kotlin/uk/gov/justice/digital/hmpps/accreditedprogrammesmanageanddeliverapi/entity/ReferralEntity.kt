@@ -111,11 +111,12 @@ class ReferralEntity(
   var referralLdcHistories: MutableSet<ReferralLdcHistoryEntity> = mutableSetOf(),
 
   @OneToMany(
-    fetch = FetchType.LAZY,
-    cascade = [CascadeType.ALL],
     mappedBy = "referral",
+    fetch = FetchType.EAGER,
+    cascade = [CascadeType.ALL],
     orphanRemoval = true,
   )
+  @OrderBy("createdAt DESC")
   var referralCohortHistories: MutableSet<ReferralCohortHistoryEntity> = mutableSetOf(),
 
   @Nullable
