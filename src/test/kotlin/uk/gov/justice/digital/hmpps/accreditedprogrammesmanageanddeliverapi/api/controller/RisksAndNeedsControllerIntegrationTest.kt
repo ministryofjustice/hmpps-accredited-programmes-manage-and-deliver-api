@@ -246,6 +246,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     assertThat(response.ogrS4Risks?.indirectImageContactSexualReoffendingBand).isNull()
     assertThat(response.ogrS4Risks?.combinedSeriousReoffendingScoreType).isNull()
     assertThat(response.ogrS4Risks?.combinedSeriousReoffendingScore).isNull()
+    assertThat(response.alerts).isEmpty()
   }
 
   @Test
