@@ -9,8 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralMotivationBackgroundAndNonAssociations
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralMotivationBackgroundAndNonAssociationsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
@@ -40,7 +40,6 @@ class GroupAllocationNotesControllerIntegrationTest : IntegrationTestBase() {
       val createdAt = LocalDateTime.now()
       val referralEntity = ReferralEntityFactory()
         .withCreatedAt(createdAt)
-        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
         .produce()
 
       val statusHistory = ReferralStatusHistoryEntityFactory()
@@ -49,12 +48,13 @@ class GroupAllocationNotesControllerIntegrationTest : IntegrationTestBase() {
           referralEntity,
           referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
         )
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
       val motivationBackgroundAndNonAssociations =
         ReferralMotivationBackgroundAndNonAssociationsFactory().withReferral(referralEntity).produce()
       referralEntity.referralMotivationBackgroundAndNonAssociations = motivationBackgroundAndNonAssociations
       testDataGenerator.createReferralWithFields(
         referralEntity,
-        listOf(statusHistory, motivationBackgroundAndNonAssociations),
+        listOf(statusHistory, motivationBackgroundAndNonAssociations, cohortHistory),
       )
 
       // When

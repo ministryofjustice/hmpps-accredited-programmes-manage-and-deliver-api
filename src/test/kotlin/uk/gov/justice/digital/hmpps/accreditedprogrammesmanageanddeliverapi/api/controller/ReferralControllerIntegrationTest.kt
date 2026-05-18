@@ -42,6 +42,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffenceFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralLdcHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
@@ -86,7 +87,6 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val createdAt = LocalDateTime.now()
       val referralEntity = ReferralEntityFactory()
         .withCreatedAt(createdAt)
-        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
         .produce()
 
       val statusHistory = ReferralStatusHistoryEntityFactory()
@@ -95,8 +95,12 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
           referralEntity,
           referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
         )
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
-      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
 
       val secondStatus = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.of(2025, 9, 24, 16, 0))
@@ -140,7 +144,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
       assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
-      assertThat(response.cohort).isEqualTo(savedReferral.cohort)
+      assertThat(response.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
       assertThat(response.probationPractitionerName)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       assertThat(response.probationPractitionerEmail)
@@ -156,13 +160,17 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val createdAt = LocalDateTime.now()
       val referralEntity = ReferralEntityFactory()
         .withCreatedAt(createdAt)
-        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
         .produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
-      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
@@ -187,7 +195,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
       assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
-      assertThat(response.cohort).isEqualTo(savedReferral.cohort)
+      assertThat(response.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
       assertThat(response.probationPractitionerName)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       assertThat(response.probationPractitionerEmail)
@@ -204,7 +212,6 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val createdAt = LocalDateTime.now()
       val referralEntity = ReferralEntityFactory()
         .withCreatedAt(createdAt)
-        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
         .produce()
       val ldcHistories = ReferralLdcHistoryFactory()
         .withReferral(referralEntity)
@@ -215,8 +222,12 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
-      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
-      testDataGenerator.createLdcHistoryForAReferral(ldcHistories)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory, ldcHistories),
+      )
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
@@ -241,7 +252,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
       assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
-      assertThat(response.cohort).isEqualTo(savedReferral.cohort)
+      assertThat(response.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
       assertThat(response.probationPractitionerName)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       assertThat(response.probationPractitionerEmail)
@@ -260,13 +271,17 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val createdAt = LocalDateTime.now()
       val referralEntity = ReferralEntityFactory()
         .withCreatedAt(createdAt)
-        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
         .produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
-      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
       val fullName = randomFullName(middleName = null)
 
@@ -291,7 +306,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
       assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
-      assertThat(response.cohort).isEqualTo(savedReferral.cohort)
+      assertThat(response.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
       assertThat(response.probationPractitionerName)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       assertThat(response.probationPractitionerEmail)
@@ -305,12 +320,17 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     @Test
     fun `should return forbidden when access denied`() {
       nDeliusApiStubs.stubAccessCheck(granted = false)
-      val referralEntity = ReferralEntityFactory().withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
+      val referralEntity = ReferralEntityFactory().produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
-      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
       oasysApiStubs.stubSuccessfulPniResponseWithLdc(referralEntity.crn)
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(referralEntity.crn, referralEntity.eventNumber)
@@ -337,13 +357,17 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     fun `should update LDC status when PNI response indicates LDC is present with subTotal 3 or higher`() {
       // Given
       val referralEntity = ReferralEntityFactory()
-        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
         .produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
-      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
@@ -380,13 +404,17 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     fun `should not indicate LDC when PNI response has low LDC subTotal below 3`() {
       // Given
       val referralEntity = ReferralEntityFactory()
-        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
         .produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
-      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
@@ -423,13 +451,17 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     fun `should not update LDC when PNI response has null LDC assessment`() {
       // Given
       val referralEntity = ReferralEntityFactory()
-        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
         .produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
-      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
@@ -469,13 +501,17 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val referralEntity = ReferralEntityFactory()
         .withCrn(nDeliusPersonalDetails.crn)
         .withEventNumber(0)
-        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
         .produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
-      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
@@ -500,13 +536,17 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         NDeliusPersonalDetailsFactory().withDateOfBirth(LocalDate.of(1990, 1, 1)).produce()
       val referralEntity = ReferralEntityFactory()
         .withCrn(nDeliusPersonalDetails.crn)
-        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
         .produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
-      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
       referralRepository.findByCrn(referralEntity.crn)[0]
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
@@ -543,13 +583,17 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         NDeliusPersonalDetailsFactory().withEthnicity(null).withDateOfBirth(LocalDate.of(1990, 1, 1)).produce()
       val referralEntity = ReferralEntityFactory()
         .withCrn(nDeliusPersonalDetails.crn)
-        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
         .produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
-      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
       referralRepository.findByCrn(referralEntity.crn)[0]
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
@@ -583,12 +627,17 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     @Test
     fun `should return forbidden when access denied`() {
       nDeliusApiStubs.stubAccessCheck(granted = false)
-      val referralEntity = ReferralEntityFactory().withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
+      val referralEntity = ReferralEntityFactory().produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
-      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       performRequestAndExpectStatus(
@@ -862,14 +911,19 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     @Test
     fun `should update the Status of a Referral that exists`() {
       // Given
-      val referralEntity = ReferralEntityFactory().withCohort(OffenceCohort.GENERAL_OFFENCE).produce()
+      val referralEntity = ReferralEntityFactory().produce()
 
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
 
-      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
 
       assertThat(testDataGenerator.getReferralById(referralEntity.id!!).statusHistories).hasSize(1)
 
@@ -898,7 +952,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     @Test
     fun `should get the Referral Status history for a Referral that exists`() {
       // Given
-      val referralEntity = ReferralEntityFactory().withCohort(OffenceCohort.GENERAL_OFFENCE).produce()
+      val referralEntity = ReferralEntityFactory().produce()
 
       val statusHistory = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.of(2025, 9, 1, 12, 0))
@@ -907,7 +961,12 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
           referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
         )
 
-      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
 
       val secondStatusHistory = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.of(2025, 9, 15, 20, 30))
@@ -944,12 +1003,18 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
   inner class UpdateReferralCohort {
     @Test
     fun `should update referral with cohort information`() {
-      val referralEntity = ReferralEntityFactory().withCohort(OffenceCohort.GENERAL_OFFENCE).produce()
+      val referralEntity = ReferralEntityFactory().produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
-      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val cohortHistory =
+        ReferralCohortHistoryFactory().withReferral(referralEntity).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
 
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.PUT,
@@ -959,7 +1024,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       )
 
       val referralById = testDataGenerator.getReferralById(referralEntity.id!!)
-      assertThat(referralById.cohort.name).isEqualTo(OffenceCohort.SEXUAL_OFFENCE.name)
+      assertThat(referralById.referralCohortHistories.first().cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
     }
 
     @Test
@@ -984,14 +1049,18 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         .withCrn(crn)
         .withEventId(eventId)
         .withSourcedFrom(null)
-        .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
 
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
-      testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
       val savedReferral = referralRepository.findByCrn(crn)[0]
 
       // Use the existing wiremock mappings that return successful responses for requirement lookup
@@ -1274,7 +1343,6 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     fun `should return the correct ordered status for a referral with an On programme status`() {
       // Given
       testDataCleaner.cleanAllTables()
-      val theGroup = testDataGenerator.createGroup(ProgrammeGroupFactory().withCode("AAA1112").produce())
 
       val referralEntity = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
@@ -1376,7 +1444,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.attendanceHistory).allMatch { it.groupId == group.id }
       assertThat(response.attendanceHistory).allMatch { it.popName == "Alex River" }
       assertThat(response.attendanceHistory).allMatch { it.sessionName == "Getting started 1" }
-      assertThat(response.attendanceHistory).allMatch { it.isCatchup == false }
+      assertThat(response.attendanceHistory).allMatch { !it.isCatchup }
     }
 
     @Test

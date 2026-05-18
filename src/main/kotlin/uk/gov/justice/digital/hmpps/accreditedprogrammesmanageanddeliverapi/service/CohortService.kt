@@ -1,14 +1,40 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.RiskScoreLevel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCohortHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
+import java.util.UUID
 
 @Service
-class CohortService {
+class CohortService(
+  private val referralCohortHistoryRepository: ReferralCohortHistoryRepository,
+) {
   companion object {
     private const val SEX_DOMAIN_MINIMUM_THRESHOLD = 0.0
+    private val log = LoggerFactory.getLogger(this::class.java)
+  }
+
+  fun updateCohortForReferral(referralEntity: ReferralEntity, cohort: OffenceCohort): ReferralEntity {
+    log.info("Updating cohort to '$cohort' for referral with Id: '${referralEntity.id}'")
+    referralCohortHistoryRepository.save(
+      ReferralCohortHistoryEntity(
+        referral = referralEntity,
+        cohort = cohort,
+      ),
+    )
+    return referralEntity
+  }
+
+  fun hasOverriddenCohort(referralId: UUID): Boolean {
+    referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.let {
+      return it.createdBy != "SYSTEM"
+    }
+    return false
   }
 
   fun determineOffenceCohort(pniScore: PniScore): OffenceCohort = if (hasSignificantOspScore(pniScore) || hasSignificantSexDomainScore(pniScore)) {

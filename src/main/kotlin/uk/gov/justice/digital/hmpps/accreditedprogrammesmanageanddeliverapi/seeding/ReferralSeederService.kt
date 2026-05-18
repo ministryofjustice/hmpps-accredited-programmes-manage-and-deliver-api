@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCohortHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
@@ -99,7 +100,6 @@ class ReferralSeederService(
       interventionType = InterventionType.ACP,
       interventionName = "Building Choices",
       setting = SettingType.COMMUNITY,
-      cohort = OffenceCohort.GENERAL_OFFENCE,
       createdAt = LocalDateTime.now(),
       sex = person.sexCode,
       dateOfBirth = person.dateOfBirth,
@@ -124,7 +124,15 @@ class ReferralSeederService(
       reportingTeam = "Wiremocked Team",
     )
 
+    val cohortHistory = ReferralCohortHistoryEntity(
+      referral = referral,
+      cohort = OffenceCohort.GENERAL_OFFENCE,
+      createdBy = "SEEDING_SYSTEM",
+      createdAt = LocalDateTime.now(),
+    )
+
     referral.statusHistories.add(statusHistory)
+    referral.referralCohortHistories.add(cohortHistory)
 
     val savedReferral = referralRepository.save(referral)
     referralReportingLocationRepository.save(reportingLocation)
