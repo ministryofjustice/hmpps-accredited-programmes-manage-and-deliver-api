@@ -23,6 +23,7 @@ class ReportingService(
   }
 
   private val groupSizeCsvSchema: CsvSchema = CsvSchema.builder()
+    .disableQuoteChar()
     .addColumn("id")
     .addColumn("code")
     .addColumn("createdAt")
