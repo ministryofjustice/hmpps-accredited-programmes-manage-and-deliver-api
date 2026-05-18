@@ -208,17 +208,44 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should return 404 when random crn and no assessment found`() {
+  fun `should return empty Risk and needs when random crn and no assessment found`() {
+    // Given
     val crn = randomCrn()
     oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
-    val response = performRequestAndExpectStatus(
+
+    // When
+    val response = performRequestAndExpectOk(
       httpMethod = HttpMethod.GET,
       uri = "/risks-and-needs/$crn/risks-and-alerts",
-      object : ParameterizedTypeReference<ErrorResponse>() {},
-      HttpStatus.NOT_FOUND.value(),
+      returnType = object : ParameterizedTypeReference<Risks>() {},
     )
 
-    assertThat(response.developerMessage).isEqualTo("No assessment found for crn: $crn")
+    // Then
+    assertThat(response).isNotNull
+    assertThat(response.isLegacy).isFalse()
+    assertThat(response.sara).isNotNull
+    assertThat(response.sara?.imminentRiskOfViolenceTowardsOthers).isNull()
+    assertThat(response.sara?.imminentRiskOfViolenceTowardsPartner).isNull()
+    assertThat(response.riskOfSeriousRecidivism).isNotNull
+    assertThat(response.riskOfSeriousRecidivism?.scoreLevel).isNull()
+    assertThat(response.riskOfSeriousRecidivism?.otherPersonAtRiskChildrenScore).isNull()
+    assertThat(response.riskOfSeriousRecidivism?.otherPersonAtRiskIntimateScore).isNull()
+    assertThat(response.riskOfSeriousHarm).isNotNull
+    assertThat(response.riskOfSeriousHarm?.riskPrisonersCustody).isNull()
+    assertThat(response.riskOfSeriousHarm?.riskKnownAdultCommunity).isNull()
+    assertThat(response.riskOfSeriousHarm?.riskStaffCustody).isNull()
+    assertThat(response.riskOfSeriousHarm?.riskStaffCommunity).isNull()
+    assertThat(response.ogrS4Risks).isNotNull
+    assertThat(response.ogrS4Risks?.allReoffendingBand).isNull()
+    assertThat(response.ogrS4Risks?.allReoffendingScore).isNull()
+    assertThat(response.ogrS4Risks?.directContactSexualReoffendingBand).isNull()
+    assertThat(response.ogrS4Risks?.directContactSexualReoffendingScore).isNull()
+    assertThat(response.ogrS4Risks?.directContactSexualReoffendingBand).isNull()
+    assertThat(response.ogrS4Risks?.directContactSexualReoffendingScore).isNull()
+    assertThat(response.ogrS4Risks?.indirectImageContactSexualReoffendingScore).isNull()
+    assertThat(response.ogrS4Risks?.indirectImageContactSexualReoffendingBand).isNull()
+    assertThat(response.ogrS4Risks?.combinedSeriousReoffendingScoreType).isNull()
+    assertThat(response.ogrS4Risks?.combinedSeriousReoffendingScore).isNull()
   }
 
   @Test
