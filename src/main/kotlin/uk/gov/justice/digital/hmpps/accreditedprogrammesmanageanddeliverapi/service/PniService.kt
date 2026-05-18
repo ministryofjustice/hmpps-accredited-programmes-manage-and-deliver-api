@@ -19,6 +19,7 @@ class PniService(
   fun getPniResponse(crn: String): PniResponse? = when (val result = oasysApiClient.getPniCalculation(crn)) {
     is ClientResult.Failure.StatusCode -> {
       if (result.status.value() == 404) {
+        log.warn("No PNI score found for crn : $crn")
         null
       } else {
         log.warn("Failure to retrieve PNI score for crn : $crn")

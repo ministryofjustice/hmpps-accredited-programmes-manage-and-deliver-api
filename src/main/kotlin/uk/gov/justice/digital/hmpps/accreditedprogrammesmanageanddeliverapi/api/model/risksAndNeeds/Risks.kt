@@ -17,7 +17,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import java.time.LocalDate
 
 data class Risks(
-
   @get:JsonProperty("assessmentCompleted", required = true)
   @JsonFormat(pattern = "d MMMM yyyy")
   val assessmentCompleted: LocalDate? = null,
@@ -74,7 +73,22 @@ data class Risks(
     description = "The OGRS4 Risk predictors for this person.",
   )
   val ogrS4Risks: OGRS4Risks? = null,
-)
+) {
+  companion object {
+    fun empty() = Risks(
+      offenderGroupReconviction = Score(),
+      offenderViolencePredictor = Score(),
+      isLegacy = false,
+      sara = OasysSara(
+        imminentRiskOfViolenceTowardsPartner = null,
+        imminentRiskOfViolenceTowardsOthers = null,
+      ),
+      riskOfSeriousRecidivism = RiskOfSeriousRecidivism(),
+      riskOfSeriousHarm = RoshSummary(),
+      ogrS4Risks = OGRS4Risks(),
+    )
+  }
+}
 
 fun buildRiskModel(
   oasysOffendingInfo: OasysOffendingInfo?,
