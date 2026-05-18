@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.subjectAccessRequest.SubjectAccessRequestContent
@@ -27,13 +28,17 @@ class SubjectAccessRequestService(
   private val groupWaitlistItemViewRepository: GroupWaitlistItemViewRepository,
   private val referralCaseListItemRepository: ReferralCaseListItemRepository,
 ) : HmppsProbationSubjectAccessRequestService {
+  private val log = LoggerFactory.getLogger(this::class.java)
 
   override fun getProbationContentFor(
     crn: String,
     fromDate: LocalDate?,
     toDate: LocalDate?,
   ): HmppsSubjectAccessRequestContent {
+    log.info("Retrieving subject access request content for crn: $crn")
     val referrals = getSubjectAccessRequestReferrals(crn, fromDate, toDate)
+    log.info("Retrieved ${referrals.size} referrals")
+    log.info("referrals: $referrals")
     val groupWaitlistItemViews = getSubjectAccessRequestGroupWaitlistItemViews(crn)
     val referralCaseListItemViews = getSubjectAccessRequestReferralCaseListItemViews(crn)
     val content = SubjectAccessRequestContent(
