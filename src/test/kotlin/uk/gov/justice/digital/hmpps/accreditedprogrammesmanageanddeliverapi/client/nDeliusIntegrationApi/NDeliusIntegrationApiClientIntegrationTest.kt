@@ -32,6 +32,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UpdateAppointmentsRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import java.time.LocalDate
+import java.util.UUID
 
 class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
 
@@ -315,6 +316,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
           ),
         ),
       ),
+      eventNumber = 1,
     )
 
     wiremock.stubFor(
@@ -392,8 +394,8 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
     stubAuthTokenEndpoint()
     val appointments = DeleteAppointmentsRequest(
       appointments = listOf(
-        AppointmentReference(java.util.UUID.randomUUID()),
-        AppointmentReference(java.util.UUID.randomUUID()),
+        AppointmentReference(UUID.randomUUID()),
+        AppointmentReference(UUID.randomUUID()),
       ),
     )
 
@@ -422,7 +424,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
     stubAuthTokenEndpoint()
     val appointments = DeleteAppointmentsRequest(
       appointments = listOf(
-        AppointmentReference(java.util.UUID.randomUUID()),
+        AppointmentReference(UUID.randomUUID()),
       ),
     )
 

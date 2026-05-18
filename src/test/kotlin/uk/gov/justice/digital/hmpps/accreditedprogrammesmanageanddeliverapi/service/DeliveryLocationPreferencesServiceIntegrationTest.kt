@@ -143,6 +143,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     val requirementResponse = NDeliusCaseRequirementOrLicenceConditionResponse(
       manager = managerDetails,
       probationDeliveryUnits = additionalPdus,
+      eventNumber = 1,
     )
 
     nDeliusApiStubs.stubAccessCheck(true, crn)
@@ -239,6 +240,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     val requirementResponse = NDeliusCaseRequirementOrLicenceConditionResponse(
       manager = managerDetails,
       probationDeliveryUnits = emptyList(),
+      eventNumber = 1,
     )
 
     nDeliusApiStubs.stubAccessCheck(true, crn)
@@ -318,6 +320,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     val licenceConditionResponse = NDeliusCaseRequirementOrLicenceConditionResponse(
       manager = managerDetails,
       probationDeliveryUnits = emptyList(),
+      eventNumber = 1,
     )
 
     nDeliusApiStubs.stubAccessCheck(true, crn)

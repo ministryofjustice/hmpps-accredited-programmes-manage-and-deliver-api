@@ -36,6 +36,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnitEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
@@ -501,6 +502,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val referralEntity = ReferralEntityFactory()
         .withCrn(nDeliusPersonalDetails.crn)
         .withEventNumber(0)
+        .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
         .produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
@@ -516,9 +518,38 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
       nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
-      nDeliusApiStubs.stubNotFoundSentenceInformationResponse(referralEntity.crn, "1")
-      nDeliusApiStubs.stubNotFoundSentenceInformationResponse(referralEntity.crn, "2")
-      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(referralEntity.crn, 3)
+      val primaryPdu = NDeliusApiProbationDeliveryUnit(
+        code = "PDU001",
+        description = "East Sussex",
+      )
+
+      val primaryOffices = listOf(
+        CodeDescription(
+          code = "OFFICE-CODE-123",
+          description = "Brighton and Hove: Probation Office",
+        ),
+      )
+
+      val managerDetails = RequirementOrLicenceConditionManager(
+        staff = RequirementStaff(
+          code = "STAFF001",
+          name = FullName(forename = "Jane", surname = "Smith"),
+        ),
+        team = CodeDescription("TEAM001", "Primary Team"),
+        probationDeliveryUnit = primaryPdu,
+        officeLocations = primaryOffices,
+      )
+
+      val requirementResponse = NDeliusCaseRequirementOrLicenceConditionResponse(
+        manager = managerDetails,
+        probationDeliveryUnits = emptyList(),
+        eventNumber = 3,
+      )
+      nDeliusApiStubs.stubSuccessfulRequirementManagerResponse(
+        referralEntity.crn,
+        referralEntity.eventId!!,
+        requirementResponse,
+      )
 
       performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
@@ -1081,7 +1112,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         ),
       )
 
-      val requirementResponse = NDeliusCaseRequirementOrLicenceConditionResponse(manager = expectedManager)
+      val requirementResponse =
+        NDeliusCaseRequirementOrLicenceConditionResponse(manager = expectedManager, eventNumber = 1)
       nDeliusApiStubs.stubSuccessfulRequirementManagerResponse("X123456", "REQ001", requirementResponse)
 
       val response = performRequestAndExpectOk(
