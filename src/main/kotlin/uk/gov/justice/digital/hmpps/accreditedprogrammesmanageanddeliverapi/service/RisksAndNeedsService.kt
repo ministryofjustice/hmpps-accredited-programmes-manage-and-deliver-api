@@ -43,7 +43,16 @@ class RisksAndNeedsService(
 
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  fun getAssessments(crn: String): OasysAssessmentTimeline = when (val result = oasysApiClient.getAssessments(crn)) {
+  fun getAssessments(crn: String): OasysAssessmentTimeline? = when (val result = oasysApiClient.getAssessments(crn)) {
+    is ClientResult.Failure.StatusCode -> {
+      if (result.status.value() == 404) {
+        log.warn("No assessment found found for crn : $crn")
+        null
+      } else {
+        log.warn("Failure to retrieve assessment for crn : $crn")
+        throw result.toException()
+      }
+    }
     is ClientResult.Failure -> {
       log.warn("Failure to retrieve Assessment for $crn reason ${result.toException().cause}")
       throw NotFoundException("No assessment found for crn: $crn")
@@ -147,7 +156,8 @@ class RisksAndNeedsService(
 
   fun getRisksByCrn(crn: String): Risks {
     val assessmentId = getAssessmentIdAndDate(crn)?.first
-      ?: throw NotFoundException("No assessment found for crn: $crn")
+      ?: return Risks.empty()
+        .also { log.warn("No assessment found for crn $crn") }
 
     val oasysOffendingInfo: OasysOffendingInfo =
       getDetails(assessmentId, oasysApiClient::getOffendingInfo, "OffendingInfo")
@@ -216,7 +226,7 @@ class RisksAndNeedsService(
 
   private fun getAssessmentIdAndDate(crn: String): Pair<Long, LocalDateTime?>? {
     val assessmentTimeline = getAssessments(crn)
-    val assessment = assessmentTimeline.getLatestCompletedLayerThreeAssessment()
+    val assessment = assessmentTimeline?.getLatestCompletedLayerThreeAssessment()
 
     return if (assessment == null) {
       log.warn("No completed assessment found for crn $crn")

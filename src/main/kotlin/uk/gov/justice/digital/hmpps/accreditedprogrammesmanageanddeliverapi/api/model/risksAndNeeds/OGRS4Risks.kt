@@ -28,5 +28,4 @@ data class OGRS4Risks(
   val combinedSeriousReoffendingScoreType: String? = null,
   val combinedSeriousReoffendingScore: BigDecimal? = null,
   val combinedSeriousReoffendingBand: String? = null,
-
 )
