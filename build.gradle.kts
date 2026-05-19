@@ -6,7 +6,7 @@ plugins {
   kotlin("plugin.spring") version "2.3.21"
   kotlin("plugin.jpa") version "2.3.21"
   kotlin("plugin.allopen") version "2.3.21"
-  id("io.sentry.jvm.gradle") version "6.7.0"
+  id("io.sentry.jvm.gradle") version "6.7.1"
 }
 
 configurations {
@@ -14,7 +14,7 @@ configurations {
 }
 
 dependencies {
-  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:2.2.0")
+  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:2.3.0")
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:7.3.2")
   implementation("org.springframework.boot:spring-boot-starter-webclient")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -39,10 +39,10 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:4.0.6")
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client:4.0.6")
   implementation("org.springframework.security:spring-security-crypto:7.0.5")
-  implementation("com.nimbusds:oauth2-oidc-sdk:11.37.1")
+  implementation("com.nimbusds:oauth2-oidc-sdk:11.37.2")
   implementation("io.github.resilience4j:resilience4j-spring-boot2:2.3.0")
 
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:2.2.0")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:2.3.0")
   testImplementation("org.springframework.boot:spring-boot-starter-webclient-test")
   testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
   testImplementation("org.wiremock:wiremock-standalone:3.13.2")
