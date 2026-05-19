@@ -145,7 +145,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
       assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
-      assertThat(response.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+      assertThat(response.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(response.probationPractitionerName)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       assertThat(response.probationPractitionerEmail)
@@ -166,7 +166,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
-      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+      val cohortHistory =
+        ReferralCohortHistoryFactory().withCohort(OffenceCohort.SEXUAL_OFFENCE).withReferral(referralEntity).produce()
 
       testDataGenerator.createReferralWithFields(
         referralEntity,
@@ -196,7 +197,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
       assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
-      assertThat(response.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+      assertThat(response.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(response.probationPractitionerName)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       assertThat(response.probationPractitionerEmail)
@@ -253,7 +254,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
       assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
-      assertThat(response.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+      assertThat(response.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(response.probationPractitionerName)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       assertThat(response.probationPractitionerEmail)
@@ -307,7 +308,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
       assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
-      assertThat(response.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+      assertThat(response.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(response.probationPractitionerName)
         .isEqualTo(nDeliusPersonalDetails.probationPractitioner!!.name.getNameAsString())
       assertThat(response.probationPractitionerEmail)
@@ -489,6 +490,94 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(updatedReferral.referralLdcHistories).isNotEmpty()
       val latestLdcEntry = updatedReferral.referralLdcHistories.maxByOrNull { it.createdAt!! }
       assertThat(latestLdcEntry?.hasLdc).isFalse()
+    }
+
+    @Test
+    fun `should update cohort when user has not overwritten cohort entry and cohort has changed`() {
+      // Given
+      val referralEntity = ReferralEntityFactory()
+        .produce()
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+
+      val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(referralEntity.crn, referralEntity.eventNumber)
+
+      oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
+      )
+
+      // Then
+      assertThat(response.id).isEqualTo(savedReferral.id)
+      assertThat(response.crn).isEqualTo(savedReferral.crn)
+
+      val updatedReferral = referralRepository.findByCrn(referralEntity.crn).first()
+      assertThat(updatedReferral.referralCohortHistories).isNotEmpty()
+      val latestCohortEntry = updatedReferral.referralCohortHistories.maxByOrNull { it.createdAt }
+      assertThat(latestCohortEntry?.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
+    }
+
+    @Test
+    fun `should not update cohort when user has overwritten cohort entry and cohort has changed`() {
+      // Given
+      val referralEntity = ReferralEntityFactory()
+        .produce()
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+      val cohortHistory =
+        ReferralCohortHistoryFactory()
+          .withReferral(referralEntity)
+          .withCohort(OffenceCohort.GENERAL_OFFENCE)
+          .withCreatedBy("TEST_USER").produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+
+      val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(referralEntity.crn, referralEntity.eventNumber)
+
+      oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
+      )
+
+      // Then
+      assertThat(response.id).isEqualTo(savedReferral.id)
+      assertThat(response.crn).isEqualTo(savedReferral.crn)
+
+      val updatedReferral = referralRepository.findByCrn(referralEntity.crn).first()
+      assertThat(updatedReferral.referralCohortHistories).isNotEmpty()
+      val latestCohortEntry = updatedReferral.referralCohortHistories.maxByOrNull { it.createdAt }
+      assertThat(latestCohortEntry?.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
     }
   }
 
