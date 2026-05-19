@@ -21,12 +21,16 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ThinkingDomainScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.NeedLevel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.OverallIntensity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
 
 @ExtendWith(MockitoExtension::class)
 class CohortServiceTest {
 
   @Mock
   private lateinit var pniService: PniService
+
+  @Mock
+  private lateinit var referralCohortHistoryRepository: ReferralCohortHistoryRepository
 
   @InjectMocks
   private lateinit var cohortService: CohortService

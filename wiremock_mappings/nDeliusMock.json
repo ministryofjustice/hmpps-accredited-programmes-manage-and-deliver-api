@@ -116,6 +116,7 @@
           "Content-Type": "application/json"
         },
         "jsonBody": {
+          "eventNumber": 1,
           "manager": {
             "staff": {
               "code": "STAFF001",
@@ -184,6 +185,7 @@
           "Content-Type": "application/json"
         },
         "jsonBody": {
+          "eventNumber": 1,
           "manager": {
             "staff": {
               "name": {

@@ -62,5 +62,5 @@ fun ReferralEntity.toApi() = Referral(
   crn = crn,
   createdAt = createdAt,
   status = statusHistories.maxByOrNull { it.createdAt }?.referralStatusDescription?.description ?: "Unknown",
-  cohort = cohort,
+  cohort = referralCohortHistories.maxByOrNull { it.createdAt }?.cohort ?: OffenceCohort.GENERAL_OFFENCE,
 )

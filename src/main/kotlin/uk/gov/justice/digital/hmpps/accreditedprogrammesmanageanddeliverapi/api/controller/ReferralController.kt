@@ -32,12 +32,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceInformation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.AttendanceHistoryResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.CohortService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.DeliveryLocationPreferencesService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.OffenceService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralEventNumberResolverService
@@ -57,6 +59,7 @@ class ReferralController(
   private val sentenceService: SentenceService,
   private val deliveryLocationPreferencesService: DeliveryLocationPreferencesService,
   private val referralStatusService: ReferralStatusService,
+  private val cohortService: CohortService,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -276,7 +279,7 @@ class ReferralController(
     ) @RequestBody updateCohort: UpdateCohort,
   ): ResponseEntity<Referral> {
     val referral = referralService.getReferralById(id)
-    val updateCohort = referralService.updateCohort(referral, updateCohort.cohort)
+    val updateCohort = cohortService.updateCohortForReferral(referral, updateCohort.cohort).toApi()
     return ResponseEntity.ok(updateCohort)
   }
 

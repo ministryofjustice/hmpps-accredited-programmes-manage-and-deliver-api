@@ -8,7 +8,6 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Referral
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
@@ -31,12 +30,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.toPniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCohortHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -73,6 +74,7 @@ class ReferralService(
   private val sessionNameFormatter: SessionNameFormatter,
   private val referralStatusService: ReferralStatusService,
   private val referralEventService: ReferralEventService,
+  private val referralCohortHistoryRepository: ReferralCohortHistoryRepository,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -110,8 +112,17 @@ class ReferralService(
 
     val referralLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.hasLdc
     val latestReferralStatus = referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId)
+    val latestReferralCohort =
+      referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.cohort
     val allocatedGroup = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
-    ReferralDetails.toModel(referral, personalDetails, referralLdc, latestReferralStatus!!, allocatedGroup)
+    ReferralDetails.toModel(
+      referral,
+      personalDetails,
+      referralLdc,
+      latestReferralStatus!!,
+      allocatedGroup,
+      latestReferralCohort,
+    )
   }
 
   fun getFindAndReferReferralDetails(referralId: UUID): FindAndReferReferralDetails {
@@ -138,6 +149,7 @@ class ReferralService(
     val cohort =
       pniCalculation?.let { cohortService.determineOffenceCohort(it.toPniScore()) } ?: OffenceCohort.GENERAL_OFFENCE
     val hasLdc = pniCalculation?.hasLdc() ?: false
+
     val awaitingAssessmentStatusDescription =
       referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
 
@@ -145,7 +157,7 @@ class ReferralService(
 
     val referralEntity = findAndReferReferralDetails.toReferralEntity(
       statusHistories = mutableListOf(),
-      cohort = cohort,
+      cohortHistories = mutableSetOf(),
       personalDetails = personalDetails,
       sentenceEndDate = sentenceEndDate,
     )
@@ -162,6 +174,16 @@ class ReferralService(
     )
     referralEntity.statusHistories = mutableListOf(statusHistoryEntity)
     log.info("Inserting the default ReferralStatusHistory row for newly created Referral with id ${referral.id!!}")
+
+    val referralCohortHistories =
+      mutableSetOf(
+        ReferralCohortHistoryEntity(
+          referral = referralEntity,
+          cohort = cohort,
+          createdBy = "SYSTEM",
+        ),
+      )
+    referralEntity.referralCohortHistories = referralCohortHistories
 
     val referralLdcHistories =
       mutableSetOf(ReferralLdcHistoryEntity(hasLdc = hasLdc, referral = referralEntity, createdBy = "SYSTEM"))
@@ -295,12 +317,6 @@ class ReferralService(
     val ndeliusApiResponse = this.getRetRequirementOrLicenceCondition(referral) ?: return null
 
     return ndeliusApiResponse.probationDeliveryUnits
-  }
-
-  fun updateCohort(referral: ReferralEntity, cohort: OffenceCohort): Referral {
-    referral.cohort = cohort
-    val save = referralRepository.save(referral)
-    return save.toApi()
   }
 
   fun updateStatus(
