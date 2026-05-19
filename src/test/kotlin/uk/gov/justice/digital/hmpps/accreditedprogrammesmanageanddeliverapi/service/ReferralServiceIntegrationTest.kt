@@ -40,7 +40,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -127,10 +129,15 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         .withCrn(crn)
         .withEventId(eventId)
         .withSourcedFrom(null)
-        .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
 
-      testDataGenerator.createReferralWithStatusHistory(referralEntity)
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(referralEntity, listOf(statusHistory, cohortHistory))
       val savedReferral = referralRepository.findByCrn(crn)[0]
       val referralId = savedReferral.id!!.toString()
 
@@ -181,7 +188,6 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         .withCrn(crn)
         .withEventId(eventId)
         .withSourcedFrom(null)
-        .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
 
       testDataGenerator.createReferralWithStatusHistory(referralEntity)
@@ -236,10 +242,15 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         .withCrn(crn)
         .withEventId(eventId)
         .withSourcedFrom(null)
-        .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
 
-      testDataGenerator.createReferralWithStatusHistory(referralEntity)
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(referralEntity, listOf(statusHistory, cohortHistory))
       val savedReferral = referralRepository.findByCrn(crn)[0]
 
       // Stub both endpoints to return 404
@@ -275,10 +286,15 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         .withCrn(crn)
         .withEventId("") // Empty eventId
         .withSourcedFrom(null)
-        .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
 
-      testDataGenerator.createReferralWithStatusHistory(referralEntity)
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(referralEntity, listOf(statusHistory, cohortHistory))
 
       val savedReferral = referralRepository.findByCrn(crn)[0]
       val referralId = savedReferral.id!!.toString()
@@ -616,7 +632,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       val reportingLocation = reportingLocationRepository.findByReferralId(referral.id)
 
       assertThat(referralFromRepo.id).isEqualTo(referral.id)
-      assertThat(referralFromRepo.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
+      assertThat(referralFromRepo.referralCohortHistories.first().cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(referralFromRepo.interventionType).isEqualTo(InterventionType.TOOLKITS)
       assertThat(referralFromRepo.interventionName).isEqualTo("The Intervention Name")
       assertThat(referralFromRepo.setting).isEqualTo(SettingType.COMMUNITY)
@@ -658,7 +674,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.crn).isEqualTo(referralDetails.personReference)
       assertThat(savedReferral.interventionType).isEqualTo(referralDetails.interventionType)
       assertThat(savedReferral.interventionName).isEqualTo(referralDetails.interventionName)
-      assertThat(savedReferral.cohort).isEqualTo(cohort)
+      assertThat(savedReferral.referralCohortHistories.first().cohort).isEqualTo(cohort)
       assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isTrue
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
@@ -693,7 +709,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.crn).isEqualTo(referralDetails.personReference)
       assertThat(savedReferral.interventionType).isEqualTo(referralDetails.interventionType)
       assertThat(savedReferral.interventionName).isEqualTo(referralDetails.interventionName)
-      assertThat(savedReferral.cohort).isEqualTo(cohort)
+      assertThat(savedReferral.referralCohortHistories.first().cohort).isEqualTo(cohort)
       assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
@@ -725,7 +741,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.crn).isEqualTo(referralDetails.personReference)
       assertThat(savedReferral.interventionType).isEqualTo(referralDetails.interventionType)
       assertThat(savedReferral.interventionName).isEqualTo(referralDetails.interventionName)
-      assertThat(savedReferral.cohort).isEqualTo(cohort)
+      assertThat(savedReferral.referralCohortHistories.first().cohort).isEqualTo(cohort)
       assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
@@ -754,7 +770,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.crn).isEqualTo(referralDetails.personReference)
       assertThat(savedReferral.interventionType).isEqualTo(referralDetails.interventionType)
       assertThat(savedReferral.interventionName).isEqualTo(referralDetails.interventionName)
-      assertThat(savedReferral.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+      assertThat(savedReferral.referralCohortHistories.first().cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
       assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
@@ -780,7 +796,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.crn).isEqualTo(referralDetails.personReference)
       assertThat(savedReferral.interventionType).isEqualTo(referralDetails.interventionType)
       assertThat(savedReferral.interventionName).isEqualTo(referralDetails.interventionName)
-      assertThat(savedReferral.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+      assertThat(savedReferral.referralCohortHistories.first().cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
       assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
@@ -813,7 +829,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.crn).isEqualTo(referralDetails.personReference)
       assertThat(savedReferral.interventionType).isEqualTo(referralDetails.interventionType)
       assertThat(savedReferral.interventionName).isEqualTo(referralDetails.interventionName)
-      assertThat(savedReferral.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+      assertThat(savedReferral.referralCohortHistories.first().cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
       assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")

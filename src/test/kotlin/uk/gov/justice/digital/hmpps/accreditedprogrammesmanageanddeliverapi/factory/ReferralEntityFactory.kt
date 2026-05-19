@@ -1,12 +1,12 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
 
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomEventId
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomNumberAsInt
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomSentence
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.DeliveryLocationPreferenceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCohortHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
@@ -31,9 +31,9 @@ class ReferralEntityFactory {
   private var eventId: String = randomEventId(10).toString()
   private var sourcedFrom: ReferralEntitySourcedFrom? = null
   private var eventNumber: Int? = randomNumberAsInt(1)
-  private var cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE
   private var deliveryLocationPreferences: DeliveryLocationPreferenceEntity? = null
   private var referralLdcHistories: MutableSet<ReferralLdcHistoryEntity> = mutableSetOf()
+  private var referralCohortHistories: MutableSet<ReferralCohortHistoryEntity> = mutableSetOf()
   private var sentenceEndDate: LocalDate? = null
   private var sex: String? = null
   private var dateOfBirth: LocalDate? = null
@@ -49,7 +49,6 @@ class ReferralEntityFactory {
 
   fun withSourcedFrom(value: ReferralEntitySourcedFrom?) = apply { this.sourcedFrom = value }
 
-  fun withCohort(cohort: OffenceCohort) = apply { this.cohort = cohort }
   fun withInterventionName(interventionName: String?) = apply { this.interventionName = interventionName }
 
   fun withInterventionType(interventionType: InterventionType) = apply { this.interventionType = interventionType }
@@ -59,6 +58,8 @@ class ReferralEntityFactory {
   fun withDeliveryLocationPreferences(deliveryLocationPreferences: DeliveryLocationPreferenceEntity) = apply { this.deliveryLocationPreferences = deliveryLocationPreferences }
 
   fun withLdcHistories(ldcHistories: MutableSet<ReferralLdcHistoryEntity>) = apply { this.referralLdcHistories = ldcHistories }
+
+  fun withCohortHistories(cohortHistories: MutableSet<ReferralCohortHistoryEntity>) = apply { this.referralCohortHistories = cohortHistories }
 
   fun withSentenceEndDate(sentenceEndDate: LocalDate) = apply { this.sentenceEndDate = sentenceEndDate }
   fun withSex(sex: String) = apply { this.sex = sex }
@@ -82,7 +83,7 @@ class ReferralEntityFactory {
     sourcedFrom = this.sourcedFrom,
     eventId = this.eventId,
     eventNumber = this.eventNumber,
-    cohort = this.cohort,
+    referralCohortHistories = referralCohortHistories,
     sentenceEndDate = this.sentenceEndDate,
     sex = this.sex,
     dateOfBirth = this.dateOfBirth,

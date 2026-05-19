@@ -10,6 +10,10 @@ WITH latest_status AS (SELECT referral_id,
                                   has_ldc,
                                   ROW_NUMBER() OVER (PARTITION BY referral_id ORDER BY created_at DESC) as rn
                            from referral_ldc_history),
+     latest_cohort AS (SELECT referral_id,
+                              cohort,
+                              ROW_NUMBER() OVER (PARTITION BY referral_id ORDER BY created_at DESC) as rn
+                       from referral_cohort_history),
      active_group_membership AS (SELECT referral_id,
                                         programme_group_id,
                                         ROW_NUMBER() OVER (PARTITION BY referral_id ORDER BY created_at DESC) as rn
@@ -21,7 +25,8 @@ SELECT r.id                                           as referral_id,
        r.person_name,
        r.sentence_end_date,
        r.sourced_from,
-       r.cohort,
+       -- Default to GENERAL_OFFENCE if there are no entries in the referral_cohort_history_table
+       COALESCE(lc.cohort, 'GENERAL_OFFENCE')         as cohort,
        -- Default to false if there are no entries in the referral_ldc_history_table
        COALESCE(lds.has_ldc, false)                   as has_ldc,
        r.date_of_birth,
@@ -38,6 +43,7 @@ FROM referral r
          JOIN latest_status ls ON r.id = ls.referral_id AND ls.rn = 1
          JOIN referral_status_description rsd ON ls.referral_status_description_id = rsd.id
          LEFT JOIN latest_ldc_status lds ON r.id = lds.referral_id and lds.rn = 1
+         LEFT JOIN latest_cohort lc ON r.id = lc.referral_id and lc.rn = 1
          LEFT JOIN referral_reporting_location rrl on r.id = rrl.referral_id
          LEFT JOIN active_group_membership pgm on r.id = pgm.referral_id
 WHERE pgm IS NOT NULL
@@ -103,6 +109,12 @@ EXECUTE FUNCTION refresh_group_wait_list_item_view();
 CREATE OR REPLACE TRIGGER trigger_refresh_programme_group_membership_group_wait_list
     AFTER INSERT OR UPDATE OR DELETE
     ON programme_group_membership
+    FOR EACH STATEMENT
+EXECUTE FUNCTION refresh_group_wait_list_item_view();
+
+CREATE OR REPLACE TRIGGER trigger_refresh_referral_cohort_mapping_group_wait_list
+    AFTER INSERT OR UPDATE OR DELETE
+    ON referral_cohort_history
     FOR EACH STATEMENT
 EXECUTE FUNCTION refresh_group_wait_list_item_view();
 

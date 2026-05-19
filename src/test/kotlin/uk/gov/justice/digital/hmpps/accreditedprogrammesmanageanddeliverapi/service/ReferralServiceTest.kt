@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -88,6 +89,9 @@ class ReferralServiceTest {
   @Mock
   private lateinit var sessionNameFormatter: SessionNameFormatter
 
+  @Mock
+  private lateinit var referralCohortHistoryRepository: ReferralCohortHistoryRepository
+
   @BeforeEach
   fun beforeEach() {
     referralService = ReferralService(
@@ -106,10 +110,11 @@ class ReferralServiceTest {
       referralReportingLocationRepository = referralReportingLocationRepository,
       sentenceService = sentenceService,
       programmeGroupMembershipService = programmeGroupMembershipService,
-      referralEventService = referralEventService,
       programmeGroupService = programmeGroupService,
-      referralStatusService = referralStatusService,
       sessionNameFormatter = sessionNameFormatter,
+      referralStatusService = referralStatusService,
+      referralEventService = referralEventService,
+      referralCohortHistoryRepository = referralCohortHistoryRepository,
     )
   }
 
