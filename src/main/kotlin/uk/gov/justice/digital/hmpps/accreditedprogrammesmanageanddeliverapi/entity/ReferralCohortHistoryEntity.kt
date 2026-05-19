@@ -13,10 +13,8 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
 import org.hibernate.annotations.ColumnDefault
-import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
-import org.springframework.security.core.context.SecurityContextHolder
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import java.time.LocalDateTime
 import java.util.UUID
@@ -43,8 +41,7 @@ class ReferralCohortHistoryEntity(
 
   @NotNull
   @Column(name = "created_by")
-  @CreatedBy
-  var createdBy: String? = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
+  var createdBy: String,
 
   @NotNull
   @Column(name = "created_at")
