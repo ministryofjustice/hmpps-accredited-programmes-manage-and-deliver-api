@@ -21,9 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReportingService
 import java.time.Clock
 import java.time.LocalDateTime
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Date
 
 @RestController
 @Validated
@@ -88,9 +86,7 @@ class ReportingController(
   ): ResponseEntity<String> {
     // TODO 2026-05-18 --TJWC: Add @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_REPORTING')") when reporting role rollout is complete.
 
-    val csv = reportingService.getGroupSizeReportCsv(
-      Date.from(groupStartedSince.atZone(ZoneId.systemDefault()).toInstant()),
-    )
+    val csv = reportingService.getGroupSizeReportCsv(groupStartedSince)
 
     val fileName = "${LocalDateTime.now(clock).format(fileNameDateFormatter)}-$GROUP_SIZE_FILE_NAME_SUFFIX"
 

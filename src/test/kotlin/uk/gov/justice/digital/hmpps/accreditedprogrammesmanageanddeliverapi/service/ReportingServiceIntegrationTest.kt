@@ -13,8 +13,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReportingGroupSizeTestDataHelper
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.ZoneId
-import java.util.Date
 
 class ReportingServiceIntegrationTest : IntegrationTestBase() {
 
@@ -67,9 +65,7 @@ class ReportingServiceIntegrationTest : IntegrationTestBase() {
 
     materializedViewRefresher.refreshReportingGroupSizeView()
 
-    val firstSessionAfter = Date.from(
-      LocalDateTime.parse("2026-05-10T00:00:00").atZone(ZoneId.systemDefault()).toInstant(),
-    )
+    val firstSessionAfter = LocalDateTime.parse("2026-05-10T00:00:00")
 
     val csv = reportingService.getGroupSizeReportCsv(firstSessionAfter)
 

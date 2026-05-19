@@ -6,8 +6,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvSchema
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReportingGroupSizeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReportingGroupSizeRepository
-import java.time.ZoneId
-import java.util.Date
+import java.time.LocalDateTime
 
 @Service
 class ReportingService(
@@ -40,7 +39,7 @@ class ReportingService(
     .addColumn("facilitatorStaffCode")
     .build()
 
-  fun getGroupSizeReportCsv(firstSessionAfter: Date): String {
+  fun getGroupSizeReportCsv(firstSessionAfter: LocalDateTime): String {
     val rows = getGroupSizeReportRows(firstSessionAfter)
     val csvRows = rows.map {
       GroupSizeCsvRow(
@@ -65,10 +64,7 @@ class ReportingService(
     return if (csvBody.isBlank()) GROUP_SIZE_CSV_HEADER else "$GROUP_SIZE_CSV_HEADER\n$csvBody"
   }
 
-  private fun getGroupSizeReportRows(firstSessionAfter: Date): List<ReportingGroupSizeEntity> {
-    val firstSessionDate = firstSessionAfter.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-    return reportingGroupSizeRepository.getAllGroupsWithEarliestStartDateAfter(firstSessionDate)
-  }
+  private fun getGroupSizeReportRows(firstSessionAfter: LocalDateTime): List<ReportingGroupSizeEntity> = reportingGroupSizeRepository.getAllGroupsWithEarliestStartDateAfter(firstSessionAfter.toLocalDate())
 
   data class GroupSizeCsvRow(
     val id: String,
