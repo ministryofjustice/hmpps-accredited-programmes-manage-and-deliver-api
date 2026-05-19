@@ -36,6 +36,11 @@ class ReferralEventNumberResolverService(
       return referral.eventNumber
     }
 
+    val eventId = referral.eventId ?: run {
+      log.error("EventId for referral ${referral.id} is null.")
+      return referral.eventNumber
+    }
+
     log.info(
       "Referral with ID '${referral.id}' has event number 0. Attempting to resolve by checking nDelius sentence endpoint for CRN '${referral.crn}'.",
     )
@@ -45,12 +50,12 @@ class ReferralEventNumberResolverService(
         log.info("...attempting to retrieve a Requirement for Referral with ID: ${referral.id}")
         when (
           val response =
-            nDeliusIntegrationApiClient.getRequirementManagerDetails(referral.crn, referral.eventId!!)
+            nDeliusIntegrationApiClient.getRequirementManagerDetails(referral.crn, eventId)
         ) {
           is ClientResult.Success -> response.body
 
           else -> {
-            log.error("Could not fetch a Requirement with ID ${referral.eventId}, for Referral with ID: ${referral.id}")
+            log.error("Could not fetch a Requirement with ID $eventId, for Referral with ID: ${referral.id}")
             null
           }
         }
@@ -60,18 +65,21 @@ class ReferralEventNumberResolverService(
         log.info("...attempting to retrieve a Licence Condition for Referral with ID: ${referral.id}")
         when (
           val response =
-            nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, referral.eventId!!)
+            nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, eventId)
         ) {
           is ClientResult.Success -> response.body
 
           else -> {
-            log.error("Could not fetch a Licence condition with ID ${referral.eventId}, for Referral with ID: ${referral.id}")
+            log.error("Could not fetch a Licence condition with ID $eventId, for Referral with ID: ${referral.id}")
             null
           }
         }
       }
 
-      else -> null
+      else -> {
+        log.error("${referral.sourcedFrom} is not a valid value")
+        null
+      }
     }
 
     if (eventNumberResponse != null) {
