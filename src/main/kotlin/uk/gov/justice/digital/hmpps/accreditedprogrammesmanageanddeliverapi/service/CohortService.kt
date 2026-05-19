@@ -1,10 +1,12 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.slf4j.LoggerFactory
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.RiskScoreLevel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.AuditorContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCohortHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
@@ -19,14 +21,29 @@ class CohortService(
     private val log = LoggerFactory.getLogger(this::class.java)
   }
 
-  fun updateCohortForReferral(referralEntity: ReferralEntity, cohort: OffenceCohort): ReferralEntity {
-    log.info("Updating cohort to '$cohort' for referral with Id: '${referralEntity.id}'")
-    referralCohortHistoryRepository.save(
-      ReferralCohortHistoryEntity(
-        referral = referralEntity,
-        cohort = cohort,
-      ),
-    )
+  fun updateCohortForReferral(
+    referralEntity: ReferralEntity,
+    cohort: OffenceCohort,
+    createdBy: String = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
+  ): ReferralEntity {
+    // Overwrite the username to be written when system is automatically updating this value
+    AuditorContext.set(createdBy)
+    try {
+      val latestCohortHistory =
+        referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralEntity.id!!)
+      if (latestCohortHistory?.cohort != cohort) {
+        log.info("Updating cohort to '$cohort' for referral with Id: '${referralEntity.id}'")
+        referralCohortHistoryRepository.save(
+          ReferralCohortHistoryEntity(
+            referral = referralEntity,
+            cohort = cohort,
+            createdBy = createdBy,
+          ),
+        )
+      }
+    } finally {
+      AuditorContext.clear()
+    }
     return referralEntity
   }
 
