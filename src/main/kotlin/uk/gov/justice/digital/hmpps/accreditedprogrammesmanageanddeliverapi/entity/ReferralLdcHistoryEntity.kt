@@ -41,14 +41,15 @@ open class ReferralLdcHistoryEntity(
   @NotNull
   @Column(name = "created_by")
   @CreatedBy
-  open var createdBy: String? = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
+  var createdBy: String? = SecurityContextHolder.getContext().authentication?.name,
 
   @NotNull
   @CreatedDate
   open var createdAt: LocalDateTime? = LocalDateTime.now(),
 )
 
-fun UpdateLdc.toEntity(referralEntity: ReferralEntity): ReferralLdcHistoryEntity = ReferralLdcHistoryEntity(
+fun UpdateLdc.toEntity(referralEntity: ReferralEntity, createdBy: String? = null): ReferralLdcHistoryEntity = ReferralLdcHistoryEntity(
   referral = referralEntity,
   hasLdc = hasLdc,
+  createdBy = createdBy,
 )
