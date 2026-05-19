@@ -25,6 +25,8 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
   implementation("org.springframework.boot:spring-boot-starter-cache")
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
+  implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-csv")
+  implementation("com.fasterxml.jackson.core:jackson-databind")
 
   // Seeding
   implementation("net.datafaker:datafaker:2.5.4")

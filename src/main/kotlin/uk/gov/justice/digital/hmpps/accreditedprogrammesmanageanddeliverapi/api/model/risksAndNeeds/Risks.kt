@@ -86,6 +86,7 @@ data class Risks(
       riskOfSeriousRecidivism = RiskOfSeriousRecidivism(),
       riskOfSeriousHarm = RoshSummary(),
       ogrS4Risks = OGRS4Risks(),
+      alerts = emptyList(),
     )
   }
 }

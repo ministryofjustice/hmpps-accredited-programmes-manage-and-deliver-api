@@ -120,3 +120,6 @@ services:
     base-url: http://localhost:9097
   govuk-api:
     base-url: http://localhost:9098
+
+reporting:
+  enabled: ${REPORTING_ENABLED:false}

@@ -75,3 +75,6 @@ services:
 wiremock:
   logging:
     verbose: true
+
+reporting:
+  enabled: true

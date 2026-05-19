@@ -67,3 +67,6 @@ services:
     base-url: ${ASSESS_RISKS_AND_NEEDS_BASE_URL:http://localhost:9095}
   govuk-api:
     base-url: https://www.gov.uk
+
+reporting:
+  enabled: true

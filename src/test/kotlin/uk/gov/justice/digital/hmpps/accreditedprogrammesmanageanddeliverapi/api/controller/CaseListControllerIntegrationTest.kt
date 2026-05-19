@@ -22,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedCaseListReferrals
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
@@ -87,7 +88,6 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withPersonName("Joe Bloggs")
         .withCrn("X7182552")
         .withInterventionName("Horizon")
-        .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
       val referralReportingLocation1 = ReferralReportingLocationFactory(referral1)
         .withPduName("PDU1")
@@ -99,12 +99,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
         .produce(referral1, awaitingAssessmentStatusDescription)
+      val cohortHistory1 = ReferralCohortHistoryFactory().withReferral(referral1).produce()
 
       val referral2 = ReferralEntityFactory()
         .withPersonName("Alex River")
         .withCrn("CRN-999999")
         .withInterventionName("Building Choices")
-        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
         .produce()
       val referralReportingLocation2 = ReferralReportingLocationFactory(referral2)
         .withPduName("PDU1")
@@ -116,12 +116,13 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
         .produce(referral2, awaitingAssessmentStatusDescription)
+      val cohortHistory2 =
+        ReferralCohortHistoryFactory().withReferral(referral2).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
 
       val referral3 = ReferralEntityFactory()
         .withPersonName("Jane Adams")
         .withCrn("CRN-888888")
         .withInterventionName("Building Choices")
-        .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
       val statusHistory3 = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
@@ -133,12 +134,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withReportingTeam("reportingTeam1")
         .withRegionName("WIREMOCKED REGION")
         .produce()
+      val cohortHistory3 = ReferralCohortHistoryFactory().withReferral(referral3).produce()
 
       val referral4 = ReferralEntityFactory()
         .withPersonName("Pete Grims")
         .withCrn("CRN-777777")
         .withInterventionName("New Me")
-        .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
       val statusHistory4 = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
@@ -150,12 +151,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withReportingTeam("reportingTeam1")
         .withRegionName("WIREMOCKED REGION")
         .produce()
+      val cohortHistory4 = ReferralCohortHistoryFactory().withReferral(referral4).produce()
 
       val referral5 = ReferralEntityFactory()
         .withPersonName("James Hayden")
         .withCrn("CRN-66666")
         .withInterventionName("Building Choices")
-        .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
       val statusHistory5 = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.parse("2025-07-10T00:00:00"))
@@ -167,12 +168,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withReportingTeam("reportingTeam1")
         .withRegionName("WIREMOCKED REGION")
         .produce()
+      val cohortHistory5 = ReferralCohortHistoryFactory().withReferral(referral5).produce()
 
       val referral6 = ReferralEntityFactory()
         .withPersonName("Andrew Crosforth")
         .withCrn("CRN-555555")
         .withInterventionName("Building Choices")
-        .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
       val statusHistory6 = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
@@ -184,12 +185,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withReportingTeam("UNKNOWN_REPORTING_TEAM")
         .withRegionName("WIREMOCKED REGION")
         .produce()
+      val cohortHistory6 = ReferralCohortHistoryFactory().withReferral(referral6).produce()
 
       val referral7 = ReferralEntityFactory()
         .withPersonName("James Mars")
         .withCrn("CRN-111111")
         .withInterventionName("Building Choices")
-        .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .produce()
       val statusHistory7 = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
@@ -201,6 +202,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withReportingTeam("reportingTeam2")
         .withRegionName("WIREMOCKED REGION")
         .produce()
+      val cohortHistory7 = ReferralCohortHistoryFactory().withReferral(referral7).produce()
 
       referral1.referralReportingLocationEntity = referralReportingLocation1
       referral2.referralReportingLocationEntity = referralReportingLocation2
@@ -210,40 +212,41 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       referral6.referralReportingLocationEntity = referralReportingLocation6
       referral7.referralReportingLocationEntity = referralReportingLocation7
 
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+      referral1.referralCohortHistories = mutableSetOf(cohortHistory1)
+      referral2.referralCohortHistories = mutableSetOf(cohortHistory2)
+      referral3.referralCohortHistories = mutableSetOf(cohortHistory3)
+      referral4.referralCohortHistories = mutableSetOf(cohortHistory4)
+      referral5.referralCohortHistories = mutableSetOf(cohortHistory5)
+      referral6.referralCohortHistories = mutableSetOf(cohortHistory6)
+      referral7.referralCohortHistories = mutableSetOf(cohortHistory7)
+
+      testDataGenerator.createReferralWithFields(
         referral1,
-        statusHistory1,
-        referralReportingLocation1,
+        listOf(statusHistory1, statusHistory1, cohortHistory1, referralReportingLocation1),
       )
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+      testDataGenerator.createReferralWithFields(
         referral2,
-        statusHistory2,
-        referralReportingLocation2,
+        listOf(statusHistory2, statusHistory2, cohortHistory2, referralReportingLocation2),
       )
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+      testDataGenerator.createReferralWithFields(
         referral3,
-        statusHistory3,
-        referralReportingLocation3,
+        listOf(statusHistory3, statusHistory3, cohortHistory3, referralReportingLocation3),
       )
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+      testDataGenerator.createReferralWithFields(
         referral4,
-        statusHistory4,
-        referralReportingLocation4,
+        listOf(statusHistory4, statusHistory4, cohortHistory4, referralReportingLocation4),
       )
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+      testDataGenerator.createReferralWithFields(
         referral5,
-        statusHistory5,
-        referralReportingLocation5,
+        listOf(statusHistory5, statusHistory5, cohortHistory5, referralReportingLocation5),
       )
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+      testDataGenerator.createReferralWithFields(
         referral6,
-        statusHistory6,
-        referralReportingLocation6,
+        listOf(statusHistory6, statusHistory6, cohortHistory6, referralReportingLocation6),
       )
-      testDataGenerator.createReferralWithReportingLocationAndStatusHistory(
+      testDataGenerator.createReferralWithFields(
         referral7,
-        statusHistory7,
-        referralReportingLocation7,
+        listOf(statusHistory7, statusHistory7, cohortHistory7, referralReportingLocation7),
       )
 
       val referralCaseListItemViews = referralCaseListItemRepository.findAll()

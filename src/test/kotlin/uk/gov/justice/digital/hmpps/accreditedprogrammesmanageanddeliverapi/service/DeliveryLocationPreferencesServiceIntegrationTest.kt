@@ -6,7 +6,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnit
@@ -17,11 +16,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.deliveryLocationPreferences.DeliveryLocationPreferenceEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.deliveryLocationPreferences.PreferredDeliveryLocationEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.deliveryLocationPreferences.PreferredDeliveryLocationProbationDeliveryUnitEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.LocalDate
 import java.util.UUID
@@ -31,6 +33,9 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
 
   @Autowired
   private lateinit var deliveryLocationPreferencesService: DeliveryLocationPreferencesService
+
+  @Autowired
+  private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
 
   @BeforeEach
   fun setup() {
@@ -49,10 +54,19 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
       .withCrn(crn)
       .withEventId(eventId)
       .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
-      .withCohort(OffenceCohort.GENERAL_OFFENCE)
       .produce()
 
-    testDataGenerator.createReferralWithStatusHistory(referralEntity)
+    val statusHistory = ReferralStatusHistoryEntityFactory()
+      .produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+    val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+    testDataGenerator.createReferralWithFields(
+      referralEntity,
+      listOf(statusHistory, cohortHistory),
+    )
 
     // Create existing delivery location preferences
     val pdu = PreferredDeliveryLocationProbationDeliveryUnitEntityFactory()
@@ -174,10 +188,19 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
       .withCrn(crn)
       .withEventId(eventId)
       .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
-      .withCohort(OffenceCohort.GENERAL_OFFENCE)
       .produce()
 
-    testDataGenerator.createReferralWithStatusHistory(referralEntity)
+    val statusHistory = ReferralStatusHistoryEntityFactory()
+      .produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+    val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+    testDataGenerator.createReferralWithFields(
+      referralEntity,
+      listOf(statusHistory, cohortHistory),
+    )
 
     // Mock NDelius responses
     val personalDetails = NDeliusPersonalDetailsFactory()
@@ -251,10 +274,19 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
       .withCrn(crn)
       .withEventId(eventId)
       .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
-      .withCohort(OffenceCohort.SEXUAL_OFFENCE)
       .produce()
 
-    testDataGenerator.createReferralWithStatusHistory(referralEntity)
+    val statusHistory = ReferralStatusHistoryEntityFactory()
+      .produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+    val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+    testDataGenerator.createReferralWithFields(
+      referralEntity,
+      listOf(statusHistory, cohortHistory),
+    )
 
     // Mock NDelius responses
     val personalDetails = NDeliusPersonalDetailsFactory()
@@ -322,10 +354,19 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
       .withCrn(crn)
       .withEventId(eventId)
       .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
-      .withCohort(OffenceCohort.GENERAL_OFFENCE)
       .produce()
 
-    testDataGenerator.createReferralWithStatusHistory(referralEntity)
+    val statusHistory = ReferralStatusHistoryEntityFactory()
+      .produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+    val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+    testDataGenerator.createReferralWithFields(
+      referralEntity,
+      listOf(statusHistory, cohortHistory),
+    )
 
     val personalDetails = NDeliusPersonalDetailsFactory()
       .withCrn(crn)

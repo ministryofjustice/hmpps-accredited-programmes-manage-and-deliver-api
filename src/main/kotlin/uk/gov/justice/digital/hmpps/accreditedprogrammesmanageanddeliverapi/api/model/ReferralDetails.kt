@@ -150,6 +150,7 @@ data class ReferralDetails(
       hasLdc: Boolean? = false,
       latestReferralStatus: ReferralStatusDescriptionEntity,
       currentlyAllocatedGroup: ProgrammeGroupMembershipEntity?,
+      cohort: OffenceCohort?,
     ): ReferralDetails = ReferralDetails(
       id = referral.id!!,
       crn = referral.crn,
@@ -159,7 +160,7 @@ data class ReferralDetails(
       dateOfBirth = LocalDate.parse(nDeliusPersonalDetails.dateOfBirth),
       probationPractitionerName = nDeliusPersonalDetails.probationPractitioner?.name?.getNameAsString(),
       probationPractitionerEmail = nDeliusPersonalDetails.probationPractitioner?.email,
-      cohort = referral.cohort,
+      cohort = cohort ?: OffenceCohort.GENERAL_OFFENCE,
       hasLdc = LdcStatus.fromBoolean(hasLdc).value,
       hasLdcDisplayText = LdcStatus.getDisplayText(hasLdc),
       currentStatusDescription = latestReferralStatus.description,
