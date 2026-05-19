@@ -5,7 +5,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
-import org.mockito.Mockito.never
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
@@ -14,7 +14,13 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnit
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 
@@ -45,17 +51,12 @@ class ReferralEventNumberResolverServiceTest {
 
   @Test
   fun `updates referral event number when a valid number is found`() {
-    val referral = ReferralEntityFactory().withEventNumber(0).produce()
+    val referral =
+      ReferralEntityFactory().withEventNumber(0).withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT).produce()
     val service = ReferralEventNumberResolverService(nDeliusIntegrationApiClient, referralRepository, telemetryClient)
 
-    `when`(nDeliusIntegrationApiClient.getSentenceInformation(referral.crn, 1)).thenReturn(
-      ClientResult.Failure.StatusCode(HttpMethod.GET, "/case/${referral.crn}/sentence/1", HttpStatusCode.valueOf(404), null),
-    )
-    `when`(nDeliusIntegrationApiClient.getSentenceInformation(referral.crn, 2)).thenReturn(
-      ClientResult.Failure.StatusCode(HttpMethod.GET, "/case/${referral.crn}/sentence/2", HttpStatusCode.valueOf(404), null),
-    )
-    `when`(nDeliusIntegrationApiClient.getSentenceInformation(referral.crn, 3)).thenReturn(
-      ClientResult.Success(HttpStatusCode.valueOf(200), mockSentenceResponse()),
+    `when`(nDeliusIntegrationApiClient.getRequirementManagerDetails(referral.crn, referral.eventId!!)).thenReturn(
+      ClientResult.Success(HttpStatusCode.valueOf(200), mockRequirementLicResponse()),
     )
 
     val result = service.resolveIfEventNumberIsZero(referral)
@@ -63,61 +64,48 @@ class ReferralEventNumberResolverServiceTest {
     assertThat(result).isEqualTo(3)
     assertThat(referral.eventNumber).isEqualTo(3)
     verify(referralRepository).save(referral)
-    verify(nDeliusIntegrationApiClient).getSentenceInformation(referral.crn, 1)
-    verify(nDeliusIntegrationApiClient).getSentenceInformation(referral.crn, 2)
-    verify(nDeliusIntegrationApiClient).getSentenceInformation(referral.crn, 3)
+    verify(nDeliusIntegrationApiClient).getRequirementManagerDetails(referral.crn, referral.eventId!!)
   }
 
   @Test
-  fun `keeps event number as zero when no valid number is found`() {
-    val referral = ReferralEntityFactory().withEventNumber(0).produce()
+  fun `returns original eventNumber when an unexpected error occurs`() {
+    val referral =
+      ReferralEntityFactory().withEventNumber(0).withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT).produce()
     val service = ReferralEventNumberResolverService(nDeliusIntegrationApiClient, referralRepository, telemetryClient)
 
-    (1..20).forEach { candidate ->
-      `when`(nDeliusIntegrationApiClient.getSentenceInformation(referral.crn, candidate)).thenReturn(
-        ClientResult.Failure.StatusCode(HttpMethod.GET, "/case/${referral.crn}/sentence/$candidate", HttpStatusCode.valueOf(404), null),
-      )
-    }
-
-    val result = service.resolveIfEventNumberIsZero(referral)
-
-    assertThat(result).isEqualTo(0)
-    assertThat(referral.eventNumber).isEqualTo(0)
-    verify(referralRepository, never()).save(referral)
-    (1..20).forEach { candidate ->
-      verify(nDeliusIntegrationApiClient).getSentenceInformation(referral.crn, candidate)
-    }
-  }
-
-  @Test
-  fun `continues to next candidate when an unexpected error occurs`() {
-    val referral = ReferralEntityFactory().withEventNumber(0).produce()
-    val service = ReferralEventNumberResolverService(nDeliusIntegrationApiClient, referralRepository, telemetryClient)
-
-    `when`(nDeliusIntegrationApiClient.getSentenceInformation(referral.crn, 1)).thenReturn(
+    `when`(nDeliusIntegrationApiClient.getRequirementManagerDetails(referral.crn, referral.eventId!!)).thenReturn(
       ClientResult.Failure.Other(
         HttpMethod.GET,
-        "/case/${referral.crn}/sentence/1",
+        "/case/${referral.crn}/requirement/${referral.eventId}",
         RuntimeException("Connection refused"),
         "nDelius",
       ),
     )
-    `when`(nDeliusIntegrationApiClient.getSentenceInformation(referral.crn, 2)).thenReturn(
-      ClientResult.Failure.StatusCode(HttpMethod.GET, "/case/${referral.crn}/sentence/2", HttpStatusCode.valueOf(400), null),
-    )
-
-    `when`(nDeliusIntegrationApiClient.getSentenceInformation(referral.crn, 3)).thenReturn(
-      ClientResult.Success(HttpStatusCode.valueOf(400), mockSentenceResponse()),
-    )
-
     val result = service.resolveIfEventNumberIsZero(referral)
 
-    assertThat(result).isEqualTo(3)
-    assertThat(referral.eventNumber).isEqualTo(3)
-    verify(referralRepository).save(referral)
-    verify(nDeliusIntegrationApiClient).getSentenceInformation(referral.crn, 1)
-    verify(nDeliusIntegrationApiClient).getSentenceInformation(referral.crn, 2)
+    assertThat(result).isEqualTo(0)
+    assertThat(referral.eventNumber).isEqualTo(0)
+    verify(referralRepository, times(0)).save(referral)
+    verify(nDeliusIntegrationApiClient).getRequirementManagerDetails(referral.crn, referral.eventId!!)
   }
 
-  private fun mockSentenceResponse() = NDeliusSentenceResponseFactory().produce()
+  private fun mockRequirementLicResponse(): NDeliusCaseRequirementOrLicenceConditionResponse {
+    val expectedManager = RequirementOrLicenceConditionManager(
+      staff = RequirementStaff(
+        code = "STAFF001",
+        name = FullName(forename = "Wiremocked-Sarah", surname = "Johnson"),
+      ),
+      team = CodeDescription(code = "TEAM001", description = "(Wiremocked) Community Offender Management Team"),
+      probationDeliveryUnit = NDeliusApiProbationDeliveryUnit(
+        code = "PDU001",
+        description = "(Wiremocked) London PDU",
+      ),
+      officeLocations = listOf(
+        CodeDescription(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
+        CodeDescription(code = "OFF002", description = "(Wiremocked) Victoria Office"),
+      ),
+    )
+
+    return NDeliusCaseRequirementOrLicenceConditionResponse(manager = expectedManager, eventNumber = 3)
+  }
 }

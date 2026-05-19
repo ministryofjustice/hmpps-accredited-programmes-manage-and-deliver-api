@@ -157,7 +157,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         ),
       )
 
-      val requirementResponse = NDeliusCaseRequirementOrLicenceConditionResponse(manager = expectedManager)
+      val requirementResponse =
+        NDeliusCaseRequirementOrLicenceConditionResponse(manager = expectedManager, eventNumber = 1)
       nDeliusApiStubs.stubSuccessfulRequirementManagerResponse("X123456", eventId, requirementResponse)
 
       // When
@@ -209,7 +210,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         ),
       )
 
-      val licenceConditionResponse = NDeliusCaseRequirementOrLicenceConditionResponse(manager = expectedManager)
+      val licenceConditionResponse =
+        NDeliusCaseRequirementOrLicenceConditionResponse(manager = expectedManager, eventNumber = 1)
 
       // Stub requirement endpoint to return 404
       nDeliusApiStubs.stubNotFoundRequirementManagerResponse("X654321", eventId)
