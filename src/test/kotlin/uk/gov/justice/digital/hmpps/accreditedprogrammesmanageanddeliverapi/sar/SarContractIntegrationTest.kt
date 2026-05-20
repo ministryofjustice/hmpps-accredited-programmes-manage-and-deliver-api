@@ -7,22 +7,37 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.test.web.reactive.server.WebTestClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilitySlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.MessageHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionNotesHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralMotivationBackgroundAndNonAssociationsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceNDeliusOutcomeEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.deliveryLocationPreferences.DeliveryLocationPreferenceEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.deliveryLocationPreferences.PreferredDeliveryLocationEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.deliveryLocationPreferences.PreferredDeliveryLocationProbationDeliveryUnitEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.DeliveryLocationPreferenceRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.PreferredDeliveryLocationProbationDeliveryUnitRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.PreferredDeliveryLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralMotivationBackgroundAndNonAssociationsRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
@@ -60,6 +75,24 @@ class SarContractIntegrationTest :
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
+
+  @Autowired
+  private lateinit var referralRepository: ReferralRepository
+
+  @Autowired
+  private lateinit var referralMotivationBackgroundAndNonAssociationsRepository: ReferralMotivationBackgroundAndNonAssociationsRepository
+
+  @Autowired
+  private lateinit var deliveryLocationPreferenceRepository: DeliveryLocationPreferenceRepository
+
+  @Autowired
+  private lateinit var preferredDeliveryLocationRepository: PreferredDeliveryLocationRepository
+
+  @Autowired
+  private lateinit var preferredDeliveryLocationProbationDeliveryUnitRepository: PreferredDeliveryLocationProbationDeliveryUnitRepository
+
+  @Autowired
+  private lateinit var availabilityRepository: AvailabilityRepository
 
   @Autowired
   private lateinit var dataSource: DataSource
@@ -131,6 +164,64 @@ class SarContractIntegrationTest :
     )
 
     val referral = referrals[0]
+    referral.referralCohortHistories.add(
+      ReferralCohortHistoryFactory()
+        .withReferral(referral)
+        .withCohort(OffenceCohort.GENERAL_OFFENCE)
+        .withCreatedBy("AUTH_USER")
+        .produce(),
+    )
+    referralRepository.saveAndFlush(referral)
+
+    val motivationBackgroundAndNonAssociation = ReferralMotivationBackgroundAndNonAssociationsFactory()
+      .withReferral(referral)
+      .withMaintainsInnocence(false)
+      .withMotivations("Motivation details for SAR")
+      .withNonAssociations("Non association details for SAR")
+      .withOtherConsents("Other considerations for SAR")
+      .withCreatedBy("AUTH_USER")
+      .withLastUpdatedBy("AUTH_USER")
+      .withLastUpdatedAt(fixedNow)
+      .produce()
+    referralMotivationBackgroundAndNonAssociationsRepository.saveAndFlush(motivationBackgroundAndNonAssociation)
+
+    val preferredPdu = preferredDeliveryLocationProbationDeliveryUnitRepository.saveAndFlush(
+      PreferredDeliveryLocationProbationDeliveryUnitEntityFactory()
+        .withDeliusCode("PDU001")
+        .withDeliusDescription("Test PDU 1")
+        .produce(),
+    )
+    val preferredDeliveryLocation = preferredDeliveryLocationRepository.saveAndFlush(
+      PreferredDeliveryLocationEntityFactory()
+        .withPreferredDeliveryLocationProbationDeliveryUnit(preferredPdu)
+        .withDeliusCode("DLC001")
+        .withDeliusDescription("Test Delivery Location")
+        .produce(),
+    )
+    val deliveryLocationPreference = DeliveryLocationPreferenceEntityFactory(referral, preferredPdu)
+      .withCreatedBy("AUTH_USER")
+      .withCreatedAt(fixedNow)
+      .withLastUpdatedAt(fixedNow)
+      .withLocationsCannotAttendText("Cannot attend at weekends")
+      .withPreferredDeliveryLocations(mutableSetOf(preferredDeliveryLocation))
+      .produce()
+    deliveryLocationPreferenceRepository.saveAndFlush(deliveryLocationPreference)
+
+    val availability = AvailabilityEntity(
+      referral = referral,
+      startDate = LocalDate.of(2026, 6, 1),
+      endDate = LocalDate.of(2026, 8, 31),
+      otherDetails = "Available weekdays only",
+      lastModifiedBy = "AUTH_USER",
+      lastModifiedAt = fixedNow,
+    )
+    availability.slots.addAll(
+      listOf(
+        AvailabilitySlotEntity(dayOfWeek = DayOfWeek.MONDAY, slotName = SlotName.DAYTIME, availability = availability),
+      ),
+    )
+    availabilityRepository.saveAndFlush(availability)
+
     val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
     referralService.updateStatus(referral, status.id, createdBy = "AUTH_USER")
 
