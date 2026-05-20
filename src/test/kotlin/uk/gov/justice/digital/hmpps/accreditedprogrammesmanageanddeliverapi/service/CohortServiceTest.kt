@@ -37,8 +37,7 @@ class CohortServiceTest {
 
   @Test
   fun `should return SEXUAL_OFFENCE when OSP DC score is significant`() {
-    val crn = "TEST123"
-    val pniScore = createBasePniScore("HIGH", "NOT_APPLICABLE", 0, 0, 0)
+    val pniScore = createBasePniScore("High", "Not Applicable", 0, 0, 0)
 
     val result = cohortService.determineOffenceCohort(pniScore)
     assertThat(result).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
@@ -46,8 +45,7 @@ class CohortServiceTest {
 
   @Test
   fun `should return SEXUAL_OFFENCE when OSP IIC score is significant`() {
-    val crn = "TEST123"
-    val pniScore = createBasePniScore("NOT_APPLICABLE", "MEDIUM", 0, 0, 0)
+    val pniScore = createBasePniScore("Not Applicable", "Medium", 0, 0, 0)
 
     val result = cohortService.determineOffenceCohort(pniScore)
     assertThat(result).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
@@ -55,8 +53,7 @@ class CohortServiceTest {
 
   @Test
   fun `should return SEXUAL_OFFENCE when both OSP scores are significant`() {
-    val crn = "TEST123"
-    val pniScore = createBasePniScore("MEDIUM", "HIGH", 0, 0, 0)
+    val pniScore = createBasePniScore("Medium", "High", 0, 0, 0)
 
     val result = cohortService.determineOffenceCohort(pniScore)
     assertThat(result).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
@@ -64,8 +61,7 @@ class CohortServiceTest {
 
   @Test
   fun `should return SEXUAL_OFFENCE when sexual preoccupation is above zero`() {
-    val crn = "TEST123"
-    val pniScore = createBasePniScore("NOT_APPLICABLE", "NOT_APPLICABLE", 1, 0, 0)
+    val pniScore = createBasePniScore("Not Applicable", "Not Applicable", 1, 0, 0)
 
     val result = cohortService.determineOffenceCohort(pniScore)
     assertThat(result).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
@@ -73,8 +69,7 @@ class CohortServiceTest {
 
   @Test
   fun `should return SEXUAL_OFFENCE when offence related sexual interests is above zero`() {
-    val crn = "TEST123"
-    val pniScore = createBasePniScore("NOT_APPLICABLE", "NOT_APPLICABLE", 0, 2, 0)
+    val pniScore = createBasePniScore("Not Applicable", "Not Applicable", 0, 2, 0)
 
     val result = cohortService.determineOffenceCohort(pniScore)
     assertThat(result).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
@@ -82,8 +77,7 @@ class CohortServiceTest {
 
   @Test
   fun `should return SEXUAL_OFFENCE when emotional congruence is above zero`() {
-    val crn = "TEST123"
-    val pniScore = createBasePniScore("NOT_APPLICABLE", "NOT_APPLICABLE", 0, 0, 1)
+    val pniScore = createBasePniScore("Not Applicable", "Not Applicable", 0, 0, 1)
 
     val result = cohortService.determineOffenceCohort(pniScore)
     assertThat(result).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
@@ -91,8 +85,7 @@ class CohortServiceTest {
 
   @Test
   fun `should return SEXUAL_OFFENCE when multiple sex domain scores are above zero`() {
-    val crn = "TEST123"
-    val pniScore = createBasePniScore("NOT_APPLICABLE", "NOT_APPLICABLE", 1, 2, 1)
+    val pniScore = createBasePniScore("Not Applicable", "Not Applicable", 1, 2, 1)
 
     val result = cohortService.determineOffenceCohort(pniScore)
     assertThat(result).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
@@ -100,8 +93,7 @@ class CohortServiceTest {
 
   @Test
   fun `should return SEXUAL_OFFENCE when both OSP and sex domain criteria are met`() {
-    val crn = "TEST123"
-    val pniScore = createBasePniScore("MEDIUM", "HIGH", 1, 2, 1)
+    val pniScore = createBasePniScore("Medium", "High", 1, 2, 1)
 
     val result = cohortService.determineOffenceCohort(pniScore)
     assertThat(result).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
@@ -109,8 +101,7 @@ class CohortServiceTest {
 
   @Test
   fun `should return GENERAL_OFFENCE when all scores are not significant`() {
-    val crn = "TEST123"
-    val pniScore = createBasePniScore("NOT_APPLICABLE", "NOT_APPLICABLE", 0, 0, 0)
+    val pniScore = createBasePniScore("Not Applicable", "Not Applicable", 0, 0, 0)
 
     val result = cohortService.determineOffenceCohort(pniScore)
     assertThat(result).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
@@ -118,7 +109,6 @@ class CohortServiceTest {
 
   @Test
   fun `should return GENERAL_OFFENCE when OSP scores are null`() {
-    val crn = "TEST123"
     val pniScore = createBasePniScore(null, null, 0, 0, 0)
 
     val result = cohortService.determineOffenceCohort(pniScore)
@@ -127,8 +117,7 @@ class CohortServiceTest {
 
   @Test
   fun `should return GENERAL_OFFENCE when sex domain scores are null`() {
-    val crn = "TEST123"
-    val pniScore = createBasePniScore("NOT_APPLICABLE", "NOT_APPLICABLE", null, null, null)
+    val pniScore = createBasePniScore("Not Applicable", "Not Applicable", null, null, null)
 
     val result = cohortService.determineOffenceCohort(pniScore)
     assertThat(result).isEqualTo(OffenceCohort.GENERAL_OFFENCE)

@@ -67,7 +67,7 @@ class CohortService(
     return listOfNotNull(ospDc, ospIic).any { isSignificantRisk(it) }
   }
 
-  private fun isSignificantRisk(riskLevel: String): Boolean = riskLevel != RiskScoreLevel.NOT_APPLICABLE.toString()
+  private fun isSignificantRisk(riskLevel: String): Boolean = riskLevel != RiskScoreLevel.NOT_APPLICABLE.type
 
   private fun hasSignificantSexDomainScore(pniScore: PniScore): Boolean = with(pniScore.domainScores.sexDomainScore.individualSexScores) {
     listOfNotNull(sexualPreOccupation, offenceRelatedSexualInterests, emotionalCongruence)
