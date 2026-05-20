@@ -12,4 +12,7 @@ interface ReferralReportingLocationRepository : JpaRepository<ReferralReportingL
 
   @Query("SELECT DISTINCT r.pduName, r.reportingTeam FROM ReferralReportingLocationEntity r")
   fun getPdusAndReportingTeams(): List<PduReportingLocation>
+
+  @Query("SELECT DISTINCT r.pduName, r.reportingTeam FROM ReferralReportingLocationEntity r WHERE r.regionName = :regionName")
+  fun getPdusAndReportingTeamsByRegion(regionName: String): List<PduReportingLocation>
 }

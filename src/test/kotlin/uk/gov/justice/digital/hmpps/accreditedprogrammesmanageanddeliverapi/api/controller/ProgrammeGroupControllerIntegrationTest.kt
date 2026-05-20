@@ -171,12 +171,12 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     referrals = testReferralHelper.createReferrals(
       referralConfigs =
       listOf(
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A"),
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A"),
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team C"),
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 2", reportingTeam = "Team B"),
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 2", reportingTeam = "Team C"),
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 3", reportingTeam = "Team B"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A", regionName = "WIREMOCKED REGION"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A", regionName = "WIREMOCKED REGION"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team C", regionName = "WIREMOCKED REGION"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 2", reportingTeam = "Team B", regionName = "WIREMOCKED REGION"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 2", reportingTeam = "Team C", regionName = "WIREMOCKED REGION"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 3", reportingTeam = "Team B", regionName = "WIREMOCKED REGION"),
       ),
     )
     // Update all referrals to 'Awaiting Allocation status'
@@ -536,6 +536,91 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
+    }
+
+    @Test
+    fun `getGroupAllocations WAITLIST only returns referrals from the user's own region`() {
+      // Given
+      // The beforeEach stubs AUTH_ADM user as belonging to "WIREMOCKED REGION"
+      stubAuthTokenEndpoint()
+
+      // Create referrals in the user's own region (WIREMOCKED REGION)
+      val userRegionReferrals = testReferralHelper.createReferrals(
+        referralConfigs = listOf(
+          TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A", regionName = "WIREMOCKED REGION"),
+          TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A", regionName = "WIREMOCKED REGION"),
+        ),
+      )
+
+      // Create referrals in a different region — these must also be "Awaiting allocation"
+      // so the test proves the region filter is doing the work, not just a missing status
+      val otherRegionReferrals = testReferralHelper.createReferrals(
+        referralConfigs = listOf(
+          TestReferralHelper.ReferralConfig(reportingPdu = "GM PDU 1", reportingTeam = "GM Team A", regionName = "Greater Manchester"),
+          TestReferralHelper.ReferralConfig(reportingPdu = "GM PDU 1", reportingTeam = "GM Team A", regionName = "Greater Manchester"),
+        ),
+      )
+
+      // Set ALL referrals to "Awaiting allocation" — both regions
+      val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+      (userRegionReferrals + otherRegionReferrals).forEach {
+        referralService.updateStatus(it, status.id, createdBy = "AUTH_USER")
+      }
+
+      val group = testGroupHelper.createGroup(groupCode = "TEST_REGION_01")
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/group/${group.id}/WAITLIST?page=0&size=10",
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
+      )
+
+      // Then — only the 2 user-region referrals are returned, not the 2 Greater Manchester ones
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(2)
+      assertThat(response.pagedGroupData.content.map { it.crn })
+        .containsExactlyInAnyOrderElementsOf(userRegionReferrals.map { it.crn })
+    }
+
+    @Test
+    fun `getGroupAllocations WAITLIST filters only show PDUs from the user's own region`() {
+      // Given
+      // The beforeEach stubs AUTH_ADM user as belonging to "WIREMOCKED REGION"
+      stubAuthTokenEndpoint()
+
+      // Create referrals in the user's own region
+      val userRegionReferral = testReferralHelper.createReferral(
+        reportingPdu = "East Midlands PDU",
+        reportingTeam = "EM Team",
+        regionName = "WIREMOCKED REGION",
+      )
+
+      // Create referrals in a different region — also set to Awaiting allocation
+      // so they would appear in the dropdown if filtering is broken
+      val otherRegionReferral = testReferralHelper.createReferral(
+        reportingPdu = "Greater Manchester PDU",
+        reportingTeam = "GM Team",
+        regionName = "Greater Manchester",
+      )
+
+      val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+      listOf(userRegionReferral, otherRegionReferral).forEach {
+        referralService.updateStatus(it, status.id, createdBy = "AUTH_USER")
+      }
+
+      val group = testGroupHelper.createGroup(groupCode = "TEST_REGION_02")
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/group/${group.id}/WAITLIST?page=0&size=10",
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
+      )
+
+      // Then — filter dropdown only contains PDUs from the user's region
+      val pduNames = response.filters.locationFilterValues.map { it.pduName }
+      assertThat(pduNames).contains("East Midlands PDU")
+      assertThat(pduNames).doesNotContain("Greater Manchester PDU")
     }
   }
 
