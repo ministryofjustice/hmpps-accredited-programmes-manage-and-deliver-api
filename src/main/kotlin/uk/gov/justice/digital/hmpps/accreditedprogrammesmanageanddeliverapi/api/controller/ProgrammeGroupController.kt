@@ -146,6 +146,8 @@ class ProgrammeGroupController(
     // for an explanation of the flow of data and expected behaviour.
     val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
 
+    val username = authenticationUtils.getUsername()
+
     val programmeDetails = programmeGroupService.getGroupWaitlistDataByCriteria(
       pageable,
       selectedTab,
@@ -155,6 +157,7 @@ class ProgrammeGroupController(
       nameOrCRN,
       pdu,
       reportingTeams,
+      username,
     )
 
     return ResponseEntity.ok(programmeDetails)
