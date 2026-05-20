@@ -180,7 +180,17 @@
       {{#attendances}}
       <tr>
         <td>{{ optionalValue outcomeType.outcomeTypeCode }}</td>
-        <td>{{ convertBoolean legitimateAbsence }}</td>
+        <td>
+          {{#if (eq legitimateAbsence "null")}}
+            No Data Held
+          {{else}}
+            {{#if (eq legitimateAbsence "")}}
+              No Data Held
+            {{else}}
+              {{ convertBoolean legitimateAbsence }}
+            {{/if}}
+          {{/if}}
+        </td>
         <td>{{ optionalValue recordedByFacilitator.personName }}</td>
         <td>{{ formatDate recordedAt }}</td>
         <td>{{ getUserLastName createdBy }}</td>
@@ -221,24 +231,20 @@
 
   <h3>Sessions Scheduled</h3>
   {{#attendees.0}}
-  <table class="data-table">
+  {{#attendees}}
+  <h4>Session {{ optionalValue (getIndexPlusOne @index) }}</h4>
+  <table class="summary-list">
+    <tr><td>Module</td><td>{{ optionalValue session.module.name }}</td></tr>
+    <tr><td>Session</td><td>{{ optionalValue session.moduleSessionTemplate.name }}</td></tr>
+    <tr><td>Session Number</td><td>{{ optionalValue session.moduleSessionTemplate.sessionNumber }}</td></tr>
+    <tr><td>Type</td><td>{{ optionalValue session.moduleSessionTemplate.sessionType }}</td></tr>
+    <tr><td>Pathway</td><td>{{ optionalValue session.moduleSessionTemplate.pathway }}</td></tr>
+    <tr><td>Duration (mins)</td><td>{{ optionalValue session.moduleSessionTemplate.durationMinutes }}</td></tr>
+    <tr><td>Starts At</td><td>{{ formatDate session.startsAt }}</td></tr>
+    <tr><td>Ends At</td><td>{{ formatDate session.endsAt }}</td></tr>
+    <tr><td>Location</td><td>{{ optionalValue session.locationName }}</td></tr>
     <tr>
-      <td class="data-column-15">Module</td>
-      <td class="data-column-15">Session</td>
-      <td class="data-column-10">Type</td>
-      <td class="data-column-15">Starts At</td>
-      <td class="data-column-15">Ends At</td>
-      <td class="data-column-15">Location</td>
-      <td class="data-column-15">Facilitators</td>
-    </tr>
-    {{#attendees}}
-    <tr>
-      <td>{{ optionalValue session.module.name }}</td>
-      <td>{{ optionalValue session.moduleSessionTemplate.name }}</td>
-      <td>{{ optionalValue session.moduleSessionTemplate.sessionType }}</td>
-      <td>{{ formatDate session.startsAt }}</td>
-      <td>{{ formatDate session.endsAt }}</td>
-      <td>{{ optionalValue session.locationName }}</td>
+      <td>Facilitators</td>
       <td>
         {{#session.sessionFacilitators}}
         {{ optionalValue facilitator.personName }}<br/>
@@ -246,178 +252,8 @@
         {{^session.sessionFacilitators}}No Data Held{{/session.sessionFacilitators}}
       </td>
     </tr>
-    {{/attendees}}
   </table>
-  {{/attendees.0}}
-  {{^attendees.0}}
-  <p>No Data Held</p>
-  {{/attendees.0}}
-
-  <h3>Status History</h3>
-  {{#statusHistories.0}}
-  <table class="data-table">
-    <tr>
-      <td class="data-column-25">Status</td>
-      <td class="data-column-20">Created By</td>
-      <td class="data-column-20">Created At</td>
-      <td class="data-column-20">Start Date</td>
-      <td class="data-column-15">Additional Details</td>
-    </tr>
-    {{#statusHistories}}
-    <tr>
-      <td>{{ optionalValue referralStatusDescription.description }}</td>
-      <td>{{ getUserLastName createdBy }}</td>
-      <td>{{ formatDate createdAt }}</td>
-      <td>{{ formatDate startDate }}</td>
-      <td>{{ optionalValue additionalDetails }}</td>
-    </tr>
-    {{/statusHistories}}
-  </table>
-  {{/statusHistories.0}}
-  {{^statusHistories.0}}
-  <p>No Data Held</p>
-  {{/statusHistories.0}}
-
-  <h3>LDC History</h3>
-  {{#referralLdcHistories.0}}
-  <table class="data-table">
-    <tr>
-      <td class="data-column-35">Has LDC</td>
-      <td class="data-column-35">Created By</td>
-      <td class="data-column-30">Created At</td>
-    </tr>
-    {{#referralLdcHistories}}
-    <tr>
-      <td>{{ convertBoolean hasLdc }}</td>
-      <td>{{ getUserLastName createdBy }}</td>
-      <td>{{ formatDate createdAt }}</td>
-    </tr>
-    {{/referralLdcHistories}}
-  </table>
-  {{/referralLdcHistories.0}}
-  {{^referralLdcHistories.0}}
-  <p>No Data Held</p>
-  {{/referralLdcHistories.0}}
-
-  <h3>Cohort History</h3>
-  {{#referralCohortHistories.0}}
-  <table class="data-table">
-    <tr>
-      <td class="data-column-40">Cohort</td>
-      <td class="data-column-30">Created By</td>
-      <td class="data-column-30">Created At</td>
-    </tr>
-    {{#referralCohortHistories}}
-    <tr>
-      <td>{{ optionalValue cohort }}</td>
-      <td>{{ getUserLastName createdBy }}</td>
-      <td>{{ formatDate createdAt }}</td>
-    </tr>
-    {{/referralCohortHistories}}
-  </table>
-  {{/referralCohortHistories.0}}
-  {{^referralCohortHistories.0}}
-  <p>No Data Held</p>
-  {{/referralCohortHistories.0}}
-
-  <h3>Programme Group Memberships</h3>
-  {{#programmeGroupMemberships.0}}
-  {{#programmeGroupMemberships}}
-  <div class="group-membership">
-    <h4>Group Allocation {{ optionalValue (getIndexPlusOne @index) }}</h4>
-    <table class="summary-list">
-      <tr><td>Created By</td><td>{{ getUserLastName createdByUsername }}</td></tr>
-      <tr><td>Created At</td><td>{{ formatDate createdAt }}</td></tr>
-      {{#deletedByUsername}}
-      <tr><td>Removed By</td><td>{{ getUserLastName deletedByUsername }}</td></tr>
-      {{/deletedByUsername}}
-      {{#programmeGroup.accreditedProgrammeTemplate}}
-      <tr><td>Programme</td><td>{{ optionalValue name }}</td></tr>
-      {{/programmeGroup.accreditedProgrammeTemplate}}
-    </table>
-
-    <h4>Session Attendance</h4>
-    {{#attendances.0}}
-    <table class="data-table">
-      <tr>
-        <td class="data-column-20">Outcome</td>
-        <td class="data-column-15">Legitimate Absence</td>
-        <td class="data-column-20">Recorded By</td>
-        <td class="data-column-20">Recorded At</td>
-        <td class="data-column-15">Created By</td>
-        <td class="data-column-10">Created At</td>
-      </tr>
-      {{#attendances}}
-      <tr>
-        <td>{{ optionalValue outcomeType.outcomeTypeCode }}</td>
-        <td>{{ convertBoolean legitimateAbsence }}</td>
-        <td>{{ optionalValue recordedByFacilitator.personName }}</td>
-        <td>{{ formatDate recordedAt }}</td>
-        <td>{{ getUserLastName createdBy }}</td>
-        <td>{{ formatDate createdAt }}</td>
-      </tr>
-      {{/attendances}}
-    </table>
-
-    {{#attendances}}
-    {{#noteHistory.0}}
-    <h5>Session Notes</h5>
-    <table class="data-table">
-      <tr>
-        <td class="data-column-60">Notes</td>
-        <td class="data-column-20">Created By</td>
-        <td class="data-column-20">Created At</td>
-      </tr>
-      {{#noteHistory}}
-      <tr>
-        <td>{{ optionalValue note }}</td>
-        <td>{{ getUserLastName createdBy }}</td>
-        <td>{{ formatDate createdAt }}</td>
-      </tr>
-      {{/noteHistory}}
-    </table>
-    {{/noteHistory.0}}
-    {{/attendances}}
-    {{/attendances.0}}
-    {{^attendances.0}}
-    <p>No Data Held</p>
-    {{/attendances.0}}
-  </div>
-  {{/programmeGroupMemberships}}
-  {{/programmeGroupMemberships.0}}
-  {{^programmeGroupMemberships.0}}
-  <p>No Data Held</p>
-  {{/programmeGroupMemberships.0}}
-
-  <h3>Sessions Scheduled</h3>
-  {{#attendees.0}}
-  <table class="data-table">
-    <tr>
-      <td class="data-column-15">Module</td>
-      <td class="data-column-15">Session</td>
-      <td class="data-column-10">Type</td>
-      <td class="data-column-15">Starts At</td>
-      <td class="data-column-15">Ends At</td>
-      <td class="data-column-15">Location</td>
-      <td class="data-column-15">Facilitators</td>
-    </tr>
-    {{#attendees}}
-    <tr>
-      <td>{{ optionalValue session.module.name }}</td>
-      <td>{{ optionalValue session.moduleSessionTemplate.name }}</td>
-      <td>{{ optionalValue session.moduleSessionTemplate.sessionType }}</td>
-      <td>{{ formatDate session.startsAt }}</td>
-      <td>{{ formatDate session.endsAt }}</td>
-      <td>{{ optionalValue session.locationName }}</td>
-      <td>
-        {{#session.sessionFacilitators}}
-        {{ optionalValue facilitator.personName }}<br/>
-        {{/session.sessionFacilitators}}
-        {{^session.sessionFacilitators}}No Data Held{{/session.sessionFacilitators}}
-      </td>
-    </tr>
-    {{/attendees}}
-  </table>
+  {{/attendees}}
   {{/attendees.0}}
   {{^attendees.0}}
   <p>No Data Held</p>
