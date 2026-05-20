@@ -387,6 +387,47 @@ If `regionName` is not a field, the query in Step 4 will need to join via `Refer
 
 ---
 
+## UI Investigation (for full picture)
+
+Investigated in the UI repo (`hmpps-accredited-programmes-manage-and-deliver`) before tracing to this API repo.
+
+### Data flow (UI → API)
+
+```
+groupOverviewController.ts
+  └─ showGroupOverviewWaitlist() / showGroupOverviewAllocated()
+       └─ accreditedProgrammesManageAndDeliverService.getGroupWaitlistMembers()
+       └─ accreditedProgrammesManageAndDeliverService.getGroupAllocatedMembers()
+            └─ RestClient.get()
+                 └─ GET /bff/group/{groupId}/WAITLIST
+                 └─ GET /bff/group/{groupId}/ALLOCATED
+```
+
+**Relevant UI files:**
+- `server/groupOverview/groupOverviewController.ts` — lines 78–129 (waitlist), 22–76 (allocations)
+- `server/services/accreditedProgrammesManageAndDeliverService.ts` — lines 176–203
+- `server/data/restClient.ts` — line 66 (token type)
+
+### Key finding — system client token, not user token
+
+The UI uses a **system client token** for API calls:
+
+```typescript
+// accreditedProgrammesManageAndDeliverService.ts:99-107
+const hmppsAuthClient = this.hmppsAuthClientBuilder()
+const systemToken = await hmppsAuthClient.getSystemClientToken(username)
+```
+
+The `username` is passed as context only — the system token does **not** carry the user's regional claims from hmpps-auth/Delius. This means the API **cannot** read region from the token header; it must look up the user's region from their username server-side (which is exactly what `userService.getUserRegions(username)` does).
+
+### UI verdict — no code changes needed
+
+The UI passes no regional filter to the API at all — this is correct. Regional access control is entirely the API's responsibility. The UI renders exactly what the API returns.
+
+There is no client-side regional filtering anywhere in the UI for these endpoints, and there should not be.
+
+---
+
 ## What is NOT causing this bug
 
 - **The UI** — confirmed clear. No UI fix needed.
