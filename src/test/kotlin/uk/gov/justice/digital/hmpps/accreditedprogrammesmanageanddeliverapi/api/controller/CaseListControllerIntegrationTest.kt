@@ -15,7 +15,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.ReferralCaseListItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
@@ -204,6 +203,23 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .produce()
       val cohortHistory7 = ReferralCohortHistoryFactory().withReferral(referral7).produce()
 
+      val referral8 = ReferralEntityFactory()
+        .withPersonName("Other Region Person")
+        .withCrn("CRN-888888")
+        .withInterventionName("Horizon")
+        .produce()
+      val referralReportingLocation8 = ReferralReportingLocationFactory(referral8)
+        .withPduName("OTHER_REGION_PDU")
+        .withReportingTeam("otherReportingTeam")
+        .withRegionName("OTHER REGION")
+        .produce()
+      val statusHistory8 = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .withCreatedBy("USER_ID_12345")
+        .withStartDate(LocalDateTime.now())
+        .produce(referral8, awaitingAssessmentStatusDescription)
+      val cohortHistory8 = ReferralCohortHistoryFactory().withReferral(referral8).produce()
+
       referral1.referralReportingLocation = referralReportingLocation1
       referral2.referralReportingLocation = referralReportingLocation2
       referral3.referralReportingLocation = referralReportingLocation3
@@ -211,6 +227,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       referral5.referralReportingLocation = referralReportingLocation5
       referral6.referralReportingLocation = referralReportingLocation6
       referral7.referralReportingLocation = referralReportingLocation7
+      referral8.referralReportingLocation = referralReportingLocation8
 
       referral1.referralCohortHistories = mutableSetOf(cohortHistory1)
       referral2.referralCohortHistories = mutableSetOf(cohortHistory2)
@@ -219,6 +236,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       referral5.referralCohortHistories = mutableSetOf(cohortHistory5)
       referral6.referralCohortHistories = mutableSetOf(cohortHistory6)
       referral7.referralCohortHistories = mutableSetOf(cohortHistory7)
+      referral8.referralCohortHistories = mutableSetOf(cohortHistory8)
 
       testDataGenerator.createReferralWithFields(
         referral1,
@@ -248,9 +266,13 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         referral7,
         listOf(statusHistory7, statusHistory7, cohortHistory7, referralReportingLocation7),
       )
+      testDataGenerator.createReferralWithFields(
+        referral8,
+        listOf(statusHistory8, statusHistory8, cohortHistory8, referralReportingLocation8),
+      )
 
       val referralCaseListItemViews = referralCaseListItemRepository.findAll()
-      assertThat(referralCaseListItemViews).hasSize(7)
+      assertThat(referralCaseListItemViews).hasSize(8)
       assertThat(referralCaseListItemViews.map { it.crn })
         .containsExactlyInAnyOrder(
           "X7182552",
@@ -260,6 +282,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
           "CRN-66666",
           "CRN-555555",
           "CRN-111111",
+          "CRN-888888",
         )
     }
 
@@ -291,7 +314,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.otherTabTotal).isEqualTo(1)
       assertThat(response.filters).isNotNull
       assertThat(response.filters.statusFilterValues.open).contains("Breach", "On programme")
-      assertThat(response.filters.locationFilterValues.map { it.pduName }).contains("PDU1", "PDU2")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder("PDU1", "PDU2", "UNKNOWN_PDU_NAME")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).doesNotContain("OTHER_REGION_PDU")
       assertThat(response.filters.cohort).containsAll(ProgrammeGroupCohort.entries.map { it.label })
     }
 
@@ -325,7 +349,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.otherTabTotal).isEqualTo(1)
       assertThat(response.filters).isNotNull
       assertThat(response.filters.statusFilterValues.open).contains("Breach", "On programme")
-      assertThat(response.filters.locationFilterValues.map { it.pduName }).contains("PDU1", "PDU2")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder("PDU1", "PDU2", "UNKNOWN_PDU_NAME")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).doesNotContain("OTHER_REGION_PDU")
       assertThat(response.filters.cohort).containsAll(ProgrammeGroupCohort.entries.map { it.label })
     }
 
@@ -663,84 +688,39 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.otherTabTotal).isEqualTo(1)
     }
 
-    @Nested
-    @DisplayName("Get Case List Filter Data")
-    inner class GetCaseListFilterData {
-      @Test
-      fun `getCaseListFilterData should return status and location filters for OPEN cases`() {
-        // When
-        val response = performRequestAndExpectOk(
-          HttpMethod.GET,
-          "/bff/caselist/filters",
-          object : ParameterizedTypeReference<CaseListFilterValues>() {},
-        )
-
-        // Then
-        assertThat(response).isNotNull
-        assertThat(response).hasFieldOrProperty("statusFilterValues")
-        assertThat(response).hasFieldOrProperty("locationFilterValues")
-        val (statusFilters, locationFilters) = response
-
-        assertThat(statusFilters.open).hasSize(10)
-        assertThat(statusFilters.closed).hasSize(2)
-        assertThat(locationFilters).hasSize(3)
-        assertThat(
-          locationFilters.find { it.pduName == "PDU1" }?.reportingTeams?.containsAll(
-            mutableListOf(
-              "reportingTeam1",
-              "reportingTeam2",
+    @Test
+    fun `getCaseListItems for OPEN referrals returns only locations for the authenticated user region`() {
+      // Given
+      val otherUsername = "OTHER_USER"
+      nDeliusApiStubs.stubUserTeamsResponse(
+        otherUsername,
+        NDeliusUserTeams(
+          teams = listOf(
+            NDeliusUserTeam(
+              code = "TEAM_OTHER",
+              description = "Other Team",
+              pdu = CodeDescription("PDU_OTHER", "Other PDU"),
+              region = CodeDescription("REGION_OTHER", "OTHER REGION"),
             ),
           ),
-        )
-        // Check duplicate has been removed
-        assertThat(locationFilters.find { it.pduName == "PDU1" }?.reportingTeams).hasSize(2)
-        assertThat(
-          locationFilters.find { it.pduName == "PDU2" }?.reportingTeams?.containsAll(
-            mutableListOf(
-              "reportingTeam1",
-              "reportingTeam2",
-            ),
-          ),
-        )
-      }
+        ),
+      )
 
-      @Test
-      fun `getCaseListFilterData should return status and locations filters for CLOSED cases`() {
-        // When
-        val response = performRequestAndExpectOk(
-          HttpMethod.GET,
-          "/bff/caselist/filters",
-          object : ParameterizedTypeReference<CaseListFilterValues>() {},
-        )
+      // When
+      val response = webTestClient
+        .method(HttpMethod.GET)
+        .uri("/pages/caselist/open")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(username = otherUsername))
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus().isOk
+        .expectBody(object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {})
+        .returnResult().responseBody!!
 
-        // Then
-        assertThat(response).isNotNull
-        assertThat(response).hasFieldOrProperty("statusFilterValues")
-        assertThat(response).hasFieldOrProperty("locationFilterValues")
-        val (statusFilters, locationFilters) = response
-
-        assertThat(statusFilters.open).hasSize(10)
-        assertThat(statusFilters.closed).hasSize(2)
-        assertThat(locationFilters).hasSize(3)
-        assertThat(
-          locationFilters.find { it.pduName == "PDU1" }?.reportingTeams?.containsAll(
-            mutableListOf(
-              "reportingTeam1",
-              "reportingTeam2",
-            ),
-          ),
-        )
-        // Check duplicate has been removed
-        assertThat(locationFilters.find { it.pduName == "PDU1" }?.reportingTeams).hasSize(2)
-        assertThat(
-          locationFilters.find { it.pduName == "PDU2" }?.reportingTeams?.containsAll(
-            mutableListOf(
-              "reportingTeam1",
-              "reportingTeam2",
-            ),
-          ),
-        )
-      }
+      // Then
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactly("OTHER_REGION_PDU")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).doesNotContain("PDU1", "PDU2", "UNKNOWN_PDU_NAME")
     }
   }
 }
