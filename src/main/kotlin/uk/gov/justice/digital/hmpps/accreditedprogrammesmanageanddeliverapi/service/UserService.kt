@@ -7,6 +7,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
 @Service
@@ -16,6 +17,19 @@ class UserService(
 ) {
 
   val log = LoggerFactory.getLogger(this::class.java)
+
+  fun getFirstUserRegionDescription(username: String): String {
+    val distinctRegionDescriptions = this.getUserRegions(username).map { it.description }.distinct()
+
+    if (distinctRegionDescriptions.isEmpty()) {
+      log.warn("No regions found for user: $username")
+      throw NotFoundException("Cannot find any regions (or teams) for user $username")
+    } else if (distinctRegionDescriptions.size > 1) {
+      log.warn("User $username has more than one region on their account, going to use '${distinctRegionDescriptions.first()}'")
+    }
+
+    return distinctRegionDescriptions.first()
+  }
 
   fun getPersonalDetailsByIdentifier(identifier: String): NDeliusPersonalDetails {
     val userName = authenticationHolder.username ?: "UNKNOWN_USER"
