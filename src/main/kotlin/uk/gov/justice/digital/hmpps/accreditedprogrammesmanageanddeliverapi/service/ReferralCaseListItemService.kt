@@ -42,6 +42,9 @@ class ReferralCaseListItemService(
     val (offenceType, hasLdc) = cohort?.let { ProgrammeGroupCohort.toOffenceTypeAndLdc(it) }
       ?: (null to null)
 
+    val (userRegion) = userService.getUserRegions(username)
+    val userRegionName = userRegion.description
+
     val referralsToReturn = getReferralCaseList(
       pageable = pageable,
       openOrClosed = openOrClosed,
@@ -66,7 +69,7 @@ class ReferralCaseListItemService(
       reportingTeams = reportingTeams,
     ).totalElements
 
-    return CaseListReferrals(referralsToReturn, otherTabCount.toInt(), this.getCaseListFilterData())
+    return CaseListReferrals(referralsToReturn, otherTabCount.toInt(), this.getCaseListFilterData(userRegionName))
   }
 
   private fun getReferralCaseList(
@@ -126,12 +129,12 @@ class ReferralCaseListItemService(
     return PageImpl(caseListReferrals.content, pageable, totalAllowedCount)
   }
 
-  fun getCaseListFilterData(): CaseListFilterValues {
+  fun getCaseListFilterData(userRegionName: String): CaseListFilterValues {
     val allStatuses = referralStatusService.getAllStatuses()
 
     val (closed, open) = allStatuses.partition { it.isClosed }
 
-    val referralReportingLocations = referralReportingLocationRepository.getPdusAndReportingTeams()
+    val referralReportingLocations = referralReportingLocationRepository.getPdusAndReportingTeamsByRegion(userRegionName)
     val pdusWithReportingTeams = referralReportingLocations.groupBy { it.pduName }
       .map { (pduName, reportingTeams) ->
         LocationFilterValues(pduName = pduName, reportingTeams = reportingTeams.map { it.reportingTeam }.distinct())
