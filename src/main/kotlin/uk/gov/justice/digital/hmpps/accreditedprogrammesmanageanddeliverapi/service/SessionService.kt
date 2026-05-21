@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -43,6 +42,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.ATTC
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.RECORD_ATTENDANCE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
@@ -58,23 +58,14 @@ import java.util.UUID
 @Service
 @Transactional
 class SessionService(
-  @Autowired
   private val sessionRepository: SessionRepository,
-  @Autowired
   private val scheduleService: ScheduleService,
-  @Autowired
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
-  @Autowired
   private val facilitatorService: FacilitatorService,
-  @Autowired
   private val referralRepository: ReferralRepository,
-  @Autowired
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
-  @Autowired
   private val sessionAttendanceOutcomeTypeRepository: SessionAttendanceOutcomeTypeRepository,
-  @Autowired
   private val sessionNameFormatter: SessionNameFormatter,
-  @Autowired
   private val referralStatusService: ReferralStatusService,
 ) {
 
@@ -365,6 +356,11 @@ class SessionService(
     val sessionAttendanceEntities = getSessionAttendanceFromAttendees(attendees, session)
     session.attendances.addAll(sessionAttendanceEntities)
     sessionRepository.save(session)
+
+    attendees.firstOrNull()?.let { attendee ->
+      val referral = referralRepository.findByIdOrNull(attendee.referralId)
+      log.info("User activity - activityType: ${RECORD_ATTENDANCE}, regionName: ${referral?.referralReportingLocation?.regionName}, deliveryUnitCode: ${referral?.referralReportingLocation?.pduName}, deliveryLocation: ${referral?.programmeGroupMemberships?.firstOrNull()?.programmeGroup?.deliveryLocationName}")
+    }
 
     if (attendees.isNotEmpty()) {
       val updateAppointmentRequests = attendees.mapNotNull { attendee ->

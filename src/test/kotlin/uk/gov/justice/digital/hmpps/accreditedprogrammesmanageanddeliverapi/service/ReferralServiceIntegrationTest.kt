@@ -803,8 +803,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
       assertThat(savedReferral.personName).isEqualTo(personalDetails.name.getNameAsString())
-      assertThat(savedReferral.referralReportingLocationEntity?.pduName).isEqualTo(personalDetails.probationDeliveryUnit.description)
-      assertThat(savedReferral.referralReportingLocationEntity?.reportingTeam).isEqualTo(personalDetails.team.description)
+      assertThat(savedReferral.referralReportingLocation?.pduName).isEqualTo(personalDetails.probationDeliveryUnit.description)
+      assertThat(savedReferral.referralReportingLocation?.reportingTeam).isEqualTo(personalDetails.team.description)
       assertThat(savedReferral.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
       assertThat(savedReferral.sex).isEqualTo("Male")
       assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2027-11-02"))
@@ -836,8 +836,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
       assertThat(savedReferral.personName).isEqualTo(personalDetails.name.getNameAsString())
-      assertThat(savedReferral.referralReportingLocationEntity?.pduName).isEqualTo(personalDetails.probationDeliveryUnit.description)
-      assertThat(savedReferral.referralReportingLocationEntity?.reportingTeam).isEqualTo(personalDetails.team.description)
+      assertThat(savedReferral.referralReportingLocation?.pduName).isEqualTo(personalDetails.probationDeliveryUnit.description)
+      assertThat(savedReferral.referralReportingLocation?.reportingTeam).isEqualTo(personalDetails.team.description)
       assertThat(savedReferral.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
       assertThat(savedReferral.sex).isEqualTo("Male")
       assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2026-04-26"))
