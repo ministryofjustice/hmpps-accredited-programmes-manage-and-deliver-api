@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 data class NDeliusCaseRequirementOrLicenceConditionResponse(
   val manager: RequirementOrLicenceConditionManager,
   val probationDeliveryUnits: List<NDeliusApiProbationDeliveryUnitWithOfficeLocations> = emptyList(),
+  val eventNumber: Int,
 )
 
 /**

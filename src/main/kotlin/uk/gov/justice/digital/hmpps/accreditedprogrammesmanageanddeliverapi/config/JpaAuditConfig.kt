@@ -13,6 +13,9 @@ import java.util.Optional
 class JpaAuditConfig {
   @Bean
   fun auditorAware() = AuditorAware {
+    val override = AuditorContext.get()
+    if (override != null) return@AuditorAware Optional.of(override)
+
     Optional.ofNullable(
       when (val principal = SecurityContextHolder.getContext().authentication?.principal) {
         is String -> principal
@@ -22,4 +25,12 @@ class JpaAuditConfig {
       },
     )
   }
+}
+
+object AuditorContext {
+  private val auditor = ThreadLocal<String?>()
+
+  fun set(value: String?) = auditor.set(value)
+  fun get(): String? = auditor.get()
+  fun clear() = auditor.remove()
 }

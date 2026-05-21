@@ -84,8 +84,8 @@ class ReferralService(
   suspend fun refreshPersonalDetailsForReferral(referralId: UUID): ReferralDetails? = coroutineScope {
     val referral = referralRepository.findByIdWithMemberships(referralId) ?: return@coroutineScope null
 
-    val hasLdcDeferred = async(Dispatchers.IO) {
-      pniService.getPniResponse(referral.crn)?.hasLdc() ?: false
+    val pniDeferred = async(Dispatchers.IO) {
+      pniService.getPniResponse(referral.crn)
     }
 
     val personalDetailsDeferred = async(Dispatchers.IO) {
@@ -100,10 +100,18 @@ class ReferralService(
       )
     }
 
-    val hasLdc = hasLdcDeferred.await()
+    val pniResponse = pniDeferred.await()
+
+    val hasLdc = pniResponse?.hasLdc() ?: false
+    val cohort =
+      pniResponse?.let { cohortService.determineOffenceCohort(it.toPniScore()) } ?: OffenceCohort.GENERAL_OFFENCE
 
     if (!ldcService.hasOverriddenLdcStatus(referralId)) {
-      ldcService.updateLdcStatusForReferral(referral, UpdateLdc(hasLdc))
+      ldcService.updateLdcStatusForReferral(referral, UpdateLdc(hasLdc), "SYSTEM")
+    }
+
+    if (!cohortService.hasOverriddenCohort(referralId)) {
+      cohortService.updateCohortForReferral(referral, cohort, "SYSTEM")
     }
 
     val personalDetails = personalDetailsDeferred.await()

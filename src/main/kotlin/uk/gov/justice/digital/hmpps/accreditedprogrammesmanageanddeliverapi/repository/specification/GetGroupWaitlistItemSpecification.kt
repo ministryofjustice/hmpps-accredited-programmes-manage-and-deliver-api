@@ -15,6 +15,7 @@ fun getGroupWaitlistItemSpecification(
   nameOrCRN: String?,
   pdu: String?,
   reportingTeams: List<String>?,
+  userRegionName: String,
 ): Specification<GroupWaitlistItemViewEntity> = Specification { root, _, criteriaBuilder ->
   val predicates = mutableListOf<Predicate>()
 
@@ -25,6 +26,7 @@ fun getGroupWaitlistItemSpecification(
   when (selectedTab) {
     GroupPageTab.ALLOCATED -> predicates.add(criteriaBuilder.equal(root.get<UUID>("activeProgrammeGroupId"), groupId))
     GroupPageTab.WAITLIST -> {
+      predicates.add(criteriaBuilder.equal(root.get<String>("regionName"), userRegionName))
       predicates.add(criteriaBuilder.equal(root.get<String>("status"), "Awaiting allocation"))
       predicates.add(criteriaBuilder.isNull(root.get<UUID>("activeProgrammeGroupId")))
       sex?.let {

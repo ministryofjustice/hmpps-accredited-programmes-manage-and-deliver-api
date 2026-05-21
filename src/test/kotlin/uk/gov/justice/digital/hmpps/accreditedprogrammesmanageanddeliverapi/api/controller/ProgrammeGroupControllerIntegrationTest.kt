@@ -171,12 +171,12 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     referrals = testReferralHelper.createReferrals(
       referralConfigs =
       listOf(
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A"),
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A"),
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team C"),
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 2", reportingTeam = "Team B"),
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 2", reportingTeam = "Team C"),
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 3", reportingTeam = "Team B"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A", regionName = "WIREMOCKED REGION"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A", regionName = "WIREMOCKED REGION"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team C", regionName = "WIREMOCKED REGION"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 2", reportingTeam = "Team B", regionName = "WIREMOCKED REGION"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 2", reportingTeam = "Team C", regionName = "WIREMOCKED REGION"),
+        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 3", reportingTeam = "Team B", regionName = "WIREMOCKED REGION"),
       ),
     )
     // Update all referrals to 'Awaiting Allocation status'
@@ -537,6 +537,91 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
     }
+
+    @Test
+    fun `getGroupAllocations WAITLIST only returns referrals from the user's own region`() {
+      // Given
+      // The beforeEach stubs AUTH_ADM user as belonging to "WIREMOCKED REGION"
+      stubAuthTokenEndpoint()
+
+      // Create referrals in the user's own region (WIREMOCKED REGION)
+      val userRegionReferrals = testReferralHelper.createReferrals(
+        referralConfigs = listOf(
+          TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A", regionName = "WIREMOCKED REGION"),
+          TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A", regionName = "WIREMOCKED REGION"),
+        ),
+      )
+
+      // Create referrals in a different region — these must also be "Awaiting allocation"
+      // so the test proves the region filter is doing the work, not just a missing status
+      val otherRegionReferrals = testReferralHelper.createReferrals(
+        referralConfigs = listOf(
+          TestReferralHelper.ReferralConfig(reportingPdu = "GM PDU 1", reportingTeam = "GM Team A", regionName = "Greater Manchester"),
+          TestReferralHelper.ReferralConfig(reportingPdu = "GM PDU 1", reportingTeam = "GM Team A", regionName = "Greater Manchester"),
+        ),
+      )
+
+      // Set ALL referrals to "Awaiting allocation" — both regions
+      val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+      (userRegionReferrals + otherRegionReferrals).forEach {
+        referralService.updateStatus(it, status.id, createdBy = "AUTH_USER")
+      }
+
+      val group = testGroupHelper.createGroup(groupCode = "TEST_REGION_01")
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/group/${group.id}/WAITLIST?page=0&size=10",
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
+      )
+
+      // Then — only the 2 user-region referrals are returned, not the 2 Greater Manchester ones
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(2)
+      assertThat(response.pagedGroupData.content.map { it.crn })
+        .containsExactlyInAnyOrderElementsOf(userRegionReferrals.map { it.crn })
+    }
+
+    @Test
+    fun `getGroupAllocations WAITLIST filters only show PDUs from the user's own region`() {
+      // Given
+      // The beforeEach stubs AUTH_ADM user as belonging to "WIREMOCKED REGION"
+      stubAuthTokenEndpoint()
+
+      // Create referrals in the user's own region
+      val userRegionReferral = testReferralHelper.createReferral(
+        reportingPdu = "East Midlands PDU",
+        reportingTeam = "EM Team",
+        regionName = "WIREMOCKED REGION",
+      )
+
+      // Create referrals in a different region — also set to Awaiting allocation
+      // so they would appear in the dropdown if filtering is broken
+      val otherRegionReferral = testReferralHelper.createReferral(
+        reportingPdu = "Greater Manchester PDU",
+        reportingTeam = "GM Team",
+        regionName = "Greater Manchester",
+      )
+
+      val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+      listOf(userRegionReferral, otherRegionReferral).forEach {
+        referralService.updateStatus(it, status.id, createdBy = "AUTH_USER")
+      }
+
+      val group = testGroupHelper.createGroup(groupCode = "TEST_REGION_02")
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/group/${group.id}/WAITLIST?page=0&size=10",
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
+      )
+
+      // Then — filter dropdown only contains PDUs from the user's region
+      val pduNames = response.filters.locationFilterValues.map { it.pduName }
+      assertThat(pduNames).contains("East Midlands PDU")
+      assertThat(pduNames).doesNotContain("Greater Manchester PDU")
+    }
   }
 
   @Nested
@@ -567,6 +652,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
             session = session,
             groupMembership = membership,
             outcomeType = if (attended) attendedCompliedOutcome else unacceptableAbsenceOutcome,
+            recordedAt = LocalDateTime.now(),
           ),
         )
       }
@@ -607,9 +693,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         groupInOtherRegion,
       ).forEach { testDataGenerator.createGroup(it) }
 
-      val referral1 = testDataGenerator.createReferral(personName = "GROUP-A-S-1-Completed", crn = "X123456")
-      val referral2 = testDataGenerator.createReferral(personName = "GROUP-A-S-1-On-Programme", crn = "X123457")
-      val referral3 = testDataGenerator.createReferral(personName = "GROUP-A-C-1-Completed", crn = "X123458")
+      val referral1 = testDataGenerator.createReferral(personName = "Person1", crn = "X123456")
+      val referral2 = testDataGenerator.createReferral(personName = "Person2", crn = "X123457")
+      val referral3 = testDataGenerator.createReferral(personName = "Person3", crn = "X123458")
 
       val groupMembership1 = testDataGenerator.allocateReferralsToGroup(listOf(referral1), group4).first()
       val groupMembership2 = testDataGenerator.allocateReferralsToGroup(listOf(referral2), group4).first()
@@ -668,7 +754,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         "GROUP-A-NS-2",
         "GROUP-A-NS-3",
         "GROUP-A-S-1",
-        "GROUP-A-C-1",
+        "GROUP-A-S-2",
       )
       // otherTabTotal should be count of completed groups in the region
       assertThat(response.otherTabTotal).isEqualTo(1)
@@ -694,17 +780,16 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       listOf(group1, group2, group3, group4, group5).forEach { testDataGenerator.createGroup(it) }
 
-      val referral1 = testDataGenerator.createReferral(personName = "GROUP-A-S-1-Completed", crn = "X123456")
-      val referral2 = testDataGenerator.createReferral(personName = "GROUP-A-S-1-On-Programme", crn = "X123457")
-      val referral3 = testDataGenerator.createReferral(personName = "GROUP-A-C-1-Completed", crn = "X123458")
+      val referral1 = testDataGenerator.createReferral(personName = "Person 1", crn = "X123456")
+      val referral2 = testDataGenerator.createReferral(personName = "Person 2", crn = "X123457")
+      val referral3 = testDataGenerator.createReferral(personName = "Person 3", crn = "X123458")
 
-      val groupMembership1 = testDataGenerator.allocateReferralsToGroup(listOf(referral1), group3).first()
-      val groupMembership2 = testDataGenerator.allocateReferralsToGroup(listOf(referral2), group3).first()
-      val groupMembership3 = testDataGenerator.allocateReferralsToGroup(listOf(referral3), group5).first()
+      val group3Membership = testDataGenerator.allocateReferralsToGroup(listOf(referral1, referral2), group3).first()
+      val group5Membership = testDataGenerator.allocateReferralsToGroup(listOf(referral3), group5).first()
 
       // Set up PPR attendance
-      setupPostProgrammeReviewForGroup(group5, listOf(groupMembership3), attended = true)
-      setupPostProgrammeReviewForGroup(group3, listOf(groupMembership1, groupMembership2), attended = true)
+      setupPostProgrammeReviewForGroup(group5, listOf(group5Membership), attended = true)
+      setupPostProgrammeReviewForGroup(group3, listOf(group3Membership), attended = true)
 
       val programmeCompleteReferralStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
       val onProgrammeReferralStatus = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
@@ -751,11 +836,72 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.pagedGroupData.totalElements).isEqualTo(1)
 
       val groupCodes = response.pagedGroupData.content.map { it.code }
-      assertThat(groupCodes).containsExactlyInAnyOrder("GROUP-A-S-2")
+      assertThat(groupCodes).containsExactlyInAnyOrder("GROUP-A-C-1")
 
       // otherTabTotal should be count of not-started or in progress groups (4: group1, group2, group3, group4)
       assertThat(response.otherTabTotal).isEqualTo(4)
       assertThat(response.regionName).isEqualTo("WIREMOCKED REGION")
+    }
+
+    @Test
+    fun `should return groups based on appropriate Completed criteria`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val region = "WIREMOCKED REGION"
+
+      // 1. Group with NO referrals - should NOT be complete
+      val groupWithoutReferrals = ProgrammeGroupFactory().withCode("EMPTY-GROUP").withRegionName(region)
+        .withEarliestStartDate(LocalDate.now().minusDays(10)).produce()
+      testDataGenerator.createGroup(groupWithoutReferrals)
+
+      // 2. Group where one referral is NOT complete - should NOT be complete
+      val groupPartialComplete = ProgrammeGroupFactory().withCode("GROUP-PARTIAL").withRegionName(region)
+        .withEarliestStartDate(LocalDate.now().minusDays(10)).produce()
+      testDataGenerator.createGroup(groupPartialComplete)
+      val programmeCompleteReferral = testDataGenerator.createReferral(personName = "Complete", crn = "X000001")
+      val onProgrammeReferral = testDataGenerator.createReferral(personName = "Incomplete", crn = "X000002")
+      val completeGroupMembership = testDataGenerator.allocateReferralsToGroup(listOf(programmeCompleteReferral), groupPartialComplete).first()
+      val incompleteGroupMembership = testDataGenerator.allocateReferralsToGroup(listOf(onProgrammeReferral), groupPartialComplete).first()
+
+      val programmeCompleteStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+      val onProgrammeStatus = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
+
+      testDataGenerator.creatReferralStatusHistory(ReferralStatusHistoryEntityFactory().produce(programmeCompleteReferral, programmeCompleteStatus))
+      testDataGenerator.creatReferralStatusHistory(ReferralStatusHistoryEntityFactory().produce(onProgrammeReferral, onProgrammeStatus))
+
+      // Setup PPR for both
+      setupPostProgrammeReviewForGroup(groupPartialComplete, listOf(completeGroupMembership, incompleteGroupMembership), attended = true)
+
+      // 3. Group where all referrals complete but one DID NOT attend Post Programme Review (PPR) - should NOT be complete
+      val groupNoPPR = ProgrammeGroupFactory().withCode("GROUP-NO-PPR").withRegionName(region)
+        .withEarliestStartDate(LocalDate.now().minusDays(10)).produce()
+      testDataGenerator.createGroup(groupNoPPR)
+      val referralWithoutPPR = testDataGenerator.createReferral(personName = "NoPPR", crn = "X000003")
+      val groupMembershipList = testDataGenerator.allocateReferralsToGroup(listOf(referralWithoutPPR), groupNoPPR).first()
+      testDataGenerator.creatReferralStatusHistory(ReferralStatusHistoryEntityFactory().produce(referralWithoutPPR, programmeCompleteStatus))
+      setupPostProgrammeReviewForGroup(groupNoPPR, listOf(groupMembershipList), attended = false)
+
+      // 4. Group that is actually complete
+      val groupComplete = ProgrammeGroupFactory().withCode("GROUP-COMPLETE").withRegionName(region)
+        .withEarliestStartDate(LocalDate.now().minusDays(10)).produce()
+      testDataGenerator.createGroup(groupComplete)
+      val completeReferral = testDataGenerator.createReferral(personName = "John Doe", crn = "X000004")
+      val completedGroupMembership = testDataGenerator.allocateReferralsToGroup(listOf(completeReferral), groupComplete).first()
+      testDataGenerator.creatReferralStatusHistory(ReferralStatusHistoryEntityFactory().produce(completeReferral, programmeCompleteStatus))
+      setupPostProgrammeReviewForGroup(groupComplete, listOf(completedGroupMembership), attended = true)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/COMPLETE?page=0&size=10",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+
+      // Then
+      val groupCodes = response.pagedGroupData.content.map { it.code }
+      assertThat(groupCodes).containsExactly("GROUP-COMPLETE")
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(1)
+      assertThat(response.otherTabTotal).isEqualTo(3)
     }
 
     @Test
