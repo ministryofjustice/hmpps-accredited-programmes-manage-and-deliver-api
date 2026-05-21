@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReportingService
 import java.time.Clock
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -35,6 +36,7 @@ class ReportingController(
 
     private const val CSV_MEDIA_TYPE = "text/csv"
     private const val GROUP_SIZE_FILE_NAME_SUFFIX = "manage-and-deliver-group-size.csv"
+    private const val DOSAGE_FILE_NAME_SUFFIX = "dosage.csv"
   }
 
   @Operation(
@@ -89,6 +91,69 @@ class ReportingController(
     val csv = reportingService.getGroupSizeReportCsv(groupStartedSince)
 
     val fileName = "${LocalDateTime.now(clock).format(fileNameDateFormatter)}-$GROUP_SIZE_FILE_NAME_SUFFIX"
+
+    return ResponseEntity.ok()
+      .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"$fileName\"")
+      .contentType(MediaType.parseMediaType(CSV_MEDIA_TYPE))
+      .body(csv)
+  }
+
+  @Operation(
+    tags = ["Reporting"],
+    summary = "Download dosage reporting data as CSV",
+    operationId = "getDosageReport",
+    description = "Returns dosage reporting data for Building Choices referrals filtered by either creation date or completed date.",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "CSV file containing dosage reporting data.",
+        content = [
+          Content(
+            mediaType = CSV_MEDIA_TYPE,
+            schema = Schema(type = "string", format = "binary"),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid query parameters. At least one of referralsCreatedSince or referralsCompletedAfter must be provided.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+  )
+  @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
+  @GetMapping("/reporting/dosage.csv", produces = [CSV_MEDIA_TYPE])
+  fun getDosageCsv(
+    @Parameter(
+      description = "Only include referrals created after this date.",
+      required = false,
+      example = "2026-05-01",
+    )
+    @RequestParam(name = "referralsCreatedSince", required = false)
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    referralsCreatedSince: LocalDate?,
+    @Parameter(
+      description = "Only include referrals with completed status set after this date.",
+      required = false,
+      example = "2026-05-01",
+    )
+    @RequestParam(name = "referralsCompletedAfter", required = false)
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    referralsCompletedAfter: LocalDate?,
+  ): ResponseEntity<String> {
+    if (referralsCreatedSince == null && referralsCompletedAfter == null) {
+      return ResponseEntity.badRequest()
+        .contentType(MediaType.parseMediaType(CSV_MEDIA_TYPE))
+        .body("At least one of referralsCreatedSince or referralsCompletedAfter must be provided")
+    }
+
+    val csv = reportingService.getGroupFaciltiatorContinutiyReport(referralsCreatedSince, referralsCompletedAfter)
+    val fileName = "${LocalDateTime.now(clock).format(fileNameDateFormatter)}-$DOSAGE_FILE_NAME_SUFFIX"
 
     return ResponseEntity.ok()
       .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"$fileName\"")

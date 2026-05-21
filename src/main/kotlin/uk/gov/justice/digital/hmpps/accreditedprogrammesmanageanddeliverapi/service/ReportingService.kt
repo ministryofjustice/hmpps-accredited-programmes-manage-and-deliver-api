@@ -5,12 +5,19 @@ import com.fasterxml.jackson.dataformat.csv.CsvMapper
 import com.fasterxml.jackson.dataformat.csv.CsvSchema
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReportingGroupSizeEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReportingGroupSizeRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceRepository
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Service
 class ReportingService(
   private val reportingGroupSizeRepository: ReportingGroupSizeRepository,
+  private val referralRepository: ReferralRepository,
+  private val sessionAttendanceRepository: SessionAttendanceRepository,
+  private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
 ) {
   companion object {
     private const val GROUP_SIZE_CSV_HEADER =
@@ -66,6 +73,71 @@ class ReportingService(
 
   private fun getGroupSizeReportRows(firstSessionAfter: LocalDateTime): List<ReportingGroupSizeEntity> = reportingGroupSizeRepository.getAllGroupsWithEarliestStartDateAfter(firstSessionAfter.toLocalDate())
 
+  fun getGroupFaciltiatorContinutiyReport(
+    referralsCreatedSince: LocalDate?,
+    referralsCompletedAfter: LocalDate?,
+  ): String {
+    require(referralsCreatedSince != null || referralsCompletedAfter != null) {
+      "At least one of referralsCreatedSince or referralsCompletedAfter must be provided"
+    }
+
+    val referrals = referralRepository.getDosageReportReferrals(referralsCreatedSince, referralsCompletedAfter)
+      .distinctBy { it.referralId }
+      .sortedBy { it.crn }
+    val referralIds = referrals.map { it.referralId }
+    val attendanceRows = if (referralIds.isEmpty()) emptyList() else sessionAttendanceRepository.getDosageAttendanceRows(referralIds)
+    val templateSessions = moduleSessionTemplateRepository.getBuildingChoicesSessionColumns()
+    val regions = referrals.map { it.regionName }.distinct().sorted()
+    val sessionColumns = regions.flatMap { region ->
+      templateSessions.map {
+        SessionColumn(
+          moduleNumber = it.moduleNumber,
+          sessionNumber = it.sessionNumber,
+          sessionName = it.sessionName,
+        )
+      }
+    }
+    val header = listOf("licReqNo", "crn", "numberSessionAttended") + sessionColumns.map { it.header }
+    val attendanceByReferralId = attendanceRows.groupBy { it.referralId }
+
+    val lines = referrals.map { referral ->
+      val rowsForReferral = attendanceByReferralId[referral.referralId].orEmpty()
+      val attendedSessionCount = rowsForReferral.map { it.sessionId }.toSet().size
+
+      val valuesBySessionAndRegion = rowsForReferral.groupBy {
+        SessionColumn(
+          moduleNumber = it.moduleNumber,
+          sessionNumber = it.sessionNumber,
+          sessionName = it.sessionName,
+        )
+      }.mapValues { (_, attendedRows) ->
+        attendedRows.map { it.groupCode }.distinct().sorted().joinToString(",")
+      }
+
+      listOf(referral.licReqNo.orEmpty(), referral.crn, attendedSessionCount.toString()) +
+        sessionColumns.map { valuesBySessionAndRegion[it].orEmpty() }
+    }
+
+    return renderCsv(header, lines)
+  }
+
+  private fun renderCsv(header: List<String>, rows: List<List<String>>): String {
+    val headerLine = header.joinToString(",") { escapeCsv(it) }
+    if (rows.isEmpty()) {
+      return headerLine
+    }
+
+    val body = rows.joinToString("\n") { row -> row.joinToString(",") { escapeCsv(it) } }
+    return "$headerLine\n$body"
+  }
+
+  private fun escapeCsv(value: String): String {
+    if (value.none { it == ',' || it == '"' || it == '\n' || it == '\r' }) {
+      return value
+    }
+    return "\"${value.replace("\"", "\"\"")}\""
+  }
+
   data class GroupSizeCsvRow(
     val id: String,
     val code: String,
@@ -82,4 +154,12 @@ class ReportingService(
     val groupSize: Int,
     val facilitatorStaffCode: String,
   )
+
+  data class SessionColumn(
+    val moduleNumber: Int,
+    val sessionNumber: Int,
+    val sessionName: String,
+  ) {
+    val header: String = "M$moduleNumber S$sessionNumber $sessionName"
+  }
 }
