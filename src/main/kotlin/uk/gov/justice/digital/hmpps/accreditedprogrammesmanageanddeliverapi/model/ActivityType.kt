@@ -1,0 +1,14 @@
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model
+
+enum class ActivityType {
+  UPDATE_REFERRAL_STATUS,
+  ASSIGN_REFERRAL_TO_GROUP,
+  REMOVE_REFERRAL_FROM_GROUP,
+  OVERRIDE_LDC,
+  OVERRIDE_COHORT,
+  SET_AVAILABILITY,
+  UPDATE_AVAILABILITY,
+  SET_MOTIVATION,
+  UPDATE_MOTIVATION,
+  RECORD_ATTENDANCE,
+}

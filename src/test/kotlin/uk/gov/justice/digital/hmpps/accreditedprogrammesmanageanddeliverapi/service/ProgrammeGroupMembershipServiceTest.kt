@@ -20,7 +20,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import java.util.UUID
 
 class ProgrammeGroupMembershipServiceTest {
-  private val programmeGroupRepositoryImpl = mockk<ProgrammeGroupRepository>()
+  private val programmeGroupRepository = mockk<ProgrammeGroupRepository>()
   private val referralRepository = mockk<ReferralRepository>()
   private val referralStatusDescriptionRepository = mockk<ReferralStatusDescriptionRepository>()
   private val programmeGroupMembershipRepository = mockk<ProgrammeGroupMembershipRepository>()
@@ -31,7 +31,7 @@ class ProgrammeGroupMembershipServiceTest {
   @BeforeEach
   fun beforeEach() {
     service = ProgrammeGroupMembershipService(
-      programmeGroupRepositoryImpl = programmeGroupRepositoryImpl,
+      programmeGroupRepository = programmeGroupRepository,
       referralRepository = referralRepository,
       referralStatusDescriptionRepository = referralStatusDescriptionRepository,
       programmeGroupMembershipRepository = programmeGroupMembershipRepository,
@@ -54,7 +54,7 @@ class ProgrammeGroupMembershipServiceTest {
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { programmeGroupRepositoryImpl.findByIdOrNull(groupId) } returns programmeGroupEntity
+    every { programmeGroupRepository.findByIdOrNull(groupId) } returns programmeGroupEntity
     every { referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId) } returns referralStatusDescriptionEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns null andThen programmeGroupMembershipEntity
     every { referralStatusDescriptionRepository.getScheduledStatusDescription() } returns referralStatusDescriptionEntity
@@ -69,7 +69,7 @@ class ProgrammeGroupMembershipServiceTest {
     assertThat(result).isNotNull()
     assertThat(result).isEqualTo(referralEntity)
     verify { referralRepository.findByIdOrNull(referralId) }
-    verify { programmeGroupRepositoryImpl.findByIdOrNull(groupId) }
+    verify { programmeGroupRepository.findByIdOrNull(groupId) }
     verify { referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId) }
     verify { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) }
     verify { referralStatusDescriptionRepository.getScheduledStatusDescription() }
@@ -92,7 +92,7 @@ class ProgrammeGroupMembershipServiceTest {
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
     val referralStatusDescriptionEntity = ReferralStatusDescriptionEntityFactory().produce()
 
-    every { programmeGroupRepositoryImpl.findByIdOrNull(groupId) } returns programmeGroupEntity
+    every { programmeGroupRepository.findByIdOrNull(groupId) } returns programmeGroupEntity
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
     every {
       programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(
@@ -101,7 +101,7 @@ class ProgrammeGroupMembershipServiceTest {
       )
     } returns programmeGroupMembershipEntity
     every { scheduleService.removeNDeliusAppointments(any(), any()) } returns Unit
-    every { programmeGroupRepositoryImpl.save(programmeGroupEntity) } returns programmeGroupEntity
+    every { programmeGroupRepository.save(programmeGroupEntity) } returns programmeGroupEntity
     every { referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId) } returns referralStatusDescriptionEntity
     every { referralRepository.save(referralEntity) } returns referralEntity
     every { referralEventService.publishReferralStatusUpdatedEvent(referralEntity) } returns Unit
@@ -112,11 +112,11 @@ class ProgrammeGroupMembershipServiceTest {
     // Then
     assertThat(result).isNotNull()
     assertThat(result.message).isEqualTo("John Smith was removed from this group. Their referral status is now ${referralStatusDescriptionEntity.description}")
-    verify { programmeGroupRepositoryImpl.findByIdOrNull(groupId) }
+    verify { programmeGroupRepository.findByIdOrNull(groupId) }
     verify { referralRepository.findByIdOrNull(referralId) }
     verify { programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referralId, groupId) }
     verify { scheduleService.removeNDeliusAppointments(any(), any()) }
-    verify { programmeGroupRepositoryImpl.save(programmeGroupEntity) }
+    verify { programmeGroupRepository.save(programmeGroupEntity) }
     verify { referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId) }
     verify { referralRepository.save(referralEntity) }
     verify { referralEventService.publishReferralStatusUpdatedEvent(referralEntity) }

@@ -126,7 +126,7 @@ class ReferralEntity(
     cascade = [CascadeType.REMOVE],
     orphanRemoval = true,
   )
-  var referralReportingLocationEntity: ReferralReportingLocationEntity? = null,
+  var referralReportingLocation: ReferralReportingLocationEntity? = null,
 
   @OneToMany(
     fetch = FetchType.LAZY,
@@ -152,7 +152,7 @@ class ReferralEntity(
     cascade = [CascadeType.REMOVE],
     orphanRemoval = true,
   )
-  var availabilityEntity: AvailabilityEntity? = null,
+  var availability: AvailabilityEntity? = null,
 
   @NotNull
   @Column(name = "updated_at")

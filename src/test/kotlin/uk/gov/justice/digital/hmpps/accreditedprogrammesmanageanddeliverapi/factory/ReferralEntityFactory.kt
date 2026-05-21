@@ -91,6 +91,6 @@ class ReferralEntityFactory {
     programmeGroupMemberships = programmeGroupMemberships,
     deliveryLocationPreferences = deliveryLocationPreferences,
     referralMotivationBackgroundAndNonAssociations = motivationBackgroundAndNonAssociations,
-    referralReportingLocationEntity = referralReportingLocationEntity,
+    referralReportingLocation = referralReportingLocationEntity,
   )
 }

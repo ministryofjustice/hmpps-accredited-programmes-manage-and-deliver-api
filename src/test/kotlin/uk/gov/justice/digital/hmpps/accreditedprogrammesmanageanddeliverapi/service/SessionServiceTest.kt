@@ -478,6 +478,7 @@ class SessionServiceTest {
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
+    every { referralRepository.findByIdOrNull(any()) } returns referralEntity
 
     // When
     val result = service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -553,6 +554,7 @@ class SessionServiceTest {
       HttpStatus.NO_CONTENT,
       Unit,
     )
+    every { referralRepository.findByIdOrNull(any()) } returns referralEntity
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -610,6 +612,7 @@ class SessionServiceTest {
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
+    every { referralRepository.findByIdOrNull(any()) } returns referralEntity
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1040,6 +1043,7 @@ class SessionServiceTest {
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralStatusService.checkAndPublishCompletionEvent(any()) } returns true
+    every { referralRepository.findByIdOrNull(any()) } returns referralEntity
 
     // When
     val result = service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1096,6 +1100,7 @@ class SessionServiceTest {
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
+    every { referralRepository.findByIdOrNull(any()) } returns referralEntity
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1151,6 +1156,7 @@ class SessionServiceTest {
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
+    every { referralRepository.findByIdOrNull(any()) } returns referralEntity
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1167,7 +1173,8 @@ class SessionServiceTest {
     val referralId2 = UUID.randomUUID()
     val sessionAttendee1 = SessionAttendeeFactory().withReferralId(referralId1).produce()
     val sessionAttendee2 = SessionAttendeeFactory().withReferralId(referralId2).produce()
-    val sessionAttendance = SessionAttendanceFactory().withAttendees(listOf(sessionAttendee1, sessionAttendee2)).produce()
+    val sessionAttendance =
+      SessionAttendanceFactory().withAttendees(listOf(sessionAttendee1, sessionAttendee2)).produce()
     val facilitator = FacilitatorEntityFactory().produce()
     val programmeGroupEntity = ProgrammeGroupFactory()
       .withId(UUID.randomUUID())
@@ -1215,6 +1222,7 @@ class SessionServiceTest {
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralStatusService.checkAndPublishCompletionEvent(any()) } returns true
+    every { referralRepository.findByIdOrNull(any()) } returns referralEntity1
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)

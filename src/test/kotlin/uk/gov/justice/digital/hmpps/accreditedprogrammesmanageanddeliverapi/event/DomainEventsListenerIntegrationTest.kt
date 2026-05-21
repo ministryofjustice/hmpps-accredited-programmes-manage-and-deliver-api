@@ -207,9 +207,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.personName == "John Alex Doe"
       it.sex == "Male"
       it.dateOfBirth == LocalDate.parse("2000-10-01")
-      it.referralReportingLocationEntity!!.reportingTeam == "TEAM_1"
-      it.referralReportingLocationEntity!!.pduName == "PDU_1"
-      it.referralReportingLocationEntity!!.regionName == "REGION_1"
+      it.referralReportingLocation!!.reportingTeam == "TEAM_1"
+      it.referralReportingLocation!!.pduName == "PDU_1"
+      it.referralReportingLocation!!.regionName == "REGION_1"
       it.sentenceEndDate!! == LocalDate.parse("2025-10-01")
     }
 
@@ -266,8 +266,8 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       it.sex == "Male"
       it.dateOfBirth == LocalDate.parse("2000-10-01")
       it.referralLdcHistories.first().hasLdc
-      it.referralReportingLocationEntity!!.reportingTeam == "TEAM_1"
-      it.referralReportingLocationEntity!!.pduName == "PDU_1"
+      it.referralReportingLocation!!.reportingTeam == "TEAM_1"
+      it.referralReportingLocation!!.pduName == "PDU_1"
       it.sentenceEndDate!! == LocalDate.parse("2025-10-01")
     }
 
@@ -325,8 +325,8 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       !it.referralLdcHistories.first().hasLdc
       it.referralLdcHistories.first().createdBy == "SYSTEM"
       it.personName == "John Alex Doe"
-      it.referralReportingLocationEntity!!.reportingTeam == "TEAM_1"
-      it.referralReportingLocationEntity!!.pduName == "PDU_1"
+      it.referralReportingLocation!!.reportingTeam == "TEAM_1"
+      it.referralReportingLocation!!.pduName == "PDU_1"
       it.sentenceEndDate!! == LocalDate.parse("2025-10-01")
     }
 
@@ -381,8 +381,8 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       !it.referralLdcHistories.first().hasLdc
       it.referralLdcHistories.first().createdBy == "SYSTEM"
       it.personName == "John Alex Doe"
-      it.referralReportingLocationEntity!!.reportingTeam == "TEAM_1"
-      it.referralReportingLocationEntity!!.pduName == "PDU_1"
+      it.referralReportingLocation!!.reportingTeam == "TEAM_1"
+      it.referralReportingLocation!!.pduName == "PDU_1"
       it.sentenceEndDate!! == LocalDate.parse("2025-10-01")
     }
 

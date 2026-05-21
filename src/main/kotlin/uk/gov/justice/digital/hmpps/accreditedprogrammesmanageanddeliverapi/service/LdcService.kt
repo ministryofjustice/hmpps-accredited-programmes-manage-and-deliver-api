@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.UpdateLdc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.OVERRIDE_LDC
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import java.util.UUID
 
@@ -18,6 +19,8 @@ class LdcService(
   fun updateLdcStatusForReferral(referralEntity: ReferralEntity, updateLdc: UpdateLdc) {
     log.info("Updating LDC status to '${updateLdc.hasLdc}' for referral with Id: '${referralEntity.id}'")
     ldcHistoryRepository.save(updateLdc.toEntity(referralEntity))
+
+    log.info("User activity - activityType: ${OVERRIDE_LDC}, regionName: ${referralEntity.referralReportingLocation?.regionName}, deliveryUnitCode: ${referralEntity.referralReportingLocation?.pduName}, deliveryLocation: ${referralEntity.programmeGroupMemberships.firstOrNull()?.programmeGroup?.deliveryLocationName}")
   }
 
   fun hasOverriddenLdcStatus(referralId: UUID): Boolean {
