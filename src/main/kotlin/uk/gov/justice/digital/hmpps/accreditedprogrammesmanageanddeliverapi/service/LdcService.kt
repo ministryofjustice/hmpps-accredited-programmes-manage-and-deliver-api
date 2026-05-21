@@ -1,19 +1,24 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.UpdateLdc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.AuditorContext
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.OVERRIDE_LDC
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import java.util.UUID
 
 @Service
 class LdcService(
   private val ldcHistoryRepository: ReferralLdcHistoryRepository,
+  private val telemetryClient: TelemetryClient,
+  private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -35,7 +40,17 @@ class LdcService(
     } finally {
       AuditorContext.clear()
     }
-    log.info("User activity - activityType: ${OVERRIDE_LDC}, regionName: ${referralEntity.referralReportingLocation?.regionName}, deliveryUnitCode: ${referralEntity.referralReportingLocation?.pduName}, deliveryLocation: ${referralEntity.programmeGroupMemberships.firstOrNull()?.programmeGroup?.deliveryLocationName}")
+
+    val programmeGroupMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralEntity.id!!)
+    telemetryClient.logToAppInsights(
+      "Ldc.update-ldc.success",
+      mapOf(
+        "activityType" to OVERRIDE_LDC.name,
+        "regionName" to (referralEntity.referralReportingLocation?.regionName ?: ""),
+        "deliveryUnitCode" to (referralEntity.referralReportingLocation?.pduName ?: ""),
+        "deliveryLocation" to (programmeGroupMembership?.programmeGroup?.deliveryLocationName ?: ""),
+      ),
+    )
   }
 
   fun hasOverriddenLdcStatus(referralId: UUID): Boolean {
