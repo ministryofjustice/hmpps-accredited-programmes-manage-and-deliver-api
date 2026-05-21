@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import com.microsoft.applicationinsights.TelemetryClient
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -16,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
@@ -58,6 +60,7 @@ class SessionServiceTest {
   private val nDeliusIntegrationApiClient = mockk<NDeliusIntegrationApiClient>()
   private val sessionNameFormatter = SessionNameFormatter()
   private val referralStatusService = mockk<ReferralStatusService>()
+  private val telemetryClient = mockk<TelemetryClient>()
   private lateinit var service: SessionService
   private lateinit var sessionAttendanceTypeEntities: List<SessionAttendanceNDeliusOutcomeEntity>
 
@@ -73,6 +76,7 @@ class SessionServiceTest {
       sessionAttendanceOutcomeTypeRepository,
       sessionNameFormatter,
       referralStatusService,
+      telemetryClient,
     )
 
     sessionAttendanceTypeEntities = listOf(
@@ -479,6 +483,8 @@ class SessionServiceTest {
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
     val result = service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -488,6 +494,8 @@ class SessionServiceTest {
     verify { sessionRepository.findById(any()) }
     verify { programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any()) }
     verify { sessionRepository.save(any()) }
+    verify { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) }
+    verify { telemetryClient.logToAppInsights(any(), any()) }
   }
 
   @Test
@@ -555,12 +563,16 @@ class SessionServiceTest {
       Unit,
     )
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
 
     // Then
     verify { nDeliusIntegrationApiClient.updateAppointmentsInDelius(match { it.appointments.any { app -> app.notes == sessionNotes && app.reference == ndeliusAppointmentId } }) }
+    verify { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) }
+    verify { telemetryClient.logToAppInsights(any(), any()) }
   }
 
   @Test
@@ -613,12 +625,16 @@ class SessionServiceTest {
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
 
     // Then
     verify(exactly = 0) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+    verify { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) }
+    verify { telemetryClient.logToAppInsights(any(), any()) }
   }
 
   @Test
@@ -1044,6 +1060,8 @@ class SessionServiceTest {
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralStatusService.checkAndPublishCompletionEvent(any()) } returns true
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
     val result = service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1051,6 +1069,8 @@ class SessionServiceTest {
     // Then
     assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId) }
+    verify { telemetryClient.logToAppInsights(any(), any()) }
+    verify { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) }
   }
 
   @Test
@@ -1101,12 +1121,16 @@ class SessionServiceTest {
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
 
     // Then
     verify(exactly = 0) { referralStatusService.checkAndPublishCompletionEvent(any()) }
+    verify { telemetryClient.logToAppInsights(any(), any()) }
+    verify { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) }
   }
 
   @Test
@@ -1157,12 +1181,16 @@ class SessionServiceTest {
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
 
     // Then
     verify(exactly = 0) { referralStatusService.checkAndPublishCompletionEvent(any()) }
+    verify { telemetryClient.logToAppInsights(any(), any()) }
+    verify { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) }
   }
 
   @Test
@@ -1223,6 +1251,8 @@ class SessionServiceTest {
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralStatusService.checkAndPublishCompletionEvent(any()) } returns true
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity1
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)

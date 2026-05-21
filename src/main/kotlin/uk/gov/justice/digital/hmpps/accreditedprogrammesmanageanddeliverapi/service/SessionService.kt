@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -31,6 +32,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toUpdateAppointmentRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
@@ -67,6 +69,7 @@ class SessionService(
   private val sessionAttendanceOutcomeTypeRepository: SessionAttendanceOutcomeTypeRepository,
   private val sessionNameFormatter: SessionNameFormatter,
   private val referralStatusService: ReferralStatusService,
+  private val telemetryClient: TelemetryClient,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
@@ -359,7 +362,16 @@ class SessionService(
 
     attendees.firstOrNull()?.let { attendee ->
       val referral = referralRepository.findByIdOrNull(attendee.referralId)
-      log.info("User activity - activityType: ${RECORD_ATTENDANCE}, regionName: ${referral?.referralReportingLocation?.regionName}, deliveryUnitCode: ${referral?.referralReportingLocation?.pduName}, deliveryLocation: ${referral?.programmeGroupMemberships?.firstOrNull()?.programmeGroup?.deliveryLocationName}")
+      val programmeGroupMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referral?.id!!)
+      telemetryClient.logToAppInsights(
+        "Session.create-attendance.success",
+        mapOf(
+          "activityType" to RECORD_ATTENDANCE.name,
+          "regionName" to (referral.referralReportingLocation?.regionName ?: ""),
+          "deliveryUnitCode" to (referral.referralReportingLocation?.pduName ?: ""),
+          "deliveryLocation" to (programmeGroupMembership?.programmeGroup?.deliveryLocationName ?: ""),
+        ),
+      )
     }
 
     if (attendees.isNotEmpty()) {
