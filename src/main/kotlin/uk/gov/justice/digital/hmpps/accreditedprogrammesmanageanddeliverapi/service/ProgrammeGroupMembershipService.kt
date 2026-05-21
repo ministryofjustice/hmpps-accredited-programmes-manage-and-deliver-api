@@ -94,7 +94,7 @@ class ProgrammeGroupMembershipService(
     referralEventService.publishReferralStatusUpdatedEvent(referral)
 
     telemetryClient.logToAppInsights(
-      "Referral.allocate-referral-to-group.success",
+      "Referral.allocate-to-group.success",
       mapOf(
         "activityType" to ASSIGN_REFERRAL_TO_GROUP.name,
         "regionName" to (referral.referralReportingLocation?.regionName ?: ""),
