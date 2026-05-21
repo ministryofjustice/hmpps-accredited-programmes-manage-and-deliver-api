@@ -15,6 +15,7 @@ import java.time.Clock
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 @Service
 class ReportingService(
@@ -103,6 +104,7 @@ class ReportingService(
     lastSessionAtOrBefore: LocalDateTime?,
   ): String {
     val rows = getFacilitatorContinuityReportRows(groupsCreatedSince, firstSessionAtOrAfter, lastSessionAtOrBefore)
+    val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     val csvRows = rows.map {
       FacilitatorContinuityCsvRow(
         code = it.code,
@@ -115,8 +117,8 @@ class ReportingService(
         regionName = it.regionName,
         deliveryLocationName = it.deliveryLocationName,
         probationDeliveryUnitName = it.probationDeliveryUnitName,
-        sessionStartTime = it.sessionStartTime.toString(),
-        sessionCreatedAt = it.sessionCreatedAt.toString(),
+        sessionStartTime = it.sessionStartTime.format(dateFormatter),
+        sessionCreatedAt = it.sessionCreatedAt.format(dateFormatter),
       )
     }
 

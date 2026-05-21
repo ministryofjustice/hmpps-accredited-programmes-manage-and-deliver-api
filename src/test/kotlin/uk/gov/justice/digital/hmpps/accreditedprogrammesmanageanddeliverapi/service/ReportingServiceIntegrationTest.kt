@@ -151,10 +151,10 @@ class ReportingServiceIntegrationTest : IntegrationTestBase() {
     )
     assertThat(lines[1]).contains("GROUP_A,1")
     assertThat(lines[1]).contains("Session One")
-    assertThat(lines[1]).contains(",group,false,2,${context.firstFacilitatorCode},TEST REGION,Delivery Location 1,Test PDU 1,2026-05-20T09:00,")
+    assertThat(lines[1]).contains(",group,false,2,${context.firstFacilitatorCode},TEST REGION,Delivery Location 1,Test PDU 1,2026-05-20 09:00,")
     assertThat(lines[2]).contains("GROUP_A,2")
     assertThat(lines[2]).contains("Session Two")
-    assertThat(lines[2]).contains(",one-to-one,true,1,${context.secondFacilitatorCode},TEST REGION,Delivery Location 1,Test PDU 1,2026-05-20T13:00,")
+    assertThat(lines[2]).contains(",one-to-one,true,1,${context.secondFacilitatorCode},TEST REGION,Delivery Location 1,Test PDU 1,2026-05-20 13:00,")
     assertThat(csv).doesNotContain("Session Future")
   }
 

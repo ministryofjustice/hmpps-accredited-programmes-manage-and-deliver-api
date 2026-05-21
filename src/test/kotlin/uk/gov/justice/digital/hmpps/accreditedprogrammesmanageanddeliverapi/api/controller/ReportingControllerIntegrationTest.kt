@@ -41,6 +41,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 class ReportingControllerIntegrationTest : IntegrationTestBase() {
 
@@ -201,8 +202,12 @@ class ReportingControllerIntegrationTest : IntegrationTestBase() {
     assertThat(lines.first()).isEqualTo(
       "code,sessionNumber,sessionName,sessionType,isCatchUp,attendeeCount,facilitatorStaffCodes,region_name,delivery_location_name,probation_delivery_unit_name,sessionStartTime,sessionCreatedAt",
     )
+
+    // We can't inline this b/c it's set by the DB integration
+    var createdAtFormatted = session.createdAt!!.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+
     assertThat(lines[1]).isEqualTo(
-      "THE_GROUP_CODE,1,Session One,group,false,1,FAC123,The Test Region,Delivery Location for Test 0123,North East Test Region PDU,2026-05-20T09:00,${persistedSession.createdAt}",
+      "THE_GROUP_CODE,1,Session One,group,false,1,FAC123,The Test Region,Delivery Location for Test 0123,North East Test Region PDU,2026-05-20 09:00,$createdAtFormatted",
     )
   }
 
