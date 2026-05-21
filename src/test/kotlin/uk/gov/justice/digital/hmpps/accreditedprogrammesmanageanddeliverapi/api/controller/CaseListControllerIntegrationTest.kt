@@ -220,14 +220,14 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .produce(referral8, awaitingAssessmentStatusDescription)
       val cohortHistory8 = ReferralCohortHistoryFactory().withReferral(referral8).produce()
 
-      referral1.referralReportingLocationEntity = referralReportingLocation1
-      referral2.referralReportingLocationEntity = referralReportingLocation2
-      referral3.referralReportingLocationEntity = referralReportingLocation3
-      referral4.referralReportingLocationEntity = referralReportingLocation4
-      referral5.referralReportingLocationEntity = referralReportingLocation5
-      referral6.referralReportingLocationEntity = referralReportingLocation6
-      referral7.referralReportingLocationEntity = referralReportingLocation7
-      referral8.referralReportingLocationEntity = referralReportingLocation8
+      referral1.referralReportingLocation = referralReportingLocation1
+      referral2.referralReportingLocation = referralReportingLocation2
+      referral3.referralReportingLocation = referralReportingLocation3
+      referral4.referralReportingLocation = referralReportingLocation4
+      referral5.referralReportingLocation = referralReportingLocation5
+      referral6.referralReportingLocation = referralReportingLocation6
+      referral7.referralReportingLocation = referralReportingLocation7
+      referral8.referralReportingLocation = referralReportingLocation8
 
       referral1.referralCohortHistories = mutableSetOf(cohortHistory1)
       referral2.referralCohortHistories = mutableSetOf(cohortHistory2)
