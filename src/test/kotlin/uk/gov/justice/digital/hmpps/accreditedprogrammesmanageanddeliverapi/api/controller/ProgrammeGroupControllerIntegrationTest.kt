@@ -652,7 +652,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
             session = session,
             groupMembership = membership,
             outcomeType = if (attended) attendedCompliedOutcome else unacceptableAbsenceOutcome,
-            recordedAt = LocalDateTime.now(),
+            recordedAt = if (attended) LocalDateTime.now() else null,
           ),
         )
       }
