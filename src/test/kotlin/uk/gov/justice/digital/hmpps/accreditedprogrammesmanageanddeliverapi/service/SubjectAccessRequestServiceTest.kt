@@ -215,11 +215,11 @@ class SubjectAccessRequestServiceTest {
 
     assertThat(resultContent.referrals[0].referralReportingLocation).isNotNull()
     assertThat(resultContent.referrals[0].referralReportingLocation?.regionName)
-      .isEqualTo(referralEntity1.referralReportingLocationEntity?.regionName)
+      .isEqualTo(referralEntity1.referralReportingLocation?.regionName)
     assertThat(resultContent.referrals[0].referralReportingLocation?.pduName)
-      .isEqualTo(referralEntity1.referralReportingLocationEntity?.pduName)
+      .isEqualTo(referralEntity1.referralReportingLocation?.pduName)
     assertThat(resultContent.referrals[0].referralReportingLocation?.reportingTeam)
-      .isEqualTo(referralEntity1.referralReportingLocationEntity?.reportingTeam)
+      .isEqualTo(referralEntity1.referralReportingLocation?.reportingTeam)
 
     assertThat(resultContent.referrals[0].attendees).isNotNull().hasSize(1)
     assertThat(resultContent.referrals[0].attendees[0]).isNotNull()

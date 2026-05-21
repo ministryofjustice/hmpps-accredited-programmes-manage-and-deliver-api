@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilitySlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.SET_AVAILABILITY
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.UPDATE_AVAILABILITY
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Availability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateAvailability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.toDayOfWeek
@@ -47,13 +49,16 @@ class AvailabilityService(
    */
   fun createAvailability(createAvailability: CreateAvailability): Pair<Availability, Boolean> {
     val referral = referralService.getReferralById(createAvailability.referralId)
-    if (referral.availabilityEntity != null) {
+    if (referral.availability != null) {
       log.info("Availability already exists for referralId ${createAvailability.referralId}")
-      return Pair(referral.availabilityEntity!!.toModel(), true)
+      return Pair(referral.availability!!.toModel(), true)
     }
 
     val availabilityEntity = createAvailability.toEntity(getAuthenticatedReferrerUser(), referral)
     val savedAvailabilityEntity = availabilityRepository.save(availabilityEntity)
+
+    log.info("User activity - activityType: ${SET_AVAILABILITY}, regionName: ${referral.referralReportingLocation?.regionName}, deliveryUnitCode: ${referral.referralReportingLocation?.pduName}, deliveryLocation: ${referral.programmeGroupMemberships.firstOrNull()?.programmeGroup?.deliveryLocationName}")
+
     return Pair(savedAvailabilityEntity.toModel(), false)
   }
 
@@ -90,6 +95,9 @@ class AvailabilityService(
       }
 
     val updateAvailability = availabilityRepository.save(availabilityEntity)
+
+    log.info("User activity - activityType: ${UPDATE_AVAILABILITY}, regionName: ${referral.referralReportingLocation?.regionName}, deliveryUnitCode: ${referral.referralReportingLocation?.pduName}, deliveryLocation: ${referral.programmeGroupMemberships.firstOrNull()?.programmeGroup?.deliveryLocationName}")
+
     return updateAvailability.toModel()
   }
 }

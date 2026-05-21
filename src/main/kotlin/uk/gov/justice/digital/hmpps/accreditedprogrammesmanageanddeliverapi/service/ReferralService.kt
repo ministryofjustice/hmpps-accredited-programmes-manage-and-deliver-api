@@ -36,6 +36,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.UPDATE_REFERRAL_STATUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
@@ -205,7 +206,7 @@ class ReferralService(
         regionName = personalDetails.region.description,
       )
       referralReportingLocationRepository.save(referralReportingLocation)
-      referralEntity.referralReportingLocationEntity = referralReportingLocation
+      referralEntity.referralReportingLocation = referralReportingLocation
     }
 
     log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort and Ldc status: '$hasLdc'")
@@ -388,6 +389,8 @@ class ReferralService(
       referralStatusService.checkAndPublishCompletionEvent(referral.id!!)
     }
 
+    log.info("User activity - activityType: ${UPDATE_REFERRAL_STATUS}, regionName: ${referral.referralReportingLocation?.regionName}, deliveryUnitCode: ${referral.referralReportingLocation?.pduName}, deliveryLocation: ${activeGroupMembership?.programmeGroup?.deliveryLocationName}")
+
     return StatusUpdateResponse(
       referralStatusHistory = historyEntry.toApi(),
       message = message,
@@ -416,7 +419,7 @@ class ReferralService(
 
     val savedEntity = referralReportingLocationRepository.save(referralReportingLocation)
     // Update our referral entity with details fetched from nDelius
-    referral.referralReportingLocationEntity = savedEntity
+    referral.referralReportingLocation = savedEntity
     referral.personName = personalDetails.name.getNameAsString()
     referral.sex = personalDetails.sex.description
     referral.dateOfBirth = personalDetails.dateOfBirth.toLocalDate()

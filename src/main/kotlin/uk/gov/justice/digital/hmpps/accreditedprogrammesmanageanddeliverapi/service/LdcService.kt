@@ -7,6 +7,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.AuditorContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.OVERRIDE_LDC
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import java.util.UUID
 
@@ -34,6 +35,7 @@ class LdcService(
     } finally {
       AuditorContext.clear()
     }
+    log.info("User activity - activityType: ${OVERRIDE_LDC}, regionName: ${referralEntity.referralReportingLocation?.regionName}, deliveryUnitCode: ${referralEntity.referralReportingLocation?.pduName}, deliveryLocation: ${referralEntity.programmeGroupMemberships.firstOrNull()?.programmeGroup?.deliveryLocationName}")
   }
 
   fun hasOverriddenLdcStatus(referralId: UUID): Boolean {

@@ -55,7 +55,7 @@ fun ReferralEntity.toApi(
   referralLdcHistories = referralLdcHistories.map { it.toApi() }.toMutableSet(),
   referralCohortHistories = referralCohortHistories.map { it.toApi() }.toMutableSet(),
   referralMotivationBackgroundAndNonAssociation = referralMotivationBackgroundAndNonAssociations?.toApi(),
-  referralReportingLocation = referralReportingLocationEntity?.toApi(),
+  referralReportingLocation = referralReportingLocation?.toApi(),
   attendees = attendeeEntities.map { it.toApi() }.toMutableList(),
   availability = availabilityEntity?.toApi(),
 )

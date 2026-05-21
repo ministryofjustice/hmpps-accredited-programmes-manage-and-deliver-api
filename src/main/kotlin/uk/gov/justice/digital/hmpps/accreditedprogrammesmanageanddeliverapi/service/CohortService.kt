@@ -9,6 +9,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.AuditorContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCohortHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.OVERRIDE_COHORT
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
 import java.util.UUID
 
@@ -44,6 +45,9 @@ class CohortService(
     } finally {
       AuditorContext.clear()
     }
+
+    log.info("User activity - activityType: ${OVERRIDE_COHORT}, regionName: ${referralEntity.referralReportingLocation?.regionName}, deliveryUnitCode: ${referralEntity.referralReportingLocation?.pduName}, deliveryLocation: ${referralEntity.programmeGroupMemberships.firstOrNull()?.programmeGroup?.deliveryLocationName}")
+
     return referralEntity
   }
 

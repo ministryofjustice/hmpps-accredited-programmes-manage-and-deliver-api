@@ -6,6 +6,8 @@ import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralMotivationBackgroundAndNonAssociations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralMotivationBackgroundAndNonAssociationsEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.SET_MOTIVATION
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.UPDATE_MOTIVATION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateOrUpdateReferralMotivationBackgroundAndNonAssociations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralMotivationBackgroundAndNonAssociationsRepository
 import java.time.LocalDateTime
@@ -21,7 +23,8 @@ class GroupAllocationNotesService(
   }
 
   fun getReferralMotivationBackgroundAndNonAssociationsByReferralId(referralId: UUID): ReferralMotivationBackgroundAndNonAssociations {
-    val motivationBackgroundAndNonAssociations = referralMotivationBackgroundAndNonAssociationsRepository.findByReferralId(referralId)
+    val motivationBackgroundAndNonAssociations =
+      referralMotivationBackgroundAndNonAssociationsRepository.findByReferralId(referralId)
 
     return ReferralMotivationBackgroundAndNonAssociations.toApi(motivationBackgroundAndNonAssociations)
   }
@@ -50,8 +53,11 @@ class GroupAllocationNotesService(
       otherConsiderations = update.otherConsiderations,
       createdBy = createdBy,
     )
-    val savedReferralMotivationBackgroundAndNonAssociations = referralMotivationBackgroundAndNonAssociationsRepository.save(motivationBackgroundAndNonAssociations)
+    val savedReferralMotivationBackgroundAndNonAssociations =
+      referralMotivationBackgroundAndNonAssociationsRepository.save(motivationBackgroundAndNonAssociations)
     log.info("Created motivation, background and non-associations for referral id: ${referral.id}")
+    log.info("User activity - activityType: ${SET_MOTIVATION}, regionName: ${referral.referralReportingLocation?.regionName}, deliveryUnitCode: ${referral.referralReportingLocation?.pduName}, deliveryLocation: ${referral.programmeGroupMemberships.firstOrNull()?.programmeGroup?.deliveryLocationName}")
+
     return ReferralMotivationBackgroundAndNonAssociations.toApi(savedReferralMotivationBackgroundAndNonAssociations)
   }
 
@@ -68,8 +74,11 @@ class GroupAllocationNotesService(
       lastUpdatedBy = updatedBy
       lastUpdatedAt = LocalDateTime.now()
     }
-    val updatedReferralMotivationBackgroundAndNonAssociations = referralMotivationBackgroundAndNonAssociationsRepository.save(referral.referralMotivationBackgroundAndNonAssociations!!)
+    val updatedReferralMotivationBackgroundAndNonAssociations =
+      referralMotivationBackgroundAndNonAssociationsRepository.save(referral.referralMotivationBackgroundAndNonAssociations!!)
     log.info("Updated motivation, background and non-associations for referral id: ${referral.id}")
+    log.info("User activity - activityType: ${UPDATE_MOTIVATION}, regionName: ${referral.referralReportingLocation?.regionName}, deliveryUnitCode: ${referral.referralReportingLocation?.pduName}, deliveryLocation: ${referral.programmeGroupMemberships.firstOrNull()?.programmeGroup?.deliveryLocationName}")
+
     return ReferralMotivationBackgroundAndNonAssociations.toApi(
       updatedReferralMotivationBackgroundAndNonAssociations,
     )
