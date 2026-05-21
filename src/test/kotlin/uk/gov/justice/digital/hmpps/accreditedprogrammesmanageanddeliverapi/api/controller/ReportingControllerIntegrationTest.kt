@@ -11,16 +11,19 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.MaterializedViewRefresher
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceEntityFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
@@ -124,6 +127,94 @@ class ReportingControllerIntegrationTest : IntegrationTestBase() {
       "id,code,createdAt,sex,cohort,isLdc,earliestPossibleStartDate,regionName,pduCode,pduName,locationCode,locationName,groupSize,facilitatorStaffCode",
     )
     assertThat(lines[1]).isEqualTo("${group.id},GROUP01,2026-05-10T10:00,MIXED,SEXUAL_OFFENCE,true,2026-05-20,North East,LDS01,Leeds PDU,LOC01,Leeds Office,1,FAC123")
+  }
+
+  @Test
+  fun `should return facilitator continuity reporting data in csv format with header and filename`() {
+    whenever(clock.instant()).thenReturn(Instant.parse("2026-05-21T08:42:00Z"))
+    whenever(clock.zone).thenReturn(ZoneId.of("Europe/London"))
+
+    val template = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+    val module = testDataGenerator.createModule(template, "Module A", 1)
+    val groupTemplate = testDataGenerator.createModuleSessionTemplate(
+      module = module,
+      name = "Session One",
+      sessionNumber = 1,
+      sessionType = SessionType.GROUP,
+    )
+
+    val group = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withCode("THE_GROUP_CODE")
+        .withRegionName("The Test Region")
+        .withProbationDeliveryUnit("North East Test Region PDU", "NETRPDU")
+        .withDeliveryLocation("Delivery Location for Test 0123", "DLFT0123")
+        .withCreatedAt(LocalDateTime.parse("2026-05-10T10:00:00"))
+        .withAccreditedProgrammeTemplate(template)
+        .produce(),
+    )
+
+    val facilitator = testDataGenerator.createFacilitator(
+      FacilitatorEntityFactory()
+        .withNdeliusPersonCode("FAC123")
+        .produce(),
+    )
+
+    val session = SessionFactory()
+      .withProgrammeGroup(group)
+      .withModuleSessionTemplate(groupTemplate)
+      .withStartsAt(LocalDateTime.parse("2026-05-20T09:00:00"))
+      .withEndsAt(LocalDateTime.parse("2026-05-20T11:00:00"))
+      .withCreatedAt(LocalDateTime.parse("2026-05-10T10:00:00"))
+      .produce()
+
+    session.sessionFacilitators = mutableSetOf(
+      SessionFacilitatorEntity(
+        facilitator = facilitator,
+        session = session,
+        facilitatorType = FacilitatorType.REGULAR_FACILITATOR,
+      ),
+    )
+
+    val persistedSession = testDataGenerator.createSession(session)
+
+    val referral = referralRepository.save(ReferralEntityFactory().produce())
+    testDataGenerator.createAttendee(referral, session)
+
+    val csvBody = webTestClient
+      .method(HttpMethod.GET)
+      .uri("/reporting/facilitator-continuity.csv?groupsCreatedSince=2026-05-01T00:00:00")
+      .headers(setAuthorisation())
+      .accept(MediaType.parseMediaType("text/csv"))
+      .exchange()
+      .expectStatus().isOk
+      .expectHeader().contentTypeCompatibleWith(MediaType.parseMediaType("text/csv"))
+      .expectHeader().valueEquals(
+        HttpHeaders.CONTENT_DISPOSITION,
+        "attachment; filename=\"2026-05-21-09-42-facilitator-continuity.csv\"",
+      )
+      .expectBody<String>()
+      .returnResult().responseBody!!
+
+    val lines = csvBody.split("\n")
+    assertThat(lines).hasSize(2)
+    assertThat(lines.first()).isEqualTo(
+      "code,sessionNumber,sessionName,sessionType,isCatchUp,attendeeCount,facilitatorStaffCodes,region_name,delivery_location_name,probation_delivery_unit_name,sessionStartTime,sessionCreatedAt",
+    )
+    assertThat(lines[1]).isEqualTo(
+      "THE_GROUP_CODE,1,Session One,group,false,1,FAC123,The Test Region,Delivery Location for Test 0123,North East Test Region PDU,2026-05-20T09:00,${persistedSession.createdAt}",
+    )
+  }
+
+  @Test
+  fun `should return bad request when facilitator continuity endpoint has no query params`() {
+    webTestClient
+      .method(HttpMethod.GET)
+      .uri("/reporting/facilitator-continuity.csv")
+      .headers(setAuthorisation())
+      .accept(MediaType.parseMediaType("text/csv"))
+      .exchange()
+      .expectStatus().isBadRequest
   }
 
   @Disabled("Will be enabled when reporting role enforcement is added to this endpoint")

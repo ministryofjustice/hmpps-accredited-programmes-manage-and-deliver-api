@@ -3,10 +3,14 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.MaterializedViewRefresher
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
@@ -28,8 +32,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReportingGroupSizeTestDataHelper
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 class ReportingServiceIntegrationTest : IntegrationTestBase() {
 
@@ -116,6 +122,267 @@ class ReportingServiceIntegrationTest : IntegrationTestBase() {
     assertThat(lines[1]).contains("FAC002")
     assertThat(lines[1]).doesNotContain("GROUP_BEFORE")
   }
+
+  @Test
+  fun `should return facilitator continuity report csv for happened sessions only`() {
+    whenever(clock.instant()).thenReturn(Instant.parse("2026-05-21T08:42:00Z"))
+    whenever(clock.zone).thenReturn(ZoneId.of("Europe/London"))
+
+    val context = createGroupWithSessions(
+      groupCode = "GROUP_A",
+      groupCreatedAt = LocalDateTime.parse("2026-05-10T10:00:00"),
+      firstSessionAt = LocalDateTime.parse("2026-05-20T09:00:00"),
+      firstSessionCreatedAt = LocalDateTime.parse("2026-05-10T10:00:00"),
+      secondSessionAt = LocalDateTime.parse("2026-05-20T13:00:00"),
+      secondSessionCreatedAt = LocalDateTime.parse("2026-05-12T08:30:00"),
+      includeFutureSession = true,
+    )
+
+    val csv = reportingService.getGroupFaciltiatorContinutiyReport(
+      groupsCreatedSince = LocalDateTime.parse("2026-05-01T00:00:00"),
+      firstSessionAtOrAfter = null,
+      lastSessionAtOrBefore = null,
+    )
+
+    val lines = csv.split("\n")
+    assertThat(lines).hasSize(3)
+    assertThat(lines.first()).isEqualTo(
+      "code,sessionNumber,sessionName,sessionType,isCatchUp,attendeeCount,facilitatorStaffCodes,region_name,delivery_location_name,probation_delivery_unit_name,sessionStartTime,sessionCreatedAt",
+    )
+    assertThat(lines[1]).contains("GROUP_A,1")
+    assertThat(lines[1]).contains("Session One")
+    assertThat(lines[1]).contains(",group,false,2,${context.firstFacilitatorCode},TEST REGION,Delivery Location 1,Test PDU 1,2026-05-20T09:00,")
+    assertThat(lines[2]).contains("GROUP_A,2")
+    assertThat(lines[2]).contains("Session Two")
+    assertThat(lines[2]).contains(",one-to-one,true,1,${context.secondFacilitatorCode},TEST REGION,Delivery Location 1,Test PDU 1,2026-05-20T13:00,")
+    assertThat(csv).doesNotContain("Session Future")
+  }
+
+  @Test
+  fun `should filter facilitator continuity report by groups created since`() {
+    whenever(clock.instant()).thenReturn(Instant.parse("2026-05-21T08:42:00Z"))
+    whenever(clock.zone).thenReturn(ZoneId.of("Europe/London"))
+
+    createGroupWithSessions(
+      groupCode = "GROUP_OLD",
+      groupCreatedAt = LocalDateTime.parse("2026-04-25T09:00:00"),
+      firstSessionAt = LocalDateTime.parse("2026-05-10T09:00:00"),
+      firstSessionCreatedAt = LocalDateTime.parse("2026-04-25T09:30:00"),
+      secondSessionAt = LocalDateTime.parse("2026-05-10T12:00:00"),
+      secondSessionCreatedAt = LocalDateTime.parse("2026-04-26T09:00:00"),
+      includeFutureSession = false,
+    )
+
+    createGroupWithSessions(
+      groupCode = "GROUP_NEW",
+      groupCreatedAt = LocalDateTime.parse("2026-05-15T09:00:00"),
+      firstSessionAt = LocalDateTime.parse("2026-05-20T09:00:00"),
+      firstSessionCreatedAt = LocalDateTime.parse("2026-05-15T09:30:00"),
+      secondSessionAt = LocalDateTime.parse("2026-05-20T12:00:00"),
+      secondSessionCreatedAt = LocalDateTime.parse("2026-05-16T09:00:00"),
+      includeFutureSession = false,
+    )
+
+    val csv = reportingService.getGroupFaciltiatorContinutiyReport(
+      groupsCreatedSince = LocalDateTime.parse("2026-05-01T00:00:00"),
+      firstSessionAtOrAfter = null,
+      lastSessionAtOrBefore = null,
+    )
+
+    assertThat(csv).contains("GROUP_NEW")
+    assertThat(csv).doesNotContain("GROUP_OLD")
+  }
+
+  @Test
+  fun `should filter facilitator continuity report by first and last happened session boundaries`() {
+    whenever(clock.instant()).thenReturn(Instant.parse("2026-05-21T08:42:00Z"))
+    whenever(clock.zone).thenReturn(ZoneId.of("Europe/London"))
+
+    createGroupWithSessions(
+      groupCode = "GROUP_EARLY",
+      groupCreatedAt = LocalDateTime.parse("2026-05-02T09:00:00"),
+      firstSessionAt = LocalDateTime.parse("2026-05-05T09:00:00"),
+      firstSessionCreatedAt = LocalDateTime.parse("2026-05-02T09:30:00"),
+      secondSessionAt = LocalDateTime.parse("2026-05-07T12:00:00"),
+      secondSessionCreatedAt = LocalDateTime.parse("2026-05-03T09:00:00"),
+      includeFutureSession = false,
+    )
+
+    createGroupWithSessions(
+      groupCode = "GROUP_MATCH",
+      groupCreatedAt = LocalDateTime.parse("2026-05-10T09:00:00"),
+      firstSessionAt = LocalDateTime.parse("2026-05-15T09:00:00"),
+      firstSessionCreatedAt = LocalDateTime.parse("2026-05-10T09:30:00"),
+      secondSessionAt = LocalDateTime.parse("2026-05-20T12:00:00"),
+      secondSessionCreatedAt = LocalDateTime.parse("2026-05-11T09:00:00"),
+      includeFutureSession = false,
+    )
+
+    val csv = reportingService.getGroupFaciltiatorContinutiyReport(
+      groupsCreatedSince = LocalDateTime.parse("2026-05-01T00:00:00"),
+      firstSessionAtOrAfter = LocalDateTime.parse("2026-05-10T00:00:00"),
+      lastSessionAtOrBefore = LocalDateTime.parse("2026-05-20T23:59:59"),
+    )
+
+    assertThat(csv).contains("GROUP_MATCH")
+    assertThat(csv).doesNotContain("GROUP_EARLY")
+  }
+
+  @Test
+  fun `should quote facilitator staff codes when multiple facilitators are present`() {
+    whenever(clock.instant()).thenReturn(Instant.parse("2026-05-21T08:42:00Z"))
+    whenever(clock.zone).thenReturn(ZoneId.of("Europe/London"))
+
+    createGroupWithSessions(
+      groupCode = "GROUP_MULTI",
+      groupCreatedAt = LocalDateTime.parse("2026-05-10T10:00:00"),
+      firstSessionAt = LocalDateTime.parse("2026-05-20T09:00:00"),
+      firstSessionCreatedAt = LocalDateTime.parse("2026-05-10T10:00:00"),
+      secondSessionAt = LocalDateTime.parse("2026-05-20T13:00:00"),
+      secondSessionCreatedAt = LocalDateTime.parse("2026-05-12T08:30:00"),
+      includeFutureSession = false,
+      multipleFacilitatorsOnFirstSession = true,
+    )
+
+    val csv = reportingService.getGroupFaciltiatorContinutiyReport(
+      groupsCreatedSince = LocalDateTime.parse("2026-05-01T00:00:00"),
+      firstSessionAtOrAfter = null,
+      lastSessionAtOrBefore = null,
+    )
+
+    assertThat(csv).contains("FAC001,FAC002")
+  }
+
+  private fun createGroupWithSessions(
+    groupCode: String,
+    groupCreatedAt: LocalDateTime,
+    firstSessionAt: LocalDateTime,
+    firstSessionCreatedAt: LocalDateTime,
+    secondSessionAt: LocalDateTime,
+    secondSessionCreatedAt: LocalDateTime,
+    includeFutureSession: Boolean,
+    multipleFacilitatorsOnFirstSession: Boolean = false,
+  ): TestGroupContext {
+    val template = testDataGenerator.createAccreditedProgrammeTemplate("Programme $groupCode")
+    val module = testDataGenerator.createModule(template, "Module $groupCode", 1)
+    val groupTemplate = testDataGenerator.createModuleSessionTemplate(
+      module = module,
+      name = "Session One",
+      sessionNumber = 1,
+      sessionType = SessionType.GROUP,
+    )
+    val oneToOneTemplate = testDataGenerator.createModuleSessionTemplate(
+      module = module,
+      name = "Session Two",
+      sessionNumber = 2,
+      sessionType = SessionType.ONE_TO_ONE,
+    )
+    val futureTemplate = testDataGenerator.createModuleSessionTemplate(
+      module = module,
+      name = "Session Future",
+      sessionNumber = 3,
+      sessionType = SessionType.GROUP,
+    )
+
+    val group = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withCode(groupCode)
+        .withCreatedAt(groupCreatedAt)
+        .withAccreditedProgrammeTemplate(template)
+        .produce(),
+    )
+
+    val facilitatorOne = testDataGenerator.createFacilitator(
+      FacilitatorEntityFactory().withNdeliusPersonCode("FAC001").produce(),
+    )
+    val facilitatorTwo = testDataGenerator.createFacilitator(
+      FacilitatorEntityFactory().withNdeliusPersonCode("FAC002").produce(),
+    )
+    val facilitatorThree = testDataGenerator.createFacilitator(
+      FacilitatorEntityFactory().withNdeliusPersonCode("FAC003").produce(),
+    )
+
+    val firstSession = SessionFactory()
+      .withProgrammeGroup(group)
+      .withModuleSessionTemplate(groupTemplate)
+      .withStartsAt(firstSessionAt)
+      .withEndsAt(firstSessionAt.plusHours(2))
+      .withCreatedAt(firstSessionCreatedAt)
+      .produce()
+
+    firstSession.sessionFacilitators = mutableSetOf(
+      SessionFacilitatorEntity(
+        facilitator = facilitatorOne,
+        session = firstSession,
+        facilitatorType = FacilitatorType.REGULAR_FACILITATOR,
+      ),
+    )
+
+    if (multipleFacilitatorsOnFirstSession) {
+      firstSession.sessionFacilitators.add(
+        SessionFacilitatorEntity(
+          facilitator = facilitatorTwo,
+          session = firstSession,
+          facilitatorType = FacilitatorType.COVER_FACILITATOR,
+        ),
+      )
+    }
+
+    testDataGenerator.createSession(firstSession)
+
+    val secondSession = SessionFactory()
+      .withProgrammeGroup(group)
+      .withModuleSessionTemplate(oneToOneTemplate)
+      .withStartsAt(secondSessionAt)
+      .withEndsAt(secondSessionAt.plusHours(1))
+      .withCreatedAt(secondSessionCreatedAt)
+      .withIsCatchup(true)
+      .produce()
+
+    secondSession.sessionFacilitators = mutableSetOf(
+      SessionFacilitatorEntity(
+        facilitator = facilitatorThree,
+        session = secondSession,
+        facilitatorType = FacilitatorType.REGULAR_FACILITATOR,
+      ),
+    )
+
+    testDataGenerator.createSession(secondSession)
+
+    if (includeFutureSession) {
+      val futureSession = SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(futureTemplate)
+        .withStartsAt(LocalDateTime.parse("2026-06-25T10:00:00"))
+        .withEndsAt(LocalDateTime.parse("2026-06-25T12:00:00"))
+        .withCreatedAt(LocalDateTime.parse("2026-06-01T10:00:00"))
+        .produce()
+
+      futureSession.sessionFacilitators = mutableSetOf(
+        SessionFacilitatorEntity(
+          facilitator = facilitatorOne,
+          session = futureSession,
+          facilitatorType = FacilitatorType.REGULAR_FACILITATOR,
+        ),
+      )
+
+      testDataGenerator.createSession(futureSession)
+    }
+
+    testDataGenerator.createAttendee(referralRepository.save(ReferralEntityFactory().produce()), firstSession)
+    testDataGenerator.createAttendee(referralRepository.save(ReferralEntityFactory().produce()), firstSession)
+    testDataGenerator.createAttendee(referralRepository.save(ReferralEntityFactory().produce()), secondSession)
+
+    return TestGroupContext(
+      firstFacilitatorCode = facilitatorOne.ndeliusPersonCode,
+      secondFacilitatorCode = facilitatorThree.ndeliusPersonCode,
+    )
+  }
+
+  private data class TestGroupContext(
+    val firstFacilitatorCode: String,
+    val secondFacilitatorCode: String,
+  )
 
   @Test
   fun `should return dosage report csv with session columns and group codes per session`() {

@@ -36,6 +36,7 @@ class ReportingController(
 
     private const val CSV_MEDIA_TYPE = "text/csv"
     private const val GROUP_SIZE_FILE_NAME_SUFFIX = "manage-and-deliver-group-size.csv"
+    private const val FACILITATOR_CONTINUITY_FILE_NAME_SUFFIX = "facilitator-continuity.csv"
     private const val DOSAGE_FILE_NAME_SUFFIX = "dosage.csv"
   }
 
@@ -91,6 +92,88 @@ class ReportingController(
     val csv = reportingService.getGroupSizeReportCsv(groupStartedSince)
 
     val fileName = "${LocalDateTime.now(clock).format(fileNameDateFormatter)}-$GROUP_SIZE_FILE_NAME_SUFFIX"
+
+    return ResponseEntity.ok()
+      .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"$fileName\"")
+      .contentType(MediaType.parseMediaType(CSV_MEDIA_TYPE))
+      .body(csv)
+  }
+
+  @Operation(
+    tags = ["Reporting"],
+    summary = "Download facilitator continuity reporting data as CSV",
+    operationId = "getGroupFacilitatorContinuityReport",
+    description = "Returns facilitator continuity reporting data for happened sessions where at least one filter is provided.",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "CSV file containing facilitator continuity reporting data.",
+        content = [
+          Content(
+            mediaType = CSV_MEDIA_TYPE,
+            schema = Schema(type = "string", format = "binary"),
+            examples = [
+              ExampleObject(
+                name = "facilitator-continuity-csv-example",
+                value = "code,sessionNumber,sessionName,sessionType,isCatchUp,attendeeCount,facilitatorStaffCodes,sessionStartTime,sessionCreatedAt\\nGROUP01,1,Session 1,group,false,6,FAC123,2026-05-01T10:00,2026-04-28T12:00",
+              ),
+            ],
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid query parameters, or no query parameters provided.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+  )
+  @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
+  @GetMapping("/reporting/facilitator-continuity.csv", produces = [CSV_MEDIA_TYPE])
+  fun getFacilitatorContinuityCsv(
+    @Parameter(
+      description = "Only include groups created at or after this date-time.",
+      required = false,
+      example = "2026-05-01T00:00:00",
+    )
+    @RequestParam(name = "groupsCreatedSince", required = false)
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    groupsCreatedSince: LocalDateTime?,
+    @Parameter(
+      description = "Only include groups where first happened session is at or after this date-time.",
+      required = false,
+      example = "2026-05-01T00:00:00",
+    )
+    @RequestParam(name = "firstSessionAtOrAfter", required = false)
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    firstSessionAtOrAfter: LocalDateTime?,
+    @Parameter(
+      description = "Only include groups where last happened session is at or before this date-time.",
+      required = false,
+      example = "2026-06-30T23:59:59",
+    )
+    @RequestParam(name = "lastSessionAtOrBefore", required = false)
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    lastSessionAtOrBefore: LocalDateTime?,
+  ): ResponseEntity<String> {
+    if (groupsCreatedSince == null && firstSessionAtOrAfter == null && lastSessionAtOrBefore == null) {
+      return ResponseEntity.badRequest()
+        .contentType(MediaType.parseMediaType(CSV_MEDIA_TYPE))
+        .body("At least one of groupsCreatedSince, firstSessionAtOrAfter, lastSessionAtOrBefore must be provided")
+    }
+
+    val csv = reportingService.getGroupFaciltiatorContinutiyReport(
+      groupsCreatedSince = groupsCreatedSince,
+      firstSessionAtOrAfter = firstSessionAtOrAfter,
+      lastSessionAtOrBefore = lastSessionAtOrBefore,
+    )
+
+    val fileName = "${LocalDateTime.now(clock).format(fileNameDateFormatter)}-$FACILITATOR_CONTINUITY_FILE_NAME_SUFFIX"
 
     return ResponseEntity.ok()
       .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"$fileName\"")
