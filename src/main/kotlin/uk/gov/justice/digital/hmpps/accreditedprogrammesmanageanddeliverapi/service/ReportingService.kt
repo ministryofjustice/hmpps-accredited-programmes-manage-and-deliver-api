@@ -31,6 +31,8 @@ class ReportingService(
       "id,code,createdAt,sex,cohort,isLdc,earliestPossibleStartDate,regionName,pduCode,pduName,locationCode,locationName,groupSize,facilitatorStaffCode"
     private const val FACILITATOR_CONTINUITY_CSV_HEADER =
       "code,sessionNumber,sessionName,sessionType,isCatchUp,attendeeCount,facilitatorStaffCodes,region_name,delivery_location_name,probation_delivery_unit_name,sessionStartTime,sessionCreatedAt"
+    private const val SESSION_RATE_CSV_HEADER =
+      "licReqNo,crn,groupCode,regionName,pduName,deliveryLocationName,weekStarting,numberSessionAttended,numberSessionsNotAttended,numberSessionsScheduled"
   }
 
   private val csvMapper = CsvMapper.builder().findAndAddModules().build().apply {
@@ -68,6 +70,19 @@ class ReportingService(
     .addColumn("probationDeliveryUnitName")
     .addColumn("sessionStartTime")
     .addColumn("sessionCreatedAt")
+    .build()
+
+  private val sessionRateCsvSchema: CsvSchema = CsvSchema.builder()
+    .addColumn("licReqNo")
+    .addColumn("crn")
+    .addColumn("groupCode")
+    .addColumn("regionName")
+    .addColumn("pduName")
+    .addColumn("deliveryLocationName")
+    .addColumn("weekStarting")
+    .addColumn("numberSessionAttended")
+    .addColumn("numberSessionsNotAttended")
+    .addColumn("numberSessionsScheduled")
     .build()
 
   fun getGroupSizeReportCsv(firstSessionAfter: LocalDateTime): String {
@@ -226,6 +241,235 @@ class ReportingService(
     }
   }
 
+  fun getSessionRate(
+    groupsFinishedAfter: LocalDate?,
+    groupsStartedAfter: LocalDate?,
+  ): String {
+    require(groupsFinishedAfter != null || groupsStartedAfter != null) {
+      "At least one of groupsFinishedAfter or groupsStartedAfter must be provided"
+    }
+
+    val rows = getSessionRateRows(groupsFinishedAfter, groupsStartedAfter)
+    val csvRows = rows.map {
+      SessionRateCsvRow(
+        licReqNo = it.licReqNo,
+        crn = it.crn,
+        groupCode = it.groupCode,
+        regionName = it.regionName,
+        pduName = it.pduName,
+        deliveryLocationName = it.deliveryLocationName,
+        weekStarting = it.weekStarting.toString(),
+        numberSessionAttended = it.numberSessionAttended,
+        numberSessionsNotAttended = it.numberSessionsNotAttended,
+        numberSessionsScheduled = it.numberSessionsScheduled,
+      )
+    }
+
+    val csvBody = csvMapper.writer(sessionRateCsvSchema).writeValueAsString(csvRows).trimEnd('\n', '\r')
+    return if (csvBody.isBlank()) SESSION_RATE_CSV_HEADER else "$SESSION_RATE_CSV_HEADER\n$csvBody"
+  }
+
+  private fun getSessionRateRows(
+    groupsFinishedAfter: LocalDate?,
+    groupsStartedAfter: LocalDate?,
+  ): List<SessionRateReportRow> {
+    val sql =
+      """
+      WITH group_final_sessions AS (
+        SELECT
+          s.programme_group_id,
+          MAX(s.starts_at::date) AS final_session_date
+        FROM session s
+        WHERE s.is_placeholder = FALSE
+        GROUP BY s.programme_group_id
+      ),
+      eligible_groups AS (
+        SELECT
+          pg.id,
+          pg.code,
+          pg.region_name,
+          pg.probation_delivery_unit_name,
+          pg.delivery_location_name
+        FROM programme_group pg
+        LEFT JOIN group_final_sessions gfs ON gfs.programme_group_id = pg.id
+        WHERE pg.deleted_at IS NULL
+          AND (:applyGroupsStartedAfter = FALSE OR pg.earliest_possible_start_date >= :groupsStartedAfter)
+          AND (
+            :applyGroupsFinishedAfter = FALSE
+            OR (gfs.final_session_date IS NOT NULL AND gfs.final_session_date >= :groupsFinishedAfter)
+          )
+      ),
+      scheduled_sessions AS (
+        SELECT
+          r.id AS referral_id,
+          COALESCE(r.event_id, '') AS lic_req_no,
+          r.crn,
+          s.id AS session_id,
+          DATE_TRUNC('week', s.starts_at)::date AS week_starting,
+          s.starts_at AS session_start_time,
+          eg.code AS group_code,
+          eg.region_name,
+          eg.probation_delivery_unit_name AS pdu_name,
+          eg.delivery_location_name
+        FROM attendee a
+        JOIN referral r ON r.id = a.referral_id
+        JOIN session s ON s.id = a.session_id
+        JOIN eligible_groups eg ON eg.id = s.programme_group_id
+        WHERE s.is_placeholder = FALSE
+      ),
+      latest_attendance AS (
+        SELECT DISTINCT ON (sa.session_id, gm.referral_id)
+          sa.session_id,
+          gm.referral_id,
+          outcome.attendance AS attended
+        FROM session_attendance sa
+        JOIN programme_group_membership gm ON gm.id = sa.group_membership_id
+        JOIN session_attendance_ndelius_outcome outcome ON outcome.code = sa.outcome_type_code
+        ORDER BY sa.session_id, gm.referral_id, COALESCE(sa.recorded_at, sa.created_at) DESC, sa.created_at DESC
+      ),
+      weekly_actual AS (
+        SELECT
+          ss.referral_id,
+          ss.lic_req_no,
+          ss.crn,
+          ss.group_code,
+          ss.region_name,
+          ss.pdu_name,
+          ss.delivery_location_name,
+          ss.week_starting,
+          COUNT(DISTINCT ss.session_id)::INTEGER AS number_sessions_scheduled,
+          COUNT(DISTINCT ss.session_id) FILTER (WHERE la.attended = TRUE)::INTEGER AS number_sessions_attended,
+          COUNT(DISTINCT ss.session_id) FILTER (WHERE la.attended = FALSE)::INTEGER AS number_sessions_not_attended
+        FROM scheduled_sessions ss
+        LEFT JOIN latest_attendance la
+          ON la.session_id = ss.session_id
+          AND la.referral_id = ss.referral_id
+        GROUP BY
+          ss.referral_id,
+          ss.lic_req_no,
+          ss.crn,
+          ss.group_code,
+          ss.region_name,
+          ss.pdu_name,
+          ss.delivery_location_name,
+          ss.week_starting
+      ),
+      referral_week_bounds AS (
+        SELECT
+          referral_id,
+          MIN(week_starting) AS first_week_starting,
+          MAX(week_starting) AS last_week_starting
+        FROM weekly_actual
+        GROUP BY referral_id
+      ),
+      referral_weeks AS (
+        SELECT
+          rwb.referral_id,
+          gs.week_starting::date AS week_starting
+        FROM referral_week_bounds rwb
+        CROSS JOIN LATERAL GENERATE_SERIES(
+          rwb.first_week_starting,
+          rwb.last_week_starting,
+          INTERVAL '1 week'
+        ) AS gs(week_starting)
+      ),
+      gap_weeks AS (
+        SELECT
+          rw.referral_id,
+          lk.lic_req_no,
+          lk.crn,
+          lk.group_code,
+          lk.region_name,
+          lk.pdu_name,
+          lk.delivery_location_name,
+          rw.week_starting,
+          0::INTEGER AS number_sessions_scheduled,
+          0::INTEGER AS number_sessions_attended,
+          0::INTEGER AS number_sessions_not_attended
+        FROM referral_weeks rw
+        LEFT JOIN weekly_actual wa
+          ON wa.referral_id = rw.referral_id
+          AND wa.week_starting = rw.week_starting
+        JOIN LATERAL (
+          SELECT
+            wa2.lic_req_no,
+            wa2.crn,
+            wa2.group_code,
+            wa2.region_name,
+            wa2.pdu_name,
+            wa2.delivery_location_name
+          FROM weekly_actual wa2
+          WHERE wa2.referral_id = rw.referral_id
+            AND wa2.week_starting < rw.week_starting
+          ORDER BY wa2.week_starting DESC, wa2.group_code
+          LIMIT 1
+        ) lk ON TRUE
+        WHERE wa.referral_id IS NULL
+      )
+      SELECT
+        combined.lic_req_no,
+        combined.crn,
+        combined.group_code,
+        combined.region_name,
+        combined.pdu_name,
+        combined.delivery_location_name,
+        combined.week_starting,
+        combined.number_sessions_attended,
+        combined.number_sessions_not_attended,
+        combined.number_sessions_scheduled
+      FROM (
+        SELECT
+          wa.lic_req_no,
+          wa.crn,
+          wa.group_code,
+          wa.region_name,
+          wa.pdu_name,
+          wa.delivery_location_name,
+          wa.week_starting,
+          wa.number_sessions_attended,
+          wa.number_sessions_not_attended,
+          wa.number_sessions_scheduled
+        FROM weekly_actual wa
+        UNION ALL
+        SELECT
+          gw.lic_req_no,
+          gw.crn,
+          gw.group_code,
+          gw.region_name,
+          gw.pdu_name,
+          gw.delivery_location_name,
+          gw.week_starting,
+          gw.number_sessions_attended,
+          gw.number_sessions_not_attended,
+          gw.number_sessions_scheduled
+        FROM gap_weeks gw
+      ) combined
+      ORDER BY combined.crn, combined.week_starting, combined.group_code
+      """.trimIndent()
+
+    val defaultDate = LocalDate.parse("1900-01-01")
+    val parameters = MapSqlParameterSource()
+      .addValue("applyGroupsFinishedAfter", groupsFinishedAfter != null)
+      .addValue("applyGroupsStartedAfter", groupsStartedAfter != null)
+      .addValue("groupsFinishedAfter", groupsFinishedAfter ?: defaultDate, Types.DATE)
+      .addValue("groupsStartedAfter", groupsStartedAfter ?: defaultDate, Types.DATE)
+
+    return namedParameterJdbcTemplate.query(sql, parameters) { rs, _ ->
+      SessionRateReportRow(
+        licReqNo = rs.getString("lic_req_no") ?: "",
+        crn = rs.getString("crn"),
+        groupCode = rs.getString("group_code"),
+        regionName = rs.getString("region_name"),
+        pduName = rs.getString("pdu_name"),
+        deliveryLocationName = rs.getString("delivery_location_name"),
+        weekStarting = rs.getDate("week_starting").toLocalDate(),
+        numberSessionAttended = rs.getInt("number_sessions_attended"),
+        numberSessionsNotAttended = rs.getInt("number_sessions_not_attended"),
+        numberSessionsScheduled = rs.getInt("number_sessions_scheduled"),
+      )
+    }
+  }
+
   fun getDosageReportCsv(
     referralsCreatedSince: LocalDate?,
     referralsCompletedAfter: LocalDate?,
@@ -343,4 +587,30 @@ class ReportingService(
   ) {
     val header: String = "M$moduleNumber S$sessionNumber $sessionName"
   }
+
+  data class SessionRateReportRow(
+    val licReqNo: String,
+    val crn: String,
+    val groupCode: String,
+    val regionName: String,
+    val pduName: String,
+    val deliveryLocationName: String,
+    val weekStarting: LocalDate,
+    val numberSessionAttended: Int,
+    val numberSessionsNotAttended: Int,
+    val numberSessionsScheduled: Int,
+  )
+
+  data class SessionRateCsvRow(
+    val licReqNo: String,
+    val crn: String,
+    val groupCode: String,
+    val regionName: String,
+    val pduName: String,
+    val deliveryLocationName: String,
+    val weekStarting: String,
+    val numberSessionAttended: Int,
+    val numberSessionsNotAttended: Int,
+    val numberSessionsScheduled: Int,
+  )
 }
