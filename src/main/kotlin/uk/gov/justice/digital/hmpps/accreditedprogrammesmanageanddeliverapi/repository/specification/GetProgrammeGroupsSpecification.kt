@@ -185,7 +185,6 @@ fun incompleteMembershipCountSubquery(
     isLatestReferralStatusProgrammeComplete(query, cb, referralJoin),
     hasAttendedPostProgrammeReview(incompleteMembershipCountSubquery, cb, groupMembershipRoot),
     allSessionsHaveAttendanceData(incompleteMembershipCountSubquery, cb, groupMembershipRoot),
-    cb.isNull(groupMembershipRoot.get<LocalDateTime>("deletedAt")),
   )
 
   incompleteMembershipCountSubquery.select(cb.count(groupMembershipRoot))
