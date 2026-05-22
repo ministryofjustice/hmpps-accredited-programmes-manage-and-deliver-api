@@ -242,15 +242,12 @@ class ReportingService(
     val attendanceRows =
       if (referralIds.isEmpty()) emptyList() else sessionAttendanceRepository.getDosageAttendanceRows(referralIds)
     val templateSessions = moduleSessionTemplateRepository.getBuildingChoicesSessionColumns()
-    val regions = referrals.map { it.regionName }.distinct().sorted()
-    val sessionColumns = regions.flatMap { region ->
-      templateSessions.map {
-        SessionColumn(
-          moduleNumber = it.moduleNumber,
-          sessionNumber = it.sessionNumber,
-          sessionName = it.sessionName,
-        )
-      }
+    val sessionColumns = templateSessions.map {
+      SessionColumn(
+        moduleNumber = it.moduleNumber,
+        sessionNumber = it.sessionNumber,
+        sessionName = it.sessionName,
+      )
     }
     val header = listOf("licReqNo", "crn", "numberSessionAttended") + sessionColumns.map { it.header }
     val attendanceByReferralId = attendanceRows.groupBy { it.referralId }
