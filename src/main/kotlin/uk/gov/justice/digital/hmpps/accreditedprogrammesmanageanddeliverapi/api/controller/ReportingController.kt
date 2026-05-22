@@ -115,7 +115,7 @@ class ReportingController(
             examples = [
               ExampleObject(
                 name = "facilitator-continuity-csv-example",
-                value = "code,sessionNumber,sessionName,sessionType,isCatchUp,attendeeCount,facilitatorStaffCodes,sessionStartTime,sessionCreatedAt\\nGROUP01,1,Session 1,group,false,6,FAC123,2026-05-01T10:00,2026-04-28T12:00",
+                value = "code,region,location,sessionNumber,sessionName,sessionType,isCatchUp,attendeeCount,facilitatorStaffCodes,sessionStartTime,sessionCreatedAt\\nGROUP01,North East,HMP Example,1,Session 1,group,false,6,FAC123,2026-05-01 10:00,2026-04-28 12:00",
               ),
             ],
           ),
