@@ -124,7 +124,18 @@ class ReportingController(
       ApiResponse(
         responseCode = "400",
         description = "Invalid query parameters, or no query parameters provided.",
-        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+        content = [
+          Content(
+            mediaType = CSV_MEDIA_TYPE,
+            schema = Schema(type = "string"),
+            examples = [
+              ExampleObject(
+                name = "facilitator-continuity-bad-request-example",
+                value = "At least one query parameter must be provided.",
+              ),
+            ],
+          ),
+        ],
       ),
       ApiResponse(
         responseCode = "401",
@@ -167,7 +178,7 @@ class ReportingController(
         .body("At least one of groupsCreatedSince, firstSessionAtOrAfter, lastSessionAtOrBefore must be provided")
     }
 
-    val csv = reportingService.getGroupFaciltiatorContinutiyReport(
+    val csv = reportingService.getFacilitatorContinuityReportCsv(
       groupsCreatedSince = groupsCreatedSince,
       firstSessionAtOrAfter = firstSessionAtOrAfter,
       lastSessionAtOrBefore = lastSessionAtOrBefore,
@@ -235,7 +246,7 @@ class ReportingController(
         .body("At least one of referralsCreatedSince or referralsCompletedAfter must be provided")
     }
 
-    val csv = reportingService.getGroupFaciltiatorContinutiyReport(referralsCreatedSince, referralsCompletedAfter)
+    val csv = reportingService.getDosageReportCsv(referralsCreatedSince, referralsCompletedAfter)
     val fileName = "${LocalDateTime.now(clock).format(fileNameDateFormatter)}-$DOSAGE_FILE_NAME_SUFFIX"
 
     return ResponseEntity.ok()

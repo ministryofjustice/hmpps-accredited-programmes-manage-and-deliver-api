@@ -138,7 +138,7 @@ class ReportingServiceIntegrationTest : IntegrationTestBase() {
       includeFutureSession = true,
     )
 
-    val csv = reportingService.getGroupFaciltiatorContinutiyReport(
+    val csv = reportingService.getFacilitatorContinuityReportCsv(
       groupsCreatedSince = LocalDateTime.parse("2026-05-01T00:00:00"),
       firstSessionAtOrAfter = null,
       lastSessionAtOrBefore = null,
@@ -149,12 +149,8 @@ class ReportingServiceIntegrationTest : IntegrationTestBase() {
     assertThat(lines.first()).isEqualTo(
       "code,sessionNumber,sessionName,sessionType,isCatchUp,attendeeCount,facilitatorStaffCodes,region_name,delivery_location_name,probation_delivery_unit_name,sessionStartTime,sessionCreatedAt",
     )
-    assertThat(lines[1]).contains("GROUP_A,1")
-    assertThat(lines[1]).contains("Session One")
-    assertThat(lines[1]).contains(",group,false,2,${context.firstFacilitatorCode},TEST REGION,Delivery Location 1,Test PDU 1,2026-05-20 09:00,")
-    assertThat(lines[2]).contains("GROUP_A,2")
-    assertThat(lines[2]).contains("Session Two")
-    assertThat(lines[2]).contains(",one-to-one,true,1,${context.secondFacilitatorCode},TEST REGION,Delivery Location 1,Test PDU 1,2026-05-20 13:00,")
+    assertThat(lines[1]).contains("GROUP_A,1,\"Session One\",group,false,2,FAC001,\"TEST REGION\",\"Delivery Location 1\",\"Test PDU 1\",\"2026-05-20 09:00\"")
+    assertThat(lines[2]).contains(",one-to-one,true,1,FAC003,\"TEST REGION\",\"Delivery Location 1\",\"Test PDU 1\",\"2026-05-20 13:00\",")
     assertThat(csv).doesNotContain("Session Future")
   }
 
@@ -183,7 +179,7 @@ class ReportingServiceIntegrationTest : IntegrationTestBase() {
       includeFutureSession = false,
     )
 
-    val csv = reportingService.getGroupFaciltiatorContinutiyReport(
+    val csv = reportingService.getFacilitatorContinuityReportCsv(
       groupsCreatedSince = LocalDateTime.parse("2026-05-01T00:00:00"),
       firstSessionAtOrAfter = null,
       lastSessionAtOrBefore = null,
@@ -218,7 +214,7 @@ class ReportingServiceIntegrationTest : IntegrationTestBase() {
       includeFutureSession = false,
     )
 
-    val csv = reportingService.getGroupFaciltiatorContinutiyReport(
+    val csv = reportingService.getFacilitatorContinuityReportCsv(
       groupsCreatedSince = LocalDateTime.parse("2026-05-01T00:00:00"),
       firstSessionAtOrAfter = LocalDateTime.parse("2026-05-10T00:00:00"),
       lastSessionAtOrBefore = LocalDateTime.parse("2026-05-20T23:59:59"),
@@ -244,13 +240,13 @@ class ReportingServiceIntegrationTest : IntegrationTestBase() {
       multipleFacilitatorsOnFirstSession = true,
     )
 
-    val csv = reportingService.getGroupFaciltiatorContinutiyReport(
+    val csv = reportingService.getFacilitatorContinuityReportCsv(
       groupsCreatedSince = LocalDateTime.parse("2026-05-01T00:00:00"),
       firstSessionAtOrAfter = null,
       lastSessionAtOrBefore = null,
     )
 
-    assertThat(csv).contains("FAC001,FAC002")
+    assertThat(csv).contains("\"FAC001,FAC002\"")
   }
 
   private fun createGroupWithSessions(
@@ -469,12 +465,12 @@ class ReportingServiceIntegrationTest : IntegrationTestBase() {
         .produce(),
     )
 
-    val csv = reportingService.getGroupFaciltiatorContinutiyReport(
+    val dosageReportCsv = reportingService.getDosageReportCsv(
       referralsCreatedSince = LocalDate.parse("2026-05-01"),
       referralsCompletedAfter = null,
     )
 
-    val lines = csv.split("\n")
+    val lines = dosageReportCsv.split("\n")
     assertThat(lines.first()).contains("licReqNo,crn,numberSessionAttended")
     assertThat(lines.first()).contains("M2 S1 Introduction to Building Choices")
     assertThat(lines.first()).contains("M2 S2 Understanding myself")

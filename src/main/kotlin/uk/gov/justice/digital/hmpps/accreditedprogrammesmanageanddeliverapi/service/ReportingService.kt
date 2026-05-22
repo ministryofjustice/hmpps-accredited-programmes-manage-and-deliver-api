@@ -56,7 +56,6 @@ class ReportingService(
     .build()
 
   private val facilitatorContinuityCsvSchema: CsvSchema = CsvSchema.builder()
-    .disableQuoteChar()
     .addColumn("code")
     .addColumn("sessionNumber")
     .addColumn("sessionName")
@@ -98,7 +97,7 @@ class ReportingService(
 
   private fun getGroupSizeReportRows(firstSessionAfter: LocalDateTime): List<ReportingGroupSizeEntity> = reportingGroupSizeRepository.getAllGroupsWithEarliestStartDateAfter(firstSessionAfter.toLocalDate())
 
-  fun getGroupFaciltiatorContinutiyReport(
+  fun getFacilitatorContinuityReportCsv(
     groupsCreatedSince: LocalDateTime?,
     firstSessionAtOrAfter: LocalDateTime?,
     lastSessionAtOrBefore: LocalDateTime?,
@@ -227,7 +226,7 @@ class ReportingService(
     }
   }
 
-  fun getGroupFaciltiatorContinutiyReport(
+  fun getDosageReportCsv(
     referralsCreatedSince: LocalDate?,
     referralsCompletedAfter: LocalDate?,
   ): String {
