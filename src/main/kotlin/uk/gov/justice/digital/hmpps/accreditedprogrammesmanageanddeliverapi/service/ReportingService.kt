@@ -10,9 +10,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReportingGroupSizeRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceRepository
 import java.sql.Types
 import java.time.Clock
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -239,7 +239,8 @@ class ReportingService(
       .distinctBy { it.referralId }
       .sortedBy { it.crn }
     val referralIds = referrals.map { it.referralId }
-    val attendanceRows = if (referralIds.isEmpty()) emptyList() else sessionAttendanceRepository.getDosageAttendanceRows(referralIds)
+    val attendanceRows =
+      if (referralIds.isEmpty()) emptyList() else sessionAttendanceRepository.getDosageAttendanceRows(referralIds)
     val templateSessions = moduleSessionTemplateRepository.getBuildingChoicesSessionColumns()
     val regions = referrals.map { it.regionName }.distinct().sorted()
     val sessionColumns = regions.flatMap { region ->
