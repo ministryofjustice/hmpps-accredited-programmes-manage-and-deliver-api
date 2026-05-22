@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -8,7 +7,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.data.repository.findByIdOrNull
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusDescriptionEntityFactory
@@ -28,7 +26,6 @@ class ProgrammeGroupMembershipServiceTest {
   private val programmeGroupMembershipRepository = mockk<ProgrammeGroupMembershipRepository>()
   private val scheduleService = mockk<ScheduleService>()
   private val referralEventService = mockk<ReferralEventService>()
-  private val telemetryClient = mockk<TelemetryClient>()
   private lateinit var service: ProgrammeGroupMembershipService
 
   @BeforeEach
@@ -40,7 +37,6 @@ class ProgrammeGroupMembershipServiceTest {
       programmeGroupMembershipRepository = programmeGroupMembershipRepository,
       scheduleService = scheduleService,
       referralEventService = referralEventService,
-      telemetryClient = telemetryClient,
     )
   }
 
@@ -65,7 +61,6 @@ class ProgrammeGroupMembershipServiceTest {
     every { referralRepository.save(referralEntity) } returns referralEntity
     every { scheduleService.createNdeliusAppointmentsForSessions(any()) } returns Unit
     every { referralEventService.publishReferralStatusUpdatedEvent(referralEntity) } returns Unit
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
     val result = service.allocateReferralToGroup(referralId, groupId, allocatedToGroupBy, additionalDetails)
@@ -81,7 +76,6 @@ class ProgrammeGroupMembershipServiceTest {
     verify { referralRepository.save(referralEntity) }
     verify { scheduleService.createNdeliusAppointmentsForSessions(any()) }
     verify { referralEventService.publishReferralStatusUpdatedEvent(referralEntity) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
   }
 
   @Test
@@ -111,7 +105,6 @@ class ProgrammeGroupMembershipServiceTest {
     every { referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId) } returns referralStatusDescriptionEntity
     every { referralRepository.save(referralEntity) } returns referralEntity
     every { referralEventService.publishReferralStatusUpdatedEvent(referralEntity) } returns Unit
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
     val result = service.removeReferralFromGroup(referralId, groupId, removedFromGroupBy, removeFromGroupRequest)
@@ -127,6 +120,5 @@ class ProgrammeGroupMembershipServiceTest {
     verify { referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId) }
     verify { referralRepository.save(referralEntity) }
     verify { referralEventService.publishReferralStatusUpdatedEvent(referralEntity) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
   }
 }

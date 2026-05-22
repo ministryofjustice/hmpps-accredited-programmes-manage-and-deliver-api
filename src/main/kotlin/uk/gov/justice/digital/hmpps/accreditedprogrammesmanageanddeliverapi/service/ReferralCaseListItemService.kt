@@ -42,7 +42,8 @@ class ReferralCaseListItemService(
     val (offenceType, hasLdc) = cohort?.let { ProgrammeGroupCohort.toOffenceTypeAndLdc(it) }
       ?: (null to null)
 
-    val userRegionName = userService.getFirstUserRegionDescription(username)
+    val (userRegion) = userService.getUserRegions(username)
+    val userRegionName = userRegion.description
 
     val referralsToReturn = getReferralCaseList(
       pageable = pageable,

@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -12,27 +11,19 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import java.time.DayOfWeek
 import java.util.UUID
 
 class AvailabilityServiceTest {
+
   private val availabilityRepository = mockk<AvailabilityRepository>()
   private val defaultAvailabilityConfigService = mockk<DefaultAvailabilityConfigService>()
-  private var referralService = mockk<ReferralService>()
-  private var programmeGroupMembershipRepository = mockk<ProgrammeGroupMembershipRepository>()
-  private var telemetryClient = mockk<TelemetryClient>()
   private lateinit var availabilityService: AvailabilityService
+  private var referralService = mockk<ReferralService>()
 
   @BeforeEach
   fun setup() {
-    availabilityService = AvailabilityService(
-      availabilityRepository,
-      defaultAvailabilityConfigService,
-      referralService,
-      programmeGroupMembershipRepository,
-      telemetryClient,
-    )
+    availabilityService = AvailabilityService(availabilityRepository, defaultAvailabilityConfigService, referralService)
   }
 
   @Test

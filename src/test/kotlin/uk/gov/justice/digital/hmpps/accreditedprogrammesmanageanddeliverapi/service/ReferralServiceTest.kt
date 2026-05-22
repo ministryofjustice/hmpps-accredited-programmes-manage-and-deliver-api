@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -85,16 +84,13 @@ class ReferralServiceTest {
   @Mock
   private lateinit var referralEventService: ReferralEventService
 
+  private lateinit var referralService: ReferralService
+
   @Mock
   private lateinit var sessionNameFormatter: SessionNameFormatter
 
   @Mock
   private lateinit var referralCohortHistoryRepository: ReferralCohortHistoryRepository
-
-  @Mock
-  private lateinit var telemetryClient: TelemetryClient
-
-  private lateinit var referralService: ReferralService
 
   @BeforeEach
   fun beforeEach() {
@@ -119,7 +115,6 @@ class ReferralServiceTest {
       referralStatusService = referralStatusService,
       referralEventService = referralEventService,
       referralCohortHistoryRepository = referralCohortHistoryRepository,
-      telemetryClient = telemetryClient,
     )
   }
 

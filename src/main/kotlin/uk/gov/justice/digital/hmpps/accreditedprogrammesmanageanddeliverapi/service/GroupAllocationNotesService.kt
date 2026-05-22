@@ -1,17 +1,14 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralMotivationBackgroundAndNonAssociations
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralMotivationBackgroundAndNonAssociationsEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.SET_MOTIVATION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.UPDATE_MOTIVATION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateOrUpdateReferralMotivationBackgroundAndNonAssociations
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralMotivationBackgroundAndNonAssociationsRepository
 import java.time.LocalDateTime
 import java.util.UUID
@@ -20,8 +17,6 @@ import java.util.UUID
 @Transactional
 class GroupAllocationNotesService(
   private val referralMotivationBackgroundAndNonAssociationsRepository: ReferralMotivationBackgroundAndNonAssociationsRepository,
-  private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
-  private val telemetryClient: TelemetryClient,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -61,16 +56,7 @@ class GroupAllocationNotesService(
     val savedReferralMotivationBackgroundAndNonAssociations =
       referralMotivationBackgroundAndNonAssociationsRepository.save(motivationBackgroundAndNonAssociations)
     log.info("Created motivation, background and non-associations for referral id: ${referral.id}")
-    val programmeGroupMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referral.id!!)
-    telemetryClient.logToAppInsights(
-      "Referral.create-motivation-background-non-associations.success",
-      mapOf(
-        "activityType" to SET_MOTIVATION.name,
-        "regionName" to (referral.referralReportingLocation?.regionName ?: ""),
-        "deliveryUnitCode" to (referral.referralReportingLocation?.pduName ?: ""),
-        "deliveryLocation" to (programmeGroupMembership?.programmeGroup?.deliveryLocationName ?: ""),
-      ),
-    )
+    log.info("User activity - activityType: ${SET_MOTIVATION}, regionName: ${referral.referralReportingLocation?.regionName}, deliveryUnitCode: ${referral.referralReportingLocation?.pduName}, deliveryLocation: ${referral.programmeGroupMemberships.firstOrNull()?.programmeGroup?.deliveryLocationName}")
 
     return ReferralMotivationBackgroundAndNonAssociations.toApi(savedReferralMotivationBackgroundAndNonAssociations)
   }
@@ -91,16 +77,7 @@ class GroupAllocationNotesService(
     val updatedReferralMotivationBackgroundAndNonAssociations =
       referralMotivationBackgroundAndNonAssociationsRepository.save(referral.referralMotivationBackgroundAndNonAssociations!!)
     log.info("Updated motivation, background and non-associations for referral id: ${referral.id}")
-    val programmeGroupMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referral.id!!)
-    telemetryClient.logToAppInsights(
-      "Referral.update-motivation-background-non-associations.success",
-      mapOf(
-        "activityType" to UPDATE_MOTIVATION.name,
-        "regionName" to (referral.referralReportingLocation?.regionName ?: ""),
-        "deliveryUnitCode" to (referral.referralReportingLocation?.pduName ?: ""),
-        "deliveryLocation" to (programmeGroupMembership?.programmeGroup?.deliveryLocationName ?: ""),
-      ),
-    )
+    log.info("User activity - activityType: ${UPDATE_MOTIVATION}, regionName: ${referral.referralReportingLocation?.regionName}, deliveryUnitCode: ${referral.referralReportingLocation?.pduName}, deliveryLocation: ${referral.programmeGroupMemberships.firstOrNull()?.programmeGroup?.deliveryLocationName}")
 
     return ReferralMotivationBackgroundAndNonAssociations.toApi(
       updatedReferralMotivationBackgroundAndNonAssociations,

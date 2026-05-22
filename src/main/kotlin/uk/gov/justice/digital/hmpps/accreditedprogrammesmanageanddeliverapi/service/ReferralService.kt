@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -31,7 +30,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.toPniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCohortHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
@@ -78,7 +76,6 @@ class ReferralService(
   private val referralStatusService: ReferralStatusService,
   private val referralEventService: ReferralEventService,
   private val referralCohortHistoryRepository: ReferralCohortHistoryRepository,
-  private val telemetryClient: TelemetryClient,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -392,15 +389,7 @@ class ReferralService(
       referralStatusService.checkAndPublishCompletionEvent(referral.id!!)
     }
 
-    telemetryClient.logToAppInsights(
-      "Referral.update-status.success",
-      mapOf(
-        "activityType" to UPDATE_REFERRAL_STATUS.name,
-        "regionName" to (referral.referralReportingLocation?.regionName ?: ""),
-        "deliveryUnitCode" to (referral.referralReportingLocation?.pduName ?: ""),
-        "deliveryLocation" to (activeGroupMembership?.programmeGroup?.deliveryLocationName ?: ""),
-      ),
-    )
+    log.info("User activity - activityType: ${UPDATE_REFERRAL_STATUS}, regionName: ${referral.referralReportingLocation?.regionName}, deliveryUnitCode: ${referral.referralReportingLocation?.pduName}, deliveryLocation: ${activeGroupMembership?.programmeGroup?.deliveryLocationName}")
 
     return StatusUpdateResponse(
       referralStatusHistory = historyEntry.toApi(),

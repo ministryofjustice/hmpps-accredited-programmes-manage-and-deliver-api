@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -68,7 +67,6 @@ class SessionService(
   private val sessionAttendanceOutcomeTypeRepository: SessionAttendanceOutcomeTypeRepository,
   private val sessionNameFormatter: SessionNameFormatter,
   private val referralStatusService: ReferralStatusService,
-  private val telemetryClient: TelemetryClient,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {

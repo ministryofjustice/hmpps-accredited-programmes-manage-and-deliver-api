@@ -666,7 +666,7 @@ class ProgrammeGroupService(
   ): GroupsByRegion {
     val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
 
-    val firstUserRegionDescription = userService.getFirstUserRegionDescription(username)
+    val firstUserRegionDescription = getFirstUserRegionDescription(username)
 
     // Base spec without startedAt filter (used for total count)
     val baseSpec = getProgrammeGroupsSpecification(
@@ -699,6 +699,18 @@ class ProgrammeGroupService(
       probationDeliveryUnitNames = allPduNames,
       deliveryLocationNames = deliveryLocationNames,
     )
+  }
+
+  private fun getFirstUserRegionDescription(username: String): String {
+    val distinctRegionDescriptions = userService.getUserRegions(username).map { it.description }.distinct()
+
+    if (distinctRegionDescriptions.isEmpty()) {
+      throw NotFoundException("Cannot find any regions (or teams) for user $username")
+    } else if (distinctRegionDescriptions.size > 1) {
+      log.warn("User $username has more than one region on their account, going to use '${distinctRegionDescriptions.first()}'")
+    }
+
+    return distinctRegionDescriptions.first()
   }
 
   fun getGroupSessionPage(groupId: UUID, sessionId: UUID): GroupSessionResponse {
