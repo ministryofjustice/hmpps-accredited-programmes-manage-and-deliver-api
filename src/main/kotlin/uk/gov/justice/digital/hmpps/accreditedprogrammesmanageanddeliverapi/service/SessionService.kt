@@ -482,7 +482,7 @@ class SessionService(
         session.attendances.filter { it.groupMembership.referralId == referralId }
           .maxByOrNull { it.createdAt }?.outcomeType,
       )
-    return SessionNotes.from(session, referralId, outcomeText, pageTitle)
+    return SessionNotes.from(session, referralId, popName, outcomeText, pageTitle)
   }
 
   private fun getOptionFromOutcome(outcome: SessionAttendanceNDeliusOutcomeEntity): Option = when (outcome.code) {
