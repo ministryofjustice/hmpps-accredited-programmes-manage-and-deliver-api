@@ -877,5 +877,34 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(referralDetails.createdAt).isEqualTo(referral.createdAt.toLocalDate())
       assertThat(referralDetails.dateOfBirth).isEqualTo(dateOfBirth)
     }
+
+    @Test
+    fun `retrieve referralDetails gracefully when OASys PNI returns 503`() = runTest {
+      val referral = ReferralEntityFactory().produce()
+      val name = randomFullName()
+      val dateOfBirth = randomDateOfBirth()
+      testDataGenerator.createReferralWithStatusHistory(referral)
+      oasysApiStubs.stubServiceUnavailablePniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory()
+          .withName(name)
+          .withDateOfBirth(dateOfBirth)
+          .produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      val referralDetails = referralService.refreshPersonalDetailsForReferral(referral.id!!)!!
+
+      assertThat(referralDetails.id).isEqualTo(referral.id!!)
+      assertThat(referralDetails.crn).isEqualTo(referral.crn)
+      assertThat(referralDetails.personName).isEqualTo(name.getNameAsString())
+      assertThat(referralDetails.hasLdc).isFalse()
+      assertThat(referralDetails.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+    }
   }
 }
