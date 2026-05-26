@@ -91,7 +91,7 @@ class ReferralService(
       try {
         pniService.getPniResponse(referral.crn)
       } catch (e: Exception) {
-        // APG-2307: Gracefully handle OASys PNI failures (503s were crashing the page with 500).
+        // Gracefully handle OASys PNI failures (503s were crashing the page with 500).
         // Catching broad Exception here — PniService only throws ClientResult.Failure.toException() which wraps
         // HTTP errors, so this is safe. Could narrow to WebClientResponseException if we want to surface
         // unexpected bugs (e.g., NPE) rather than swallowing them. Follow-up refinement candidate.
