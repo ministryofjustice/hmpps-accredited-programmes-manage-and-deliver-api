@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestComponent
@@ -82,6 +83,21 @@ class OasysApiStubs {
         .willReturn(
           aResponse()
             .withStatus(404)
+            .withHeader("Content-Type", "application/json"),
+        ),
+    )
+  }
+
+  fun verifyPniCallCount(crn: String, expectedCount: Int) {
+    wiremock.verify(expectedCount, getRequestedFor(urlEqualTo("/assessments/pni/$crn?community=true")))
+  }
+
+  fun stubServiceUnavailablePniResponse(crn: String) {
+    wiremock.stubFor(
+      get(urlEqualTo("/assessments/pni/$crn?community=true"))
+        .willReturn(
+          aResponse()
+            .withStatus(503)
             .withHeader("Content-Type", "application/json"),
         ),
     )

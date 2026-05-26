@@ -877,5 +877,65 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(referralDetails.createdAt).isEqualTo(referral.createdAt.toLocalDate())
       assertThat(referralDetails.dateOfBirth).isEqualTo(dateOfBirth)
     }
+
+    @Test
+    fun `should not call OASys PNI on second page view when already enriched`() = runTest {
+      val referral = ReferralEntityFactory().produce()
+      val name = randomFullName()
+      val dateOfBirth = randomDateOfBirth()
+      testDataGenerator.createReferralWithStatusHistory(referral)
+      oasysApiStubs.stubSuccessfulPniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory()
+          .withName(name)
+          .withDateOfBirth(dateOfBirth)
+          .produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      // First call - enriches from OASys (creates LDC history entry)
+      referralService.refreshPersonalDetailsForReferral(referral.id!!)
+
+      // Second call - should skip OASys PNI (already enriched)
+      val referralDetails = referralService.refreshPersonalDetailsForReferral(referral.id!!)!!
+
+      // Verify OASys was only called once (not twice)
+      oasysApiStubs.verifyPniCallCount(referral.crn, 1)
+      assertThat(referralDetails.personName).isEqualTo(name.getNameAsString())
+    }
+
+    @Test
+    fun `retrieve referralDetails gracefully when OASys PNI returns 503`() = runTest {
+      val referral = ReferralEntityFactory().produce()
+      val name = randomFullName()
+      val dateOfBirth = randomDateOfBirth()
+      testDataGenerator.createReferralWithStatusHistory(referral)
+      oasysApiStubs.stubServiceUnavailablePniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory()
+          .withName(name)
+          .withDateOfBirth(dateOfBirth)
+          .produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      val referralDetails = referralService.refreshPersonalDetailsForReferral(referral.id!!)!!
+
+      assertThat(referralDetails.id).isEqualTo(referral.id!!)
+      assertThat(referralDetails.crn).isEqualTo(referral.crn)
+      assertThat(referralDetails.personName).isEqualTo(name.getNameAsString())
+      assertThat(referralDetails.hasLdc).isFalse()
+      assertThat(referralDetails.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+    }
   }
 }

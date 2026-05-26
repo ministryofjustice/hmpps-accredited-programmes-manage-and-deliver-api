@@ -87,8 +87,29 @@ class ReferralService(
   suspend fun refreshPersonalDetailsForReferral(referralId: UUID): ReferralDetails? = coroutineScope {
     val referral = referralRepository.findByIdWithMemberships(referralId) ?: return@coroutineScope null
 
-    val pniDeferred = async(Dispatchers.IO) {
-      pniService.getPniResponse(referral.crn)
+    // APG-2307: Skip OASys PNI call if already enriched TODAY (same-day freshness).
+    // This prevents ~200k wasted repeat calls per week while ensuring daily data accuracy.
+    // - If LDC was set today by SYSTEM → skip (already fresh)
+    // - If user has manually overridden both cohort AND LDC → skip (clinical decision made)
+    // - Otherwise → call OASys (first view of the day, or never enriched)
+    val latestLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)
+    val enrichedToday = latestLdc != null && latestLdc.createdBy == "SYSTEM" && latestLdc.createdAt?.toLocalDate() == LocalDate.now()
+    val bothOverridden = cohortService.hasOverriddenCohort(referralId) && ldcService.hasOverriddenLdcStatus(referralId)
+    val shouldFetchPni = !enrichedToday && !bothOverridden
+
+    val pniDeferred = if (shouldFetchPni) {
+      async(Dispatchers.IO) {
+        try {
+          pniService.getPniResponse(referral.crn)
+        } catch (e: Exception) {
+          // APG-2307: Catch inside async to prevent coroutineScope propagation.
+          // ServiceUnavailableException from OASys 503 would otherwise cancel all sibling coroutines.
+          log.warn("Failed to fetch PNI for referral $referralId (CRN: ${referral.crn}): ${e.message}")
+          null
+        }
+      }
+    } else {
+      null
     }
 
     val personalDetailsDeferred = async(Dispatchers.IO) {
@@ -103,18 +124,19 @@ class ReferralService(
       )
     }
 
-    val pniResponse = pniDeferred.await()
+    val pniResponse = pniDeferred?.await()
 
-    val hasLdc = pniResponse?.hasLdc() ?: false
-    val cohort =
-      pniResponse?.let { cohortService.determineOffenceCohort(it.toPniScore()) } ?: OffenceCohort.GENERAL_OFFENCE
+    if (shouldFetchPni) {
+      val hasLdc = pniResponse?.hasLdc() ?: false
+      val cohort = pniResponse?.let { cohortService.determineOffenceCohort(it.toPniScore()) } ?: OffenceCohort.GENERAL_OFFENCE
 
-    if (!ldcService.hasOverriddenLdcStatus(referralId)) {
-      ldcService.updateLdcStatusForReferral(referral, UpdateLdc(hasLdc), "SYSTEM")
-    }
+      if (!ldcService.hasOverriddenLdcStatus(referralId)) {
+        ldcService.updateLdcStatusForReferral(referral, UpdateLdc(hasLdc), "SYSTEM")
+      }
 
-    if (!cohortService.hasOverriddenCohort(referralId)) {
-      cohortService.updateCohortForReferral(referral, cohort, "SYSTEM")
+      if (!cohortService.hasOverriddenCohort(referralId)) {
+        cohortService.updateCohortForReferral(referral, cohort, "SYSTEM")
+      }
     }
 
     val personalDetails = personalDetailsDeferred.await()
