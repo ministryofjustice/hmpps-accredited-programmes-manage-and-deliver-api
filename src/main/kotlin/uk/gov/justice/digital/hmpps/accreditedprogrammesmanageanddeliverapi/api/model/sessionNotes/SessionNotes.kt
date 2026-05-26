@@ -11,16 +11,16 @@ import java.util.UUID
 @Schema(description = "Details of the notes for a session")
 data class SessionNotes(
   @Schema(
-    description = "The person on probation's name",
-    example = "Alex River",
-  )
-  val personName: String,
-
-  @Schema(
     description = "The page title for the session notes page",
     example = "Alex River: Getting started 1 Introduction to Building Choices session notes",
   )
   val pageTitle: String,
+
+  @Schema(
+    description = "The person on probation's name",
+    example = "Alex River",
+  )
+  val personName: String,
 
   @Schema(
     description = "The name of the module the session belongs to",
