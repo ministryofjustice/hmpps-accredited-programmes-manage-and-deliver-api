@@ -476,6 +476,7 @@ class SessionService(
     }
 
     val popName = referral.personName
+    val personName = referral.personName
     val pageTitle = sessionNameFormatter.format(session, SessionNameContext.SessionNotes(popName))
     val outcomeText =
       getAttendanceTextFromOutcome(
