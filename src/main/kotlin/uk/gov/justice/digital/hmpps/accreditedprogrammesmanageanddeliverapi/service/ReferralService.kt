@@ -84,8 +84,7 @@ class ReferralService(
   suspend fun refreshPersonalDetailsForReferral(referralId: UUID): ReferralDetails? = coroutineScope {
     val referral = referralRepository.findByIdWithMemberships(referralId) ?: return@coroutineScope null
 
-    // APG-2307: Skip OASys PNI call if already enriched TODAY (same-day freshness).
-    // This prevents ~200k wasted repeat calls per week while ensuring daily data accuracy.
+    // Skip OASys PNI call if already enriched TODAY (same-day freshness).
     // - If LDC was set today by SYSTEM → skip (already fresh)
     // - If user has manually overridden both cohort AND LDC → skip (clinical decision made)
     // - Otherwise → call OASys (first view of the day, or never enriched)

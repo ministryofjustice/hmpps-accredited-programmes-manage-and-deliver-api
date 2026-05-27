@@ -1059,7 +1059,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `retrieve referralDetails gracefully when OASys PNI returns 503 - scenario 1`() = runTest {
+    fun `retrieve referralDetails gracefully when OASys PNI returns 503 - returns GENERAL_OFFENCE cohort and hasLdc false`() = runTest {
       val referral = ReferralEntityFactory().produce()
       val name = randomFullName()
       val dateOfBirth = randomDateOfBirth()
@@ -1088,7 +1088,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `retrieve referralDetails gracefully when OASys PNI returns 503 - scenario 2`() = runTest {
+    fun `retrieve referralDetails gracefully when OASys PNI returns 503 - returns GENERAL_OFFENCE cohort and hasLdc false for different referral`() = runTest {
       val referral = ReferralEntityFactory().produce()
       val name = randomFullName()
       val dateOfBirth = randomDateOfBirth()
