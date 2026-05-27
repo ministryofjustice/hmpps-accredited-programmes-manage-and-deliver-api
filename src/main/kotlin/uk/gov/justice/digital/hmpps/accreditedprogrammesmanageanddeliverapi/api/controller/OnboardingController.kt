@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Schema
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -23,7 +21,7 @@ data class FetchPersonalDetailsRequest(
     description = """List of referral IDs to populate personal details for.""",
     required = true,
   )
-  val referralIds: List<String>,
+  val referralIds: List<UUID>,
 )
 
 data class FetchPersonalDetailsResponse(
@@ -32,11 +30,27 @@ data class FetchPersonalDetailsResponse(
   val failureIds: List<String>,
 )
 
+/**
+ * The OnboardingController was built to facilitate the onboarding of teams into M&D (away from
+ * IM) as part of the private beta in 2026-05.  It is not intended to be an extremely long-
+ * lived controller, past 2026, by which point all Regions in the UK (according to the plan
+ * at time of writing) should be using M&D.
+ *
+ * The Controller provides a set of utility endpoints for refreshing
+ * data about Referrals which may be cumbersome to do manually (e.g. clicking each Referral to
+ * update the PersonalDetails) - but where we don't yet have a fully automated approach (e.g. loading
+ * PersonalDetails as part of the IM Data Import process).  This is a pragmatic trade-off between
+ * what's "right" and what works, and will allow people to start using M&D in the real-world.
+ *
+ * As such: this is not precious code.  If you think we can do this in a better, more sustainable
+ * way elsewhere - I encourage the improvement of it.
+ *
+ * --TJWC 2026-05-27
+ */
 @RestController
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
 class OnboardingController(
   private val adminService: AdminService,
-  private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -52,11 +66,9 @@ class OnboardingController(
     )
     @RequestBody request: FetchPersonalDetailsRequest,
   ): ResponseEntity<FetchPersonalDetailsResponse> {
-    val parsedUuids = request.referralIds.map { UUID.fromString(it) }
-
     try {
-      log.info("Processing {} specific referrals", parsedUuids)
-      val result = adminService.refreshPersonalDetailsForReferrals(parsedUuids)
+      log.info("Processing {} specific referrals", request.referralIds)
+      val result = adminService.refreshPersonalDetailsForReferrals(request.referralIds)
       return ResponseEntity.ok(
         FetchPersonalDetailsResponse(
           successIds = result.successIds.map(UUID::toString),
@@ -70,7 +82,7 @@ class OnboardingController(
         FetchPersonalDetailsResponse(
           successIds = emptyList(),
           notFoundIds = emptyList(),
-          failureIds = parsedUuids.map(UUID::toString),
+          failureIds = request.referralIds.map(UUID::toString),
         ),
       )
     }
