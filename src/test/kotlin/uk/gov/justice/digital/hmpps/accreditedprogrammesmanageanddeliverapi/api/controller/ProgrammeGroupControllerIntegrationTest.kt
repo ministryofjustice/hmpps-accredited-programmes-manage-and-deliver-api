@@ -696,12 +696,14 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val referral1 = testDataGenerator.createReferral(personName = "Person1", crn = "X123456")
       val referral2 = testDataGenerator.createReferral(personName = "Person2", crn = "X123457")
       val referral3 = testDataGenerator.createReferral(personName = "Person3", crn = "X123458")
+      val referral4 = testDataGenerator.createReferral(personName = "Person4", crn = "X123459")
 
       val groupMembership1 = testDataGenerator.allocateReferralsToGroup(listOf(referral1), group4).first()
       val groupMembership2 = testDataGenerator.allocateReferralsToGroup(listOf(referral2), group4).first()
-      val groupMembership3 = testDataGenerator.allocateReferralsToGroup(listOf(referral3), group6).first()
+      val groupMembership3 = testDataGenerator.allocateReferralsToGroup(listOf(referral3), group6, isDeleted = true).first()
+      testDataGenerator.allocateReferralsToGroup(listOf(referral4), group5).first()
 
-      // Set up PPR for group6 (Completed group)
+      // Set up PPR for group6/referral3 (Completed group)
       setupPostProgrammeReviewForGroup(group6, listOf(groupMembership3), attended = true)
       // Set up PPR for group4 (Started group) but one member has not attended
       setupPostProgrammeReviewForGroup(group4, listOf(groupMembership1, groupMembership2), attended = false)

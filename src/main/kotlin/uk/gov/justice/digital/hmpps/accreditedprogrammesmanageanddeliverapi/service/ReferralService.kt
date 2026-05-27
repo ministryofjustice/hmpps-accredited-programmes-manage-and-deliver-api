@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
@@ -26,9 +26,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.hasLdc
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.toPniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
@@ -92,11 +89,9 @@ class ReferralService(
     // - If LDC was set today by SYSTEM → skip (already fresh)
     // - If user has manually overridden both cohort AND LDC → skip (clinical decision made)
     // - Otherwise → call OASys (first view of the day, or never enriched)
-    val latestLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)
-    val enrichedToday = latestLdc != null && latestLdc.createdBy == "SYSTEM" && latestLdc.createdAt?.toLocalDate() == LocalDate.now()
     val bothOverridden = cohortService.hasOverriddenCohort(referralId) && ldcService.hasOverriddenLdcStatus(referralId)
 
-    val pniScore = if (!bothOverridden) {
+    val pniScore: PniScore? = if (!bothOverridden) {
       pniService.getDailyPniCalculation(referral.crn)
     } else {
       null
@@ -137,6 +132,7 @@ class ReferralService(
     val latestReferralCohort =
       referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.cohort
     val allocatedGroup = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
+
     ReferralDetails.toModel(
       referral,
       personalDetails,
@@ -161,16 +157,15 @@ class ReferralService(
   }
 
   fun createReferral(findAndReferReferralDetails: FindAndReferReferralDetails): ReferralEntity {
-    val pniCalculation = getPni(findAndReferReferralDetails)
+    val pniScore = pniService.getPniCalculation(findAndReferReferralDetails.personReference)
     val sentenceEndDate = sentenceService.getSentenceEndDate(
       findAndReferReferralDetails.personReference,
       findAndReferReferralDetails.eventNumber,
       findAndReferReferralDetails.sourcedFromReferenceType,
     )
 
-    val cohort =
-      pniCalculation?.let { cohortService.determineOffenceCohort(it.toPniScore()) } ?: OffenceCohort.GENERAL_OFFENCE
-    val hasLdc = pniCalculation?.hasLdc() ?: false
+    val cohort = cohortService.determineOffenceCohort(pniScore)
+    val hasLdc = pniScore.hasLdc
 
     val awaitingAssessmentStatusDescription =
       referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
@@ -225,17 +220,6 @@ class ReferralService(
     log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort and Ldc status: '$hasLdc'")
     referralRepository.save(referralEntity)
     return getReferralById(referral.id!!)
-  }
-
-  private fun getPni(findAndReferReferralDetails: FindAndReferReferralDetails): PniResponse? {
-    var pniResponse: PniResponse? = null
-
-    try {
-      pniResponse = pniService.getPniResponse(findAndReferReferralDetails.personReference)
-    } catch (_: Exception) {
-      log.info("Failure to retrieve PNI score for crn : ${findAndReferReferralDetails.personReference} falling back to defaults")
-    }
-    return pniResponse
   }
 
   fun getReferralById(referralId: UUID): ReferralEntity = referralRepository.findByIdOrNull(referralId) ?: let {

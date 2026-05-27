@@ -1,0 +1,90 @@
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
+
+import com.fasterxml.jackson.annotation.JsonProperty
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.media.Schema
+import org.slf4j.LoggerFactory
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
+import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RestController
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AdminService
+import java.util.UUID
+
+data class FetchPersonalDetailsRequest(
+  @get:JsonProperty("referralIds", required = true)
+  @Schema(
+    example = "[\"981421e1-0242-4cde-92a2-44c737077f86\", \"af2e88f7-8a89-4a01-b52a-5d7e6805f605\"]",
+    description = """List of referral IDs to populate personal details for.""",
+    required = true,
+  )
+  val referralIds: List<UUID>,
+)
+
+data class FetchPersonalDetailsResponse(
+  val successIds: List<String>,
+  val notFoundIds: List<String>,
+  val failureIds: List<String>,
+)
+
+/**
+ * The OnboardingController was built to facilitate the onboarding of teams into M&D (away from
+ * IM) as part of the private beta in 2026-05.  It is not intended to be an extremely long-
+ * lived controller, past 2026, by which point all Regions in the UK (according to the plan
+ * at time of writing) should be using M&D.
+ *
+ * The Controller provides a set of utility endpoints for refreshing
+ * data about Referrals which may be cumbersome to do manually (e.g. clicking each Referral to
+ * update the PersonalDetails) - but where we don't yet have a fully automated approach (e.g. loading
+ * PersonalDetails as part of the IM Data Import process).  This is a pragmatic trade-off between
+ * what's "right" and what works, and will allow people to start using M&D in the real-world.
+ *
+ * As such: this is not precious code.  If you think we can do this in a better, more sustainable
+ * way elsewhere - I encourage the improvement of it.
+ *
+ * --TJWC 2026-05-27
+ */
+@RestController
+@PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
+class OnboardingController(
+  private val adminService: AdminService,
+) {
+  private val log = LoggerFactory.getLogger(this::class.java)
+
+  @Operation(
+    tags = ["Onboarding"],
+    summary = "Fetches the personal details and OASys details for specified Referrals",
+  )
+  @PostMapping("/onboarding/referrals", consumes = [MediaType.APPLICATION_JSON_VALUE])
+  suspend fun fetchPersonalDetailsForReferrals(
+    @Parameter(
+      description = """IDs of the Referrals to fetch personal details for.""",
+      required = true,
+    )
+    @RequestBody request: FetchPersonalDetailsRequest,
+  ): ResponseEntity<FetchPersonalDetailsResponse> {
+    try {
+      log.info("Processing {} specific referrals", request.referralIds)
+      val result = adminService.refreshPersonalDetailsForReferrals(request.referralIds)
+      return ResponseEntity.ok(
+        FetchPersonalDetailsResponse(
+          successIds = result.successIds.map(UUID::toString),
+          notFoundIds = result.notFoundIds.map(UUID::toString),
+          failureIds = result.failureIds.map(UUID::toString),
+        ),
+      )
+    } catch (e: Exception) {
+      log.error("Error during background processing of personal details", e)
+      return ResponseEntity.ok(
+        FetchPersonalDetailsResponse(
+          successIds = emptyList(),
+          notFoundIds = emptyList(),
+          failureIds = request.referralIds.map(UUID::toString),
+        ),
+      )
+    }
+  }
+}

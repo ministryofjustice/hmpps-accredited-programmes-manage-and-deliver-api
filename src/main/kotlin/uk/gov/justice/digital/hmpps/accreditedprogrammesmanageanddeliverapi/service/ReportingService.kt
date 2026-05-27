@@ -3,18 +3,34 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.dataformat.csv.CsvMapper
 import com.fasterxml.jackson.dataformat.csv.CsvSchema
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReportingGroupSizeEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReportingGroupSizeRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceRepository
+import java.sql.Types
+import java.time.Clock
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 @Service
 class ReportingService(
   private val reportingGroupSizeRepository: ReportingGroupSizeRepository,
+  private val referralRepository: ReferralRepository,
+  private val sessionAttendanceRepository: SessionAttendanceRepository,
+  private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
+  private val namedParameterJdbcTemplate: NamedParameterJdbcTemplate,
+  private val clock: Clock,
 ) {
   companion object {
     private const val GROUP_SIZE_CSV_HEADER =
       "id,code,createdAt,sex,cohort,isLdc,earliestPossibleStartDate,regionName,pduCode,pduName,locationCode,locationName,groupSize,facilitatorStaffCode"
+    private const val FACILITATOR_CONTINUITY_CSV_HEADER =
+      "code,sessionNumber,sessionName,sessionType,isCatchUp,attendeeCount,facilitatorStaffCodes,region_name,delivery_location_name,probation_delivery_unit_name,sessionStartTime,sessionCreatedAt"
   }
 
   private val csvMapper = CsvMapper.builder().findAndAddModules().build().apply {
@@ -37,6 +53,21 @@ class ReportingService(
     .addColumn("locationName")
     .addColumn("groupSize")
     .addColumn("facilitatorStaffCode")
+    .build()
+
+  private val facilitatorContinuityCsvSchema: CsvSchema = CsvSchema.builder()
+    .addColumn("code")
+    .addColumn("sessionNumber")
+    .addColumn("sessionName")
+    .addColumn("sessionType")
+    .addColumn("isCatchUp")
+    .addColumn("attendeeCount")
+    .addColumn("facilitatorStaffCodes")
+    .addColumn("regionName")
+    .addColumn("deliveryLocationName")
+    .addColumn("probationDeliveryUnitName")
+    .addColumn("sessionStartTime")
+    .addColumn("sessionCreatedAt")
     .build()
 
   fun getGroupSizeReportCsv(firstSessionAfter: LocalDateTime): String {
@@ -66,6 +97,198 @@ class ReportingService(
 
   private fun getGroupSizeReportRows(firstSessionAfter: LocalDateTime): List<ReportingGroupSizeEntity> = reportingGroupSizeRepository.getAllGroupsWithEarliestStartDateAfter(firstSessionAfter.toLocalDate())
 
+  fun getFacilitatorContinuityReportCsv(
+    groupsCreatedSince: LocalDateTime?,
+    firstSessionAtOrAfter: LocalDateTime?,
+    lastSessionAtOrBefore: LocalDateTime?,
+  ): String {
+    val rows = getFacilitatorContinuityReportRows(groupsCreatedSince, firstSessionAtOrAfter, lastSessionAtOrBefore)
+    val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    val csvRows = rows.map {
+      FacilitatorContinuityCsvRow(
+        code = it.code,
+        sessionNumber = it.sessionNumber,
+        sessionName = it.sessionName,
+        sessionType = it.sessionType,
+        isCatchUp = it.isCatchUp,
+        attendeeCount = it.attendeeCount,
+        facilitatorStaffCodes = it.facilitatorStaffCodes,
+        regionName = it.regionName,
+        deliveryLocationName = it.deliveryLocationName,
+        probationDeliveryUnitName = it.probationDeliveryUnitName,
+        sessionStartTime = it.sessionStartTime.format(dateFormatter),
+        sessionCreatedAt = it.sessionCreatedAt.format(dateFormatter),
+      )
+    }
+
+    val csvBody = csvMapper.writer(facilitatorContinuityCsvSchema).writeValueAsString(csvRows).trimEnd('\n', '\r')
+    return if (csvBody.isBlank()) FACILITATOR_CONTINUITY_CSV_HEADER else "$FACILITATOR_CONTINUITY_CSV_HEADER\n$csvBody"
+  }
+
+  private fun getFacilitatorContinuityReportRows(
+    groupsCreatedSince: LocalDateTime?,
+    firstSessionAtOrAfter: LocalDateTime?,
+    lastSessionAtOrBefore: LocalDateTime?,
+  ): List<FacilitatorContinuityReportRow> {
+    val sql =
+      """
+      WITH template_session_numbers AS (
+        SELECT
+          mst.id AS module_session_template_id,
+          ROW_NUMBER() OVER (
+            PARTITION BY m.accredited_programme_template_id
+            ORDER BY m.module_number, mst.session_number, mst.id
+          ) AS template_session_number
+        FROM module_session_template mst
+        JOIN module m ON m.id = mst.module_id
+      ),
+      group_happened_sessions AS (
+        SELECT
+          s.programme_group_id,
+          MIN(s.starts_at) AS first_session_start,
+          MAX(s.starts_at) AS last_session_start
+        FROM session s
+        JOIN programme_group pg ON pg.id = s.programme_group_id
+        WHERE s.starts_at <= :now
+          AND s.is_placeholder = FALSE
+          AND pg.deleted_at IS NULL
+        GROUP BY s.programme_group_id
+      ),
+      attendee_counts AS (
+        SELECT
+          a.session_id,
+          COUNT(*)::INTEGER AS attendee_count
+        FROM attendee a
+        GROUP BY a.session_id
+      ),
+      facilitator_codes AS (
+        SELECT
+          sf.session_id,
+          STRING_AGG(DISTINCT f.ndelius_person_code, ',' ORDER BY f.ndelius_person_code) AS facilitator_staff_codes
+        FROM session_facilitator sf
+        JOIN facilitator f ON f.id = sf.facilitator_id
+        GROUP BY sf.session_id
+      )
+      SELECT
+        pg.code AS code,
+        tsn.template_session_number AS session_number,
+        mst.name AS session_name,
+        CASE WHEN mst.session_type = 'GROUP' THEN 'group' ELSE 'one-to-one' END AS session_type,
+        s.is_catchup AS is_catch_up,
+        COALESCE(ac.attendee_count, 0) AS attendee_count,
+        COALESCE(fc.facilitator_staff_codes, '') AS facilitator_staff_codes,
+        pg.region_name AS region_name,
+        pg.delivery_location_name AS delivery_location_name,
+        pg.probation_delivery_unit_name AS probation_delivery_unit_name,
+        s.starts_at AS session_start_time,
+        s.created_at AS session_created_at
+      FROM session s
+      JOIN programme_group pg ON pg.id = s.programme_group_id
+      JOIN module_session_template mst ON mst.id = s.module_session_template_id
+      LEFT JOIN template_session_numbers tsn ON tsn.module_session_template_id = mst.id
+      JOIN group_happened_sessions ghs ON ghs.programme_group_id = pg.id
+      LEFT JOIN attendee_counts ac ON ac.session_id = s.id
+      LEFT JOIN facilitator_codes fc ON fc.session_id = s.id
+      WHERE s.starts_at <= :now
+        AND s.is_placeholder = FALSE
+        AND pg.deleted_at IS NULL
+        AND (:applyGroupsCreatedSince = FALSE OR pg.created_at >= :groupsCreatedSince)
+        AND (:applyFirstSessionAtOrAfter = FALSE OR ghs.first_session_start >= :firstSessionAtOrAfter)
+        AND (:applyLastSessionAtOrBefore = FALSE OR ghs.last_session_start <= :lastSessionAtOrBefore)
+      ORDER BY pg.code, s.starts_at, s.id
+      """.trimIndent()
+
+    val defaultTimestamp = LocalDateTime.parse("1900-01-01T00:00:00")
+    val parameters = MapSqlParameterSource()
+      .addValue("now", LocalDateTime.now(clock), Types.TIMESTAMP)
+      .addValue("applyGroupsCreatedSince", groupsCreatedSince != null)
+      .addValue("applyFirstSessionAtOrAfter", firstSessionAtOrAfter != null)
+      .addValue("applyLastSessionAtOrBefore", lastSessionAtOrBefore != null)
+      .addValue("groupsCreatedSince", groupsCreatedSince ?: defaultTimestamp, Types.TIMESTAMP)
+      .addValue("firstSessionAtOrAfter", firstSessionAtOrAfter ?: defaultTimestamp, Types.TIMESTAMP)
+      .addValue("lastSessionAtOrBefore", lastSessionAtOrBefore ?: defaultTimestamp, Types.TIMESTAMP)
+
+    return namedParameterJdbcTemplate.query(sql, parameters) { rs, _ ->
+      FacilitatorContinuityReportRow(
+        code = rs.getString("code"),
+        sessionNumber = rs.getInt("session_number"),
+        sessionName = rs.getString("session_name"),
+        sessionType = rs.getString("session_type"),
+        isCatchUp = rs.getBoolean("is_catch_up"),
+        attendeeCount = rs.getInt("attendee_count"),
+        facilitatorStaffCodes = rs.getString("facilitator_staff_codes") ?: "",
+        regionName = rs.getString("region_name"),
+        deliveryLocationName = rs.getString("delivery_location_name"),
+        probationDeliveryUnitName = rs.getString("probation_delivery_unit_name"),
+        sessionStartTime = rs.getTimestamp("session_start_time").toLocalDateTime(),
+        sessionCreatedAt = rs.getTimestamp("session_created_at").toLocalDateTime(),
+      )
+    }
+  }
+
+  fun getDosageReportCsv(
+    referralsCreatedSince: LocalDate?,
+    referralsCompletedAfter: LocalDate?,
+  ): String {
+    require(referralsCreatedSince != null || referralsCompletedAfter != null) {
+      "At least one of referralsCreatedSince or referralsCompletedAfter must be provided"
+    }
+
+    val referrals = referralRepository.getDosageReportReferrals(referralsCreatedSince, referralsCompletedAfter)
+      .distinctBy { it.referralId }
+      .sortedBy { it.crn }
+    val referralIds = referrals.map { it.referralId }
+    val attendanceRows =
+      if (referralIds.isEmpty()) emptyList() else sessionAttendanceRepository.getDosageAttendanceRows(referralIds)
+    val templateSessions = moduleSessionTemplateRepository.getBuildingChoicesSessionColumns()
+    val sessionColumns = templateSessions.map {
+      SessionColumn(
+        moduleNumber = it.moduleNumber,
+        sessionNumber = it.sessionNumber,
+        sessionName = it.sessionName,
+      )
+    }
+    val header = listOf("licReqNo", "crn", "numberSessionAttended") + sessionColumns.map { it.header }
+    val attendanceByReferralId = attendanceRows.groupBy { it.referralId }
+
+    val lines = referrals.map { referral ->
+      val rowsForReferral = attendanceByReferralId[referral.referralId].orEmpty()
+      val attendedSessionCount = rowsForReferral.map { it.sessionId }.toSet().size
+
+      val valuesBySessionAndRegion = rowsForReferral.groupBy {
+        SessionColumn(
+          moduleNumber = it.moduleNumber,
+          sessionNumber = it.sessionNumber,
+          sessionName = it.sessionName,
+        )
+      }.mapValues { (_, attendedRows) ->
+        attendedRows.map { it.groupCode }.distinct().sorted().joinToString(",")
+      }
+
+      listOf(referral.licReqNo.orEmpty(), referral.crn, attendedSessionCount.toString()) +
+        sessionColumns.map { valuesBySessionAndRegion[it].orEmpty() }
+    }
+
+    return renderCsv(header, lines)
+  }
+
+  private fun renderCsv(header: List<String>, rows: List<List<String>>): String {
+    val headerLine = header.joinToString(",") { escapeCsv(it) }
+    if (rows.isEmpty()) {
+      return headerLine
+    }
+
+    val body = rows.joinToString("\n") { row -> row.joinToString(",") { escapeCsv(it) } }
+    return "$headerLine\n$body"
+  }
+
+  private fun escapeCsv(value: String): String {
+    if (value.none { it == ',' || it == '"' || it == '\n' || it == '\r' }) {
+      return value
+    }
+    return "\"${value.replace("\"", "\"\"")}\""
+  }
+
   data class GroupSizeCsvRow(
     val id: String,
     val code: String,
@@ -82,4 +305,42 @@ class ReportingService(
     val groupSize: Int,
     val facilitatorStaffCode: String,
   )
+
+  data class FacilitatorContinuityReportRow(
+    val code: String,
+    val sessionNumber: Int,
+    val sessionName: String,
+    val sessionType: String,
+    val isCatchUp: Boolean,
+    val attendeeCount: Int,
+    val facilitatorStaffCodes: String,
+    val regionName: String,
+    val deliveryLocationName: String,
+    val probationDeliveryUnitName: String,
+    val sessionStartTime: LocalDateTime,
+    val sessionCreatedAt: LocalDateTime,
+  )
+
+  data class FacilitatorContinuityCsvRow(
+    val code: String,
+    val sessionNumber: Int,
+    val sessionName: String,
+    val sessionType: String,
+    val isCatchUp: Boolean,
+    val attendeeCount: Int,
+    val facilitatorStaffCodes: String,
+    val regionName: String,
+    val deliveryLocationName: String,
+    val probationDeliveryUnitName: String,
+    val sessionStartTime: String,
+    val sessionCreatedAt: String,
+  )
+
+  data class SessionColumn(
+    val moduleNumber: Int,
+    val sessionNumber: Int,
+    val sessionName: String,
+  ) {
+    val header: String = "M$moduleNumber S$sessionNumber $sessionName"
+  }
 }

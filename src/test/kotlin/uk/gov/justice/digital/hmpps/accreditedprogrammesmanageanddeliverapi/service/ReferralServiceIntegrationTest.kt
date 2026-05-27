@@ -55,6 +55,11 @@ import java.time.LocalDate
 import java.util.UUID
 
 class ReferralServiceIntegrationTest : IntegrationTestBase() {
+  @Autowired
+  private lateinit var referralCohortHistoryRepository: uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
+
+  @Autowired
+  private lateinit var referralLdcHistoryRepository: uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
@@ -879,6 +884,150 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `retrieve referralDetails gracefully when OASys PNI returns 503`() = runTest {
+      val referral = ReferralEntityFactory().produce()
+      val name = randomFullName()
+      val dateOfBirth = randomDateOfBirth()
+      testDataGenerator.createReferralWithStatusHistory(referral)
+      oasysApiStubs.stubServiceUnavailablePniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory()
+          .withName(name)
+          .withDateOfBirth(dateOfBirth)
+          .produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      val referralDetails = referralService.refreshPersonalDetailsForReferral(referral.id!!)!!
+
+      assertThat(referralDetails.id).isEqualTo(referral.id!!)
+      assertThat(referralDetails.crn).isEqualTo(referral.crn)
+      assertThat(referralDetails.personName).isEqualTo(name.getNameAsString())
+      assertThat(referralDetails.hasLdc).isFalse()
+      assertThat(referralDetails.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+    }
+
+    @Test
+    fun `refreshPersonalDetailsForReferral does not overwrite existing cohort if OASys is unavailable`() = runTest {
+      // Given: referral with cohort SEXUAL_OFFENCE
+      val referral = ReferralEntityFactory().produce()
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referral,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+      testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, cohortHistory))
+
+      oasysApiStubs.stubServiceUnavailablePniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory().produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      // When: OASys is unavailable and refresh is called
+      val referralDetails = referralService.refreshPersonalDetailsForReferral(referral.id!!)!!
+
+      // Then: cohort remains SEXUAL_OFFENCE
+      assertThat(referralDetails.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
+      val savedReferral = referralRepository.findById(referral.id!!).get()
+      assertThat(savedReferral.referralCohortHistories.first().cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
+    }
+
+    @Test
+    fun `refreshPersonalDetailsForReferral does not overwrite cohort or LDC if manual overrides exist, even if PNI data is present`() = runTest {
+      // Given: referral with cohort SEXUAL_OFFENCE and LDC true, both manually overridden
+      val referral = ReferralEntityFactory().produce()
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referral,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+      testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, cohortHistory))
+
+      // Simulate manual overrides
+      // Simulate manual cohort override
+      val manualCohortHistory = ReferralCohortHistoryFactory()
+        .withReferral(referral)
+        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
+        .withCreatedBy("MANUAL")
+        .produce()
+      referralCohortHistoryRepository.save(manualCohortHistory)
+
+      // Simulate manual LDC override
+      val manualLdcHistory = uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralLdcHistoryFactory()
+        .withReferral(referral)
+        .withHasLdc(true)
+        .withCreatedBy("MANUAL")
+        .produce()
+      referralLdcHistoryRepository.save<uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity>(manualLdcHistory)
+
+      oasysApiStubs.stubSuccessfulPniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory().produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      // When: refresh is called with PNI data present
+      val referralDetails = referralService.refreshPersonalDetailsForReferral(referral.id!!)!!
+
+      // Then: cohort and LDC remain as manually overridden values
+      assertThat(referralDetails.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
+      assertThat(referralDetails.hasLdc).isTrue()
+      val savedReferral = referralRepository.findById(referral.id!!).get()
+      assertThat(savedReferral.referralCohortHistories.first().cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
+      assertThat(savedReferral.referralLdcHistories.first().hasLdc).isTrue()
+    }
+
+    @Test
+    fun `refreshPersonalDetailsForReferral does not update cohort if PNI is empty but nDelius data is available`() = runTest {
+      // Given: referral with cohort SEXUAL_OFFENCE
+      val referral = ReferralEntityFactory().produce()
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referral,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+      testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, cohortHistory))
+
+      // OASys/PNI returns not found (simulating unavailable or empty response)
+      oasysApiStubs.stubNotFoundPniResponse(referral.crn)
+
+      // nDelius and other sources return valid data
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory().produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      // When: refresh is called
+      val referralDetails = referralService.refreshPersonalDetailsForReferral(referral.id!!)!!
+
+      // Then: cohort remains as previously set (SEXUAL_OFFENCE)
+      assertThat(referralDetails.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
+      val savedReferral = referralRepository.findById(referral.id!!).get()
+      assertThat(savedReferral.referralCohortHistories.first().cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
+    }
+
+    @Test
     fun `should not call OASys PNI on second page view when already enriched`() = runTest {
       val referral = ReferralEntityFactory().produce()
       val name = randomFullName()
@@ -910,7 +1059,36 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `retrieve referralDetails gracefully when OASys PNI returns 503`() = runTest {
+    fun `retrieve referralDetails gracefully when OASys PNI returns 503 - scenario 1`() = runTest {
+      val referral = ReferralEntityFactory().produce()
+      val name = randomFullName()
+      val dateOfBirth = randomDateOfBirth()
+      testDataGenerator.createReferralWithStatusHistory(referral)
+      oasysApiStubs.stubServiceUnavailablePniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory()
+          .withName(name)
+          .withDateOfBirth(dateOfBirth)
+          .produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      val referralDetails = referralService.refreshPersonalDetailsForReferral(referral.id!!)!!
+
+      assertThat(referralDetails.id).isEqualTo(referral.id!!)
+      assertThat(referralDetails.crn).isEqualTo(referral.crn)
+      assertThat(referralDetails.personName).isEqualTo(name.getNameAsString())
+      assertThat(referralDetails.hasLdc).isFalse()
+      assertThat(referralDetails.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+    }
+
+    @Test
+    fun `retrieve referralDetails gracefully when OASys PNI returns 503 - scenario 2`() = runTest {
       val referral = ReferralEntityFactory().produce()
       val name = randomFullName()
       val dateOfBirth = randomDateOfBirth()
