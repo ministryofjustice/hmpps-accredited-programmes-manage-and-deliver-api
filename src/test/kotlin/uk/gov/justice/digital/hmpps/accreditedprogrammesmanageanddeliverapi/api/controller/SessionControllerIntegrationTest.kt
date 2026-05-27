@@ -1836,6 +1836,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
+      assertThat(response.personName).isEqualTo(referral.personName)
       assertThat(response.moduleName).isEqualTo(session.moduleName)
       assertThat(response.sessionName).isEqualTo(session.sessionName)
       assertThat(response.sessionNumber).isEqualTo(session.sessionNumber)
@@ -1888,6 +1889,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
+      assertThat(response.personName).isEqualTo(referral.personName)
       assertThat(response.sessionNotes).isNull()
     }
 
@@ -1952,6 +1954,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
+      assertThat(response.personName).isEqualTo(referral.personName)
       assertThat(response.sessionNotes).isEqualTo("Latest updated notes")
     }
 

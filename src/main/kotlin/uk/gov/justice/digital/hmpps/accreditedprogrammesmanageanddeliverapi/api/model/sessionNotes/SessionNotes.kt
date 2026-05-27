@@ -17,6 +17,12 @@ data class SessionNotes(
   val pageTitle: String,
 
   @Schema(
+    description = "The person on probation's name",
+    example = "Alex River",
+  )
+  val personName: String,
+
+  @Schema(
     description = "The name of the module the session belongs to",
     example = "Getting started",
   )
@@ -85,6 +91,7 @@ data class SessionNotes(
     fun from(
       session: SessionEntity,
       referralId: UUID,
+      personName: String,
       sessionAttendance: String,
       pageTitle: String,
     ): SessionNotes {
@@ -92,6 +99,7 @@ data class SessionNotes(
       val latestSessionNotes = attendance.notesHistory.maxByOrNull { it.createdAt }
       return SessionNotes(
         pageTitle = pageTitle,
+        personName = personName,
         moduleName = session.moduleName,
         sessionName = session.sessionName,
         sessionNumber = session.sessionNumber,

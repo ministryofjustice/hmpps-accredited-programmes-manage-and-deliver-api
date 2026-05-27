@@ -25,7 +25,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlin.jvm.java
 
-fun hasAtLeastOneMembership(
+fun hasAtLeastOneActiveMembership(
   query: CriteriaQuery<*>,
   cb: CriteriaBuilder,
   root: Root<ProgrammeGroupEntity>,
@@ -185,7 +185,6 @@ fun incompleteMembershipCountSubquery(
     isLatestReferralStatusProgrammeComplete(query, cb, referralJoin),
     hasAttendedPostProgrammeReview(incompleteMembershipCountSubquery, cb, groupMembershipRoot),
     allSessionsHaveAttendanceData(incompleteMembershipCountSubquery, cb, groupMembershipRoot),
-    cb.isNull(groupMembershipRoot.get<LocalDateTime>("deletedAt")),
   )
 
   incompleteMembershipCountSubquery.select(cb.count(groupMembershipRoot))
@@ -212,7 +211,7 @@ fun getProgrammeGroupsByRegionTabSpecification(
       cb.or(
         notStartedOrInProgressDateSpec,
         cb.greaterThan(incompleteMembershipCountSubquery, 0L),
-        cb.not(hasAtLeastOneMembership(query, cb, root)),
+        cb.not(hasAtLeastOneActiveMembership(query, cb, root)),
       )
     }
 
@@ -220,8 +219,24 @@ fun getProgrammeGroupsByRegionTabSpecification(
       cb.and(
         cb.lessThanOrEqualTo(datePath, LocalDate.now()),
         cb.equal(incompleteMembershipCountSubquery, 0L),
-        hasAtLeastOneMembership(query, cb, root),
+        hasAtLeastOneMembershipIncludingDeleted(query, cb, root),
       )
     }
   }
+}
+
+fun hasAtLeastOneMembershipIncludingDeleted(
+  query: CriteriaQuery<*>,
+  cb: CriteriaBuilder,
+  root: Root<ProgrammeGroupEntity>,
+): Predicate {
+  val membershipExistsSubquery = query.subquery(Long::class.java)
+  val membershipRoot = membershipExistsSubquery.from(ProgrammeGroupMembershipEntity::class.java)
+
+  membershipExistsSubquery.select(cb.literal(1L))
+  membershipExistsSubquery.where(
+    cb.equal(membershipRoot.get<ProgrammeGroupEntity>("programmeGroup"), root),
+  )
+
+  return cb.exists(membershipExistsSubquery)
 }
