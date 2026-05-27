@@ -10,7 +10,6 @@ import org.awaitility.kotlin.untilCallTo
 import org.awaitility.kotlin.withPollDelay
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -661,7 +660,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    @Disabled("Whilst fixing bug, as functionality already covered in other tests")
     fun `should return NOT_STARTED OR IN PROGRESS groups only with correct otherTabTotal`() {
       // Given
       stubAuthTokenEndpoint()

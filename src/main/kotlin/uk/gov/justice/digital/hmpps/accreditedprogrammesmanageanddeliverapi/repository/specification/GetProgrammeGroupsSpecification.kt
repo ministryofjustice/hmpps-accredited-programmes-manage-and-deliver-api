@@ -35,7 +35,6 @@ fun hasAtLeastOneActiveMembership(
   membershipExistsSubquery.select(cb.literal(1L))
   membershipExistsSubquery.where(
     cb.equal(membershipRoot.get<ProgrammeGroupEntity>("programmeGroup"), root),
-    cb.isNull(membershipRoot.get<LocalDateTime>("deletedAt")),
   )
   return cb.exists(membershipExistsSubquery)
 }
