@@ -211,7 +211,7 @@ fun getProgrammeGroupsByRegionTabSpecification(
       cb.or(
         notStartedOrInProgressDateSpec,
         cb.greaterThan(incompleteMembershipCountSubquery, 0L),
-        cb.not(hasAtLeastOneActiveMembership(query, cb, root)),
+        cb.isTrue(hasAtLeastOneActiveMembership(query, cb, root)),
       )
     }
 
