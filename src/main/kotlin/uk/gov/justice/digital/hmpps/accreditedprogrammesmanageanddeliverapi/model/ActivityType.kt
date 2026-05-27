@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mod
 
 enum class ActivityType {
   UPDATE_REFERRAL_STATUS,
+  VIEW_REFERRAL,
   ASSIGN_REFERRAL_TO_GROUP,
   REMOVE_REFERRAL_FROM_GROUP,
   OVERRIDE_LDC,
