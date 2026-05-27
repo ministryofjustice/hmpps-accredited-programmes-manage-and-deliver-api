@@ -16,22 +16,25 @@ class PniService(
 
   fun getPniCalculation(crn: String): PniScore = getPniResponse(crn)?.toPniScore() ?: PniScore.empty()
 
-  fun getPniResponse(crn: String): PniResponse? = when (val result = oasysApiClient.getPniCalculation(crn)) {
-    is ClientResult.Failure.StatusCode -> {
-      if (result.status.value() == 404) {
-        log.warn("No PNI score found for crn : $crn")
-        null
-      } else {
-        log.warn("Failure to retrieve PNI score for crn : $crn")
-        throw result.toException()
+  private fun getPniResponse(crn: String): PniResponse? = try {
+    when (val result = oasysApiClient.getPniCalculation(crn)) {
+      is ClientResult.Failure.StatusCode -> {
+        if (result.status.value() == 404) {
+          log.warn("No PNI score found for crn : $crn")
+          null
+        } else {
+          log.warn("Failure to retrieve PNI score for crn : $crn (status: ${result.status.value()})")
+          null
+        }
       }
+      is ClientResult.Failure -> {
+        log.warn("Failure to retrieve PNI score for crn : $crn (generic failure)")
+        null
+      }
+      is ClientResult.Success -> result.body
     }
-
-    is ClientResult.Failure -> {
-      log.warn("Failure to retrieve PNI score for crn : $crn")
-      throw result.toException()
-    }
-
-    is ClientResult.Success -> result.body
+  } catch (ex: Exception) {
+    log.warn("Exception while retrieving PNI score for crn : $crn: ${ex.message}")
+    null
   }
 }
