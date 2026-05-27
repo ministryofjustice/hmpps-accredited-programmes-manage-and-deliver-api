@@ -35,7 +35,7 @@ fun randomEventId(length: Int = 8): Long {
 }
 
 fun randomNumber(length: Int = 2) = digits(length)
-fun randomNumberAsInt(length: Int = 2) = Random.nextInt()
+fun randomNumberAsInt(length: Int = 2) = Random.nextInt(from = 0, until = 10.0.pow(length).toInt())
 fun randomEmailAddress() = (lowerCase(5) + ".".asSequence() + lowerCase(8) + "@".asSequence() + lowerCase(6) + ".com".asSequence()).asString()
 
 fun randomDateOfBirth(
