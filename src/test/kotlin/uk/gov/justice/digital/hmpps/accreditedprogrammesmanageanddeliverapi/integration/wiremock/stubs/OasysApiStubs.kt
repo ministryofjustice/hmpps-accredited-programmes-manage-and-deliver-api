@@ -87,6 +87,17 @@ class OasysApiStubs {
     )
   }
 
+  fun stubServiceUnavailablePniResponse(crn: String) {
+    wiremock.stubFor(
+      get(urlEqualTo("/assessments/pni/$crn?community=true"))
+        .willReturn(
+          aResponse()
+            .withStatus(503)
+            .withHeader("Content-Type", "application/json"),
+        ),
+    )
+  }
+
   fun stubSuccessfulAssessmentsResponse(
     nomisIdOrCrn: String,
     oasysAssessmentTimeline: OasysAssessmentTimeline = OasysAssessmentTimelineFactory()

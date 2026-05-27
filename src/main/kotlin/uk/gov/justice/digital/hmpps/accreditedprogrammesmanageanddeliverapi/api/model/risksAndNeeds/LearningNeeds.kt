@@ -3,7 +3,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniAssessment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAccommodation
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysLearning
 import java.time.LocalDate
@@ -49,7 +48,7 @@ fun buildLearningNeeds(
   assessmentCompleted: LocalDate?,
   oasysLearning: OasysLearning?,
   oasysAccommodation: OasysAccommodation,
-  pniAssessment: PniAssessment?,
+  ldcScore: Int?,
 ): LearningNeeds = LearningNeeds(
   noFixedAbodeOrTransient = oasysAccommodation.noFixedAbodeOrTransient == "Yes",
   assessmentCompleted = assessmentCompleted,
@@ -60,5 +59,5 @@ fun buildLearningNeeds(
   qualifications = oasysLearning?.qualifications,
   basicSkillsScore = oasysLearning?.basicSkillsScore,
   basicSkillsScoreDescription = oasysLearning?.eTEIssuesDetails,
-  ldcScore = pniAssessment?.ldc?.score,
+  ldcScore = ldcScore,
 )
