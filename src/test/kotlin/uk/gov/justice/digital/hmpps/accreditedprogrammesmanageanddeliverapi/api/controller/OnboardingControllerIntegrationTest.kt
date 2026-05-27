@@ -44,9 +44,9 @@ class OnboardingControllerIntegrationTest : IntegrationTestBase() {
       object : ParameterizedTypeReference<FetchPersonalDetailsResponse>() {},
       body = FetchPersonalDetailsRequest(
         referralIds = listOf(
-          firstReferralId.toString(),
-          secondReferralId.toString(),
-          randomReferralId.toString(),
+          firstReferralId,
+          secondReferralId,
+          randomReferralId,
         ),
       ),
       expectedResponseStatus = 200,
