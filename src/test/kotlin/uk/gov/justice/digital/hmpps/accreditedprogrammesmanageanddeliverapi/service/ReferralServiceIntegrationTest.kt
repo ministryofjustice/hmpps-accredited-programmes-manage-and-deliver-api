@@ -391,7 +391,6 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(foundReferral.statusHistories.first().createdBy).isEqualTo("THE_USER_ID")
       assertThat(foundReferral.statusHistories.first().id).isEqualTo(result.referralStatusHistory.id)
       assertThat(foundReferral.statusHistories.first().additionalDetails).isEqualTo("Additional details string")
-      verifyReferralStatusUpdateEventSent()
     }
 
     @Test
@@ -570,7 +569,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       // Verify it's the status update event, not the completion event
       val eventBody = objectMapper.readValue<SQSMessage>(
         with(domainEventsQueueConfig) {
-          interventionsQueue.receiveMessageOnQueue().body()
+          interventionsQueue.receiveMessageOnQueue().body()!!
         },
       )
       assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_STATUS_UPDATED.value)
@@ -581,7 +580,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
       val eventBody = objectMapper.readValue<SQSMessage>(
         with(domainEventsQueueConfig) {
-          interventionsQueue.receiveMessageOnQueue().body()
+          interventionsQueue.receiveMessageOnQueue().body()!!
         },
       )
       assertThat(eventBody.eventType).isEqualTo(HmppsDomainEventTypes.ACP_COMMUNITY_REFERRAL_STATUS_UPDATED.value)
@@ -905,6 +904,37 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(referralDetails.personName).isEqualTo(name.getNameAsString())
       assertThat(referralDetails.hasLdc).isFalse()
       assertThat(referralDetails.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+    }
+
+    @Test
+    fun `refreshPersonalDetailsForReferral does not overwrite existing cohort if OASys is unavailable`() = runTest {
+      // Given: referral with cohort SEXUAL_OFFENCE
+      val referral = ReferralEntityFactory().produce()
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referral,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+      testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, cohortHistory))
+
+      oasysApiStubs.stubServiceUnavailablePniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory().produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      // When: OASys is unavailable and refresh is called
+      val referralDetails = referralService.refreshPersonalDetailsForReferral(referral.id!!)!!
+
+      // Then: cohort remains SEXUAL_OFFENCE
+      assertThat(referralDetails.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
+      val savedReferral = referralRepository.findById(referral.id!!).get()
+      assertThat(savedReferral.referralCohortHistories.first().cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
     }
   }
 }

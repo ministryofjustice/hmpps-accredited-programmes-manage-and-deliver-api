@@ -115,15 +115,15 @@ class ReferralService(
     val pniResponse = pniDeferred.await()
 
     val hasLdc = pniResponse?.hasLdc() ?: false
-    val cohort =
-      pniResponse?.let { cohortService.determineOffenceCohort(it.toPniScore()) } ?: OffenceCohort.GENERAL_OFFENCE
+    val newCohort = pniResponse?.let { cohortService.determineOffenceCohort(it.toPniScore()) }
 
     if (!ldcService.hasOverriddenLdcStatus(referralId)) {
       ldcService.updateLdcStatusForReferral(referral, UpdateLdc(hasLdc), "SYSTEM")
     }
 
-    if (!cohortService.hasOverriddenCohort(referralId)) {
-      cohortService.updateCohortForReferral(referral, cohort, "SYSTEM")
+    // Only update cohort if we have a new value from OASys; do not overwrite with GENERAL_OFFENCE if OASys is down
+    if (newCohort != null && !cohortService.hasOverriddenCohort(referralId)) {
+      cohortService.updateCohortForReferral(referral, newCohort, "SYSTEM")
     }
 
     val personalDetails = personalDetailsDeferred.await()
