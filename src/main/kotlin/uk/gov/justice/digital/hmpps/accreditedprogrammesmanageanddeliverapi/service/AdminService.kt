@@ -13,6 +13,7 @@ import java.util.UUID
 
 data class RefreshPersonalDetailsResult(
   val successIds: List<UUID> = emptyList(),
+  val notFoundIds: List<UUID> = emptyList(),
   val failureIds: List<UUID> = emptyList(),
 )
 
@@ -45,14 +46,21 @@ class AdminService(
   suspend fun refreshPersonalDetailsForReferrals(referralIds: List<UUID>): RefreshPersonalDetailsResult {
     log.info("Starting refresh of personal details for {} referrals", referralIds.size)
     val successIds: MutableList<UUID> = mutableListOf()
+    val notFoundIds: MutableList<UUID> = mutableListOf()
     val failureIds: MutableList<UUID> = mutableListOf()
 
     referralIds.forEachIndexed { index, id ->
       log.info("[{}/{}] Refreshing Personal Details for Referral with id {}...", index + 1, referralIds.size, id)
       try {
-        referralService.refreshPersonalDetailsForReferral(id)
-        log.info("[Referral $id]...success!")
-        successIds.add(id)
+        val refreshedReferral = referralService.refreshPersonalDetailsForReferral(id)
+
+        if (refreshedReferral != null) {
+          log.info("[Referral $id]...success!")
+          successIds.add(id)
+        } else {
+          log.warn("[Referral $id]...failure: referral not found")
+          notFoundIds.add(id)
+        }
       } catch (e: Exception) {
         log.error("[Referral $id]...failure: ${e.message})")
         failureIds.add(id)
@@ -61,6 +69,7 @@ class AdminService(
 
     return RefreshPersonalDetailsResult(
       successIds,
+      notFoundIds,
       failureIds,
     )
   }

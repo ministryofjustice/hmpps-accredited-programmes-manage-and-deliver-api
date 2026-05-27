@@ -11,6 +11,7 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AdminService
 import java.util.UUID
@@ -27,6 +28,7 @@ data class FetchPersonalDetailsRequest(
 
 data class FetchPersonalDetailsResponse(
   val successIds: List<String>,
+  val notFoundIds: List<String>,
   val failureIds: List<String>,
 )
 
@@ -48,7 +50,7 @@ class OnboardingController(
       description = """IDs of the Referrals to fetch personal details for.""",
       required = true,
     )
-    request: FetchPersonalDetailsRequest,
+    @RequestBody request: FetchPersonalDetailsRequest,
   ): ResponseEntity<FetchPersonalDetailsResponse> {
     val parsedUuids = request.referralIds.map { UUID.fromString(it) }
 
@@ -58,6 +60,7 @@ class OnboardingController(
       return ResponseEntity.ok(
         FetchPersonalDetailsResponse(
           successIds = result.successIds.map(UUID::toString),
+          notFoundIds = result.notFoundIds.map(UUID::toString),
           failureIds = result.failureIds.map(UUID::toString),
         ),
       )
@@ -66,6 +69,7 @@ class OnboardingController(
       return ResponseEntity.ok(
         FetchPersonalDetailsResponse(
           successIds = emptyList(),
+          notFoundIds = emptyList(),
           failureIds = parsedUuids.map(UUID::toString),
         ),
       )
