@@ -218,13 +218,13 @@ fun getProgrammeGroupsByRegionTabSpecification(
       cb.and(
         cb.lessThanOrEqualTo(datePath, LocalDate.now()),
         cb.equal(incompleteMembershipCountSubquery, 0L),
-        hasAtLeastOneMembership(query, cb, root),
+        hasAtLeastOneMembershipIncludingDeleted(query, cb, root),
       )
     }
   }
 }
 
-fun hasAtLeastOneMembership(
+fun hasAtLeastOneMembershipIncludingDeleted(
   query: CriteriaQuery<*>,
   cb: CriteriaBuilder,
   root: Root<ProgrammeGroupEntity>,
