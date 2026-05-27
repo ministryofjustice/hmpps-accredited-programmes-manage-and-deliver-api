@@ -6,12 +6,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 
 @Schema(description = "Represents an individual's Programme Needs Identifier (PNI) score assessment")
 data class PniScore(
-
   @Schema(description = "The overall intensity level derived from the PNI assessment", example = "HIGH")
   val overallIntensity: OverallIntensity? = null,
   @Schema(description = "Detailed scores across different assessment domains")
   val domainScores: DomainScores,
-
   @Schema(
     example = """
       "riskScores": {
@@ -27,6 +25,8 @@ data class PniScore(
   @get:JsonProperty("RiskScore") val riskScore: RiskScore,
   @Schema(example = "['impulsivity is missing ']", required = true)
   @get:JsonProperty("validationErrors") val validationErrors: List<String>,
+  @Schema(description = "Whether the person has Learning Disabilities & Challenges (LDC)")
+  val hasLdc: Boolean = false,
 ) {
   companion object {
     fun empty() = PniScore(
@@ -34,6 +34,7 @@ data class PniScore(
       domainScores = DomainScores.empty(),
       riskScore = RiskScore.empty(),
       validationErrors = emptyList(),
+      hasLdc = false,
     )
   }
 }

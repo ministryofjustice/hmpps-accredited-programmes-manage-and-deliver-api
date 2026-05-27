@@ -434,30 +434,34 @@ class ProgrammeGroupService(
           groupId = group.id!!,
           sessionTemplateId = sessionTemplate.id!!,
         )?.filter { !it.isPlaceholder }
-        scheduledSessions?.map { scheduledSession ->
-          ProgrammeGroupModuleSessionsResponseGroupSession(
-            id = scheduledSession.id!!,
-            number = sessionTemplate.sessionNumber,
-            name = sessionNameFormatter.format(
-              scheduledSession,
-              SessionNameContext.SessionsAndAttendance(sessionTemplate),
-            ),
-            type = if (sessionTemplate.sessionType == SessionType.ONE_TO_ONE) "Individual" else "Group",
-            isCatchup = scheduledSession.isCatchup,
-            dateOfSession = scheduledSession.startsAt.toLocalDate(),
-            timeOfSession = formatTimeOfSession(
-              scheduledSession.startsAt.toLocalTime(),
-              scheduledSession.endsAt.toLocalTime(),
-            ),
-            participants = when {
-              sessionTemplate.sessionType == SessionType.GROUP && !scheduledSession.isCatchup -> listOf("All")
-              sessionTemplate.sessionType == SessionType.ONE_TO_ONE -> scheduledSession.attendees.map { it.personName }
-              else -> scheduledSession.attendees.map { it.personName }
-            },
-            facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }
-              .map { it.facilitator.personName },
-          )
-        } ?: emptyList()
+        if (scheduledSessions.isNullOrEmpty()) {
+          emptyList()
+        } else {
+          scheduledSessions.map { scheduledSession ->
+            ProgrammeGroupModuleSessionsResponseGroupSession(
+              id = scheduledSession.id!!,
+              number = sessionTemplate.sessionNumber,
+              name = sessionNameFormatter.format(
+                scheduledSession,
+                SessionNameContext.SessionsAndAttendance(sessionTemplate),
+              ),
+              type = if (sessionTemplate.sessionType == SessionType.ONE_TO_ONE) "Individual" else "Group",
+              isCatchup = scheduledSession.isCatchup,
+              dateOfSession = scheduledSession.startsAt.toLocalDate(),
+              timeOfSession = formatTimeOfSession(
+                scheduledSession.startsAt.toLocalTime(),
+                scheduledSession.endsAt.toLocalTime(),
+              ),
+              participants = when {
+                sessionTemplate.sessionType == SessionType.GROUP && !scheduledSession.isCatchup -> listOf("All")
+                sessionTemplate.sessionType == SessionType.ONE_TO_ONE -> scheduledSession.attendees.map { it.personName }
+                else -> scheduledSession.attendees.map { it.personName }
+              },
+              facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }
+                .map { it.facilitator.personName },
+            )
+          }
+        }
       }
 
       ProgrammeGroupModuleSessionsResponseGroupModule(

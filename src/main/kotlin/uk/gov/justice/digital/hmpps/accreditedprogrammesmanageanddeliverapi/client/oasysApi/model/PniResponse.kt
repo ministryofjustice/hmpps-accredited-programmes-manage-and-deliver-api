@@ -17,6 +17,9 @@ fun PniResponse.toPniScore() = PniScore(
     individualRiskScores = IndividualRiskScores.from(this),
   ),
   validationErrors = emptyList(),
+  hasLdc = assessment?.ldc?.subTotal?.let { subTotal ->
+    subTotal >= 3
+  } ?: false,
 )
 
 fun PniResponse.hasLdc(): Boolean = assessment?.ldc?.subTotal?.let { subTotal ->
