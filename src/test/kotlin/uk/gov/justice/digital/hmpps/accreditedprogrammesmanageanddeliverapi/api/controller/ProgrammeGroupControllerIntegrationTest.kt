@@ -711,7 +711,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val groupMembership1 = testDataGenerator.allocateReferralsToGroup(listOf(referral1), group4).first()
       val groupMembership2 = testDataGenerator.allocateReferralsToGroup(listOf(referral2), group4).first()
-      val groupMembership3 = testDataGenerator.allocateReferralsToGroup(listOf(referral3), group6, isDeleted = true).first()
+      val groupMembership3 = testDataGenerator.allocateReferralsToGroup(listOf(referral3), group6, deletedAt = LocalDateTime.now()).first()
       testDataGenerator.allocateReferralsToGroup(listOf(referral4), group5).first()
 
       // Set up PPR for group6/referral3 (Completed group)

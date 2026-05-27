@@ -282,13 +282,13 @@ class TestDataGenerator {
   fun allocateReferralsToGroup(
     referrals: List<ReferralEntity>,
     group: ProgrammeGroupEntity,
-    isDeleted: Boolean = false,
+    deletedAt: LocalDateTime? = null,
   ): List<ProgrammeGroupMembershipEntity> {
     val groupMembershipEntities = referrals.map {
       ProgrammeGroupMembershipEntity(
         referral = it,
         programmeGroup = group,
-        deletedAt = if (isDeleted) LocalDateTime.now() else null,
+        deletedAt = deletedAt,
       )
     }
     return programmeGroupMembershipRepository.saveAll(groupMembershipEntities)
