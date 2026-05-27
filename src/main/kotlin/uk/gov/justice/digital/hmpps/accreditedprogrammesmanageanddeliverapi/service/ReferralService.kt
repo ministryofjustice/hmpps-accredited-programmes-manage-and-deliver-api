@@ -36,6 +36,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.UPDATE_REFERRAL_STATUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.VIEW_REFERRAL
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
@@ -221,9 +222,29 @@ class ReferralService(
     return getReferralById(referral.id!!)
   }
 
-  fun getReferralById(referralId: UUID): ReferralEntity = referralRepository.findByIdOrNull(referralId) ?: let {
-    log.error("Referral with id $referralId does not exist in database")
-    throw NotFoundException("No Referral found for id: $referralId")
+  fun getReferralById(referralId: UUID): ReferralEntity {
+    val referralEntity = referralRepository.findByIdOrNull(referralId) ?: let {
+      log.error("Referral with id $referralId does not exist in database")
+      throw NotFoundException("No Referral found for id: $referralId")
+    }
+    val activeGroupMembership = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referralEntity)
+    telemetryClient.logToAppInsights(
+      "Referral.get.success",
+      mapOf(
+        "activityType" to VIEW_REFERRAL.name,
+        "regionName" to (referralEntity.referralReportingLocation?.regionName ?: ""),
+        "deliveryUnitCode" to (referralEntity.referralReportingLocation?.pduName ?: ""),
+        "deliveryLocation" to (activeGroupMembership?.programmeGroup?.deliveryLocationName ?: ""),
+        "referralId" to referralEntity.id.toString(),
+        "referralStatus" to (
+          referralEntity.statusHistories.firstOrNull()?.referralStatusDescription?.description
+            ?: ""
+          ),
+        "cohort" to referralEntity.referralCohortHistories.firstOrNull()?.cohort.toString(),
+      ),
+    )
+
+    return referralEntity
   }
 
   private fun getReferralAndEnsureSourcedFrom(referralId: UUID): ReferralEntity {
