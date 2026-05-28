@@ -118,6 +118,7 @@
               "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
               "settings": {
                 "content": {
+                  "Query": "let activityTypeList = dynamic([\"UPDATE_REFERRAL_STATUS\", \"ASSIGN_REFERRAL_TO_GROUP\", \"REMOVE_REFERRAL_FROM_GROUP\", \"OVERRIDE_LDC\", \"OVERRIDE_COHORT\", \"SET_AVAILABILITY\", \"UPDATE_AVAILABILITY\", \"SET_MOTIVATION\", \"UPDATE_MOTIVATION\", \"RECORD_ATTENDANCE\"]);\ncustomEvents\n| extend activityType = tostring(customDimensions[\"activityType\"]), regionName = tostring(customDimensions[\"regionName\"]), pdu = tostring(customDimensions[\"deliveryUnitCode\"])\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and activityType in (activityTypeList)\n\n",
                   "PartTitle": "User Actions by regions",
                   "PartSubTitle": "User actions by activity types and regions"
                 }
@@ -238,6 +239,7 @@
               "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
               "settings": {
                 "content": {
+                  "Query": "let activityTypeList = dynamic([\"UPDATE_REFERRAL_STATUS\", \"ASSIGN_REFERRAL_TO_GROUP\", \"REMOVE_REFERRAL_FROM_GROUP\", \"OVERRIDE_LDC\", \"OVERRIDE_COHORT\", \"SET_AVAILABILITY\", \"UPDATE_AVAILABILITY\", \"SET_MOTIVATION\", \"UPDATE_MOTIVATION\", \"RECORD_ATTENDANCE\"]);\ncustomEvents\n| extend activityType = tostring(customDimensions[\"activityType\"]), regionName = tostring(customDimensions[\"regionName\"]), pdu = tostring(customDimensions[\"deliveryUnitCode\"])\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and activityType in (activityTypeList)\n",
                   "PartTitle": "User Actions by PDUs",
                   "PartSubTitle": "User actions by activity types and PDUs"
                 }
@@ -353,9 +355,23 @@
               "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
               "settings": {
                 "content": {
-                  "Query": "customEvents\n| extend Activity = tostring(customDimensions[\"activityType\"])\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and Activity contains \"VIEW_REFERRAL\"\n| summarize Count=count() by Activity\n",
-                  "PartTitle": "Vew Referral count",
-                  "PartSubTitle": "Count of the view referral user action "
+                  "Query": "customEvents\n| extend Activity = tostring(customDimensions[\"activityType\"])\n| extend Day = startofday(timestamp)\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and Activity contains \"VIEW_REFERRAL\"\n| summarize Count=count() by Day\n",
+                  "PartTitle": "View Referral count",
+                  "PartSubTitle": "Count of the view referral user action ",
+                  "Dimensions": {
+                    "xAxis": {
+                      "name": "Day",
+                      "type": "datetime"
+                    },
+                    "yAxis": [
+                      {
+                        "name": "Count",
+                        "type": "long"
+                      }
+                    ],
+                    "splitBy": [],
+                    "aggregation": "Sum"
+                  }
                 }
               }
             }
