@@ -22,12 +22,7 @@ class PniService(
    * If OASys is unavailable, returns null and caches null for the day.
    */
   @Cacheable(value = ["pni-daily"], key = "#crn + '-' + #date", unless = "#result == null")
-  fun getDailyPniCalculation(crn: String, date: LocalDate = LocalDate.now()): PniScore? = try {
-    getPniResponse(crn)?.toPniScore()
-  } catch (e: Exception) {
-    log.warn("Failed to fetch PNI for crn $crn on $date: ${e.message}")
-    null
-  }
+  fun getDailyPniCalculation(crn: String, date: LocalDate = LocalDate.now()): PniScore? = getPniResponse(crn)?.toPniScore()
 
   fun getPniCalculation(crn: String): PniScore = getPniResponse(crn)?.toPniScore() ?: PniScore.empty()
 
