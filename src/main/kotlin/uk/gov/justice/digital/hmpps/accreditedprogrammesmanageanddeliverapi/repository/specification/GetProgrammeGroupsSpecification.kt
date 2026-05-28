@@ -25,7 +25,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlin.jvm.java
 
-fun hasAtLeastOneMembership(
+fun hasAtLeastOneActiveMembership(
   query: CriteriaQuery<*>,
   cb: CriteriaBuilder,
   root: Root<ProgrammeGroupEntity>,
@@ -35,42 +35,8 @@ fun hasAtLeastOneMembership(
   membershipExistsSubquery.select(cb.literal(1L))
   membershipExistsSubquery.where(
     cb.equal(membershipRoot.get<ProgrammeGroupEntity>("programmeGroup"), root),
-    cb.isNull(membershipRoot.get<LocalDateTime>("deletedAt")),
   )
   return cb.exists(membershipExistsSubquery)
-}
-
-fun allSessionsHaveAttendanceData(
-  parentSubquery: Subquery<Long>,
-  cb: CriteriaBuilder,
-  groupMembershipRoot: Root<ProgrammeGroupMembershipEntity>,
-): Predicate {
-  val groupRoot = groupMembershipRoot.get<ProgrammeGroupEntity>("programmeGroup")
-
-  // Subquery to count relevant sessions for the group (that are NOT catch-up and NOT placeholders)
-  val sessionCountSubquery = parentSubquery.subquery(Long::class.java)
-  val sessionRoot = sessionCountSubquery.from(SessionEntity::class.java)
-  sessionCountSubquery.select(cb.count(sessionRoot))
-  sessionCountSubquery.where(
-    cb.equal(sessionRoot.get<ProgrammeGroupEntity>("programmeGroup"), groupRoot),
-    cb.isFalse(sessionRoot.get("isPlaceholder")),
-    cb.isFalse(sessionRoot.get("isCatchup")),
-  )
-
-  // Subquery to count attendance records for this membership for those same sessions
-  val attendanceCountSubquery = parentSubquery.subquery(Long::class.java)
-  val attendanceRoot = attendanceCountSubquery.from(SessionAttendanceEntity::class.java)
-  val attendanceSessionJoin = attendanceRoot.join<SessionAttendanceEntity, SessionEntity>("session")
-  attendanceCountSubquery.select(cb.count(attendanceRoot))
-  attendanceCountSubquery.where(
-    cb.equal(attendanceRoot.get<ProgrammeGroupMembershipEntity>("groupMembership"), groupMembershipRoot),
-    cb.isFalse(attendanceSessionJoin.get("isPlaceholder")),
-    cb.isFalse(attendanceSessionJoin.get("isCatchup")),
-    cb.isNotNull(attendanceRoot.get<LocalDateTime>("recordedAt")),
-    cb.isNotNull(attendanceRoot.get<SessionAttendanceNDeliusOutcomeEntity>("outcomeType")),
-  )
-
-  return cb.equal(sessionCountSubquery, attendanceCountSubquery)
 }
 
 fun getProgrammeGroupsSpecification(
@@ -184,8 +150,6 @@ fun incompleteMembershipCountSubquery(
   val isMembershipComplete = cb.and(
     isLatestReferralStatusProgrammeComplete(query, cb, referralJoin),
     hasAttendedPostProgrammeReview(incompleteMembershipCountSubquery, cb, groupMembershipRoot),
-    allSessionsHaveAttendanceData(incompleteMembershipCountSubquery, cb, groupMembershipRoot),
-    cb.isNull(groupMembershipRoot.get<LocalDateTime>("deletedAt")),
   )
 
   incompleteMembershipCountSubquery.select(cb.count(groupMembershipRoot))
@@ -212,7 +176,7 @@ fun getProgrammeGroupsByRegionTabSpecification(
       cb.or(
         notStartedOrInProgressDateSpec,
         cb.greaterThan(incompleteMembershipCountSubquery, 0L),
-        cb.not(hasAtLeastOneMembership(query, cb, root)),
+        cb.not(hasAtLeastOneActiveMembership(query, cb, root)),
       )
     }
 
@@ -220,8 +184,25 @@ fun getProgrammeGroupsByRegionTabSpecification(
       cb.and(
         cb.lessThanOrEqualTo(datePath, LocalDate.now()),
         cb.equal(incompleteMembershipCountSubquery, 0L),
-        hasAtLeastOneMembership(query, cb, root),
+        hasAtLeastOneMembershipIncludingDeleted(query, cb, root),
       )
     }
   }
+}
+
+fun hasAtLeastOneMembershipIncludingDeleted(
+  query: CriteriaQuery<*>,
+  cb: CriteriaBuilder,
+  root: Root<ProgrammeGroupEntity>,
+): Predicate {
+  val membershipExistsSubquery = query.subquery(Long::class.java)
+  val membershipRoot = membershipExistsSubquery.from(ProgrammeGroupMembershipEntity::class.java)
+
+  membershipExistsSubquery.select(cb.literal(1L))
+  membershipExistsSubquery.where(
+    cb.equal(membershipRoot.get<ProgrammeGroupEntity>("programmeGroup"), root),
+    cb.isNotNull(membershipRoot.get<LocalDateTime>("deletedAt")),
+  )
+
+  return cb.exists(membershipExistsSubquery)
 }

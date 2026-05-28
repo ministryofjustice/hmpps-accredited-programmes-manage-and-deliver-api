@@ -68,7 +68,7 @@ class RisksAndNeedsService(
       assessmentCompletedDate?.toLocalDate(),
       getDetails(assessmentId, oasysApiClient::getLearning, "LearningNeeds"),
       getDetails(assessmentId, oasysApiClient::getAccommodation, "OasysAccommodation"),
-      pniService.getPniResponse(crn)?.assessment,
+      pniService.getPniCalculation(crn).ldcScore,
     )
   }
 

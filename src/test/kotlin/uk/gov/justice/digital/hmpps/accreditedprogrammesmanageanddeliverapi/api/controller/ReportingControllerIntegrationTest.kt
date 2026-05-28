@@ -244,59 +244,70 @@ class ReportingControllerIntegrationTest : IntegrationTestBase() {
         .exchange()
         .expectStatus().isBadRequest
     }
+  }
 
+  @Nested
+  @DisplayName("Dosage endpoint")
+  inner class DosageEndpoint {
     @Test
-    fun `should return session rate reporting data in csv format with header and filename`() {
+    fun `should return dosage reporting data in csv format with header and filename`() {
       whenever(clock.instant()).thenReturn(Instant.parse("2026-05-21T08:42:00Z"))
       whenever(clock.zone).thenReturn(ZoneId.of("Europe/London"))
 
       val referral = referralRepository.save(
         ReferralEntityFactory()
+          .withInterventionName("Building Choices")
+          .withCreatedAt(LocalDateTime.parse("2026-05-10T09:00:00"))
           .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
-          .withEventId("LIC-SESSION-RATE")
-          .withCrn("CRN-SR-CTRL")
+          .withEventId("LIC-999")
+          .withCrn("X12345")
           .produce(),
+      )
+      referralReportingLocationRepository.save(
+        ReferralReportingLocationFactory(referral)
+          .withRegionName("North East")
+          .withPduName("Leeds PDU")
+          .withReportingTeam("Leeds Office")
+          .produce(),
+      )
+      referralStatusHistoryRepository.save(
+        ReferralStatusHistoryEntityFactory()
+          .withCreatedAt(LocalDateTime.parse("2026-05-20T09:00:00"))
+          .produce(referral, referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()),
       )
 
       val group = programmeGroupRepository.save(
         ProgrammeGroupFactory()
-          .withCode("GROUP-SR-CTRL")
-          .withRegionName("Region CTRL")
-          .withProbationDeliveryUnit("PDU CTRL", "PDUCTRL")
-          .withDeliveryLocation("Location CTRL", "LOCCTRL")
+          .withCode("GROUP01")
+          .withRegionName("North East")
           .withEarliestStartDate(LocalDate.parse("2026-05-10"))
           .produce(),
       )
-
       val membership = programmeGroupMembershipRepository.save(
         ProgrammeGroupMembershipFactory(referral, group)
           .withCreatedAt(LocalDateTime.parse("2026-05-10T09:00:00"))
           .produce(),
       )
-
       val template = moduleSessionTemplateRepository.findByName("Introduction to Building Choices")!!
       val session = sessionRepository.save(
         SessionFactory(group, template)
-          .withStartsAt(LocalDateTime.parse("2026-05-12T10:00:00"))
-          .withEndsAt(LocalDateTime.parse("2026-05-12T12:00:00"))
+          .withStartsAt(LocalDateTime.parse("2026-05-11T10:00:00"))
+          .withEndsAt(LocalDateTime.parse("2026-05-11T12:00:00"))
           .produce(),
       )
-
-      testDataGenerator.createAttendee(referral, session)
-
       val attendedOutcome = sessionAttendanceOutcomeTypeRepository.findByCode(SessionAttendanceNDeliusCode.ATTC)!!
       val facilitator = facilitatorRepository.save(FacilitatorEntityFactory().produce())
       sessionAttendanceRepository.save(
         SessionAttendanceEntityFactory(session, membership)
           .withRecordedByFacilitator(facilitator)
           .withOutcomeType(attendedOutcome)
-          .withRecordedAt(LocalDateTime.parse("2026-05-12T13:00:00"))
+          .withRecordedAt(LocalDateTime.parse("2026-05-11T13:00:00"))
           .produce(),
       )
 
       val csvBody = webTestClient
         .method(HttpMethod.GET)
-        .uri("/reporting/session-rate.csv?groupsStartedAfter=2026-05-01")
+        .uri("/reporting/dosage.csv?referralsCreatedSince=2026-05-01")
         .headers(setAuthorisation())
         .accept(MediaType.parseMediaType("text/csv"))
         .exchange()
@@ -310,135 +321,24 @@ class ReportingControllerIntegrationTest : IntegrationTestBase() {
         .returnResult().responseBody!!
 
       val lines = csvBody.split("\n")
-      assertThat(lines).hasSize(2)
-      assertThat(lines.first()).isEqualTo(
-        "licReqNo,crn,groupCode,regionName,pduName,deliveryLocationName,weekStarting,numberSessionAttended,numberSessionsNotAttended,numberSessionsScheduled",
-      )
-      assertThat(lines[1]).isEqualTo(
-        "LIC-SESSION-RATE,CRN-SR-CTRL,GROUP-SR-CTRL,\"Region CTRL\",\"PDU CTRL\",\"Location CTRL\",2026-05-11,1,0,1",
-      )
+      assertThat(lines.first()).contains("licReqNo,crn,numberSessionAttended")
+      assertThat(lines.first()).contains("M2 S1 Introduction to Building Choices")
+      assertThat(lines[1]).contains("LIC-999,X12345,1")
+      assertThat(lines[1]).contains("GROUP01")
     }
 
     @Test
-    fun `should return bad request when session rate endpoint missing both filters`() {
+    fun `should return bad request when dosage endpoint missing both filters`() {
       webTestClient
         .method(HttpMethod.GET)
-        .uri("/reporting/session-rate.csv")
+        .uri("/reporting/dosage.csv")
         .headers(setAuthorisation())
         .accept(MediaType.parseMediaType("text/csv"))
         .exchange()
         .expectStatus().isBadRequest
         .expectBody<String>().value { body ->
-          assertThat(body).contains("At least one of groupsFinishedAfter or groupsStartedAfter must be provided")
+          assertThat(body).contains("At least one of referralsCreatedSince or referralsCompletedAfter must be provided")
         }
-    }
-
-    @Disabled("Will be enabled when reporting role enforcement is added to this endpoint")
-    @Test
-    fun `should return unauthorized when user does not have reporting role`() {
-      webTestClient
-        .method(HttpMethod.GET)
-        .uri("/reporting/group-size.csv?groupStartedSince=2026-05-01T00:00:00")
-        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
-        .accept(MediaType.parseMediaType("text/csv"))
-        .exchange()
-        .expectStatus().isUnauthorized
-    }
-
-    @Nested
-    @DisplayName("Dosage endpoint")
-    inner class DosageEndpoint {
-      @Test
-      fun `should return dosage reporting data in csv format with header and filename`() {
-        whenever(clock.instant()).thenReturn(Instant.parse("2026-05-21T08:42:00Z"))
-        whenever(clock.zone).thenReturn(ZoneId.of("Europe/London"))
-
-        val referral = referralRepository.save(
-          ReferralEntityFactory()
-            .withInterventionName("Building Choices")
-            .withCreatedAt(LocalDateTime.parse("2026-05-10T09:00:00"))
-            .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
-            .withEventId("LIC-999")
-            .withCrn("X12345")
-            .produce(),
-        )
-        referralReportingLocationRepository.save(
-          ReferralReportingLocationFactory(referral)
-            .withRegionName("North East")
-            .withPduName("Leeds PDU")
-            .withReportingTeam("Leeds Office")
-            .produce(),
-        )
-        referralStatusHistoryRepository.save(
-          ReferralStatusHistoryEntityFactory()
-            .withCreatedAt(LocalDateTime.parse("2026-05-20T09:00:00"))
-            .produce(referral, referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()),
-        )
-
-        val group = programmeGroupRepository.save(
-          ProgrammeGroupFactory()
-            .withCode("GROUP01")
-            .withRegionName("North East")
-            .withEarliestStartDate(LocalDate.parse("2026-05-10"))
-            .produce(),
-        )
-        val membership = programmeGroupMembershipRepository.save(
-          ProgrammeGroupMembershipFactory(referral, group)
-            .withCreatedAt(LocalDateTime.parse("2026-05-10T09:00:00"))
-            .produce(),
-        )
-        val template = moduleSessionTemplateRepository.findByName("Introduction to Building Choices")!!
-        val session = sessionRepository.save(
-          SessionFactory(group, template)
-            .withStartsAt(LocalDateTime.parse("2026-05-11T10:00:00"))
-            .withEndsAt(LocalDateTime.parse("2026-05-11T12:00:00"))
-            .produce(),
-        )
-        val attendedOutcome = sessionAttendanceOutcomeTypeRepository.findByCode(SessionAttendanceNDeliusCode.ATTC)!!
-        val facilitator = facilitatorRepository.save(FacilitatorEntityFactory().produce())
-        sessionAttendanceRepository.save(
-          SessionAttendanceEntityFactory(session, membership)
-            .withRecordedByFacilitator(facilitator)
-            .withOutcomeType(attendedOutcome)
-            .withRecordedAt(LocalDateTime.parse("2026-05-11T13:00:00"))
-            .produce(),
-        )
-
-        val csvBody = webTestClient
-          .method(HttpMethod.GET)
-          .uri("/reporting/dosage.csv?referralsCreatedSince=2026-05-01")
-          .headers(setAuthorisation())
-          .accept(MediaType.parseMediaType("text/csv"))
-          .exchange()
-          .expectStatus().isOk
-          .expectHeader().contentTypeCompatibleWith(MediaType.parseMediaType("text/csv"))
-          .expectHeader().valueEquals(
-            HttpHeaders.CONTENT_DISPOSITION,
-            "attachment; filename=\"2026-05-21-09-42-dosage.csv\"",
-          )
-          .expectBody<String>()
-          .returnResult().responseBody!!
-
-        val lines = csvBody.split("\n")
-        assertThat(lines.first()).contains("licReqNo,crn,numberSessionAttended")
-        assertThat(lines.first()).contains("M2 S1 Introduction to Building Choices")
-        assertThat(lines[1]).contains("LIC-999,X12345,1")
-        assertThat(lines[1]).contains("GROUP01")
-      }
-
-      @Test
-      fun `should return bad request when dosage endpoint missing both filters`() {
-        webTestClient
-          .method(HttpMethod.GET)
-          .uri("/reporting/dosage.csv")
-          .headers(setAuthorisation())
-          .accept(MediaType.parseMediaType("text/csv"))
-          .exchange()
-          .expectStatus().isBadRequest
-          .expectBody<String>().value { body ->
-            assertThat(body).contains("At least one of referralsCreatedSince or referralsCompletedAfter must be provided")
-          }
-      }
     }
   }
 }

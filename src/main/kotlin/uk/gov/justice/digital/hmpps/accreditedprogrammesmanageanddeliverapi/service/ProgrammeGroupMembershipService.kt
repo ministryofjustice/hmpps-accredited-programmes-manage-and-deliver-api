@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -9,6 +10,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
@@ -33,6 +35,7 @@ class ProgrammeGroupMembershipService(
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
   private val scheduleService: ScheduleService,
   private val referralEventService: ReferralEventService,
+  private val telemetryClient: TelemetryClient,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -90,7 +93,15 @@ class ProgrammeGroupMembershipService(
 
     referralEventService.publishReferralStatusUpdatedEvent(referral)
 
-    log.info("User activity - activityType: ${ASSIGN_REFERRAL_TO_GROUP}, regionName: ${referral.referralReportingLocation?.regionName}, deliveryUnitCode: ${referral.referralReportingLocation?.pduName}, deliveryLocation: ${group.deliveryLocationName}")
+    telemetryClient.logToAppInsights(
+      "Referral.allocate-to-group.success",
+      mapOf(
+        "activityType" to ASSIGN_REFERRAL_TO_GROUP.name,
+        "regionName" to (referral.referralReportingLocation?.regionName ?: ""),
+        "deliveryUnitCode" to (referral.referralReportingLocation?.pduName ?: ""),
+        "deliveryLocation" to group.deliveryLocationName,
+      ),
+    )
 
     return referralRepository.save(referral)
   }
@@ -139,7 +150,15 @@ class ProgrammeGroupMembershipService(
     referralRepository.save(referral)
     referralEventService.publishReferralStatusUpdatedEvent(referral)
 
-    log.info("User activity - activityType: ${REMOVE_REFERRAL_FROM_GROUP}, regionName: ${referral.referralReportingLocation?.regionName}, deliveryUnitCode: ${referral.referralReportingLocation?.pduName}, deliveryLocation: ${group.deliveryLocationName}")
+    telemetryClient.logToAppInsights(
+      "Referral.remove-from-group.success",
+      mapOf(
+        "activityType" to REMOVE_REFERRAL_FROM_GROUP.name,
+        "regionName" to (referral.referralReportingLocation?.regionName ?: ""),
+        "deliveryUnitCode" to (referral.referralReportingLocation?.pduName ?: ""),
+        "deliveryLocation" to group.deliveryLocationName,
+      ),
+    )
 
     return RemoveFromGroupResponse(
       message = "${referral.personName} was removed from this group. Their referral status is now ${desiredStatus.description}",

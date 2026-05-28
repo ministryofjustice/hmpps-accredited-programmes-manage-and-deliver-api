@@ -2,7 +2,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
@@ -63,18 +62,27 @@ class PniServiceTest {
   }
 
   @Test
-  fun `when getPniScore returns non-404 failure from oasys throw exception`() {
+  fun `when getPniScore returns non-404 failure from oasys returns empty pniScore`() {
     val crn = randomCrn()
-
     `when`(oasysApiClient.getPniCalculation(crn)).thenReturn(
       ClientResult.Failure.StatusCode(
         HttpMethod.GET,
         "/assessments/pni/$crn?community=true",
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR,
         "Internal Server Error",
       ),
     )
+    val result = pniService.getPniCalculation(crn)
+    assertThat(result).isEqualTo(PniScore.empty())
+    assertThat(result.overallIntensity).isEqualTo(OverallIntensity.MISSING_INFORMATION)
+  }
 
-    assertThrows<RuntimeException> { pniService.getPniCalculation(crn) }
+  @Test
+  fun `when getPniScore throws exception returns empty pniScore`() {
+    val crn = randomCrn()
+    `when`(oasysApiClient.getPniCalculation(crn)).thenThrow(RuntimeException("Network error"))
+    val result = pniService.getPniCalculation(crn)
+    assertThat(result).isEqualTo(PniScore.empty())
+    assertThat(result.overallIntensity).isEqualTo(OverallIntensity.MISSING_INFORMATION)
   }
 }

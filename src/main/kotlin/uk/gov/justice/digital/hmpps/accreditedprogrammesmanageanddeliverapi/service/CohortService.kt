@@ -1,21 +1,28 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.RiskScoreLevel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.AuditorContext
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCohortHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.OVERRIDE_COHORT
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
 import java.util.UUID
 
 @Service
+@Transactional
 class CohortService(
   private val referralCohortHistoryRepository: ReferralCohortHistoryRepository,
+  private val telemetryClient: TelemetryClient,
+  private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
 ) {
   companion object {
     private const val SEX_DOMAIN_MINIMUM_THRESHOLD = 0.0
@@ -46,7 +53,16 @@ class CohortService(
       AuditorContext.clear()
     }
 
-    log.info("User activity - activityType: ${OVERRIDE_COHORT}, regionName: ${referralEntity.referralReportingLocation?.regionName}, deliveryUnitCode: ${referralEntity.referralReportingLocation?.pduName}, deliveryLocation: ${referralEntity.programmeGroupMemberships.firstOrNull()?.programmeGroup?.deliveryLocationName}")
+    val programmeGroupMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralEntity.id!!)
+    telemetryClient.logToAppInsights(
+      "Referral.update-cohort.success",
+      mapOf(
+        "activityType" to OVERRIDE_COHORT.name,
+        "regionName" to (referralEntity.referralReportingLocation?.regionName ?: ""),
+        "deliveryUnitCode" to (referralEntity.referralReportingLocation?.pduName ?: ""),
+        "deliveryLocation" to (programmeGroupMembership?.programmeGroup?.deliveryLocationName ?: ""),
+      ),
+    )
 
     return referralEntity
   }

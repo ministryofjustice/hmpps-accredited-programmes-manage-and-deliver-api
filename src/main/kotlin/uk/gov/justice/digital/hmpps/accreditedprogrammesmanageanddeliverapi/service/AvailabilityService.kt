@@ -1,11 +1,13 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import com.microsoft.applicationinsights.TelemetryClient
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilitySlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SlotName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.SET_AVAILABILITY
@@ -15,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.toDayOfWeek
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateAvailability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeParseException
@@ -25,6 +28,8 @@ class AvailabilityService(
   val availabilityRepository: AvailabilityRepository,
   val defaultAvailabilityConfigService: DefaultAvailabilityConfigService,
   private val referralService: ReferralService,
+  private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
+  private val telemetryClient: TelemetryClient,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -56,8 +61,17 @@ class AvailabilityService(
 
     val availabilityEntity = createAvailability.toEntity(getAuthenticatedReferrerUser(), referral)
     val savedAvailabilityEntity = availabilityRepository.save(availabilityEntity)
+    val programmeGroupMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referral.id!!)
 
-    log.info("User activity - activityType: ${SET_AVAILABILITY}, regionName: ${referral.referralReportingLocation?.regionName}, deliveryUnitCode: ${referral.referralReportingLocation?.pduName}, deliveryLocation: ${referral.programmeGroupMemberships.firstOrNull()?.programmeGroup?.deliveryLocationName}")
+    telemetryClient.logToAppInsights(
+      "Availability.create-availability.success",
+      mapOf(
+        "activityType" to SET_AVAILABILITY.name,
+        "regionName" to (referral.referralReportingLocation?.regionName ?: ""),
+        "deliveryUnitCode" to (referral.referralReportingLocation?.pduName ?: ""),
+        "deliveryLocation" to (programmeGroupMembership?.programmeGroup?.deliveryLocationName ?: ""),
+      ),
+    )
 
     return Pair(savedAvailabilityEntity.toModel(), false)
   }
@@ -95,8 +109,17 @@ class AvailabilityService(
       }
 
     val updateAvailability = availabilityRepository.save(availabilityEntity)
+    val programmeGroupMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referral.id!!)
 
-    log.info("User activity - activityType: ${UPDATE_AVAILABILITY}, regionName: ${referral.referralReportingLocation?.regionName}, deliveryUnitCode: ${referral.referralReportingLocation?.pduName}, deliveryLocation: ${referral.programmeGroupMemberships.firstOrNull()?.programmeGroup?.deliveryLocationName}")
+    telemetryClient.logToAppInsights(
+      "Availability.update-availability.success",
+      mapOf(
+        "activityType" to UPDATE_AVAILABILITY.name,
+        "regionName" to (referral.referralReportingLocation?.regionName ?: ""),
+        "deliveryUnitCode" to (referral.referralReportingLocation?.pduName ?: ""),
+        "deliveryLocation" to (programmeGroupMembership?.programmeGroup?.deliveryLocationName ?: ""),
+      ),
+    )
 
     return updateAvailability.toModel()
   }

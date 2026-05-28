@@ -27,6 +27,12 @@ data class PniScore(
   @get:JsonProperty("RiskScore") val riskScore: RiskScore,
   @Schema(example = "['impulsivity is missing ']", required = true)
   @get:JsonProperty("validationErrors") val validationErrors: List<String>,
+
+  @Schema(description = "Whether the LDC (Learning Disabilities and Challenges) threshold is met", example = "false")
+  val hasLdc: Boolean = false,
+
+  @Schema(description = "The LDC (Learning Disabilities and Challenges) score", example = "2")
+  val ldcScore: Int? = null,
 ) {
   companion object {
     fun empty() = PniScore(
@@ -34,6 +40,8 @@ data class PniScore(
       domainScores = DomainScores.empty(),
       riskScore = RiskScore.empty(),
       validationErrors = emptyList(),
+      hasLdc = false,
+      ldcScore = null,
     )
   }
 }
