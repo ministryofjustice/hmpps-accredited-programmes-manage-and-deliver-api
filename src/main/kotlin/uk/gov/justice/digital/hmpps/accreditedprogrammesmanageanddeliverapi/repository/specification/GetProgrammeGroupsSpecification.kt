@@ -35,7 +35,6 @@ fun hasAtLeastOneActiveMembership(
   membershipExistsSubquery.select(cb.literal(1L))
   membershipExistsSubquery.where(
     cb.equal(membershipRoot.get<ProgrammeGroupEntity>("programmeGroup"), root),
-    cb.isNull(membershipRoot.get<LocalDateTime>("deletedAt")),
   )
   return cb.exists(membershipExistsSubquery)
 }
@@ -211,7 +210,7 @@ fun getProgrammeGroupsByRegionTabSpecification(
       cb.or(
         notStartedOrInProgressDateSpec,
         cb.greaterThan(incompleteMembershipCountSubquery, 0L),
-        cb.isTrue(hasAtLeastOneActiveMembership(query, cb, root)),
+        cb.not(hasAtLeastOneActiveMembership(query, cb, root)),
       )
     }
 
@@ -236,6 +235,7 @@ fun hasAtLeastOneMembershipIncludingDeleted(
   membershipExistsSubquery.select(cb.literal(1L))
   membershipExistsSubquery.where(
     cb.equal(membershipRoot.get<ProgrammeGroupEntity>("programmeGroup"), root),
+    cb.isNotNull(membershipRoot.get<LocalDateTime>("deletedAt")),
   )
 
   return cb.exists(membershipExistsSubquery)
