@@ -85,10 +85,8 @@ class ReferralService(
   suspend fun refreshPersonalDetailsForReferral(referralId: UUID): ReferralDetails? = coroutineScope {
     val referral = referralRepository.findByIdWithMemberships(referralId) ?: return@coroutineScope null
 
-    // Skip OASys PNI call if already enriched TODAY (same-day freshness).
-    // - If LDC was set today by SYSTEM → skip (already fresh)
-    // - If user has manually overridden both cohort AND LDC → skip (clinical decision made)
-    // - Otherwise → call OASys (first view of the day, or never enriched)
+    // Skip OASys PNI call if both cohort and LDC have been manually overridden by the user (clinical decision).
+    // Otherwise, call OASys (first view of the day, or never enriched, or only one overridden).
     val bothOverridden = cohortService.hasOverriddenCohort(referralId) && ldcService.hasOverriddenLdcStatus(referralId)
 
     val pniScore: PniScore? = if (!bothOverridden) {
