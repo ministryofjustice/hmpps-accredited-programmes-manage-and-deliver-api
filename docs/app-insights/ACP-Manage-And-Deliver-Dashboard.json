@@ -243,6 +243,122 @@
                 }
               }
             }
+          },
+          {
+            "position": {
+              "x": 0,
+              "y": 7,
+              "colSpan": 11,
+              "rowSpan": 8
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "resourceTypeMode",
+                  "isOptional": true
+                },
+                {
+                  "name": "ComponentId",
+                  "isOptional": true
+                },
+                {
+                  "name": "Scope",
+                  "value": {
+                    "resourceIds": [
+                      "/subscriptions/c27cfedb-f5e9-45e6-9642-0fad1a5c94e7/resourceGroups/nomisapi-t3-rg/providers/microsoft.insights/components/nomisapi-t3"
+                    ]
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "PartId",
+                  "value": "9546396c-53a7-4607-898e-97ed5548b896",
+                  "isOptional": true
+                },
+                {
+                  "name": "Version",
+                  "value": "2.0",
+                  "isOptional": true
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "P7D",
+                  "isOptional": true
+                },
+                {
+                  "name": "DashboardId",
+                  "isOptional": true
+                },
+                {
+                  "name": "DraftRequestParameters",
+                  "isOptional": true
+                },
+                {
+                  "name": "Query",
+                  "value": "customEvents\n| extend Activity = tostring(customDimensions[\"activityType\"])\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and Activity contains \"OVERRIDE_COHORT\"\n| summarize Count=count() by Activity",
+                  "isOptional": true
+                },
+                {
+                  "name": "ControlType",
+                  "value": "FrameControlChart",
+                  "isOptional": true
+                },
+                {
+                  "name": "SpecificChart",
+                  "value": "StackedColumn",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartTitle",
+                  "value": "Analytics",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartSubTitle",
+                  "value": "nomisapi-t3",
+                  "isOptional": true
+                },
+                {
+                  "name": "Dimensions",
+                  "value": {
+                    "xAxis": {
+                      "name": "Activity",
+                      "type": "string"
+                    },
+                    "yAxis": [
+                      {
+                        "name": "Count",
+                        "type": "long"
+                      }
+                    ],
+                    "splitBy": [],
+                    "aggregation": "Sum"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "LegendOptions",
+                  "value": {
+                    "isEnabled": true,
+                    "position": "Bottom"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "IsQueryContainTimeRange",
+                  "value": false,
+                  "isOptional": true
+                }
+              ],
+              "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+              "settings": {
+                "content": {
+                  "Query": "customEvents\n| extend Activity = tostring(customDimensions[\"activityType\"])\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and Activity contains \"VIEW_REFERRAL\"\n| summarize Count=count() by Activity\n",
+                  "PartTitle": "Vew Referral count",
+                  "PartSubTitle": "Count of the view referral user action "
+                }
+              }
+            }
           }
         ]
       }
@@ -275,7 +391,8 @@
               },
               "filteredPartIds": [
                 "StartboardPart-LogsDashboardPart-320281ca-6263-442d-a479-f95cb317d446",
-                "StartboardPart-LogsDashboardPart-320281ca-6263-442d-a479-f95cb317d5af"
+                "StartboardPart-LogsDashboardPart-320281ca-6263-442d-a479-f95cb317d5af",
+                "StartboardPart-LogsDashboardPart-5c68d2a4-20d5-4920-b5c0-a0afc3cf75df"
               ]
             }
           }
