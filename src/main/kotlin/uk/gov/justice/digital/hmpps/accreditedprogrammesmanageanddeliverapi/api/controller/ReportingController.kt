@@ -194,6 +194,69 @@ class ReportingController(
 
   @Operation(
     tags = ["Reporting"],
+    summary = "Download session rate reporting data as CSV",
+    operationId = "getSessionRateReport",
+    description = "Returns weekly session rate data where at least one group filter is provided.",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "CSV file containing session rate reporting data.",
+        content = [
+          Content(
+            mediaType = CSV_MEDIA_TYPE,
+            schema = Schema(type = "string", format = "binary"),
+          ),
+        ],
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid query parameters. At least one of groupsFinishedAfter or groupsStartedAfter must be provided.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+  )
+  @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
+  @GetMapping("/reporting/session-rate.csv", produces = [CSV_MEDIA_TYPE])
+  fun getSessionRateCsv(
+    @Parameter(
+      description = "Only include groups with final session date on or after this date.",
+      required = false,
+      example = "2026-05-01",
+    )
+    @RequestParam(name = "groupsFinishedAfter", required = false)
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    groupsFinishedAfter: LocalDate?,
+    @Parameter(
+      description = "Only include groups with earliest possible start date on or after this date.",
+      required = false,
+      example = "2026-05-01",
+    )
+    @RequestParam(name = "groupsStartedAfter", required = false)
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    groupsStartedAfter: LocalDate?,
+  ): ResponseEntity<String> {
+    if (groupsFinishedAfter == null && groupsStartedAfter == null) {
+      return ResponseEntity.badRequest()
+        .contentType(MediaType.parseMediaType(CSV_MEDIA_TYPE))
+        .body("At least one of groupsFinishedAfter or groupsStartedAfter must be provided")
+    }
+
+    val csv = reportingService.getSessionRate(groupsFinishedAfter, groupsStartedAfter)
+    val fileName = "${LocalDateTime.now(clock).format(fileNameDateFormatter)}-$DOSAGE_FILE_NAME_SUFFIX"
+
+    return ResponseEntity.ok()
+      .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"$fileName\"")
+      .contentType(MediaType.parseMediaType(CSV_MEDIA_TYPE))
+      .body(csv)
+  }
+
+  @Operation(
+    tags = ["Reporting"],
     summary = "Download dosage reporting data as CSV",
     operationId = "getDosageReport",
     description = "Returns dosage reporting data for Building Choices referrals filtered by either creation date or completed date.",
