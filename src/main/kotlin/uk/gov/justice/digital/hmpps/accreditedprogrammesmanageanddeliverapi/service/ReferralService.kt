@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
@@ -85,26 +84,24 @@ class ReferralService(
   suspend fun refreshPersonalDetailsForReferral(referralId: UUID): ReferralDetails? = coroutineScope {
     val referral = referralRepository.findByIdWithMemberships(referralId) ?: return@coroutineScope null
 
-    // Skip OASys PNI call if both cohort and LDC have been manually overridden by the user (clinical decision).
-    // Otherwise, call OASys (first view of the day, or never enriched, or only one overridden).
-    val bothOverridden = cohortService.hasOverriddenCohort(referralId) && ldcService.hasOverriddenLdcStatus(referralId)
+    val cohortOverridden = cohortService.hasOverriddenCohort(referralId)
+    val ldcOverridden = ldcService.hasOverriddenLdcStatus(referralId)
 
-    val pniScore: PniScore? = if (!bothOverridden) {
-      pniService.getDailyPniCalculation(referral.crn)
-    } else {
-      null
-    }
+    if (!cohortOverridden || !ldcOverridden) {
+      val pniScore = pniService.getDailyPniCalculation(referral.crn)
 
-    if (!bothOverridden && pniScore != null) {
-      val hasLdc = pniScore.hasLdc
-      val cohort = cohortService.determineOffenceCohort(pniScore)
+      if (pniScore != null) {
+        if (!ldcOverridden) {
+          ldcService.updateLdcStatusForReferral(referral, UpdateLdc(pniScore.hasLdc), "SYSTEM")
+        }
 
-      if (!ldcService.hasOverriddenLdcStatus(referralId)) {
-        ldcService.updateLdcStatusForReferral(referral, UpdateLdc(hasLdc), "SYSTEM")
-      }
-
-      if (!cohortService.hasOverriddenCohort(referralId)) {
-        cohortService.updateCohortForReferral(referral, cohort, "SYSTEM")
+        if (!cohortOverridden) {
+          cohortService.updateCohortForReferral(
+            referral,
+            cohortService.determineOffenceCohort(pniScore),
+            "SYSTEM",
+          )
+        }
       }
     }
 
