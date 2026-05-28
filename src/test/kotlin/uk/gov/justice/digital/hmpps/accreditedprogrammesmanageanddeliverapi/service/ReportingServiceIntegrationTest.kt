@@ -381,6 +381,237 @@ class ReportingServiceIntegrationTest : IntegrationTestBase() {
   )
 
   @Test
+  fun `should return session rate csv with gap weeks backfilled using last known group location`() {
+    val referral = referralRepository.save(
+      ReferralEntityFactory()
+        .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
+        .withEventId("LIC-111")
+        .withCrn("CRN-SR-111")
+        .produce(),
+    )
+
+    val group = programmeGroupRepository.save(
+      ProgrammeGroupFactory()
+        .withCode("GROUP-SR-1")
+        .withRegionName("Region One")
+        .withProbationDeliveryUnit("PDU One", "PDU1")
+        .withDeliveryLocation("Location One", "LOC1")
+        .withEarliestStartDate(LocalDate.parse("2026-05-01"))
+        .produce(),
+    )
+
+    val membership = programmeGroupMembershipRepository.save(
+      ProgrammeGroupMembershipFactory(referral, group)
+        .withCreatedAt(LocalDateTime.parse("2026-05-01T09:00:00"))
+        .produce(),
+    )
+
+    createSessionRateSessionWithOptionalAttendance(
+      referral = referral,
+      membership = membership,
+      group = group,
+      startsAt = LocalDateTime.parse("2026-05-05T10:00:00"),
+      attendanceCode = SessionAttendanceNDeliusCode.ATTC,
+    )
+    createSessionRateSessionWithOptionalAttendance(
+      referral = referral,
+      membership = membership,
+      group = group,
+      startsAt = LocalDateTime.parse("2026-05-19T10:00:00"),
+      attendanceCode = SessionAttendanceNDeliusCode.UAAB,
+    )
+
+    val csv = reportingService.getSessionRate(
+      groupsFinishedAfter = null,
+      groupsStartedAfter = LocalDate.parse("2026-05-01"),
+    )
+
+    val lines = csv.split("\n")
+    assertThat(lines).hasSize(4)
+    assertThat(lines.first()).isEqualTo(
+      "licReqNo,crn,groupCode,regionName,pduName,deliveryLocationName,weekStarting,numberSessionAttended,numberSessionsNotAttended,numberSessionsScheduled",
+    )
+    assertThat(lines[1]).isEqualTo("LIC-111,CRN-SR-111,GROUP-SR-1,\"Region One\",\"PDU One\",\"Location One\",2026-05-04,1,0,1")
+    assertThat(lines[2]).isEqualTo("LIC-111,CRN-SR-111,GROUP-SR-1,\"Region One\",\"PDU One\",\"Location One\",2026-05-11,0,0,0")
+    assertThat(lines[3]).isEqualTo("LIC-111,CRN-SR-111,GROUP-SR-1,\"Region One\",\"PDU One\",\"Location One\",2026-05-18,0,1,1")
+  }
+
+  @Test
+  fun `should filter session rate csv by groups started after`() {
+    val referralOld = referralRepository.save(
+      ReferralEntityFactory()
+        .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
+        .withEventId("LIC-OLD")
+        .withCrn("CRN-SR-OLD")
+        .produce(),
+    )
+    val referralNew = referralRepository.save(
+      ReferralEntityFactory()
+        .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
+        .withEventId("LIC-NEW")
+        .withCrn("CRN-SR-NEW")
+        .produce(),
+    )
+
+    val oldGroup = programmeGroupRepository.save(
+      ProgrammeGroupFactory()
+        .withCode("GROUP-SR-OLD")
+        .withEarliestStartDate(LocalDate.parse("2026-04-01"))
+        .produce(),
+    )
+    val newGroup = programmeGroupRepository.save(
+      ProgrammeGroupFactory()
+        .withCode("GROUP-SR-NEW")
+        .withEarliestStartDate(LocalDate.parse("2026-05-10"))
+        .produce(),
+    )
+
+    val oldMembership = programmeGroupMembershipRepository.save(
+      ProgrammeGroupMembershipFactory(referralOld, oldGroup)
+        .withCreatedAt(LocalDateTime.parse("2026-04-01T09:00:00"))
+        .produce(),
+    )
+    val newMembership = programmeGroupMembershipRepository.save(
+      ProgrammeGroupMembershipFactory(referralNew, newGroup)
+        .withCreatedAt(LocalDateTime.parse("2026-05-10T09:00:00"))
+        .produce(),
+    )
+
+    createSessionRateSessionWithOptionalAttendance(
+      referral = referralOld,
+      membership = oldMembership,
+      group = oldGroup,
+      startsAt = LocalDateTime.parse("2026-04-07T10:00:00"),
+      attendanceCode = SessionAttendanceNDeliusCode.ATTC,
+    )
+    createSessionRateSessionWithOptionalAttendance(
+      referral = referralNew,
+      membership = newMembership,
+      group = newGroup,
+      startsAt = LocalDateTime.parse("2026-05-12T10:00:00"),
+      attendanceCode = SessionAttendanceNDeliusCode.ATTC,
+    )
+
+    val csv = reportingService.getSessionRate(
+      groupsFinishedAfter = null,
+      groupsStartedAfter = LocalDate.parse("2026-05-01"),
+    )
+
+    assertThat(csv).contains("GROUP-SR-NEW")
+    assertThat(csv).doesNotContain("GROUP-SR-OLD")
+  }
+
+  @Test
+  fun `should filter session rate csv by groups finished after`() {
+    val referralEarly = referralRepository.save(
+      ReferralEntityFactory()
+        .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
+        .withEventId("LIC-EARLY")
+        .withCrn("CRN-SR-EARLY")
+        .produce(),
+    )
+    val referralLate = referralRepository.save(
+      ReferralEntityFactory()
+        .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
+        .withEventId("LIC-LATE")
+        .withCrn("CRN-SR-LATE")
+        .produce(),
+    )
+
+    val earlyGroup = programmeGroupRepository.save(
+      ProgrammeGroupFactory()
+        .withCode("GROUP-SR-EARLY")
+        .withEarliestStartDate(LocalDate.parse("2026-04-01"))
+        .produce(),
+    )
+    val lateGroup = programmeGroupRepository.save(
+      ProgrammeGroupFactory()
+        .withCode("GROUP-SR-LATE")
+        .withEarliestStartDate(LocalDate.parse("2026-05-01"))
+        .produce(),
+    )
+
+    val earlyMembership = programmeGroupMembershipRepository.save(
+      ProgrammeGroupMembershipFactory(referralEarly, earlyGroup)
+        .withCreatedAt(LocalDateTime.parse("2026-04-01T09:00:00"))
+        .produce(),
+    )
+    val lateMembership = programmeGroupMembershipRepository.save(
+      ProgrammeGroupMembershipFactory(referralLate, lateGroup)
+        .withCreatedAt(LocalDateTime.parse("2026-05-01T09:00:00"))
+        .produce(),
+    )
+
+    createSessionRateSessionWithOptionalAttendance(
+      referral = referralEarly,
+      membership = earlyMembership,
+      group = earlyGroup,
+      startsAt = LocalDateTime.parse("2026-04-07T10:00:00"),
+      attendanceCode = SessionAttendanceNDeliusCode.ATTC,
+    )
+    createSessionRateSessionWithOptionalAttendance(
+      referral = referralEarly,
+      membership = earlyMembership,
+      group = earlyGroup,
+      startsAt = LocalDateTime.parse("2026-04-14T10:00:00"),
+      attendanceCode = SessionAttendanceNDeliusCode.ATTC,
+    )
+
+    createSessionRateSessionWithOptionalAttendance(
+      referral = referralLate,
+      membership = lateMembership,
+      group = lateGroup,
+      startsAt = LocalDateTime.parse("2026-05-12T10:00:00"),
+      attendanceCode = SessionAttendanceNDeliusCode.ATTC,
+    )
+    createSessionRateSessionWithOptionalAttendance(
+      referral = referralLate,
+      membership = lateMembership,
+      group = lateGroup,
+      startsAt = LocalDateTime.parse("2026-05-19T10:00:00"),
+      attendanceCode = SessionAttendanceNDeliusCode.ATTC,
+    )
+
+    val csv = reportingService.getSessionRate(
+      groupsFinishedAfter = LocalDate.parse("2026-05-01"),
+      groupsStartedAfter = null,
+    )
+
+    assertThat(csv).contains("GROUP-SR-LATE")
+    assertThat(csv).doesNotContain("GROUP-SR-EARLY")
+  }
+
+  private fun createSessionRateSessionWithOptionalAttendance(
+    referral: uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity,
+    membership: uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity,
+    group: uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity,
+    startsAt: LocalDateTime,
+    attendanceCode: SessionAttendanceNDeliusCode?,
+  ) {
+    val template = moduleSessionTemplateRepository.findByName("Introduction to Building Choices")!!
+    val session = sessionRepository.save(
+      SessionFactory(group, template)
+        .withStartsAt(startsAt)
+        .withEndsAt(startsAt.plusHours(2))
+        .produce(),
+    )
+
+    testDataGenerator.createAttendee(referral, session)
+
+    if (attendanceCode != null) {
+      val outcome = sessionAttendanceOutcomeTypeRepository.findByCode(attendanceCode)!!
+      val facilitator = facilitatorRepository.save(FacilitatorEntityFactory().produce())
+      sessionAttendanceRepository.save(
+        SessionAttendanceEntityFactory(session, membership)
+          .withRecordedByFacilitator(facilitator)
+          .withOutcomeType(outcome)
+          .withRecordedAt(startsAt.plusHours(2))
+          .produce(),
+      )
+    }
+  }
+
+  @Test
   fun `should return dosage report csv with session columns and group codes per session`() {
     val referral = referralRepository.save(
       ReferralEntityFactory()
