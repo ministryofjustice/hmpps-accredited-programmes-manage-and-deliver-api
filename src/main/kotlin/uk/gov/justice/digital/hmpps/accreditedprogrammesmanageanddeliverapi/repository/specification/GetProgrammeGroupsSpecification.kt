@@ -39,39 +39,6 @@ fun hasAtLeastOneActiveMembership(
   return cb.exists(membershipExistsSubquery)
 }
 
-fun allSessionsHaveAttendanceData(
-  parentSubquery: Subquery<Long>,
-  cb: CriteriaBuilder,
-  groupMembershipRoot: Root<ProgrammeGroupMembershipEntity>,
-): Predicate {
-  val groupRoot = groupMembershipRoot.get<ProgrammeGroupEntity>("programmeGroup")
-
-  // Subquery to count relevant sessions for the group (that are NOT catch-up and NOT placeholders)
-  val sessionCountSubquery = parentSubquery.subquery(Long::class.java)
-  val sessionRoot = sessionCountSubquery.from(SessionEntity::class.java)
-  sessionCountSubquery.select(cb.count(sessionRoot))
-  sessionCountSubquery.where(
-    cb.equal(sessionRoot.get<ProgrammeGroupEntity>("programmeGroup"), groupRoot),
-    cb.isFalse(sessionRoot.get("isPlaceholder")),
-    cb.isFalse(sessionRoot.get("isCatchup")),
-  )
-
-  // Subquery to count attendance records for this membership for those same sessions
-  val attendanceCountSubquery = parentSubquery.subquery(Long::class.java)
-  val attendanceRoot = attendanceCountSubquery.from(SessionAttendanceEntity::class.java)
-  val attendanceSessionJoin = attendanceRoot.join<SessionAttendanceEntity, SessionEntity>("session")
-  attendanceCountSubquery.select(cb.count(attendanceRoot))
-  attendanceCountSubquery.where(
-    cb.equal(attendanceRoot.get<ProgrammeGroupMembershipEntity>("groupMembership"), groupMembershipRoot),
-    cb.isFalse(attendanceSessionJoin.get("isPlaceholder")),
-    cb.isFalse(attendanceSessionJoin.get("isCatchup")),
-    cb.isNotNull(attendanceRoot.get<LocalDateTime>("recordedAt")),
-    cb.isNotNull(attendanceRoot.get<SessionAttendanceNDeliusOutcomeEntity>("outcomeType")),
-  )
-
-  return cb.equal(sessionCountSubquery, attendanceCountSubquery)
-}
-
 fun getProgrammeGroupsSpecification(
   groupCode: String?,
   pdu: String?,
@@ -183,7 +150,6 @@ fun incompleteMembershipCountSubquery(
   val isMembershipComplete = cb.and(
     isLatestReferralStatusProgrammeComplete(query, cb, referralJoin),
     hasAttendedPostProgrammeReview(incompleteMembershipCountSubquery, cb, groupMembershipRoot),
-    allSessionsHaveAttendanceData(incompleteMembershipCountSubquery, cb, groupMembershipRoot),
   )
 
   incompleteMembershipCountSubquery.select(cb.count(groupMembershipRoot))
