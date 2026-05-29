@@ -307,6 +307,56 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `should return error message when attempting to reschedule a session in the past`() {
+    // Given
+    val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+    val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
+    val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+      ModuleSessionTemplateEntity(
+        module = module,
+        sessionNumber = 2,
+        sessionType = SessionType.GROUP,
+        pathway = Pathway.MODERATE_INTENSITY,
+        name = "Test Session Template",
+        durationMinutes = 120,
+      ),
+    )
+    val group = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(programmeTemplate)
+        .withCode("RESCHED")
+        .produce(),
+    )
+    val session = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(sessionTemplate)
+        .withStartsAt(LocalDateTime.now().minusDays(2).withHour(13).withMinute(30))
+        .withEndsAt(LocalDateTime.now().minusDays(2).withHour(14).withMinute(30))
+        .produce(),
+    )
+
+    val rescheduleRequest = RescheduleSessionRequest(
+      sessionStartDate = LocalDate.now().plusDays(2),
+      sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+      null,
+      rescheduleOtherSessions = false,
+    )
+
+    // When
+    val response = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.PUT,
+      uri = "/session/${session.id}/reschedule",
+      body = rescheduleRequest,
+      returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+      expectedResponseStatus = HttpStatus.OK.value(),
+    )
+
+    // Then
+    assertThat(response.message).isEqualTo("The session session duration cannot be longer than originally scheduled. Change the start or end time.")
+  }
+
+  @Test
   fun `rescheduleSession returns 200 and updates session without rescheduling other sessions`() {
     // Given
     val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
@@ -331,13 +381,13 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       SessionFactory()
         .withProgrammeGroup(group)
         .withModuleSessionTemplate(sessionTemplate)
-        .withStartsAt(LocalDateTime.of(2026, 4, 23, 13, 30))
-        .withEndsAt(LocalDateTime.of(2026, 4, 23, 14, 30))
+        .withStartsAt(LocalDateTime.now().plusDays(1).withHour(13).withMinute(30).withSecond(0).withNano(0))
+        .withEndsAt(LocalDateTime.now().plusDays(1).withHour(14).withMinute(30).withSecond(0).withNano(0))
         .produce(),
     )
 
     val rescheduleRequest = RescheduleSessionRequest(
-      sessionStartDate = LocalDate.of(2026, 5, 24),
+      sessionStartDate = LocalDate.now().plusDays(2),
       sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
       null,
       rescheduleOtherSessions = false,
@@ -355,8 +405,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     // Then
     assertThat(response.message).isEqualTo("The date and time have been updated.")
     val updatedSession = sessionRepository.findById(session.id!!).get()
-    assertThat(updatedSession.startsAt).isEqualTo(LocalDateTime.of(2026, 5, 24, 10, 0))
-    assertThat(updatedSession.endsAt).isEqualTo(LocalDateTime.of(2026, 5, 24, 11, 0))
+    assertThat(updatedSession.startsAt).isEqualTo(LocalDate.now().plusDays(2).atTime(10, 0))
+    assertThat(updatedSession.endsAt).isEqualTo(LocalDate.now().plusDays(2).atTime(11, 0))
   }
 
   @Test
@@ -427,34 +477,34 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     val referral = testDataGenerator.createReferral("John Smith", "X123456")
 
     // Session before the rescheduled session should not move
-    val previousSession = testDataGenerator.createSession(
+    val pastSession = testDataGenerator.createSession(
       SessionFactory()
         .withProgrammeGroup(group)
         .withModuleSessionTemplate(groupSessionTemplate1)
-        .withStartsAt(LocalDateTime.of(2026, 4, 22, 10, 0))
-        .withEndsAt(LocalDateTime.of(2026, 4, 22, 11, 0))
+        .withStartsAt(LocalDateTime.now().minusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0))
+        .withEndsAt(LocalDateTime.now().minusDays(1).withHour(11).withMinute(0).withSecond(0).withNano(0))
         .produce(),
     )
-    testDataGenerator.createNDeliusAppointment(previousSession, referral)
+    testDataGenerator.createNDeliusAppointment(pastSession, referral)
 
-    // Session 1: 2026-04-23 10:00 - 11:00
+    // Session 1: current date + 1, 10:00 - 11:00 am
     val session1 = testDataGenerator.createSession(
       SessionFactory()
         .withProgrammeGroup(group)
         .withModuleSessionTemplate(groupSessionTemplate1)
-        .withStartsAt(LocalDateTime.of(2026, 4, 23, 10, 0))
-        .withEndsAt(LocalDateTime.of(2026, 4, 23, 11, 0))
+        .withStartsAt(LocalDateTime.now().plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0))
+        .withEndsAt(LocalDateTime.now().plusDays(1).withHour(11).withMinute(0).withSecond(0).withNano(0))
         .produce(),
     )
     val appointment1 = testDataGenerator.createNDeliusAppointment(session1, referral)
 
-    // Session 2: 2026-04-24 10:00 - 11:00 (Group) - subsequent group session should move
+    // Session 2: current date + 2 day, 10:00 - 11:00 (Group) - subsequent group session should move
     val session2 = testDataGenerator.createSession(
       SessionFactory()
         .withProgrammeGroup(group)
         .withModuleSessionTemplate(groupSessionTemplate2)
-        .withStartsAt(LocalDateTime.of(2026, 4, 24, 10, 0))
-        .withEndsAt(LocalDateTime.of(2026, 4, 24, 11, 0))
+        .withStartsAt(LocalDateTime.now().plusDays(2).withHour(10).withMinute(0).withSecond(0).withNano(0))
+        .withEndsAt(LocalDateTime.now().plusDays(2).withHour(11).withMinute(0).withSecond(0).withNano(0))
         .produce(),
     )
     val appointment2 = testDataGenerator.createNDeliusAppointment(session2, referral)
@@ -464,8 +514,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       SessionFactory()
         .withProgrammeGroup(group)
         .withModuleSessionTemplate(oneToOneSessionTemplate)
-        .withStartsAt(LocalDateTime.of(2026, 4, 25, 10, 0))
-        .withEndsAt(LocalDateTime.of(2026, 4, 25, 11, 0))
+        .withStartsAt(LocalDateTime.now().plusDays(3).withHour(10).withMinute(0).withSecond(0).withNano(0))
+        .withEndsAt(LocalDateTime.now().plusDays(3).withHour(11).withMinute(0).withSecond(0).withNano(0))
         .withIsPlaceholder(true)
         .produce(),
     )
@@ -476,8 +526,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       SessionFactory()
         .withProgrammeGroup(group)
         .withModuleSessionTemplate(catchUpSessionTemplate)
-        .withStartsAt(LocalDateTime.of(2026, 4, 26, 10, 0))
-        .withEndsAt(LocalDateTime.of(2026, 4, 26, 11, 0))
+        .withStartsAt(LocalDateTime.now().plusDays(4).withHour(10).withMinute(0).withSecond(0).withNano(0))
+        .withEndsAt(LocalDateTime.now().plusDays(4).withHour(11).withMinute(0).withSecond(0).withNano(0))
         .withIsCatchup(true)
         .produce(),
     )
@@ -488,8 +538,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       SessionFactory()
         .withProgrammeGroup(group)
         .withModuleSessionTemplate(oneToOneNonPlaceholder)
-        .withStartsAt(LocalDateTime.of(2026, 4, 27, 10, 0))
-        .withEndsAt(LocalDateTime.of(2026, 4, 27, 11, 0))
+        .withStartsAt(LocalDateTime.now().plusDays(5).withHour(10).withMinute(0).withSecond(0).withNano(0))
+        .withEndsAt(LocalDateTime.now().plusDays(5).withHour(11).withMinute(0).withSecond(0).withNano(0))
         .withIsPlaceholder(false)
         .produce(),
     )
@@ -497,9 +547,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
     nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
-    // Reschedule Session 1 to be 1 hour later: 2026-04-23 11:00
+    // Reschedule Session 1 to be 1 hour later: start time current date + 1, 11:00 am
     val rescheduleRequest = RescheduleSessionRequest(
-      sessionStartDate = LocalDate.of(2026, 4, 23),
+      sessionStartDate = LocalDate.now().plusDays(1),
       sessionStartTime = SessionTime(hour = 11, minutes = 0, amOrPm = AmOrPm.AM),
       sessionEndTime = SessionTime(hour = 12, minutes = 0, amOrPm = AmOrPm.PM),
       rescheduleOtherSessions = true,
@@ -517,33 +567,34 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     // Then
     assertThat(response.message).isEqualTo("The date and time and schedule have been updated.")
 
-    val updatedPreviousSession = sessionRepository.findById(previousSession.id!!).get()
-    assertThat(updatedPreviousSession.startsAt).isEqualTo(LocalDateTime.of(2026, 4, 22, 10, 0))
-    assertThat(updatedPreviousSession.endsAt).isEqualTo(LocalDateTime.of(2026, 4, 22, 11, 0))
+    val updatedPastSession = sessionRepository.findById(pastSession.id!!).get()
+    LocalDateTime.of(LocalDate.now(), LocalTime.of(10, 0))
+    assertThat(updatedPastSession.startsAt).isEqualTo(LocalDateTime.of(LocalDate.now().minusDays(1), LocalTime.of(10, 0)))
+    assertThat(updatedPastSession.endsAt).isEqualTo(LocalDateTime.of(LocalDate.now().minusDays(1), LocalTime.of(11, 0)))
 
     val updatedSession1 = sessionRepository.findById(session1.id!!).get()
-    assertThat(updatedSession1.startsAt).isEqualTo(LocalDateTime.of(2026, 4, 23, 11, 0))
-    assertThat(updatedSession1.endsAt).isEqualTo(LocalDateTime.of(2026, 4, 23, 12, 0))
+    assertThat(updatedSession1.startsAt).isEqualTo(LocalDateTime.of(LocalDate.now().plusDays(1), LocalTime.of(11, 0)))
+    assertThat(updatedSession1.endsAt).isEqualTo(LocalDateTime.of(LocalDate.now().plusDays(1), LocalTime.of(12, 0)))
 
-    // Session 2 should be moved 1 hour later: 2026-04-24 11:00
+    // Session 2 should be moved 1 hour later: 11:00
     val updatedSession2 = sessionRepository.findById(session2.id!!).get()
-    assertThat(updatedSession2.startsAt).isEqualTo(LocalDateTime.of(2026, 4, 24, 11, 0))
-    assertThat(updatedSession2.endsAt).isEqualTo(LocalDateTime.of(2026, 4, 24, 12, 0))
+    assertThat(updatedSession2.startsAt).isEqualTo(LocalDateTime.of(LocalDate.now().plusDays(2), LocalTime.of(11, 0)))
+    assertThat(updatedSession2.endsAt).isEqualTo(LocalDateTime.of(LocalDate.now().plusDays(2), LocalTime.of(12, 0)))
 
     // Session 3 should be rescheduled as it is a ONE_TO_ONE place holder session
     val updatedPlaceholderOneToOneSession = sessionRepository.findById(placeholderOneToOneSession.id!!).get()
-    assertThat(updatedPlaceholderOneToOneSession.startsAt).isEqualTo(LocalDateTime.of(2026, 4, 25, 11, 0))
-    assertThat(updatedPlaceholderOneToOneSession.endsAt).isEqualTo(LocalDateTime.of(2026, 4, 25, 12, 0))
+    assertThat(updatedPlaceholderOneToOneSession.startsAt).isEqualTo(LocalDateTime.of(LocalDate.now().plusDays(3), LocalTime.of(11, 0)))
+    assertThat(updatedPlaceholderOneToOneSession.endsAt).isEqualTo(LocalDateTime.of(LocalDate.now().plusDays(3), LocalTime.of(12, 0)))
 
     // Session 4 : Catch up sessions shouldn't be rescheduled
     val updatedCatchUpSession = sessionRepository.findById(catchUpSession.id!!).get()
-    assertThat(updatedCatchUpSession.startsAt).isEqualTo(LocalDateTime.of(2026, 4, 26, 10, 0))
-    assertThat(updatedCatchUpSession.endsAt).isEqualTo(LocalDateTime.of(2026, 4, 26, 11, 0))
+    assertThat(updatedCatchUpSession.startsAt).isEqualTo(LocalDateTime.of(LocalDate.now().plusDays(4), LocalTime.of(10, 0)))
+    assertThat(updatedCatchUpSession.endsAt).isEqualTo(LocalDateTime.of(LocalDate.now().plusDays(4), LocalTime.of(11, 0)))
 
     // Session 5 : One to one non placeholder shouldn't be rescheduled
     val updatedOneToOneNonPlaceholderSession = sessionRepository.findById(oneToOneNonPlaceholderSession.id!!).get()
-    assertThat(updatedOneToOneNonPlaceholderSession.startsAt).isEqualTo(LocalDateTime.of(2026, 4, 27, 10, 0))
-    assertThat(updatedOneToOneNonPlaceholderSession.endsAt).isEqualTo(LocalDateTime.of(2026, 4, 27, 11, 0))
+    assertThat(updatedOneToOneNonPlaceholderSession.startsAt).isEqualTo(LocalDateTime.of(LocalDate.now().plusDays(5), LocalTime.of(10, 0)))
+    assertThat(updatedOneToOneNonPlaceholderSession.endsAt).isEqualTo(LocalDateTime.of(LocalDate.now().plusDays(5), LocalTime.of(11, 0)))
 
     // Verify ndeliusAppointments update request for Session 1
     val expectedUpdateRequest1 = UpdateAppointmentsRequestFactory()
@@ -551,7 +602,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         listOf(
           UpdateAppointmentRequestFactory()
             .withReference(appointment1.ndeliusAppointmentId)
-            .withDate(LocalDate.of(2026, 4, 23))
+            .withDate(LocalDate.now().plusDays(1))
             .withStartTime(LocalTime.of(11, 0))
             .withEndTime(LocalTime.of(12, 0))
             .withLocation(RequestCode(group.deliveryLocationCode))
@@ -570,7 +621,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         listOf(
           UpdateAppointmentRequestFactory()
             .withReference(appointment2.ndeliusAppointmentId)
-            .withDate(LocalDate.of(2026, 4, 24))
+            .withDate(LocalDate.now().plusDays(2))
             .withStartTime(LocalTime.of(11, 0))
             .withEndTime(LocalTime.of(12, 0))
             .withLocation(RequestCode(group.deliveryLocationCode))
@@ -588,7 +639,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         listOf(
           UpdateAppointmentRequestFactory()
             .withReference(placeholderOneToOneAppointment.ndeliusAppointmentId)
-            .withDate(LocalDate.of(2026, 4, 25))
+            .withDate(LocalDate.now().plusDays(3))
             .withStartTime(LocalTime.of(11, 0))
             .withEndTime(LocalTime.of(12, 0))
             .withLocation(RequestCode(group.deliveryLocationCode))
@@ -626,8 +677,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       SessionFactory()
         .withProgrammeGroup(group)
         .withModuleSessionTemplate(sessionTemplate!!)
-        .withStartsAt(LocalDateTime.of(2026, 4, 23, 10, 0))
-        .withEndsAt(LocalDateTime.of(2026, 4, 23, 11, 0))
+        .withStartsAt(LocalDateTime.now().plusDays(1).withHour(10).withMinute(0))
+        .withEndsAt(LocalDateTime.now().plusDays(1).withHour(11).withMinute(0))
         .produce(),
     )
     val app = testDataGenerator.createNDeliusAppointment(session, referral)
@@ -636,7 +687,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
     // Reschedule Session to be 1 hour later
     val rescheduleRequest = RescheduleSessionRequest(
-      sessionStartDate = LocalDate.of(2026, 4, 23),
+      sessionStartDate = LocalDate.now().plusDays(1),
       sessionStartTime = SessionTime(hour = 11, minutes = 0, amOrPm = AmOrPm.AM),
       sessionEndTime = SessionTime(hour = 12, minutes = 0, amOrPm = AmOrPm.PM),
       rescheduleOtherSessions = false,
@@ -657,7 +708,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         listOf(
           UpdateAppointmentRequestFactory()
             .withReference(app.ndeliusAppointmentId)
-            .withDate(LocalDate.of(2026, 4, 23))
+            .withDate(LocalDate.now().plusDays(1))
             .withStartTime(LocalTime.of(11, 0))
             .withEndTime(LocalTime.of(12, 0))
             .withLocation(RequestCode(group.deliveryLocationCode))
@@ -1674,6 +1725,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       // Create group
       val group = testGroupHelper.createGroup()
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
       // Allocate one referral to a group with 'Awaiting allocation'
       // status to ensure it's not returned as part of our waitlist data
       val referral = testReferralHelper.createReferral()
@@ -1798,6 +1850,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val group = testGroupHelper.createGroup()
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
       val referral = testReferralHelper.createReferral(personName = "Alex River")
       programmeGroupMembershipService.allocateReferralToGroup(
@@ -1851,6 +1904,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val group = testGroupHelper.createGroup()
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
       val referral = testReferralHelper.createReferral(personName = "Alex River")
       programmeGroupMembershipService.allocateReferralToGroup(
@@ -1898,6 +1952,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val group = testGroupHelper.createGroup()
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
       val referral = testReferralHelper.createReferral(personName = "Alex River")
       programmeGroupMembershipService.allocateReferralToGroup(
