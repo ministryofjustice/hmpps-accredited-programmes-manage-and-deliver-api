@@ -235,7 +235,7 @@ class ReferralController(
       throw BusinessException("Referral with id $id has null eventNumber")
     }
     return sentenceService.getSentenceInformationByIdentifier(referral.crn, referral.eventNumber).let {
-      ResponseEntity.ok(it.toModel())
+      ResponseEntity.ok(it?.toModel())
     }
   }
 
