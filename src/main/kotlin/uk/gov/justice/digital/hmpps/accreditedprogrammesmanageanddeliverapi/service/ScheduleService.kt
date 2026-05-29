@@ -26,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toNdeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.BankHolidayRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
@@ -57,6 +58,7 @@ class ScheduleService(
   private val referralRepository: ReferralRepository,
   private val sessionRepository: SessionRepository,
   private val sessionNameFormatter: SessionNameFormatter,
+  private val bankHolidayRepository: BankHolidayRepository,
 ) {
 
   private companion object {
@@ -438,7 +440,11 @@ class ScheduleService(
     val nextDate: LocalDate,
   )
 
-  private fun englandAndWalesHolidayDates(): Set<LocalDate> = when (val response = govUkApiClient.getHolidays()) {
+  private fun englandAndWalesHolidayDates(): Set<LocalDate> = bankHolidayRepository.findAll()
+    .map { it.holidayDate }
+    .toSet()
+
+  private fun englandAndWalesHolidayDatesFromApi(): Set<LocalDate> = when (val response = govUkApiClient.getHolidays()) {
     is ClientResult.Failure.StatusCode -> {
       log.warn("Failed to retrieve UK bank holidays - Status: ${response.status}, Path: ${response.path}, Body: ${response.body}")
       throw BusinessException(
