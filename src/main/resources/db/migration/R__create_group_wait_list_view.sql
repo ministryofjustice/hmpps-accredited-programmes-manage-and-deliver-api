@@ -71,6 +71,11 @@ CREATE OR REPLACE FUNCTION refresh_group_wait_list_item_view()
     RETURNS TRIGGER AS
 $$
 BEGIN
+    -- This is set to false when doing batch imports from IM so we don't try to refresh multiple thousand times at once
+    IF current_setting('app.skip_mv_refresh', true) = 'true' THEN
+        RETURN NEW;
+    END IF;
+
     REFRESH MATERIALIZED VIEW CONCURRENTLY group_waitlist_item_view;
     RETURN NULL;
 END;
