@@ -245,15 +245,31 @@ class SessionNameFormatter {
   /**
    * Formats the session name for the Record Session Attendance page.
    *
-   * - Pre-group sessions: returns [SessionEntity.moduleName] as-is.
+   * - Pre-group ONE_TO_ONE sessions: `"Pre-group one-to-one"`
+   * - Other pre-group sessions: returns [SessionEntity.moduleName] as-is.
    * - Post-programme sessions: `"<sessionName>"`
    * - ONE_TO_ONE: `"<moduleName> one-to-one"`
    * - GROUP: `"<moduleName> <sessionNumber>"`
    */
   private fun recordSessionAttendance(session: SessionEntity): String = when {
-    session.moduleName.startsWith("Pre-group") -> session.moduleName
+    session.moduleName.startsWith("Pre-group") -> {
+      if (session.sessionType == SessionType.ONE_TO_ONE) {
+        singularizeOneToOneSuffix(session.moduleName)
+      } else {
+        session.moduleName
+      }
+    }
     session.moduleName.startsWith("Post-programme") -> session.sessionName
     session.sessionType == SessionType.ONE_TO_ONE -> "${session.moduleName} one-to-one"
     else -> "${session.moduleName} ${session.sessionNumber}"
+  }
+
+  private fun singularizeOneToOneSuffix(name: String): String {
+    val pluralSuffix = "one-to-ones"
+    return if (name.endsWith(pluralSuffix)) {
+      name.removeSuffix("s")
+    } else {
+      name
+    }
   }
 }

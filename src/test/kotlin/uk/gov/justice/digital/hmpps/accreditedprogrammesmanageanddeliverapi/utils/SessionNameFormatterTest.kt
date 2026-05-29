@@ -299,7 +299,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
   inner class ScheduleOverview {
 
     @Test
-    fun `returns moduleName as-is for pre-group session`() {
+    fun `returns singular one-to-one for pre-group one-to-one session`() {
       val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
       val module = testDataGenerator.createModule(programmeTemplate, "Pre-group one-to-ones", 1)
       val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
@@ -613,7 +613,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       )
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.RecordSessionAttendance))
-        .isEqualTo("Pre-group one-to-ones")
+        .isEqualTo("Pre-group one-to-one")
     }
 
     @Test
