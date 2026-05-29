@@ -191,7 +191,7 @@
             {{/if}}
           {{/if}}
         </td>
-        <td>{{ optionalValue recordedByFacilitator.personName }}</td>
+        <td>{{ getUserLastName recordedByFacilitator.id }}</td>
         <td>{{ formatDate recordedAt }}</td>
         <td>{{ getUserLastName createdBy }}</td>
         <td>{{ formatDate createdAt }}</td>
@@ -247,7 +247,7 @@
       <td>Facilitators</td>
       <td>
         {{#session.sessionFacilitators}}
-        {{ optionalValue facilitator.personName }}<br/>
+        {{ getUserLastName facilitator.id }}<br/>
         {{/session.sessionFacilitators}}
         {{^session.sessionFacilitators}}No Data Held{{/session.sessionFacilitators}}
       </td>
