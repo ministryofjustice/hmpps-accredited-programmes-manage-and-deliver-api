@@ -15,9 +15,11 @@ import jakarta.persistence.OneToOne
 import jakarta.persistence.OrderBy
 import jakarta.persistence.Table
 import jakarta.validation.constraints.NotNull
+import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
+import org.springframework.security.core.context.SecurityContextHolder
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import java.time.LocalDate
@@ -56,6 +58,11 @@ class ReferralEntity(
   @Column(name = "created_at")
   @CreatedDate
   var createdAt: LocalDateTime = LocalDateTime.now(),
+
+  @NotNull
+  @Column(name = "created_by")
+  @CreatedBy
+  var createdByUsername: String? = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
 
   @OneToMany(
     mappedBy = "referral",
