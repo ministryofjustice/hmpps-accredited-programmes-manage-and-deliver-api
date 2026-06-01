@@ -52,9 +52,9 @@ class OnboardingControllerIntegrationTest : IntegrationTestBase() {
       expectedResponseStatus = 200,
     )
 
-    // Then
-    assertEquals(listOf(secondReferralId.toString()), response.successIds)
+    // Then — both referrals succeed because sentence 404 is handled gracefully (returns null sentenceEndDate)
+    assertEquals(setOf(firstReferralId.toString(), secondReferralId.toString()), response.successIds.toSet())
     assertEquals(listOf(randomReferralId.toString()), response.notFoundIds)
-    assertEquals(listOf(firstReferralId.toString()), response.failureIds)
+    assertEquals(emptyList<String>(), response.failureIds)
   }
 }
