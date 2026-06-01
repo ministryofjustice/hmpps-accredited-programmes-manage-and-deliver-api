@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -25,7 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import java.time.LocalDate
 import java.util.UUID
 
-class StatusChangeDetailsControllerIntegrationTest : IntegrationTestBase() {
+class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
@@ -82,6 +83,12 @@ class StatusChangeDetailsControllerIntegrationTest : IntegrationTestBase() {
 
   @Nested
   inner class GetCompletionData {
+
+    @BeforeEach
+    fun beforeEach() {
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+    }
+
     @Test
     fun `should return completion data when referral attended and complied with post-programme review`() {
       val group = testGroupHelper.createGroup()
@@ -131,8 +138,8 @@ class StatusChangeDetailsControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response).isNotNull
-      assertThat(response.requirementId).isEqualTo(referral.eventId)
-      assertThat(response.requirementCompletedAt).isNotNull()
+      assertThat(response.licReqId).isEqualTo(referral.eventId)
+      assertThat(response.licReqCompletedAt).isNotNull()
     }
 
     @Test
@@ -289,8 +296,8 @@ class StatusChangeDetailsControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response).isNotNull
-      assertThat(response.requirementId).isEqualTo(referral.eventId)
-      assertThat(response.requirementCompletedAt).isNotNull()
+      assertThat(response.licReqId).isEqualTo(referral.eventId)
+      assertThat(response.licReqCompletedAt).isNotNull()
     }
   }
 }
