@@ -31,6 +31,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.BankHolidayRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.DeliveryLocationPreferenceRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.PreferredDeliveryLocationProbationDeliveryUnitRepository
@@ -95,6 +96,9 @@ class SarContractIntegrationTest :
   private lateinit var availabilityRepository: AvailabilityRepository
 
   @Autowired
+  private lateinit var bankHolidayRepository: BankHolidayRepository
+
+  @Autowired
   private lateinit var dataSource: DataSource
 
   @Autowired
@@ -116,7 +120,7 @@ class SarContractIntegrationTest :
       expectedApiResponsePath = "/sar/sar-api-response.json",
       expectedRenderResultPath = "/sar/sar-expected-render-result.html",
       attachmentsExpected = false,
-      expectedFlywaySchemaVersion = "102",
+      expectedFlywaySchemaVersion = "103",
       expectedJpaEntitySchemaPath = "/sar/entity-schema-snapshot.json",
     )
   }
