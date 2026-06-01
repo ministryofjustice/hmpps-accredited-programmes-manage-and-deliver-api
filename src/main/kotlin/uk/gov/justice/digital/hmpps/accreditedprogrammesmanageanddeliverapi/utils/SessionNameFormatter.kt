@@ -209,7 +209,7 @@ class SessionNameFormatter {
     return when {
       session.moduleName.startsWith("Pre-group") -> {
         if (session.sessionType == SessionType.ONE_TO_ONE) {
-          "${singularizeOneToOneSuffix(session.moduleName)}$catchupSuffix"
+          "${singulariseOneToOne(session.moduleName)}$catchupSuffix"
         } else {
           "${session.moduleName}$catchupSuffix"
         }
