@@ -28,6 +28,7 @@ data class RecordSessionAttendance(
   )
   val people: List<SessionAttendancePerson>,
 
+ 
   @Schema(
     description = "Is it a catch-up session?",
   )
