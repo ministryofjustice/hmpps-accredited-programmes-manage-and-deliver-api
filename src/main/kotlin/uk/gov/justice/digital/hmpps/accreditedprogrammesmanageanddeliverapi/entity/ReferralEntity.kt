@@ -62,7 +62,7 @@ class ReferralEntity(
   @NotNull
   @Column(name = "created_by")
   @CreatedBy
-  var createdByUsername: String? = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
+  var createdBy: String? = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
 
   @OneToMany(
     mappedBy = "referral",

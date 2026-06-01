@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance
 
 import com.fasterxml.jackson.annotation.JsonFormat
+import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDateTime
 import java.util.UUID
@@ -24,6 +25,10 @@ data class AttendanceHistoryResponse(
     example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   )
   val currentlyAllocatedGroupId: UUID? = null,
+
+  @get:JsonProperty("createdBy")
+  @Schema(description = "The user that last created referral")
+  val referralCreatedBy: String? = null,
 
   @Schema(description = "List of sessions with attendance information")
   val attendanceHistory: List<AttendanceHistorySession> = emptyList(),
