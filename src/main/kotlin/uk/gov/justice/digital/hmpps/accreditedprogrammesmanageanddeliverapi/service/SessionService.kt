@@ -478,12 +478,13 @@ class SessionService(
 
     val popName = referral.personName
     val pageTitle = sessionNameFormatter.format(session, SessionNameContext.SessionNotes(popName))
+    val sessionNameDisplay = sessionNameFormatter.format(session, SessionNameContext.SessionNotesDisplay)
     val outcomeText =
       getAttendanceTextFromOutcome(
         session.attendances.filter { it.groupMembership.referralId == referralId }
           .maxByOrNull { it.createdAt }?.outcomeType,
       )
-    return SessionNotes.from(session, referralId, popName, outcomeText, pageTitle)
+    return SessionNotes.from(session, referralId, popName, outcomeText, pageTitle, sessionNameDisplay)
   }
 
   private fun getOptionFromOutcome(outcome: SessionAttendanceNDeliusOutcomeEntity): Option = when (outcome.code) {

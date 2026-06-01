@@ -1840,6 +1840,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.personName).isEqualTo(referral.personName)
       assertThat(response.moduleName).isEqualTo(session.moduleName)
       assertThat(response.sessionName).isEqualTo(session.sessionName)
+      assertThat(response.sessionNameDisplay).isEqualTo(session.moduleName)
       assertThat(response.sessionNumber).isEqualTo(session.sessionNumber)
       assertThat(response.groupId).isEqualTo(group.id)
       assertThat(response.sessionId).isEqualTo(session.id)
