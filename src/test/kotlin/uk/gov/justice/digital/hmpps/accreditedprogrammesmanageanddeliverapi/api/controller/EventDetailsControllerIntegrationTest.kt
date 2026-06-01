@@ -140,6 +140,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).isNotNull
       assertThat(response.licReqId).isEqualTo(referral.eventId)
       assertThat(response.licReqCompletedAt).isNotNull()
+      assertThat(response.sourcedFromEntityType).isEqualTo(referral.sourcedFrom)
     }
 
     @Test
@@ -298,6 +299,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).isNotNull
       assertThat(response.licReqId).isEqualTo(referral.eventId)
       assertThat(response.licReqCompletedAt).isNotNull()
+      assertThat(response.sourcedFromEntityType).isEqualTo(referral.sourcedFrom)
     }
   }
 }
