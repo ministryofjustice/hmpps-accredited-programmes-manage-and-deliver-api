@@ -1739,6 +1739,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.sessionModule).isEqualTo("${session.moduleSessionTemplate.module.name} ${session.sessionNumber}")
       assertThat(response.groupRegionName).isEqualTo(group.regionName)
       assertThat(response.people).isNotEmpty()
+      assertThat(response.isCatchup).isEqualTo(session.isCatchup)
 
       val person = response.people[0]
       val attendance = person.attendance

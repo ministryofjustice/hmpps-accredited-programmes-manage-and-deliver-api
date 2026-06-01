@@ -299,7 +299,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
   inner class ScheduleOverview {
 
     @Test
-    fun `returns moduleName as-is for pre-group session`() {
+    fun `returns singular one-to-one for pre-group one-to-one session`() {
       val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
       val module = testDataGenerator.createModule(programmeTemplate, "Pre-group one-to-ones", 1)
       val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
@@ -580,6 +580,130 @@ class SessionNameFormatterTest : IntegrationTestBase() {
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionsAndAttendance(sessionTemplate)))
         .isEqualTo("Alex River (X123456): Getting started one-to-one catch-up")
+    }
+  }
+
+  @Nested
+  inner class RecordSessionAttendance {
+
+    @Test
+    fun `returns moduleName as-is for pre-group session`() {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Pre-group one-to-ones", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Pre-group one-to-one",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .produce(),
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.RecordSessionAttendance))
+        .isEqualTo("Pre-group one-to-one")
+    }
+
+    @Test
+    fun `returns sessionName without deadline for post-programme session`() {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Post-programme reviews", 7)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Post-programme review",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .produce(),
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.RecordSessionAttendance))
+        .isEqualTo("Post-programme review")
+    }
+
+    @Test
+    fun `returns moduleName singular one-to-one for one-to-one session`() {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 3,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Getting started one-to-one",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .produce(),
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.RecordSessionAttendance))
+        .isEqualTo("Getting started one-to-one")
+    }
+
+    @Test
+    fun `returns moduleName sessionNumber for group session`() {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Introduction to Building Choices",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .produce(),
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.RecordSessionAttendance))
+        .isEqualTo("Getting started 1")
     }
   }
 

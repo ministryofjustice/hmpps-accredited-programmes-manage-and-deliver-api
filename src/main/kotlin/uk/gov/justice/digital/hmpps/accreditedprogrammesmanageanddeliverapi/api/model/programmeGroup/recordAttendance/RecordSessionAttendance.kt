@@ -27,6 +27,11 @@ data class RecordSessionAttendance(
     description = "List of attendees",
   )
   val people: List<SessionAttendancePerson>,
+
+  @Schema(
+    description = "Is it a catch-up session?",
+  )
+  val isCatchup: Boolean,
 )
 
 @Schema(description = "Details of an Attendee")
