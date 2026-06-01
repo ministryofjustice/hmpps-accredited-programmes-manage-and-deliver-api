@@ -453,8 +453,9 @@ class SessionService(
 
     return RecordSessionAttendance(
       sessionTitle = session.sessionName,
-      sessionModule = sessionNameFormatter.format(session, SessionNameContext.ScheduleOverview),
+      sessionModule = sessionNameFormatter.format(session, SessionNameContext.RecordSessionAttendance),
       groupRegionName = programmeGroup.regionName,
+      isCatchup = session.isCatchup,
       people = filteredAttendees.map { attendee ->
         val latestAttendance = latestAttendanceByReferralId[attendee.referralId]
         val latestNotes = latestAttendance?.notesHistory
