@@ -10,6 +10,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 
@@ -134,10 +135,26 @@ class ReferralEventNumberResolverService(
       val response =
         nDeliusIntegrationApiClient.getRequirementManagerDetails(referral.crn, eventId)
     ) {
-      is ClientResult.Success -> response.body
+      is ClientResult.Success -> {
+        telemetryClient.logToAppInsights(
+          "${IntegrationActivityType.GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.success",
+          mapOf(
+            "integrationActionType" to IntegrationActivityType.GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
+            "outcome" to "success",
+          ),
+        )
+        response.body
+      }
 
       else -> {
         log.error("Could not fetch a Requirement with ID $eventId, for Referral with ID: ${referral.id}")
+        telemetryClient.logToAppInsights(
+          "${IntegrationActivityType.GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
+          mapOf(
+            "integrationActionType" to IntegrationActivityType.GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
+            "outcome" to "failure",
+          ),
+        )
         null
       }
     }
