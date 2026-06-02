@@ -309,7 +309,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `should return HTTP 400 code when attempting to amend the duration of a session in the past `() {
     // Given
-    val programmeTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+    val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
     val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
     val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
       ModuleSessionTemplateEntity(
