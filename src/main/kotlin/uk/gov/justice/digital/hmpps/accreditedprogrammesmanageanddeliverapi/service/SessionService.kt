@@ -120,7 +120,7 @@ class SessionService(
     // validate that the reschedule request is valid - session duration cannot be changed for past sessions
     if (session.startsAt.isBefore(LocalDateTime.now())) {
       log.warn("Invalid reschedule request received for past session with id: $sessionId. Requested session start date must be in the future")
-      return EditSessionDateAndTimeResponse("The session session duration cannot be longer than originally scheduled. Change the start or end time.")
+      throw BusinessException("The session session duration cannot be longer than originally scheduled. Change the start or end time.")
     }
 
     // update the start and end times of the requested session
