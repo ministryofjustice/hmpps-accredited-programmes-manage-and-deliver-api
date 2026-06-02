@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
@@ -14,6 +15,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 
 @Service
+@Transactional
 class ReferralEventNumberResolverService(
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val referralRepository: ReferralRepository,
@@ -31,63 +33,74 @@ class ReferralEventNumberResolverService(
    * we need to fetch this value from one of two delius endpoints
    *  - /case/${crn}/licence-conditions/{id}
    *  - /case/${crn}/requirement/{id}
+   *
+   *  We have also seen that sometimes the `SOURCED_FROM` is incorrectly set in Interventions Manager, therefore we also
+   *  need to try and fetch the opposite value to the current `SOURCED_FROM` if the call fails and update our referral value
+   *  to match if the second call succeeds.
    */
-  @Transactional
-  fun resolveIfEventNumberIsZero(referral: ReferralEntity): Int? {
-    if (referral.eventNumber != 0) {
-      return referral.eventNumber
-    }
+  fun resolveIfEventNumberIsZero(referral: ReferralEntity): ReferralEntity? {
+    if (referral.eventNumber != 0) return referral
 
     val eventId = referral.eventId ?: run {
       log.error("EventId for referral ${referral.id} is null.")
-      return referral.eventNumber
+      return referral
     }
 
-    log.info(
-      "Referral with ID '${referral.id}' has event number 0. Attempting to resolve by checking nDelius sentence endpoint for CRN '${referral.crn}'.",
-    )
+    log.info("Referral '${referral.id}' has event number 0. Attempting to resolve for CRN '${referral.crn}'.")
 
-    val eventNumberResponse = when (referral.sourcedFrom) {
-      ReferralEntitySourcedFrom.REQUIREMENT -> {
-        log.info("...attempting to retrieve a Requirement for Referral with ID: ${referral.id}")
-        when (
-          val response =
-            nDeliusIntegrationApiClient.getRequirementManagerDetails(referral.crn, eventId)
-        ) {
-          is ClientResult.Success -> {
-            telemetryClient.logToAppInsights(
-              "${GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.success",
-              mapOf(
-                "integrationActionType" to GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
-                "outcome" to "success",
-              ),
-            )
+    val resolved = resolveSource(referral, eventId)
 
-            response.body
-          }
+    if (resolved != null) {
+      referral.sourcedFrom = resolved.sourcedFrom
+      referral.eventNumber = resolved.response.eventNumber
+      referralRepository.save(referral)
+      logSuccess(referral, resolved.response.eventNumber)
+    } else {
+      logFailureEvent(referral)
+    }
 
-          else -> {
-            log.error("Could not fetch a Requirement with ID $eventId, for Referral with ID: ${referral.id}")
-            telemetryClient.logToAppInsights(
-              "${GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
-              mapOf(
-                "integrationActionType" to GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
-                "outcome" to "failure",
-              ),
-            )
+    return referral
+  }
 
-            null
-          }
+  private data class ResolvedSource(
+    val response: NDeliusCaseRequirementOrLicenceConditionResponse,
+    val sourcedFrom: ReferralEntitySourcedFrom,
+  )
+
+  private fun resolveSource(referral: ReferralEntity, eventId: String): ResolvedSource? {
+    val orderedCandidates: List<Pair<ReferralEntitySourcedFrom, () -> NDeliusCaseRequirementOrLicenceConditionResponse?>> =
+      when (referral.sourcedFrom) {
+        ReferralEntitySourcedFrom.REQUIREMENT -> listOf(
+          ReferralEntitySourcedFrom.REQUIREMENT to { getRequirement(referral, eventId) },
+          ReferralEntitySourcedFrom.LICENCE_CONDITION to { getLicenceCondition(referral, eventId) },
+        )
+
+        ReferralEntitySourcedFrom.LICENCE_CONDITION -> listOf(
+          ReferralEntitySourcedFrom.LICENCE_CONDITION to { getLicenceCondition(referral, eventId) },
+          ReferralEntitySourcedFrom.REQUIREMENT to { getRequirement(referral, eventId) },
+        )
+
+        else -> {
+          log.error("${referral.sourcedFrom} is not a valid value")
+          return null
         }
       }
 
-      ReferralEntitySourcedFrom.LICENCE_CONDITION -> {
-        log.info("...attempting to retrieve a Licence Condition for Referral with ID: ${referral.id}")
-        when (
-          val response =
-            nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, eventId)
-        ) {
-          is ClientResult.Success -> {
+    // Lazy function that only evaluates second call if the first is null
+    return orderedCandidates
+      .firstNotNullOfOrNull { (source, fetch) -> fetch()?.let { ResolvedSource(it, source) } }
+  }
+
+  private fun getLicenceCondition(
+    referral: ReferralEntity,
+    eventId: String,
+  ): NDeliusCaseRequirementOrLicenceConditionResponse? {
+    log.info("...attempting to retrieve a Licence Condition for Referral with ID: ${referral.id}")
+    return when (
+      val response =
+        nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, eventId)
+    ) {
+      is ClientResult.Success -> {
             telemetryClient.logToAppInsights(
               "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.success",
               mapOf(
@@ -99,36 +112,35 @@ class ReferralEventNumberResolverService(
             response.body
           }
 
-          else -> {
-            log.error("Could not fetch a Licence condition with ID $eventId, for Referral with ID: ${referral.id}")
-            telemetryClient.logToAppInsights(
+      else -> {
+        log.error("Could not fetch a Licence condition with ID $eventId, for Referral with ID: ${referral.id}")
+        telemetryClient.logToAppInsights(
               "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
               mapOf(
                 "integrationActionType" to GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
                 "outcome" to "failure",
               ),
-            )
-
-            null
-          }
-        }
+            )null
       }
+    }
+  }
+
+  private fun getRequirement(
+    referral: ReferralEntity,
+    eventId: String,
+  ): NDeliusCaseRequirementOrLicenceConditionResponse? {
+    log.info("...attempting to retrieve a Requirement for Referral with ID: ${referral.id}")
+    return when (
+      val response =
+        nDeliusIntegrationApiClient.getRequirementManagerDetails(referral.crn, eventId)
+    ) {
+      is ClientResult.Success -> response.body
 
       else -> {
-        log.error("${referral.sourcedFrom} is not a valid value")
+        log.error("Could not fetch a Requirement with ID $eventId, for Referral with ID: ${referral.id}")
         null
       }
     }
-
-    if (eventNumberResponse != null) {
-      referral.eventNumber = eventNumberResponse.eventNumber
-      referralRepository.save(referral)
-      logSuccess(referral, eventNumberResponse.eventNumber)
-    } else {
-      logFailureEvent(referral)
-    }
-
-    return referral.eventNumber
   }
 
   private fun logFailureEvent(referral: ReferralEntity) {
