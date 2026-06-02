@@ -112,14 +112,21 @@ class SessionService(
       NotFoundException("Session not found with id: $sessionId")
     }
 
-    val requestedStartsAt = LocalDateTime.of(request.sessionStartDate, request.sessionStartTime.toLocalTime())
-    val startOffset = Duration.between(session.startsAt, requestedStartsAt)
+    val requestedStartTime = LocalDateTime.of(request.sessionStartDate, request.sessionStartTime.toLocalTime())
+    val startOffset = Duration.between(session.startsAt, requestedStartTime)
+    val requestedEndTime = LocalDateTime.of(request.sessionStartDate, request.sessionEndTime?.toLocalTime() ?: session.endsAt.plus(startOffset).toLocalTime())
 
     val originalSessionStartsAt = session.startsAt
 
-    // update the start time of the requested session
-    session.startsAt = requestedStartsAt
-    session.endsAt = session.endsAt.plus(startOffset)
+    // validate that the reschedule request is valid - session duration cannot be changed for past sessions
+    if (session.startsAt.isBefore(LocalDateTime.now())) {
+      log.warn("Invalid reschedule request received for past session with id: $sessionId. Requested session start date must be in the future")
+      throw BusinessException("The session session duration cannot be longer than originally scheduled. Change the start or end time.")
+    }
+
+    // update the start and end times of the requested session
+    session.startsAt = requestedStartTime
+    session.endsAt = requestedEndTime
 
     val isGroupSession = session.sessionType == SessionType.GROUP
 
