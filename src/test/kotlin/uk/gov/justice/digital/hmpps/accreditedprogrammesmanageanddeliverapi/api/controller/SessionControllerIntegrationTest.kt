@@ -381,8 +381,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       SessionFactory()
         .withProgrammeGroup(group)
         .withModuleSessionTemplate(sessionTemplate)
-        .withStartsAt(LocalDateTime.now().minusDays(2).withHour(13).withMinute(30))
-        .withEndsAt(LocalDateTime.now().minusDays(2).withHour(14).withMinute(30))
+        .withStartsAt(LocalDateTime.now().minusDays(2).withHour(13).withMinute(30).withSecond(0).withNano(0))
+        .withEndsAt(LocalDateTime.now().minusDays(2).withHour(14).withMinute(30).withSecond(0).withNano(0))
         .produce(),
     )
 
@@ -404,6 +404,13 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
     // Then
     assertThat(response.message).isEqualTo("The date and time have been updated.")
+
+    // Verify the session was rescheduled and duration was preserved (original was 1hr: 13:30–14:30)
+    val updatedSession = sessionRepository.findById(session.id!!).get()
+    val expectedStart = LocalDateTime.of(LocalDate.now().plusDays(2), LocalTime.of(10, 0))
+    val expectedEnd = expectedStart.plusHours(1) // original duration preserved
+    assertThat(updatedSession.startsAt).isEqualTo(expectedStart)
+    assertThat(updatedSession.endsAt).isEqualTo(expectedEnd)
   }
 
   @Test
