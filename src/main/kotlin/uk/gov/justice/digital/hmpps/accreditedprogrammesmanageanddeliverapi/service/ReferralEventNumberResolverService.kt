@@ -11,7 +11,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.conf
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 
 @Service
@@ -101,26 +100,27 @@ class ReferralEventNumberResolverService(
         nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, eventId)
     ) {
       is ClientResult.Success -> {
-            telemetryClient.logToAppInsights(
-              "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.success",
-              mapOf(
-                "integrationActionType" to GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
-                "outcome" to "success",
-              ),
-            )
+        telemetryClient.logToAppInsights(
+          "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.success",
+          mapOf(
+            "integrationActionType" to GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
+            "outcome" to "success",
+          ),
+        )
 
-            response.body
-          }
+        response.body
+      }
 
       else -> {
         log.error("Could not fetch a Licence condition with ID $eventId, for Referral with ID: ${referral.id}")
         telemetryClient.logToAppInsights(
-              "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
-              mapOf(
-                "integrationActionType" to GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
-                "outcome" to "failure",
-              ),
-            )null
+          "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
+          mapOf(
+            "integrationActionType" to GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
+            "outcome" to "failure",
+          ),
+        )
+        null
       }
     }
   }
