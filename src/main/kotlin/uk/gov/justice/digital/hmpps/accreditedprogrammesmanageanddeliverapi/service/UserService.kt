@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
@@ -8,12 +9,17 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LIMITED_ACCESS_OFFENDER_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_PERSONAL_DETAILS_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_USER_TEAM_N_DELIUS
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
 @Service
 class UserService(
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val authenticationHolder: HmppsAuthenticationHolder,
+  private val telemetryClient: TelemetryClient,
 ) {
 
   val log = LoggerFactory.getLogger(this::class.java)
@@ -40,8 +46,29 @@ class UserService(
     }
 
     return when (val result = nDeliusIntegrationApiClient.getPersonalDetails(identifier)) {
-      is ClientResult.Success -> result.body
-      is ClientResult.Failure -> result.throwException()
+      is ClientResult.Success -> {
+        telemetryClient.logToAppInsights(
+          "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.success",
+          mapOf(
+            "integrationActionType" to GET_PERSONAL_DETAILS_N_DELIUS.name,
+            "outcome" to "success",
+          ),
+        )
+
+        result.body
+      }
+
+      is ClientResult.Failure -> {
+        telemetryClient.logToAppInsights(
+          "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.failure",
+          mapOf(
+            "integrationActionType" to GET_PERSONAL_DETAILS_N_DELIUS.name,
+            "outcome" to "failure",
+          ),
+        )
+
+        result.throwException()
+      }
     }
   }
 
@@ -49,13 +76,31 @@ class UserService(
 
   fun getAccessibleOffenders(username: String, identifiers: List<String>): Set<String> = when (val result = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, identifiers)) {
     is ClientResult.Success -> {
+      telemetryClient.logToAppInsights(
+        "${GET_LIMITED_ACCESS_OFFENDER_N_DELIUS.eventName}.success",
+        mapOf(
+          "integrationActionType" to GET_LIMITED_ACCESS_OFFENDER_N_DELIUS.name,
+          "outcome" to "success",
+        ),
+      )
+
       result.body.access
         .filter { !it.userExcluded && !it.userRestricted }
         .map { it.crn }
         .toSet()
     }
 
-    is ClientResult.Failure -> result.throwException()
+    is ClientResult.Failure -> {
+      telemetryClient.logToAppInsights(
+        "${GET_LIMITED_ACCESS_OFFENDER_N_DELIUS.eventName}.failure",
+        mapOf(
+          "integrationActionType" to GET_LIMITED_ACCESS_OFFENDER_N_DELIUS.name,
+          "outcome" to "failure",
+        ),
+      )
+
+      result.throwException()
+    }
   }
 
   /**
@@ -66,6 +111,13 @@ class UserService(
    */
   fun getUserRegions(username: String): List<CodeDescription> = when (val result = nDeliusIntegrationApiClient.getTeamsForUser(username)) {
     is ClientResult.Success -> {
+      telemetryClient.logToAppInsights(
+        "${GET_USER_TEAM_N_DELIUS.eventName}.success",
+        mapOf(
+          "integrationActionType" to GET_USER_TEAM_N_DELIUS.name,
+          "outcome" to "success",
+        ),
+      )
       val regionNames = result.body.teams.map { it.region }
       if (regionNames.isEmpty()) {
         log.warn("User $username has teams but no regions associated with them")
@@ -82,6 +134,14 @@ class UserService(
 
     is ClientResult.Failure -> {
       log.error("Failed to fetch teams for user $username: ${result.toException().message}")
+      telemetryClient.logToAppInsights(
+        "${GET_USER_TEAM_N_DELIUS.eventName}.failure",
+        mapOf(
+          "integrationActionType" to GET_USER_TEAM_N_DELIUS.name,
+          "outcome" to "failure",
+        ),
+      )
+
       emptyList()
     }
   }

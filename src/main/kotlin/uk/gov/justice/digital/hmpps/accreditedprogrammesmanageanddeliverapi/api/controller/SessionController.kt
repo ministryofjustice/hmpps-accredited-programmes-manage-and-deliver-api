@@ -176,6 +176,16 @@ class SessionController(
         description = "Session rescheduled successfully",
       ),
       ApiResponse(
+        responseCode = "400",
+        description = "Bad request - The session session duration cannot be longer than originally scheduled",
+        content = [
+          Content(
+            mediaType = MediaType.APPLICATION_JSON_VALUE,
+            schema = Schema(implementation = ErrorResponse::class),
+          ),
+        ],
+      ),
+      ApiResponse(
         responseCode = "401",
         description = "Unauthorized",
         content = [

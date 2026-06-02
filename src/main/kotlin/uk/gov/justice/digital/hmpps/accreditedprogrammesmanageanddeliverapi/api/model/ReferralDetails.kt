@@ -169,5 +169,34 @@ data class ReferralDetails(
       pdu = nDeliusPersonalDetails.probationDeliveryUnit.description,
       reportingTeam = nDeliusPersonalDetails.team.description,
     )
+
+    /**
+     * Fallback when nDelius personal details are unavailable — uses stored referral data.
+     * The page still loads with whatever data was previously persisted.
+     */
+    fun toModelFromStoredData(
+      referral: ReferralEntity,
+      hasLdc: Boolean? = false,
+      latestReferralStatus: ReferralStatusDescriptionEntity,
+      currentlyAllocatedGroup: ProgrammeGroupMembershipEntity?,
+      cohort: OffenceCohort?,
+    ): ReferralDetails = ReferralDetails(
+      id = referral.id!!,
+      crn = referral.crn,
+      personName = referral.personName,
+      interventionName = referral.interventionName ?: "UNKNOWN_INTERVENTION",
+      createdAt = referral.createdAt.toLocalDate(),
+      dateOfBirth = referral.dateOfBirth ?: LocalDate.EPOCH,
+      probationPractitionerName = null,
+      probationPractitionerEmail = null,
+      cohort = cohort ?: OffenceCohort.GENERAL_OFFENCE,
+      hasLdc = LdcStatus.fromBoolean(hasLdc).value,
+      hasLdcDisplayText = LdcStatus.getDisplayText(hasLdc),
+      currentStatusDescription = latestReferralStatus.description,
+      currentlyAllocatedGroupCode = currentlyAllocatedGroup?.programmeGroup?.code,
+      currentlyAllocatedGroupId = currentlyAllocatedGroup?.programmeGroup?.id,
+      pdu = referral.referralReportingLocation?.pduName ?: "Unknown",
+      reportingTeam = referral.referralReportingLocation?.reportingTeam ?: "Unknown",
+    )
   }
 }
