@@ -582,6 +582,7 @@ class ReferralService(
       popName = referral.personName,
       currentlyAllocatedGroupCode = currentMembership?.programmeGroup?.code,
       currentlyAllocatedGroupId = currentMembership?.programmeGroup?.id,
+      referralCreatedBy = referral.createdBy,
       attendanceHistory = sessions,
     )
   }
