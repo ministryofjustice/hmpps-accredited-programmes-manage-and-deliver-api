@@ -307,7 +307,57 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should return HTTP 400 code when attempting to reschedule a session in the past`() {
+  fun `should return HTTP 400 code when attempting to amend the duration of a session in the past `() {
+    // Given
+    val programmeTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+    val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
+    val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+      ModuleSessionTemplateEntity(
+        module = module,
+        sessionNumber = 2,
+        sessionType = SessionType.GROUP,
+        pathway = Pathway.MODERATE_INTENSITY,
+        name = "Test Session Template",
+        durationMinutes = 120,
+      ),
+    )
+    val group = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(programmeTemplate)
+        .withCode("RESCHED")
+        .produce(),
+    )
+    val session = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(sessionTemplate)
+        .withStartsAt(LocalDateTime.now().minusDays(2).withHour(13).withMinute(30))
+        .withEndsAt(LocalDateTime.now().minusDays(2).withHour(14).withMinute(30))
+        .produce(),
+    )
+
+    val rescheduleRequest = RescheduleSessionRequest(
+      sessionStartDate = LocalDate.now().plusDays(2),
+      sessionStartTime = SessionTime(hour = 9, minutes = 0, amOrPm = AmOrPm.AM),
+      sessionEndTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      rescheduleOtherSessions = false,
+    )
+
+    // When
+    val response = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.PUT,
+      uri = "/session/${session.id}/reschedule",
+      body = rescheduleRequest,
+      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+      expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+    )
+
+    // Then
+    assertThat(response.userMessage).isEqualTo("Bad request: The session session duration cannot be longer than originally scheduled. Change the start or end time.")
+  }
+
+  @Test
+  fun `should allow the rescheduling of a session in the past, without modifying the duration of the session`() {
     // Given
     val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
     val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
@@ -348,12 +398,12 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       httpMethod = HttpMethod.PUT,
       uri = "/session/${session.id}/reschedule",
       body = rescheduleRequest,
-      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-      expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+      returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+      expectedResponseStatus = HttpStatus.OK.value(),
     )
 
     // Then
-    assertThat(response.userMessage).isEqualTo("Bad request: The session session duration cannot be longer than originally scheduled. Change the start or end time.")
+    assertThat(response.message).isEqualTo("The date and time have been updated.")
   }
 
   @Test
