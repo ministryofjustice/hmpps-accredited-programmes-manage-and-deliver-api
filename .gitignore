@@ -79,3 +79,12 @@ sonar-project.properties
 wiremock_mappings/seeded/
 
 .snyk
+
+# Local development
+.vscode/
+bin/
+node_modules/
+package.json
+package-lock.json
+output.txt
+*.local.md
