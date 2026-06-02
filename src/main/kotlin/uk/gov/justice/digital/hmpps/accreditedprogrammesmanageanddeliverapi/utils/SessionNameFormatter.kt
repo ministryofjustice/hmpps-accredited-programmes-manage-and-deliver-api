@@ -47,11 +47,6 @@ sealed class SessionNameContext {
   data class SessionNotes(val popName: String) : SessionNameContext()
 
   /**
-   * Formatting for the session name display on the Session notes page.
-   */
-  object SessionNotesDisplay : SessionNameContext()
-
-  /**
    * Formatting for the Attendance History page.
    */
   object AttendanceHistory : SessionNameContext()
@@ -93,7 +88,6 @@ class SessionNameFormatter {
     is SessionNameContext.SessionsAndAttendance -> sessionsAndAttendance(context.sessionTemplate, session)
     is SessionNameContext.SessionDetails -> sessionDetails(session)
     is SessionNameContext.SessionNotes -> sessionNotes(session, context.popName)
-    is SessionNameContext.SessionNotesDisplay -> sessionNotesDisplay(session)
     is SessionNameContext.AttendanceHistory -> attendanceHistory(session)
     is SessionNameContext.RecordSessionAttendance -> recordSessionAttendance(session)
   }
@@ -196,32 +190,6 @@ class SessionNameFormatter {
   }
 
   /**
-   * Formats the session name display for the Session notes page.
-   *
-   * - Pre-group ONE_TO_ONE sessions: `"Pre-group one-to-one"`
-   * - Other pre-group sessions: `"<moduleName>[ catch-up]"`
-   * - Post-programme sessions: `"<sessionName>[ catch-up]"`
-   * - ONE_TO_ONE: `"<moduleName> one-to-one[ catch-up]"`
-   * - GROUP: `"<moduleName>[ catch-up]"`
-   */
-  private fun sessionNotesDisplay(session: SessionEntity): String {
-    val catchupSuffix = if (session.isCatchup) " catch-up" else ""
-    return when {
-      session.moduleName.startsWith("Pre-group") -> {
-        if (session.sessionType == SessionType.ONE_TO_ONE) {
-          "${singulariseOneToOne(session.moduleName)}$catchupSuffix"
-        } else {
-          "${session.moduleName}$catchupSuffix"
-        }
-      }
-
-      session.moduleName.startsWith("Post-programme") -> "${session.sessionName}$catchupSuffix"
-      session.sessionType == SessionType.ONE_TO_ONE -> "${session.moduleName} one-to-one$catchupSuffix"
-      else -> "${session.moduleName}$catchupSuffix"
-    }
-  }
-
-  /**
    * Formats the session name for use as a page title on session details page.
    *
    * - GROUP: `"<module.name> <sessionNumber>: <templateName>"`
@@ -279,7 +247,6 @@ class SessionNameFormatter {
    *
    * - Pre-group ONE_TO_ONE sessions: `"Pre-group one-to-one"`
    * - Other pre-group sessions: returns [SessionEntity.moduleName] as-is.
-   * - Pre-group sessions: returns [SessionEntity.moduleName] as-is.
    * - Post-programme sessions: `"<sessionName>"`
    * - ONE_TO_ONE: `"<moduleName> one-to-one"`
    * - GROUP: `"<moduleName> <sessionNumber>"`
@@ -287,18 +254,17 @@ class SessionNameFormatter {
   private fun recordSessionAttendance(session: SessionEntity): String = when {
     session.moduleName.startsWith("Pre-group") -> {
       if (session.sessionType == SessionType.ONE_TO_ONE) {
-        singulariseOneToOne(session.moduleName)
+        singularizeOneToOneSuffix(session.moduleName)
       } else {
         session.moduleName
       }
     }
-    session.moduleName.startsWith("Pre-group") -> session.moduleName
     session.moduleName.startsWith("Post-programme") -> session.sessionName
     session.sessionType == SessionType.ONE_TO_ONE -> "${session.moduleName} one-to-one"
     else -> "${session.moduleName} ${session.sessionNumber}"
   }
 
-  private fun singulariseOneToOne(name: String): String {
+  private fun singularizeOneToOneSuffix(name: String): String {
     val pluralSuffix = "one-to-ones"
     return if (name.endsWith(pluralSuffix)) {
       name.removeSuffix("s")

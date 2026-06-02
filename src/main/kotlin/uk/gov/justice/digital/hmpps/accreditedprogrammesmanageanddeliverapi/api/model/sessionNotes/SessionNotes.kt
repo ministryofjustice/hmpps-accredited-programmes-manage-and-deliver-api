@@ -35,12 +35,6 @@ data class SessionNotes(
   val sessionName: String,
 
   @Schema(
-    description = "The formatted session name for display on the session notes page",
-    example = "Getting started",
-  )
-  val sessionNameDisplay: String,
-
-  @Schema(
     description = "The session number within the module",
     example = "1",
   )
@@ -100,7 +94,6 @@ data class SessionNotes(
       personName: String,
       sessionAttendance: String,
       pageTitle: String,
-      sessionNameDisplay: String,
     ): SessionNotes {
       val attendance = session.attendances.filter { it.groupMembership.referralId == referralId }.maxByOrNull { it.createdAt } ?: throw NotFoundException("No session attendance found for referralId: $referralId")
       val latestSessionNotes = attendance.notesHistory.maxByOrNull { it.createdAt }
@@ -109,7 +102,6 @@ data class SessionNotes(
         personName = personName,
         moduleName = session.moduleName,
         sessionName = session.sessionName,
-        sessionNameDisplay = sessionNameDisplay,
         sessionNumber = session.sessionNumber,
         lastUpdatedBy = attendance.createdBy,
         lastUpdatedDate = attendance.createdAt.toLocalDate(),

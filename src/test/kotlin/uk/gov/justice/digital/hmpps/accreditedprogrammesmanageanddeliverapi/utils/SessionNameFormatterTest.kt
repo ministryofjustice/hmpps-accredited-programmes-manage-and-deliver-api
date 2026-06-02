@@ -1065,69 +1065,6 @@ class SessionNameFormatterTest : IntegrationTestBase() {
   }
 
   @Nested
-  inner class SessionNotesDisplay {
-    @Test
-    fun `returns module name without number for group session`() {
-      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
-      val module = testDataGenerator.createModule(programmeTemplate, "Getting started", 2)
-      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
-        ModuleSessionTemplateEntity(
-          module = module,
-          sessionNumber = 3,
-          sessionType = SessionType.GROUP,
-          pathway = Pathway.MODERATE_INTENSITY,
-          name = "Introduction to Building Choices",
-          durationMinutes = 120,
-        ),
-      )
-      val group = testDataGenerator.createGroup(
-        ProgrammeGroupFactory()
-          .withAccreditedProgrammeTemplate(programmeTemplate)
-          .produce(),
-      )
-      val session = testDataGenerator.createSession(
-        SessionFactory()
-          .withProgrammeGroup(group)
-          .withModuleSessionTemplate(sessionTemplate)
-          .produce(),
-      )
-
-      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotesDisplay))
-        .isEqualTo("Getting started")
-    }
-
-    @Test
-    fun `returns singular pre-group one-to-one without number`() {
-      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
-      val module = testDataGenerator.createModule(programmeTemplate, "Pre-group one-to-ones", 1)
-      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
-        ModuleSessionTemplateEntity(
-          module = module,
-          sessionNumber = 1,
-          sessionType = SessionType.ONE_TO_ONE,
-          pathway = Pathway.MODERATE_INTENSITY,
-          name = "Pre-group one-to-one",
-          durationMinutes = 120,
-        ),
-      )
-      val group = testDataGenerator.createGroup(
-        ProgrammeGroupFactory()
-          .withAccreditedProgrammeTemplate(programmeTemplate)
-          .produce(),
-      )
-      val session = testDataGenerator.createSession(
-        SessionFactory()
-          .withProgrammeGroup(group)
-          .withModuleSessionTemplate(sessionTemplate)
-          .produce(),
-      )
-
-      assertThat(sessionNameFormatter.format(session, SessionNameContext.SessionNotesDisplay))
-        .isEqualTo("Pre-group one-to-one")
-    }
-  }
-
-  @Nested
   inner class AttendanceHistory {
     @Test
     fun `returns correct attendance history name for regular group session`() {
