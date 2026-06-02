@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -16,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toAppointment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
@@ -26,6 +28,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toNdeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.CREATE_APPOINTMENT_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.DELETE_APPOINTMENT_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
@@ -57,6 +61,7 @@ class ScheduleService(
   private val referralRepository: ReferralRepository,
   private val sessionRepository: SessionRepository,
   private val sessionNameFormatter: SessionNameFormatter,
+  private val telemetryClient: TelemetryClient,
 ) {
 
   private companion object {
@@ -393,6 +398,13 @@ class ScheduleService(
     ) {
       is ClientResult.Failure.StatusCode -> {
         log.error("Failure to create appointments with reason: ${response.getErrorMessage()}")
+        telemetryClient.logToAppInsights(
+          "${CREATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+          mapOf(
+            "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
+            "outcome" to "failure",
+          ),
+        )
         throw BusinessException("Failure to create appointments", response.toException())
       }
 
@@ -400,6 +412,13 @@ class ScheduleService(
         log.error(
           "Failure to create appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
           response.exception,
+        )
+        telemetryClient.logToAppInsights(
+          "${CREATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+          mapOf(
+            "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
+            "outcome" to "failure",
+          ),
         )
         throw BusinessException(
           "Failure to create appointments in Ndelius: ${response.exception.message}",
@@ -409,6 +428,14 @@ class ScheduleService(
 
       is ClientResult.Success -> {
         log.info("${nDeliusAppointments.size} appointments created in Ndelius for group with id: ${nDeliusAppointmentEntities.first().session.programmeGroup.id}")
+        telemetryClient.logToAppInsights(
+          "${CREATE_APPOINTMENT_N_DELIUS.eventName}.success",
+          mapOf(
+            "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
+            "outcome" to "success",
+          ),
+        )
+
         nDeliusAppointmentRepository.saveAll(nDeliusAppointmentEntities)
       }
     }
@@ -498,6 +525,13 @@ class ScheduleService(
           "Failure deleting appointments in nDelius with reason: ${response.getErrorMessage()}",
           response.toException(),
         )
+        telemetryClient.logToAppInsights(
+          "${DELETE_APPOINTMENT_N_DELIUS.eventName}.failure",
+          mapOf(
+            "integrationActionType" to DELETE_APPOINTMENT_N_DELIUS.name,
+            "outcome" to "failure",
+          ),
+        )
         throw BusinessException(
           "Failure deleting appointments in nDelius with status code : ${response.status}",
           response.toException(),
@@ -508,6 +542,13 @@ class ScheduleService(
         log.warn(
           "Failure to delete appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
           response.exception,
+        )
+        telemetryClient.logToAppInsights(
+          "${DELETE_APPOINTMENT_N_DELIUS.eventName}.failure",
+          mapOf(
+            "integrationActionType" to DELETE_APPOINTMENT_N_DELIUS.name,
+            "outcome" to "failure",
+          ),
         )
         throw BusinessException(
           "Failure to delete appointments in NDelius: ${response.exception.message}",
@@ -521,6 +562,13 @@ class ScheduleService(
             .removeIf { appointment -> appointment.ndeliusAppointmentId in nDeliusAppointmentsToRemove.map { it.ndeliusAppointmentId } }
         }
         log.info("${nDeliusAppointmentsToRemove.size} appointments deleted in NDelius")
+        telemetryClient.logToAppInsights(
+          "${DELETE_APPOINTMENT_N_DELIUS.eventName}.success",
+          mapOf(
+            "integrationActionType" to DELETE_APPOINTMENT_N_DELIUS.name,
+            "outcome" to "success",
+          ),
+        )
       }
     }
   }

@@ -44,7 +44,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.ATTC
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.RECORD_ATTENDANCE
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.UPDATE_APPOINTMENT_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.RECORD_ATTENDANCE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
@@ -165,6 +166,13 @@ class SessionService(
     ) {
       is ClientResult.Failure.StatusCode -> {
         log.warn("Failure to update appointments with reason: ${response.getErrorMessage()}")
+        telemetryClient.logToAppInsights(
+          "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+          mapOf(
+            "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
+            "outcome" to "failure",
+          ),
+        )
         throw BusinessException("Failure to update appointments", response.toException())
       }
 
@@ -172,6 +180,13 @@ class SessionService(
         log.warn(
           "Failure to update appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
           response.exception,
+        )
+        telemetryClient.logToAppInsights(
+          "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+          mapOf(
+            "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
+            "outcome" to "failure",
+          ),
         )
         throw BusinessException(
           "Failure to update appointments in nDelius: ${response.exception.message}",
@@ -184,6 +199,13 @@ class SessionService(
           "${updateRequests.size} appointments updated in nDelius for sessions with ids: ${
             sessionsWithAppointment.map { it.id }.joinToString(", ")
           }",
+        )
+        telemetryClient.logToAppInsights(
+          "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
+          mapOf(
+            "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
+            "outcome" to "success",
+          ),
         )
       }
     }
@@ -199,6 +221,13 @@ class SessionService(
     ) {
       is ClientResult.Failure.StatusCode -> {
         log.warn("Failure to update appointments with reason: ${response.getErrorMessage()}")
+        telemetryClient.logToAppInsights(
+          "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+          mapOf(
+            "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
+            "outcome" to "failure",
+          ),
+        )
         throw BusinessException("Failure to update appointments", response.toException())
       }
 
@@ -206,6 +235,13 @@ class SessionService(
         log.warn(
           "Failure to update appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
           response.exception,
+        )
+        telemetryClient.logToAppInsights(
+          "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+          mapOf(
+            "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
+            "outcome" to "failure",
+          ),
         )
         throw BusinessException(
           "Failure to update appointments in nDelius: ${response.exception.message}",
@@ -215,6 +251,13 @@ class SessionService(
 
       is ClientResult.Success -> {
         log.info("${updateRequests.size} appointments updated in nDelius for session with id: ${session.id}")
+        telemetryClient.logToAppInsights(
+          "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
+          mapOf(
+            "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
+            "outcome" to "success",
+          ),
+        )
       }
     }
   }
@@ -388,6 +431,13 @@ class SessionService(
         ) {
           is ClientResult.Failure.StatusCode -> {
             log.error("Failure to update appointments with reason: ${response.getErrorMessage()}")
+            telemetryClient.logToAppInsights(
+              "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+              mapOf(
+                "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
+                "outcome" to "failure",
+              ),
+            )
             throw BusinessException("Failure to update appointments", response.toException())
           }
 
@@ -395,6 +445,13 @@ class SessionService(
             log.error(
               "Failure to update appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
               response.exception,
+            )
+            telemetryClient.logToAppInsights(
+              "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+              mapOf(
+                "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
+                "outcome" to "failure",
+              ),
             )
             throw BusinessException(
               "Failure to update appointments in Ndelius: ${response.exception.message}",
@@ -404,6 +461,13 @@ class SessionService(
 
           is ClientResult.Success -> {
             log.info("${updateAppointmentRequests.size} appointments created in Ndelius for group with id: ${session.programmeGroup.id}")
+            telemetryClient.logToAppInsights(
+              "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
+              mapOf(
+                "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
+                "outcome" to "success",
+              ),
+            )
           }
         }
       }

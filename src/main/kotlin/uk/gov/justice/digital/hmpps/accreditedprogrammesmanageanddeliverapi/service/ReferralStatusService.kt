@@ -17,10 +17,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.DomainEventPublisher
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.DomainEventsMessage
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.PersonReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -28,7 +24,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
-import java.time.ZonedDateTime
 import java.util.UUID
 
 @Service
@@ -40,7 +35,7 @@ class ReferralStatusService(
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
   private val referralRepository: ReferralRepository,
   private val sessionAttendanceRepository: SessionAttendanceRepository,
-  private val domainEventPublisher: DomainEventPublisher,
+  private val referralEventService: ReferralEventService,
   @Value("\${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
 ) {
 
@@ -151,9 +146,9 @@ class ReferralStatusService(
     if (!hasValidPostProgrammeReviewAttendance(referral)) {
       return false
     }
-
     // Publish the completion event
-    publishReferralCompletedEvent(referral)
+    referralEventService.publishReferralCompletedEvent(referral)
+
     return true
   }
 
@@ -173,19 +168,5 @@ class ReferralStatusService(
     val complied = attendance.outcomeType.compliant == true
 
     return attended && complied
-  }
-
-  private fun publishReferralCompletedEvent(referral: ReferralEntity) {
-    val hmppsDomainEvent = DomainEventsMessage(
-      eventType = HmppsDomainEventTypes.ACP_COMMUNITY_PROGRAMME_COMPLETE.value,
-      version = 1,
-      detailUrl = "$madBaseUrl/referral/${referral.id}/completion-data",
-      occurredAt = ZonedDateTime.now(),
-      description = "An Accredited Programmes referral in community has been completed.",
-      additionalInformation = mutableMapOf(),
-      personReference = PersonReference.fromCrn(referral.crn),
-    )
-    log.info("Publishing ${HmppsDomainEventTypes.ACP_COMMUNITY_PROGRAMME_COMPLETE.value} event for referralId: ${referral.id}")
-    domainEventPublisher.publish(hmppsDomainEvent)
   }
 }
