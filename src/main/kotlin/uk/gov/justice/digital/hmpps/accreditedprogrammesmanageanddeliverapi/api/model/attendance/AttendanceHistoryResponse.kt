@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance
 
 import com.fasterxml.jackson.annotation.JsonFormat
-import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDateTime
 import java.util.UUID
@@ -26,7 +25,6 @@ data class AttendanceHistoryResponse(
   )
   val currentlyAllocatedGroupId: UUID? = null,
 
-  @get:JsonProperty("createdBy")
   @Schema(description = "The user that created referral")
   val referralCreatedBy: String,
 
