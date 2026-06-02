@@ -27,8 +27,8 @@ data class AttendanceHistoryResponse(
   val currentlyAllocatedGroupId: UUID? = null,
 
   @get:JsonProperty("createdBy")
-  @Schema(description = "The user that last created referral")
-  val referralCreatedBy: String? = null,
+  @Schema(description = "The user that created referral")
+  val referralCreatedBy: String,
 
   @Schema(description = "List of sessions with attendance information")
   val attendanceHistory: List<AttendanceHistorySession> = emptyList(),

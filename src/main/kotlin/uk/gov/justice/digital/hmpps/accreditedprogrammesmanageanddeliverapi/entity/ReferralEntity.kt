@@ -19,6 +19,7 @@ import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.ACCREDITED_PROGRAMMES_AUTOMATED_UPDATE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import java.time.LocalDate
@@ -61,7 +62,7 @@ class ReferralEntity(
   @NotNull
   @Column(name = "created_by")
   @CreatedBy
-  var createdBy: String = "Accredited Programmes automated update",
+  var createdBy: String = ACCREDITED_PROGRAMMES_AUTOMATED_UPDATE,
 
   @OneToMany(
     mappedBy = "referral",
