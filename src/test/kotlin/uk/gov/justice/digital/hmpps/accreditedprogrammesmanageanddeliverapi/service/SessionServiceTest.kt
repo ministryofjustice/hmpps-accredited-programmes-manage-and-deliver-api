@@ -356,12 +356,14 @@ class SessionServiceTest {
       status = HttpStatus.OK,
       body = Unit,
     )
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
     service.rescheduleSessions(sessionId, request)
 
     // Then
     verify { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+    verify { telemetryClient.logToAppInsights(any(), any()) }
   }
 
   @Test
@@ -424,12 +426,14 @@ class SessionServiceTest {
       status = HttpStatus.OK,
       body = Unit,
     )
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
     service.rescheduleSessions(sessionId, request)
 
     // Then
     verify(exactly = 2) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+    verify { telemetryClient.logToAppInsights(any(), any()) }
   }
 
   @Test

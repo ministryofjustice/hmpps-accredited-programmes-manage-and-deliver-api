@@ -35,8 +35,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.UPDATE_REFERRAL_STATUS
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ActivityType.VIEW_REFERRAL
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_PERSONAL_DETAILS_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_STATUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.VIEW_REFERRAL
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
@@ -291,11 +294,26 @@ class ReferralService(
         log.info("Referral with id ${referral.id} appears to be sourced from a Requirement, saving Entity and continuing...")
         referral.sourcedFrom = ReferralEntitySourcedFrom.REQUIREMENT
         referralRepository.save(referral)
+        telemetryClient.logToAppInsights(
+          "${GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.success",
+          mapOf(
+            "integrationActionType" to GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
+            "outcome" to "success",
+          ),
+        )
+
         return referral
       }
 
       else -> {
         log.info("Referral does not appear to come from Requirement, going to attempt to find a Licence Condition")
+        telemetryClient.logToAppInsights(
+          "${GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
+          mapOf(
+            "integrationActionType" to GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
+            "outcome" to "failure",
+          ),
+        )
       }
     }
 
@@ -304,11 +322,26 @@ class ReferralService(
         log.info("Referral with id ${referral.id} appears to be sourced from a LicenceCondition, saving Entity and continuing...")
         referral.sourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION
         referralRepository.save(referral)
+        telemetryClient.logToAppInsights(
+          "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.success",
+          mapOf(
+            "integrationActionType" to GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
+            "outcome" to "success",
+          ),
+        )
+
         return referral
       }
 
       else -> {
         log.info("Referral does not appear to come from Licence Condition, going to return null")
+        telemetryClient.logToAppInsights(
+          "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
+          mapOf(
+            "integrationActionType" to GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
+            "outcome" to "failure",
+          ),
+        )
         throw NotFoundException("No LicenceCondition or Requirement found with id ${referral.eventId}")
       }
     }
@@ -326,11 +359,26 @@ class ReferralService(
       ) {
         is ClientResult.Success -> {
           log.info("...success! Found a Requirement for referral with ID: $referralIdString")
+          telemetryClient.logToAppInsights(
+            "${GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.success",
+            mapOf(
+              "integrationActionType" to GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
+              "outcome" to "success",
+            ),
+          )
+
           return response.body
         }
 
         else -> {
           log.error("...failure, encountered an error while fetching Requirement for Referral with ID: $referralIdString from nDelius Integration API")
+          telemetryClient.logToAppInsights(
+            "${GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
+            mapOf(
+              "integrationActionType" to GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
+              "outcome" to "failure",
+            ),
+          )
           throw NotFoundException("Could not fetch a Requirement with ID $referralIdString, for Referral with ID: $referralIdString")
         }
       }
@@ -340,11 +388,27 @@ class ReferralService(
       when (val response = ndeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, eventId)) {
         is ClientResult.Success -> {
           log.info("...success! Found a Licence Condition for referral with ID: $referralIdString")
+          telemetryClient.logToAppInsights(
+            "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.success",
+            mapOf(
+              "integrationActionType" to GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
+              "outcome" to "success",
+            ),
+          )
+
           return response.body
         }
 
         else -> {
           log.error("...failure, neither a Requirement or Licence Condition returned for Referral with ID $referralIdString")
+          telemetryClient.logToAppInsights(
+            "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
+            mapOf(
+              "integrationActionType" to GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
+              "outcome" to "failure",
+            ),
+          )
+
           return null
         }
       }
@@ -523,7 +587,28 @@ class ReferralService(
   }
 
   private fun getPersonalDetails(crn: String) = when (val result = ndeliusIntegrationApiClient.getPersonalDetails(crn)) {
-    is ClientResult.Success -> result.body
-    else -> null
+    is ClientResult.Success -> {
+      telemetryClient.logToAppInsights(
+        "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.success",
+        mapOf(
+          "integrationActionType" to GET_PERSONAL_DETAILS_N_DELIUS.name,
+          "outcome" to "success",
+        ),
+      )
+
+      result.body
+    }
+
+    else -> {
+      telemetryClient.logToAppInsights(
+        "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.failure",
+        mapOf(
+          "integrationActionType" to GET_PERSONAL_DETAILS_N_DELIUS.name,
+          "outcome" to "failure",
+        ),
+      )
+
+      null
+    }
   }
 }

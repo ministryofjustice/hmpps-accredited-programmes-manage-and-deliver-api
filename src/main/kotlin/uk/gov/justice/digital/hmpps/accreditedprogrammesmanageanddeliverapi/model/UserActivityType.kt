@@ -1,6 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model
 
-enum class ActivityType {
+enum class UserActivityType {
   UPDATE_REFERRAL_STATUS,
   VIEW_REFERRAL,
   ASSIGN_REFERRAL_TO_GROUP,
