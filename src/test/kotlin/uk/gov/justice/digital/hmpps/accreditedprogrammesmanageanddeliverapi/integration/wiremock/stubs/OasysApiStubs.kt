@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestComponent
@@ -543,5 +544,9 @@ class OasysApiStubs {
             .withHeader("Content-Type", "application/json"),
         ),
     )
+  }
+
+  fun verifyPniCallCount(crn: String, expectedCount: Int) {
+    wiremock.verify(expectedCount, getRequestedFor(urlEqualTo("/assessments/pni/$crn?community=true")))
   }
 }

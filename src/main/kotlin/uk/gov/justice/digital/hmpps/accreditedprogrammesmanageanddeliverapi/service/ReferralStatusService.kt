@@ -1,10 +1,10 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller.OpenOrClosed
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusInfo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusTransitions
@@ -122,14 +122,13 @@ class ReferralStatusService(
     if (!attended || !complied) {
       throw BusinessException("Referral $referralId did not attend or comply with the post-programme review session")
     }
-
-    val completedAt = requireNotNull(attendance.recordedAt) {
-      "Attendance record for referral $referralId does not have a recordedAt timestamp"
-    }
+    // Requirement or Licence-condition is completed on the date the post programme review session happened
+    val completedAt = postProgrammeReviewSession.startsAt
 
     return ReferralCompletionData(
-      requirementId = eventId,
-      requirementCompletedAt = completedAt,
+      licReqId = eventId,
+      licReqCompletedAt = completedAt,
+      sourcedFromEntityType = referral.sourcedFrom!!,
     )
   }
 
@@ -139,11 +138,13 @@ class ReferralStatusService(
     // Check if the referral status is "Programme complete"
     val currentStatus = referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId)
     if (currentStatus?.referralStatusDescription?.description != ReferralStatusType.PROGRAMME_COMPLETE.description) {
+      log.debug("Referral is not in Programme complete status, not publishing completion event for referral: $referralId")
       return false
     }
 
     // Check if the referral has attended and complied with the post-programme review
     if (!hasValidPostProgrammeReviewAttendance(referral)) {
+      log.debug("No valid post programme review attendance, not publishing completion event for referral: $referralId")
       return false
     }
     // Publish the completion event

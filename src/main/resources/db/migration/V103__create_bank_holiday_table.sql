@@ -1,0 +1,93 @@
+CREATE TABLE bank_holiday (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    holiday_date DATE NOT NULL,
+    notes VARCHAR(255),
+    bunting BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX idx_bank_holiday_date ON bank_holiday (holiday_date);
+
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('New Year’s Day', '2019-01-01', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Good Friday', '2019-04-19', '', false);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Easter Monday', '2019-04-22', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Early May bank holiday', '2019-05-06', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Spring bank holiday', '2019-05-27', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Summer bank holiday', '2019-08-26', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Christmas Day', '2019-12-25', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Boxing Day', '2019-12-26', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('New Year’s Day', '2020-01-01', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Good Friday', '2020-04-10', '', false);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Easter Monday', '2020-04-13', '', false);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Early May bank holiday (VE day)', '2020-05-08', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Spring bank holiday', '2020-05-25', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Summer bank holiday', '2020-08-31', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Christmas Day', '2020-12-25', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Boxing Day', '2020-12-28', 'Substitute day', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('New Year’s Day', '2021-01-01', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Good Friday', '2021-04-02', '', false);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Easter Monday', '2021-04-05', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Early May bank holiday', '2021-05-03', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Spring bank holiday', '2021-05-31', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Summer bank holiday', '2021-08-30', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Christmas Day', '2021-12-27', 'Substitute day', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Boxing Day', '2021-12-28', 'Substitute day', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('New Year’s Day', '2022-01-03', 'Substitute day', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Good Friday', '2022-04-15', '', false);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Easter Monday', '2022-04-18', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Early May bank holiday', '2022-05-02', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Spring bank holiday', '2022-06-02', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Platinum Jubilee bank holiday', '2022-06-03', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Summer bank holiday', '2022-08-29', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Bank Holiday for the State Funeral of Queen Elizabeth II', '2022-09-19', '', false);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Boxing Day', '2022-12-26', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Christmas Day', '2022-12-27', 'Substitute day', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('New Year’s Day', '2023-01-02', 'Substitute day', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Good Friday', '2023-04-07', '', false);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Easter Monday', '2023-04-10', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Early May bank holiday', '2023-05-01', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Bank holiday for the coronation of King Charles III', '2023-05-08', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Spring bank holiday', '2023-05-29', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Summer bank holiday', '2023-08-28', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Christmas Day', '2023-12-25', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Boxing Day', '2023-12-26', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('New Year’s Day', '2024-01-01', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Good Friday', '2024-03-29', '', false);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Easter Monday', '2024-04-01', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Early May bank holiday', '2024-05-06', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Spring bank holiday', '2024-05-27', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Summer bank holiday', '2024-08-26', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Christmas Day', '2024-12-25', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Boxing Day', '2024-12-26', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('New Year’s Day', '2025-01-01', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Good Friday', '2025-04-18', '', false);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Easter Monday', '2025-04-21', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Early May bank holiday', '2025-05-05', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Spring bank holiday', '2025-05-26', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Summer bank holiday', '2025-08-25', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Christmas Day', '2025-12-25', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Boxing Day', '2025-12-26', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('New Year’s Day', '2026-01-01', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Good Friday', '2026-04-03', '', false);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Easter Monday', '2026-04-06', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Early May bank holiday', '2026-05-04', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Spring bank holiday', '2026-05-25', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Summer bank holiday', '2026-08-31', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Christmas Day', '2026-12-25', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Boxing Day', '2026-12-28', 'Substitute day', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('New Year’s Day', '2027-01-01', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Good Friday', '2027-03-26', '', false);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Easter Monday', '2027-03-29', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Early May bank holiday', '2027-05-03', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Spring bank holiday', '2027-05-31', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Summer bank holiday', '2027-08-30', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Christmas Day', '2027-12-27', 'Substitute day', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Boxing Day', '2027-12-28', 'Substitute day', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('New Year’s Day', '2028-01-03', 'Substitute day', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Good Friday', '2028-04-14', '', false);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Easter Monday', '2028-04-17', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Early May bank holiday', '2028-05-01', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Spring bank holiday', '2028-05-29', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Summer bank holiday', '2028-08-28', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Christmas Day', '2028-12-25', '', true);
+INSERT INTO bank_holiday (title, holiday_date, notes, bunting) VALUES ('Boxing Day', '2028-12-26', '', true);

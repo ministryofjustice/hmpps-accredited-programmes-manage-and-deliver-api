@@ -6,9 +6,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
@@ -88,42 +88,62 @@ class ReferralService(
   suspend fun refreshPersonalDetailsForReferral(referralId: UUID): ReferralDetails? = coroutineScope {
     val referral = referralRepository.findByIdWithMemberships(referralId) ?: return@coroutineScope null
 
-    val pniDeferred = async(Dispatchers.IO) {
-      pniService.getPniCalculation(referral.crn)
+    // Check overrides BEFORE calling OASys — skip PNI entirely if both are overridden
+    val cohortOverridden = cohortService.hasOverriddenCohort(referralId)
+    val ldcOverridden = ldcService.hasOverriddenLdcStatus(referralId)
+
+    if (!cohortOverridden || !ldcOverridden) {
+      val pniScore = pniService.getDailyPniCalculation(referral.crn)
+      if (pniScore != null) {
+        if (!ldcOverridden) {
+          ldcService.updateLdcStatusForReferral(referral, UpdateLdc(pniScore.hasLdc), "SYSTEM")
+        }
+        if (!cohortOverridden) {
+          cohortService.updateCohortForReferral(
+            referral,
+            cohortService.determineOffenceCohort(pniScore),
+            "SYSTEM",
+          )
+        }
+      }
     }
 
     val personalDetailsDeferred = async(Dispatchers.IO) {
-      userService.getPersonalDetailsByIdentifier(referral.crn)
+      try {
+        userService.getPersonalDetailsByIdentifier(referral.crn)
+      } catch (ex: AccessDeniedException) {
+        throw ex // Re-throw security exceptions — these must propagate as 403
+      } catch (ex: Exception) {
+        log.warn("Failed to fetch personal details from nDelius for CRN ${referral.crn}: ${ex.message}")
+        null
+      }
     }
 
     val sentenceEndDateDeferred = async(Dispatchers.IO) {
-      sentenceService.getSentenceEndDate(
-        referral.crn,
-        referral.eventNumber,
-        referral.sourcedFrom,
-      )
-    }
-
-    val pniScore = pniDeferred.await()
-    val hasLdc = pniScore.hasLdc
-    val newCohort = cohortService.determineOffenceCohort(pniScore)
-
-    if (!ldcService.hasOverriddenLdcStatus(referralId)) {
-      ldcService.updateLdcStatusForReferral(referral, UpdateLdc(hasLdc), "SYSTEM")
-    }
-
-    // Only update cohort if PNI response is not empty (OASys available).
-    // This ensures that if OASys/PNI is unavailable or returns empty, we do NOT overwrite the cohort,
-    // even if other data sources (e.g., nDelius) are available and return valid data. This protects
-    // against accidental loss of manually set or previously determined cohort information.
-    if (pniScore != PniScore.empty() && !cohortService.hasOverriddenCohort(referralId)) {
-      cohortService.updateCohortForReferral(referral, newCohort, "SYSTEM")
+      try {
+        sentenceService.getSentenceEndDate(
+          referral.crn,
+          referral.eventNumber,
+          referral.sourcedFrom,
+        )
+      } catch (ex: Exception) {
+        log.warn("Failed to fetch sentence end date from nDelius for CRN ${referral.crn}: ${ex.message}")
+        null
+      }
     }
 
     val personalDetails = personalDetailsDeferred.await()
     val sentenceEndDate = sentenceEndDateDeferred.await()
 
-    updateReferralDetails(referral, personalDetails, sentenceEndDate)
+    if (personalDetails != null) {
+      updateReferralDetails(referral, personalDetails, sentenceEndDate)
+    } else {
+      // If we at least have a sentence end date but no personal details, update just the sentence
+      if (sentenceEndDate != null && sentenceEndDate != referral.sentenceEndDate) {
+        referral.sentenceEndDate = sentenceEndDate
+        referralRepository.save(referral)
+      }
+    }
 
     val referralLdc = referralLdcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.hasLdc
     val latestReferralStatus = referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId)
@@ -131,14 +151,24 @@ class ReferralService(
       referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.cohort
     val allocatedGroup = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
 
-    ReferralDetails.toModel(
-      referral,
-      personalDetails,
-      referralLdc,
-      latestReferralStatus!!,
-      allocatedGroup,
-      latestReferralCohort,
-    )
+    if (personalDetails != null) {
+      ReferralDetails.toModel(
+        referral,
+        personalDetails,
+        referralLdc,
+        latestReferralStatus!!,
+        allocatedGroup,
+        latestReferralCohort,
+      )
+    } else {
+      ReferralDetails.toModelFromStoredData(
+        referral,
+        referralLdc,
+        latestReferralStatus!!,
+        allocatedGroup,
+        latestReferralCohort,
+      )
+    }
   }
 
   fun getFindAndReferReferralDetails(referralId: UUID): FindAndReferReferralDetails {

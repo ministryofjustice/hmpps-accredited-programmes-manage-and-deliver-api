@@ -85,4 +85,54 @@ class PniServiceTest {
     assertThat(result).isEqualTo(PniScore.empty())
     assertThat(result.overallIntensity).isEqualTo(OverallIntensity.MISSING_INFORMATION)
   }
+
+  @Test
+  fun `getDailyPniCalculation returns PniScore when OASys has data`() {
+    val crn = randomCrn()
+    val pniResponse = PniResponseFactory().produce()
+    `when`(oasysApiClient.getPniCalculation(crn)).thenReturn(
+      ClientResult.Success(status = HttpStatus.OK, body = pniResponse),
+    )
+    val result = pniService.getDailyPniCalculation(crn)
+    assertThat(result).isNotNull
+    assertThat(result!!.overallIntensity).isEqualTo(Type.toIntensity(pniResponse.pniCalculation?.pni))
+  }
+
+  @Test
+  fun `getDailyPniCalculation returns null when OASys returns 404`() {
+    val crn = randomCrn()
+    `when`(oasysApiClient.getPniCalculation(crn)).thenReturn(
+      ClientResult.Failure.StatusCode(
+        HttpMethod.GET,
+        "/assessments/pni/$crn?community=true",
+        HttpStatus.NOT_FOUND,
+        "",
+      ),
+    )
+    val result = pniService.getDailyPniCalculation(crn)
+    assertThat(result).isNull()
+  }
+
+  @Test
+  fun `getDailyPniCalculation returns null when OASys returns 503`() {
+    val crn = randomCrn()
+    `when`(oasysApiClient.getPniCalculation(crn)).thenReturn(
+      ClientResult.Failure.StatusCode(
+        HttpMethod.GET,
+        "/assessments/pni/$crn?community=true",
+        HttpStatus.SERVICE_UNAVAILABLE,
+        "",
+      ),
+    )
+    val result = pniService.getDailyPniCalculation(crn)
+    assertThat(result).isNull()
+  }
+
+  @Test
+  fun `getDailyPniCalculation returns null when OASys throws exception`() {
+    val crn = randomCrn()
+    `when`(oasysApiClient.getPniCalculation(crn)).thenThrow(RuntimeException("Network error"))
+    val result = pniService.getDailyPniCalculation(crn)
+    assertThat(result).isNull()
+  }
 }
