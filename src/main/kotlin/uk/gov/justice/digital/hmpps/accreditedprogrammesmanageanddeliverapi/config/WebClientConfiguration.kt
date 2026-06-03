@@ -23,7 +23,7 @@ import java.time.Duration
 class WebClientConfiguration(
   @Value("\${hmpps-auth.url}") val hmppsAuthBaseUri: String,
   @Value("\${api.health-timeout:2s}") val healthTimeout: Duration,
-  @Value("\${api.timeout:20s}") val timeout: Duration,
+  @Value("\${api.timeout:60s}") val timeout: Duration, // Bumped from 20 -> 60 for private beta onboarding --TJWC 2026-06-03
   @Value("\${max-response-in-memory-size-bytes}") private val maxResponseInMemorySizeBytes: Int,
 ) {
   // HMPPS Auth health ping is required if your service calls HMPPS Auth to get a token to call other services
