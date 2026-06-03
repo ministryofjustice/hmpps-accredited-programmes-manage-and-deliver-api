@@ -115,6 +115,12 @@ class SessionService(
     val requestedStartTime = LocalDateTime.of(request.sessionStartDate, request.sessionStartTime.toLocalTime())
     val startOffset = Duration.between(session.startsAt, requestedStartTime)
     val requestedEndTime = LocalDateTime.of(request.sessionStartDate, request.sessionEndTime?.toLocalTime() ?: session.endsAt.plus(startOffset).toLocalTime())
+
+    if (!requestedEndTime.isAfter(requestedStartTime)) {
+      log.warn("Invalid reschedule request received for session with id: $sessionId. Requested end time $requestedEndTime is not after requested start time $requestedStartTime")
+      throw BusinessException("The session end time must be after the session start time.")
+    }
+
     val currentSessionDuration = Duration.between(session.startsAt, session.endsAt)
     val requestedSessionDuration = Duration.between(requestedStartTime, requestedEndTime)
 
