@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -17,6 +18,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralStatusUpdateEvent
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.ASSIGN_REFERRAL_TO_GROUP
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.REMOVE_REFERRAL_FROM_GROUP
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
@@ -34,8 +36,8 @@ class ProgrammeGroupMembershipService(
   private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
   private val scheduleService: ScheduleService,
-  private val referralEventService: ReferralEventService,
   private val telemetryClient: TelemetryClient,
+  private val applicationEventPublisher: ApplicationEventPublisher,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -91,19 +93,21 @@ class ProgrammeGroupMembershipService(
     // Create appointments in NDelius for each session object
     scheduleService.createNdeliusAppointmentsForSessions(newAttendees)
 
-    referralEventService.publishReferralStatusUpdatedEvent(referral)
+    val savedReferral = referralRepository.save(referral)
+
+    applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId))
 
     telemetryClient.logToAppInsights(
       "Referral.allocate-to-group.success",
       mapOf(
         "activityType" to ASSIGN_REFERRAL_TO_GROUP.name,
-        "regionName" to (referral.referralReportingLocation?.regionName ?: ""),
-        "deliveryUnitCode" to (referral.referralReportingLocation?.pduName ?: ""),
+        "regionName" to (savedReferral.referralReportingLocation?.regionName ?: ""),
+        "deliveryUnitCode" to (savedReferral.referralReportingLocation?.pduName ?: ""),
         "deliveryLocation" to group.deliveryLocationName,
       ),
     )
 
-    return referralRepository.save(referral)
+    return savedReferral
   }
 
   fun getCurrentlyAllocatedGroup(referral: ReferralEntity): ProgrammeGroupMembershipEntity? {
@@ -147,21 +151,21 @@ class ProgrammeGroupMembershipService(
       )
 
     referral.statusHistories.add(statusHistory)
-    referralRepository.save(referral)
-    referralEventService.publishReferralStatusUpdatedEvent(referral)
+    val savedReferral = referralRepository.save(referral)
+    applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId))
 
     telemetryClient.logToAppInsights(
       "Referral.remove-from-group.success",
       mapOf(
         "activityType" to REMOVE_REFERRAL_FROM_GROUP.name,
-        "regionName" to (referral.referralReportingLocation?.regionName ?: ""),
-        "deliveryUnitCode" to (referral.referralReportingLocation?.pduName ?: ""),
+        "regionName" to (savedReferral.referralReportingLocation?.regionName ?: ""),
+        "deliveryUnitCode" to (savedReferral.referralReportingLocation?.pduName ?: ""),
         "deliveryLocation" to group.deliveryLocationName,
       ),
     )
 
     return RemoveFromGroupResponse(
-      message = "${referral.personName} was removed from this group. Their referral status is now ${desiredStatus.description}",
+      message = "${savedReferral.personName} was removed from this group. Their referral status is now ${desiredStatus.description}",
     )
   }
 
