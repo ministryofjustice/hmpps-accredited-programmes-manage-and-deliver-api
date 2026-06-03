@@ -353,57 +353,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     )
 
     // Then
-    assertThat(response.userMessage).isEqualTo("Bad request: For sessions in the past, the session duration cannot be longer than the current scheduled duration. Change the start or end time.")
-  }
-
-  @Test
-  fun `should return HTTP 400 when requested session end time is before start time`() {
-    // Given
-    val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
-    val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
-    val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
-      ModuleSessionTemplateEntity(
-        module = module,
-        sessionNumber = 2,
-        sessionType = SessionType.GROUP,
-        pathway = Pathway.MODERATE_INTENSITY,
-        name = "Test Session Template",
-        durationMinutes = 120,
-      ),
-    )
-    val group = testDataGenerator.createGroup(
-      ProgrammeGroupFactory()
-        .withAccreditedProgrammeTemplate(programmeTemplate)
-        .withCode("RESCHED")
-        .produce(),
-    )
-    val session = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate)
-        .withStartsAt(LocalDateTime.now().plusDays(1).withHour(13).withMinute(30).withSecond(0).withNano(0))
-        .withEndsAt(LocalDateTime.now().plusDays(1).withHour(14).withMinute(30).withSecond(0).withNano(0))
-        .produce(),
-    )
-
-    val rescheduleRequest = RescheduleSessionRequest(
-      sessionStartDate = LocalDate.now().plusDays(2),
-      sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
-      sessionEndTime = SessionTime(hour = 9, minutes = 0, amOrPm = AmOrPm.AM),
-      rescheduleOtherSessions = false,
-    )
-
-    // When
-    val response = performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.PUT,
-      uri = "/session/${session.id}/reschedule",
-      body = rescheduleRequest,
-      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-      expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
-    )
-
-    // Then
-    assertThat(response.userMessage).isEqualTo("Bad request: The session end time must be after the session start time.")
+    assertThat(response.userMessage).isEqualTo("The session duration cannot be longer than the current scheduled duration. Change the start or end time.")
   }
 
   @Test
