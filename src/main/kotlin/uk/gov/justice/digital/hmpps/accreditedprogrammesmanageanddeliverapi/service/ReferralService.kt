@@ -80,6 +80,7 @@ class ReferralService(
   private val referralEventService: ReferralEventService,
   private val referralCohortHistoryRepository: ReferralCohortHistoryRepository,
   private val telemetryClient: TelemetryClient,
+  private val referralEventNumberResolverService: ReferralEventNumberResolverService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -92,22 +93,6 @@ class ReferralService(
     val cohortOverridden = cohortService.hasOverriddenCohort(referralId)
     val ldcOverridden = ldcService.hasOverriddenLdcStatus(referralId)
 
-    if (!cohortOverridden || !ldcOverridden) {
-      val pniScore = pniService.getDailyPniCalculation(referral.crn)
-      if (pniScore != null) {
-        if (!ldcOverridden) {
-          ldcService.updateLdcStatusForReferral(referral, UpdateLdc(pniScore.hasLdc), "SYSTEM")
-        }
-        if (!cohortOverridden) {
-          cohortService.updateCohortForReferral(
-            referral,
-            cohortService.determineOffenceCohort(pniScore),
-            "SYSTEM",
-          )
-        }
-      }
-    }
-
     val personalDetailsDeferred = async(Dispatchers.IO) {
       try {
         userService.getPersonalDetailsByIdentifier(referral.crn)
@@ -119,13 +104,34 @@ class ReferralService(
       }
     }
 
+    val resolverDeferred = async(Dispatchers.IO) {
+      referralEventNumberResolverService.resolveIfEventNumberIsZero(referral)
+    }
+
+    val pniDeferred = if (!cohortOverridden || !ldcOverridden) {
+      async(Dispatchers.IO) { pniService.getDailyPniCalculation(referral.crn) }
+    } else {
+      null
+    }
+
+    val pniScore = pniDeferred?.await()
+    if (pniScore != null) {
+      if (!ldcOverridden) ldcService.updateLdcStatusForReferral(referral, UpdateLdc(pniScore.hasLdc), "SYSTEM")
+      if (!cohortOverridden) {
+        cohortService.updateCohortForReferral(
+          referral,
+          cohortService.determineOffenceCohort(pniScore),
+          "SYSTEM",
+        )
+      }
+    }
+
+    // Sentence end date depends on resolved event number — wait for resolver first
+    resolverDeferred.await()
+
     val sentenceEndDateDeferred = async(Dispatchers.IO) {
       try {
-        sentenceService.getSentenceEndDate(
-          referral.crn,
-          referral.eventNumber,
-          referral.sourcedFrom,
-        )
+        sentenceService.getSentenceEndDate(referral.crn, referral.eventNumber, referral.sourcedFrom)
       } catch (ex: Exception) {
         log.warn("Failed to fetch sentence end date from nDelius for CRN ${referral.crn}: ${ex.message}")
         null

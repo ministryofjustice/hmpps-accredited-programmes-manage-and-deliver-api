@@ -92,6 +92,9 @@ class ReferralServiceTest {
   private lateinit var referralCohortHistoryRepository: ReferralCohortHistoryRepository
 
   @Mock
+  private lateinit var referralEventNumberResolverService: ReferralEventNumberResolverService
+
+  @Mock
   private lateinit var telemetryClient: TelemetryClient
 
   private lateinit var referralService: ReferralService
@@ -120,6 +123,7 @@ class ReferralServiceTest {
       referralEventService = referralEventService,
       referralCohortHistoryRepository = referralCohortHistoryRepository,
       telemetryClient = telemetryClient,
+      referralEventNumberResolverService = referralEventNumberResolverService,
     )
   }
 
