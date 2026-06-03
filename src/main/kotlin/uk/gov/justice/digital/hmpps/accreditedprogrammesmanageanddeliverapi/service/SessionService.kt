@@ -115,11 +115,12 @@ class SessionService(
     val requestedStartTime = LocalDateTime.of(request.sessionStartDate, request.sessionStartTime.toLocalTime())
     val startOffset = Duration.between(session.startsAt, requestedStartTime)
     val requestedEndTime = LocalDateTime.of(request.sessionStartDate, request.sessionEndTime?.toLocalTime() ?: session.endsAt.plus(startOffset).toLocalTime())
+    val sessionDurationHasChanged = Duration.between(session.startsAt, session.endsAt) != Duration.between(requestedStartTime, requestedEndTime)
 
     val originalSessionStartsAt = session.startsAt
 
     // validate that the reschedule request is valid - session duration cannot be changed for past sessions
-    if (session.startsAt.isBefore(LocalDateTime.now())) {
+    if (session.startsAt.isBefore(LocalDateTime.now()) && sessionDurationHasChanged) {
       log.warn("Invalid reschedule request received for past session with id: $sessionId. Requested session start date must be in the future")
       throw BusinessException("The session session duration cannot be longer than originally scheduled. Change the start or end time.")
     }

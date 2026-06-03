@@ -30,11 +30,11 @@
     "slotName": "SlotName"
   },
   "BankHolidayEntity": {
-    "id": "UUID",
-    "title": "String",
+    "bunting": "boolean",
     "holidayDate": "LocalDate",
+    "id": "UUID",
     "notes": "String",
-    "bunting": "boolean"
+    "title": "String"
   },
   "DataImportRecordEntity": {
     "entityType": "String",
@@ -193,6 +193,7 @@
   "ReferralEntity": {
     "availability": "AvailabilityEntity",
     "createdAt": "LocalDateTime",
+    "createdBy": "String",
     "crn": "String",
     "dateOfBirth": "LocalDate",
     "deliveryLocationPreferences": "DeliveryLocationPreferenceEntity",
