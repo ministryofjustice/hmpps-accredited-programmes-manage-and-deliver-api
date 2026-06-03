@@ -353,7 +353,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     )
 
     // Then
-    assertThat(response.userMessage).isEqualTo("Bad request: The session duration cannot be longer than the current scheduled duration. Change the start or end time.")
+    assertThat(response.userMessage).isEqualTo("Bad request: For sessions in the past, the session duration cannot be longer than the current scheduled duration. Change the start or end time.")
   }
 
   @Test
