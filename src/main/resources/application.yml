@@ -3,6 +3,9 @@ info.app:
   version: 1.0
 
 spring:
+  mvc:
+    async:
+      request-timeout: 120000
   application:
     name: hmpps-accredited-programmes-manage-and-deliver-api
 
