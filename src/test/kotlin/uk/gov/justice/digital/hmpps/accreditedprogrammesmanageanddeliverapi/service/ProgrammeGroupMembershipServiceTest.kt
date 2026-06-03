@@ -7,8 +7,10 @@ import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.repository.findByIdOrNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralStatusUpdateEvent
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusDescriptionEntityFactory
@@ -27,8 +29,8 @@ class ProgrammeGroupMembershipServiceTest {
   private val referralStatusDescriptionRepository = mockk<ReferralStatusDescriptionRepository>()
   private val programmeGroupMembershipRepository = mockk<ProgrammeGroupMembershipRepository>()
   private val scheduleService = mockk<ScheduleService>()
-  private val referralEventService = mockk<ReferralEventService>()
   private val telemetryClient = mockk<TelemetryClient>()
+  private val applicationEventPublisher = mockk<ApplicationEventPublisher>()
   private lateinit var service: ProgrammeGroupMembershipService
 
   @BeforeEach
@@ -39,8 +41,8 @@ class ProgrammeGroupMembershipServiceTest {
       referralStatusDescriptionRepository = referralStatusDescriptionRepository,
       programmeGroupMembershipRepository = programmeGroupMembershipRepository,
       scheduleService = scheduleService,
-      referralEventService = referralEventService,
       telemetryClient = telemetryClient,
+      applicationEventPublisher = applicationEventPublisher,
     )
   }
 
@@ -64,7 +66,7 @@ class ProgrammeGroupMembershipServiceTest {
     every { referralStatusDescriptionRepository.getScheduledStatusDescription() } returns referralStatusDescriptionEntity
     every { referralRepository.save(referralEntity) } returns referralEntity
     every { scheduleService.createNdeliusAppointmentsForSessions(any()) } returns Unit
-    every { referralEventService.publishReferralStatusUpdatedEvent(referralEntity) } returns Unit
+    every { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) } returns Unit
     every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
@@ -80,7 +82,7 @@ class ProgrammeGroupMembershipServiceTest {
     verify { referralStatusDescriptionRepository.getScheduledStatusDescription() }
     verify { referralRepository.save(referralEntity) }
     verify { scheduleService.createNdeliusAppointmentsForSessions(any()) }
-    verify { referralEventService.publishReferralStatusUpdatedEvent(referralEntity) }
+    verify { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) }
     verify { telemetryClient.logToAppInsights(any(), any()) }
   }
 
@@ -110,7 +112,7 @@ class ProgrammeGroupMembershipServiceTest {
     every { programmeGroupRepository.save(programmeGroupEntity) } returns programmeGroupEntity
     every { referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId) } returns referralStatusDescriptionEntity
     every { referralRepository.save(referralEntity) } returns referralEntity
-    every { referralEventService.publishReferralStatusUpdatedEvent(referralEntity) } returns Unit
+    every { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) } returns Unit
     every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
@@ -126,7 +128,7 @@ class ProgrammeGroupMembershipServiceTest {
     verify { programmeGroupRepository.save(programmeGroupEntity) }
     verify { referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId) }
     verify { referralRepository.save(referralEntity) }
-    verify { referralEventService.publishReferralStatusUpdatedEvent(referralEntity) }
+    verify { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) }
     verify { telemetryClient.logToAppInsights(any(), any()) }
   }
 }

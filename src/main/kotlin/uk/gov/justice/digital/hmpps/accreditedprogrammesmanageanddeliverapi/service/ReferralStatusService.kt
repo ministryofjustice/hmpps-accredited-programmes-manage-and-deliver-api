@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -17,6 +18,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralProgrammeCompleteEvent
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -35,7 +37,7 @@ class ReferralStatusService(
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
   private val referralRepository: ReferralRepository,
   private val sessionAttendanceRepository: SessionAttendanceRepository,
-  private val referralEventService: ReferralEventService,
+  private val applicationEventPublisher: ApplicationEventPublisher,
   @Value("\${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
 ) {
 
@@ -148,7 +150,7 @@ class ReferralStatusService(
       return false
     }
     // Publish the completion event
-    referralEventService.publishReferralCompletedEvent(referral)
+    applicationEventPublisher.publishEvent(ReferralProgrammeCompleteEvent(referral.id!!))
 
     return true
   }

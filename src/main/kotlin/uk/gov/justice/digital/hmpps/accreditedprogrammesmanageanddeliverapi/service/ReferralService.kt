@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
@@ -35,6 +36,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralLdcHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralStatusUpdateEvent
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_PERSONAL_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS
@@ -77,10 +79,10 @@ class ReferralService(
   private val programmeGroupService: ProgrammeGroupService,
   private val sessionNameFormatter: SessionNameFormatter,
   private val referralStatusService: ReferralStatusService,
-  private val referralEventService: ReferralEventService,
   private val referralCohortHistoryRepository: ReferralCohortHistoryRepository,
   private val telemetryClient: TelemetryClient,
   private val referralEventNumberResolverService: ReferralEventNumberResolverService,
+  private val applicationEventPublisher: ApplicationEventPublisher,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -494,7 +496,7 @@ class ReferralService(
       ),
     )
 
-    referralEventService.publishReferralStatusUpdatedEvent(referral)
+    applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referral.id!!))
 
     // If status changed to "Programme complete", check if completion event should be published
     if (incomingReferralStatusDescription.description == "Programme complete") {

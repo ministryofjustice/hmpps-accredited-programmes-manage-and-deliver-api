@@ -14,18 +14,21 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.even
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.REFERRAL_COMPLETED_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.UPDATE_REFERRAL_STATUS_N_DELIUS
 import java.time.ZonedDateTime
+import java.util.UUID
 
 @Service
 class ReferralEventService(
   private val domainEventPublisher: DomainEventPublisher,
   private val telemetryClient: TelemetryClient,
   @Value("\${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
+  private val referralService: ReferralService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
   }
 
-  fun publishReferralStatusUpdatedEvent(referral: ReferralEntity) {
+  fun publishReferralStatusUpdatedEvent(referralId: UUID) {
+    val referral = referralService.getReferralById(referralId)
     val message = DomainEventsMessage(
       eventType = ACP_COMMUNITY_REFERRAL_STATUS_UPDATED.value,
       version = 1,
@@ -44,7 +47,8 @@ class ReferralEventService(
     )
   }
 
-  fun publishReferralCompletedEvent(referral: ReferralEntity) {
+  fun publishReferralCompletedEvent(referralId: UUID) {
+    val referral = referralService.getReferralById(referralId)
     val message = DomainEventsMessage(
       eventType = HmppsDomainEventTypes.ACP_COMMUNITY_PROGRAMME_COMPLETE.value,
       version = 1,
