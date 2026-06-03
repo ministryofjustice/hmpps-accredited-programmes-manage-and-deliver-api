@@ -7,8 +7,6 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -96,17 +94,9 @@ class ReferralController(
   @GetMapping("/referral-details/{id}", produces = [MediaType.APPLICATION_JSON_VALUE])
   suspend fun getReferralDetailsById(
     @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) id: UUID,
-  ): ResponseEntity<ReferralDetails> {
-    withContext(Dispatchers.IO) {
-      referralEventNumberResolverService.resolveIfEventNumberIsZero(
-        referralService.getReferralById(id),
-      )
-    }
-
-    return referralService.refreshPersonalDetailsForReferral(id)?.let {
-      ResponseEntity.ok(it)
-    } ?: throw NotFoundException("Referral with id $id not found")
-  }
+  ): ResponseEntity<ReferralDetails> = referralService.refreshPersonalDetailsForReferral(id)?.let {
+    ResponseEntity.ok(it)
+  } ?: throw NotFoundException("Referral with id $id not found")
 
   @Operation(
     tags = ["Referrals"],
