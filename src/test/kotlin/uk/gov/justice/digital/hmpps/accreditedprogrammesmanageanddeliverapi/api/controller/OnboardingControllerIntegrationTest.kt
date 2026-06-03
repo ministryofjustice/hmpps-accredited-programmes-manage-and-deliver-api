@@ -18,7 +18,7 @@ class OnboardingControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `fetchPersonalDetailsForReferrals returns success not-found and failure ids`() {
+  fun `fetchPersonalDetailsForReferrals returns 202 accepted and processes in background`() {
     // Given
     stubAuthTokenEndpoint()
 
@@ -52,9 +52,9 @@ class OnboardingControllerIntegrationTest : IntegrationTestBase() {
       expectedResponseStatus = 200,
     )
 
-    // Then — both referrals succeed because sentence 404 is handled gracefully (returns null sentenceEndDate)
-    assertEquals(setOf(firstReferralId.toString(), secondReferralId.toString()), response.successIds.toSet())
-    assertEquals(listOf(randomReferralId.toString()), response.notFoundIds)
+    // Then — returns 202 immediately with empty lists (processing happens in background)
+    assertEquals(emptyList<String>(), response.successIds)
+    assertEquals(emptyList<String>(), response.notFoundIds)
     assertEquals(emptyList<String>(), response.failureIds)
   }
 }

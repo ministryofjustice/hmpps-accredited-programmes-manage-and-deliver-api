@@ -4,6 +4,10 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Schema
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -51,12 +55,13 @@ data class FetchPersonalDetailsResponse(
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
 class OnboardingController(
   private val adminService: AdminService,
+  private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
   @Operation(
     tags = ["Onboarding"],
-    summary = "Fetches the personal details and OASys details for specified Referrals",
+    summary = "Fetches the personal details and OASys details for specified Referrals. Returns 202 immediately and processes in background.",
   )
   @PostMapping("/onboarding/referrals", consumes = [MediaType.APPLICATION_JSON_VALUE])
   suspend fun fetchPersonalDetailsForReferrals(
@@ -66,25 +71,28 @@ class OnboardingController(
     )
     @RequestBody request: FetchPersonalDetailsRequest,
   ): ResponseEntity<FetchPersonalDetailsResponse> {
-    try {
-      log.info("Processing {} specific referrals", request.referralIds)
-      val result = adminService.refreshPersonalDetailsForReferrals(request.referralIds)
-      return ResponseEntity.ok(
-        FetchPersonalDetailsResponse(
-          successIds = result.successIds.map(UUID::toString),
-          notFoundIds = result.notFoundIds.map(UUID::toString),
-          failureIds = result.failureIds.map(UUID::toString),
-        ),
-      )
-    } catch (e: Exception) {
-      log.error("Error during background processing of personal details", e)
-      return ResponseEntity.ok(
-        FetchPersonalDetailsResponse(
-          successIds = emptyList(),
-          notFoundIds = emptyList(),
-          failureIds = request.referralIds.map(UUID::toString),
-        ),
-      )
+    log.info("Accepted {} referrals for background processing: {}", request.referralIds.size, request.referralIds)
+
+    CoroutineScope(dispatcher).launch {
+      try {
+        val result = adminService.refreshPersonalDetailsForReferrals(request.referralIds)
+        log.info(
+          "Background refresh completed. Success: {}, NotFound: {}, Failed: {}",
+          result.successIds.size,
+          result.notFoundIds.size,
+          result.failureIds.size,
+        )
+      } catch (e: Exception) {
+        log.error("Error during background processing of personal details for referrals: ${request.referralIds}", e)
+      }
     }
+
+    return ResponseEntity.ok(
+      FetchPersonalDetailsResponse(
+        successIds = emptyList(),
+        notFoundIds = emptyList(),
+        failureIds = emptyList(),
+      ),
+    )
   }
 }
