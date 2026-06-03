@@ -109,7 +109,7 @@ class ApiExceptionHandler {
       .body(
         ErrorResponse(
           status = BAD_REQUEST.value(),
-          userMessage = "Bad request: ${exception.message}",
+          userMessage = exception.message,
           developerMessage = exception.message,
         ),
       ).also {
