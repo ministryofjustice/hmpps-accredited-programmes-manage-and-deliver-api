@@ -28,10 +28,9 @@ data class FetchPersonalDetailsRequest(
   val referralIds: List<UUID>,
 )
 
-data class FetchPersonalDetailsResponse(
-  val successIds: List<String>,
-  val notFoundIds: List<String>,
-  val failureIds: List<String>,
+data class FetchPersonalDetailsAcceptedResponse(
+  val message: String,
+  val referralCount: Int,
 )
 
 /**
@@ -70,7 +69,7 @@ class OnboardingController(
       required = true,
     )
     @RequestBody request: FetchPersonalDetailsRequest,
-  ): ResponseEntity<FetchPersonalDetailsResponse> {
+  ): ResponseEntity<FetchPersonalDetailsAcceptedResponse> {
     log.info("Accepted {} referrals for background processing: {}", request.referralIds.size, request.referralIds)
 
     CoroutineScope(dispatcher).launch {
@@ -87,11 +86,10 @@ class OnboardingController(
       }
     }
 
-    return ResponseEntity.ok(
-      FetchPersonalDetailsResponse(
-        successIds = emptyList(),
-        notFoundIds = emptyList(),
-        failureIds = emptyList(),
+    return ResponseEntity.accepted().body(
+      FetchPersonalDetailsAcceptedResponse(
+        message = "Processing ${request.referralIds.size} referrals in background. Check logs for progress.",
+        referralCount = request.referralIds.size,
       ),
     )
   }

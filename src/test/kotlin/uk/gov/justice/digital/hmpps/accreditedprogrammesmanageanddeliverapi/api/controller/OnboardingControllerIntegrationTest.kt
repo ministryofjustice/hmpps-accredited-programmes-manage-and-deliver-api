@@ -41,7 +41,7 @@ class OnboardingControllerIntegrationTest : IntegrationTestBase() {
     val response = performRequestAndExpectStatusWithBody(
       HttpMethod.POST,
       "/onboarding/referrals",
-      object : ParameterizedTypeReference<FetchPersonalDetailsResponse>() {},
+      object : ParameterizedTypeReference<FetchPersonalDetailsAcceptedResponse>() {},
       body = FetchPersonalDetailsRequest(
         referralIds = listOf(
           firstReferralId,
@@ -49,12 +49,11 @@ class OnboardingControllerIntegrationTest : IntegrationTestBase() {
           randomReferralId,
         ),
       ),
-      expectedResponseStatus = 200,
+      expectedResponseStatus = 202,
     )
 
-    // Then — returns 202 immediately with empty lists (processing happens in background)
-    assertEquals(emptyList<String>(), response.successIds)
-    assertEquals(emptyList<String>(), response.notFoundIds)
-    assertEquals(emptyList<String>(), response.failureIds)
+    // Then — returns 202 accepted immediately
+    assertEquals(3, response.referralCount)
+    assertEquals("Processing 3 referrals in background. Check logs for progress.", response.message)
   }
 }
