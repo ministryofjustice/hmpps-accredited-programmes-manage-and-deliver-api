@@ -31,6 +31,10 @@ spring:
     hibernate:
       ddl-auto: none
 
+  mvc:
+    async:
+      request-timeout: 180000 # 3 minutes in ms
+
   datasource:
     hikari:
       connectionTimeout: 1000
