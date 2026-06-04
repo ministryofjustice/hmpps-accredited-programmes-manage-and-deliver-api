@@ -57,7 +57,8 @@ class UserController(
   @GetMapping("/current-user/region", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getCurrentUserRegion(): ResponseEntity<CodeDescription> {
     val username = authenticationUtils.getUsername()
-    val (userRegion) = userService.getUserRegions(username)
+    val userRegion = userService.getUserRegions(username).firstOrNull()
+      ?: return ResponseEntity.ok(CodeDescription("UNKNOWN", "Unknown region"))
     return ResponseEntity.ok(userRegion)
   }
 }

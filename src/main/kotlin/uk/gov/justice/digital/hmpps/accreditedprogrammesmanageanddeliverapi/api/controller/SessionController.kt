@@ -494,9 +494,9 @@ class SessionController(
   @GetMapping("/bff/session/{sessionId}/session-facilitators", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun retrieveSessionFacilitators(@PathVariable sessionId: UUID): ResponseEntity<EditSessionFacilitatorsResponse> {
     val username = authenticationUtils.getUsername()
-    val (userRegion) = userService.getUserRegions(username)
+    val userRegion = userService.getUserRegions(username).firstOrNull()
     val regionFacilitators: MutableList<UserTeamMember> =
-      regionService.getTeamMembersForPdu(userRegion.code).toMutableList()
+      (userRegion?.let { regionService.getTeamMembersForPdu(it.code) } ?: emptyList()).toMutableList()
 
     return ResponseEntity.ok(sessionService.getSessionFacilitators(sessionId, regionFacilitators))
   }

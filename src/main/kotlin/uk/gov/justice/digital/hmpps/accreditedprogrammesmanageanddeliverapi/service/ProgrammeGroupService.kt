@@ -88,7 +88,8 @@ class ProgrammeGroupService(
   val log = LoggerFactory.getLogger(this::class.java)
 
   fun createGroup(createGroupRequest: CreateGroupRequest, username: String): ProgrammeGroupEntity {
-    val (userRegion) = userService.getUserRegions(username)
+    val userRegion = userService.getUserRegions(username).firstOrNull()
+      ?: throw NotFoundException("Cannot find any regions for user $username")
     programmeGroupRepository.findByCodeAndRegionName(createGroupRequest.groupCode, userRegion.description)
       ?.let { throw ConflictException("Programme group with code ${createGroupRequest.groupCode} already exists in region") }
 
@@ -351,8 +352,8 @@ class ProgrammeGroupService(
     val group = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Programme group with id $groupId not found")
 
-    val (userRegion) = userService.getUserRegions(username)
-    val userRegionName = userRegion.description
+    val userRegionName = userService.getUserRegions(username)
+      .firstOrNull()?.description ?: "Unknown region"
 
     val otherTab = if (selectedTab === GroupPageTab.WAITLIST) GroupPageTab.ALLOCATED else GroupPageTab.WAITLIST
 
@@ -380,8 +381,9 @@ class ProgrammeGroupService(
   }
 
   fun getGroupInRegion(groupCode: String, username: String): ProgrammeGroupEntity? {
-    val (userRegion) = userService.getUserRegions(username)
-    return programmeGroupRepository.findByCodeAndRegionName(groupCode, userRegion.description)
+    val userRegionName = userService.getUserRegions(username).firstOrNull()?.description
+      ?: return null
+    return programmeGroupRepository.findByCodeAndRegionName(groupCode, userRegionName)
   }
 
   fun getGroupDetails(groupId: UUID): GroupDetailsResponse {
