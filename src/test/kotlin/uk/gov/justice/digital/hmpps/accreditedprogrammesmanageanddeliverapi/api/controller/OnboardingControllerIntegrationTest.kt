@@ -18,7 +18,7 @@ class OnboardingControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `fetchPersonalDetailsForReferrals returns success not-found and failure ids`() {
+  fun `fetchPersonalDetailsForReferrals returns 202 accepted and processes in background`() {
     // Given
     stubAuthTokenEndpoint()
 
@@ -41,7 +41,7 @@ class OnboardingControllerIntegrationTest : IntegrationTestBase() {
     val response = performRequestAndExpectStatusWithBody(
       HttpMethod.POST,
       "/onboarding/referrals",
-      object : ParameterizedTypeReference<FetchPersonalDetailsResponse>() {},
+      object : ParameterizedTypeReference<FetchPersonalDetailsAcceptedResponse>() {},
       body = FetchPersonalDetailsRequest(
         referralIds = listOf(
           firstReferralId,
@@ -49,12 +49,11 @@ class OnboardingControllerIntegrationTest : IntegrationTestBase() {
           randomReferralId,
         ),
       ),
-      expectedResponseStatus = 200,
+      expectedResponseStatus = 202,
     )
 
-    // Then — both referrals succeed because sentence 404 is handled gracefully (returns null sentenceEndDate)
-    assertEquals(setOf(firstReferralId.toString(), secondReferralId.toString()), response.successIds.toSet())
-    assertEquals(listOf(randomReferralId.toString()), response.notFoundIds)
-    assertEquals(emptyList<String>(), response.failureIds)
+    // Then — returns 202 accepted immediately
+    assertEquals(3, response.referralCount)
+    assertEquals("Processing 3 referrals in background. Check logs for progress.", response.message)
   }
 }

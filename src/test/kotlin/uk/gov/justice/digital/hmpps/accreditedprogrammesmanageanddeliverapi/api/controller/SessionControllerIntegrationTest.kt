@@ -353,7 +353,57 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     )
 
     // Then
-    assertThat(response.userMessage).isEqualTo("Bad request: The session session duration cannot be longer than originally scheduled. Change the start or end time.")
+    assertThat(response.userMessage).isEqualTo("Bad request: The session duration cannot be longer than originally scheduled. Change the start or end time.")
+  }
+
+  @Test
+  fun `should return HTTP 400 when requested session end time is before start time`() {
+    // Given
+    val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+    val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
+    val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+      ModuleSessionTemplateEntity(
+        module = module,
+        sessionNumber = 2,
+        sessionType = SessionType.GROUP,
+        pathway = Pathway.MODERATE_INTENSITY,
+        name = "Test Session Template",
+        durationMinutes = 120,
+      ),
+    )
+    val group = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(programmeTemplate)
+        .withCode("RESCHED")
+        .produce(),
+    )
+    val session = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(sessionTemplate)
+        .withStartsAt(LocalDateTime.now().plusDays(1).withHour(13).withMinute(30).withSecond(0).withNano(0))
+        .withEndsAt(LocalDateTime.now().plusDays(1).withHour(14).withMinute(30).withSecond(0).withNano(0))
+        .produce(),
+    )
+
+    val rescheduleRequest = RescheduleSessionRequest(
+      sessionStartDate = LocalDate.now().plusDays(2),
+      sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+      sessionEndTime = SessionTime(hour = 9, minutes = 0, amOrPm = AmOrPm.AM),
+      rescheduleOtherSessions = false,
+    )
+
+    // When
+    val response = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.PUT,
+      uri = "/session/${session.id}/reschedule",
+      body = rescheduleRequest,
+      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+      expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+    )
+
+    // Then
+    assertThat(response.userMessage).isEqualTo("Bad request: The session end time must be after the session start time.")
   }
 
   @Test
@@ -411,6 +461,117 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     val expectedEnd = expectedStart.plusHours(1) // original duration preserved
     assertThat(updatedSession.startsAt).isEqualTo(expectedStart)
     assertThat(updatedSession.endsAt).isEqualTo(expectedEnd)
+  }
+
+  @Test
+  fun `should allow shortening the duration of a completed session`() {
+    // Given
+    val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+    val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
+    val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+      ModuleSessionTemplateEntity(
+        module = module,
+        sessionNumber = 2,
+        sessionType = SessionType.GROUP,
+        pathway = Pathway.MODERATE_INTENSITY,
+        name = "Test Session Template",
+        durationMinutes = 120,
+      ),
+    )
+    val group = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(programmeTemplate)
+        .withCode("RESCHED")
+        .produce(),
+    )
+    val session = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(sessionTemplate)
+        .withStartsAt(LocalDateTime.now().minusDays(2).withHour(15).withMinute(51).withSecond(0).withNano(0))
+        .withEndsAt(LocalDateTime.now().minusDays(2).withHour(15).withMinute(59).withSecond(0).withNano(0))
+        .produce(),
+    )
+
+    val targetDate = LocalDate.now().plusDays(2)
+    val rescheduleRequest = RescheduleSessionRequest(
+      sessionStartDate = targetDate,
+      sessionStartTime = SessionTime(hour = 3, minutes = 51, amOrPm = AmOrPm.PM),
+      sessionEndTime = SessionTime(hour = 3, minutes = 58, amOrPm = AmOrPm.PM),
+      rescheduleOtherSessions = false,
+    )
+
+    // When
+    val response = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.PUT,
+      uri = "/session/${session.id}/reschedule",
+      body = rescheduleRequest,
+      returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+      expectedResponseStatus = HttpStatus.OK.value(),
+    )
+
+    // Then
+    assertThat(response.message).isEqualTo("The date and time have been updated.")
+    val updatedSession = sessionRepository.findById(session.id!!).get()
+    assertThat(updatedSession.startsAt).isEqualTo(LocalDateTime.of(targetDate, LocalTime.of(15, 51)))
+    assertThat(updatedSession.endsAt).isEqualTo(LocalDateTime.of(targetDate, LocalTime.of(15, 58)))
+  }
+
+  @Test
+  fun `should allow lengthening the duration of a session that has started but not yet ended`() {
+    // Given
+    val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+    val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
+    val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+      ModuleSessionTemplateEntity(
+        module = module,
+        sessionNumber = 2,
+        sessionType = SessionType.GROUP,
+        pathway = Pathway.MODERATE_INTENSITY,
+        name = "Test Session Template",
+        durationMinutes = 60,
+      ),
+    )
+    val group = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(programmeTemplate)
+        .withCode("RESCHED")
+        .produce(),
+    )
+
+    val now = LocalDateTime.now().withSecond(0).withNano(0)
+    val session = testDataGenerator.createSession(
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(sessionTemplate)
+        .withStartsAt(now.minusMinutes(30))
+        .withEndsAt(now.plusMinutes(30))
+        .produce(),
+    )
+
+    // Move to a future date and lengthen duration from 60 to 90 minutes.
+    val targetDate = LocalDate.now().plusDays(2)
+    val rescheduleRequest = RescheduleSessionRequest(
+      sessionStartDate = targetDate,
+      sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+      sessionEndTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      rescheduleOtherSessions = false,
+    )
+
+    // When
+    val response = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.PUT,
+      uri = "/session/${session.id}/reschedule",
+      body = rescheduleRequest,
+      returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+      expectedResponseStatus = HttpStatus.OK.value(),
+    )
+
+    // Then
+    assertThat(response.message).isEqualTo("The date and time have been updated.")
+    val updatedSession = sessionRepository.findById(session.id!!).get()
+    assertThat(updatedSession.startsAt).isEqualTo(LocalDateTime.of(targetDate, LocalTime.of(10, 0)))
+    assertThat(updatedSession.endsAt).isEqualTo(LocalDateTime.of(targetDate, LocalTime.of(11, 30)))
   }
 
   @Test

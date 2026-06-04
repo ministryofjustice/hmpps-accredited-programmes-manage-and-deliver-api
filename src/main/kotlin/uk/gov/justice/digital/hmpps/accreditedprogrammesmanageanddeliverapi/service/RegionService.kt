@@ -84,23 +84,15 @@ class RegionService(
     }
   }
 
-  fun getTeamMembersForPdu(regionCode: String): List<UserTeamMember> {
-    when (val result = nDeliusApiIntegrationApiClient.getPdusForRegion(regionCode)) {
-      is ClientResult.Success -> {
-        telemetryClient.logToAppInsights(
-          "${GET_REGION_PDU_N_DELIUS.eventName}.success",
-          mapOf(
-            "integrationActionType" to GET_REGION_PDU_N_DELIUS.name,
-            "outcome" to "success",
-          ),
-        )
-
-        val pdus: List<NDeliusRegionWithMembers.NDeliusPduWithTeam> = result.body.pdus
-        pdus.ifEmpty {
-          log.warn("No pdus found in region: $regionCode")
-          return emptyList()
-        }
-        return pdus.flatMap { pdu ->
+  fun getTeamMembersForPdu(regionCode: String): List<UserTeamMember> = when (val result = nDeliusApiIntegrationApiClient.getPdusForRegion(regionCode)) {
+    is ClientResult.Success -> {
+      logTelemetry("success")
+      val pdus = result.body.pdus
+      if (pdus.isEmpty()) {
+        log.warn("No pdus found in region: $regionCode")
+      }
+      pdus
+        .flatMap { pdu ->
           pdu.team.flatMap { team ->
             team.members.map { member ->
               UserTeamMember(
@@ -112,20 +104,24 @@ class RegionService(
             }
           }
         }
-      }
-
-      is ClientResult.Failure -> {
-        log.error("Failed to fetch team members for region: $regionCode ${result.toException().message}")
-        telemetryClient.logToAppInsights(
-          "${GET_REGION_PDU_N_DELIUS.eventName}.failure",
-          mapOf(
-            "integrationActionType" to GET_REGION_PDU_N_DELIUS.name,
-            "outcome" to "failure",
-          ),
-        )
-
-        return emptyList()
-      }
+        // Filter out any duplicates which are returned
+        .distinctBy { it.personCode to it.teamCode }
     }
+
+    is ClientResult.Failure -> {
+      log.error("Failed to fetch team members for region: $regionCode ${result.toException().message}")
+      logTelemetry("failure")
+      emptyList()
+    }
+  }
+
+  private fun logTelemetry(outcome: String) {
+    telemetryClient.logToAppInsights(
+      "${GET_REGION_PDU_N_DELIUS.eventName}.$outcome",
+      mapOf(
+        "integrationActionType" to GET_REGION_PDU_N_DELIUS.name,
+        "outcome" to outcome,
+      ),
+    )
   }
 }

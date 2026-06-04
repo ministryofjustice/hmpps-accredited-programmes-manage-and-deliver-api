@@ -10,6 +10,7 @@ import org.mockito.Mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
@@ -83,7 +84,7 @@ class ReferralServiceTest {
   private lateinit var programmeGroupService: ProgrammeGroupService
 
   @Mock
-  private lateinit var referralEventService: ReferralEventService
+  private lateinit var applicationEventPublisher: ApplicationEventPublisher
 
   @Mock
   private lateinit var sessionNameFormatter: SessionNameFormatter
@@ -120,10 +121,10 @@ class ReferralServiceTest {
       programmeGroupService = programmeGroupService,
       sessionNameFormatter = sessionNameFormatter,
       referralStatusService = referralStatusService,
-      referralEventService = referralEventService,
       referralCohortHistoryRepository = referralCohortHistoryRepository,
       telemetryClient = telemetryClient,
       referralEventNumberResolverService = referralEventNumberResolverService,
+      applicationEventPublisher = applicationEventPublisher,
     )
   }
 

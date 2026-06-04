@@ -177,7 +177,7 @@ class SessionController(
       ),
       ApiResponse(
         responseCode = "400",
-        description = "Bad request - The session session duration cannot be longer than originally scheduled",
+        description = "The session duration cannot be longer than originally scheduled. Change the start or end time.",
         content = [
           Content(
             mediaType = MediaType.APPLICATION_JSON_VALUE,
