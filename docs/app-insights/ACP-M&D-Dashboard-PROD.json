@@ -1,0 +1,820 @@
+{
+  "properties": {
+    "lenses": [
+      {
+        "order": 0,
+        "parts": [
+          {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "colSpan": 11,
+              "rowSpan": 7
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "resourceTypeMode",
+                  "isOptional": true
+                },
+                {
+                  "name": "ComponentId",
+                  "isOptional": true
+                },
+                {
+                  "name": "Scope",
+                  "value": {
+                    "resourceIds": [
+                      "/subscriptions/a5ddf257-3b21-4ba9-a28c-ab30f751b383/resourceGroups/nomisapi-prod-rg/providers/microsoft.insights/components/nomisapi-prod"
+                    ]
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "PartId",
+                  "value": "147b6345-27a3-4f09-b09d-193a7a8b403c",
+                  "isOptional": true
+                },
+                {
+                  "name": "Version",
+                  "value": "2.0",
+                  "isOptional": true
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "P1D",
+                  "isOptional": true
+                },
+                {
+                  "name": "DashboardId",
+                  "isOptional": true
+                },
+                {
+                  "name": "DraftRequestParameters",
+                  "isOptional": true
+                },
+                {
+                  "name": "Query",
+                  "value": "customEvents\n| extend activityType = tostring(customDimensions[\"activityType\"]), regionName = tostring(customDimensions[\"regionName\"]), pdu = tostring(customDimensions[\"deliveryUnitCode\"])\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and customDimensions contains \"activityType\"\n\n",
+                  "isOptional": true
+                },
+                {
+                  "name": "ControlType",
+                  "value": "FrameControlChart",
+                  "isOptional": true
+                },
+                {
+                  "name": "SpecificChart",
+                  "value": "StackedColumn",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartTitle",
+                  "value": "Analytics",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartSubTitle",
+                  "value": "nomisapi-prod",
+                  "isOptional": true
+                },
+                {
+                  "name": "Dimensions",
+                  "value": {
+                    "xAxis": {
+                      "name": "activityType",
+                      "type": "string"
+                    },
+                    "yAxis": [
+                      {
+                        "name": "itemCount",
+                        "type": "int"
+                      }
+                    ],
+                    "splitBy": [
+                      {
+                        "name": "regionName",
+                        "type": "string"
+                      }
+                    ],
+                    "aggregation": "Sum"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "LegendOptions",
+                  "value": {
+                    "isEnabled": true,
+                    "position": "Bottom"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "IsQueryContainTimeRange",
+                  "value": false,
+                  "isOptional": true
+                }
+              ],
+              "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+              "settings": {
+                "content": {
+                  "Query": "let activityTypeList = dynamic([\"UPDATE_REFERRAL_STATUS\", \"ASSIGN_REFERRAL_TO_GROUP\", \"REMOVE_REFERRAL_FROM_GROUP\", \"OVERRIDE_LDC\", \"OVERRIDE_COHORT\", \"SET_AVAILABILITY\", \"UPDATE_AVAILABILITY\", \"SET_MOTIVATION\", \"UPDATE_MOTIVATION\", \"RECORD_ATTENDANCE\"]);\ncustomEvents\n| extend activityType = tostring(customDimensions[\"activityType\"]), regionName = tostring(customDimensions[\"regionName\"]), pdu = tostring(customDimensions[\"deliveryUnitCode\"])\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and activityType in (activityTypeList)\n\n",
+                  "PartTitle": "User Actions by regions",
+                  "PartSubTitle": "User actions by activity types and regions"
+                }
+              }
+            }
+          },
+          {
+            "position": {
+              "x": 11,
+              "y": 0,
+              "colSpan": 12,
+              "rowSpan": 7
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "resourceTypeMode",
+                  "isOptional": true
+                },
+                {
+                  "name": "ComponentId",
+                  "isOptional": true
+                },
+                {
+                  "name": "Scope",
+                  "value": {
+                    "resourceIds": [
+                      "/subscriptions/a5ddf257-3b21-4ba9-a28c-ab30f751b383/resourceGroups/nomisapi-prod-rg/providers/microsoft.insights/components/nomisapi-prod"
+                    ]
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "PartId",
+                  "value": "14c8bf4c-4d7c-4a8a-8b11-62f99133ab29",
+                  "isOptional": true
+                },
+                {
+                  "name": "Version",
+                  "value": "2.0",
+                  "isOptional": true
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "P1D",
+                  "isOptional": true
+                },
+                {
+                  "name": "DashboardId",
+                  "isOptional": true
+                },
+                {
+                  "name": "DraftRequestParameters",
+                  "isOptional": true
+                },
+                {
+                  "name": "Query",
+                  "value": "customEvents\n| extend activityType = tostring(customDimensions[\"activityType\"]), regionName = tostring(customDimensions[\"regionName\"]), pdu = tostring(customDimensions[\"deliveryUnitCode\"])\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and customDimensions contains \"activityType\"\n\n",
+                  "isOptional": true
+                },
+                {
+                  "name": "ControlType",
+                  "value": "FrameControlChart",
+                  "isOptional": true
+                },
+                {
+                  "name": "SpecificChart",
+                  "value": "StackedBar",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartTitle",
+                  "value": "Analytics",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartSubTitle",
+                  "value": "nomisapi-prod",
+                  "isOptional": true
+                },
+                {
+                  "name": "Dimensions",
+                  "value": {
+                    "xAxis": {
+                      "name": "activityType",
+                      "type": "string"
+                    },
+                    "yAxis": [
+                      {
+                        "name": "itemCount",
+                        "type": "int"
+                      }
+                    ],
+                    "splitBy": [
+                      {
+                        "name": "pdu",
+                        "type": "string"
+                      }
+                    ],
+                    "aggregation": "Sum"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "LegendOptions",
+                  "value": {
+                    "isEnabled": true,
+                    "position": "Bottom"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "IsQueryContainTimeRange",
+                  "value": false,
+                  "isOptional": true
+                }
+              ],
+              "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+              "settings": {
+                "content": {
+                  "Query": "let activityTypeList = dynamic([\"UPDATE_REFERRAL_STATUS\", \"ASSIGN_REFERRAL_TO_GROUP\", \"REMOVE_REFERRAL_FROM_GROUP\", \"OVERRIDE_LDC\", \"OVERRIDE_COHORT\", \"SET_AVAILABILITY\", \"UPDATE_AVAILABILITY\", \"SET_MOTIVATION\", \"UPDATE_MOTIVATION\", \"RECORD_ATTENDANCE\"]);\ncustomEvents\n| extend activityType = tostring(customDimensions[\"activityType\"]), regionName = tostring(customDimensions[\"regionName\"]), pdu = tostring(customDimensions[\"deliveryUnitCode\"])\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and activityType in (activityTypeList)\n",
+                  "PartTitle": "User Actions by PDUs",
+                  "PartSubTitle": "User actions by activity types and PDUs"
+                }
+              }
+            }
+          },
+          {
+            "position": {
+              "x": 0,
+              "y": 7,
+              "colSpan": 11,
+              "rowSpan": 7
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "resourceTypeMode",
+                  "isOptional": true
+                },
+                {
+                  "name": "ComponentId",
+                  "isOptional": true
+                },
+                {
+                  "name": "Scope",
+                  "value": {
+                    "resourceIds": [
+                      "/subscriptions/a5ddf257-3b21-4ba9-a28c-ab30f751b383/resourceGroups/nomisapi-prod-rg/providers/microsoft.insights/components/nomisapi-prod"
+                    ]
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "PartId",
+                  "value": "9546396c-53a7-4607-898e-97ed5548b896",
+                  "isOptional": true
+                },
+                {
+                  "name": "Version",
+                  "value": "2.0",
+                  "isOptional": true
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "P7D",
+                  "isOptional": true
+                },
+                {
+                  "name": "DashboardId",
+                  "isOptional": true
+                },
+                {
+                  "name": "DraftRequestParameters",
+                  "isOptional": true
+                },
+                {
+                  "name": "Query",
+                  "value": "customEvents\n| extend Activity = tostring(customDimensions[\"activityType\"])\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and Activity contains \"OVERRIDE_COHORT\"\n| summarize Count=count() by Activity",
+                  "isOptional": true
+                },
+                {
+                  "name": "ControlType",
+                  "value": "FrameControlChart",
+                  "isOptional": true
+                },
+                {
+                  "name": "SpecificChart",
+                  "value": "StackedColumn",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartTitle",
+                  "value": "Analytics",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartSubTitle",
+                  "value": "nomisapi-prod",
+                  "isOptional": true
+                },
+                {
+                  "name": "Dimensions",
+                  "value": {
+                    "xAxis": {
+                      "name": "Activity",
+                      "type": "string"
+                    },
+                    "yAxis": [
+                      {
+                        "name": "Count",
+                        "type": "long"
+                      }
+                    ],
+                    "splitBy": [],
+                    "aggregation": "Sum"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "LegendOptions",
+                  "value": {
+                    "isEnabled": true,
+                    "position": "Bottom"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "IsQueryContainTimeRange",
+                  "value": false,
+                  "isOptional": true
+                }
+              ],
+              "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+              "settings": {
+                "content": {
+                  "Query": "customEvents\n| extend Activity = tostring(customDimensions[\"activityType\"])\n| extend Day = startofday(timestamp)\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and Activity contains \"VIEW_REFERRAL\"\n| summarize Count=count() by Day\n\n",
+                  "SpecificChart": "Line",
+                  "PartTitle": "View Referral count",
+                  "PartSubTitle": "Count of the view referral user action ",
+                  "Dimensions": {
+                    "xAxis": {
+                      "name": "Day",
+                      "type": "datetime"
+                    },
+                    "yAxis": [
+                      {
+                        "name": "Count",
+                        "type": "long"
+                      }
+                    ],
+                    "splitBy": [],
+                    "aggregation": "Sum"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "position": {
+              "x": 11,
+              "y": 7,
+              "colSpan": 12,
+              "rowSpan": 7
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "resourceTypeMode",
+                  "isOptional": true
+                },
+                {
+                  "name": "ComponentId",
+                  "isOptional": true
+                },
+                {
+                  "name": "Scope",
+                  "value": {
+                    "resourceIds": [
+                      "/subscriptions/a5ddf257-3b21-4ba9-a28c-ab30f751b383/resourceGroups/nomisapi-prod-rg/providers/microsoft.insights/components/nomisapi-prod"
+                    ]
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "PartId",
+                  "value": "5f4b514a-2b55-4c40-915c-d2609483d37b",
+                  "isOptional": true
+                },
+                {
+                  "name": "Version",
+                  "value": "2.0",
+                  "isOptional": true
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "P30D",
+                  "isOptional": true
+                },
+                {
+                  "name": "DashboardId",
+                  "isOptional": true
+                },
+                {
+                  "name": "DraftRequestParameters",
+                  "isOptional": true
+                },
+                {
+                  "name": "Query",
+                  "value": "customEvents\n| extend activityType = tostring(customDimensions[\"integrationActionType\"]), outcome = tostring(customDimensions[\"outcome\"])\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and customDimensions contains \"integrationActionType\"\n\n",
+                  "isOptional": true
+                },
+                {
+                  "name": "ControlType",
+                  "value": "FrameControlChart",
+                  "isOptional": true
+                },
+                {
+                  "name": "SpecificChart",
+                  "value": "Scatter",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartTitle",
+                  "value": "Analytics",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartSubTitle",
+                  "value": "nomisapi-prod",
+                  "isOptional": true
+                },
+                {
+                  "name": "Dimensions",
+                  "value": {
+                    "xAxis": {
+                      "name": "activityType",
+                      "type": "string"
+                    },
+                    "yAxis": [
+                      {
+                        "name": "itemCount",
+                        "type": "int"
+                      }
+                    ],
+                    "splitBy": [
+                      {
+                        "name": "outcome",
+                        "type": "string"
+                      }
+                    ],
+                    "aggregation": "Sum"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "LegendOptions",
+                  "value": {
+                    "isEnabled": true,
+                    "position": "Bottom"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "IsQueryContainTimeRange",
+                  "value": false,
+                  "isOptional": true
+                }
+              ],
+              "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+              "settings": {
+                "content": {
+                  "PartTitle": "Integration activity",
+                  "PartSubTitle": "Integration activity by the activity type and success/failure count"
+                }
+              }
+            }
+          },
+          {
+            "position": {
+              "x": 0,
+              "y": 14,
+              "colSpan": 11,
+              "rowSpan": 7
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "resourceTypeMode",
+                  "isOptional": true
+                },
+                {
+                  "name": "ComponentId",
+                  "isOptional": true
+                },
+                {
+                  "name": "Scope",
+                  "value": {
+                    "resourceIds": [
+                      "/subscriptions/a5ddf257-3b21-4ba9-a28c-ab30f751b383/resourceGroups/nomisapi-prod-rg/providers/microsoft.insights/components/nomisapi-prod"
+                    ]
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "PartId",
+                  "value": "b3c2f1d4-6e7a-4f0b-9a1b-2c3d4e5f6789",
+                  "isOptional": true
+                },
+                {
+                  "name": "Version",
+                  "value": "2.0",
+                  "isOptional": true
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "P7D",
+                  "isOptional": true
+                },
+                {
+                  "name": "DashboardId",
+                  "isOptional": true
+                },
+                {
+                  "name": "DraftRequestParameters",
+                  "isOptional": true
+                },
+                {
+                  "name": "Query",
+                  "value": "customEvents\n| extend Activity = tostring(customDimensions[\"activityType\"])\n| extend Day = startofday(timestamp)\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and Activity contains \"VIEW_REFERRAL\"\n| summarize Count=count() by Day\n",
+                  "isOptional": true
+                },
+                {
+                  "name": "ControlType",
+                  "value": "FrameControlChart",
+                  "isOptional": true
+                },
+                {
+                  "name": "SpecificChart",
+                  "value": "StackedColumn",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartTitle",
+                  "value": "Analytics",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartSubTitle",
+                  "value": "nomisapi-prod",
+                  "isOptional": true
+                },
+                {
+                  "name": "Dimensions",
+                  "value": {
+                    "xAxis": {
+                      "name": "Activity",
+                      "type": "string"
+                    },
+                    "yAxis": [
+                      {
+                        "name": "Count",
+                        "type": "long"
+                      }
+                    ],
+                    "splitBy": [],
+                    "aggregation": "Sum"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "LegendOptions",
+                  "value": {
+                    "isEnabled": true,
+                    "position": "Bottom"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "IsQueryContainTimeRange",
+                  "value": false,
+                  "isOptional": true
+                }
+              ],
+              "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+              "settings": {
+                "content": {
+                  "Query": "requests\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-ui'\n| order by timestamp desc\n| extend Day = startofday(timestamp)\n| extend userName = tostring(parse_json(customDimensions).username)\n| extend region = tostring(parse_json(customDimensions).userRegionDescription)\n| where isnotempty(userName) and userName != 'Unknown'\n| where success == True\n| summarize Number_Unique_Users = dcount(userName) by region\n| render columnchart\n\n",
+                  "PartTitle": "Unique Users ",
+                  "PartSubTitle": "Number of unique users by region",
+                  "Dimensions": {
+                    "xAxis": {
+                      "name": "region",
+                      "type": "string"
+                    },
+                    "yAxis": [
+                      {
+                        "name": "Number_Unique_Users",
+                        "type": "long"
+                      }
+                    ],
+                    "splitBy": [],
+                    "aggregation": "Sum"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "position": {
+              "x": 11,
+              "y": 14,
+              "colSpan": 12,
+              "rowSpan": 7
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "resourceTypeMode",
+                  "isOptional": true
+                },
+                {
+                  "name": "ComponentId",
+                  "isOptional": true
+                },
+                {
+                  "name": "Scope",
+                  "value": {
+                    "resourceIds": [
+                      "/subscriptions/a5ddf257-3b21-4ba9-a28c-ab30f751b383/resourceGroups/nomisapi-prod-rg/providers/microsoft.insights/components/nomisapi-prod"
+                    ]
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "PartId",
+                  "value": "e3a5f1d2-8c9b-4f2a-b123-0f1a2b3c4d5e",
+                  "isOptional": true
+                },
+                {
+                  "name": "Version",
+                  "value": "2.0",
+                  "isOptional": true
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "P7D",
+                  "isOptional": true
+                },
+                {
+                  "name": "DashboardId",
+                  "isOptional": true
+                },
+                {
+                  "name": "DraftRequestParameters",
+                  "isOptional": true
+                },
+                {
+                  "name": "Query",
+                  "value": "requests\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-ui'\n| order by timestamp desc\n| extend Day = startofday(timestamp)\n| extend userName = tostring(parse_json(customDimensions).username)\n| extend region = tostring(parse_json(customDimensions).userRegionDescription)\n| where isnotempty(userName)\n| where success == True\n| summarize Number_Unique_Users = dcount(userName) by Day, region\n| render columnchart\n\n",
+                  "isOptional": true
+                },
+                {
+                  "name": "ControlType",
+                  "value": "FrameControlChart",
+                  "isOptional": true
+                },
+                {
+                  "name": "SpecificChart",
+                  "value": "StackedColumn",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartTitle",
+                  "value": "Unique Users (copy)",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartSubTitle",
+                  "value": "Number of unique users per day",
+                  "isOptional": true
+                },
+                {
+                  "name": "Dimensions",
+                  "value": {
+                    "xAxis": {
+                      "name": "Day",
+                      "type": "datetime"
+                    },
+                    "yAxis": [
+                      {
+                        "name": "Number_Unique_Users",
+                        "type": "long"
+                      }
+                    ],
+                    "splitBy": [
+                      {
+                        "name": "region",
+                        "type": "string"
+                      }
+                    ],
+                    "aggregation": "Sum"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "LegendOptions",
+                  "value": {
+                    "isEnabled": true,
+                    "position": "Bottom"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "IsQueryContainTimeRange",
+                  "value": false,
+                  "isOptional": true
+                }
+              ],
+              "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+              "settings": {
+                "content": {
+                  "Query": "requests\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-ui'\n| order by timestamp desc\n| extend Day = startofday(timestamp)\n| extend userName = tostring(parse_json(customDimensions).username)\n| extend region = tostring(parse_json(customDimensions).userRegionDescription)\n| where isnotempty(userName) and userName != 'Unknown'\n| where success == True\n| summarize Number_Unique_Users = dcount(userName) by Day, region\n| render columnchart\n\n",
+                  "PartTitle": "Unique Users Per Day",
+                  "PartSubTitle": "Number of unique users per day",
+                  "Dimensions": {
+                    "xAxis": {
+                      "name": "Day",
+                      "type": "datetime"
+                    },
+                    "yAxis": [
+                      {
+                        "name": "Number_Unique_Users",
+                        "type": "long"
+                      }
+                    ],
+                    "splitBy": [
+                      {
+                        "name": "region",
+                        "type": "string"
+                      }
+                    ],
+                    "aggregation": "Sum"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "model": {
+        "timeRange": {
+          "value": {
+            "relative": {
+              "duration": 24,
+              "timeUnit": 1
+            }
+          },
+          "type": "MsPortalFx.Composition.Configuration.ValueTypes.TimeRange"
+        },
+        "filterLocale": {
+          "value": "en-us"
+        },
+        "filters": {
+          "value": {
+            "MsPortalFx_TimeRange": {
+              "model": {
+                "format": "utc",
+                "granularity": "auto",
+                "relative": "30d"
+              },
+              "displayCache": {
+                "name": "UTC Time",
+                "value": "Past 30 days"
+              },
+              "filteredPartIds": [
+                "StartboardPart-LogsDashboardPart-ee8d2dec-7b27-4305-a126-7350906100a2",
+                "StartboardPart-LogsDashboardPart-ee8d2dec-7b27-4305-a126-7350906100a4",
+                "StartboardPart-LogsDashboardPart-ee8d2dec-7b27-4305-a126-7350906100a6",
+                "StartboardPart-LogsDashboardPart-ee8d2dec-7b27-4305-a126-73509061029b",
+                "StartboardPart-LogsDashboardPart-ee8d2dec-7b27-4305-a126-7350906100a8",
+                "StartboardPart-LogsDashboardPart-ee8d2dec-7b27-4305-a126-7350906100aa"
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "name": "ACP-M&D-Dashboard-PROD",
+  "type": "Microsoft.Portal/dashboards",
+  "location": "INSERT LOCATION",
+  "tags": {
+    "hidden-title": "ACP-M&D-Dashboard-PROD"
+  },
+  "apiVersion": "2022-12-01-preview"
+}
