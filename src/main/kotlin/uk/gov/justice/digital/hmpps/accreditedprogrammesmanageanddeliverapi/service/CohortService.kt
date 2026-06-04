@@ -37,17 +37,18 @@ class CohortService(
     // Overwrite the username to be written when system is automatically updating this value
     AuditorContext.set(createdBy)
     try {
-      val latestCohortHistory =
-        referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralEntity.id!!)
-      if (latestCohortHistory?.cohort != cohort) {
+      val latestCohortHistory = referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralEntity.id!!)
+      val referralCohortHistory = ReferralCohortHistoryEntity(
+        referral = referralEntity,
+        cohort = cohort,
+        createdBy = createdBy,
+      )
+      if (latestCohortHistory == null) {
+        log.info("No ReferralCohortHistory record for referral with Id: '${referralEntity.id}', creating one...")
+        referralCohortHistoryRepository.save(referralCohortHistory)
+      } else if (latestCohortHistory.cohort != cohort) {
         log.info("Updating cohort to '$cohort' for referral with Id: '${referralEntity.id}'")
-        referralCohortHistoryRepository.save(
-          ReferralCohortHistoryEntity(
-            referral = referralEntity,
-            cohort = cohort,
-            createdBy = createdBy,
-          ),
-        )
+        referralCohortHistoryRepository.save(referralCohortHistory)
       }
     } finally {
       AuditorContext.clear()
