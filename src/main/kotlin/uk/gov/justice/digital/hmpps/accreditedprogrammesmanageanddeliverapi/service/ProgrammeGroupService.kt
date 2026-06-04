@@ -351,10 +351,8 @@ class ProgrammeGroupService(
     val group = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Programme group with id $groupId not found")
 
-    val (userRegion) = userService.getUserRegions(username).ifEmpty {
-      throw NotFoundException("Cannot find any regions (or teams) for user $username")
-    }
-    val userRegionName = userRegion.description
+    val userRegionName = userService.getUserRegions(username)
+      .firstOrNull()?.description ?: "Unknown region"
 
     val otherTab = if (selectedTab === GroupPageTab.WAITLIST) GroupPageTab.ALLOCATED else GroupPageTab.WAITLIST
 
