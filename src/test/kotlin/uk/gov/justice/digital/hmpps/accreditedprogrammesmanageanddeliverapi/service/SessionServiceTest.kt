@@ -390,18 +390,23 @@ class SessionServiceTest {
       .withSessionType(GROUP)
       .produce()
 
+    val session1Start = LocalDateTime.now().plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0)
+    val session2Start = LocalDateTime.now().plusDays(2).withHour(10).withMinute(0).withSecond(0).withNano(0)
+
     val session1 = SessionFactory()
       .withId(sessionId)
       .withProgrammeGroup(group)
       .withModuleSessionTemplate(template1)
-      .withStartsAt(LocalDateTime.now().plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0))
+      .withStartsAt(session1Start)
+      .withEndsAt(session1Start.plusHours(1))
       .produce()
 
     val session2 = SessionFactory()
       .withId(UUID.randomUUID())
       .withProgrammeGroup(group)
       .withModuleSessionTemplate(template2)
-      .withStartsAt(LocalDateTime.now().plusDays(2).withHour(10).withMinute(0).withSecond(0).withNano(0))
+      .withStartsAt(session2Start)
+      .withEndsAt(session2Start.plusHours(1))
       .produce()
 
     group.sessions.add(session1)
