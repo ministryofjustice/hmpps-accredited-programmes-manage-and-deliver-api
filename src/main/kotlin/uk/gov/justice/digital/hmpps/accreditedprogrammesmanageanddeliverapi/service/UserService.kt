@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
@@ -109,6 +110,7 @@ class UserService(
    * @param username The username to fetch regions for
    * @return List of region codes and names (descriptions) the user has access to
    */
+  @Cacheable(value = ["user-regions"], key = "#username", unless = "#result.isEmpty()")
   fun getUserRegions(username: String): List<CodeDescription> = when (val result = nDeliusIntegrationApiClient.getTeamsForUser(username)) {
     is ClientResult.Success -> {
       telemetryClient.logToAppInsights(
