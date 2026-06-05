@@ -114,7 +114,10 @@ class SessionService(
 
     val requestedStartTime = LocalDateTime.of(request.sessionStartDate, request.sessionStartTime.toLocalTime())
     val startOffset = Duration.between(session.startsAt, requestedStartTime)
-    val requestedEndTime = LocalDateTime.of(request.sessionStartDate, request.sessionEndTime?.toLocalTime() ?: session.endsAt.plus(startOffset).toLocalTime())
+    val requestedEndTime = LocalDateTime.of(
+      request.sessionStartDate,
+      request.sessionEndTime?.toLocalTime() ?: session.endsAt.plus(startOffset).toLocalTime(),
+    )
 
     if (!requestedEndTime.isAfter(requestedStartTime)) {
       log.warn("Invalid reschedule request received for session with id: $sessionId. Requested end time $requestedEndTime is not after requested start time $requestedStartTime")
@@ -432,6 +435,7 @@ class SessionService(
       )
     }
 
+    log.info("Starting to update appointments in nDelius for ${attendees.size} attendees for session with id: $sessionId")
     if (attendees.isNotEmpty()) {
       val updateAppointmentRequests = attendees.mapNotNull { attendee ->
         val referralId = attendee.referralId
@@ -439,6 +443,7 @@ class SessionService(
         nDeliusAppointment?.toUpdateAppointmentRequest(attendee.sessionNotes, attendee.outcomeCode)
       }
 
+      log.info("Updating ${updateAppointmentRequests.size} appointments in nDelius for session with id: $sessionId")
       if (updateAppointmentRequests.isNotEmpty()) {
         when (
           val response =

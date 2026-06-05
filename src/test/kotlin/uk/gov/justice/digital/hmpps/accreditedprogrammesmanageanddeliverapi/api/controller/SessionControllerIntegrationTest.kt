@@ -1504,6 +1504,26 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should return 404 when username doesn't belong to region`() {
+      // Given
+      val username = "AUTH_ADM"
+      val userTeams = NDeliusUserTeams(teams = listOf())
+      nDeliusApiStubs.stubUserTeamsResponse(username, userTeams)
+      val sessionId = UUID.randomUUID()
+
+      // When
+      val result = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/session/$sessionId/session-facilitators",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+
+      // Then
+      assertThat(result.userMessage).isEqualTo("Not Found: Region for username $username not found")
+    }
+
+    @Test
     fun `should return page title in the correct format for a pre group session`() {
       // Given
       // Stub Ndelius Response with 2 facilitators already assigned to the group and one that is just pulled from the full list from Ndelius

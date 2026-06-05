@@ -45,6 +45,26 @@ class UserControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `return 404 when username doesn't belong to region`() {
+    // Given
+    stubAuthTokenEndpoint()
+    val username = "AUTH_ADM"
+    val userTeams = NDeliusUserTeams(teams = listOf())
+    nDeliusApiStubs.stubUserTeamsResponse(username, userTeams)
+
+    // When
+    val result = performRequestAndExpectStatus(
+      httpMethod = HttpMethod.GET,
+      uri = "/current-user/region",
+      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+      expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+    )
+
+    // Then
+    assertThat(result.userMessage).isEqualTo("Not Found: Region for username $username not found")
+  }
+
+  @Test
   fun `return 401 when unauthorised`() {
     val body = ProgrammeGroupFactory().produce()
     webTestClient

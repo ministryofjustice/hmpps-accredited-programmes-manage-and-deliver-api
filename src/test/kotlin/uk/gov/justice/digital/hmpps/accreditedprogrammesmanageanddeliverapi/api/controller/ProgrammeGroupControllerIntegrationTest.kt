@@ -2000,6 +2000,25 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `return 404 when username doesn't belong to a region`() {
+      // Given
+      val username = "TEST_USER"
+      val userTeams = NDeliusUserTeams(teams = listOf())
+      nDeliusApiStubs.stubUserTeamsResponse(username, userTeams)
+
+      // When
+      val result = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/pdus-for-user-region",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+
+      // Then
+      assertThat(result.userMessage).isEqualTo("Not Found: Region for username $username not found")
+    }
+
+    @Test
     fun `return 401 when unauthorised`() {
       webTestClient
         .method(HttpMethod.GET)
@@ -2083,6 +2102,25 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response).hasSize(0)
+    }
+
+    @Test
+    fun `return 404 when username doesn't belong to region`() {
+      // Given
+      val username = "TEST_USER"
+      val userTeams = NDeliusUserTeams(teams = listOf())
+      nDeliusApiStubs.stubUserTeamsResponse(username, userTeams)
+
+      // When
+      val result = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/region/members",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+
+      // Then
+      assertThat(result.userMessage).isEqualTo("Not Found: Region for username $username not found")
     }
 
     @Test
@@ -2631,6 +2669,61 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         referral1.id,
         referral2.id,
       )
+    }
+
+    @Test
+    fun `returns 404 when username doesn't belong to region`() {
+      // Given
+      initialiseReferrals()
+      // Setup nDelius stubs for facilitators
+      val members = listOf(
+        NDeliusUserTeamMembersFactory().produce(code = "CODE_1", name = FullName("First", null, "Forename")),
+        NDeliusUserTeamMembersFactory().produce(code = "CODE_2", name = FullName("Second", null, "Forename")),
+      )
+      val teams = listOf(NDeliusUserTeamWithMembersFactory().produce(members = members))
+      val pdu = NDeliusPduWithTeamFactory().produce(team = teams)
+      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(
+        pdus = listOf(pdu),
+        code = "REGION001",
+      )
+      nDeliusApiStubs.stubRegionWithMembersResponse("REGION001", regionWithMembers)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      val username = "AUTH_ADM"
+      val userTeams = NDeliusUserTeams(teams = listOf())
+      nDeliusApiStubs.stubUserTeamsResponse(username, userTeams)
+
+      // Create a programme group
+      val group = testGroupHelper.createGroup()
+
+      // Allocate referrals to the group
+      val referral1 = referrals[0]
+      val referral2 = referrals[1]
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referralId = referral1.id!!,
+        groupId = group.id!!,
+        allocatedToGroupBy = username,
+        additionalDetails = "Test allocation",
+      )
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referralId = referral2.id!!,
+        groupId = group.id!!,
+        allocatedToGroupBy = username,
+        additionalDetails = "Test allocation",
+      )
+
+      // Get a module from the group's template
+      val module = buildingChoicesTemplate.modules.first()
+
+      // When
+      val result = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/module/${module.id}/schedule-individual-session-details",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+
+      // Then
+      assertThat(result.userMessage).isEqualTo("Not Found: Region for username $username not found")
     }
 
     @Test

@@ -35,6 +35,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.sessionNotes.SessionNotes
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RegionService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SessionService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
@@ -494,7 +495,8 @@ class SessionController(
   @GetMapping("/bff/session/{sessionId}/session-facilitators", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun retrieveSessionFacilitators(@PathVariable sessionId: UUID): ResponseEntity<EditSessionFacilitatorsResponse> {
     val username = authenticationUtils.getUsername()
-    val (userRegion) = userService.getUserRegions(username)
+    val userRegion = userService.getUserRegions(username).firstOrNull()
+      ?: throw NotFoundException("Region for username $username not found")
     val regionFacilitators: MutableList<UserTeamMember> =
       regionService.getTeamMembersForPdu(userRegion.code).toMutableList()
 
