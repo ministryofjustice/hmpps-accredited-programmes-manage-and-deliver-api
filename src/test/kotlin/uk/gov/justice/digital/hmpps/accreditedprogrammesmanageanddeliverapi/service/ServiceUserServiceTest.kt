@@ -16,8 +16,12 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
@@ -269,5 +273,49 @@ class ServiceUserServiceTest {
     assertTrue(exception.message!!.contains("Unable to complete POST request"))
     verify { nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier)) }
     verify { telemetryClient.logToAppInsights(any(), any()) }
+  }
+
+  @Test
+  fun `getFirstUserRegionDescription should throw NotFoundException when getUserRegions returns empty list`() {
+    // Given
+    val username = "user-no-region"
+    every { nDeliusIntegrationApiClient.getTeamsForUser(username) } returns
+      ClientResult.Success(body = NDeliusUserTeams(teams = emptyList()), status = HttpStatusCode.valueOf(200))
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+
+    // When
+    val exception = assertThrows<NotFoundException> {
+      service.getFirstUserRegionDescription(username)
+    }
+
+    // Then
+    assertTrue(exception.message!!.contains("Region for username $username not found"))
+  }
+
+  @Test
+  fun `getFirstUserRegionDescription should return region description when getUserRegions returns regions`() {
+    // Given
+    val username = "user-with-region"
+    every { nDeliusIntegrationApiClient.getTeamsForUser(username) } returns
+      ClientResult.Success(
+        body = NDeliusUserTeams(
+          teams = listOf(
+            NDeliusUserTeam(
+              code = "TEAM001",
+              description = "Test Team",
+              pdu = CodeDescription("PDU001", "Test PDU"),
+              region = CodeDescription("REGION001", "North West"),
+            ),
+          ),
+        ),
+        status = HttpStatusCode.valueOf(200),
+      )
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+
+    // When
+    val result = service.getFirstUserRegionDescription(username)
+
+    // Then
+    assertEquals("North West", result)
   }
 }

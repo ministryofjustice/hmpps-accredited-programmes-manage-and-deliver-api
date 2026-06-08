@@ -89,7 +89,7 @@ class ProgrammeGroupService(
 
   fun createGroup(createGroupRequest: CreateGroupRequest, username: String): ProgrammeGroupEntity {
     val userRegion = userService.getUserRegions(username).firstOrNull()
-      ?: throw NotFoundException("Cannot find any regions for user $username")
+      ?: throw NotFoundException("Region for username $username not found")
     programmeGroupRepository.findByCodeAndRegionName(createGroupRequest.groupCode, userRegion.description)
       ?.let { throw ConflictException("Programme group with code ${createGroupRequest.groupCode} already exists in region") }
 

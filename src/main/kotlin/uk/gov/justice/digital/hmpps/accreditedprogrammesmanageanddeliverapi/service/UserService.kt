@@ -29,7 +29,7 @@ class UserService(
 
     if (distinctRegionDescriptions.isEmpty()) {
       log.warn("No regions found for user: $username")
-      throw NotFoundException("Cannot find any regions (or teams) for user $username")
+      throw NotFoundException("Region for username $username not found")
     } else if (distinctRegionDescriptions.size > 1) {
       log.warn("User $username has more than one region on their account, going to use '${distinctRegionDescriptions.first()}'")
     }
