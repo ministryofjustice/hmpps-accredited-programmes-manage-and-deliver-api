@@ -2002,7 +2002,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `return 404 when username doesn't belong to a region`() {
       // Given
-      val username = "TEST_USER"
+      val username = "REGION001"
       val userTeams = NDeliusUserTeams(teams = listOf())
       nDeliusApiStubs.stubUserTeamsResponse(username, userTeams)
 
@@ -2015,7 +2015,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(result.userMessage).isEqualTo("Not Found: Region for username $username not found")
+      assertThat(result.userMessage).isEqualTo("Not Found: Region for username AUTH_ADM not found")
     }
 
     @Test
@@ -2107,7 +2107,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `return 404 when username doesn't belong to region`() {
       // Given
-      val username = "TEST_USER"
+      val username = "REGION001"
       val userTeams = NDeliusUserTeams(teams = listOf())
       nDeliusApiStubs.stubUserTeamsResponse(username, userTeams)
 
@@ -2120,7 +2120,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(result.userMessage).isEqualTo("Not Found: Region for username $username not found")
+      assertThat(result.userMessage).isEqualTo("Not Found: Region for username AUTH_ADM not found")
     }
 
     @Test
