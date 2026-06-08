@@ -105,7 +105,7 @@ class RegionService(
           }
         }
         // Filter out any duplicates which are returned
-        .distinctBy { it.personCode to it.teamCode }
+        .distinctBy { it.personCode to it.personName }
     }
 
     is ClientResult.Failure -> {
