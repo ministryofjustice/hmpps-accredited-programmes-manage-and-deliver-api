@@ -352,13 +352,23 @@ class ProgrammeGroupService(
     val group = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Programme group with id $groupId not found")
 
-    val userRegionName = userService.getUserRegions(username)
-      .firstOrNull()?.description ?: "Unknown region"
+    val userRegion = userService.getUserRegions(username).firstOrNull()
+      ?: throw NotFoundException("Region for username $username not found")
+    val userRegionName = userRegion.description
 
     val otherTab = if (selectedTab === GroupPageTab.WAITLIST) GroupPageTab.ALLOCATED else GroupPageTab.WAITLIST
 
     val activeSpecification =
-      getGroupWaitlistItemSpecification(selectedTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeams, userRegionName)
+      getGroupWaitlistItemSpecification(
+        selectedTab,
+        groupId,
+        sex,
+        cohort,
+        nameOrCRN,
+        pdu,
+        reportingTeams,
+        userRegionName,
+      )
 
     val nonActiveSpecification =
       getGroupWaitlistItemSpecification(otherTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeams, userRegionName)
@@ -408,7 +418,8 @@ class ProgrammeGroupService(
   }
 
   fun getGroupAllocationsFilters(userRegionName: String): ProgrammeGroupAllocations.ProgrammeGroupAllocationsFilters {
-    val referralReportingLocations = referralReportingLocationRepository.getPdusAndReportingTeamsByRegion(userRegionName)
+    val referralReportingLocations =
+      referralReportingLocationRepository.getPdusAndReportingTeamsByRegion(userRegionName)
     val pdusWithReportingTeams = referralReportingLocations.groupBy { it.pduName }
       .map { (pduName, reportingTeams) ->
         LocationFilterValues(pduName = pduName, reportingTeams = reportingTeams.map { it.reportingTeam }.distinct())
