@@ -174,7 +174,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         )
       }
 
-      assertThat(exception).hasMessageContaining("Cannot find any regions (or teams) for user the_username")
+      assertThat(exception).hasMessageContaining("Region for username the_username not found")
     }
 
     @Test
