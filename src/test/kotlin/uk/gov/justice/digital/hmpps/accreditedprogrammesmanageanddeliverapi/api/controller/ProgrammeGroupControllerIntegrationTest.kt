@@ -2002,7 +2002,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `return 404 when username doesn't belong to a region`() {
       // Given
-      val username = "REGION001"
+      val username = "AUTH_ADM"
       val userTeams = NDeliusUserTeams(teams = listOf())
       nDeliusApiStubs.stubUserTeamsResponse(username, userTeams)
 
@@ -2107,9 +2107,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `return 404 when username doesn't belong to region`() {
       // Given
-      val username = "REGION001"
+      val regionCode = "REGION001"
+      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(pdus = listOf())
+      val username = "AUTH_ADM"
       val userTeams = NDeliusUserTeams(teams = listOf())
       nDeliusApiStubs.stubUserTeamsResponse(username, userTeams)
+
+      nDeliusApiStubs.stubRegionWithMembersResponse(regionCode, regionWithMembers)
 
       // When
       val result = performRequestAndExpectStatus(
