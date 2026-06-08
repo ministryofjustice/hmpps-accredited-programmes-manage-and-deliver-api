@@ -107,6 +107,10 @@ class UserService(
   /**
    * Fetches the list of region names that the given user has access to via their teams in nDelius.
    *
+   * Note: @Cacheable only works when called from outside this class (via Spring proxy).
+   * Calls from within this class (e.g. getFirstUserRegionDescription) bypass the cache.
+   * This is acceptable — most call sites invoke getUserRegions() directly from other services.
+   *
    * @param username The username to fetch regions for
    * @return List of region codes and names (descriptions) the user has access to
    */
