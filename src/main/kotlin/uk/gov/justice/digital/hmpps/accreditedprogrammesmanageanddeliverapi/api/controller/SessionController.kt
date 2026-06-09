@@ -29,17 +29,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendance
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.RecordSessionAttendance
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionDateAndTimeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionFacilitatorsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.sessionNotes.SessionNotes
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RegionService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.SessionService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import java.util.UUID
 
 @Tag(
@@ -50,9 +45,6 @@ import java.util.UUID
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
 class SessionController(
   private val sessionService: SessionService,
-  private val authenticationUtils: AuthenticationUtils,
-  private val userService: UserService,
-  private val regionService: RegionService,
 ) {
 
   @Operation(
@@ -493,15 +485,9 @@ class SessionController(
     security = [SecurityRequirement(name = "bearerAuth")],
   )
   @GetMapping("/bff/session/{sessionId}/session-facilitators", produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun retrieveSessionFacilitators(@PathVariable sessionId: UUID): ResponseEntity<EditSessionFacilitatorsResponse> {
-    val username = authenticationUtils.getUsername()
-    val userRegion = userService.getUserRegions(username).firstOrNull()
-      ?: throw NotFoundException("Region for username $username not found")
-    val regionFacilitators: MutableList<UserTeamMember> =
-      regionService.getTeamMembersForPdu(userRegion.code).toMutableList()
-
-    return ResponseEntity.ok(sessionService.getSessionFacilitators(sessionId, regionFacilitators))
-  }
+  fun retrieveSessionFacilitators(@PathVariable sessionId: UUID): ResponseEntity<EditSessionFacilitatorsResponse> = ResponseEntity.ok(
+    sessionService.getSessionFacilitators(sessionId),
+  )
 
   @Operation(
     tags = ["Session controller"],

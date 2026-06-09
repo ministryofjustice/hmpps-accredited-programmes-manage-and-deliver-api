@@ -50,6 +50,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.Duration
@@ -71,6 +72,9 @@ class SessionService(
   private val sessionNameFormatter: SessionNameFormatter,
   private val referralStatusService: ReferralStatusService,
   private val telemetryClient: TelemetryClient,
+  private val authenticationUtils: AuthenticationUtils,
+  private val userService: UserService,
+  private val regionService: RegionService,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
@@ -308,6 +312,16 @@ class SessionService(
       isCatchup = session.isCatchup,
       attendees = sessionAttendees,
     )
+  }
+
+  fun getSessionFacilitators(sessionId: UUID): EditSessionFacilitatorsResponse {
+    val username = authenticationUtils.getUsername()
+    val userRegion = userService.getUserRegions(username).firstOrNull()
+
+    val regionFacilitators: MutableList<UserTeamMember> =
+      if (userRegion == null) mutableListOf() else regionService.getTeamMembersForPdu(userRegion.code).toMutableList()
+
+    return getSessionFacilitators(sessionId, regionFacilitators)
   }
 
   fun getSessionFacilitators(

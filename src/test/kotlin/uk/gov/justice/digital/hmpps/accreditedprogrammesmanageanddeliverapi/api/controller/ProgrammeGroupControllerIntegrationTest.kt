@@ -52,6 +52,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegionWithMembers
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
@@ -2077,7 +2078,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `return 404 when username doesn't belong to a region`() {
+    fun `return empty list when username doesn't belong to a region`() {
       // Given
       val username = "AUTH_ADM"
       val userTeams = NDeliusUserTeams(teams = listOf())
@@ -2087,12 +2088,12 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val result = performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
         uri = "/bff/pdus-for-user-region",
-        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        returnType = object : ParameterizedTypeReference<List<NDeliusRegionWithMembers.NDeliusPduWithTeam>>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
       )
 
       // Then
-      assertThat(result.userMessage).isEqualTo("Not Found: Region for username AUTH_ADM not found")
+      assertThat(result).isEmpty()
     }
 
     @Test
@@ -2182,7 +2183,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `return 404 when username doesn't belong to region`() {
+    fun `return empty list when username doesn't belong to region`() {
       // Given
       val regionCode = "REGION001"
       val regionWithMembers = NDeliusRegionWithMembersFactory().produce(pdus = listOf())
@@ -2196,12 +2197,12 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val result = performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
         uri = "/bff/region/members",
-        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        returnType = object : ParameterizedTypeReference<List<UserTeamMember>>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
       )
 
       // Then
-      assertThat(result.userMessage).isEqualTo("Not Found: Region for username AUTH_ADM not found")
+      assertThat(result).isEmpty()
     }
 
     @Test

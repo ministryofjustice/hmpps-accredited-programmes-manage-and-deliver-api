@@ -483,9 +483,10 @@ class ProgrammeGroupController(
   fun getPdusInUserRegion(): ResponseEntity<List<CodeDescription>> {
     val username = authenticationUtils.getUsername()
     val userRegion = userService.getUserRegions(username).firstOrNull()
-      ?: throw NotFoundException("Region for username $username not found")
+      ?: return ResponseEntity.ok(emptyList())
     val pdusForRegion =
       regionService.getPdusForRegion(userRegion.code).map { CodeDescription(it.code, it.description) }
+
     return ResponseEntity.ok(pdusForRegion)
   }
 
@@ -548,8 +549,9 @@ class ProgrammeGroupController(
   fun getMembersInUserRegion(): ResponseEntity<List<UserTeamMember>> {
     val username = authenticationUtils.getUsername()
     val userRegion = userService.getUserRegions(username).firstOrNull()
-      ?: throw NotFoundException("Region for username $username not found")
+      ?: return ResponseEntity.ok(emptyList())
     val teamMembers = regionService.getTeamMembersForPdu(userRegion.code)
+
     return ResponseEntity.ok(teamMembers)
   }
 
