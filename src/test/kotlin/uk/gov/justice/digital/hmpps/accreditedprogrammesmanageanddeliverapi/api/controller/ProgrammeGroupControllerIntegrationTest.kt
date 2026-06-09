@@ -171,12 +171,36 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     referrals = testReferralHelper.createReferrals(
       referralConfigs =
       listOf(
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A", regionName = "WIREMOCKED REGION"),
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A", regionName = "WIREMOCKED REGION"),
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team C", regionName = "WIREMOCKED REGION"),
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 2", reportingTeam = "Team B", regionName = "WIREMOCKED REGION"),
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 2", reportingTeam = "Team C", regionName = "WIREMOCKED REGION"),
-        TestReferralHelper.ReferralConfig(reportingPdu = "PDU 3", reportingTeam = "Team B", regionName = "WIREMOCKED REGION"),
+        TestReferralHelper.ReferralConfig(
+          reportingPdu = "PDU 1",
+          reportingTeam = "Team A",
+          regionName = "WIREMOCKED REGION",
+        ),
+        TestReferralHelper.ReferralConfig(
+          reportingPdu = "PDU 1",
+          reportingTeam = "Team A",
+          regionName = "WIREMOCKED REGION",
+        ),
+        TestReferralHelper.ReferralConfig(
+          reportingPdu = "PDU 1",
+          reportingTeam = "Team C",
+          regionName = "WIREMOCKED REGION",
+        ),
+        TestReferralHelper.ReferralConfig(
+          reportingPdu = "PDU 2",
+          reportingTeam = "Team B",
+          regionName = "WIREMOCKED REGION",
+        ),
+        TestReferralHelper.ReferralConfig(
+          reportingPdu = "PDU 2",
+          reportingTeam = "Team C",
+          regionName = "WIREMOCKED REGION",
+        ),
+        TestReferralHelper.ReferralConfig(
+          reportingPdu = "PDU 3",
+          reportingTeam = "Team B",
+          regionName = "WIREMOCKED REGION",
+        ),
       ),
     )
     // Update all referrals to 'Awaiting Allocation status'
@@ -547,8 +571,16 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Create referrals in the user's own region (WIREMOCKED REGION)
       val userRegionReferrals = testReferralHelper.createReferrals(
         referralConfigs = listOf(
-          TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A", regionName = "WIREMOCKED REGION"),
-          TestReferralHelper.ReferralConfig(reportingPdu = "PDU 1", reportingTeam = "Team A", regionName = "WIREMOCKED REGION"),
+          TestReferralHelper.ReferralConfig(
+            reportingPdu = "PDU 1",
+            reportingTeam = "Team A",
+            regionName = "WIREMOCKED REGION",
+          ),
+          TestReferralHelper.ReferralConfig(
+            reportingPdu = "PDU 1",
+            reportingTeam = "Team A",
+            regionName = "WIREMOCKED REGION",
+          ),
         ),
       )
 
@@ -556,8 +588,16 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // so the test proves the region filter is doing the work, not just a missing status
       val otherRegionReferrals = testReferralHelper.createReferrals(
         referralConfigs = listOf(
-          TestReferralHelper.ReferralConfig(reportingPdu = "GM PDU 1", reportingTeam = "GM Team A", regionName = "Greater Manchester"),
-          TestReferralHelper.ReferralConfig(reportingPdu = "GM PDU 1", reportingTeam = "GM Team A", regionName = "Greater Manchester"),
+          TestReferralHelper.ReferralConfig(
+            reportingPdu = "GM PDU 1",
+            reportingTeam = "GM Team A",
+            regionName = "Greater Manchester",
+          ),
+          TestReferralHelper.ReferralConfig(
+            reportingPdu = "GM PDU 1",
+            reportingTeam = "GM Team A",
+            regionName = "Greater Manchester",
+          ),
         ),
       )
 
@@ -637,7 +677,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       unacceptableAbsenceOutcome = sessionAttendanceOutcomeTypeRepository.findByCode(UAAB)!!
     }
 
-    private fun setupPostProgrammeReviewForGroup(group: ProgrammeGroupEntity, memberships: List<ProgrammeGroupMembershipEntity>, attended: Boolean = true) {
+    private fun setupPostProgrammeReviewForGroup(
+      group: ProgrammeGroupEntity,
+      memberships: List<ProgrammeGroupMembershipEntity>,
+      attended: Boolean = true,
+    ) {
       val postProgrammeReviewSessionTemplate = moduleSessionTemplateRepository.findByName("Post-programme review")
 
       val session = testDataGenerator.createSession(
@@ -709,7 +753,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val groupMembership1 = testDataGenerator.allocateReferralsToGroup(listOf(referral1), group4).first()
       val groupMembership2 = testDataGenerator.allocateReferralsToGroup(listOf(referral2), group4).first()
-      val groupMembership3 = testDataGenerator.allocateReferralsToGroup(listOf(referral3), group6, deletedAt = LocalDateTime.now()).first()
+      val groupMembership3 =
+        testDataGenerator.allocateReferralsToGroup(listOf(referral3), group6, deletedAt = LocalDateTime.now()).first()
       testDataGenerator.allocateReferralsToGroup(listOf(referral4), group5).first()
 
       // Set up PPR for group6/referral3 (Completed group)
@@ -789,7 +834,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val referral3 = testDataGenerator.createReferral(personName = "Person 3", crn = "X123458")
 
       val group3Membership = testDataGenerator.allocateReferralsToGroup(listOf(referral1, referral2), group3).first()
-      val group5Membership = testDataGenerator.allocateReferralsToGroup(listOf(referral3), group5, deletedAt = LocalDateTime.now()).first()
+      val group5Membership =
+        testDataGenerator.allocateReferralsToGroup(listOf(referral3), group5, deletedAt = LocalDateTime.now()).first()
 
       // Set up PPR attendance
       setupPostProgrammeReviewForGroup(group5, listOf(group5Membership), attended = true)
@@ -864,25 +910,47 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createGroup(groupPartialComplete)
       val programmeCompleteReferral = testDataGenerator.createReferral(personName = "Complete", crn = "X000001")
       val onProgrammeReferral = testDataGenerator.createReferral(personName = "Incomplete", crn = "X000002")
-      val completeGroupMembership = testDataGenerator.allocateReferralsToGroup(listOf(programmeCompleteReferral), groupPartialComplete).first()
-      val incompleteGroupMembership = testDataGenerator.allocateReferralsToGroup(listOf(onProgrammeReferral), groupPartialComplete).first()
+      val completeGroupMembership =
+        testDataGenerator.allocateReferralsToGroup(listOf(programmeCompleteReferral), groupPartialComplete).first()
+      val incompleteGroupMembership =
+        testDataGenerator.allocateReferralsToGroup(listOf(onProgrammeReferral), groupPartialComplete).first()
 
       val programmeCompleteStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
       val onProgrammeStatus = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
 
-      testDataGenerator.creatReferralStatusHistory(ReferralStatusHistoryEntityFactory().produce(programmeCompleteReferral, programmeCompleteStatus))
-      testDataGenerator.creatReferralStatusHistory(ReferralStatusHistoryEntityFactory().produce(onProgrammeReferral, onProgrammeStatus))
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(
+          programmeCompleteReferral,
+          programmeCompleteStatus,
+        ),
+      )
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(
+          onProgrammeReferral,
+          onProgrammeStatus,
+        ),
+      )
 
       // Setup PPR for both
-      setupPostProgrammeReviewForGroup(groupPartialComplete, listOf(completeGroupMembership, incompleteGroupMembership), attended = true)
+      setupPostProgrammeReviewForGroup(
+        groupPartialComplete,
+        listOf(completeGroupMembership, incompleteGroupMembership),
+        attended = true,
+      )
 
       // 3. Group where all referrals complete but one DID NOT attend Post Programme Review (PPR) - should NOT be complete
       val groupNoPPR = ProgrammeGroupFactory().withCode("GROUP-NO-PPR").withRegionName(region)
         .withEarliestStartDate(LocalDate.now().minusDays(10)).produce()
       testDataGenerator.createGroup(groupNoPPR)
       val referralWithoutPPR = testDataGenerator.createReferral(personName = "NoPPR", crn = "X000003")
-      val groupMembershipList = testDataGenerator.allocateReferralsToGroup(listOf(referralWithoutPPR), groupNoPPR).first()
-      testDataGenerator.creatReferralStatusHistory(ReferralStatusHistoryEntityFactory().produce(referralWithoutPPR, programmeCompleteStatus))
+      val groupMembershipList =
+        testDataGenerator.allocateReferralsToGroup(listOf(referralWithoutPPR), groupNoPPR).first()
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(
+          referralWithoutPPR,
+          programmeCompleteStatus,
+        ),
+      )
       setupPostProgrammeReviewForGroup(groupNoPPR, listOf(groupMembershipList), attended = false)
 
       // 4. Group that is actually complete
@@ -890,8 +958,17 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .withEarliestStartDate(LocalDate.now().minusDays(10)).produce()
       testDataGenerator.createGroup(groupComplete)
       val completeReferral = testDataGenerator.createReferral(personName = "John Doe", crn = "X000004")
-      val completedGroupMembership = testDataGenerator.allocateReferralsToGroup(listOf(completeReferral), groupComplete, deletedAt = LocalDateTime.now()).first()
-      testDataGenerator.creatReferralStatusHistory(ReferralStatusHistoryEntityFactory().produce(completeReferral, programmeCompleteStatus))
+      val completedGroupMembership = testDataGenerator.allocateReferralsToGroup(
+        listOf(completeReferral),
+        groupComplete,
+        deletedAt = LocalDateTime.now(),
+      ).first()
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(
+          completeReferral,
+          programmeCompleteStatus,
+        ),
+      )
       setupPostProgrammeReviewForGroup(groupComplete, listOf(completedGroupMembership), attended = true)
 
       // When
@@ -2618,7 +2695,14 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         NDeliusUserTeamMembersFactory().produce(code = "CODE_1", name = FullName("First", null, "Forename")),
         NDeliusUserTeamMembersFactory().produce(code = "CODE_2", name = FullName("Second", null, "Forename")),
       )
-      val teams = listOf(NDeliusUserTeamWithMembersFactory().produce(members = members))
+      // Create entry for user above to be in another team
+      val otherTeamMember = listOf(
+        NDeliusUserTeamMembersFactory().produce(code = "CODE_1", name = FullName("First", null, "Forename")),
+      )
+      val teams = listOf(
+        NDeliusUserTeamWithMembersFactory().produce(members = members),
+        NDeliusUserTeamWithMembersFactory().produce(members = otherTeamMember),
+      )
       val pdu = NDeliusPduWithTeamFactory().produce(team = teams)
       val regionWithMembers = NDeliusRegionWithMembersFactory().produce(
         pdus = listOf(pdu),
