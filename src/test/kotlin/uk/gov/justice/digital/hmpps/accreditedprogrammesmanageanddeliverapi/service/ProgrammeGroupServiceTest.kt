@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.repository.findByIdOrNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
@@ -76,6 +77,46 @@ class ProgrammeGroupServiceTest {
         .contains("Region for username $username not found"),
     )
     verify { programmeGroupRepository.findByIdOrNull(groupId) }
+    verify { userService.getUserRegions(username) }
+  }
+
+  @Test
+  fun shouldThrowExceptionWhenUsernameIsWithoutRegionOnCreateGroup() {
+    // Given
+    val username = "user1"
+    val createGroupRequest = CreateGroupRequestFactory().produce()
+    every { userService.getUserRegions(username) } returns emptyList()
+
+    // When
+    val exception = assertThrows<NotFoundException> {
+      service.createGroup(createGroupRequest, username)
+    }
+
+    // Then
+    assertTrue(
+      exception.message!!
+        .contains("Region for username $username not found"),
+    )
+    verify { userService.getUserRegions(username) }
+  }
+
+  @Test
+  fun shouldThrowExceptionWhenUsernameIsWithoutRegionOnGetGroupInRegion() {
+    // Given
+    val username = "user1"
+    val groupCode = "group1"
+    every { userService.getUserRegions(username) } returns emptyList()
+
+    // When
+    val exception = assertThrows<NotFoundException> {
+      service.getGroupInRegion(groupCode, username)
+    }
+
+    // Then
+    assertTrue(
+      exception.message!!
+        .contains("Region for username $username not found"),
+    )
     verify { userService.getUserRegions(username) }
   }
 }

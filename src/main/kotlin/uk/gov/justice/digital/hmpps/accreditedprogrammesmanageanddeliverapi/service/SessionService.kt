@@ -50,6 +50,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.Duration
@@ -71,6 +72,9 @@ class SessionService(
   private val sessionNameFormatter: SessionNameFormatter,
   private val referralStatusService: ReferralStatusService,
   private val telemetryClient: TelemetryClient,
+  private val authenticationUtils: AuthenticationUtils,
+  private val userService: UserService,
+  private val regionService: RegionService,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
@@ -114,7 +118,10 @@ class SessionService(
 
     val requestedStartTime = LocalDateTime.of(request.sessionStartDate, request.sessionStartTime.toLocalTime())
     val startOffset = Duration.between(session.startsAt, requestedStartTime)
-    val requestedEndTime = LocalDateTime.of(request.sessionStartDate, request.sessionEndTime?.toLocalTime() ?: session.endsAt.plus(startOffset).toLocalTime())
+    val requestedEndTime = LocalDateTime.of(
+      request.sessionStartDate,
+      request.sessionEndTime?.toLocalTime() ?: session.endsAt.plus(startOffset).toLocalTime(),
+    )
 
     if (!requestedEndTime.isAfter(requestedStartTime)) {
       log.warn("Invalid reschedule request received for session with id: $sessionId. Requested end time $requestedEndTime is not after requested start time $requestedStartTime")
@@ -307,6 +314,16 @@ class SessionService(
     )
   }
 
+  fun getSessionFacilitators(sessionId: UUID): EditSessionFacilitatorsResponse {
+    val username = authenticationUtils.getUsername()
+    val userRegion = userService.getUserRegions(username).firstOrNull()
+
+    val regionFacilitators: MutableList<UserTeamMember> =
+      if (userRegion == null) mutableListOf() else regionService.getTeamMembersForPdu(userRegion.code).toMutableList()
+
+    return getSessionFacilitators(sessionId, regionFacilitators)
+  }
+
   fun getSessionFacilitators(
     sessionId: UUID,
     regionFacilitators: MutableList<UserTeamMember>,
@@ -432,6 +449,7 @@ class SessionService(
       )
     }
 
+    log.info("Starting to update appointments in nDelius for ${attendees.size} attendees for session with id: $sessionId")
     if (attendees.isNotEmpty()) {
       val updateAppointmentRequests = attendees.mapNotNull { attendee ->
         val referralId = attendee.referralId
@@ -439,6 +457,7 @@ class SessionService(
         nDeliusAppointment?.toUpdateAppointmentRequest(attendee.sessionNotes, attendee.outcomeCode)
       }
 
+      log.info("Updating ${updateAppointmentRequests.size} appointments in nDelius for session with id: $sessionId")
       if (updateAppointmentRequests.isNotEmpty()) {
         when (
           val response =
