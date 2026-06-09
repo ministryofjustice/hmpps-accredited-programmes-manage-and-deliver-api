@@ -87,6 +87,52 @@ class ProgrammeGroupMembershipServiceTest {
   }
 
   @Test
+  fun `should allocate referral to group gracefully when nDelius appointment creation fails`() {
+    // Given
+    val referralId = UUID.randomUUID()
+    val groupId = UUID.randomUUID()
+    val allocatedToGroupBy = "testAdmin"
+    val additionalDetails = "test additional details"
+    val referralEntity = ReferralEntityFactory().withPersonName("John Smith").withId(referralId).produce()
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
+    val referralStatusDescriptionEntity = ReferralStatusDescriptionEntityFactory().produce()
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+
+    every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
+    every { programmeGroupRepository.findByIdOrNull(groupId) } returns programmeGroupEntity
+    every { referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId) } returns referralStatusDescriptionEntity
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns null andThen programmeGroupMembershipEntity
+    every { referralStatusDescriptionRepository.getScheduledStatusDescription() } returns referralStatusDescriptionEntity
+    every { referralRepository.save(referralEntity) } returns referralEntity
+    every { scheduleService.createNdeliusAppointmentsForSessions(any()) } throws RuntimeException("nDelius returned 400 Bad Request")
+    every { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) } returns Unit
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+
+    // When — should NOT throw despite nDelius failure
+    val result = service.allocateReferralToGroup(referralId, groupId, allocatedToGroupBy, additionalDetails)
+
+    // Then — allocation still succeeds
+    assertThat(result).isNotNull()
+    assertThat(result).isEqualTo(referralEntity)
+
+    // Referral was saved (allocation persisted)
+    verify { referralRepository.save(referralEntity) }
+
+    // nDelius was attempted
+    verify { scheduleService.createNdeliusAppointmentsForSessions(any()) }
+
+    // Failure telemetry was emitted
+    verify { telemetryClient.logToAppInsights("Referral.allocate-to-group.ndelius-appointment-failure", any()) }
+
+    // Status update event was still published
+    verify { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) }
+
+    // Success telemetry was still emitted (allocation itself succeeded)
+    verify { telemetryClient.logToAppInsights("Referral.allocate-to-group.success", any()) }
+  }
+
+  @Test
   fun `should remove referral from group`() {
     // Given
     val referralId = UUID.randomUUID()
