@@ -44,6 +44,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -61,6 +62,9 @@ class SessionServiceTest {
   private val sessionNameFormatter = SessionNameFormatter()
   private val referralStatusService = mockk<ReferralStatusService>()
   private val telemetryClient = mockk<TelemetryClient>()
+  private val authenticationUtils = mockk<AuthenticationUtils>()
+  private val userService = mockk<UserService>()
+  private val regionService = mockk<RegionService>()
   private lateinit var service: SessionService
   private lateinit var sessionAttendanceTypeEntities: List<SessionAttendanceNDeliusOutcomeEntity>
 
@@ -77,6 +81,9 @@ class SessionServiceTest {
       sessionNameFormatter,
       referralStatusService,
       telemetryClient,
+      authenticationUtils,
+      userService,
+      regionService,
     )
 
     sessionAttendanceTypeEntities = listOf(

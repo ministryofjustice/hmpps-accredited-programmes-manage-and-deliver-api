@@ -1504,6 +1504,47 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should empty facilitators list when username doesn't belong to region`() {
+      // Given
+      val username = "AUTH_ADM"
+      val userTeams = NDeliusUserTeams(teams = listOf())
+      nDeliusApiStubs.stubUserTeamsResponse(username, userTeams)
+      // Stub Ndelius Response with 2 facilitators already assigned to the group and one that is just pulled from the full list from Ndelius
+      val groupFacilitators: MutableList<NDeliusRegionWithMembers.NDeliusUserTeamMembers> =
+        group.groupFacilitators.map {
+          NDeliusUserTeamMembersFactory().produce(
+            code = it.facilitatorCode,
+            name = it.facilitatorName.toFullName(),
+          )
+        }.toMutableList()
+      groupFacilitators.add(
+        NDeliusUserTeamMembersFactory().produce(
+          code = randomAlphanumericString(),
+          name = randomFullName(),
+        ),
+      )
+      val teams = listOf(NDeliusUserTeamWithMembersFactory().produce(members = groupFacilitators))
+      val pdu = NDeliusPduWithTeamFactory().produce(team = teams)
+      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(
+        pdus = listOf(pdu),
+        code = "WIREMOCKED_REGION",
+      )
+      nDeliusApiStubs.stubRegionWithMembersResponse("WIREMOCKED_REGION", regionWithMembers)
+      val sessionId = group.sessions.find { it.sessionType == SessionType.GROUP }!!.id!!
+
+      // When
+      val result = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/session/$sessionId/session-facilitators",
+        returnType = object : ParameterizedTypeReference<EditSessionFacilitatorsResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(result.facilitators).isEmpty()
+    }
+
+    @Test
     fun `should return page title in the correct format for a pre group session`() {
       // Given
       // Stub Ndelius Response with 2 facilitators already assigned to the group and one that is just pulled from the full list from Ndelius
