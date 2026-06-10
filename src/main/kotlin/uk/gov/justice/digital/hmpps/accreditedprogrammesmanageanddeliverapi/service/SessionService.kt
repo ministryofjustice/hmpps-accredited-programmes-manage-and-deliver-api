@@ -34,6 +34,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
@@ -75,7 +76,12 @@ class SessionService(
   private val authenticationUtils: AuthenticationUtils,
   private val userService: UserService,
   private val regionService: RegionService,
+  private val moduleRepository: ModuleRepository,
 ) {
+
+  companion object {
+    private val log = LoggerFactory.getLogger(SessionService::class.java)
+  }
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
     val session = sessionRepository.findById(sessionId).orElseThrow {
@@ -131,8 +137,6 @@ class SessionService(
     val currentSessionDuration = Duration.between(session.startsAt, session.endsAt)
     val requestedSessionDuration = Duration.between(requestedStartTime, requestedEndTime)
 
-    val originalSessionStartsAt = session.startsAt
-
     // Past sessions (end time has passed) may not be lengthened; shortening is allowed
     if (session.endsAt.isBefore(LocalDateTime.now()) && requestedSessionDuration > currentSessionDuration) {
       log.warn("Invalid reschedule request received for past session with id: $sessionId. Requested duration $requestedSessionDuration exceeds current duration $currentSessionDuration")
@@ -143,38 +147,19 @@ class SessionService(
     session.startsAt = requestedStartTime
     session.endsAt = requestedEndTime
 
-    val isGroupSession = session.sessionType == SessionType.GROUP
-
     // Reschedule later group sessions, place-holder one-to-ones, but not catch-up sessions
     if (request.rescheduleOtherSessions) {
-      val subsequentGroupSessions = session.programmeGroup.sessions
-        .asSequence()
-        .filter { it.sessionType == SessionType.GROUP || it.isPlaceholder }
-        .filter { it.id != session.id } // filter out the original session
-        .filter { !it.isCatchup }
-        .filter { it.startsAt.isAfter(originalSessionStartsAt) }
-        .toList()
-
-      subsequentGroupSessions.forEach { subsequentSession ->
-        subsequentSession.startsAt = subsequentSession.startsAt.plus(startOffset)
-        subsequentSession.endsAt = subsequentSession.endsAt.plus(startOffset)
-      }
-
-      (subsequentGroupSessions + session).forEach {
-        updateNDeliusAppointmentsForSession(it)
-      }
-
+      rescheduleSubsequentGroupSessions(session)
       return EditSessionDateAndTimeResponse("The date and time and schedule have been updated.")
     }
 
-    if (!isGroupSession) {
-      request.sessionEndTime?.let { requestedEndTime ->
-        session.endsAt = LocalDateTime.of(request.sessionStartDate, requestedEndTime.toLocalTime())
+    if (session.sessionType != SessionType.GROUP) {
+      request.sessionEndTime?.let {
+        session.endsAt = LocalDateTime.of(request.sessionStartDate, it.toLocalTime())
       }
     }
 
     updateNDeliusAppointmentsForSession(session)
-
     return EditSessionDateAndTimeResponse("The date and time have been updated.")
   }
 
@@ -282,10 +267,6 @@ class SessionService(
         )
       }
     }
-  }
-
-  companion object {
-    private val log = LoggerFactory.getLogger(SessionService::class.java)
   }
 
   fun getSession(sessionId: UUID): Session {
@@ -640,5 +621,57 @@ class SessionService(
     UAAB -> "Did not attend"
     null -> "To be confirmed"
     else -> attendanceOutcome.description!!
+  }
+
+  private fun rescheduleSubsequentGroupSessions(editedSession: SessionEntity) {
+    val group = editedSession.programmeGroup
+
+    val subsequentSessions = group.sessions
+      .asSequence()
+      .filter { it.sessionType == SessionType.GROUP || it.isPlaceholder }
+      .filter { it.id != editedSession.id } // filter out the original session
+      .filter { !it.isCatchup }
+      .filter { it.startsAt.isAfter(editedSession.startsAt) }
+      .sortedBy { it.startsAt }
+      .toList()
+
+    if (subsequentSessions.isEmpty()) {
+      updateNDeliusAppointmentsForSession(editedSession)
+      return
+    }
+
+    val bankHolidays = scheduleService.englandAndWalesHolidayDates()
+
+    val templateId = requireNotNull(group.accreditedProgrammeTemplate?.id) {
+      "Group template Id must not be null"
+    }
+
+    // Get the full ordered template list, filtered down to only those after the edited session
+    val allSessionTemplates = moduleRepository
+      .findByAccreditedProgrammeTemplateId(templateId)
+      .sortedBy { it.moduleNumber }
+      .flatMap { it.sessionTemplates.sortedBy { t -> t.sessionNumber } }
+      .filter { template ->
+        template.module.moduleNumber > editedSession.moduleNumber ||
+          (
+            template.module.moduleNumber == editedSession.moduleNumber &&
+              template.sessionNumber > editedSession.sessionNumber
+            )
+      }
+
+    val newDates = scheduleService.generateScheduleDates(
+      bankHolidays = bankHolidays,
+      allSessionTemplates = allSessionTemplates,
+      groupSlots = group.programmeGroupSessionSlots,
+      startFrom = editedSession.startsAt.toLocalDate().plusDays(1),
+      isRescheduling = true,
+    )
+
+    subsequentSessions.zip(newDates).forEach { (subsequentSession, newStartEnd) ->
+      subsequentSession.startsAt = newStartEnd.first
+      subsequentSession.endsAt = newStartEnd.second
+    }
+
+    updateNDeliusAppointmentsForMultipleSessions(subsequentSessions + editedSession)
   }
 }

@@ -20,6 +20,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
@@ -190,7 +191,6 @@ class ScheduleService(
     }
     val bankHolidays = englandAndWalesHolidayDates()
 
-    // Collect all session templates in module/session order
     var allSessionTemplates = moduleRepository
       .findByAccreditedProgrammeTemplateId(templateId)
       .sortedBy { it.moduleNumber }
@@ -216,77 +216,32 @@ class ScheduleService(
       }
     }
 
-    val groupSlots = group.programmeGroupSessionSlots
-    require(groupSlots.isNotEmpty()) { "Programme group slots must not be empty" }
-
-    var slotQueue = buildSlotQueue(
+    val newDates = generateScheduleDates(
       bankHolidays = bankHolidays,
-      groupSlots = groupSlots,
+      allSessionTemplates = allSessionTemplates,
+      groupSlots = group.programmeGroupSessionSlots,
       startFrom = group.earliestPossibleStartDate,
+      isRescheduling = mostRecentSession != null,
     )
 
-    var firstSessionScheduledAndGapApplied = false
-    var postProgrammeReviewsGapApplied = false
-
-    val generatedSessions = buildList {
-      for (template in allSessionTemplates) {
-        val nextSlot = slotQueue.poll() ?: break
-
-        val startsAt = LocalDateTime.of(nextSlot.nextDate, nextSlot.slot.startTime)
-        val endsAt = startsAt.plusMinutes(template.durationMinutes.toLong())
-
-        val session = SessionEntity(
-          programmeGroup = group,
-          moduleSessionTemplate = template,
-          startsAt = startsAt,
-          endsAt = endsAt,
-          locationName = group.deliveryLocationName,
-          // If we are scheduling One-to-One here it is a placeholder session
-          isPlaceholder = template.sessionType == ONE_TO_ONE,
+    val generatedSessions = allSessionTemplates.zip(newDates).map { (template, startEnd) ->
+      val session = SessionEntity(
+        programmeGroup = group,
+        moduleSessionTemplate = template,
+        startsAt = startEnd.first,
+        endsAt = startEnd.second,
+        locationName = group.deliveryLocationName,
+        // If we are scheduling One-to-One here it is a placeholder session
+        isPlaceholder = template.sessionType == ONE_TO_ONE,
+      )
+      session.sessionFacilitators = group.groupFacilitators.map {
+        SessionFacilitatorEntity(
+          facilitator = it.facilitator,
+          session = session,
+          facilitatorType = it.facilitatorType,
         )
-        session.sessionFacilitators = group.groupFacilitators.map {
-          SessionFacilitatorEntity(
-            facilitator = it.facilitator,
-            session,
-            facilitatorType = it.facilitatorType,
-          )
-        }.toMutableSet()
-        add(session)
-
-        if (
-          mostRecentSession == null &&
-          !firstSessionScheduledAndGapApplied &&
-          template.module.moduleNumber == 1 &&
-          template.sessionNumber == 1
-        ) {
-          firstSessionScheduledAndGapApplied = true
-
-          // Regenerate our slot queue plus 3 weeks
-          slotQueue = buildSlotQueue(
-            bankHolidays = bankHolidays,
-            groupSlots = groupSlots,
-            startFrom = startsAt.toLocalDate().plusWeeks(FIRST_SESSION_GAP_WEEKS),
-          )
-        } else {
-          val nextWeekDate = nextSlot.nextDate.plusWeeks(1)
-          val nextValidDate = findNextValidDate(bankHolidays, nextWeekDate, nextSlot.slot)
-          slotQueue.add(nextSlot.copy(nextDate = nextValidDate))
-        }
-
-        if (!postProgrammeReviewsGapApplied && template.module.name != POST_PROGRAMME_REVIEWS_MODULE_NAME) {
-          val nextTemplate = allSessionTemplates.getOrNull(allSessionTemplates.indexOf(template) + 1)
-          if (nextTemplate?.module?.name == POST_PROGRAMME_REVIEWS_MODULE_NAME) {
-            postProgrammeReviewsGapApplied = true
-
-            // Regenerate our slot queue plus 6 weeks
-            slotQueue = buildSlotQueue(
-              bankHolidays = bankHolidays,
-              groupSlots = groupSlots,
-              startFrom = startsAt.toLocalDate().plusWeeks(POST_PROGRAMME_REVIEWS_GAP_WEEKS),
-            )
-          }
-        }
-      }
+      }.toMutableSet()
+      session
     }
 
     log.debug(
@@ -319,6 +274,58 @@ class ScheduleService(
     programmeGroupRepository.save(group)
 
     return group.sessions
+  }
+
+  fun generateScheduleDates(
+    bankHolidays: Set<LocalDate>,
+    allSessionTemplates: List<ModuleSessionTemplateEntity>,
+    groupSlots: Collection<ProgrammeGroupSessionSlotEntity>,
+    startFrom: LocalDate,
+    isRescheduling: Boolean = false,
+  ): List<Pair<LocalDateTime, LocalDateTime>> {
+    require(groupSlots.isNotEmpty()) { "Programme group slots must not be empty" }
+
+    var slotQueue = buildSlotQueue(bankHolidays, groupSlots, startFrom)
+    var firstSessionScheduledAndGapApplied = false
+    var postProgrammeReviewsGapApplied = false
+
+    return buildList {
+      for (template in allSessionTemplates) {
+        val nextSlot = slotQueue.poll() ?: break
+
+        val startsAt = LocalDateTime.of(nextSlot.nextDate, nextSlot.slot.startTime)
+        val endsAt = startsAt.plusMinutes(template.durationMinutes.toLong())
+        add(startsAt to endsAt)
+
+        if (!isRescheduling &&
+          !firstSessionScheduledAndGapApplied &&
+          template.module.moduleNumber == 1 &&
+          template.sessionNumber == 1
+        ) {
+          firstSessionScheduledAndGapApplied = true
+          slotQueue = buildSlotQueue(
+            bankHolidays,
+            groupSlots,
+            startsAt.toLocalDate().plusWeeks(FIRST_SESSION_GAP_WEEKS),
+          )
+        } else {
+          val nextWeekDate = nextSlot.nextDate.plusWeeks(1)
+          slotQueue.add(nextSlot.copy(nextDate = findNextValidDate(bankHolidays, nextWeekDate, nextSlot.slot)))
+        }
+
+        if (!postProgrammeReviewsGapApplied && template.module.name != POST_PROGRAMME_REVIEWS_MODULE_NAME) {
+          val nextTemplate = allSessionTemplates.getOrNull(allSessionTemplates.indexOf(template) + 1)
+          if (nextTemplate?.module?.name == POST_PROGRAMME_REVIEWS_MODULE_NAME) {
+            postProgrammeReviewsGapApplied = true
+            slotQueue = buildSlotQueue(
+              bankHolidays,
+              groupSlots,
+              startsAt.toLocalDate().plusWeeks(POST_PROGRAMME_REVIEWS_GAP_WEEKS),
+            )
+          }
+        }
+      }
+    }
   }
 
   private fun buildSlotQueue(
@@ -443,7 +450,6 @@ class ScheduleService(
             "groupId" to (groupId?.toString() ?: ""),
           ),
         )
-
         nDeliusAppointmentRepository.saveAll(nDeliusAppointmentEntities)
       }
     }
@@ -473,7 +479,7 @@ class ScheduleService(
     val nextDate: LocalDate,
   )
 
-  private fun englandAndWalesHolidayDates(): Set<LocalDate> = bankHolidayRepository.findAll()
+  fun englandAndWalesHolidayDates(): Set<LocalDate> = bankHolidayRepository.findAll()
     .map { it.holidayDate }
     .toSet()
 
