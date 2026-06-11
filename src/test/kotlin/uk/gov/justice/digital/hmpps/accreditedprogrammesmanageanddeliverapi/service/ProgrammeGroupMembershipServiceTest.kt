@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralStatusUpdateEvent
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
@@ -56,15 +57,15 @@ class ProgrammeGroupMembershipServiceTest {
     )
   }
 
-  @Test
-  fun `should allocate referral to group`() {
-    // Given
-    val referralId = UUID.randomUUID()
-    val groupId = UUID.randomUUID()
-    val allocatedToGroupBy = "testAdmin"
-    val additionalDetails = "test additional details"
-    val referralEntity = ReferralEntityFactory().withPersonName("John Smith").withId(referralId)
-      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT).produce()
+  /**
+   * Sets up common mocks for allocateReferralToGroup tests.
+   * Returns a Triple of (referralId, groupId, referralEntity) for use in assertions.
+   */
+  private fun setupAllocationMocks(
+    referralEntity: ReferralEntity,
+    groupId: UUID = UUID.randomUUID(),
+  ): Pair<UUID, UUID> {
+    val referralId = referralEntity.id!!
     val facilitator = FacilitatorEntityFactory().produce()
     val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
     val referralStatusDescriptionEntity = ReferralStatusDescriptionEntityFactory().produce()
@@ -75,6 +76,18 @@ class ProgrammeGroupMembershipServiceTest {
     every { referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId) } returns referralStatusDescriptionEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns null andThen programmeGroupMembershipEntity
     every { referralStatusDescriptionRepository.getScheduledStatusDescription() } returns referralStatusDescriptionEntity
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+
+    return referralId to groupId
+  }
+
+  @Test
+  fun `should allocate referral to group`() {
+    // Given
+    val referralEntity = ReferralEntityFactory().withPersonName("John Smith").withId(UUID.randomUUID())
+      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT).produce()
+    val (referralId, groupId) = setupAllocationMocks(referralEntity)
+
     every { referralRepository.save(referralEntity) } returns referralEntity
     every { nDeliusIntegrationApiClient.getRequirementManagerDetails(any(), any()) } returns ClientResult.Success(
       HttpStatusCode.valueOf(200),
@@ -82,111 +95,77 @@ class ProgrammeGroupMembershipServiceTest {
     )
     every { scheduleService.createNdeliusAppointmentsForSessions(any()) } returns Unit
     every { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) } returns Unit
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
-    val result = service.allocateReferralToGroup(referralId, groupId, allocatedToGroupBy, additionalDetails)
+    val result = service.allocateReferralToGroup(referralId, groupId, "testAdmin", "test additional details")
 
     // Then
     assertThat(result).isNotNull()
     assertThat(result).isEqualTo(referralEntity)
-    verify { referralRepository.findByIdOrNull(referralId) }
-    verify { programmeGroupRepository.findByIdOrNull(groupId) }
-    verify { referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId) }
-    verify { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) }
-    verify { referralStatusDescriptionRepository.getScheduledStatusDescription() }
     verify { nDeliusIntegrationApiClient.getRequirementManagerDetails(referralEntity.crn, referralEntity.eventId!!) }
     verify { referralRepository.save(referralEntity) }
     verify { scheduleService.createNdeliusAppointmentsForSessions(any()) }
     verify { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
   }
 
   @Test
   fun `should throw BusinessException when referral licence condition does not exist in nDelius`() {
     // Given
-    val referralId = UUID.randomUUID()
-    val groupId = UUID.randomUUID()
-    val allocatedToGroupBy = "testAdmin"
-    val additionalDetails = "test additional details"
     val referralEntity = ReferralEntityFactory()
       .withPersonName("John Smith")
-      .withId(referralId)
+      .withId(UUID.randomUUID())
       .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
       .withEventId("1503834986")
       .produce()
-    val facilitator = FacilitatorEntityFactory().produce()
-    val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
-    val referralStatusDescriptionEntity = ReferralStatusDescriptionEntityFactory().produce()
-    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+    val (referralId, groupId) = setupAllocationMocks(referralEntity)
 
-    every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { programmeGroupRepository.findByIdOrNull(groupId) } returns programmeGroupEntity
-    every { referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId) } returns referralStatusDescriptionEntity
-    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns null andThen programmeGroupMembershipEntity
-    every { referralStatusDescriptionRepository.getScheduledStatusDescription() } returns referralStatusDescriptionEntity
     every { nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(any(), any()) } returns ClientResult.Failure.StatusCode(
       method = HttpMethod.GET,
       path = "/case/${referralEntity.crn}/licence-conditions/1503834986",
       status = HttpStatusCode.valueOf(404),
       body = "Licence condition not found",
     )
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When / Then
     assertThatThrownBy {
-      service.allocateReferralToGroup(referralId, groupId, allocatedToGroupBy, additionalDetails)
+      service.allocateReferralToGroup(referralId, groupId, "testAdmin", "test additional details")
     }
       .isInstanceOf(BusinessException::class.java)
       .hasMessageContaining("no longer exists in nDelius")
       .hasMessageContaining("licence condition")
+      .hasMessageContaining("Please contact your admin")
 
-    // nDelius appointments should NOT have been attempted
     verify(exactly = 0) { scheduleService.createNdeliusAppointmentsForSessions(any()) }
-    // Referral should NOT have been saved
     verify(exactly = 0) { referralRepository.save(any()) }
-    // Telemetry for validation failure should have been emitted
     verify { telemetryClient.logToAppInsights("Referral.allocate-to-group.ndelius-validation-failure", any()) }
   }
 
   @Test
   fun `should throw BusinessException when referral requirement does not exist in nDelius`() {
     // Given
-    val referralId = UUID.randomUUID()
-    val groupId = UUID.randomUUID()
-    val allocatedToGroupBy = "testAdmin"
-    val additionalDetails = "test additional details"
     val referralEntity = ReferralEntityFactory()
       .withPersonName("John Smith")
-      .withId(referralId)
+      .withId(UUID.randomUUID())
       .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
       .withEventId("1503604735")
       .produce()
-    val facilitator = FacilitatorEntityFactory().produce()
-    val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
-    val referralStatusDescriptionEntity = ReferralStatusDescriptionEntityFactory().produce()
-    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+    val (referralId, groupId) = setupAllocationMocks(referralEntity)
 
-    every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { programmeGroupRepository.findByIdOrNull(groupId) } returns programmeGroupEntity
-    every { referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId) } returns referralStatusDescriptionEntity
-    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns null andThen programmeGroupMembershipEntity
-    every { referralStatusDescriptionRepository.getScheduledStatusDescription() } returns referralStatusDescriptionEntity
     every { nDeliusIntegrationApiClient.getRequirementManagerDetails(any(), any()) } returns ClientResult.Failure.StatusCode(
       method = HttpMethod.GET,
       path = "/case/${referralEntity.crn}/requirement/1503604735",
       status = HttpStatusCode.valueOf(404),
       body = "Requirement not found",
     )
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When / Then
     assertThatThrownBy {
-      service.allocateReferralToGroup(referralId, groupId, allocatedToGroupBy, additionalDetails)
+      service.allocateReferralToGroup(referralId, groupId, "testAdmin", "test additional details")
     }
       .isInstanceOf(BusinessException::class.java)
       .hasMessageContaining("no longer exists in nDelius")
       .hasMessageContaining("requirement")
+      .hasMessageContaining("Please contact your admin")
 
     verify(exactly = 0) { scheduleService.createNdeliusAppointmentsForSessions(any()) }
     verify(exactly = 0) { referralRepository.save(any()) }
@@ -196,29 +175,16 @@ class ProgrammeGroupMembershipServiceTest {
   @Test
   fun `should throw BusinessException when referral has null sourcedFrom`() {
     // Given
-    val referralId = UUID.randomUUID()
-    val groupId = UUID.randomUUID()
-    val allocatedToGroupBy = "testAdmin"
-    val additionalDetails = "test additional details"
     val referralEntity = ReferralEntityFactory()
       .withPersonName("John Smith")
-      .withId(referralId)
+      .withId(UUID.randomUUID())
       .withSourcedFrom(null)
       .produce()
-    val facilitator = FacilitatorEntityFactory().produce()
-    val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
-    val referralStatusDescriptionEntity = ReferralStatusDescriptionEntityFactory().produce()
-    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
-
-    every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { programmeGroupRepository.findByIdOrNull(groupId) } returns programmeGroupEntity
-    every { referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId) } returns referralStatusDescriptionEntity
-    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns null andThen programmeGroupMembershipEntity
-    every { referralStatusDescriptionRepository.getScheduledStatusDescription() } returns referralStatusDescriptionEntity
+    val (referralId, groupId) = setupAllocationMocks(referralEntity)
 
     // When / Then
     assertThatThrownBy {
-      service.allocateReferralToGroup(referralId, groupId, allocatedToGroupBy, additionalDetails)
+      service.allocateReferralToGroup(referralId, groupId, "testAdmin", "test additional details")
     }
       .isInstanceOf(BusinessException::class.java)
       .hasMessageContaining("sentence source type is not set")
