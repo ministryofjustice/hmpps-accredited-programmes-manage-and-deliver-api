@@ -12,6 +12,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Osp
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.RiskScoreLevel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
@@ -113,6 +114,7 @@ class TestReferralHelper {
     cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE,
     dateOfBirth: LocalDate? = null,
     sentenceEndDate: LocalDate? = null,
+    sourcedFromReference: String = randomAlphanumericString(11),
   ): ReferralEntity {
     val findAndReferReferralDetails = FindAndReferReferralDetailsFactory()
       .withInterventionName("Test Intervention")
@@ -121,7 +123,7 @@ class TestReferralHelper {
       .withPersonReference(crn)
       .withPersonReferenceType(PersonReferenceType.CRN)
       .withSourcedFromReferenceType(sourcedFrom)
-      .withSourcedFromReference("2500876919")
+      .withSourcedFromReference(sourcedFromReference)
       .withEventNumber(1)
       .produce()
 
@@ -260,7 +262,10 @@ class TestReferralHelper {
    * @param statusEntity The status to set. If null, defaults to AWAITING_ALLOCATION status.
    * @return The created and updated [ReferralEntity]
    */
-  fun createReferralAndUpdateStatus(statusEntity: ReferralStatusDescriptionEntity? = null, personName: String? = null): ReferralEntity {
+  fun createReferralAndUpdateStatus(
+    statusEntity: ReferralStatusDescriptionEntity? = null,
+    personName: String? = null,
+  ): ReferralEntity {
     val status = statusEntity ?: referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
     val referral = if (personName != null) createReferral(personName = personName) else createReferral()
     referralService.updateStatus(referral, status.id, null, "AUTH_USER")

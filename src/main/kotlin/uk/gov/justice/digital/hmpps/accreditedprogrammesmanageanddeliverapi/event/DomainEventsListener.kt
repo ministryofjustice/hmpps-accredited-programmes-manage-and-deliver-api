@@ -17,12 +17,8 @@ class DomainEventsListener(
   fun receive(sqsMessage: SQSMessage) {
     logger.info("Received Event of type: ${sqsMessage.eventType}")
     when (sqsMessage.eventType) {
-      REFERRAL_CREATED -> referralCreatedHandler.handle(sqsMessage)
+      HmppsDomainEventTypes.INTERVENTIONS_COMMUNITY_REFERRAL_CREATED.value -> referralCreatedHandler.handle(sqsMessage)
       else -> logger.info("Unknown event type ${sqsMessage.eventType}")
     }
-  }
-
-  companion object {
-    const val REFERRAL_CREATED = "interventions.community-referral.created"
   }
 }

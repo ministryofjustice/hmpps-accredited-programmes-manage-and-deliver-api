@@ -33,8 +33,8 @@ class ReferralCreatedHandler(
     if (domainEventMessage.detailUrl == null) {
       return log.info("Detail url is null for event with messageId: ${sqsMessage.messageId}")
     }
-    val referralId = extractReferralId(domainEventMessage.detailUrl)
-    log.info("Received referral created event for referral id: $referralId")
+    val referralId = UUID.fromString(domainEventMessage.detailUrl.split("/").last())
+    log.info("Received referral created event for referral id: $referralId for CRN: ${domainEventMessage.personReference.findCrn()}")
 
     telemetryClient.logToAppInsights(
       "Probation.case-requirement.created event received",
@@ -45,11 +45,13 @@ class ReferralCreatedHandler(
       ),
     )
 
-    messageHistoryRepository.save(domainEventMessage.toEntity(objectMapper.writeValueAsString(domainEventMessage)))
+    val savedMessage =
+      messageHistoryRepository.save(domainEventMessage.toEntity(objectMapper.writeValueAsString(domainEventMessage)))
 
     val referralDetails = referralService.getFindAndReferReferralDetails(referralId)
-    referralService.createReferral(referralDetails)
-  }
+    val savedReferral = referralService.createReferral(referralDetails)
 
-  private fun extractReferralId(detailUrl: String) = UUID.fromString(detailUrl.split("/").last())
+    savedMessage.referral = savedReferral
+    messageHistoryRepository.save(savedMessage)
+  }
 }
