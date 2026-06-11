@@ -508,7 +508,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .produce()
 
     val requirementMessage = DomainEventsMessageFactory()
-      .withDetailUrl("http://find-and-refer/referral/$farLicenceConditionReferralId")
+      .withDetailUrl("http://find-and-refer/referral/$farRequirementReferralId")
       .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", crn))))
       .produce()
 
@@ -526,7 +526,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
 
     val savedReferrals = referralRepository.findByCrn(crn)
 
-    assertThat(savedReferrals).hasSize(1)
+    assertThat(savedReferrals).hasSize(2)
 
     val savedMessages = messageHistoryRepository.findAll()
     assertThat(savedMessages).hasSize(2)
