@@ -140,7 +140,6 @@ class ProgrammeGroupMembershipServiceTest {
       .isInstanceOf(BusinessException::class.java)
       .hasMessageContaining("no longer exists in nDelius")
       .hasMessageContaining("licence condition")
-      .hasMessageContaining("1503834986")
 
     // nDelius appointments should NOT have been attempted
     verify(exactly = 0) { scheduleService.createNdeliusAppointmentsForSessions(any()) }
@@ -188,7 +187,6 @@ class ProgrammeGroupMembershipServiceTest {
       .isInstanceOf(BusinessException::class.java)
       .hasMessageContaining("no longer exists in nDelius")
       .hasMessageContaining("requirement")
-      .hasMessageContaining("1503604735")
 
     verify(exactly = 0) { scheduleService.createNdeliusAppointmentsForSessions(any()) }
     verify(exactly = 0) { referralRepository.save(any()) }

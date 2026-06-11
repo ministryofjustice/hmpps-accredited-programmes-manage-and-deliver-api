@@ -255,7 +255,7 @@ class ProgrammeGroupMembershipService(
 
     when (result) {
       is ClientResult.Success -> {
-        log.info("nDelius validation passed for referral ${referral.id}: ${sourcedFrom.name} $eventId exists")
+        log.debug("nDelius validation passed for referral ${referral.id}: ${sourcedFrom.name} $eventId exists")
       }
 
       is ClientResult.Failure.StatusCode -> {
@@ -274,9 +274,9 @@ class ProgrammeGroupMembershipService(
           ),
         )
         throw BusinessException(
-          "Cannot allocate referral to group: the $sourceType (ID: $eventId) for this referral " +
+          "Cannot allocate referral to group: the $sourceType linked to this referral " +
             "no longer exists in nDelius. The sentence data may be stale following a transfer or termination. " +
-            "Please update the referral's sentence data before allocating to a group.",
+            "Please contact your admin to update the referral's sentence data.",
         )
       }
 
