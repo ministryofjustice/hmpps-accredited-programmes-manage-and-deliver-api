@@ -53,6 +53,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     crn = randomCrn()
     eventNumber = randomNumberAsInt(11)
     testDataCleaner.cleanAllTables()
+    wiremock.resetAll()
 
     sourceReferralId = UUID.randomUUID()
     stubAuthTokenEndpoint()
