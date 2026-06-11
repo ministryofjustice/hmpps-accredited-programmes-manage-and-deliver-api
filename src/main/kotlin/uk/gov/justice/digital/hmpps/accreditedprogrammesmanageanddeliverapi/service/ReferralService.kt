@@ -200,6 +200,7 @@ class ReferralService(
       sourcedFrom = findAndReferReferralDetails.sourcedFromReferenceType,
     )
     if (existingReferral != null) {
+      log.debug("Referral with eventId: ${findAndReferReferralDetails.sourcedFromReference}, CRN: ${findAndReferReferralDetails.personReference} and sourcedFrom: ${findAndReferReferralDetails.sourcedFromReference} already exists in our system.")
       return existingReferral
     }
 
