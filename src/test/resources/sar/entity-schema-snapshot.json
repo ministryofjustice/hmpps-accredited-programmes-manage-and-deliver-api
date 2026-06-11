@@ -177,6 +177,7 @@
     "pduName": "String",
     "personName": "String",
     "referralId": "UUID",
+    "referralStatusDescription": "ReferralStatusDescriptionEntity",
     "regionName": "String",
     "reportingTeam": "String",
     "sentenceEndDate": "LocalDate",
