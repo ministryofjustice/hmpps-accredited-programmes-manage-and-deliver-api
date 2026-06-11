@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import java.time.LocalDate
 import java.time.ZoneOffset.UTC
 import java.util.UUID
@@ -18,6 +19,7 @@ class ReferralCaseListItemViewEntityFactory {
   private var regionName: String = "REGION_1"
   private var sentenceEndDate: LocalDate = LocalDate.now(UTC).plusYears(1)
   private var sentenceEndDateSource: ReferralEntitySourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION
+  private var referralStatusDescription: ReferralStatusDescriptionEntity = ReferralStatusDescriptionEntityFactory().produce()
 
   fun withReferralId(referralId: UUID) = apply { this.referralId }
   fun withCrn(crn: String) = apply { this.crn = crn }
@@ -29,6 +31,8 @@ class ReferralCaseListItemViewEntityFactory {
   fun withReportingTeam(reportingTeam: String) = apply { this.reportingTeam = reportingTeam }
   fun withRegionName(regionName: String) = apply { this.regionName = regionName }
   fun withSentenceEndDate(sentenceEndDate: LocalDate) = apply { this.sentenceEndDate = sentenceEndDate }
+  fun withReferralStatusDescription(referralStatusDescription: ReferralStatusDescriptionEntity) = apply { this.referralStatusDescription = referralStatusDescription }
+
   fun produce() = ReferralCaseListItemViewEntity(
     referralId = this.referralId,
     crn = this.crn,
@@ -41,5 +45,6 @@ class ReferralCaseListItemViewEntityFactory {
     regionName = this.regionName,
     sentenceEndDate = this.sentenceEndDate,
     sentenceEndDateSource = this.sentenceEndDateSource,
+    referralStatusDescription = this.referralStatusDescription,
   )
 }
