@@ -8,6 +8,11 @@ import org.springframework.context.annotation.Import
 import org.springframework.data.repository.findByIdOrNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnit
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Osp
@@ -179,6 +184,30 @@ class TestReferralHelper {
         .apply { regionName?.let { withRegionStrings(description = it) } }
         .produce(),
     )
+
+    // Stub requirement/licence condition validation for nDelius appointment creation
+    val validationResponse = NDeliusCaseRequirementOrLicenceConditionResponse(
+      eventNumber = findAndReferReferralDetails.eventNumber,
+      manager = RequirementOrLicenceConditionManager(
+        staff = RequirementStaff(code = "STAFF001", name = FullName(forename = "Test", middleNames = null, surname = "Staff")),
+        team = CodeDescription("TEAM001", "Test Team"),
+        probationDeliveryUnit = NDeliusApiProbationDeliveryUnit("PDU001", "Test PDU"),
+        officeLocations = emptyList(),
+      ),
+      probationDeliveryUnits = emptyList(),
+    )
+    when (sourcedFrom) {
+      ReferralEntitySourcedFrom.LICENCE_CONDITION -> nDeliusApiStubs.stubSuccessfulLicenceConditionManagerResponse(
+        crn = crn,
+        licenceConditionId = findAndReferReferralDetails.sourcedFromReference,
+        licenceConditionResponse = validationResponse,
+      )
+      ReferralEntitySourcedFrom.REQUIREMENT -> nDeliusApiStubs.stubSuccessfulRequirementManagerResponse(
+        crn = crn,
+        requirementId = findAndReferReferralDetails.sourcedFromReference,
+        requirementResponse = validationResponse,
+      )
+    }
 
     // Stub auth token
     hmppsAuth.stubGrantToken()
