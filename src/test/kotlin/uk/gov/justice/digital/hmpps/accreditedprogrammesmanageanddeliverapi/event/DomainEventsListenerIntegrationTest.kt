@@ -10,7 +10,6 @@ import org.awaitility.kotlin.untilCallTo
 import org.awaitility.kotlin.withPollDelay
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
@@ -34,12 +33,9 @@ import java.time.Duration.ofMillis
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.UUID
+import kotlin.properties.Delegates
 
 class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
-
-  companion object {
-    private val log = LoggerFactory.getLogger(this::class.java)
-  }
 
   @Autowired
   lateinit var messageHistoryRepository: MessageHistoryRepository
@@ -49,11 +45,13 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
 
   lateinit var sourceReferralId: UUID
 
-  val crn = randomCrn()
-  val eventNumber = randomNumberAsInt()
+  lateinit var crn: String
+  var eventNumber by Delegates.notNull<Int>()
 
   @BeforeEach
   fun setUp() {
+    crn = randomCrn()
+    eventNumber = randomNumberAsInt(11)
     testDataCleaner.cleanAllTables()
 
     sourceReferralId = UUID.randomUUID()
