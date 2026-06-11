@@ -437,7 +437,6 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
             .withBody(objectMapper.writeValueAsString(findAndReferReferralDetails)),
         ),
     )
-    oasysApiStubs.stubSuccessfulPniResponse(crn)
     val domainEventsMessage = DomainEventsMessageFactory()
       .withDetailUrl("http://find-and-refer/referral/$sourceReferralId")
       .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", crn))))
@@ -454,12 +453,13 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       }
     } matches { it == 0 }
 
-    val savedReferrals = referralRepository.findByCrn(crn)
+    await untilCallTo {
+      referralRepository.findByCrn(crn)
+    } matches { it?.size == 1 }
 
-    assertThat(savedReferrals).hasSize(1)
-
-    val savedMessages = messageHistoryRepository.findAll()
-    assertThat(savedMessages).hasSize(2)
+    await untilCallTo {
+      messageHistoryRepository.findAll()
+    } matches { it?.size == 2 }
   }
 
   @Test
@@ -468,14 +468,14 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     val farLicenceConditionReferralId = UUID.randomUUID()
     val farRequirementReferralId = UUID.randomUUID()
     val farLicenceConditionDetails = FindAndReferReferralDetailsFactory()
-      .withReferralId(sourceReferralId)
+      .withReferralId(farLicenceConditionReferralId)
       .withPersonReference(crn)
       .withPersonReferenceType(PersonReferenceType.CRN)
       .withSourcedFromReferenceType(ReferralEntitySourcedFrom.LICENCE_CONDITION)
       .withEventNumber(eventNumber)
       .produce()
     val farRequirementDetails = FindAndReferReferralDetailsFactory()
-      .withReferralId(sourceReferralId)
+      .withReferralId(farRequirementReferralId)
       .withPersonReference(crn)
       .withPersonReferenceType(PersonReferenceType.CRN)
       .withSourcedFromReferenceType(ReferralEntitySourcedFrom.REQUIREMENT)
@@ -500,7 +500,6 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
             .withBody(objectMapper.writeValueAsString(farRequirementDetails)),
         ),
     )
-    oasysApiStubs.stubSuccessfulPniResponse(crn)
     val licenceConditionMessage = DomainEventsMessageFactory()
       .withDetailUrl("http://find-and-refer/referral/$farLicenceConditionReferralId")
       .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", crn))))
@@ -523,11 +522,12 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       }
     } matches { it == 0 }
 
-    val savedReferrals = referralRepository.findByCrn(crn)
+    await untilCallTo {
+      referralRepository.findByCrn(crn)
+    } matches { it?.size == 2 }
 
-    assertThat(savedReferrals).hasSize(2)
-
-    val savedMessages = messageHistoryRepository.findAll()
-    assertThat(savedMessages).hasSize(2)
+    await untilCallTo {
+      messageHistoryRepository.findAll()
+    } matches { it?.size == 2 }
   }
 }
