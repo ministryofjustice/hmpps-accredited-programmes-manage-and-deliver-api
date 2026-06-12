@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Optional
@@ -21,6 +22,12 @@ interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
 
   @EntityGraph(attributePaths = ["statusHistories"])
   fun findByCrn(crn: String): List<ReferralEntity>
+
+  fun findByCrnAndEventIdAndSourcedFrom(
+    crn: String,
+    eventId: String,
+    sourcedFrom: ReferralEntitySourcedFrom,
+  ): ReferralEntity?
 
   fun findAllByCreatedAtBefore(createdAtBefore: LocalDateTime): MutableList<ReferralEntity>
 
