@@ -252,7 +252,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         "Another PDU Description",
         "Test PDU 1",
       )
-      assertThat(programmeGroups.deliveryLocationNames).containsExactlyInAnyOrder("Location One", "Delivery Location 1")
+      assertThat(programmeGroups.deliveryLocationNames).containsExactly("Delivery Location 1", "Location One")
     }
 
     @Test
