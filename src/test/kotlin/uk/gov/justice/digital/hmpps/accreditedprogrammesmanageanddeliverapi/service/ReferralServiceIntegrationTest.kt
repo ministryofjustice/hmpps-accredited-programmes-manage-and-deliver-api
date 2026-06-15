@@ -352,7 +352,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(getResult[1].referralStatusDescriptionName).isEqualTo("Awaiting allocation")
       assertThat(getResult[1].updatedBy).isEqualTo("The User's name")
       assertThat(getResult[1].additionalDetails).isEqualTo("Additional Details")
-      assertThat(getResult[1].tagColour).isEqualTo("light-blue")
+      assertThat(getResult[1].tagColour).isEqualTo("teal")
     }
   }
 

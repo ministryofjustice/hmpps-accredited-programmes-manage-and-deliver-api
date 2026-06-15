@@ -48,13 +48,12 @@ class ReferralEventNumberResolverService(
 
     log.info("Referral '${referral.id}' has event number 0. Attempting to resolve for CRN '${referral.crn}'.")
 
-    val resolved = resolveSource(referral, eventId)
+    val response = resolveSource(referral, eventId)
 
-    if (resolved != null) {
-      referral.sourcedFrom = resolved.sourcedFrom
-      referral.eventNumber = resolved.response.eventNumber
+    if (response != null) {
+      referral.eventNumber = response.eventNumber
       referralRepository.save(referral)
-      logSuccess(referral, resolved.response.eventNumber)
+      logSuccess(referral, response.eventNumber)
     } else {
       logFailureEvent(referral)
     }
@@ -62,33 +61,18 @@ class ReferralEventNumberResolverService(
     return referral
   }
 
-  private data class ResolvedSource(
-    val response: NDeliusCaseRequirementOrLicenceConditionResponse,
-    val sourcedFrom: ReferralEntitySourcedFrom,
-  )
+  private fun resolveSource(
+    referral: ReferralEntity,
+    eventId: String,
+  ): NDeliusCaseRequirementOrLicenceConditionResponse? = when (referral.sourcedFrom) {
+    ReferralEntitySourcedFrom.REQUIREMENT -> getRequirement(referral, eventId)
 
-  private fun resolveSource(referral: ReferralEntity, eventId: String): ResolvedSource? {
-    val orderedCandidates: List<Pair<ReferralEntitySourcedFrom, () -> NDeliusCaseRequirementOrLicenceConditionResponse?>> =
-      when (referral.sourcedFrom) {
-        ReferralEntitySourcedFrom.REQUIREMENT -> listOf(
-          ReferralEntitySourcedFrom.REQUIREMENT to { getRequirement(referral, eventId) },
-          ReferralEntitySourcedFrom.LICENCE_CONDITION to { getLicenceCondition(referral, eventId) },
-        )
+    ReferralEntitySourcedFrom.LICENCE_CONDITION -> getLicenceCondition(referral, eventId)
 
-        ReferralEntitySourcedFrom.LICENCE_CONDITION -> listOf(
-          ReferralEntitySourcedFrom.LICENCE_CONDITION to { getLicenceCondition(referral, eventId) },
-          ReferralEntitySourcedFrom.REQUIREMENT to { getRequirement(referral, eventId) },
-        )
-
-        else -> {
-          log.error("${referral.sourcedFrom} is not a valid value")
-          return null
-        }
-      }
-
-    // Lazy function that only evaluates second call if the first is null
-    return orderedCandidates
-      .firstNotNullOfOrNull { (source, fetch) -> fetch()?.let { ResolvedSource(it, source) } }
+    else -> {
+      log.error("${referral.sourcedFrom} is not a valid value")
+      return null
+    }
   }
 
   private fun getLicenceCondition(
