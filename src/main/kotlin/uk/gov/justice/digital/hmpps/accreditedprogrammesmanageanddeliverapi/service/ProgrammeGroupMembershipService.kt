@@ -262,6 +262,7 @@ class ProgrammeGroupMembershipService(
         log.error(
           "nDelius validation failed for referral ${referral.id}: $sourceType with ID $eventId " +
             "does not exist in nDelius for CRN ${referral.crn} (status: ${result.status})",
+          result.toException(),
         )
         telemetryClient.logToAppInsights(
           "Referral.allocate-to-group.ndelius-validation-failure",
