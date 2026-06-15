@@ -1,9 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event
 
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
-import com.github.tomakehurst.wiremock.client.WireMock.equalToJson
 import com.github.tomakehurst.wiremock.client.WireMock.get
-import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
 import org.awaitility.kotlin.await
@@ -15,8 +13,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
@@ -630,30 +626,6 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(savedReferral.crn, savedReferral.eventNumber)
 
     oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
-
-    val username = "AUTH_ADM"
-    val accessCheck = LimitedAccessOffenderCheck(
-      crn = referralEntity.crn,
-      userExcluded = false,
-      userRestricted = false,
-      exclusionMessage = null,
-      restrictionMessage = null,
-    )
-
-    wiremock.stubFor(
-      post(urlEqualTo("/user/$username/access"))
-        .withRequestBody(equalToJson(objectMapper.writeValueAsString(listOf(referralEntity.crn))))
-        .willReturn(
-          aResponse()
-            .withStatus(200)
-            .withHeader("Content-Type", "application/json")
-            .withBody(
-              objectMapper.writeValueAsString(
-                LimitedAccessOffenderCheckResponse(listOf(accessCheck)),
-              ),
-            ),
-        ),
-    )
 
     val eventType = "interventions.community-referral.imported"
     val domainEventsMessage = DomainEventsMessageFactory()
