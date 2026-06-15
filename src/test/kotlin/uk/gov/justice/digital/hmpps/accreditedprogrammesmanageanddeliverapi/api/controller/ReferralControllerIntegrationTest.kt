@@ -1119,6 +1119,234 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
   }
 
   @Nested
+  @DisplayName("Concurrent Status Updates via REST API")
+  inner class ConcurrentStatusUpdatesViaRestApi {
+    @Test
+    fun `should handle concurrent POST requests to update referral status without deadlock`() {
+      // Given: Create multiple referrals
+      val referrals = (1..10).map { i ->
+        val crn = "CONCURAPI${String.format("%05d", i)}"
+        val referralEntity = ReferralEntityFactory().withCrn(crn).produce()
+        val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+          referralEntity,
+          referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        )
+        val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+        testDataGenerator.createReferralWithFields(referralEntity, listOf(statusHistory, cohortHistory))
+        referralRepository.findByCrn(crn).first()
+      }
+
+      val startLatch = java.util.concurrent.CountDownLatch(1)
+      val completed = java.util.concurrent.atomic.AtomicInteger(0)
+      val failures = mutableListOf<String>()
+      val previousUncaughtHandler = Thread.getDefaultUncaughtExceptionHandler()
+      Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+        failures.add("Uncaught in ${thread.name}: ${throwable::class.simpleName} - ${throwable.message}")
+      }
+      val awaitingAssessment = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription().id
+      val onProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
+      val scheduled = referralStatusDescriptionRepository.getScheduledStatusDescription().id
+      val awaitingAllocation = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription().id
+
+      // When: Spawn multiple threads making concurrent REST requests
+      val allThreads = referrals.flatMapIndexed { refIdx, referral ->
+        (0..2).map { updateIdx ->
+          kotlin.concurrent.thread {
+            try {
+              startLatch.await()
+
+              val statusSequence = listOf(scheduled, onProgramme, awaitingAllocation, awaitingAssessment)
+              val targetStatus = statusSequence[(refIdx + updateIdx) % statusSequence.size]
+
+              performRequestAndExpectStatus(
+                httpMethod = HttpMethod.POST,
+                uri = "/referral/${referral.id}/status-history",
+                body = CreateReferralStatusHistory(
+                  referralStatusDescriptionId = targetStatus,
+                  additionalDetails = "concurrent-api-test-$updateIdx",
+                ),
+                expectedResponseStatus = HttpStatus.OK.value(),
+              )
+              completed.incrementAndGet()
+            } catch (ex: Exception) {
+              failures.add("Thread ${Thread.currentThread().id} for Referral ${referral.id} failed: ${ex.message}")
+            }
+          }
+        }
+      }
+
+      // Start all threads simultaneously
+      startLatch.countDown()
+      allThreads.forEach { it.join() }
+
+      // restore previous handler
+      Thread.setDefaultUncaughtExceptionHandler(previousUncaughtHandler)
+
+      // Then: Assert no failures occurred
+      if (failures.isNotEmpty()) {
+        println("=== FAILURES DETECTED ===")
+        failures.forEach { println(it) }
+        throw AssertionError("${failures.size}/${allThreads.size} concurrent API requests failed - deadlock likely reproduced")
+      }
+
+      assertThat(completed.get()).isEqualTo(allThreads.size)
+    }
+  }
+
+  @Nested
+  @DisplayName("Multi-Endpoint Concurrent Requests (Production Deadlock Scenario)")
+  inner class MultiEndpointConcurrentRequests {
+    @Test
+    fun `should handle concurrent requests to multiple different endpoints without deadlock`() {
+      // Given: Create a programme group for allocation operations
+      val theGroup = testGroupHelper.createGroup(groupCode = "MULTI0001")
+      
+      // Create 10 referrals - 2 for each endpoint operation (to increase concurrency/contention)
+      val statusUpdateReferrals = listOf(
+        ReferralEntityFactory().withCrn("MULTIEND00001").produce(),
+        ReferralEntityFactory().withCrn("MULTIEND00002").produce(),
+      )
+      val cohortUpdateReferrals = listOf(
+        ReferralEntityFactory().withCrn("MULTIEND00003").produce(),
+        ReferralEntityFactory().withCrn("MULTIEND00004").produce(),
+      )
+      val groupAllocateReferrals = listOf(
+        ReferralEntityFactory().withCrn("MULTIEND00005").produce(),
+        ReferralEntityFactory().withCrn("MULTIEND00006").produce(),
+      )
+      val directStatusUpdateReferrals = listOf(
+        ReferralEntityFactory().withCrn("MULTIEND00007").produce(),
+        ReferralEntityFactory().withCrn("MULTIEND00008").produce(),
+      )
+      val addToGroupReferrals = listOf(
+        ReferralEntityFactory().withCrn("MULTIEND00009").produce(),
+        ReferralEntityFactory().withCrn("MULTIEND00010").produce(),
+      )
+      
+      val allReferrals = statusUpdateReferrals + cohortUpdateReferrals + groupAllocateReferrals + directStatusUpdateReferrals + addToGroupReferrals
+      allReferrals.forEach { referral ->
+        val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+          referral,
+          referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        )
+        val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).produce()
+        testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, cohortHistory))
+      }
+
+      val startLatch = java.util.concurrent.CountDownLatch(1)
+      val failures = mutableListOf<String>()
+
+      // When: Spawn 10 threads - 2 for each endpoint type, all starting simultaneously
+      // Each thread executes 5 iterations to increase lock contention
+      val statusUpdateThreads = statusUpdateReferrals.map { referral ->
+        kotlin.concurrent.thread {
+          try {
+            startLatch.await()
+            repeat(1) {
+              val onProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
+              performRequestAndExpectStatus(
+                httpMethod = HttpMethod.POST,
+                uri = "/referral/${referral.id}/status-history",
+                body = CreateReferralStatusHistory(
+                  referralStatusDescriptionId = onProgramme,
+                  additionalDetails = "multi-endpoint-status-update-iter-$it",
+                ),
+                expectedResponseStatus = HttpStatus.OK.value(),
+              )
+            }
+          } catch (ex: Exception) {
+            failures.add("Status update failed for ${referral.crn}: ${ex.javaClass.simpleName}: ${ex.message}")
+          }
+        }
+      }
+
+      val cohortUpdateThreads = cohortUpdateReferrals.map { referral ->
+        kotlin.concurrent.thread {
+          try {
+            startLatch.await()
+            repeat(1) {
+              performRequestAndExpectStatus(
+                httpMethod = HttpMethod.PUT,
+                uri = "/referral/${referral.id}/update-cohort",
+                body = UpdateCohort(OffenceCohort.SEXUAL_OFFENCE),
+                expectedResponseStatus = HttpStatus.OK.value(),
+              )
+            }
+          } catch (ex: Exception) {
+            failures.add("Cohort update failed for ${referral.crn}: ${ex.javaClass.simpleName}: ${ex.message}")
+          }
+        }
+      }
+
+      val groupAllocateThreads = groupAllocateReferrals.map { referral ->
+        kotlin.concurrent.thread {
+          try {
+            startLatch.await()
+            repeat(2) {
+              val allocateRequest = uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest(
+                additionalDetails = "multi-endpoint-group-allocate-iter-$it",
+              )
+              performRequestAndExpectStatus(
+                httpMethod = HttpMethod.POST,
+                uri = "/group/${theGroup.id}/allocate/${referral.id}",
+                body = allocateRequest,
+                expectedResponseStatus = HttpStatus.CREATED.value(),
+              )
+            }
+          } catch (ex: Exception) {
+            failures.add("Group allocate failed for ${referral.crn}: ${ex.javaClass.simpleName}: ${ex.message}")
+          }
+        }
+      }
+
+      val directStatusUpdateThreads = directStatusUpdateReferrals.map { referral ->
+        kotlin.concurrent.thread {
+          try {
+            startLatch.await()
+            repeat(2) {
+              val onProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
+              performRequestAndExpectStatus(
+                httpMethod = HttpMethod.PUT,
+                uri = "/referral/${referral.id}/update-status",
+                body = mapOf("referralStatusDescriptionId" to onProgramme),
+                expectedResponseStatus = HttpStatus.OK.value(),
+              )
+            }
+          } catch (ex: Exception) {
+            failures.add("Direct status update failed for ${referral.crn}: ${ex.javaClass.simpleName}: ${ex.message}")
+          }
+        }
+      }
+
+      val addToGroupThreads = addToGroupReferrals.map { referral ->
+        kotlin.concurrent.thread {
+          try {
+            startLatch.await()
+            repeat(2) {
+              performRequestAndExpectStatus(
+                httpMethod = HttpMethod.POST,
+                uri = "/add-to-group/${theGroup.id}/${referral.id}",
+                body = emptyMap<String, String>(),
+                expectedResponseStatus = HttpStatus.OK.value(),
+              )
+            }
+          } catch (ex: Exception) {
+            failures.add("Add to group failed for ${referral.crn}: ${ex.javaClass.simpleName}: ${ex.message}")
+          }
+        }
+      }
+
+      // Start all threads simultaneously
+      startLatch.countDown()
+      val allThreads = statusUpdateThreads + cohortUpdateThreads + groupAllocateThreads + directStatusUpdateThreads + addToGroupThreads
+      allThreads.forEach { it.join() }
+
+      // Then: Assert all operations completed successfully
+      assertThat(failures).isEmpty()
+    }
+  }
+
+  @Nested
   @DisplayName("Update cohort of referral")
   inner class UpdateReferralCohort {
     @Test
