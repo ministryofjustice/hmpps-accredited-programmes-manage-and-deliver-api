@@ -21,7 +21,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.conf
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
@@ -369,24 +368,8 @@ class ScheduleService(
     return sessions
   }
 
-  fun removeFutureSessionsForIndividual(group: ProgrammeGroupEntity, referralId: UUID) {
-    log.info("Removing future sessions for referral with id: $referralId from group with id: ${group.id}")
-    val now = LocalDateTime.now(clock)
-    val futureSessionsToDelete =
-      group.sessions.filter { session -> session.startsAt > now && session.attendees.any { it.referral.id == referralId } }
-    group.sessions.removeAll(futureSessionsToDelete.toSet())
-  }
-
   fun createNdeliusAppointmentsForSessions(attendees: List<AttendeeEntity>) {
-    val now = LocalDateTime.now(clock)
-    val futureAttendees = attendees.filter { it.session.startsAt > now }
-
-    if (futureAttendees.isEmpty()) {
-      log.info("No future appointments to create in NDelius - all sessions are in the past")
-      return
-    }
-
-    val (nDeliusAppointments, nDeliusAppointmentEntities) = futureAttendees.map { attendee ->
+    val (nDeliusAppointments, nDeliusAppointmentEntities) = attendees.map { attendee ->
       // Generate an appointment ID to be used by NDelius
       val appointmentId = UUID.randomUUID()
       val appointment = attendee.toAppointment(appointmentId)
@@ -395,9 +378,9 @@ class ScheduleService(
     }.unzip()
 
     // Extract CRNs and event numbers for diagnostic logging
-    val affectedCrns = futureAttendees.map { it.referral.crn }.distinct()
-    val affectedEventNumbers = futureAttendees.map { "${it.referral.crn}:${it.referral.eventNumber}" }.distinct()
-    val groupId = futureAttendees.firstOrNull()?.session?.programmeGroup?.id
+    val affectedCrns = attendees.map { it.referral.crn }.distinct()
+    val affectedEventNumbers = attendees.map { "${it.referral.crn}:${it.referral.eventNumber}" }.distinct()
+    val groupId = attendees.firstOrNull()?.session?.programmeGroup?.id
 
     when (
       val response =
@@ -444,7 +427,7 @@ class ScheduleService(
           ),
         )
         throw BusinessException(
-          "Failure to create appointments in Ndelius: ${response.exception.message}",
+          "Failure to create appointments in nDelius: ${response.exception.message}",
           response.exception,
         )
       }
