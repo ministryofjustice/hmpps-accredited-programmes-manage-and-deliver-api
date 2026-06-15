@@ -199,9 +199,9 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         "GROUP_THREE_CODE",
       )
       // Scenario 1: pdu not specified - should return all unique PDU names
-      assertThat(programmeGroups.probationDeliveryUnitNames).containsExactlyInAnyOrder(
-        "PDU Description",
+      assertThat(programmeGroups.probationDeliveryUnitNames).containsExactly(
         "Another PDU Description",
+        "PDU Description",
         "Test PDU 1",
       )
       // deliveryLocationNames should be null when pdu is not specified
@@ -247,9 +247,9 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         "THE_GROUP_CODE",
         "GROUP_THREE_CODE",
       )
-      assertThat(programmeGroups.probationDeliveryUnitNames).containsExactlyInAnyOrder(
-        "PDU Description",
+      assertThat(programmeGroups.probationDeliveryUnitNames).containsExactly(
         "Another PDU Description",
+        "PDU Description",
         "Test PDU 1",
       )
       assertThat(programmeGroups.deliveryLocationNames).containsExactly("Delivery Location 1", "Location One")
