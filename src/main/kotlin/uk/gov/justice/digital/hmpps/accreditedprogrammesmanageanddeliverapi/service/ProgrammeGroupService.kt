@@ -703,6 +703,7 @@ class ProgrammeGroupService(
       null
     } else {
       programmeGroupRepository.findDistinctDeliveryLocationNames(firstUserRegionDescription, pdu)
+        .sortedBy { it.lowercase() }
     }
 
     return GroupsByRegion(

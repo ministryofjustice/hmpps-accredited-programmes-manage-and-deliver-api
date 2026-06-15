@@ -25,8 +25,7 @@ interface ProgrammeGroupRepository :
     "SELECT DISTINCT p.deliveryLocationName FROM ProgrammeGroupEntity p " +
       "WHERE p.regionName = :regionName " +
       "AND p.probationDeliveryUnitName = :pdu " +
-      "AND p.deliveryLocationName IS NOT NULL " +
-      "ORDER BY LOWER(p.deliveryLocationName) ASC",
+      "AND p.deliveryLocationName IS NOT NULL",
   )
   fun findDistinctDeliveryLocationNames(regionName: String, pdu: String): List<String>
 }
