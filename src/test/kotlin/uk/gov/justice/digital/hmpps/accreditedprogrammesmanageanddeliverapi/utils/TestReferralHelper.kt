@@ -22,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusCaseRequirementOrLicenceConditionResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
@@ -181,6 +182,23 @@ class TestReferralHelper {
         .apply { regionName?.let { withRegionStrings(description = it) } }
         .produce(),
     )
+
+    // Stub requirement/licence condition validation for nDelius appointment creation
+    val validationResponse = NDeliusCaseRequirementOrLicenceConditionResponseFactory()
+      .withEventNumber(findAndReferReferralDetails.eventNumber)
+      .produce()
+    when (sourcedFrom) {
+      ReferralEntitySourcedFrom.LICENCE_CONDITION -> nDeliusApiStubs.stubSuccessfulLicenceConditionManagerResponse(
+        crn = crn,
+        licenceConditionId = findAndReferReferralDetails.sourcedFromReference,
+        licenceConditionResponse = validationResponse,
+      )
+      ReferralEntitySourcedFrom.REQUIREMENT -> nDeliusApiStubs.stubSuccessfulRequirementManagerResponse(
+        crn = crn,
+        requirementId = findAndReferReferralDetails.sourcedFromReference,
+        requirementResponse = validationResponse,
+      )
+    }
 
     // Stub auth token
     hmppsAuth.stubGrantToken()
