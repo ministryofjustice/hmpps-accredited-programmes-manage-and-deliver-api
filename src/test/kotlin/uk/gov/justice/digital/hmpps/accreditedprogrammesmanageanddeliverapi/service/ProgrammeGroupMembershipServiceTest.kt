@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import java.time.Clock
 import java.util.UUID
 
 class ProgrammeGroupMembershipServiceTest {
@@ -43,6 +44,7 @@ class ProgrammeGroupMembershipServiceTest {
       scheduleService = scheduleService,
       telemetryClient = telemetryClient,
       applicationEventPublisher = applicationEventPublisher,
+      clock = Clock.systemDefaultZone(),
     )
   }
 
