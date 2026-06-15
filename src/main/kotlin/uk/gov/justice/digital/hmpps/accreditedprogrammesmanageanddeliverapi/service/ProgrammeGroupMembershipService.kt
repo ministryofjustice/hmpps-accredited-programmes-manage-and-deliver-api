@@ -90,10 +90,28 @@ class ProgrammeGroupMembershipService(
       attendeeEntity
     }
 
-    // Create appointments in NDelius for each session object
-    scheduleService.createNdeliusAppointmentsForSessions(newAttendees)
-
+    // Save the referral first to persist group membership and status change
     val savedReferral = referralRepository.save(referral)
+
+    // Create appointments in NDelius — non-blocking so allocation still succeeds if nDelius is unavailable
+    try {
+      scheduleService.createNdeliusAppointmentsForSessions(newAttendees)
+    } catch (ex: Exception) {
+      log.error(
+        "Failed to create nDelius appointments for referral $referralId in group $groupId. " +
+          "Group allocation succeeded but appointments need manual sync. Error: ${ex.message}",
+        ex,
+      )
+      telemetryClient.logToAppInsights(
+        "Referral.allocate-to-group.ndelius-appointment-failure",
+        mapOf(
+          "activityType" to ASSIGN_REFERRAL_TO_GROUP.name,
+          "referralId" to referralId.toString(),
+          "groupId" to groupId.toString(),
+          "errorMessage" to (ex.message ?: "unknown"),
+        ),
+      )
+    }
 
     applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId))
 
