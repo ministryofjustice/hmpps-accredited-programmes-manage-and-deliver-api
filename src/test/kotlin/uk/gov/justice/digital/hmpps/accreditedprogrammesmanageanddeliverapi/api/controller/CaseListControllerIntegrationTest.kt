@@ -310,6 +310,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("hasLdc")
         assertThat(item).hasFieldOrProperty("sentenceEndDate")
         assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
+        assertThat(item).hasFieldOrProperty("statusLabelColour")
       }
       assertThat(response.otherTabTotal).isEqualTo(1)
       assertThat(response.filters).isNotNull
@@ -345,6 +346,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("hasLdc")
         assertThat(item).hasFieldOrProperty("sentenceEndDate")
         assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
+        assertThat(item).hasFieldOrProperty("statusLabelColour")
       }
       assertThat(response.otherTabTotal).isEqualTo(1)
       assertThat(response.filters).isNotNull
@@ -396,6 +398,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("hasLdc")
         assertThat(item).hasFieldOrProperty("sentenceEndDate")
         assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
+        assertThat(item).hasFieldOrProperty("statusLabelColour")
       }
       assertThat(response.otherTabTotal).isEqualTo(6)
     }
@@ -472,6 +475,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("hasLdc")
         assertThat(item).hasFieldOrProperty("sentenceEndDate")
         assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
+        assertThat(item).hasFieldOrProperty("statusLabelColour")
       }
       assertThat(response.otherTabTotal).isEqualTo(0)
     }
@@ -497,6 +501,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("hasLdc")
         assertThat(item).hasFieldOrProperty("sentenceEndDate")
         assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
+        assertThat(item).hasFieldOrProperty("statusLabelColour")
       }
       assertThat(response.otherTabTotal).isEqualTo(0)
     }
@@ -518,6 +523,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(referral.crn).isEqualTo("CRN-999999")
       assertThat(referral.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(referral.referralStatus).isEqualTo("Awaiting assessment")
+      assertThat(referral.statusLabelColour).isEqualTo("purple")
       assertThat(response.otherTabTotal).isEqualTo(0)
     }
 
