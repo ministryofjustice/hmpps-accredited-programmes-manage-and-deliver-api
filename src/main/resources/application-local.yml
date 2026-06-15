@@ -46,7 +46,7 @@ hmpps:
         queueName: hmpps_domain_events_queue
         dlqName: hmpps_domain_events_dlq
         subscribeTopicId: hmppseventtopic
-        subscribeFilter: '{"eventType":[ "interventions.community-referral.created"] }'
+        subscribeFilter: '{"eventType":[ "interventions.community-referral.created", "interventions.community-referral.imported"] }'
         asyncQueueClient: true
 
     topics:
