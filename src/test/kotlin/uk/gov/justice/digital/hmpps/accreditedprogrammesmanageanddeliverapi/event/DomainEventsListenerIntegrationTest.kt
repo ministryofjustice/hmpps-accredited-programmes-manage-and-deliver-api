@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomNumberAsInt
@@ -25,12 +26,19 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.hmpps.sqs.countMessagesOnQueue
 import java.time.Duration.ofMillis
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.UUID
 import kotlin.properties.Delegates
@@ -42,6 +50,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   lateinit var referralRepository: ReferralRepository
+
+  @Autowired
+  private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
 
   lateinit var sourceReferralId: UUID
 
@@ -123,6 +134,39 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     val eventType = "interventions.community-referral.created"
     val domainEventsMessage = DomainEventsMessageFactory()
       .withDetailUrl("/referral/$sourceReferralId")
+      .withEventType(eventType)
+      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", "X957673"))))
+      .produce()
+
+    // When
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
+    await untilCallTo {
+      messageHistoryRepository.findAll().firstOrNull()
+    } matches { it != null }
+
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(eventType)
+      assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+      )
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
+  }
+
+  @Test
+  fun `should create message history on receipt of community-referral imported message`() {
+    // Given
+    val eventType = "interventions.community-referral.imported"
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withAdditionalInformation(mapOf("REFERRAL_ID" to sourceReferralId.toString()))
       .withEventType(eventType)
       .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", "X957673"))))
       .produce()
@@ -529,5 +573,90 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     await untilCallTo {
       messageHistoryRepository.findAll()
     } matches { it?.size == 2 }
+  }
+
+  @Test
+  fun `should update referral personal details on receipt of community referral imported message`() {
+    // Given
+    val createdAt = LocalDateTime.now()
+    val referralEntity = ReferralEntityFactory()
+      .withCreatedAt(createdAt)
+      .produce()
+
+    val statusHistory = ReferralStatusHistoryEntityFactory()
+      .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
+      .produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+    val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+    testDataGenerator.createReferralWithFields(
+      referralEntity,
+      listOf(statusHistory, cohortHistory),
+    )
+
+    val secondStatus = ReferralStatusHistoryEntityFactory()
+      .withCreatedAt(LocalDateTime.of(2025, 9, 24, 16, 0))
+      .produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+      )
+
+    testDataGenerator.createReferralStatusHistory(secondStatus)
+
+    val groupCode = "AAA111"
+    val group = ProgrammeGroupFactory().withCode(groupCode).produce()
+    testDataGenerator.createGroup(group)
+    val groupMembership =
+      ProgrammeGroupMembershipFactory().withReferral(referralEntity).withProgrammeGroup(group).produce()
+    testDataGenerator.createGroupMembership(groupMembership)
+    val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+    val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+
+    nDeliusApiStubs.stubAccessCheck(granted = true, savedReferral.crn)
+    nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+    nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(savedReferral.crn, savedReferral.eventNumber)
+
+    oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
+
+    val eventType = "interventions.community-referral.imported"
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withAdditionalInformation(mapOf("REFERRAL_ID" to savedReferral.id.toString()))
+      .withEventType(eventType)
+      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", savedReferral.crn))))
+      .produce()
+
+    // When
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
+    await untilCallTo {
+      messageHistoryRepository.findAll().firstOrNull()
+    } matches { it != null }
+
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(eventType)
+      assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+      )
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
+
+    val result = referralRepository.findByCrn(referralEntity.crn).first()
+
+    // Then
+    assertThat(result.id).isEqualTo(savedReferral.id)
+    assertThat(result.crn).isEqualTo(savedReferral.crn)
+    assertThat(result.interventionName).isEqualTo(savedReferral.interventionName)
+    assertThat(result.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+    assertThat(result.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
+    assertThat(result.sex).isEqualTo(nDeliusPersonalDetails.sex.description)
   }
 }

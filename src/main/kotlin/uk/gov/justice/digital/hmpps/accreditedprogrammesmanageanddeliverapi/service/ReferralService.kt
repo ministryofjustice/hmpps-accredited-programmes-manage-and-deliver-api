@@ -89,6 +89,10 @@ class ReferralService(
   }
 
   suspend fun refreshPersonalDetailsForReferral(referralId: UUID): ReferralDetails? = coroutineScope {
+    refreshPersonalDetailsForReferral(referralId, true)
+  }
+
+  suspend fun refreshPersonalDetailsForReferral(referralId: UUID, authenticateUser: Boolean): ReferralDetails? = coroutineScope {
     val referral = referralRepository.findByIdWithMemberships(referralId) ?: return@coroutineScope null
 
     // Check overrides BEFORE calling OASys — skip PNI entirely if both are overridden
@@ -97,7 +101,13 @@ class ReferralService(
 
     val personalDetailsDeferred = async(Dispatchers.IO) {
       try {
-        userService.getPersonalDetailsByIdentifier(referral.crn)
+        if (authenticateUser) {
+          userService.getPersonalDetailsByIdentifier(referral.crn)
+        } else {
+          userService.getPersonalDetailsWithoutAuthentication(
+            referral.crn,
+          )
+        }
       } catch (ex: AccessDeniedException) {
         throw ex // Re-throw security exceptions — these must propagate as 403
       } catch (ex: Exception) {
