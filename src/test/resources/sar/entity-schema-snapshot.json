@@ -181,7 +181,8 @@
     "reportingTeam": "String",
     "sentenceEndDate": "LocalDate",
     "sentenceEndDateSource": "ReferralEntitySourcedFrom",
-    "status": "String"
+    "status": "String",
+    "statusLabelColour": "String"
   },
   "ReferralCohortHistoryEntity": {
     "cohort": "OffenceCohort",
