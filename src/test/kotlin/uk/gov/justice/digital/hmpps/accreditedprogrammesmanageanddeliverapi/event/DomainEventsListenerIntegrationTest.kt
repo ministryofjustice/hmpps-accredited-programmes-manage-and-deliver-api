@@ -166,7 +166,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     // Given
     val eventType = "interventions.community-referral.imported"
     val domainEventsMessage = DomainEventsMessageFactory()
-      .withDetailUrl("/referral/$sourceReferralId")
+      .withAdditionalInformation(mapOf("REFERRAL_ID" to sourceReferralId.toString()))
       .withEventType(eventType)
       .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", "X957673"))))
       .produce()
@@ -608,18 +608,11 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     val groupCode = "AAA111"
     val group = ProgrammeGroupFactory().withCode(groupCode).produce()
     testDataGenerator.createGroup(group)
-
     val groupMembership =
       ProgrammeGroupMembershipFactory().withReferral(referralEntity).withProgrammeGroup(group).produce()
     testDataGenerator.createGroupMembership(groupMembership)
-
     val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
-
-    println("savedReferral personName: ${savedReferral.personName}")
-
     val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
-
-    println("nDeliusPersonalDetails name: ${nDeliusPersonalDetails.name}")
 
     nDeliusApiStubs.stubAccessCheck(granted = true, savedReferral.crn)
     nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
@@ -629,7 +622,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
 
     val eventType = "interventions.community-referral.imported"
     val domainEventsMessage = DomainEventsMessageFactory()
-      .withDetailUrl("/referral/${savedReferral.id}")
+      .withAdditionalInformation(mapOf("REFERRAL_ID" to savedReferral.id.toString()))
       .withEventType(eventType)
       .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", savedReferral.crn))))
       .produce()

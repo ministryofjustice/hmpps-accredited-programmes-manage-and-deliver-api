@@ -26,15 +26,16 @@ class ReferralImportedHandler(
 
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
+    private const val ADDITIONAL_INFORMATION_REFERRAL_ID_KEY = "REFERRAL_ID"
   }
 
   fun handle(sqsMessage: SQSMessage) {
     log.info("Starting handle for messageId: ${sqsMessage.messageId}")
     try {
       val message: DomainEventsMessage = objectMapper.readValue<DomainEventsMessage>(sqsMessage.message)
-      val detailUrl =
-        message.detailUrl ?: return log.info("Detail url is null for event with messageId: ${sqsMessage.messageId}")
-      val referralId = UUID.fromString(detailUrl.split("/").last())
+      val referralId = message.additionalInformation?.get(ADDITIONAL_INFORMATION_REFERRAL_ID_KEY)?.toString()
+        ?.let { UUID.fromString(it) }
+        ?: return log.info("Referral ID is null for event with messageId: ${sqsMessage.messageId}")
       log.info("Received referral imported event for referral id: $referralId")
 
       telemetryClient.logToAppInsights(
