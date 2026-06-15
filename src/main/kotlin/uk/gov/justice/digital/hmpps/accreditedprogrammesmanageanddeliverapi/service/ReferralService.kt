@@ -203,6 +203,17 @@ class ReferralService(
   }
 
   fun createReferral(findAndReferReferralDetails: FindAndReferReferralDetails): ReferralEntity {
+    // Check referral does not already exist in our system
+    val existingReferral = referralRepository.findByCrnAndEventIdAndSourcedFrom(
+      crn = findAndReferReferralDetails.personReference,
+      eventId = findAndReferReferralDetails.sourcedFromReference,
+      sourcedFrom = findAndReferReferralDetails.sourcedFromReferenceType,
+    )
+    if (existingReferral != null) {
+      log.debug("Referral with eventId: ${findAndReferReferralDetails.sourcedFromReference}, CRN: ${findAndReferReferralDetails.personReference} and sourcedFrom: ${findAndReferReferralDetails.sourcedFromReference} already exists in our system.")
+      return existingReferral
+    }
+
     val pniScore = pniService.getPniCalculation(findAndReferReferralDetails.personReference)
     val sentenceEndDate = sentenceService.getSentenceEndDate(
       findAndReferReferralDetails.personReference,
@@ -264,8 +275,7 @@ class ReferralService(
     }
 
     log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort and Ldc status: '$hasLdc'")
-    referralRepository.save(referralEntity)
-    return getReferralById(referral.id!!)
+    return referralRepository.save(referralEntity)
   }
 
   fun getReferralById(referralId: UUID): ReferralEntity {
