@@ -66,7 +66,7 @@ data class ReferralStatusHistory(
 fun ReferralStatusHistoryEntity.toApi(): ReferralStatusHistory = ReferralStatusHistory(
   id = id!!,
   referralStatusDescriptionId = referralStatusDescription.id,
-  referralStatusDescriptionName =  StatusFormatter.formatStatus(referralStatusDescription.description),
+  referralStatusDescriptionName = StatusFormatter.formatStatus(referralStatusDescription.description),
   additionalDetails = additionalDetails,
   updatedBy = createdBy,
   updatedAt = createdAt,
