@@ -154,11 +154,7 @@ class TestReferralHelper {
     val sentenceResponse = NDeliusSentenceResponseFactory(sourcedFrom)
       .apply {
         sentenceEndDate?.let {
-          if (sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION) {
-            withLicenceExpiryDate(it)
-          } else {
-            withExpectedEndDate(it)
-          }
+          withExpectedEndDate(it)
         }
       }
       .produce()
