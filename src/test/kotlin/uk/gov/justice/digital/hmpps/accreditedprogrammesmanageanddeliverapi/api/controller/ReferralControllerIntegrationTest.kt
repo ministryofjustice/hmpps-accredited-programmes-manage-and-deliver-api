@@ -1254,7 +1254,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
                 expectedResponseStatus = HttpStatus.OK.value(),
               )
             }
-          } catch (ex: Exception) {
+          } catch (ex: Throwable) {
             failures.add("Status update failed for ${referral.crn}: ${ex.javaClass.simpleName}: ${ex.message}")
           }
         }
@@ -1272,7 +1272,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
                 expectedResponseStatus = HttpStatus.OK.value(),
               )
             }
-          } catch (ex: Exception) {
+          } catch (ex: Throwable) {
             failures.add("Cohort update failed for ${referral.crn}: ${ex.javaClass.simpleName}: ${ex.message}")
           }
         }
@@ -1293,7 +1293,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
                 expectedResponseStatus = HttpStatus.CREATED.value(),
               )
             }
-          } catch (ex: Exception) {
+          } catch (ex: Throwable) {
             failures.add("Group allocate failed for ${referral.crn}: ${ex.javaClass.simpleName}: ${ex.message}")
           }
         }
@@ -1330,7 +1330,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
                 expectedResponseStatus = HttpStatus.OK.value(),
               )
             }
-          } catch (ex: Exception) {
+          } catch (ex: Throwable) {
             failures.add("Add to group failed for ${referral.crn}: ${ex.javaClass.simpleName}: ${ex.message}")
           }
         }
