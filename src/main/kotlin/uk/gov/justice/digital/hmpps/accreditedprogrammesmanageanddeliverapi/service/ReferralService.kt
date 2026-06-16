@@ -52,6 +52,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.StatusFormatter
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -89,6 +90,10 @@ class ReferralService(
   }
 
   suspend fun refreshPersonalDetailsForReferral(referralId: UUID): ReferralDetails? = coroutineScope {
+    refreshPersonalDetailsForReferral(referralId, true)
+  }
+
+  suspend fun refreshPersonalDetailsForReferral(referralId: UUID, authenticateUser: Boolean): ReferralDetails? = coroutineScope {
     val referral = referralRepository.findByIdWithMemberships(referralId) ?: return@coroutineScope null
 
     // Check overrides BEFORE calling OASys — skip PNI entirely if both are overridden
@@ -97,7 +102,13 @@ class ReferralService(
 
     val personalDetailsDeferred = async(Dispatchers.IO) {
       try {
-        userService.getPersonalDetailsByIdentifier(referral.crn)
+        if (authenticateUser) {
+          userService.getPersonalDetailsByIdentifier(referral.crn)
+        } else {
+          userService.getPersonalDetailsWithoutAuthentication(
+            referral.crn,
+          )
+        }
       } catch (ex: AccessDeniedException) {
         throw ex // Re-throw security exceptions — these must propagate as 403
       } catch (ex: Exception) {
@@ -479,7 +490,7 @@ class ReferralService(
       incomingReferralStatusDescription.id,
     )
 
-    var message = "${referral.personName}'s referral status is now ${incomingReferralStatusDescription.description}."
+    var message = "${referral.personName}'s referral status is now ${StatusFormatter.formatStatus(incomingReferralStatusDescription.description)}."
     val activeGroupMembership = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
 
     if (
@@ -493,7 +504,7 @@ class ReferralService(
       )
       if (incomingReferralStatusDescription.description != "Programme complete") {
         message =
-          "${referral.personName}'s referral status is now ${incomingReferralStatusDescription.description}. They have been removed from group ${activeGroupMembership.programmeGroup.code}"
+          "${referral.personName}'s referral status is now ${StatusFormatter.formatStatus(incomingReferralStatusDescription.description)}. They have been removed from group ${activeGroupMembership.programmeGroup.code}"
       }
     }
 

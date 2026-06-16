@@ -28,6 +28,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import java.time.Clock
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -42,6 +43,7 @@ class ProgrammeGroupMembershipService(
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val telemetryClient: TelemetryClient,
   private val applicationEventPublisher: ApplicationEventPublisher,
+  private val clock: Clock,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -99,8 +101,9 @@ class ProgrammeGroupMembershipService(
       attendeeEntity
     }
 
-    // Create appointments in NDelius for each session object
-    scheduleService.createNdeliusAppointmentsForSessions(newAttendees)
+    // Create appointments in NDelius for each session object for future session only
+    val now = LocalDateTime.now(clock)
+    scheduleService.createNdeliusAppointmentsForSessions(newAttendees.filter { it.session.startsAt > now })
 
     val savedReferral = referralRepository.save(referral)
 
