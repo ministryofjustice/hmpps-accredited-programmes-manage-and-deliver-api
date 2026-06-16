@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusTransitionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.StatusFormatter
 import java.time.LocalDate
 import java.util.UUID
 
@@ -120,7 +121,7 @@ fun ProgrammeGroupMembershipEntity.toCurrentGroupDetails() = CurrentGroupDetails
 
 fun ReferralStatusHistoryEntity.toCurrentStatus() = CurrentStatus(
   statusDescriptionId = referralStatusDescription.id,
-  title = referralStatusDescription.description,
+  title = StatusFormatter.formatStatus(referralStatusDescription.description),
   tagColour = referralStatusDescription.labelColour,
   updatedByName = createdBy,
   createdAt = createdAt.toLocalDate(),
