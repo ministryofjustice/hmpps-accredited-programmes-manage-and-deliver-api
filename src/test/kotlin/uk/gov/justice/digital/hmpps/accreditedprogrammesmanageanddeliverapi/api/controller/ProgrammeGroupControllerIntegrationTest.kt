@@ -3552,6 +3552,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
       val group = testGroupHelper.createGroup()
+      val newStartDate = LocalDate.now().plusDays(10)
+      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
 
       // When
       val response = performRequestAndExpectStatusWithBody(
