@@ -2062,9 +2062,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   inner class GetPduInUserRegion {
     @Test
     fun `return 200 and list of pdus ordered by description when exist in region`() {
-      val pduZ = NDeliusPduWithTeamFactory().produce(code = "P3", description = "Zulu PDU")
-      val pduA = NDeliusPduWithTeamFactory().produce(code = "P1", description = "Alpha PDU")
-      val pduM = NDeliusPduWithTeamFactory().produce(code = "P2", description = "Mike PDU")
+      val pduZ = NDeliusPduWithTeamFactory().produce(code = "P3", description = "East and West Lincolnshire")
+      val pduA = NDeliusPduWithTeamFactory().produce(code = "P1", description = "All NPS North East")
+      val pduM = NDeliusPduWithTeamFactory().produce(code = "P2", description = "Bradford, Calderdale")
       val members = NDeliusRegionWithMembersFactory().produce(pdus = listOf(pduZ, pduA, pduM))
 
       nDeliusApiStubs.stubRegionWithMembersResponse("REGION001", members)
@@ -2075,7 +2075,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response).hasSize(3)
-      assertThat(response.map { it.description }).containsExactly("Alpha PDU", "Mike PDU", "Zulu PDU")
+      assertThat(response.map { it.description }).containsExactly("All NPS North East", "Bradford, Calderdale", "East and West Lincolnshire" )
       assertThat(response.map { it.code }).containsExactly("P1", "P2", "P3")
     }
 
@@ -2119,9 +2119,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `return 200 and list of office locations ordered by description when exist in PDU`() {
       val officeLocations =
         listOf(
-          CodeDescription("O3", "Zulu Office"),
-          CodeDescription("O1", "Alpha Office"),
-          CodeDescription("O2", "Mike Office"),
+          CodeDescription("O3", "East and West Lincolnshire"),
+          CodeDescription("O1", "All NPS North East"),
+          CodeDescription("O2", "Bradford, Calderdale"),
         )
       val pdu = NDeliusApiProbationDeliveryUnitWithOfficeLocationsFactory().produce(officeLocations = officeLocations)
       nDeliusApiStubs.stubRegionPduOfficeLocationsResponse(pdu.code, pdu)
@@ -2132,7 +2132,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response).hasSize(3)
-      assertThat(response.map { it.description }).containsExactly("Alpha Office", "Mike Office", "Zulu Office")
+      assertThat(response.map { it.description }).containsExactly("All NPS North East", "Bradford, Calderdale", "East and West Lincolnshire")
       assertThat(response.map { it.code }).containsExactly("O1", "O2", "O3")
     }
 
