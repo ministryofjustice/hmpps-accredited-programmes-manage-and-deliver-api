@@ -444,7 +444,7 @@ class SessionServiceTest {
     service.rescheduleSessions(sessionId, request)
 
     // Then
-    verify(exactly = 2) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+    verify(exactly = 1) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
     verify { telemetryClient.logToAppInsights(any(), any()) }
   }
 

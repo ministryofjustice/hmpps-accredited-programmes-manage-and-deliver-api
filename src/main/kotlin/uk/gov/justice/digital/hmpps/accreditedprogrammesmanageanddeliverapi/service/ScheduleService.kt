@@ -473,9 +473,36 @@ class ScheduleService(
     val nextDate: LocalDate,
   )
 
-  private fun englandAndWalesHolidayDates(): Set<LocalDate> = bankHolidayRepository.findAll()
+  fun englandAndWalesHolidayDates(): Set<LocalDate> = bankHolidayRepository.findAll()
     .map { it.holidayDate }
     .toSet()
+
+  fun generateScheduleDates(
+    programmeGroupSlots: Collection<ProgrammeGroupSessionSlotEntity>,
+    initialStartDate: LocalDate,
+    sessionCount: Int,
+    bankHolidays: Set<LocalDate>,
+    durationMinutes: Int,
+  ): List<Pair<LocalDateTime, LocalDateTime>> {
+    val slotQueue = buildSlotQueue(bankHolidays, programmeGroupSlots, initialStartDate)
+    val schedule = mutableListOf<Pair<LocalDateTime, LocalDateTime>>()
+
+    val firstSlot = slotQueue.poll()
+    val nextDate = findNextValidDate(bankHolidays, firstSlot.nextDate.plusDays(1), firstSlot.slot)
+    slotQueue.add(firstSlot.copy(nextDate = nextDate))
+
+    repeat(sessionCount) {
+      val slotInstance = slotQueue.poll()
+      val startsAt = slotInstance.nextDate.atTime(slotInstance.slot.startTime)
+      val endsAt = startsAt.plusMinutes(durationMinutes.toLong())
+      schedule.add(startsAt to endsAt)
+
+      val nextDate = findNextValidDate(bankHolidays, slotInstance.nextDate.plusDays(1), slotInstance.slot)
+      slotQueue.add(slotInstance.copy(nextDate = nextDate))
+    }
+
+    return schedule
+  }
 
   private fun englandAndWalesHolidayDatesFromApi(): Set<LocalDate> = when (val response = govUkApiClient.getHolidays()) {
     is ClientResult.Failure.StatusCode -> {
