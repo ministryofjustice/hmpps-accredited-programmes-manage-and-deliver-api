@@ -240,7 +240,8 @@
     "pduName": "String",
     "referral": "ReferralEntity",
     "regionName": "String",
-    "reportingTeam": "String"
+    "reportingTeam": "String",
+    "updatedAt": "LocalDateTime"
   },
   "ReferralStatusDescriptionEntity": {
     "createdAt": "LocalDateTime",
