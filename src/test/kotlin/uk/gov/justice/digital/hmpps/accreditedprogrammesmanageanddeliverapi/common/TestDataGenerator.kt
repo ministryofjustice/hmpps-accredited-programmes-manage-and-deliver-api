@@ -211,6 +211,7 @@ class TestDataGenerator {
     sessions: MutableSet<SessionEntity> = mutableSetOf(),
   ): ProgrammeGroupEntity {
     entityManager.persist(group)
+    group.programmeGroupSessionSlots.forEach { entityManager.persist(it) }
     sessions.forEach { entityManager.persist(it) }
     return group
   }

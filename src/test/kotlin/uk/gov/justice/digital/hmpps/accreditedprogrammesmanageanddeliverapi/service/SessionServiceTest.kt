@@ -36,6 +36,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceNDeliusOutcomeEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendeeFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AccreditedProgrammeTemplateEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
@@ -47,10 +48,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestBankHolidayHelper
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Optional
 import java.util.UUID
+import kotlin.collections.emptyList
 
 class SessionServiceTest {
   private val sessionRepository = mockk<SessionRepository>()
@@ -67,12 +70,12 @@ class SessionServiceTest {
   private val userService = mockk<UserService>()
   private val regionService = mockk<RegionService>()
   private val moduleRepository = mockk<ModuleRepository>()
-  private lateinit var service: SessionService
+  private lateinit var sessionService: SessionService
   private lateinit var sessionAttendanceTypeEntities: List<SessionAttendanceNDeliusOutcomeEntity>
 
   @BeforeEach
   fun setup() {
-    service = SessionService(
+    sessionService = SessionService(
       sessionRepository,
       scheduleService,
       programmeGroupMembershipRepository,
@@ -104,6 +107,9 @@ class SessionServiceTest {
         .withCompliant(false)
         .produce(),
     )
+
+    every { scheduleService.englandAndWalesHolidayDates() } returns TestBankHolidayHelper().getBankHolidayDates()
+    every { moduleRepository.findByAccreditedProgrammeTemplateId(any()) } returns mutableListOf(ModuleEntityFactory().withId(UUID.randomUUID()).produce())
   }
 
   @Test
@@ -140,7 +146,7 @@ class SessionServiceTest {
     every { scheduleService.removeNDeliusAppointments(any(), any()) } returns Unit
 
     // When
-    val result = service.deleteSession(groupId)
+    val result = sessionService.deleteSession(groupId)
 
     // Then
     assertThat(result).isNotNull
@@ -182,7 +188,7 @@ class SessionServiceTest {
     every { scheduleService.removeNDeliusAppointments(any(), any()) } returns Unit
 
     // When
-    val result = service.deleteSession(groupId)
+    val result = sessionService.deleteSession(groupId)
 
     // Then
     assertThat(result).isNotNull
@@ -224,7 +230,7 @@ class SessionServiceTest {
     every { scheduleService.removeNDeliusAppointments(any(), any()) } returns Unit
 
     // When
-    val result = service.deleteSession(groupId)
+    val result = sessionService.deleteSession(groupId)
 
     // Then
     assertThat(result).isNotNull
@@ -256,7 +262,7 @@ class SessionServiceTest {
     every { sessionRepository.save(session) } returns session
 
     // When
-    val result = service.updateSessionAttendees(sessionId, referralIds)
+    val result = sessionService.updateSessionAttendees(sessionId, referralIds)
 
     // Then
     assertThat(result).isEqualTo("John Doe, Jane Smith have been added to this session.")
@@ -290,7 +296,7 @@ class SessionServiceTest {
     every { sessionRepository.save(session) } returns session
 
     // When
-    val result = service.updateSessionAttendees(sessionId, referralIds)
+    val result = sessionService.updateSessionAttendees(sessionId, referralIds)
 
     // Then
     assertThat(result).isEqualTo("John Doe has been removed from this session.")
@@ -323,7 +329,7 @@ class SessionServiceTest {
     every { sessionRepository.save(session) } returns session
 
     // When
-    val result = service.updateSessionAttendees(sessionId, referralIds)
+    val result = sessionService.updateSessionAttendees(sessionId, referralIds)
 
     // Then
     assertThat(result).isEqualTo("Jane Smith has been added to this session. John Doe has been removed from this session.")
@@ -369,7 +375,7 @@ class SessionServiceTest {
     every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
-    service.rescheduleSessions(sessionId, request)
+    sessionService.rescheduleSessions(sessionId, request)
 
     // Then
     verify { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
@@ -388,7 +394,10 @@ class SessionServiceTest {
     )
 
     val facilitator = FacilitatorEntityFactory().produce()
-    val group = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
+    val group = ProgrammeGroupFactory()
+      .withTreatmentManager(facilitator)
+      .withAccreditedProgrammeTemplate(AccreditedProgrammeTemplateEntityFactory().withId(UUID.randomUUID()).produce())
+      .produce()
     val template1 = ModuleSessionTemplateEntityFactory()
       .withName("session 1")
       .withSessionNumber(1)
@@ -442,12 +451,15 @@ class SessionServiceTest {
       body = Unit,
     )
     every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { scheduleService.generateScheduleDates(any(), any(), any(), any(), any()) } returns listOf(
+      Pair(session2Start, session2Start.plusHours(1)),
+    )
 
     // When
-    service.rescheduleSessions(sessionId, request)
+    sessionService.rescheduleSessions(sessionId, request)
 
     // Then
-    verify(exactly = 2) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+    verify(exactly = 1) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
     verify { telemetryClient.logToAppInsights(any(), any()) }
   }
 
@@ -506,7 +518,7 @@ class SessionServiceTest {
     every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
-    val result = service.saveSessionAttendance(sessionId, sessionAttendance)
+    val result = sessionService.saveSessionAttendance(sessionId, sessionAttendance)
 
     // Then
     assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
@@ -586,7 +598,7 @@ class SessionServiceTest {
     every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
-    service.saveSessionAttendance(sessionId, sessionAttendance)
+    sessionService.saveSessionAttendance(sessionId, sessionAttendance)
 
     // Then
     verify { nDeliusIntegrationApiClient.updateAppointmentsInDelius(match { it.appointments.any { app -> app.notes == sessionNotes && app.reference == ndeliusAppointmentId } }) }
@@ -648,7 +660,7 @@ class SessionServiceTest {
     every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
-    service.saveSessionAttendance(sessionId, sessionAttendance)
+    sessionService.saveSessionAttendance(sessionId, sessionAttendance)
 
     // Then
     verify(exactly = 0) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
@@ -666,7 +678,7 @@ class SessionServiceTest {
 
     // When
     val exception = assertThrows<NotFoundException> {
-      service.saveSessionAttendance(sessionId, sessionAttendance)
+      sessionService.saveSessionAttendance(sessionId, sessionAttendance)
     }
 
     // Then
@@ -724,7 +736,7 @@ class SessionServiceTest {
 
     // When
     val exception = assertThrows<NotFoundException> {
-      service.saveSessionAttendance(sessionId, sessionAttendance)
+      sessionService.saveSessionAttendance(sessionId, sessionAttendance)
     }
 
     // Then
@@ -775,7 +787,7 @@ class SessionServiceTest {
     // When
     val exception =
       assertThrows<uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException> {
-        service.saveSessionAttendance(sessionId, sessionAttendance)
+        sessionService.saveSessionAttendance(sessionId, sessionAttendance)
       }
 
     // Then
@@ -824,7 +836,7 @@ class SessionServiceTest {
     every { sessionAttendanceOutcomeTypeRepository.findAll() } returns sessionAttendanceTypeEntities
 
     // When
-    val result = service.getRecordAttendanceBySessionId(sessionId, listOf(referralId))
+    val result = sessionService.getRecordAttendanceBySessionId(sessionId, listOf(referralId))
 
     // Then
     assertThat(result).isNotNull()
@@ -895,7 +907,7 @@ class SessionServiceTest {
     every { sessionAttendanceOutcomeTypeRepository.findAll() } returns sessionAttendanceTypeEntities
 
     // When
-    val result = service.getRecordAttendanceBySessionId(sessionId, null)
+    val result = sessionService.getRecordAttendanceBySessionId(sessionId, null)
 
     // Then
     assertThat(result).isNotNull()
@@ -956,7 +968,7 @@ class SessionServiceTest {
     every { sessionAttendanceOutcomeTypeRepository.findAll() } returns sessionAttendanceTypeEntities
 
     // When
-    val result = service.getRecordAttendanceBySessionId(sessionId, null)
+    val result = sessionService.getRecordAttendanceBySessionId(sessionId, null)
 
     // Then
     assertThat(result).isNotNull()
@@ -1002,7 +1014,7 @@ class SessionServiceTest {
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
 
     // When
-    val result = service.getRecordAttendanceBySessionId(sessionId, null)
+    val result = sessionService.getRecordAttendanceBySessionId(sessionId, null)
 
     // Then
     assertThat(result).isNotNull()
@@ -1020,7 +1032,7 @@ class SessionServiceTest {
 
     // When
     val exception = assertThrows<NotFoundException> {
-      service.getRecordAttendanceBySessionId(sessionId, null)
+      sessionService.getRecordAttendanceBySessionId(sessionId, null)
     }
 
     // Then
@@ -1083,7 +1095,7 @@ class SessionServiceTest {
     every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
-    val result = service.saveSessionAttendance(sessionId, sessionAttendance)
+    val result = sessionService.saveSessionAttendance(sessionId, sessionAttendance)
 
     // Then
     assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
@@ -1144,7 +1156,7 @@ class SessionServiceTest {
     every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
-    service.saveSessionAttendance(sessionId, sessionAttendance)
+    sessionService.saveSessionAttendance(sessionId, sessionAttendance)
 
     // Then
     verify(exactly = 0) { referralStatusService.checkAndPublishCompletionEvent(any()) }
@@ -1204,7 +1216,7 @@ class SessionServiceTest {
     every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
-    service.saveSessionAttendance(sessionId, sessionAttendance)
+    sessionService.saveSessionAttendance(sessionId, sessionAttendance)
 
     // Then
     verify(exactly = 0) { referralStatusService.checkAndPublishCompletionEvent(any()) }
@@ -1274,7 +1286,7 @@ class SessionServiceTest {
     every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
-    service.saveSessionAttendance(sessionId, sessionAttendance)
+    sessionService.saveSessionAttendance(sessionId, sessionAttendance)
 
     // Then
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId1) }
