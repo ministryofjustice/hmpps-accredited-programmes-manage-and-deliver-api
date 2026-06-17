@@ -50,6 +50,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay
@@ -89,6 +90,10 @@ class ReferralService(
   }
 
   suspend fun refreshPersonalDetailsForReferral(referralId: UUID): ReferralDetails? = coroutineScope {
+    refreshPersonalDetailsForReferral(referralId, true)
+  }
+
+  suspend fun refreshPersonalDetailsForReferral(referralId: UUID, authenticateUser: Boolean): ReferralDetails? = coroutineScope {
     val referral = referralRepository.findByIdWithMemberships(referralId) ?: return@coroutineScope null
 
     // Check overrides BEFORE calling OASys — skip PNI entirely if both are overridden
@@ -97,7 +102,13 @@ class ReferralService(
 
     val personalDetailsDeferred = async(Dispatchers.IO) {
       try {
-        userService.getPersonalDetailsByIdentifier(referral.crn)
+        if (authenticateUser) {
+          userService.getPersonalDetailsByIdentifier(referral.crn)
+        } else {
+          userService.getPersonalDetailsWithoutAuthentication(
+            referral.crn,
+          )
+        }
       } catch (ex: AccessDeniedException) {
         throw ex // Re-throw security exceptions — these must propagate as 403
       } catch (ex: Exception) {
@@ -193,6 +204,17 @@ class ReferralService(
   }
 
   fun createReferral(findAndReferReferralDetails: FindAndReferReferralDetails): ReferralEntity {
+    // Check referral does not already exist in our system
+    val existingReferral = referralRepository.findByCrnAndEventIdAndSourcedFrom(
+      crn = findAndReferReferralDetails.personReference,
+      eventId = findAndReferReferralDetails.sourcedFromReference,
+      sourcedFrom = findAndReferReferralDetails.sourcedFromReferenceType,
+    )
+    if (existingReferral != null) {
+      log.debug("Referral with eventId: ${findAndReferReferralDetails.sourcedFromReference}, CRN: ${findAndReferReferralDetails.personReference} and sourcedFrom: ${findAndReferReferralDetails.sourcedFromReference} already exists in our system.")
+      return existingReferral
+    }
+
     val pniScore = pniService.getPniCalculation(findAndReferReferralDetails.personReference)
     val sentenceEndDate = sentenceService.getSentenceEndDate(
       findAndReferReferralDetails.personReference,
@@ -254,8 +276,7 @@ class ReferralService(
     }
 
     log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort and Ldc status: '$hasLdc'")
-    referralRepository.save(referralEntity)
-    return getReferralById(referral.id!!)
+    return referralRepository.save(referralEntity)
   }
 
   fun getReferralById(referralId: UUID): ReferralEntity {
@@ -469,7 +490,7 @@ class ReferralService(
       incomingReferralStatusDescription.id,
     )
 
-    var message = "${referral.personName}'s referral status is now ${incomingReferralStatusDescription.description}."
+    var message = "${referral.personName}'s referral status is now ${ReferralStatusUtils.formatStatus(incomingReferralStatusDescription.description)}."
     val activeGroupMembership = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
 
     if (
@@ -483,7 +504,7 @@ class ReferralService(
       )
       if (incomingReferralStatusDescription.description != "Programme complete") {
         message =
-          "${referral.personName}'s referral status is now ${incomingReferralStatusDescription.description}. They have been removed from group ${activeGroupMembership.programmeGroup.code}"
+          "${referral.personName}'s referral status is now ${ReferralStatusUtils.formatStatus(incomingReferralStatusDescription.description)}. They have been removed from group ${activeGroupMembership.programmeGroup.code}"
       }
     }
 

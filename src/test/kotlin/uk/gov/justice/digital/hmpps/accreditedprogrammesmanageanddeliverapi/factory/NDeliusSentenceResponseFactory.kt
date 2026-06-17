@@ -11,13 +11,11 @@ import java.time.LocalDate
 class NDeliusSentenceResponseFactory(sourcedFrom: ReferralEntitySourcedFrom? = null) {
   private var description: String? = randomSentence(wordRange = 2..5)
   private var startDate: LocalDate = LocalDate.now().minusYears(1)
-  private var expectedEndDate: LocalDate? =
-    if (sourcedFrom === ReferralEntitySourcedFrom.REQUIREMENT || sourcedFrom == null) {
-      LocalDate.now()
-        .plusYears(2)
-    } else {
-      null
-    }
+  private var expectedEndDate: LocalDate? = LocalDate.now().plusYears(2)
+
+  // licenceExpiryDate is still controlled by sourcedFrom because the SentenceInformation display model
+  // uses it to calculate postSentenceSupervisionStartDate (licenceExpiryDate + 1 day).
+  // It is NOT used for sentence end date — both REQUIREMENT and LICENCE_CONDITION use expectedEndDate.
   private var licenceExpiryDate: LocalDate? =
     if (sourcedFrom === ReferralEntitySourcedFrom.LICENCE_CONDITION) LocalDate.now().plusYears(2) else null
   private var postSentenceSupervisionEndDate: LocalDate? = LocalDate.now().plusYears(3)

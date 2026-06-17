@@ -14,6 +14,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.RiskScoreLevel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomNumberAsInt
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
@@ -21,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusCaseRequirementOrLicenceConditionResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
@@ -113,6 +115,7 @@ class TestReferralHelper {
     cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE,
     dateOfBirth: LocalDate? = null,
     sentenceEndDate: LocalDate? = null,
+    sourcedFromReference: String = randomNumberAsInt(11).toString(),
   ): ReferralEntity {
     val findAndReferReferralDetails = FindAndReferReferralDetailsFactory()
       .withInterventionName("Test Intervention")
@@ -121,7 +124,7 @@ class TestReferralHelper {
       .withPersonReference(crn)
       .withPersonReferenceType(PersonReferenceType.CRN)
       .withSourcedFromReferenceType(sourcedFrom)
-      .withSourcedFromReference("2500876919")
+      .withSourcedFromReference(sourcedFromReference)
       .withEventNumber(1)
       .produce()
 
@@ -151,11 +154,7 @@ class TestReferralHelper {
     val sentenceResponse = NDeliusSentenceResponseFactory(sourcedFrom)
       .apply {
         sentenceEndDate?.let {
-          if (sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION) {
-            withLicenceExpiryDate(it)
-          } else {
-            withExpectedEndDate(it)
-          }
+          withExpectedEndDate(it)
         }
       }
       .produce()
@@ -179,6 +178,23 @@ class TestReferralHelper {
         .apply { regionName?.let { withRegionStrings(description = it) } }
         .produce(),
     )
+
+    // Stub requirement/licence condition validation for nDelius appointment creation
+    val validationResponse = NDeliusCaseRequirementOrLicenceConditionResponseFactory()
+      .withEventNumber(findAndReferReferralDetails.eventNumber)
+      .produce()
+    when (sourcedFrom) {
+      ReferralEntitySourcedFrom.LICENCE_CONDITION -> nDeliusApiStubs.stubSuccessfulLicenceConditionManagerResponse(
+        crn = crn,
+        licenceConditionId = findAndReferReferralDetails.sourcedFromReference,
+        licenceConditionResponse = validationResponse,
+      )
+      ReferralEntitySourcedFrom.REQUIREMENT -> nDeliusApiStubs.stubSuccessfulRequirementManagerResponse(
+        crn = crn,
+        requirementId = findAndReferReferralDetails.sourcedFromReference,
+        requirementResponse = validationResponse,
+      )
+    }
 
     // Stub auth token
     hmppsAuth.stubGrantToken()
@@ -260,7 +276,10 @@ class TestReferralHelper {
    * @param statusEntity The status to set. If null, defaults to AWAITING_ALLOCATION status.
    * @return The created and updated [ReferralEntity]
    */
-  fun createReferralAndUpdateStatus(statusEntity: ReferralStatusDescriptionEntity? = null, personName: String? = null): ReferralEntity {
+  fun createReferralAndUpdateStatus(
+    statusEntity: ReferralStatusDescriptionEntity? = null,
+    personName: String? = null,
+  ): ReferralEntity {
     val status = statusEntity ?: referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
     val referral = if (personName != null) createReferral(personName = personName) else createReferral()
     referralService.updateStatus(referral, status.id, null, "AUTH_USER")

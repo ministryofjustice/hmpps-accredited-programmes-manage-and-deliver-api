@@ -46,30 +46,32 @@ class UserService(
       )
     }
 
-    return when (val result = nDeliusIntegrationApiClient.getPersonalDetails(identifier)) {
-      is ClientResult.Success -> {
-        telemetryClient.logToAppInsights(
-          "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.success",
-          mapOf(
-            "integrationActionType" to GET_PERSONAL_DETAILS_N_DELIUS.name,
-            "outcome" to "success",
-          ),
-        )
+    return getPersonalDetailsWithoutAuthentication(identifier)
+  }
 
-        result.body
-      }
+  fun getPersonalDetailsWithoutAuthentication(identifier: String): NDeliusPersonalDetails = when (val result = nDeliusIntegrationApiClient.getPersonalDetails(identifier)) {
+    is ClientResult.Success -> {
+      telemetryClient.logToAppInsights(
+        "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.success",
+        mapOf(
+          "integrationActionType" to GET_PERSONAL_DETAILS_N_DELIUS.name,
+          "outcome" to "success",
+        ),
+      )
 
-      is ClientResult.Failure -> {
-        telemetryClient.logToAppInsights(
-          "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.failure",
-          mapOf(
-            "integrationActionType" to GET_PERSONAL_DETAILS_N_DELIUS.name,
-            "outcome" to "failure",
-          ),
-        )
+      result.body
+    }
 
-        result.throwException()
-      }
+    is ClientResult.Failure -> {
+      telemetryClient.logToAppInsights(
+        "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.failure",
+        mapOf(
+          "integrationActionType" to GET_PERSONAL_DETAILS_N_DELIUS.name,
+          "outcome" to "failure",
+        ),
+      )
+
+      result.throwException()
     }
   }
 

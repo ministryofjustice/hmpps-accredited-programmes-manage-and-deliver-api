@@ -21,7 +21,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.conf
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
@@ -369,24 +368,8 @@ class ScheduleService(
     return sessions
   }
 
-  fun removeFutureSessionsForIndividual(group: ProgrammeGroupEntity, referralId: UUID) {
-    log.info("Removing future sessions for referral with id: $referralId from group with id: ${group.id}")
-    val now = LocalDateTime.now(clock)
-    val futureSessionsToDelete =
-      group.sessions.filter { session -> session.startsAt > now && session.attendees.any { it.referral.id == referralId } }
-    group.sessions.removeAll(futureSessionsToDelete.toSet())
-  }
-
   fun createNdeliusAppointmentsForSessions(attendees: List<AttendeeEntity>) {
-    val now = LocalDateTime.now(clock)
-    val futureAttendees = attendees.filter { it.session.startsAt > now }
-
-    if (futureAttendees.isEmpty()) {
-      log.info("No future appointments to create in NDelius - all sessions are in the past")
-      return
-    }
-
-    val (nDeliusAppointments, nDeliusAppointmentEntities) = futureAttendees.map { attendee ->
+    val (nDeliusAppointments, nDeliusAppointmentEntities) = attendees.map { attendee ->
       // Generate an appointment ID to be used by NDelius
       val appointmentId = UUID.randomUUID()
       val appointment = attendee.toAppointment(appointmentId)
@@ -394,17 +377,32 @@ class ScheduleService(
       appointment to appointmentEntity
     }.unzip()
 
+    // Extract CRNs and event numbers for diagnostic logging
+    val affectedCrns = attendees.map { it.referral.crn }.distinct()
+    val affectedEventNumbers = attendees.map { "${it.referral.crn}:${it.referral.eventNumber}" }.distinct()
+    val groupId = attendees.firstOrNull()?.session?.programmeGroup?.id
+
     when (
       val response =
         nDeliusIntegrationApiClient.createAppointmentsInDelius(CreateAppointmentRequest(nDeliusAppointments))
     ) {
       is ClientResult.Failure.StatusCode -> {
-        log.error("Failure to create appointments with reason: ${response.getErrorMessage()}")
+        log.error(
+          "Failure to create nDelius appointments — status: ${response.status}, " +
+            "path: ${response.path}, groupId: $groupId, " +
+            "CRNs: $affectedCrns, eventNumbers: $affectedEventNumbers, " +
+            "responseBody: ${response.body}",
+        )
         telemetryClient.logToAppInsights(
           "${CREATE_APPOINTMENT_N_DELIUS.eventName}.failure",
           mapOf(
             "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
             "outcome" to "failure",
+            "statusCode" to response.status.toString(),
+            "crns" to affectedCrns.joinToString(","),
+            "eventNumbers" to affectedEventNumbers.joinToString(","),
+            "groupId" to (groupId?.toString() ?: ""),
+            "responseBody" to (response.body?.take(500) ?: ""),
           ),
         )
         throw BusinessException("Failure to create appointments", response.toException())
@@ -412,7 +410,9 @@ class ScheduleService(
 
       is ClientResult.Failure.Other -> {
         log.error(
-          "Failure to create appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
+          "Failure to create nDelius appointments — service: ${response.serviceName}, " +
+            "groupId: $groupId, CRNs: $affectedCrns, eventNumbers: $affectedEventNumbers, " +
+            "exception: ${response.exception.message}",
           response.exception,
         )
         telemetryClient.logToAppInsights(
@@ -420,21 +420,27 @@ class ScheduleService(
           mapOf(
             "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
             "outcome" to "failure",
+            "crns" to affectedCrns.joinToString(","),
+            "eventNumbers" to affectedEventNumbers.joinToString(","),
+            "groupId" to (groupId?.toString() ?: ""),
+            "errorMessage" to (response.exception.message ?: "unknown"),
           ),
         )
         throw BusinessException(
-          "Failure to create appointments in Ndelius: ${response.exception.message}",
+          "Failure to create appointments in nDelius: ${response.exception.message}",
           response.exception,
         )
       }
 
       is ClientResult.Success -> {
-        log.info("${nDeliusAppointments.size} appointments created in Ndelius for group with id: ${nDeliusAppointmentEntities.first().session.programmeGroup.id}")
+        log.info("${nDeliusAppointments.size} appointments created in nDelius for groupId: $groupId, CRNs: $affectedCrns")
         telemetryClient.logToAppInsights(
           "${CREATE_APPOINTMENT_N_DELIUS.eventName}.success",
           mapOf(
             "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
             "outcome" to "success",
+            "appointmentCount" to nDeliusAppointments.size.toString(),
+            "groupId" to (groupId?.toString() ?: ""),
           ),
         )
 

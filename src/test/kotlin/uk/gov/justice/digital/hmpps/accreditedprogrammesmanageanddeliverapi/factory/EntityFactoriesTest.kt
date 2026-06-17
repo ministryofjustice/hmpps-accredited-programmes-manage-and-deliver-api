@@ -218,7 +218,7 @@ class EntityFactoriesTest {
 
     assertThat(sentenceResponse.description).isNotNull()
     assertThat(sentenceResponse.startDate).isNotNull()
-    assertThat(sentenceResponse.expectedEndDate).isNull()
+    assertThat(sentenceResponse.expectedEndDate).isNotNull()
     assertThat(sentenceResponse.licenceExpiryDate).isNotNull()
     assertThat(sentenceResponse.postSentenceSupervisionEndDate).isNotNull()
     assertThat(sentenceResponse.twoThirdsSupervisionDate).isNotNull()

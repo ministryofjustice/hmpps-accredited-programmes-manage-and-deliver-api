@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.eve
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.microsoft.applicationinsights.TelemetryClient
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -16,7 +17,7 @@ import java.util.UUID
 
 @Service
 @Transactional
-class ReferralCreatedHandler(
+class ReferralImportedHandler(
   private val objectMapper: ObjectMapper,
   private val messageHistoryRepository: MessageHistoryRepository,
   private val referralService: ReferralService,
@@ -25,33 +26,36 @@ class ReferralCreatedHandler(
 
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
+    private const val ADDITIONAL_INFORMATION_REFERRAL_ID_KEY = "REFERRAL_ID"
   }
 
   fun handle(sqsMessage: SQSMessage) {
-    val domainEventMessage: DomainEventsMessage = objectMapper.readValue<DomainEventsMessage>(sqsMessage.message)
+    log.info("Starting handle for messageId: ${sqsMessage.messageId}")
+    try {
+      val message: DomainEventsMessage = objectMapper.readValue<DomainEventsMessage>(sqsMessage.message)
+      val referralId = message.additionalInformation?.get(ADDITIONAL_INFORMATION_REFERRAL_ID_KEY)?.toString()
+        ?.let { UUID.fromString(it) }
+        ?: return log.info("Referral ID is null for event with messageId: ${sqsMessage.messageId}")
+      log.info("Received referral imported event for referral id: $referralId")
 
-    if (domainEventMessage.detailUrl == null) {
-      return log.info("Detail url is null for event with messageId: ${sqsMessage.messageId}")
+      telemetryClient.logToAppInsights(
+        "Referral.imported-event-received.success",
+        mapOf(
+          "eventType" to message.eventType,
+          "referralId" to referralId.toString(),
+          "crn" to message.personReference.findCrn()!!,
+        ),
+      )
+
+      messageHistoryRepository.save(message.toEntity(objectMapper.writeValueAsString(message)))
+
+      runBlocking {
+        referralService.refreshPersonalDetailsForReferral(referralId, false)
+      }
+      log.info("Ending handle for messageId: ${sqsMessage.messageId}")
+    } catch (e: Exception) {
+      log.error("Error handling ReferralImportedEvent: ${e.message}", e)
+      throw e
     }
-    val referralId = UUID.fromString(domainEventMessage.detailUrl.split("/").last())
-    log.info("Received referral created event for referral id: $referralId for CRN: ${domainEventMessage.personReference.findCrn()}")
-
-    telemetryClient.logToAppInsights(
-      "Probation.case-requirement.created event received",
-      mapOf(
-        "eventType" to domainEventMessage.eventType,
-        "referralId" to referralId.toString(),
-        "crn" to domainEventMessage.personReference.findCrn()!!,
-      ),
-    )
-
-    val savedMessage =
-      messageHistoryRepository.save(domainEventMessage.toEntity(objectMapper.writeValueAsString(domainEventMessage)))
-
-    val referralDetails = referralService.getFindAndReferReferralDetails(referralId)
-    val savedReferral = referralService.createReferral(referralDetails)
-
-    savedMessage.referral = savedReferral
-    messageHistoryRepository.save(savedMessage)
   }
 }

@@ -68,7 +68,6 @@ class ReferralEventNumberResolverServiceTest {
     assertThat(result.sourcedFrom).isEqualTo(ReferralEntitySourcedFrom.LICENCE_CONDITION)
     verify(referralRepository).save(referral)
     verify(nDeliusIntegrationApiClient, times(1)).getLicenceConditionManagerDetails(referral.crn, referral.eventId!!)
-    verify(nDeliusIntegrationApiClient, times(0)).getRequirementManagerDetails(referral.crn, referral.eventId!!)
   }
 
   @Test
@@ -91,39 +90,7 @@ class ReferralEventNumberResolverServiceTest {
     assertThat(result.sourcedFrom).isEqualTo(ReferralEntitySourcedFrom.REQUIREMENT)
     verify(referralRepository, times(0)).save(referral)
     verify(nDeliusIntegrationApiClient, times(1)).getRequirementManagerDetails(referral.crn, referral.eventId!!)
-    verify(nDeliusIntegrationApiClient, times(1)).getLicenceConditionManagerDetails(referral.crn, referral.eventId!!)
-  }
-
-  @Test
-  fun `updates referral sourcedFrom if first call is null and second call succeeds`() {
-    val referral =
-      ReferralEntityFactory().withEventNumber(0).withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT).produce()
-    val service = ReferralEventNumberResolverService(nDeliusIntegrationApiClient, referralRepository, telemetryClient)
-
-    `when`(nDeliusIntegrationApiClient.getRequirementManagerDetails(referral.crn, referral.eventId!!)).thenReturn(
-      ClientResult.Failure.Other(
-        HttpMethod.GET,
-        "/case/${referral.crn}/requirement/${referral.eventId}",
-        RuntimeException("Connection refused"),
-        "nDelius",
-      ),
-    )
-
-    `when`(
-      nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(
-        referral.crn,
-        referral.eventId!!,
-      ),
-    ).thenReturn(
-      ClientResult.Success(HttpStatusCode.valueOf(200), mockRequirementLicResponse()),
-    )
-    val result = service.resolveIfEventNumberIsZero(referral)
-
-    assertThat(result!!.eventNumber).isEqualTo(3)
-    assertThat(result.sourcedFrom).isEqualTo(ReferralEntitySourcedFrom.LICENCE_CONDITION)
-    verify(referralRepository, times(1)).save(referral)
-    verify(nDeliusIntegrationApiClient).getRequirementManagerDetails(referral.crn, referral.eventId!!)
-    verify(nDeliusIntegrationApiClient).getLicenceConditionManagerDetails(referral.crn, referral.eventId!!)
+    verify(nDeliusIntegrationApiClient, times(0)).getLicenceConditionManagerDetails(referral.crn, referral.eventId!!)
   }
 
   private fun mockRequirementLicResponse(): NDeliusCaseRequirementOrLicenceConditionResponse {

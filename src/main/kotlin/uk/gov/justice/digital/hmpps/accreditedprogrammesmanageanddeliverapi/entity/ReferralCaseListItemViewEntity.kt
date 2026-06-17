@@ -34,6 +34,10 @@ class ReferralCaseListItemViewEntity(
   var status: String,
 
   @NotNull
+  @Column(name = "status_label_colour")
+  var statusLabelColour: String,
+
+  @NotNull
   @Column(name = "cohort")
   var cohort: String,
 

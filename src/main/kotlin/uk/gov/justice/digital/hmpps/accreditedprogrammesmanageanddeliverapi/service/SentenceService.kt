@@ -64,8 +64,9 @@ class SentenceService(
   fun getSentenceEndDate(crn: String, eventNumber: Int?, sentenceType: ReferralEntitySourcedFrom?): LocalDate? {
     val sentenceInfo = getSentenceInformationByIdentifier(crn, eventNumber)
     return when (sentenceType) {
-      ReferralEntitySourcedFrom.REQUIREMENT -> sentenceInfo?.expectedEndDate
-      ReferralEntitySourcedFrom.LICENCE_CONDITION -> sentenceInfo?.licenceExpiryDate
+      ReferralEntitySourcedFrom.REQUIREMENT,
+      ReferralEntitySourcedFrom.LICENCE_CONDITION,
+      -> sentenceInfo?.expectedEndDate
       else -> null
     }
   }

@@ -482,9 +482,11 @@ class ProgrammeGroupController(
   @GetMapping("/bff/pdus-for-user-region")
   fun getPdusInUserRegion(): ResponseEntity<List<CodeDescription>> {
     val username = authenticationUtils.getUsername()
-    val (userRegion) = userService.getUserRegions(username)
+    val userRegion = userService.getUserRegions(username).firstOrNull()
+      ?: return ResponseEntity.ok(emptyList())
     val pdusForRegion =
       regionService.getPdusForRegion(userRegion.code).map { CodeDescription(it.code, it.description) }
+
     return ResponseEntity.ok(pdusForRegion)
   }
 
@@ -546,8 +548,10 @@ class ProgrammeGroupController(
   @GetMapping("/bff/region/members")
   fun getMembersInUserRegion(): ResponseEntity<List<UserTeamMember>> {
     val username = authenticationUtils.getUsername()
-    val (userRegion) = userService.getUserRegions(username)
+    val userRegion = userService.getUserRegions(username).firstOrNull()
+      ?: return ResponseEntity.ok(emptyList())
     val teamMembers = regionService.getTeamMembersForPdu(userRegion.code)
+
     return ResponseEntity.ok(teamMembers)
   }
 
@@ -704,7 +708,8 @@ class ProgrammeGroupController(
     val suggestedDate = scheduleService.getNextSlotDate(groupId, moduleId)
 
     val username = authenticationUtils.getUsername()
-    val (userRegion) = userService.getUserRegions(username)
+    val userRegion = userService.getUserRegions(username).firstOrNull()
+      ?: throw NotFoundException("Region for username $username not found")
     val facilitators = regionService.getTeamMembersForPdu(userRegion.code)
 
     val memberships = programmeGroupMembershipService.getActiveGroupMemberships(groupId)
