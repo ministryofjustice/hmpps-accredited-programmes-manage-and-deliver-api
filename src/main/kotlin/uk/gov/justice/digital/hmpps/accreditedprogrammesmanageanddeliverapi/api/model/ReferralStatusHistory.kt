@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.StatusFormatter
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -66,7 +66,7 @@ data class ReferralStatusHistory(
 fun ReferralStatusHistoryEntity.toApi(): ReferralStatusHistory = ReferralStatusHistory(
   id = id!!,
   referralStatusDescriptionId = referralStatusDescription.id,
-  referralStatusDescriptionName = StatusFormatter.formatStatus(referralStatusDescription.description),
+  referralStatusDescriptionName = ReferralStatusUtils.formatStatus(referralStatusDescription.description),
   additionalDetails = additionalDetails,
   updatedBy = createdBy,
   updatedAt = createdAt,

@@ -19,7 +19,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getReferralCaseListItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withAllowedCrns
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withRegionNames
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.StatusFormatter
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
 
 @Service
 class ReferralCaseListItemService(
@@ -52,7 +52,7 @@ class ReferralCaseListItemService(
       crnOrPersonName = crnOrPersonName,
       offenceCohort = offenceType,
       hasLdc = hasLdc,
-      status = StatusFormatter.unformatStatus(status),
+      status = ReferralStatusUtils.unformatStatus(status),
       pdu = pdu,
       reportingTeams = reportingTeams,
     ).map { it.toApi() }
@@ -142,11 +142,11 @@ class ReferralCaseListItemService(
       .sortedBy { it.pduName }
 
     // For this instance of displaying the status' on the front end, the description of "Breach (non-attendance)" needs to be changed.
-    val openDescriptions = StatusFormatter.sortStatuses(open.map { StatusFormatter.formatStatus(it.description) })
+    val openDescriptions = ReferralStatusUtils.sortStatuses(open.map { ReferralStatusUtils.formatStatus(it.description) })
 
     val statusFilterValues = StatusFilterValues(
       open = openDescriptions,
-      closed = StatusFormatter.sortStatuses(closed.map { it.description }),
+      closed = ReferralStatusUtils.sortStatuses(closed.map { it.description }),
     )
 
     return CaseListFilterValues(

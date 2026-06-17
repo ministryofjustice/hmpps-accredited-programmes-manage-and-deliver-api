@@ -1,6 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils
 
-object StatusFormatter {
+object ReferralStatusUtils {
 
   private val STATUS_ORDER = listOf(
     "Awaiting assessment",
@@ -21,7 +21,9 @@ object StatusFormatter {
     .mapIndexed { index, status -> status to index }
     .toMap()
 
-  fun sortStatuses(statuses: List<String>): List<String> = statuses.sortedBy { STATUS_ORDER_INDEX.getOrDefault(it, Int.MAX_VALUE) }
+  fun sortStatuses(statuses: List<String>): List<String> = statuses.sortedBy { status ->
+    STATUS_ORDER_INDEX[status] ?: Int.MAX_VALUE
+  }
 
   fun formatStatus(description: String): String = if (description == "Breach (non-attendance)") "Breach" else description
 
