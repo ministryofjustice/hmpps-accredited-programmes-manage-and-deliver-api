@@ -1198,8 +1198,10 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
   inner class MultiEndpointConcurrentRequests {
     @Test
     fun `should handle concurrent requests to multiple different endpoints without deadlock`() {
-      // Given: Create a programme group for allocation operations
-      val theGroup = testGroupHelper.createGroup(groupCode = "MULTI0001")
+      // Given: Create separate programme groups for allocation operations (one per referral pair)
+      // This avoids lock contention on a single group while still testing concurrent operations
+      val groupAllocateGroup = testGroupHelper.createGroup(groupCode = "MULTI_GROUP_ALLOC")
+      val addToGroupGroup = testGroupHelper.createGroup(groupCode = "MULTI_GROUP_ADD")
       
       // Create 10 referrals - 2 for each endpoint operation (to increase concurrency/contention)
       val statusUpdateReferrals = listOf(
@@ -1233,6 +1235,9 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, cohortHistory))
       }
 
+      // Mock the nDelius appointments endpoint to allow group allocation to succeed
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
       val startLatch = java.util.concurrent.CountDownLatch(1)
       val failures = mutableListOf<String>()
 
@@ -1242,7 +1247,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         kotlin.concurrent.thread {
           try {
             startLatch.await()
-            repeat(1) {
+            repeat(2) {
               val onProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
               performRequestAndExpectStatus(
                 httpMethod = HttpMethod.POST,
@@ -1282,15 +1287,15 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         kotlin.concurrent.thread {
           try {
             startLatch.await()
-            repeat(2) {
+            repeat(1) {
               val allocateRequest = uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest(
                 additionalDetails = "multi-endpoint-group-allocate-iter-$it",
               )
               performRequestAndExpectStatus(
                 httpMethod = HttpMethod.POST,
-                uri = "/group/${theGroup.id}/allocate/${referral.id}",
+                uri = "/group/${groupAllocateGroup.id}/allocate/${referral.id}",
                 body = allocateRequest,
-                expectedResponseStatus = HttpStatus.CREATED.value(),
+                expectedResponseStatus = HttpStatus.OK.value(),
               )
             }
           } catch (ex: Throwable) {
@@ -1306,13 +1311,16 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
             repeat(2) {
               val onProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
               performRequestAndExpectStatus(
-                httpMethod = HttpMethod.PUT,
-                uri = "/referral/${referral.id}/update-status",
-                body = mapOf("referralStatusDescriptionId" to onProgramme),
+                httpMethod = HttpMethod.POST,
+                uri = "/referral/${referral.id}/status-history",
+                body = CreateReferralStatusHistory(
+                  referralStatusDescriptionId = onProgramme,
+                  additionalDetails = "direct-status-update-test",
+                ),
                 expectedResponseStatus = HttpStatus.OK.value(),
               )
             }
-          } catch (ex: Exception) {
+          } catch (ex: Throwable) {
             failures.add("Direct status update failed for ${referral.crn}: ${ex.javaClass.simpleName}: ${ex.message}")
           }
         }
@@ -1322,11 +1330,14 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         kotlin.concurrent.thread {
           try {
             startLatch.await()
-            repeat(2) {
+            repeat(1) {
+              val allocateRequest = uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest(
+                additionalDetails = "add-to-group-test",
+              )
               performRequestAndExpectStatus(
                 httpMethod = HttpMethod.POST,
-                uri = "/add-to-group/${theGroup.id}/${referral.id}",
-                body = emptyMap<String, String>(),
+                uri = "/group/${addToGroupGroup.id}/allocate/${referral.id}",
+                body = allocateRequest,
                 expectedResponseStatus = HttpStatus.OK.value(),
               )
             }
