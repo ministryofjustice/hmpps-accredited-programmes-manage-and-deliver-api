@@ -39,4 +39,19 @@ class StatusFormatterTest {
   fun `unformatStatus returns null when input is null`() {
     assertThat(StatusFormatter.unformatStatus(null)).isNull()
   }
+
+  @Test
+  fun `sortStatuses returns all statuses in correct full order`() {
+    val input = listOf(
+      "Withdrawn", "Return to court", "Recall", "Breach", "Deprioritised",
+      "Deferred", "Suitable but not ready", "On programme", "Scheduled",
+      "Awaiting allocation", "Awaiting assessment", "Programme complete",
+    )
+    val expected = listOf(
+      "Awaiting assessment", "Awaiting allocation", "Scheduled", "On programme",
+      "Suitable but not ready", "Deferred", "Deprioritised", "Breach",
+      "Recall", "Return to court", "Programme complete", "Withdrawn",
+    )
+    assertThat(StatusFormatter.sortStatuses(input)).isEqualTo(expected)
+  }
 }
