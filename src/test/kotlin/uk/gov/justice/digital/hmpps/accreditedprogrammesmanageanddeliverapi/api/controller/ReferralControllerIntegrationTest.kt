@@ -1127,7 +1127,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       // This avoids lock contention on a single group while still testing concurrent operations
       val groupAllocateGroup = testGroupHelper.createGroup(groupCode = "MULTI_GROUP_ALLOC")
       val addToGroupGroup = testGroupHelper.createGroup(groupCode = "MULTI_GROUP_ADD")
-      
+
       // Create 10 referrals - 2 for each endpoint operation (to increase concurrency/contention)
       val statusUpdateReferrals = listOf(
         ReferralEntityFactory().withCrn("MULTIEND00001").produce(),
@@ -1149,7 +1149,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         ReferralEntityFactory().withCrn("MULTIEND00009").produce(),
         ReferralEntityFactory().withCrn("MULTIEND00010").produce(),
       )
-      
+
       val allReferrals = statusUpdateReferrals + cohortUpdateReferrals + groupAllocateReferrals + directStatusUpdateReferrals + addToGroupReferrals
       allReferrals.forEach { referral ->
         val statusHistory = ReferralStatusHistoryEntityFactory().produce(
