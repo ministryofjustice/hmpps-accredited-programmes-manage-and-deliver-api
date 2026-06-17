@@ -153,17 +153,34 @@ class SessionService(
         .filter { it.id != session.id } // filter out the original session
         .filter { !it.isCatchup }
         .filter { it.startsAt.isAfter(originalSessionStartsAt) }
+        .sortedBy { it.startsAt }
         .toList()
 
-      subsequentGroupSessions.forEach { subsequentSession ->
-        subsequentSession.startsAt = subsequentSession.startsAt.plus(startOffset)
-        subsequentSession.endsAt = subsequentSession.endsAt.plus(startOffset)
+      if (isGroupSession && session.programmeGroup.programmeGroupSessionSlots.isNotEmpty()) {
+        val scheduleDates = scheduleService.generateScheduleDates(
+          programmeGroupSlots = session.programmeGroup.programmeGroupSessionSlots,
+          initialStartDate = session.startsAt.toLocalDate(),
+          sessionCount = subsequentGroupSessions.size,
+          bankHolidays = scheduleService.englandAndWalesHolidayDates(),
+          durationMinutes = session.moduleSessionTemplate.durationMinutes,
+        )
+
+        require(subsequentGroupSessions.size == scheduleDates.size) {
+          "Expected one schedule date per session"
+        }
+
+        subsequentGroupSessions.zip(scheduleDates).forEach { (subsequentSession, newDates) ->
+          subsequentSession.startsAt = newDates.first
+          subsequentSession.endsAt = newDates.second
+        }
+      } else {
+        subsequentGroupSessions.forEach { subsequentSession ->
+          subsequentSession.startsAt = subsequentSession.startsAt.plus(startOffset)
+          subsequentSession.endsAt = subsequentSession.endsAt.plus(startOffset)
+        }
       }
 
-      (subsequentGroupSessions + session).forEach {
-        updateNDeliusAppointmentsForSession(it)
-      }
-
+      updateNDeliusAppointmentsForMultipleSessions(subsequentGroupSessions + session)
       return EditSessionDateAndTimeResponse("The date and time and schedule have been updated.")
     }
 
