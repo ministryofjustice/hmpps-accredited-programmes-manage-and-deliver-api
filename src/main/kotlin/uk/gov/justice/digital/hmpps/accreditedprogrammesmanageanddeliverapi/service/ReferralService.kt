@@ -50,9 +50,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.StatusFormatter
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -490,7 +490,7 @@ class ReferralService(
       incomingReferralStatusDescription.id,
     )
 
-    var message = "${referral.personName}'s referral status is now ${StatusFormatter.formatStatus(incomingReferralStatusDescription.description)}."
+    var message = "${referral.personName}'s referral status is now ${ReferralStatusUtils.formatStatus(incomingReferralStatusDescription.description)}."
     val activeGroupMembership = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
 
     if (
@@ -504,7 +504,7 @@ class ReferralService(
       )
       if (incomingReferralStatusDescription.description != "Programme complete") {
         message =
-          "${referral.personName}'s referral status is now ${StatusFormatter.formatStatus(incomingReferralStatusDescription.description)}. They have been removed from group ${activeGroupMembership.programmeGroup.code}"
+          "${referral.personName}'s referral status is now ${ReferralStatusUtils.formatStatus(incomingReferralStatusDescription.description)}. They have been removed from group ${activeGroupMembership.programmeGroup.code}"
       }
     }
 
