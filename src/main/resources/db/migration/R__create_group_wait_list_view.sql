@@ -66,7 +66,6 @@ CREATE INDEX IF NOT EXISTS idx_group_wait_list_reporting_team ON group_waitlist_
 CREATE INDEX IF NOT EXISTS idx_group_wait_list_region_name ON group_waitlist_item_view (region_name);
 CREATE INDEX IF NOT EXISTS idx_group_wait_list_latest_group ON group_waitlist_item_view (active_programme_group_id);
 
-
 CREATE OR REPLACE FUNCTION refresh_group_wait_list_item_view()
     RETURNS TRIGGER AS
 $$
@@ -76,11 +75,16 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    REFRESH MATERIALIZED VIEW CONCURRENTLY group_waitlist_item_view;
+    BEGIN
+        REFRESH MATERIALIZED VIEW CONCURRENTLY group_waitlist_item_view;
+    EXCEPTION WHEN SQLSTATE '40P01' THEN
+        -- Deadlock detected - log and continue
+        -- The view will be refreshed by the next successful refresh operation
+        RAISE WARNING 'Materialized view refresh deadlock detected: %', SQLERRM;
+    END;
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
-
 CREATE OR REPLACE TRIGGER trigger_refresh_referral_status_group_wait_list
     AFTER INSERT OR UPDATE OR DELETE
     ON referral
@@ -122,6 +126,4 @@ CREATE OR REPLACE TRIGGER trigger_refresh_referral_cohort_mapping_group_wait_lis
     ON referral_cohort_history
     FOR EACH STATEMENT
 EXECUTE FUNCTION refresh_group_wait_list_item_view();
-
-
 
