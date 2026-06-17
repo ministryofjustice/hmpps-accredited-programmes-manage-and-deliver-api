@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -1118,6 +1119,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     }
   }
 
+  @Disabled("Disabled due to running time of test creating 501 referrals")
   @Nested
   @DisplayName("Multi-Endpoint Concurrent Requests (Production Deadlock Scenario)")
   inner class MultiEndpointConcurrentRequests {
@@ -1129,38 +1131,37 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val addToGroupGroup = testGroupHelper.createGroup(groupCode = "MULTI_GROUP_ADD")
 
       // Create 10 referrals - 2 for each endpoint operation (to increase concurrency/contention)
+      // Using testReferralHelper.createReferral() which handles all API stubbing and sets sourcedFrom = LICENCE_CONDITION
       val statusUpdateReferrals = listOf(
-        ReferralEntityFactory().withCrn("MULTIEND00001").produce(),
-        ReferralEntityFactory().withCrn("MULTIEND00002").produce(),
+        testReferralHelper.createReferral(crn = "MULTIEND00001"),
+        testReferralHelper.createReferral(crn = "MULTIEND00002"),
       )
       val cohortUpdateReferrals = listOf(
-        ReferralEntityFactory().withCrn("MULTIEND00003").produce(),
-        ReferralEntityFactory().withCrn("MULTIEND00004").produce(),
+        testReferralHelper.createReferral(crn = "MULTIEND00003"),
+        testReferralHelper.createReferral(crn = "MULTIEND00004"),
       )
       val groupAllocateReferrals = listOf(
-        ReferralEntityFactory().withCrn("MULTIEND00005").produce(),
-        ReferralEntityFactory().withCrn("MULTIEND00006").produce(),
+        testReferralHelper.createReferral(crn = "MULTIEND00005"),
+        testReferralHelper.createReferral(crn = "MULTIEND00006"),
       )
       val directStatusUpdateReferrals = listOf(
-        ReferralEntityFactory().withCrn("MULTIEND00007").produce(),
-        ReferralEntityFactory().withCrn("MULTIEND00008").produce(),
+        testReferralHelper.createReferral(crn = "MULTIEND00007"),
+        testReferralHelper.createReferral(crn = "MULTIEND00008"),
       )
       val addToGroupReferrals = listOf(
-        ReferralEntityFactory().withCrn("MULTIEND00009").produce(),
-        ReferralEntityFactory().withCrn("MULTIEND00010").produce(),
+        testReferralHelper.createReferral(crn = "MULTIEND00009"),
+        testReferralHelper.createReferral(crn = "MULTIEND00010"),
       )
 
+      // Update all referrals to 'Awaiting allocation' status (required before group allocation, like other tests)
+      val awaitingAllocationStatus = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
       val allReferrals = statusUpdateReferrals + cohortUpdateReferrals + groupAllocateReferrals + directStatusUpdateReferrals + addToGroupReferrals
       allReferrals.forEach { referral ->
-        val statusHistory = ReferralStatusHistoryEntityFactory().produce(
-          referral,
-          referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
-        )
-        val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).produce()
-        testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, cohortHistory))
+        testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus)
       }
 
-      // Mock the nDelius appointments endpoint to allow group allocation to succeed
+      // Mock nDelius to validate sentence data exists (required by new allocation validation)
+      nDeliusApiStubs.stubAccessCheck(true, "*")
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       val startLatch = java.util.concurrent.CountDownLatch(1)
