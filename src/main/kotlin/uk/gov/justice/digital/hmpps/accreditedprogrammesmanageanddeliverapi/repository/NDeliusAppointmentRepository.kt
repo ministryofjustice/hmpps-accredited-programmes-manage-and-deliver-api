@@ -6,6 +6,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import java.util.UUID
 
 interface NDeliusAppointmentRepository : JpaRepository<NDeliusAppointmentEntity, UUID> {
-  fun findBySessionId(sessionId: UUID): NDeliusAppointmentEntity?
+  fun findBySessionId(sessionId: UUID): List<NDeliusAppointmentEntity>
   fun deleteByReferral(referral: ReferralEntity)
 }

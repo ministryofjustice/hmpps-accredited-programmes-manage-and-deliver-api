@@ -22,6 +22,7 @@ SELECT r.id,
        r.sentence_end_date,
        r.sourced_from                                         as sentence_end_date_source,
        rsd.description_text                                   as status,
+       rsd.label_colour                                       as status_label_colour,
        -- Default to false if there are no entries in the referral_ldc_history_table
        COALESCE(lds.has_ldc, false)                           as has_ldc,
        -- Default values if there are no entries in the referral_reporting_location table for this referral yet

@@ -1390,7 +1390,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(foundSession).isNull()
       // Validate that associated ndelius appointments have been removed from the DB
       val foundNdeliusAppointment = nDeliusAppointmentRepository.findBySessionId(session.id!!)
-      assertThat(foundNdeliusAppointment).isNull()
+      assertThat(foundNdeliusAppointment).isEmpty()
       verifyReferralStatusUpdateEventSent()
     }
 
@@ -1547,7 +1547,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(foundSession).isNull()
       // Validate that associated ndelius appointments have been removed from the DB
       val foundNdeliusAppointment = nDeliusAppointmentRepository.findBySessionId(session.id!!)
-      assertThat(foundNdeliusAppointment).isNull()
+      assertThat(foundNdeliusAppointment).isEmpty()
     }
 
     @Test
@@ -1617,7 +1617,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(foundSession).isNull()
       // Validate that associated ndelius appointments have been removed from the DB
       val foundNdeliusAppointment = nDeliusAppointmentRepository.findBySessionId(session.id!!)
-      assertThat(foundNdeliusAppointment).isNull()
+      assertThat(foundNdeliusAppointment).isEmpty()
     }
 
     @Test
@@ -1699,7 +1699,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(foundSession!!.attendees.map { it.personName }).doesNotContain(referralToRemove.personName)
       // Validate that associated ndelius appointments have been removed from the DB
       val foundNdeliusAppointment = nDeliusAppointmentRepository.findBySessionId(session.id!!)
-      assertThat(foundNdeliusAppointment).isNull()
+      assertThat(foundNdeliusAppointment).isEmpty()
     }
   }
 
@@ -2264,7 +2264,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(retrievedSession.attendees).hasSize(1)
       assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
       wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
-      assertThat(nDeliusAppointmentRepository.findBySessionId(retrievedSession.id!!)!!).isNotNull
+      assertThat(nDeliusAppointmentRepository.findBySessionId(retrievedSession.id!!)).isNotNull
     }
 
     @Test
@@ -2308,7 +2308,135 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
       assertThat(retrievedSession.isCatchup).isTrue
       wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
-      assertThat(nDeliusAppointmentRepository.findBySessionId(retrievedSession.id!!)!!).isNotNull
+      assertThat(nDeliusAppointmentRepository.findBySessionId(retrievedSession.id!!)).isNotNull
+    }
+
+    @Test
+    fun `should return 201 when scheduling a one-to-one session in the past and verify nDelius appointment is created`() {
+      // Given
+      initialiseReferrals()
+      val referral = referrals.first()
+      val group = testGroupHelper.createGroup()
+      testGroupHelper.allocateToGroup(group, referral)
+      val sessionTemplate = group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first { it.sessionType == SessionType.ONE_TO_ONE }
+      val pastDate = LocalDate.now().minusDays(1)
+
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = sessionTemplate.id!!,
+        referralIds = listOf(referral.id!!),
+        facilitators = facilitators,
+        startDate = pastDate,
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<String>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      val retrievedSession =
+        sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
+          .sortedByDescending { it.createdAt }.first()
+
+      // Verify nDelius appointment was created for the past session
+      // Note: 1 from allocateToGroup (for future sessions) + 1 for this scheduled past session
+      wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
+      assertThat(nDeliusAppointmentRepository.findBySessionId(retrievedSession.id!!)).isNotEmpty
+    }
+
+    @Test
+    fun `should return 201 when scheduling a one-to-one catch-up session in the past and verify nDelius appointment is created`() {
+      // Given
+      initialiseReferrals()
+      val referral = referrals.first()
+      val group = testGroupHelper.createGroup()
+      testGroupHelper.allocateToGroup(group, referral)
+      val sessionTemplate = group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first { it.sessionType == SessionType.ONE_TO_ONE }
+      val pastDate = LocalDate.now().minusDays(1)
+
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = sessionTemplate.id!!,
+        referralIds = listOf(referral.id!!),
+        facilitators = facilitators,
+        startDate = pastDate,
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+        sessionScheduleType = SessionScheduleType.CATCH_UP,
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<String>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      val retrievedSession =
+        sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
+          .sortedByDescending { it.createdAt }.first()
+
+      wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
+      assertThat(nDeliusAppointmentRepository.findBySessionId(retrievedSession.id!!)).isNotNull
+    }
+
+    @Test
+    fun `should return 201 when scheduling a group catch-up session in the past and verify nDelius appointment is created`() {
+      // Given
+      initialiseReferrals()
+      val referral1 = referrals[0]
+      val referral2 = referrals[1]
+      val group = testGroupHelper.createGroup()
+      testGroupHelper.allocateToGroup(group, referral1)
+      testGroupHelper.allocateToGroup(group, referral2)
+      val sessionTemplate = group.accreditedProgrammeTemplate!!.modules.first { it.name == "Getting started" }.sessionTemplates.first { it.sessionType == SessionType.GROUP }
+      val pastDate = LocalDate.now().minusDays(1)
+
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = sessionTemplate.id!!,
+        referralIds = listOf(referral1.id!!, referral2.id!!),
+        facilitators = facilitators,
+        startDate = pastDate,
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+        sessionScheduleType = SessionScheduleType.CATCH_UP,
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<String>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      val retrievedSession =
+        sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
+          .sortedByDescending { it.createdAt }.first()
+
+      // Verify nDelius appointment was created for the past group catch-up session
+      // 1 for each referral allocation (future sessions) + 1 for this group catch-up
+      wiremock.verify(3, postRequestedFor(urlEqualTo("/appointments")))
+      assertThat(nDeliusAppointmentRepository.findBySessionId(retrievedSession.id!!)).isNotNull
+
+      // Verify that nDelius request body contains both referrals
+      val appointmentRequests = wiremock.findAll(postRequestedFor(urlEqualTo("/appointments")))
+      val lastRequest = appointmentRequests.last().bodyAsString
+      val createAppointmentRequest = objectMapper.readValue(lastRequest, CreateAppointmentRequest::class.java)
+      assertThat(createAppointmentRequest.appointments).hasSize(2)
     }
 
     @Test
