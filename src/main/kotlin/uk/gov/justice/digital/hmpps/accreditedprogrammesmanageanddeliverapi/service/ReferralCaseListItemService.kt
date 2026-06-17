@@ -139,7 +139,6 @@ class ReferralCaseListItemService(
       .map { (pduName, reportingTeams) ->
         LocationFilterValues(pduName = pduName, reportingTeams = reportingTeams.map { it.reportingTeam }.distinct())
       }
-      .sortedBy { it.pduName }
 
     // For this instance of displaying the status' on the front end, the description of "Breach (non-attendance)" needs to be changed.
     val openDescriptions = ReferralStatusUtils.sortStatuses(open.map { ReferralStatusUtils.formatStatus(it.description) })
