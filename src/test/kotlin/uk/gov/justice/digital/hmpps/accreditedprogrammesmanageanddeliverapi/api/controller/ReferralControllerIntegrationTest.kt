@@ -1123,6 +1123,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
   inner class MultiEndpointConcurrentRequests {
     @Test
     fun `should handle concurrent requests to multiple different endpoints without deadlock`() {
+      // Test may have issues when run as part of full build due to large number of calls.
+      // Works at time of writing, but may need to be re-evaluated if test fails in future. 
       val groupAllocateGroup = testGroupHelper.createGroup(groupCode = "MULTI_GROUP_ALLOC")
       val addToGroupGroup = testGroupHelper.createGroup(groupCode = "MULTI_GROUP_ADD")
 

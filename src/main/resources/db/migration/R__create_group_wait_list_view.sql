@@ -85,6 +85,7 @@ BEGIN
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE TRIGGER trigger_refresh_referral_status_group_wait_list
     AFTER INSERT OR UPDATE OR DELETE
     ON referral
