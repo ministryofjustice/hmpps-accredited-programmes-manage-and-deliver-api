@@ -52,6 +52,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.Duration.ofMillis
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 class ReferralServiceIntegrationTest : IntegrationTestBase() {
@@ -886,6 +887,36 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(referralDetails.interventionName).isEqualTo(referral.interventionName)
       assertThat(referralDetails.createdAt).isEqualTo(referral.createdAt.toLocalDate())
       assertThat(referralDetails.dateOfBirth).isEqualTo(dateOfBirth)
+    }
+
+    @Test
+    fun `refreshPersonalDetailsForReferral updates updatedAt on referral reporting location`() = runTest {
+      val referral = ReferralEntityFactory().produce()
+      val name = randomFullName()
+      val dateOfBirth = randomDateOfBirth()
+      testDataGenerator.createReferralWithStatusHistory(referral)
+      oasysApiStubs.stubSuccessfulPniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory()
+          .withName(name)
+          .withDateOfBirth(dateOfBirth)
+          .produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      val beforeRefresh = LocalDateTime.now().minusSeconds(1)
+
+      // Refresh — creates/updates the reporting location
+      referralService.refreshPersonalDetailsForReferral(referral.id!!)
+      val reportingLocation = reportingLocationRepository.findByReferralId(referral.id)!!
+
+      assertThat(reportingLocation.updatedAt).isAfter(beforeRefresh)
+      assertThat(reportingLocation.updatedAt).isBefore(LocalDateTime.now().plusSeconds(1))
     }
 
     @Test
