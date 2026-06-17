@@ -150,6 +150,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
   @BeforeEach
   override fun beforeEach() {
+    super.beforeEach()
     testDataCleaner.cleanAllTables()
     nDeliusApiStubs.clearAllStubs()
     govUkApiStubs.stubBankHolidaysResponse()
