@@ -3794,6 +3794,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         sex = ProgrammeGroupSexEnum.FEMALE,
         cohort = ProgrammeGroupCohort.SEXUAL_LDC,
         earliestStartDate = LocalDate.of(2026, 12, 25),
+        automaticallyRescheduleOtherSessions = false,
         pduName = "Updated PDU",
         pduCode = "UPD_PDU",
         deliveryLocationName = "Updated Location",
