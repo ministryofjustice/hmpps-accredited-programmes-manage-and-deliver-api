@@ -17,8 +17,7 @@ interface ProgrammeGroupRepository :
   @Query(
     "SELECT DISTINCT p.probationDeliveryUnitName FROM ProgrammeGroupEntity p " +
       "WHERE p.regionName = :regionName " +
-      "AND p.probationDeliveryUnitName IS NOT NULL " +
-      "ORDER BY p.probationDeliveryUnitName ASC",
+      "AND p.probationDeliveryUnitName IS NOT NULL",
   )
   fun findDistinctProbationDeliveryUnitNames(regionName: String): List<String>
 
@@ -26,8 +25,7 @@ interface ProgrammeGroupRepository :
     "SELECT DISTINCT p.deliveryLocationName FROM ProgrammeGroupEntity p " +
       "WHERE p.regionName = :regionName " +
       "AND p.probationDeliveryUnitName = :pdu " +
-      "AND p.deliveryLocationName IS NOT NULL " +
-      "ORDER BY p.deliveryLocationName ASC",
+      "AND p.deliveryLocationName IS NOT NULL",
   )
   fun findDistinctDeliveryLocationNames(regionName: String, pdu: String): List<String>
 }

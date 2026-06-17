@@ -485,7 +485,9 @@ class ProgrammeGroupController(
     val userRegion = userService.getUserRegions(username).firstOrNull()
       ?: return ResponseEntity.ok(emptyList())
     val pdusForRegion =
-      regionService.getPdusForRegion(userRegion.code).map { CodeDescription(it.code, it.description) }
+      regionService.getPdusForRegion(userRegion.code)
+        .sortedBy { it.description }
+        .map { CodeDescription(it.code, it.description) }
 
     return ResponseEntity.ok(pdusForRegion)
   }
@@ -517,7 +519,9 @@ class ProgrammeGroupController(
   @GetMapping("/bff/office-locations-for-pdu/{pduCode}")
   fun getOfficeLocationsInPdu(@PathVariable pduCode: String): ResponseEntity<List<CodeDescription>> {
     val officeLocationsForPdu =
-      regionService.getOfficeLocationsForPdu(pduCode).map { CodeDescription(it.code, it.description) }
+      regionService.getOfficeLocationsForPdu(pduCode)
+        .sortedBy { it.description }
+        .map { CodeDescription(it.code, it.description) }
     return ResponseEntity.ok(officeLocationsForPdu)
   }
 
