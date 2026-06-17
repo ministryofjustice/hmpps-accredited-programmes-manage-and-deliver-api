@@ -150,6 +150,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
   @BeforeEach
   override fun beforeEach() {
+    super.beforeEach()
     testDataCleaner.cleanAllTables()
     nDeliusApiStubs.clearAllStubs()
     govUkApiStubs.stubBankHolidaysResponse()
@@ -3549,10 +3550,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return 200 when updating earliest start date`() {
       // Given
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
       val group = testGroupHelper.createGroup()
       val newStartDate = LocalDate.now().plusDays(10)
-      val updateRequest =
-        UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
+      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -3788,6 +3789,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return 200 when updating multiple fields at once`() {
       // Given
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
       val group = testGroupHelper.createGroup()
       val updateRequest = UpdateGroupRequest(
         groupCode = "UPDATED_GROUP_CODE",

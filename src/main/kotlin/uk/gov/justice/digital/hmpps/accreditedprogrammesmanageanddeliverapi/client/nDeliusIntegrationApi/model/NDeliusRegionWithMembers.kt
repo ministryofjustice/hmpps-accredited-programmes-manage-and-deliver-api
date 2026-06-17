@@ -12,7 +12,7 @@ data class NDeliusRegionWithMembers(
   data class NDeliusPduWithTeam(
     val code: String,
     val description: String,
-    val team: List<NDeliusUserTeamWithMembers>,
+    val team: List<NDeliusUserTeamWithMembers> = emptyList(),
   )
 
   @JsonIgnoreProperties(ignoreUnknown = true)
