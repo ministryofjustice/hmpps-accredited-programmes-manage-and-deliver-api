@@ -2075,7 +2075,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response).hasSize(3)
-      assertThat(response.map { it.description }).containsExactly("All NPS North East", "Bradford, Calderdale", "East and West Lincolnshire" )
+      assertThat(response.map { it.description }).containsExactly("All NPS North East", "Bradford, Calderdale", "East and West Lincolnshire")
       assertThat(response.map { it.code }).containsExactly("P1", "P2", "P3")
     }
 
