@@ -8,7 +8,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegionWithMembers
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_PDU_OFFICE_LOCATION_N_DELIUS
@@ -22,7 +21,7 @@ class RegionService(
 
   val log: Logger = LoggerFactory.getLogger(this::class.java)
 
-  fun getPdusForRegion(regionCode: String): List<NDeliusRegionWithMembers.NDeliusPduWithTeam> = when (val result = nDeliusApiIntegrationApiClient.getPdusForRegion(regionCode)) {
+  fun getPdusForRegion(regionCode: String): List<CodeDescription> = when (val result = nDeliusApiIntegrationApiClient.getPdusForRegion(regionCode)) {
     is ClientResult.Success -> {
       val pduNames = result.body.pdus
       log.debug("Region code: {} returned pduNames: {}", regionCode, pduNames.map { it.description }.distinct())
@@ -33,10 +32,13 @@ class RegionService(
           "outcome" to "success",
         ),
       )
-      pduNames.ifEmpty {
-        log.warn("No PDU's returned for regionCode: $regionCode")
-        emptyList()
-      }
+      pduNames
+        .map { CodeDescription(it.code, it.description) }
+        .sortedBy { it.description.lowercase() }
+        .ifEmpty {
+          log.warn("No PDU's returned for regionCode: $regionCode")
+          emptyList()
+        }
     }
 
     is ClientResult.Failure -> {
@@ -64,18 +66,20 @@ class RegionService(
           "outcome" to "success",
         ),
       )
-      officeNames.ifEmpty {
-        log.warn("No office location's returned for pduCode: $pduCode")
-        telemetryClient.logToAppInsights(
-          "${GET_PDU_OFFICE_LOCATION_N_DELIUS.eventName}.failure",
-          mapOf(
-            "integrationActionType" to GET_PDU_OFFICE_LOCATION_N_DELIUS.name,
-            "outcome" to "failure",
-          ),
-        )
+      officeNames
+        .sortedBy { it.description.lowercase() }
+        .ifEmpty {
+          log.warn("No office location's returned for pduCode: $pduCode")
+          telemetryClient.logToAppInsights(
+            "${GET_PDU_OFFICE_LOCATION_N_DELIUS.eventName}.failure",
+            mapOf(
+              "integrationActionType" to GET_PDU_OFFICE_LOCATION_N_DELIUS.name,
+              "outcome" to "failure",
+            ),
+          )
 
-        emptyList()
-      }
+          emptyList()
+        }
     }
 
     is ClientResult.Failure -> {
