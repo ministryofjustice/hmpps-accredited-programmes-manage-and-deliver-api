@@ -277,7 +277,11 @@ class ProgrammeGroupMembershipService(
             "statusCode" to result.status.toString(),
           ),
         )
-        throw BusinessException(
+        // Surfaced as HTTP 409 Conflict: the request itself is well-formed, but the referral's
+        // stored sentence data is in a state that conflicts with upstream nDelius (the linked
+        // requirement / licence condition no longer exists). The caller cannot fix this by
+        // retrying or by changing the request body — the underlying data needs to be corrected.
+        throw ConflictException(
           "Cannot allocate referral to group: the $sourceType linked to this referral " +
             "no longer exists in nDelius. The sentence data may be stale following a transfer or termination. " +
             "Please contact your admin to update the referral's sentence data.",

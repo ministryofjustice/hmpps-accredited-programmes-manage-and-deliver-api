@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
@@ -111,7 +112,7 @@ class ProgrammeGroupMembershipServiceTest {
   }
 
   @Test
-  fun `should throw BusinessException when referral licence condition does not exist in nDelius`() {
+  fun `should throw ConflictException when referral licence condition does not exist in nDelius`() {
     // Given
     val referralEntity = ReferralEntityFactory()
       .withPersonName("John Smith")
@@ -132,7 +133,7 @@ class ProgrammeGroupMembershipServiceTest {
     assertThatThrownBy {
       service.allocateReferralToGroup(referralId, groupId, "testAdmin", "test additional details")
     }
-      .isInstanceOf(BusinessException::class.java)
+      .isInstanceOf(ConflictException::class.java)
       .hasMessageContaining("no longer exists in nDelius")
       .hasMessageContaining("licence condition")
       .hasMessageContaining("Please contact your admin")
@@ -143,7 +144,7 @@ class ProgrammeGroupMembershipServiceTest {
   }
 
   @Test
-  fun `should throw BusinessException when referral requirement does not exist in nDelius`() {
+  fun `should throw ConflictException when referral requirement does not exist in nDelius`() {
     // Given
     val referralEntity = ReferralEntityFactory()
       .withPersonName("John Smith")
@@ -164,7 +165,7 @@ class ProgrammeGroupMembershipServiceTest {
     assertThatThrownBy {
       service.allocateReferralToGroup(referralId, groupId, "testAdmin", "test additional details")
     }
-      .isInstanceOf(BusinessException::class.java)
+      .isInstanceOf(ConflictException::class.java)
       .hasMessageContaining("no longer exists in nDelius")
       .hasMessageContaining("requirement")
       .hasMessageContaining("Please contact your admin")
