@@ -45,7 +45,7 @@ FROM referral r
          LEFT JOIN latest_ldc_status lds ON r.id = lds.referral_id and lds.rn = 1
          LEFT JOIN latest_cohort lc ON r.id = lc.referral_id and lc.rn = 1
          LEFT JOIN referral_reporting_location rrl on r.id = rrl.referral_id
-         LEFT JOIN active_group_membership pgm on r.id = pgm.referral_id
+         LEFT JOIN active_group_membership pgm on r.id = pgm.referral_id and ls.rn = 1
 WHERE pgm IS NOT NULL
    OR rsd.description_text = 'Awaiting allocation';
 
@@ -77,10 +77,11 @@ BEGIN
 
     BEGIN
         REFRESH MATERIALIZED VIEW CONCURRENTLY group_waitlist_item_view;
-    EXCEPTION WHEN SQLSTATE '40P01' THEN
-        -- Deadlock detected - log and continue
-        -- The view will be refreshed by the next successful refresh operation
-        RAISE WARNING 'Materialized view refresh deadlock detected: %', SQLERRM;
+    EXCEPTION
+        WHEN SQLSTATE '40P01' THEN
+            -- Deadlock detected - log and continue
+            -- The view will be refreshed by the next successful refresh operation
+            RAISE WARNING 'Materialized view refresh deadlock detected: %', SQLERRM;
     END;
     RETURN NULL;
 END;
