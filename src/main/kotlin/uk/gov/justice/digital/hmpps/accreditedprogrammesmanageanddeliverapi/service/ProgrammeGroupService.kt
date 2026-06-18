@@ -419,7 +419,7 @@ class ProgrammeGroupService(
 
   fun getGroupAllocationsFilters(userRegionName: String): ProgrammeGroupAllocations.ProgrammeGroupAllocationsFilters {
     val referralReportingLocations =
-      referralReportingLocationRepository.getPdusAndReportingTeamsByRegion(userRegionName)
+      referralReportingLocationRepository.getPdusAndReportingTeamsByRegions(listOf(userRegionName))
     val pdusWithReportingTeams = referralReportingLocations.groupBy { it.pduName }
       .map { (pduName, reportingTeams) ->
         LocationFilterValues(pduName = pduName, reportingTeams = reportingTeams.map { it.reportingTeam }.distinct())
@@ -679,7 +679,11 @@ class ProgrammeGroupService(
   ): GroupsByRegion {
     val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
 
-    val firstUserRegionDescription = userService.getFirstUserRegionDescription(username)
+    val userRegionNames = userService.getUserRegionNames(username)
+    if (userRegionNames.isEmpty()) {
+      throw NotFoundException("Cannot find any regions (or teams) for user $username")
+    }
+    val primaryRegionName = userRegionNames.first()
 
     // Base spec without startedAt filter (used for total count)
     val baseSpec = getProgrammeGroupsSpecification(
@@ -688,7 +692,7 @@ class ProgrammeGroupService(
       deliveryLocations = deliveryLocations,
       cohort = groupCohort,
       sex = sex,
-      regionName = firstUserRegionDescription,
+      regionNames = userRegionNames,
     )
 
     val activeSpec = baseSpec.and(getProgrammeGroupsByRegionTabSpecification(selectedTab))
@@ -697,18 +701,18 @@ class ProgrammeGroupService(
     val totalForAllTabs: Long = programmeGroupRepository.count(baseSpec)
     val otherTabTotal: Int = (totalForAllTabs - pagedData.totalElements).toInt()
 
-    val allPduNames = programmeGroupRepository.findDistinctProbationDeliveryUnitNames(firstUserRegionDescription)
+    val allPduNames = programmeGroupRepository.findDistinctProbationDeliveryUnitNames(userRegionNames)
 
     val deliveryLocationNames = if (pdu.isNullOrEmpty()) {
       null
     } else {
-      programmeGroupRepository.findDistinctDeliveryLocationNames(firstUserRegionDescription, pdu)
+      programmeGroupRepository.findDistinctDeliveryLocationNames(userRegionNames, pdu)
     }
 
     return GroupsByRegion(
       pagedGroupData = pagedData,
       otherTabTotal = otherTabTotal,
-      regionName = firstUserRegionDescription,
+      regionName = primaryRegionName,
       probationDeliveryUnitNames = allPduNames,
       deliveryLocationNames = deliveryLocationNames,
     )

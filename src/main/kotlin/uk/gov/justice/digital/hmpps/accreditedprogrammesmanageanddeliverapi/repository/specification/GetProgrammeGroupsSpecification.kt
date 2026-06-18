@@ -45,7 +45,7 @@ fun getProgrammeGroupsSpecification(
   deliveryLocations: List<String>?,
   cohort: ProgrammeGroupCohort?,
   sex: String?,
-  regionName: String?,
+  regionNames: Collection<String>?,
 ): Specification<ProgrammeGroupEntity> = Specification { root, _, cb ->
   val predicates = mutableListOf<Predicate>()
 
@@ -79,8 +79,10 @@ fun getProgrammeGroupsSpecification(
     predicates.add(cb.equal(root.get<ProgrammeGroupSexEnum>("sex"), it))
   }
 
-  regionName?.let {
-    predicates.add(cb.equal(root.get<String>("regionName"), it))
+  regionNames?.let {
+    if (it.isNotEmpty()) {
+      predicates.add(root.get<String>("regionName").`in`(it))
+    }
   }
 
   cb.and(*predicates.toTypedArray())

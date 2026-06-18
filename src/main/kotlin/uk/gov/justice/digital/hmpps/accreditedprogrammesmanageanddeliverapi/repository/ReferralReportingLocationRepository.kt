@@ -10,6 +10,10 @@ import java.util.UUID
 interface ReferralReportingLocationRepository : JpaRepository<ReferralReportingLocationEntity, ReferralEntity> {
   fun findByReferralId(referralId: UUID?): ReferralReportingLocationEntity?
 
-  @Query("SELECT DISTINCT r.pduName, r.reportingTeam FROM ReferralReportingLocationEntity r WHERE r.regionName = :regionName")
-  fun getPdusAndReportingTeamsByRegion(regionName: String): List<PduReportingLocation>
+  @Query(
+    "SELECT DISTINCT r.pduName, r.reportingTeam FROM ReferralReportingLocationEntity r " +
+      "WHERE r.regionName IN (:regionNames) " +
+      "ORDER BY r.pduName, r.reportingTeam",
+  )
+  fun getPdusAndReportingTeamsByRegions(regionNames: Collection<String>): List<PduReportingLocation>
 }
