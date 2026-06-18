@@ -36,9 +36,9 @@ class RegionService(
         .map { CodeDescription(it.code, it.description) }
         .sortedBy { it.description.lowercase() }
         .ifEmpty {
-        log.warn("No PDU's returned for regionCode: $regionCode")
-        emptyList()
-      }
+          log.warn("No PDU's returned for regionCode: $regionCode")
+          emptyList()
+        }
     }
 
     is ClientResult.Failure -> {
@@ -69,17 +69,17 @@ class RegionService(
       officeNames
         .sortedBy { it.description.lowercase() }
         .ifEmpty {
-        log.warn("No office location's returned for pduCode: $pduCode")
-        telemetryClient.logToAppInsights(
-          "${GET_PDU_OFFICE_LOCATION_N_DELIUS.eventName}.failure",
-          mapOf(
-            "integrationActionType" to GET_PDU_OFFICE_LOCATION_N_DELIUS.name,
-            "outcome" to "failure",
-          ),
-        )
+          log.warn("No office location's returned for pduCode: $pduCode")
+          telemetryClient.logToAppInsights(
+            "${GET_PDU_OFFICE_LOCATION_N_DELIUS.eventName}.failure",
+            mapOf(
+              "integrationActionType" to GET_PDU_OFFICE_LOCATION_N_DELIUS.name,
+              "outcome" to "failure",
+            ),
+          )
 
-        emptyList()
-      }
+          emptyList()
+        }
     }
 
     is ClientResult.Failure -> {
