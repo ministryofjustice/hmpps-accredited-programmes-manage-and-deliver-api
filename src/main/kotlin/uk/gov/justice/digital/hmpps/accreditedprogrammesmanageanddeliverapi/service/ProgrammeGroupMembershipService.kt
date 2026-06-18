@@ -101,9 +101,15 @@ class ProgrammeGroupMembershipService(
       attendeeEntity
     }
 
-    // Create appointments in NDelius for each session object for future session only
+    // Create appointments in NDelius for each session object for future session only if they exist
     val now = LocalDateTime.now(clock)
-    scheduleService.createNdeliusAppointmentsForSessions(newAttendees.filter { it.session.startsAt > now })
+    newAttendees
+      .filter { it.session.startsAt > now }
+      .takeIf { it.isNotEmpty() }
+      ?.let(scheduleService::createNdeliusAppointmentsForSessions)
+      ?: run {
+        log.info("Appointment NOT created in nDelius for past session on referral allocation for CRN: ${referral.crn} and group: ${group.code}")
+      }
 
     val savedReferral = referralRepository.save(referral)
 
