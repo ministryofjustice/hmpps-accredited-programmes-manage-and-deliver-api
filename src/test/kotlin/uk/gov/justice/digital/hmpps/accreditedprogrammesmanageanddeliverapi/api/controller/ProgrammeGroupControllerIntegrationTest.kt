@@ -1223,7 +1223,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       wiremock.verify(3, postRequestedFor(urlEqualTo("/appointments")))
       val nDeliusAppointments = nDeliusAppointmentRepository.findAll()
-      assertThat(nDeliusAppointments.size).isEqualTo(42)
+      assertThat(nDeliusAppointments.size).isEqualTo(43)
       assertThat(foundReferral.eventId).isIn(nDeliusAppointments.mapNotNull { it.referral.eventId })
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
@@ -1236,7 +1236,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `allocateReferralToGroup only creates nDelius appointments for future sessions when group has past sessions`() {
+    fun `allocateReferralToGroup creates nDelius appointments for past and future sessions when group`() {
       // Given - create a group with a start date in the past so some sessions will be in the past
       val theCrnNumber = randomUppercaseString()
       val pastStartDate = LocalDate.now().minusWeeks(4)
@@ -1259,7 +1259,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "Allocating to group with past sessions")
 
       val now = LocalDateTime.now()
-      val today = now.toLocalDate()
       val futureGroupSessionsCount = group.sessions.count { it.startsAt > now && it.sessionType == SessionType.GROUP }
       val pastGroupSessionsCount = group.sessions.count { it.startsAt <= now && it.sessionType == SessionType.GROUP }
 
@@ -1294,13 +1293,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         CreateAppointmentRequest::class.java,
       )
 
-      // Verify that only future sessions were sent to nDelius
-      assertThat(createAppointmentRequest.appointments).hasSize(futureGroupSessionsCount)
-
-      // Verify that none of the appointment dates are in the past
-      createAppointmentRequest.appointments.forEach { appointment ->
-        assertThat(appointment.date).isAfterOrEqualTo(today)
-      }
+      // Verify that both past and future sessions were sent to nDelius
+      assertThat(createAppointmentRequest.appointments).hasSize(futureGroupSessionsCount + pastGroupSessionsCount)
 
       // Verify the referral is still added as attendee to all group sessions (past and future)
       val allGroupSessions = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions

@@ -101,9 +101,8 @@ class ProgrammeGroupMembershipService(
       attendeeEntity
     }
 
-    // Create appointments in NDelius for each session object for future session only
-    val now = LocalDateTime.now(clock)
-    scheduleService.createNdeliusAppointmentsForSessions(newAttendees.filter { it.session.startsAt > now })
+    // Create appointments in NDelius for each session object
+    scheduleService.createNdeliusAppointmentsForSessions(newAttendees)
 
     val savedReferral = referralRepository.save(referral)
 
