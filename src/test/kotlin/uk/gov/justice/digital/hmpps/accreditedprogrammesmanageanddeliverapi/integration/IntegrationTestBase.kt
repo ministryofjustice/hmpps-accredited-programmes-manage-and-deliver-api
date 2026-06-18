@@ -106,6 +106,7 @@ abstract class IntegrationTestBase {
   fun beforeEach() {
     domainEventsQueueConfig.purgeAllQueues()
     cacheManager.getCache("bank-holidays")?.clear()
+    cacheManager.getCache("user-regions")?.clear()
   }
 
   companion object {

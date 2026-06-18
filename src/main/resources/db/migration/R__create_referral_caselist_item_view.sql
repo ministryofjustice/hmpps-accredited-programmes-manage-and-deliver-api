@@ -57,7 +57,13 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    REFRESH MATERIALIZED VIEW CONCURRENTLY referral_caselist_item_view;
+    BEGIN
+        REFRESH MATERIALIZED VIEW CONCURRENTLY referral_caselist_item_view;
+    EXCEPTION WHEN SQLSTATE '40P01' THEN
+        -- Deadlock detected - log and continue
+        -- The view will be refreshed by the next successful refresh operation
+        RAISE WARNING 'Materialized view refresh deadlock detected: %', SQLERRM;
+    END;
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
