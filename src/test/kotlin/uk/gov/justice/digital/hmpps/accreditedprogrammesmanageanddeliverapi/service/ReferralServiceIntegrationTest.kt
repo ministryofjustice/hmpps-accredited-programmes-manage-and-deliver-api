@@ -42,8 +42,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralLdcHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -57,10 +60,10 @@ import java.util.UUID
 
 class ReferralServiceIntegrationTest : IntegrationTestBase() {
   @Autowired
-  private lateinit var referralCohortHistoryRepository: uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
+  private lateinit var referralCohortHistoryRepository: ReferralCohortHistoryRepository
 
   @Autowired
-  private lateinit var referralLdcHistoryRepository: uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
+  private lateinit var referralLdcHistoryRepository: ReferralLdcHistoryRepository
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
@@ -920,6 +923,38 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `refreshPersonalDetailsForReferral updates referral reporting location`() = runTest {
+      val referral = testReferralHelper.createReferral(
+        reportingTeam = "OLD_TEAM",
+        reportingPdu = "OLD_PDU",
+        regionName = "OLD_REGION",
+      )
+      oasysApiStubs.stubSuccessfulPniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory()
+          .withTeam(CodeDescription("NEW_TEAM_CODE", "NEW_TEAM_DESCRIPTION"))
+          .withProbationDeliveryUnit(
+            probationDeliveryUnit = CodeDescription("NEW_PDU_CODE", "NEW_PDU_DESCRIPTION"),
+          )
+          .withRegion(CodeDescription("NEW_REGION_CODE", "NEW_REGION_DESCRIPTION"))
+          .produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      referralService.refreshPersonalDetailsForReferral(referral.id!!)
+      val reportingLocation = reportingLocationRepository.findByReferralId(referral.id)!!
+
+      assertThat(reportingLocation.pduName).isEqualTo("NEW_PDU_DESCRIPTION")
+      assertThat(reportingLocation.reportingTeam).isEqualTo("NEW_TEAM_DESCRIPTION")
+      assertThat(reportingLocation.regionName).isEqualTo("NEW_REGION_DESCRIPTION")
+    }
+
+    @Test
     fun `retrieve referralDetails gracefully when OASys PNI returns 503`() = runTest {
       val referral = ReferralEntityFactory().produce()
       val name = randomFullName()
@@ -973,7 +1008,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     fun `refreshPersonalDetailsForReferral does not overwrite existing cohort if OASys is unavailable`() = runTest {
       // Given: referral with cohort SEXUAL_OFFENCE
       val referral = ReferralEntityFactory().produce()
-      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
+      val cohortHistory =
+        ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referral,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
@@ -1004,7 +1040,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     fun `refreshPersonalDetailsForReferral does not overwrite cohort or LDC if manual overrides exist, even if PNI data is present`() = runTest {
       // Given: referral with cohort SEXUAL_OFFENCE and LDC true, both manually overridden
       val referral = ReferralEntityFactory().produce()
-      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
+      val cohortHistory =
+        ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referral,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
@@ -1013,7 +1050,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
       // Simulate manual overrides
       // Simulate manual cohort override
-      val manualCohortHistory = uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory()
+      val manualCohortHistory = ReferralCohortHistoryFactory()
         .withReferral(referral)
         .withCohort(OffenceCohort.SEXUAL_OFFENCE)
         .withCreatedBy("MANUAL")
@@ -1021,7 +1058,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       referralCohortHistoryRepository.save(manualCohortHistory)
 
       // Simulate manual LDC override
-      val manualLdcHistory = uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralLdcHistoryFactory()
+      val manualLdcHistory = ReferralLdcHistoryFactory()
         .withReferral(referral)
         .withHasLdc(true)
         .withCreatedBy("MANUAL")
@@ -1054,7 +1091,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     fun `refreshPersonalDetailsForReferral does not update cohort if PNI is empty but nDelius data is available`() = runTest {
       // Given: referral with cohort SEXUAL_OFFENCE
       val referral = ReferralEntityFactory().produce()
-      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
+      val cohortHistory =
+        ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referral,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
@@ -1088,7 +1126,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     fun `refreshPersonalDetailsForReferral does not overwrite sexual offence cohort when OASys PNI returns 404`() = runTest {
       // Given: referral with cohort SEXUAL_OFFENCE
       val referral = ReferralEntityFactory().produce()
-      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
+      val cohortHistory =
+        ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referral,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
