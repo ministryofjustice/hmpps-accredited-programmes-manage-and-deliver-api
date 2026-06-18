@@ -486,7 +486,7 @@ class ProgrammeGroupController(
       ?: return ResponseEntity.ok(emptyList())
     val pdusForRegion =
       regionService.getPdusForRegion(userRegion.code)
-        .sortedBy { it.description }
+        .sortedBy { it.description.lowercase() }
         .map { CodeDescription(it.code, it.description) }
 
     return ResponseEntity.ok(pdusForRegion)
@@ -520,7 +520,7 @@ class ProgrammeGroupController(
   fun getOfficeLocationsInPdu(@PathVariable pduCode: String): ResponseEntity<List<CodeDescription>> {
     val officeLocationsForPdu =
       regionService.getOfficeLocationsForPdu(pduCode)
-        .sortedBy { it.description }
+        .sortedBy { it.description.lowercase() }
         .map { CodeDescription(it.code, it.description) }
     return ResponseEntity.ok(officeLocationsForPdu)
   }
