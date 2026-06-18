@@ -4,10 +4,14 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.repository.findByIdOrNull
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
+import java.time.LocalDateTime
 
 class GroupWaitlistViewRepositoryIntegrationTest : IntegrationTestBase() {
 
@@ -16,6 +20,9 @@ class GroupWaitlistViewRepositoryIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
+
+  @Autowired
+  private lateinit var programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository
 
   @BeforeEach
   override fun beforeEach() {
@@ -64,5 +71,35 @@ class GroupWaitlistViewRepositoryIntegrationTest : IntegrationTestBase() {
     val allocatedReferral = groupWaitListRepo.findByIdOrNull(referralId)!!
 
     assertThat(allocatedReferral.activeProgrammeGroupId).isEqualTo(group.id)
+  }
+
+  @Test
+  fun `duplicate active group memberships cause materialized view refresh to fail`() {
+    val referral = testReferralHelper.createReferral()
+
+    val groupA = testGroupHelper.createGroup()
+    val groupB = testGroupHelper.createGroup()
+
+    // First active membership - inserts fine
+    programmeGroupMembershipRepository.saveAndFlush(
+      ProgrammeGroupMembershipEntity(
+        referral = referral,
+        programmeGroup = groupA,
+      ),
+    )
+
+    // Second active membership for the SAME referral, deletedAt still null.
+    val exception = assertThrows<DataIntegrityViolationException> {
+      programmeGroupMembershipRepository.saveAndFlush(
+        ProgrammeGroupMembershipEntity(
+          referral = referral,
+          programmeGroup = groupB,
+          createdAt = LocalDateTime.now(),
+          createdByUsername = "SYSTEM",
+        ),
+      )
+    }
+
+    assertThat(exception.message).contains("could not execute statement [ERROR: duplicate key value violates unique constraint \"idx_group_wait_list_id\"")
   }
 }

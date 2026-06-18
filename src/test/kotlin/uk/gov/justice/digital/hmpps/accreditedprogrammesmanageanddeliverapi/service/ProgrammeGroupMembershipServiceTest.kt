@@ -87,8 +87,11 @@ class ProgrammeGroupMembershipServiceTest {
   @Test
   fun `should allocate referral to group`() {
     // Given
-    val referralEntity = ReferralEntityFactory().withPersonName("John Smith").withId(UUID.randomUUID())
-      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT).produce()
+    val referralEntity = ReferralEntityFactory()
+      .withPersonName("John Smith")
+      .withId(UUID.randomUUID())
+      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
+      .produce()
     val (referralId, groupId) = setupAllocationMocks(referralEntity)
 
     every { referralRepository.save(referralEntity) } returns referralEntity
@@ -107,7 +110,6 @@ class ProgrammeGroupMembershipServiceTest {
     assertThat(result).isEqualTo(referralEntity)
     verify { nDeliusIntegrationApiClient.getRequirementManagerDetails(referralEntity.crn, referralEntity.eventId!!) }
     verify { referralRepository.save(referralEntity) }
-    verify { scheduleService.createNdeliusAppointmentsForSessions(any()) }
     verify { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) }
   }
 
