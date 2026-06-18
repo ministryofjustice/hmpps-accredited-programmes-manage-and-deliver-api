@@ -24,7 +24,8 @@ A Referral is in the WAITLIST if:
 - It does not have any active/non-deleted GroupMemberships for any Group.
 - It is in the `Awaiting Allocation` Status
 - Its ReportingLocation is in the same Region as the Group
-  - The Group's Region is taken from the first Team of the User who created the Group initially.
+  - The Group's Region is taken from the first effective user region when the Group is created.
+  - Effective user regions can include nDelius team regions and temporary manual overrides in the API database.
 
 A Referral is in the ALLOCATED list if:
 
