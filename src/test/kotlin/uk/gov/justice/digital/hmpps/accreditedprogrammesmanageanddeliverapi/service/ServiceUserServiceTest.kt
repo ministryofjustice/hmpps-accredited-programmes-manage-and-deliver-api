@@ -16,11 +16,15 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.UserRegionOverrideRepository
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
 @ExtendWith(MockKExtension::class)
@@ -29,11 +33,64 @@ class ServiceUserServiceTest {
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient = mockk()
   private val hmppsAuthenticationHolder: HmppsAuthenticationHolder = mockk()
   private val telemetryClient: TelemetryClient = mockk()
-  private val service = UserService(nDeliusIntegrationApiClient, hmppsAuthenticationHolder, telemetryClient)
+  private val userRegionOverrideRepository: UserRegionOverrideRepository = mockk()
+  private val service = UserService(nDeliusIntegrationApiClient, hmppsAuthenticationHolder, telemetryClient, userRegionOverrideRepository)
 
   @BeforeEach
   fun setUp() {
     every { hmppsAuthenticationHolder.username } returns null
+    every { userRegionOverrideRepository.findActiveRegionNamesByUsername(any()) } returns emptyList()
+  }
+
+  @Test
+  fun `getUserRegionNames should merge nDelius regions with manual overrides`() {
+    val username = "jsmith"
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { nDeliusIntegrationApiClient.getTeamsForUser(username) } returns ClientResult.Success(
+      body = NDeliusUserTeams(
+        teams = listOf(
+          NDeliusUserTeam(
+            code = "TEAM-1",
+            description = "Team One",
+            pdu = CodeDescription("PDU1", "PDU One"),
+            region = CodeDescription("REGION1", "North East"),
+          ),
+          NDeliusUserTeam(
+            code = "TEAM-2",
+            description = "Team Two",
+            pdu = CodeDescription("PDU2", "PDU Two"),
+            region = CodeDescription("REGION2", "Yorkshire and the Humber"),
+          ),
+        ),
+      ),
+      status = HttpStatusCode.valueOf(200),
+    )
+    every {
+      userRegionOverrideRepository.findActiveRegionNamesByUsername(username)
+    } returns listOf("South West", "North East")
+
+    val regions = service.getUserRegionNames(username)
+
+    assertEquals(listOf("North East", "Yorkshire and the Humber", "South West"), regions)
+  }
+
+  @Test
+  fun `getUserRegionNames should return manual overrides when nDelius teams cannot be loaded`() {
+    val username = "jsmith"
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { nDeliusIntegrationApiClient.getTeamsForUser(username) } returns ClientResult.Failure.StatusCode(
+      method = HttpMethod.GET,
+      path = "/user/$username/teams",
+      status = HttpStatusCode.valueOf(500),
+      body = """{"error":"Unable to fetch teams"}""",
+    )
+    every {
+      userRegionOverrideRepository.findActiveRegionNamesByUsername(username)
+    } returns listOf("Manual Region")
+
+    val regions = service.getUserRegionNames(username)
+
+    assertEquals(listOf("Manual Region"), regions)
   }
 
   @Test

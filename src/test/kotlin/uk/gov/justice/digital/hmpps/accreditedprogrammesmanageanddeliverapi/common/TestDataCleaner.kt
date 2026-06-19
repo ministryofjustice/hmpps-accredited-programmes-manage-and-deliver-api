@@ -25,6 +25,7 @@ class TestDataCleaner(
       createNativeQuery("TRUNCATE TABLE preferred_delivery_location_probation_delivery_unit CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE preferred_delivery_location CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE delivery_location_preferences CASCADE").executeUpdate()
+      createNativeQuery("TRUNCATE TABLE user_region_override CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE referral_reporting_location CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE programme_group CASCADE").executeUpdate()
       createNativeQuery("TRUNCATE TABLE programme_group_membership CASCADE").executeUpdate()
