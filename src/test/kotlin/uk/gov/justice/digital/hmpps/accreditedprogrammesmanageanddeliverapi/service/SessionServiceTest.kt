@@ -46,6 +46,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
+import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Optional
@@ -84,6 +85,7 @@ class SessionServiceTest {
       authenticationUtils,
       userService,
       regionService,
+      Clock.systemDefaultZone(),
     )
 
     sessionAttendanceTypeEntities = listOf(
