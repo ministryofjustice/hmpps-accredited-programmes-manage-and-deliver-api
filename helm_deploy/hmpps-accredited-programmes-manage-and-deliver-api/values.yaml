@@ -17,7 +17,7 @@ generic-service:
   # Used to access AWS resources like S3 buckets, SQS queues and SNS topics
   serviceAccountName: hmpps-manage-and-deliver-accredited-programmes
 
-  # Environment variables to load into the deployment
+
   env:
     JAVA_OPTS: "-Xmx512m"
     SERVER_PORT: "8080"
@@ -62,3 +62,8 @@ generic-service:
 
 generic-prometheus-alerts:
   targetApplication: hmpps-accredited-programmes-manage-and-deliver-api
+
+retryDlqCronjob:
+  enabled: false
+  retryDlqSchedule: "*/20 * * * *"  # Environment variables to load into the deployment
+
