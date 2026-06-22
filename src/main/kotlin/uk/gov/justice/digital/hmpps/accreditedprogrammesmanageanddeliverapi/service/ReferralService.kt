@@ -490,7 +490,9 @@ class ReferralService(
       incomingReferralStatusDescription.id,
     )
 
-    var message = "${referral.personName}'s referral status is now ${ReferralStatusUtils.formatStatus(incomingReferralStatusDescription.description)}."
+    var message = "${referral.personName}'s referral status is now ${
+      ReferralStatusUtils.formatStatus(incomingReferralStatusDescription.description)
+    }."
     val activeGroupMembership = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
 
     if (
@@ -504,7 +506,11 @@ class ReferralService(
       )
       if (incomingReferralStatusDescription.description != "Programme complete") {
         message =
-          "${referral.personName}'s referral status is now ${ReferralStatusUtils.formatStatus(incomingReferralStatusDescription.description)}. They have been removed from group ${activeGroupMembership.programmeGroup.code}"
+          "${referral.personName}'s referral status is now ${
+            ReferralStatusUtils.formatStatus(
+              incomingReferralStatusDescription.description,
+            )
+          }. They have been removed from group ${activeGroupMembership.programmeGroup.code}"
       }
     }
 
@@ -552,6 +558,7 @@ class ReferralService(
       ?.apply {
         pduName = personalDetails.probationDeliveryUnit.description
         reportingTeam = personalDetails.team.description
+        regionName = personalDetails.region.description
       }
       ?: ReferralReportingLocationEntity(
         referral = referral,
