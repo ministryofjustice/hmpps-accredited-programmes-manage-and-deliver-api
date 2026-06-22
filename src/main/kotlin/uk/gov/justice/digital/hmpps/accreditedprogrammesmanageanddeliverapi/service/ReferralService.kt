@@ -485,10 +485,20 @@ class ReferralService(
       throw BusinessException("Referral with id ${referral.id} does not have a current status history")
     }
 
+    val currentDescription = currentReferralStatusHistory.referralStatusDescription
     val transition = referralStatusTransitionRepository.findByFromStatusIdAndToStatusId(
-      currentReferralStatusHistory.referralStatusDescription.id,
+      currentDescription.id,
       incomingReferralStatusDescription.id,
     )
+
+    // Guard against invalid transitions (e.g. Scheduled -> Programme complete) that the
+    // frontend should never send. Without this check the requested status was being saved
+    // verbatim, allowing referrals to jump into states they cannot reach via the UI.
+    if (transition == null && currentDescription.id != incomingReferralStatusDescription.id) {
+      throw BusinessException(
+        "Invalid referral status transition: '${currentDescription.description}' -> '${incomingReferralStatusDescription.description}'",
+      )
+    }
 
     var message = "${referral.personName}'s referral status is now ${
       ReferralStatusUtils.formatStatus(incomingReferralStatusDescription.description)
