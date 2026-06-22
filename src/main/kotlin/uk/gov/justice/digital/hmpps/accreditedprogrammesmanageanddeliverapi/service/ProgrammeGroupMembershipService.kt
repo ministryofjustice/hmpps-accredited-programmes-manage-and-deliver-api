@@ -274,7 +274,7 @@ class ProgrammeGroupMembershipService(
           result.toException(),
         )
         telemetryClient.logToAppInsights(
-          "Referral.allocate-to-group.ndelius-validation-failure",
+          "Referral.allocate-to-group.ndelius-stale-sentence-data",
           mapOf(
             "referralId" to referral.id.toString(),
             "crn" to referral.crn,

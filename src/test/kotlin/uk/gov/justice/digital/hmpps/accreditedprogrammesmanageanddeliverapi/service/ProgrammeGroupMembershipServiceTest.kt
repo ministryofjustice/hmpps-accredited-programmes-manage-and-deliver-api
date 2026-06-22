@@ -142,7 +142,7 @@ class ProgrammeGroupMembershipServiceTest {
 
     verify(exactly = 0) { scheduleService.createNdeliusAppointmentsForSessions(any()) }
     verify(exactly = 0) { referralRepository.save(any()) }
-    verify { telemetryClient.logToAppInsights("Referral.allocate-to-group.ndelius-validation-failure", any()) }
+    verify { telemetryClient.logToAppInsights("Referral.allocate-to-group.ndelius-stale-sentence-data", any()) }
   }
 
   @Test
@@ -174,7 +174,7 @@ class ProgrammeGroupMembershipServiceTest {
 
     verify(exactly = 0) { scheduleService.createNdeliusAppointmentsForSessions(any()) }
     verify(exactly = 0) { referralRepository.save(any()) }
-    verify { telemetryClient.logToAppInsights("Referral.allocate-to-group.ndelius-validation-failure", any()) }
+    verify { telemetryClient.logToAppInsights("Referral.allocate-to-group.ndelius-stale-sentence-data", any()) }
   }
 
   @Test

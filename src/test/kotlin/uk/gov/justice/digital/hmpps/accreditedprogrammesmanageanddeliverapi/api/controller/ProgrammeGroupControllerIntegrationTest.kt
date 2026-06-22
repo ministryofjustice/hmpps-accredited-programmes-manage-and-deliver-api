@@ -64,6 +64,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
@@ -1164,6 +1165,60 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         body = AllocateToGroupRequest("Empty additional details"),
       )
       assertThat(exception.userMessage).isEqualTo("Conflict: Referral with id ${referral.id} is already allocated to a group: ${group.code}")
+    }
+
+    @Test
+    fun `allocateReferralToGroup returns 409 Conflict when referral requirement no longer exists in nDelius`() {
+      val group = testGroupHelper.createGroup()
+      val createdReferral = testReferralHelper.createReferral(sourcedFrom = ReferralEntitySourcedFrom.REQUIREMENT)
+      val referral = testReferralHelper.updateReferralStatus(
+        createdReferral,
+        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+      )
+      nDeliusApiStubs.stubNotFoundRequirementManagerResponse(
+        crn = referral.crn,
+        requirementId = referral.eventId!!,
+      )
+
+      val exception = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/allocate/${referral.id}",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.CONFLICT.value(),
+        body = AllocateToGroupRequest("Empty additional details"),
+      )
+      assertThat(exception.userMessage).isEqualTo(
+        "Conflict: Cannot allocate referral to group: the requirement linked to this referral no longer exists in nDelius. " +
+          "The sentence data may be stale following a transfer or termination. " +
+          "Please contact your admin to update the referral's sentence data.",
+      )
+    }
+
+    @Test
+    fun `allocateReferralToGroup returns 409 Conflict when referral licence condition no longer exists in nDelius`() {
+      val group = testGroupHelper.createGroup()
+      val createdReferral = testReferralHelper.createReferral(sourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION)
+      val referral = testReferralHelper.updateReferralStatus(
+        createdReferral,
+        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+      )
+      nDeliusApiStubs.stubNotFoundLicenceConditionManagerResponse(
+        crn = referral.crn,
+        licenceConditionId = referral.eventId!!,
+      )
+
+      val exception = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/allocate/${referral.id}",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.CONFLICT.value(),
+        body = AllocateToGroupRequest("Empty additional details"),
+      )
+      assertThat(exception.userMessage).isEqualTo(
+        "Conflict: Cannot allocate referral to group: the licence condition linked to this referral no longer exists in nDelius. " +
+          "The sentence data may be stale following a transfer or termination. " +
+          "Please contact your admin to update the referral's sentence data.",
+      )
     }
 
     @Test
