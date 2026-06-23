@@ -53,6 +53,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
+import java.time.Clock
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -75,6 +76,7 @@ class SessionService(
   private val authenticationUtils: AuthenticationUtils,
   private val userService: UserService,
   private val regionService: RegionService,
+  private val clock: Clock,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
@@ -445,6 +447,10 @@ class SessionService(
   fun saveSessionAttendance(sessionId: UUID, sessionAttendance: SessionAttendance): SessionAttendance {
     val session = sessionRepository.findById(sessionId).orElseThrow {
       NotFoundException("Session not found with id: $sessionId")
+    }
+
+    if (LocalDateTime.now(clock).isAfter(session.startsAt.plusDays(1))) {
+      throw BusinessException("Unable to record session attendances for the session with ID: $sessionId after 24 hours.")
     }
 
     val attendees = sessionAttendance.attendees

@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
@@ -46,8 +47,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.Optional
 import java.util.UUID
 
@@ -64,6 +68,7 @@ class SessionServiceTest {
   private val telemetryClient = mockk<TelemetryClient>()
   private val authenticationUtils = mockk<AuthenticationUtils>()
   private val userService = mockk<UserService>()
+  private val fixedClock = Clock.fixed(Instant.now(), ZoneId.systemDefault())
   private val regionService = mockk<RegionService>()
   private lateinit var service: SessionService
   private lateinit var sessionAttendanceTypeEntities: List<SessionAttendanceNDeliusOutcomeEntity>
@@ -84,6 +89,7 @@ class SessionServiceTest {
       authenticationUtils,
       userService,
       regionService,
+      fixedClock,
     )
 
     sessionAttendanceTypeEntities = listOf(
@@ -1276,5 +1282,25 @@ class SessionServiceTest {
     // Then
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId1) }
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId2) }
+  }
+
+  @Test
+  fun `should throw BusinessException when recording attendance more than 24 hours after session starts`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val sessionEntity = SessionFactory()
+      .withStartsAt(LocalDateTime.now(fixedClock).minusHours(25)).withId(sessionId).produce()
+    val sessionAttendance = SessionAttendanceFactory().produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+
+    // When
+    val exception = assertThrows<BusinessException> {
+      service.saveSessionAttendance(sessionId, sessionAttendance)
+    }
+
+    // Then
+    assertThat(exception.message)
+      .isEqualTo("Unable to record session attendances for the session with ID: $sessionId after 24 hours.")
   }
 }

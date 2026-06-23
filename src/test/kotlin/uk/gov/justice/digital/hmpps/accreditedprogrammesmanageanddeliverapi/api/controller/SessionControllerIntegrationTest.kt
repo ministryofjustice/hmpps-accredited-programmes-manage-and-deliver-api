@@ -855,7 +855,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         .withIsPlaceholder(true)
         .produce(),
     )
-    val placeholderOneToOneAppointment = testDataGenerator.createNDeliusAppointment(placeholderOneToOneSession, referral)
+    val placeholderOneToOneAppointment =
+      testDataGenerator.createNDeliusAppointment(placeholderOneToOneSession, referral)
 
     // Session 4: subsequent catch-up session should not move
     val catchUpSession = testDataGenerator.createSession(
@@ -2047,6 +2048,52 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
     // Then
     assertThat(exception.userMessage).isEqualTo("Not Found: Session not found with id: $sessionId")
+  }
+
+  @Test
+  fun `should return 400 when a session is 24 hours in the past on POST session attendance request`() {
+    // Given
+    // Create group
+    val group = testGroupHelper.createGroup()
+    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+    // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+    val referral = testReferralHelper.createReferral()
+    programmeGroupMembershipService.allocateReferralToGroup(
+      referral.id!!,
+      group.id!!,
+      "SYSTEM",
+      "",
+    )
+    val sessionEntity =
+      sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }
+    nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+    val sessionId = sessionEntity!!.id!!
+
+    sessionEntity.startsAt = LocalDateTime.now().minusDays(2)
+    sessionRepository.save(sessionEntity)
+
+    val sessionAttendanceRequest = SessionAttendance(
+      attendees = listOf(
+        SessionAttendee(
+          referralId = UUID.randomUUID(),
+          outcomeCode = ATTC,
+        ),
+      ),
+    )
+
+    // When
+    val exception = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.POST,
+      uri = "/session/$sessionId/attendance",
+      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+      expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+      body = sessionAttendanceRequest,
+    )
+
+    // Then
+    assertThat(exception.userMessage).isEqualTo(
+      "Bad request: Unable to record session attendances for the session with ID: $sessionId after 24 hours.",
+    )
   }
 
   @Test

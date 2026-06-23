@@ -33,9 +33,12 @@ class ReferralImportedHandler(
     log.info("Starting handle for messageId: ${sqsMessage.messageId}")
     try {
       val message: DomainEventsMessage = objectMapper.readValue<DomainEventsMessage>(sqsMessage.message)
+      if (message.detailUrl == null) {
+        return log.warn("Detail url is null for event with messageId: ${sqsMessage.messageId}")
+      }
       val referralId = message.additionalInformation?.get(ADDITIONAL_INFORMATION_REFERRAL_ID_KEY)?.toString()
         ?.let { UUID.fromString(it) }
-        ?: return log.info("Referral ID is null for event with messageId: ${sqsMessage.messageId}")
+        ?: return log.warn("Referral ID is null for event with messageId: ${sqsMessage.messageId}")
       log.info("Received referral imported event for referral id: $referralId")
 
       telemetryClient.logToAppInsights(
