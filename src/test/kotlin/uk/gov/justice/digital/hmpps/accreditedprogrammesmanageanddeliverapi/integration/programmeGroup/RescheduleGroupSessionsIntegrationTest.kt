@@ -24,6 +24,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -53,6 +54,7 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
     govUkApiStubs.stubBankHolidaysResponse()
     nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
     nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+    nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
   }
 
   @Nested
@@ -376,6 +378,106 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
       assertThat(overview.dateOf(s3.id)).isEqualTo(LocalDate.of(2025, 12, 1))
       assertThat(overview.dateOf(s2.id)).isAfter(now)
       assertThat(overview.dateOf(s3.id)).isAfter(now)
+    }
+  }
+
+  @Nested
+  @DisplayName("Realistic Building Choices template (full schedule)")
+  inner class RealisticBuildingChoicesSchedule {
+
+    private val postProgrammeModuleName = "Post-programme reviews"
+
+    @Test
+    fun `editing slots preserves the past session and reschedules the rest onto the new slot in template order`() {
+      // A real group whose schedule has started: earliest start 7 days ago means the pre-group
+      // one-to-one is in the past, with the rest of the programme in the future.
+      val group = testGroupHelper.createGroup(
+        earliestStartDate = LocalDate.now(clock).minusDays(7),
+        createGroupSessionSlots = setOf(CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)),
+      )
+
+      val before = scheduleOverview(group.id!!)
+      val pastBefore = before.sessions.filter { !it.date.isAfter(now) }
+      assertThat(pastBefore).hasSize(1)
+
+      // When the slots change to Wednesday with an automatic reschedule
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        body = UpdateGroupRequest(
+          createGroupSessionSlot = setOf(CreateGroupSessionSlot(DayOfWeek.WEDNESDAY, 2, 0, AmOrPm.PM)),
+          automaticallyRescheduleOtherSessions = true,
+        ),
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      val overview = scheduleOverview(group.id!!)
+
+      // No sessions dropped or duplicated
+      assertThat(overview.sessions).hasSize(before.sessions.size)
+
+      // The single past session (pre-group one-to-one) is untouched and still on its Monday
+      val past = overview.sessions.filter { !it.date.isAfter(now) }
+      assertThat(past).hasSize(1)
+      assertThat(past.single().date).isEqualTo(pastBefore.single().date)
+      assertThat(past.single().date.dayOfWeek).isEqualTo(DayOfWeek.MONDAY)
+
+      // Everything else moved onto the new Wednesday slot, in the future
+      val rescheduled = overview.sessions.filter { it.date.isAfter(now) }
+      assertThat(rescheduled).allMatch { it.date.dayOfWeek == DayOfWeek.WEDNESDAY }
+
+      // Future sessions are placed in module/session template order (template order == chronological)
+      val futureByTemplateOrder = sessionRepository.findByProgrammeGroupId(group.id!!)
+        .filter { it.startsAt.toLocalDate().isAfter(now) }
+        .filter { (it.sessionType == SessionType.GROUP || it.isPlaceholder) && !it.isCatchup }
+        .sortedWith(compareBy({ it.moduleNumber }, { it.sessionNumber }))
+      assertThat(futureByTemplateOrder.map { it.startsAt }).isSorted
+    }
+
+    @Test
+    fun `single session cascade re-applies the six week gap before the post-programme reviews`() {
+      // A real group whose whole schedule is in the future, so a cascade touches every later session.
+      val group = testGroupHelper.createGroup(
+        earliestStartDate = LocalDate.now(clock).plusDays(3),
+        createGroupSessionSlots = setOf(CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)),
+      )
+
+      // The first group session (Getting Started); reschedule it forwards two weeks with cascade.
+      val firstGroupSession = sessionRepository.findByProgrammeGroupId(group.id!!)
+        .filter { it.sessionType == SessionType.GROUP && !it.isCatchup }
+        .minByOrNull { it.startsAt }!!
+      val newDate = firstGroupSession.startsAt.toLocalDate().plusWeeks(2)
+
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${firstGroupSession.id}/reschedule",
+        returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+        body = RescheduleSessionRequest(
+          sessionStartDate = newDate,
+          sessionStartTime = SessionTime(hour = 9, minutes = 30, amOrPm = AmOrPm.AM),
+          sessionEndTime = SessionTime(hour = 12, minutes = 0, amOrPm = AmOrPm.PM),
+          rescheduleOtherSessions = true,
+        ),
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      val sessions = sessionRepository.findByProgrammeGroupId(group.id!!)
+      val firstPostProgramme = sessions.filter { it.moduleName == postProgrammeModuleName }.minByOrNull { it.startsAt }!!
+      val lastBeforePostProgramme = sessions
+        .filter { it.moduleName != postProgrammeModuleName && !it.isCatchup }
+        .maxByOrNull { it.startsAt }!!
+
+      // The post-programme review keeps a six-week gap after the final group session (not the
+      // weekly cadence that would result if the gap were dropped during the cascade).
+      assertThat(firstPostProgramme.startsAt.toLocalDate())
+        .isAfterOrEqualTo(lastBeforePostProgramme.startsAt.toLocalDate().plusWeeks(6))
+      assertThat(firstPostProgramme.startsAt.toLocalDate())
+        .isBefore(lastBeforePostProgramme.startsAt.toLocalDate().plusWeeks(8))
+
+      // And the cascade did move the edited session, with the overview self-consistent
+      val overview = scheduleOverview(group.id!!)
+      assertThat(overview.dateOf(firstGroupSession.id)).isEqualTo(newDate)
     }
   }
 
