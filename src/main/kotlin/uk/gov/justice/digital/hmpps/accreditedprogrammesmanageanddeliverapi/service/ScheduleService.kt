@@ -387,7 +387,9 @@ class ScheduleService(
       coveredTemplateIds,
     )
     val attendees = sessions.flatMap { it.attendees }.toList()
-    createNdeliusAppointmentsForSessions(attendees)
+    if (attendees.isNotEmpty()) {
+      createNdeliusAppointmentsForSessions(attendees)
+    }
 
     return sessions
   }
@@ -501,12 +503,17 @@ class ScheduleService(
     .map { it.holidayDate }
     .toSet()
 
+  /**
+   * Generates the new dates for an ordered list of sessions being rescheduled (in module/session
+   * template order), placing each on the group's slots. Each session keeps its own template
+   * duration, and the six-week gap before the first Post-programme reviews session is re-applied so
+   * the cascade preserves the same spacing as the initial schedule.
+   */
   fun generateScheduleDates(
     programmeGroupSlots: Collection<ProgrammeGroupSessionSlotEntity>,
     initialStartDate: LocalDate,
-    sessionCount: Int,
+    subsequentSessions: List<SessionEntity>,
     bankHolidays: Set<LocalDate>,
-    durationMinutes: Int,
   ): List<Pair<LocalDateTime, LocalDateTime>> {
     // Start from the day after the rescheduled session so that subsequent sessions
     // are placed on the next available slots.  Building from the initialStartDate + 1 day
@@ -514,17 +521,34 @@ class ScheduleService(
     // slot day, the slot is naturally skipped; when it is NOT a slot day, the first
     // available slot (which belongs to the next session) is no longer incorrectly
     // consumed as if it were the rescheduled session's own slot.
-    val slotQueue = buildSlotQueue(bankHolidays, programmeGroupSlots, initialStartDate.plusDays(1))
+    var slotQueue = buildSlotQueue(bankHolidays, programmeGroupSlots, initialStartDate.plusDays(1))
     val schedule = mutableListOf<Pair<LocalDateTime, LocalDateTime>>()
+    var postProgrammeReviewsGapApplied = false
 
-    repeat(sessionCount) {
+    subsequentSessions.forEachIndexed { index, sessionToPlace ->
       val slotInstance = slotQueue.poll()
       val startsAt = slotInstance.nextDate.atTime(slotInstance.slot.startTime)
-      val endsAt = startsAt.plusMinutes(durationMinutes.toLong())
+      val endsAt = startsAt.plusMinutes(sessionToPlace.moduleSessionTemplate.durationMinutes.toLong())
       schedule.add(startsAt to endsAt)
 
-      val nextDate = findNextValidDate(bankHolidays, slotInstance.nextDate.plusDays(1), slotInstance.slot)
-      slotQueue.add(slotInstance.copy(nextDate = nextDate))
+      // Re-apply the six-week gap before the first Post-programme reviews session, mirroring the
+      // initial scheduling in scheduleSessionsForGroup so the cascade keeps the correct spacing.
+      val nextSession = subsequentSessions.getOrNull(index + 1)
+      if (
+        !postProgrammeReviewsGapApplied &&
+        sessionToPlace.moduleName != POST_PROGRAMME_REVIEWS_MODULE_NAME &&
+        nextSession?.moduleName == POST_PROGRAMME_REVIEWS_MODULE_NAME
+      ) {
+        postProgrammeReviewsGapApplied = true
+        slotQueue = buildSlotQueue(
+          bankHolidays = bankHolidays,
+          groupSlots = programmeGroupSlots,
+          startFrom = startsAt.toLocalDate().plusWeeks(POST_PROGRAMME_REVIEWS_GAP_WEEKS),
+        )
+      } else {
+        val nextDate = findNextValidDate(bankHolidays, slotInstance.nextDate.plusDays(1), slotInstance.slot)
+        slotQueue.add(slotInstance.copy(nextDate = nextDate))
+      }
     }
 
     return schedule

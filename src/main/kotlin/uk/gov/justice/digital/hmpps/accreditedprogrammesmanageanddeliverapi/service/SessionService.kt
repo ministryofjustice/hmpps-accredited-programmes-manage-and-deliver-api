@@ -178,14 +178,9 @@ class SessionService(
         val scheduleDates = scheduleService.generateScheduleDates(
           programmeGroupSlots = session.programmeGroup.programmeGroupSessionSlots,
           initialStartDate = anchorDate,
-          sessionCount = subsequentGroupSessions.size,
+          subsequentSessions = subsequentGroupSessions,
           bankHolidays = scheduleService.englandAndWalesHolidayDates(),
-          durationMinutes = session.moduleSessionTemplate.durationMinutes,
         )
-
-        require(subsequentGroupSessions.size == scheduleDates.size) {
-          "Expected one schedule date per session"
-        }
 
         subsequentGroupSessions.zip(scheduleDates).forEach { (subsequentSession, newDates) ->
           subsequentSession.startsAt = newDates.first
