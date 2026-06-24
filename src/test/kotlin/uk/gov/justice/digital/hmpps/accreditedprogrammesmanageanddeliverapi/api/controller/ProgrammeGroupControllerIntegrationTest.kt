@@ -1810,6 +1810,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(createdGroup.groupFacilitators).hasSize(3)
       assertThat(createdGroup.accreditedProgrammeTemplate).isNotNull
       assertThat(createdGroup.accreditedProgrammeTemplate!!.name).isEqualTo("Building Choices")
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -1825,6 +1826,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
       assertThat(createdGroup.code).isEqualTo(body.groupCode)
       assertThat(createdGroup.id).isNotNull
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -1861,6 +1863,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(createdGroup.id).isNotNull
       assertThat(createdGroup.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(createdGroup.isLdc).isTrue
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -1897,6 +1900,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(createdGroup.probationDeliveryUnitName).isEqualTo(body.pduName)
       assertThat(createdGroup.deliveryLocationCode).isEqualTo(body.deliveryLocationCode)
       assertThat(createdGroup.deliveryLocationName).isEqualTo(body.deliveryLocationName)
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -1931,6 +1935,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       assertThat(actualFacilitatorCodes)
         .containsExactlyInAnyOrderElementsOf(expectedFacilitatorCodes)
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -1977,6 +1982,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         (it.dayOfWeek == DayOfWeek.MONDAY && it.startTime == LocalTime.of(1, 1)) ||
           (it.dayOfWeek == DayOfWeek.TUESDAY && it.startTime == LocalTime.of(13, 1))
       }
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -1993,6 +1999,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
       assertThat(createdGroup).isNotNull
       assertThat(createdGroup.sessions).isNotEmpty()
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -2131,7 +2138,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response).hasSize(3)
-      assertThat(response.map { it.description }).containsExactly("All NPS North East", "Bradford, Calderdale", "East and West Lincolnshire")
+      assertThat(response.map { it.description }).containsExactly(
+        "All NPS North East",
+        "Bradford, Calderdale",
+        "East and West Lincolnshire",
+      )
       assertThat(response.map { it.code }).containsExactly("P1", "P2", "P3")
     }
 
@@ -2188,7 +2199,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response).hasSize(3)
-      assertThat(response.map { it.description }).containsExactly("All NPS North East", "Bradford, Calderdale", "East and West Lincolnshire")
+      assertThat(response.map { it.description }).containsExactly(
+        "All NPS North East",
+        "Bradford, Calderdale",
+        "East and West Lincolnshire",
+      )
       assertThat(response.map { it.code }).containsExactly("O1", "O2", "O3")
     }
 
@@ -2383,7 +2398,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val referral = referrals.first()
       val group = testGroupHelper.createGroup()
       testGroupHelper.allocateToGroup(group, referral)
-      val sessionTemplate = group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first { it.sessionType == SessionType.ONE_TO_ONE }
+      val sessionTemplate =
+        group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first { it.sessionType == SessionType.ONE_TO_ONE }
       val pastDate = LocalDate.now().minusDays(1)
 
       val scheduleSessionRequest = ScheduleSessionRequest(
@@ -2423,7 +2439,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val referral = referrals.first()
       val group = testGroupHelper.createGroup()
       testGroupHelper.allocateToGroup(group, referral)
-      val sessionTemplate = group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first { it.sessionType == SessionType.ONE_TO_ONE }
+      val sessionTemplate =
+        group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first { it.sessionType == SessionType.ONE_TO_ONE }
       val pastDate = LocalDate.now().minusDays(1)
 
       val scheduleSessionRequest = ScheduleSessionRequest(
@@ -2464,7 +2481,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val group = testGroupHelper.createGroup()
       testGroupHelper.allocateToGroup(group, referral1)
       testGroupHelper.allocateToGroup(group, referral2)
-      val sessionTemplate = group.accreditedProgrammeTemplate!!.modules.first { it.name == "Getting started" }.sessionTemplates.first { it.sessionType == SessionType.GROUP }
+      val sessionTemplate =
+        group.accreditedProgrammeTemplate!!.modules.first { it.name == "Getting started" }.sessionTemplates.first { it.sessionType == SessionType.GROUP }
       val pastDate = LocalDate.now().minusDays(1)
 
       val scheduleSessionRequest = ScheduleSessionRequest(
@@ -3614,10 +3632,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return 200 when updating earliest start date`() {
       // Given
-      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
       val group = testGroupHelper.createGroup()
       val newStartDate = LocalDate.now().plusDays(10)
-      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
+      val updateRequest =
+        UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -3632,6 +3650,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.successMessage).isEqualTo("The start date has been updated.")
       val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
       assertThat(updatedGroup.earliestPossibleStartDate).isEqualTo(newStartDate)
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -3714,6 +3733,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(updatedGroup.programmeGroupSessionSlots).anyMatch {
         it.dayOfWeek == DayOfWeek.FRIDAY && it.startTime == LocalTime.of(10, 0)
       }
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -3961,6 +3981,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(updatedGroup.programmeGroupSessionSlots.first().dayOfWeek).isEqualTo(DayOfWeek.THURSDAY)
       // Sessions should still exist (rescheduled, not deleted)
       assertThat(updatedGroup.sessions.size).isGreaterThanOrEqualTo(originalSessionCount)
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -3986,6 +4007,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
       assertThat(updatedGroup.programmeGroupSessionSlots).hasSize(1)
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -4073,6 +4095,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val nonPlaceholderSessions = updatedGroup.sessions.filter { !it.isPlaceholder }
       assertThat(nonPlaceholderSessions).allMatch { it.startsAt.toLocalDate() >= newStartDate }
       assertThat(nonPlaceholderSessions).allMatch { it.startsAt.dayOfWeek == DayOfWeek.MONDAY }
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
   }
 

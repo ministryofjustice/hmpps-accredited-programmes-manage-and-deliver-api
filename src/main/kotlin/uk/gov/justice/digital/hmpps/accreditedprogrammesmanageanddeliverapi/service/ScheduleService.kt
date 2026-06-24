@@ -387,7 +387,9 @@ class ScheduleService(
       coveredTemplateIds,
     )
     val attendees = sessions.flatMap { it.attendees }.toList()
-    createNdeliusAppointmentsForSessions(attendees)
+    if (attendees.isNotEmpty()) {
+      createNdeliusAppointmentsForSessions(attendees)
+    }
 
     return sessions
   }
