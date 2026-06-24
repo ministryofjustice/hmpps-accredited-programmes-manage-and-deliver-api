@@ -133,8 +133,6 @@ class SessionService(
     val currentSessionDuration = Duration.between(session.startsAt, session.endsAt)
     val requestedSessionDuration = Duration.between(requestedStartTime, requestedEndTime)
 
-    val originalSessionStartsAt = session.startsAt
-
     // Past sessions (end time has passed) may not be lengthened; shortening is allowed
     if (session.endsAt.isBefore(LocalDateTime.now()) && requestedSessionDuration > currentSessionDuration) {
       log.warn("Invalid reschedule request received for past session with id: $sessionId. Requested duration $requestedSessionDuration exceeds current duration $currentSessionDuration")
@@ -149,19 +147,37 @@ class SessionService(
 
     // Reschedule later group sessions, place-holder one-to-ones, but not catch-up sessions
     if (request.rescheduleOtherSessions) {
+      val now = LocalDateTime.now(clock)
+
+      // Select and order sessions that come AFTER the rescheduled session in template order
+      // (module number then session number), not by the current scheduled date.
+      // A date-based filter would miss sessions that are later in template order but
+      // currently have an earlier date (e.g. due to a prior ordering bug).
+      // Only sessions that are still in the future may be auto-rescheduled: sessions in
+      // the past must never be moved, even when they are later in template order than the
+      // edited session (which can happen when a schedule has previously been knocked out
+      // of order).
       val subsequentGroupSessions = session.programmeGroup.sessions
         .asSequence()
         .filter { it.sessionType == SessionType.GROUP || it.isPlaceholder }
-        .filter { it.id != session.id } // filter out the original session
+        .filter { it.id != session.id }
         .filter { !it.isCatchup }
-        .filter { it.startsAt.isAfter(originalSessionStartsAt) }
-        .sortedBy { it.startsAt }
+        .filter { it.startsAt > now }
+        .filter {
+          it.moduleNumber > session.moduleNumber ||
+            (it.moduleNumber == session.moduleNumber && it.sessionNumber > session.sessionNumber)
+        }
+        .sortedWith(compareBy({ it.moduleNumber }, { it.sessionNumber }))
         .toList()
 
       if (isGroupSession && session.programmeGroup.programmeGroupSessionSlots.isNotEmpty()) {
+        // Anchor on the later of the edited session's new date and today, so later
+        // sessions are never generated into the past. This matters when the edited session
+        // is itself in the past, or when a future session is moved to before today.
+        val anchorDate = maxOf(session.startsAt.toLocalDate(), now.toLocalDate())
         val scheduleDates = scheduleService.generateScheduleDates(
           programmeGroupSlots = session.programmeGroup.programmeGroupSessionSlots,
-          initialStartDate = session.startsAt.toLocalDate(),
+          initialStartDate = anchorDate,
           sessionCount = subsequentGroupSessions.size,
           bankHolidays = scheduleService.englandAndWalesHolidayDates(),
           durationMinutes = session.moduleSessionTemplate.durationMinutes,

@@ -181,6 +181,7 @@ class ScheduleService(
     programmeGroupId: UUID,
     mostRecentSession: SessionEntity? = null,
     skipPreGroupOneToOnePlaceholder: Boolean = false,
+    coveredTemplateIds: Set<UUID> = emptySet(),
   ): MutableSet<SessionEntity> {
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
       ?: throw NotFoundException("Group with id: $programmeGroupId could not be found")
@@ -198,18 +199,13 @@ class ScheduleService(
         moduleEntity.sessionTemplates.sortedBy { it.sessionNumber }
       }
 
-    // If rescheduling, only include sessions after the most recent held session
-    if (mostRecentSession != null) {
-      allSessionTemplates = allSessionTemplates.filter { template ->
-        template.module.moduleNumber > mostRecentSession.moduleNumber ||
-          (
-            template.module.moduleNumber == mostRecentSession.moduleNumber &&
-              template.sessionNumber > mostRecentSession.sessionNumber
-            )
-      }
+    // If rescheduling, only regenerate templates that are not already covered by a session we are
+    // keeping (i.e. a past session, or a retained future placeholder). This ensures we do not drop future sessions
+    // that are sit earlier in the template order than the most recent past session
+    if (coveredTemplateIds.isNotEmpty()) {
+      allSessionTemplates = allSessionTemplates.filter { template -> template.id !in coveredTemplateIds }
     }
 
-    // If skipping pre-group one-to-one placeholder, exclude that template
     if (skipPreGroupOneToOnePlaceholder) {
       allSessionTemplates = allSessionTemplates.filter { template ->
         !(template.sessionType == ONE_TO_ONE && template.module.name == "Pre-group one-to-ones")
@@ -219,10 +215,25 @@ class ScheduleService(
     val groupSlots = group.programmeGroupSessionSlots
     require(groupSlots.isNotEmpty()) { "Programme group slots must not be empty" }
 
+    // When rescheduling after past sessions, start from the later of:
+    // - the day after the most recent past session (so future sessions are never placed before it),
+    // - the group's configured earliest start date (honoured when e.g. a future restart date was set), or
+    // - today (so regenerated sessions are never placed in the past, even when the most recent past
+    //   session ran several days ago and the new slot day falls between then and now)
+    val startFrom = if (mostRecentSession != null) {
+      maxOf(
+        mostRecentSession.startsAt.toLocalDate().plusDays(1),
+        group.earliestPossibleStartDate,
+        LocalDate.now(clock),
+      )
+    } else {
+      group.earliestPossibleStartDate
+    }
+
     var slotQueue = buildSlotQueue(
       bankHolidays = bankHolidays,
       groupSlots = groupSlots,
-      startFrom = group.earliestPossibleStartDate,
+      startFrom = startFrom,
     )
 
     var firstSessionScheduledAndGapApplied = false
@@ -241,7 +252,7 @@ class ScheduleService(
           startsAt = startsAt,
           endsAt = endsAt,
           locationName = group.deliveryLocationName,
-          // If we are scheduling One-to-One here it is a placeholder session
+          // If we are scheduling One-to-One here, it is a placeholder session
           isPlaceholder = template.sessionType == ONE_TO_ONE,
         )
         session.sessionFacilitators = group.groupFacilitators.map {
@@ -313,7 +324,7 @@ class ScheduleService(
       }
     }
 
-    // Save the group here so the parent entity is updated and updates the corresponding sessions
+    // Save the group here so the parent entity is updated and updates the corresponding sessions,
     // otherwise JPA does not always update the inverse side of the relationship.
     group.sessions.addAll(generatedSessions)
     programmeGroupRepository.save(group)
@@ -354,6 +365,14 @@ class ScheduleService(
     val futureNDeliusAppointmentsToRemove = futureSessions.flatMap { session -> session.ndeliusAppointments }
     val mostRecentSession = group.sessions.filter { it.startsAt <= now }.maxByOrNull { it.startsAt }
 
+    // Templates already covered by a session we are keeping (past sessions, plus any retained future
+    // placeholder) must not be regenerated. Catch-ups are excluded.
+    val retainedSessions = group.sessions.filterNot { it in futureSessions }
+    val coveredTemplateIds = retainedSessions
+      .filterNot { it.isCatchup }
+      .mapNotNull { it.moduleSessionTemplate.id }
+      .toSet()
+
     if (futureSessions.isNotEmpty()) {
       removeNDeliusAppointments(futureNDeliusAppointmentsToRemove, futureSessions.toList())
       group.sessions.removeAll(futureSessions)
@@ -361,7 +380,12 @@ class ScheduleService(
     }
 
     // If there is no prior session, just schedule from start
-    val sessions = scheduleSessionsForGroup(programmeGroupId, mostRecentSession, skipPreGroupOneToOnePlaceholder)
+    val sessions = scheduleSessionsForGroup(
+      programmeGroupId,
+      mostRecentSession,
+      skipPreGroupOneToOnePlaceholder,
+      coveredTemplateIds,
+    )
     val attendees = sessions.flatMap { it.attendees }.toList()
     createNdeliusAppointmentsForSessions(attendees)
 
@@ -484,12 +508,14 @@ class ScheduleService(
     bankHolidays: Set<LocalDate>,
     durationMinutes: Int,
   ): List<Pair<LocalDateTime, LocalDateTime>> {
-    val slotQueue = buildSlotQueue(bankHolidays, programmeGroupSlots, initialStartDate)
+    // Start from the day after the rescheduled session so that subsequent sessions
+    // are placed on the next available slots.  Building from the initialStartDate + 1 day
+    // works whether the rescheduled session falls on a slot day or not: when it IS a
+    // slot day, the slot is naturally skipped; when it is NOT a slot day, the first
+    // available slot (which belongs to the next session) is no longer incorrectly
+    // consumed as if it were the rescheduled session's own slot.
+    val slotQueue = buildSlotQueue(bankHolidays, programmeGroupSlots, initialStartDate.plusDays(1))
     val schedule = mutableListOf<Pair<LocalDateTime, LocalDateTime>>()
-
-    val firstSlot = slotQueue.poll()
-    val nextDate = findNextValidDate(bankHolidays, firstSlot.nextDate.plusDays(1), firstSlot.slot)
-    slotQueue.add(firstSlot.copy(nextDate = nextDate))
 
     repeat(sessionCount) {
       val slotInstance = slotQueue.poll()
