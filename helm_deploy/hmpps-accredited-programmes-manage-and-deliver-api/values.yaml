@@ -64,6 +64,6 @@ generic-prometheus-alerts:
   targetApplication: hmpps-accredited-programmes-manage-and-deliver-api
 
 retryDlqCronjob:
-  enabled: false
+  enabled: true
   retryDlqSchedule: "*/20 * * * *"  # Environment variables to load into the deployment
 
