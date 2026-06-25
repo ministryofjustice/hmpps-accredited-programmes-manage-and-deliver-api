@@ -8,8 +8,10 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverview
@@ -24,11 +26,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -41,6 +44,12 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var sessionRepository: SessionRepository
+
+  @Autowired
+  private lateinit var programmeGroupRepository: ProgrammeGroupRepository
+
+  @Autowired
+  private lateinit var scheduleService: ScheduleService
 
   private val now: LocalDate = LocalDate.of(2025, 11, 22)
 
@@ -391,9 +400,11 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
     fun `editing slots preserves the past session and reschedules the rest onto the new slot in template order`() {
       // A real group whose schedule has started: earliest start 7 days ago means the pre-group
       // one-to-one is in the past, with the rest of the programme in the future.
-      val group = testGroupHelper.createGroup(
+      // A group with members protects its past sessions during a reschedule.
+      val group = buildBuildingChoicesGroup(
         earliestStartDate = LocalDate.now(clock).minusDays(7),
-        createGroupSessionSlots = setOf(CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)),
+        slotDay = DayOfWeek.MONDAY,
+        slotTime = LocalTime.of(9, 30),
       )
 
       val before = scheduleOverview(group.id!!)
@@ -438,9 +449,10 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
     @Test
     fun `single session cascade re-applies the six week gap before the post-programme reviews`() {
       // A real group whose whole schedule is in the future, so a cascade touches every later session.
-      val group = testGroupHelper.createGroup(
+      val group = buildBuildingChoicesGroup(
         earliestStartDate = LocalDate.now(clock).plusDays(3),
-        createGroupSessionSlots = setOf(CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)),
+        slotDay = DayOfWeek.MONDAY,
+        slotTime = LocalTime.of(9, 30),
       )
 
       // The first group session (Getting Started); reschedule it forwards two weeks with cascade.
@@ -481,6 +493,113 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
     }
   }
 
+  @Nested
+  @DisplayName("When cascade rescheduling past sessions in empty groups (in-flight migration)")
+  inner class WhenCascadeReschedulingEmptyGroups {
+
+    @Test
+    fun `cascade reschedules subsequent past sessions into the future in template order`() {
+      // An empty group whose entire schedule is in the past (created with an early start date).
+      val fixture = buildGroup(
+        hasMembership = false,
+        earliestStartDate = LocalDate.of(2025, 9, 1),
+        slots = listOf(DayOfWeek.MONDAY to LocalTime.of(10, 0)),
+        sessionSpecs = listOf(
+          1 to LocalDate.of(2025, 10, 6).atTime(10, 0), // past
+          2 to LocalDate.of(2025, 10, 13).atTime(10, 0), // past
+          3 to LocalDate.of(2025, 10, 20).atTime(10, 0), // past
+          4 to LocalDate.of(2025, 10, 27).atTime(10, 0), // past
+        ),
+      )
+      val (s1, s2, s3, s4) = fixture.sessions
+
+      // Reschedule the (past) second session to a future Monday, cascading the rest
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${s2.id}/reschedule",
+        returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+        body = RescheduleSessionRequest(
+          sessionStartDate = LocalDate.of(2025, 12, 1),
+          sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+          sessionEndTime = SessionTime(hour = 11, minutes = 0, amOrPm = AmOrPm.AM),
+          rescheduleOtherSessions = true,
+        ),
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      val overview = scheduleOverview(fixture.group.id!!)
+      // Sessions earlier in template order than the edited one stay where they are (in the past)
+      assertThat(overview.dateOf(s1.id)).isEqualTo(LocalDate.of(2025, 10, 6))
+      // The edited session and its (previously past) successors are now in the future, in order
+      assertThat(overview.dateOf(s2.id)).isEqualTo(LocalDate.of(2025, 12, 1))
+      assertThat(overview.dateOf(s3.id)).isEqualTo(LocalDate.of(2025, 12, 8))
+      assertThat(overview.dateOf(s4.id)).isEqualTo(LocalDate.of(2025, 12, 15))
+    }
+
+    @Test
+    fun `editing the start date regenerates every session including past ones from the new start date`() {
+      val fixture = buildGroup(
+        hasMembership = false,
+        earliestStartDate = LocalDate.of(2025, 9, 1),
+        slots = listOf(DayOfWeek.MONDAY to LocalTime.of(10, 0)),
+        sessionSpecs = listOf(
+          1 to LocalDate.of(2025, 10, 6).atTime(10, 0),
+          2 to LocalDate.of(2025, 10, 13).atTime(10, 0),
+          3 to LocalDate.of(2025, 10, 20).atTime(10, 0),
+          4 to LocalDate.of(2025, 10, 27).atTime(10, 0),
+        ),
+      )
+
+      val newStart = LocalDate.of(2025, 12, 1) // future Monday
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${fixture.group.id}",
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        body = UpdateGroupRequest(
+          earliestStartDate = newStart,
+          automaticallyRescheduleOtherSessions = true,
+        ),
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      val overview = scheduleOverview(fixture.group.id!!)
+      assertThat(overview.sessions).hasSize(4)
+      // Every session (including the previously past ones) is regenerated on/after the new start date
+      assertThat(overview.sessions).allMatch { !it.date.isBefore(newStart) }
+      assertThat(overview.sessions).allMatch { it.date.dayOfWeek == DayOfWeek.MONDAY }
+    }
+
+    @Test
+    fun `reschedule details reports isEmptyGroup correctly`() {
+      val emptyFixture = buildGroup(
+        hasMembership = false,
+        earliestStartDate = LocalDate.of(2025, 11, 17),
+        slots = listOf(DayOfWeek.MONDAY to LocalTime.of(10, 0)),
+        sessionSpecs = listOf(1 to LocalDate.of(2025, 11, 17).atTime(10, 0)),
+      )
+      val nonEmptyFixture = buildGroup(
+        hasMembership = true,
+        earliestStartDate = LocalDate.of(2025, 11, 17),
+        slots = listOf(DayOfWeek.MONDAY to LocalTime.of(10, 0)),
+        sessionSpecs = listOf(1 to LocalDate.of(2025, 11, 17).atTime(10, 0)),
+      )
+
+      val emptyDetails = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/session/${emptyFixture.sessions.first().id}/edit-session-date-and-time/reschedule",
+        returnType = object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
+      )
+      val nonEmptyDetails = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/session/${nonEmptyFixture.sessions.first().id}/edit-session-date-and-time/reschedule",
+        returnType = object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
+      )
+
+      assertThat(emptyDetails.isEmptyGroup).isTrue()
+      assertThat(nonEmptyDetails.isEmptyGroup).isFalse()
+    }
+  }
+
   private data class GroupToSessionsMap(val group: ProgrammeGroupEntity, val sessions: List<SessionEntity>)
 
   /**
@@ -493,6 +612,7 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
     earliestStartDate: LocalDate,
     slots: List<Pair<DayOfWeek, LocalTime>>,
     sessionSpecs: List<Pair<Int, LocalDateTime>>,
+    hasMembership: Boolean = true,
   ): GroupToSessionsMap {
     val programmeTemplate =
       testDataGenerator.createAccreditedProgrammeTemplate("Reschedule ${randomAlphanumericString()}")
@@ -508,6 +628,12 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
       ProgrammeGroupSessionSlotEntity(programmeGroup = group, dayOfWeek = day, startTime = time)
     }.toMutableSet()
     testDataGenerator.createGroup(group)
+
+    // A normal (non-empty) group protects past sessions during a reschedule. Empty groups
+    // (hasMembership = false) may cascade-reschedule past sessions.
+    if (hasMembership) {
+      addMembership(group)
+    }
 
     val sessions = sessionSpecs.map { (sessionNumber, startsAt) ->
       val template = testDataGenerator.createModuleSessionTemplate(
@@ -527,6 +653,43 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
       )
     }
     return GroupToSessionsMap(group, sessions)
+  }
+
+  /**
+   * Builds a group on the real Building Choices template and schedules its full set of sessions
+   * directly via [ScheduleService] (no region lookup), avoiding the flaky user-region resolution in
+   * the group-creation service path.
+   */
+  private fun buildBuildingChoicesGroup(
+    earliestStartDate: LocalDate,
+    slotDay: DayOfWeek,
+    slotTime: LocalTime,
+    hasMembership: Boolean = true,
+  ): ProgrammeGroupEntity {
+    val template = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+    val group = ProgrammeGroupFactory()
+      .withAccreditedProgrammeTemplate(template)
+      .withTreatmentManager(testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce()))
+      .withEarliestStartDate(earliestStartDate)
+      .withCode(randomAlphanumericString())
+      .produce()
+    group.programmeGroupSessionSlots = mutableSetOf(
+      ProgrammeGroupSessionSlotEntity(programmeGroup = group, dayOfWeek = slotDay, startTime = slotTime),
+    )
+    testDataGenerator.createGroup(group)
+    if (hasMembership) {
+      addMembership(group)
+    }
+    scheduleService.scheduleSessionsForGroup(group.id!!)
+    return programmeGroupRepository.findByIdOrNull(group.id!!)!!
+  }
+
+  /** Allocates a single (non-deleted) membership so the group is no longer considered "empty". */
+  private fun addMembership(group: ProgrammeGroupEntity) {
+    testDataGenerator.allocateReferralsToGroup(
+      listOf(testDataGenerator.createReferral("Member ${randomAlphanumericString()}", randomAlphanumericString())),
+      group,
+    )
   }
 
   private fun scheduleOverview(groupId: UUID): GroupScheduleOverview = performRequestAndExpectOk(

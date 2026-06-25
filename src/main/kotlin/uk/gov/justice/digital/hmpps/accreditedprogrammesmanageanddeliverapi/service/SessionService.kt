@@ -103,6 +103,7 @@ class SessionService(
       sessionId = sessionId,
       sessionName = sessionNameFormatter.format(session, SessionNameContext.Default),
       previousSessionDateAndTime = formatPreviousSessionDateAndTime(session),
+      isEmptyGroup = !programmeGroupMembershipRepository.existsByProgrammeGroupId(session.programmeGroup.id!!),
     )
   }
 
@@ -149,20 +150,24 @@ class SessionService(
     if (request.rescheduleOtherSessions) {
       val now = LocalDateTime.now(clock)
 
+      // Empty groups (no membership, ever) may cascade-reschedule past sessions too: this supports
+      // migrating in-flight groups that were created with an early start date and then rescheduled
+      // from the point in the programme they are currently at. It is restricted to empty groups so we
+      // never move past sessions that could have recorded attendance/outcomes.
+      val isEmptyGroup = !programmeGroupMembershipRepository.existsByProgrammeGroupId(session.programmeGroup.id!!)
+
       // Select and order sessions that come AFTER the rescheduled session in template order
       // (module number then session number), not by the current scheduled date.
       // A date-based filter would miss sessions that are later in template order but
       // currently have an earlier date (e.g. due to a prior ordering bug).
-      // Only sessions that are still in the future may be auto-rescheduled: sessions in
-      // the past must never be moved, even when they are later in template order than the
-      // edited session (which can happen when a schedule has previously been knocked out
-      // of order).
+      // For groups with members, only future sessions may be auto-rescheduled: past sessions must
+      // never be moved. For empty groups, past sessions may also be cascaded.
       val subsequentGroupSessions = session.programmeGroup.sessions
         .asSequence()
         .filter { it.sessionType == SessionType.GROUP || it.isPlaceholder }
         .filter { it.id != session.id }
         .filter { !it.isCatchup }
-        .filter { it.startsAt > now }
+        .filter { isEmptyGroup || it.startsAt > now }
         .filter {
           it.moduleNumber > session.moduleNumber ||
             (it.moduleNumber == session.moduleNumber && it.sessionNumber > session.sessionNumber)
@@ -171,10 +176,14 @@ class SessionService(
         .toList()
 
       if (isGroupSession && session.programmeGroup.programmeGroupSessionSlots.isNotEmpty()) {
-        // Anchor on the later of the edited session's new date and today, so later
-        // sessions are never generated into the past. This matters when the edited session
-        // is itself in the past, or when a future session is moved to before today.
-        val anchorDate = maxOf(session.startsAt.toLocalDate(), now.toLocalDate())
+        // For groups with members, anchor on the later of the edited session's new date and today, so
+        // later sessions are never generated into the past. For empty groups, honour the edited
+        // session's new date exactly so the schedule can be moved to any point.
+        val anchorDate = if (isEmptyGroup) {
+          session.startsAt.toLocalDate()
+        } else {
+          maxOf(session.startsAt.toLocalDate(), now.toLocalDate())
+        }
         val scheduleDates = scheduleService.generateScheduleDates(
           programmeGroupSlots = session.programmeGroup.programmeGroupSessionSlots,
           initialStartDate = anchorDate,
