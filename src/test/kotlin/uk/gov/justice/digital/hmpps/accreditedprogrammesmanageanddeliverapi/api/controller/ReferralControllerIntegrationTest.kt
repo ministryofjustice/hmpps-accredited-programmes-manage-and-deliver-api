@@ -1157,12 +1157,13 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         kotlin.concurrent.thread {
           try {
             startLatch.await()
-            val onProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
+            // Awaiting allocation is a valid transition from the initial 'Awaiting assessment' state
+            val awaitingAllocation = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription().id
             performRequestAndExpectStatus(
               httpMethod = HttpMethod.POST,
               uri = "/referral/${referral.id}/status-history",
               body = CreateReferralStatusHistory(
-                referralStatusDescriptionId = onProgramme,
+                referralStatusDescriptionId = awaitingAllocation,
                 additionalDetails = "multi-endpoint-status-update",
               ),
               expectedResponseStatus = HttpStatus.OK.value(),
@@ -1212,12 +1213,13 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         kotlin.concurrent.thread {
           try {
             startLatch.await()
-            val onProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription().id
+            // Awaiting allocation is a valid transition from the initial 'Awaiting assessment' state
+            val awaitingAllocation = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription().id
             performRequestAndExpectStatus(
               httpMethod = HttpMethod.POST,
               uri = "/referral/${referral.id}/status-history",
               body = CreateReferralStatusHistory(
-                referralStatusDescriptionId = onProgramme,
+                referralStatusDescriptionId = awaitingAllocation,
                 additionalDetails = "direct-status-update-test",
               ),
               expectedResponseStatus = HttpStatus.OK.value(),

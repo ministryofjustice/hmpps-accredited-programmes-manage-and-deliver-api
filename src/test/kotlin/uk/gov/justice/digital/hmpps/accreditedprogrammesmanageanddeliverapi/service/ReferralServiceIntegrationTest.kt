@@ -24,6 +24,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomDateOfBirth
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
@@ -406,6 +407,38 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(foundReferral.statusHistories.first().createdBy).isEqualTo("THE_USER_ID")
       assertThat(foundReferral.statusHistories.first().id).isEqualTo(result.referralStatusHistory.id)
       assertThat(foundReferral.statusHistories.first().additionalDetails).isEqualTo("Additional details string")
+    }
+
+    @Test
+    fun `updateStatus should throw a BusinessException when the requested transition is not configured`() {
+      // Given - a referral that has just been allocated to a group (current status = Scheduled)
+      val theCrnNumber = randomUppercaseString()
+      oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      val theGroup = testGroupHelper.createGroup()
+      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "Alex River")
+      membershipService.allocateReferralToGroup(referral.id!!, theGroup.id!!, "SYSTEM", "")
+
+      val programmeCompleteStatusDescriptionId =
+        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
+      val referralWithGroup = referralRepository.findByCrn(theCrnNumber).first()
+      val historiesBefore = referralWithGroup.statusHistories.size
+
+      // When / Then - Scheduled -> Programme complete is not a configured transition
+      assertThrows<BusinessException> {
+        referralService.updateStatus(
+          referralWithGroup,
+          programmeCompleteStatusDescriptionId,
+          createdBy = "SYSTEM",
+        )
+      } shouldHaveMessage "Invalid referral status transition: 'Scheduled' -> 'Programme complete'"
+
+      // The status history must not have been mutated and the group membership must still exist
+      val refreshed = referralRepository.findByCrn(theCrnNumber).first()
+      assertThat(refreshed.statusHistories).hasSize(historiesBefore)
+      assertThat(membershipService.getCurrentlyAllocatedGroup(refreshed)).isNotNull()
     }
 
     @Test
