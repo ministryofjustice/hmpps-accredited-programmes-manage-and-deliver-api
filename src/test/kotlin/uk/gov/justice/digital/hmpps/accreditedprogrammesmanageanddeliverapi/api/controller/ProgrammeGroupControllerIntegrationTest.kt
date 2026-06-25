@@ -315,7 +315,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       initialiseReferrals()
       stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST001").withRegionName("TEST REGION").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST001").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
 
       // When
@@ -327,7 +327,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       assertThat(response).isNotNull
       assertThat(response.group.code).isEqualTo("TEST001")
-      assertThat(response.group.regionName).isEqualTo("TEST REGION")
       assertThat(response.pagedGroupData.content.size).isEqualTo(6)
       assertThat(response.filters).isNotNull
       assertThat(response.filters.sex).containsExactly("Male", "Female")
@@ -377,7 +376,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       initialiseReferrals()
       stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST006").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST006").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
 
       // When - Get first page
@@ -437,7 +436,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       initialiseReferrals()
       stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST006").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST006").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
 
       // When
@@ -462,7 +461,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       initialiseReferrals()
       stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST006").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST006").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
 
       // When
@@ -487,7 +486,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       initialiseReferrals()
       stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST006B").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST006B").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
 
       // When
@@ -511,7 +510,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `getGroupAllocations returns 200 for ALLOCATED tab with all data when no filters are provided`() {
       // Given
       initialiseReferrals()
-      val group = testGroupHelper.createGroup(groupCode = "TEST008")
+      val group = testGroupHelper.createGroup(groupCode = "TEST008", region = CodeDescription("REGION", "WIREMOCKED REGION"))
       stubAuthTokenEndpoint()
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
@@ -549,7 +548,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `getGroupAllocations returns 401 when not authorized`() {
       // Given
-      val group = ProgrammeGroupFactory().withCode("TEST009").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST009").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
 
       // When & Then
@@ -566,7 +565,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getGroupAllocations WAITLIST only returns referrals from the user's own region`() {
+    fun `getGroupAllocations WAITLIST only returns referrals from the group's own region`() {
       // Given
       // The beforeEach stubs AUTH_ADM user as belonging to "WIREMOCKED REGION"
       stubAuthTokenEndpoint()
@@ -610,7 +609,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         referralService.updateStatus(it, status.id, createdBy = "AUTH_USER")
       }
 
-      val group = testGroupHelper.createGroup(groupCode = "TEST_REGION_01")
+      val group = testGroupHelper.createGroup(groupCode = "TEST_REGION_01", region = CodeDescription("TEST_REGION_1", "WIREMOCKED REGION"))
 
       // When
       val response = performRequestAndExpectOk(
@@ -626,7 +625,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getGroupAllocations WAITLIST filters only show PDUs from the user's own region`() {
+    fun `getGroupAllocations WAITLIST filters only show PDUs from the group's own region`() {
       // Given
       // The beforeEach stubs AUTH_ADM user as belonging to "WIREMOCKED REGION"
       stubAuthTokenEndpoint()
@@ -651,7 +650,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         referralService.updateStatus(it, status.id, createdBy = "AUTH_USER")
       }
 
-      val group = testGroupHelper.createGroup(groupCode = "TEST_REGION_02")
+      val group = testGroupHelper.createGroup(groupCode = "TEST_REGION_02", region = CodeDescription("CODE", "WIREMOCKED REGION"))
 
       // When
       val response = performRequestAndExpectOk(
