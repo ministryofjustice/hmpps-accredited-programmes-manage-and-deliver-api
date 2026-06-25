@@ -37,7 +37,8 @@ spring:
 
   datasource:
     hikari:
-      connectionTimeout: 1000
+      maximumPoolSize: 30
+      connectionTimeout: 10000
       validationTimeout: 500
 
   http:
