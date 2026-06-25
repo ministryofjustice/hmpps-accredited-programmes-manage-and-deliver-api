@@ -56,8 +56,22 @@ class ReferralImportedHandler(
         referralService.refreshPersonalDetailsForReferral(referralId, false)
       }
       log.info("Ending handle for messageId: ${sqsMessage.messageId}")
+      telemetryClient.logToAppInsights(
+        "Referral.imported-event-processed.success",
+        mapOf(
+          "eventType" to message.eventType,
+          "referralId" to referralId.toString(),
+          "crn" to message.personReference.findCrn()!!,
+        ),
+      )
     } catch (e: Exception) {
       log.error("Error handling ReferralImportedEvent: ${e.message}", e)
+      telemetryClient.logToAppInsights(
+        "Referral.imported-event-processed.failure",
+        mapOf(
+          "errorMessage" to (e.message?.trim() ?: ""),
+        ),
+      )
       throw e
     }
   }
