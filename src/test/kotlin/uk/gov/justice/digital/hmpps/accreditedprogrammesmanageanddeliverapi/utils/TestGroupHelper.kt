@@ -115,6 +115,7 @@ class TestGroupHelper {
         teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR,
       ),
     ),
+    region: CodeDescription = CodeDescription("REGION001", "WIREMOCKED REGION"),
   ): ProgrammeGroupEntity {
     hmppsAuth.stubGrantToken()
     govUkApiStubs.stubBankHolidaysResponse()
@@ -126,7 +127,7 @@ class TestGroupHelper {
             code = "TEAM001",
             description = "Test Team 1",
             pdu = CodeDescription("PDU001", "Test PDU 1"),
-            region = CodeDescription("REGION001", "WIREMOCKED REGION"),
+            region = region,
           ),
         ),
       ),
