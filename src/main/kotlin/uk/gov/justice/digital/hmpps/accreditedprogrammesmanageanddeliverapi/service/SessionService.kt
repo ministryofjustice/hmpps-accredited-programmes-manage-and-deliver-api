@@ -83,7 +83,6 @@ class SessionService(
     val session = sessionRepository.findById(sessionId).orElseThrow {
       NotFoundException("Session not found with id: $sessionId")
     }
-
     return EditSessionDetails(
       sessionId = sessionId,
       groupCode = session.programmeGroup.code,
@@ -91,6 +90,7 @@ class SessionService(
       sessionDate = session.startsAt.format(DateTimeFormatter.ofPattern("d/M/yyyy")),
       sessionStartTime = fromDateTime(session.startsAt),
       sessionEndTime = fromDateTime(session.endsAt),
+      isEmptyGroup = !programmeGroupMembershipRepository.existsByProgrammeGroupId(session.programmeGroup.id!!),
     )
   }
 
@@ -103,7 +103,6 @@ class SessionService(
       sessionId = sessionId,
       sessionName = sessionNameFormatter.format(session, SessionNameContext.Default),
       previousSessionDateAndTime = formatPreviousSessionDateAndTime(session),
-      isEmptyGroup = !programmeGroupMembershipRepository.existsByProgrammeGroupId(session.programmeGroup.id!!),
     )
   }
 
