@@ -144,7 +144,7 @@ class ScheduleService(
 
     // Otherwise get the date of the last scheduled session (not a catch up) for the module and calculate the next date based on that
     val groupModuleSessions = moduleSessionTemplateRepository.findByModuleIdAndNotOneToOne(moduleId)
-    log.info("Found ${groupModuleSessions.size} session templates for module: $moduleId")
+    log.debug("Found {} session templates for module: {}", groupModuleSessions.size, moduleId)
 
     val sessionsToCheck = mutableListOf<SessionEntity>()
     groupModuleSessions.forEach { groupModuleSessionId ->
@@ -173,7 +173,7 @@ class ScheduleService(
     val nextValidDate = findNextValidDate(bankHolidays, dateToScheduleFrom, nextSlot.slot)
     slotQueue.add(nextSlot.copy(nextDate = nextValidDate))
 
-    log.info("generated next valid slot date: $nextValidDate")
+    log.debug("generated next valid slot date: {}", nextValidDate)
     return nextValidDate
   }
 

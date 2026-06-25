@@ -11,7 +11,7 @@ import org.springframework.core.ParameterizedTypeReference
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverview
@@ -161,8 +161,6 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `does not place regenerated sessions in the past when the last past session ran days ago`() {
-      // Given the most recent past session ran on Mon 17th, but "now" is Sat 22nd, so the new
-      // Wednesday slot has a candidate (Wed 19th) that falls between the past session and today.
       val fixture = buildGroup(
         earliestStartDate = LocalDate.of(2025, 11, 10),
         slots = listOf(DayOfWeek.MONDAY to LocalTime.of(10, 0)),
@@ -197,10 +195,6 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `regenerates every uncovered template when the schedule is out of template order so no sessions are dropped`() {
-      // Session for template 2 sits in the past on an earlier date than the future template 1
-      // session, i.e. the schedule is out of template order. Regeneration must be driven by which
-      // templates still need a future session, not by a positional cut-off (which would drop the
-      // template 1 session because it is earlier in template order than the most recent past session).
       val fixture = buildGroup(
         earliestStartDate = LocalDate.of(2025, 11, 17),
         slots = listOf(DayOfWeek.MONDAY to LocalTime.of(10, 0)),
@@ -237,9 +231,6 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `does not duplicate a template whose retained past session is later in template order`() {
-      // Template 3's session is in the past on an earlier date than template 1's past session. A
-      // positional cut-off (templates after the most recent past session, template 1) would re-create
-      // template 3 even though it already has a retained past session, duplicating it.
       val fixture = buildGroup(
         earliestStartDate = LocalDate.of(2025, 11, 10),
         slots = listOf(DayOfWeek.MONDAY to LocalTime.of(10, 0)),
@@ -379,7 +370,7 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
         expectedResponseStatus = HttpStatus.OK.value(),
       )
 
-      // Then the subsequent sessions are re-anchored on "now" rather than the past date, so they
+      // Then the later sessions are re-anchored on "now" rather than the past date, so they
       // remain in the future (and are never pushed onto a past Monday such as 17 Nov)
       val overview = scheduleOverview(fixture.group.id!!)
       assertThat(overview.dateOf(s1.id)).isEqualTo(LocalDate.of(2025, 11, 10))
@@ -398,9 +389,6 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `editing slots preserves the past session and reschedules the rest onto the new slot in template order`() {
-      // A real group whose schedule has started: earliest start 7 days ago means the pre-group
-      // one-to-one is in the past, with the rest of the programme in the future.
-      // A group with members protects its past sessions during a reschedule.
       val group = buildBuildingChoicesGroup(
         earliestStartDate = LocalDate.now(clock).minusDays(7),
         slotDay = DayOfWeek.MONDAY,
@@ -438,7 +426,7 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
       val rescheduled = overview.sessions.filter { it.date.isAfter(now) }
       assertThat(rescheduled).allMatch { it.date.dayOfWeek == DayOfWeek.WEDNESDAY }
 
-      // Future sessions are placed in module/session template order (template order == chronological)
+      // Future sessions are placed in module/session template order
       val futureByTemplateOrder = sessionRepository.findByProgrammeGroupId(group.id!!)
         .filter { it.startsAt.toLocalDate().isAfter(now) }
         .filter { (it.sessionType == SessionType.GROUP || it.isPlaceholder) && !it.isCatchup }
@@ -448,14 +436,13 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `single session cascade re-applies the six week gap before the post-programme reviews`() {
-      // A real group whose whole schedule is in the future, so a cascade touches every later session.
+      // A real group whose whole schedule is in the future, so a cascade updates every later session.
       val group = buildBuildingChoicesGroup(
         earliestStartDate = LocalDate.now(clock).plusDays(3),
         slotDay = DayOfWeek.MONDAY,
         slotTime = LocalTime.of(9, 30),
       )
 
-      // The first group session (Getting Started); reschedule it forwards two weeks with cascade.
       val firstGroupSession = sessionRepository.findByProgrammeGroupId(group.id!!)
         .filter { it.sessionType == SessionType.GROUP && !it.isCatchup }
         .minByOrNull { it.startsAt }!!
@@ -475,19 +462,17 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
       )
 
       val sessions = sessionRepository.findByProgrammeGroupId(group.id!!)
-      val firstPostProgramme = sessions.filter { it.moduleName == postProgrammeModuleName }.minByOrNull { it.startsAt }!!
+      val firstPostProgramme =
+        sessions.filter { it.moduleName == postProgrammeModuleName }.minByOrNull { it.startsAt }!!
       val lastBeforePostProgramme = sessions
         .filter { it.moduleName != postProgrammeModuleName && !it.isCatchup }
         .maxByOrNull { it.startsAt }!!
 
-      // The post-programme review keeps a six-week gap after the final group session (not the
-      // weekly cadence that would result if the gap were dropped during the cascade).
       assertThat(firstPostProgramme.startsAt.toLocalDate())
         .isAfterOrEqualTo(lastBeforePostProgramme.startsAt.toLocalDate().plusWeeks(6))
       assertThat(firstPostProgramme.startsAt.toLocalDate())
         .isBefore(lastBeforePostProgramme.startsAt.toLocalDate().plusWeeks(8))
 
-      // And the cascade did move the edited session, with the overview self-consistent
       val overview = scheduleOverview(group.id!!)
       assertThat(overview.dateOf(firstGroupSession.id)).isEqualTo(newDate)
     }
@@ -570,7 +555,7 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `reschedule details reports isEmptyGroup correctly`() {
+    fun `edit session details reports isEmptyGroup correctly`() {
       val emptyFixture = buildGroup(
         hasMembership = false,
         earliestStartDate = LocalDate.of(2025, 11, 17),
@@ -586,13 +571,13 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
 
       val emptyDetails = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/session/${emptyFixture.sessions.first().id}/edit-session-date-and-time/reschedule",
-        returnType = object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
+        uri = "/bff/session/${emptyFixture.sessions.first().id}/edit-session-date-and-time",
+        returnType = object : ParameterizedTypeReference<EditSessionDetails>() {},
       )
       val nonEmptyDetails = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
-        uri = "/bff/session/${nonEmptyFixture.sessions.first().id}/edit-session-date-and-time/reschedule",
-        returnType = object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
+        uri = "/bff/session/${nonEmptyFixture.sessions.first().id}/edit-session-date-and-time",
+        returnType = object : ParameterizedTypeReference<EditSessionDetails>() {},
       )
 
       assertThat(emptyDetails.isEmptyGroup).isTrue()
@@ -602,12 +587,6 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
 
   private data class GroupToSessionsMap(val group: ProgrammeGroupEntity, val sessions: List<SessionEntity>)
 
-  /**
-   * Builds a programme group backed by a simple single-module template with one GROUP session
-   * template per supplied session, then persists a session for each spec at the given start time.
-   *
-   * @param sessionSpecs pairs of (template/session number, startsAt). Sessions are 60 minutes long.
-   */
   private fun buildGroup(
     earliestStartDate: LocalDate,
     slots: List<Pair<DayOfWeek, LocalTime>>,
@@ -655,11 +634,6 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
     return GroupToSessionsMap(group, sessions)
   }
 
-  /**
-   * Builds a group on the real Building Choices template and schedules its full set of sessions
-   * directly via [ScheduleService] (no region lookup), avoiding the flaky user-region resolution in
-   * the group-creation service path.
-   */
   private fun buildBuildingChoicesGroup(
     earliestStartDate: LocalDate,
     slotDay: DayOfWeek,
@@ -684,7 +658,6 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
     return programmeGroupRepository.findByIdOrNull(group.id!!)!!
   }
 
-  /** Allocates a single (non-deleted) membership so the group is no longer considered "empty". */
   private fun addMembership(group: ProgrammeGroupEntity) {
     testDataGenerator.allocateReferralsToGroup(
       listOf(testDataGenerator.createReferral("Member ${randomAlphanumericString()}", randomAlphanumericString())),

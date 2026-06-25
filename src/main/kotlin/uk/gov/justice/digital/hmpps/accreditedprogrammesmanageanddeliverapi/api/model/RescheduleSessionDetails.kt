@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import java.util.UUID
 
@@ -12,11 +11,4 @@ data class RescheduleSessionDetails(
   val sessionName: String,
   @Schema(description = "The previous date and time of the session", example = "Thursday 21 May 2026, 11am to 1:30pm")
   val previousSessionDateAndTime: String,
-  @get:JsonProperty("isEmptyGroup")
-  @Schema(
-    description = "True when the group has never had any membership. Empty groups may cascade-reschedule " +
-      "past sessions (used when migrating in-flight groups), so the UI can offer that option.",
-    example = "false",
-  )
-  val isEmptyGroup: Boolean,
 )
