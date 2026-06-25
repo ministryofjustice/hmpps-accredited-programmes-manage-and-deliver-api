@@ -315,7 +315,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       initialiseReferrals()
       stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST001").withRegionName("TEST REGION").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST001").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
 
       // When
@@ -327,7 +327,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       assertThat(response).isNotNull
       assertThat(response.group.code).isEqualTo("TEST001")
-      assertThat(response.group.regionName).isEqualTo("TEST REGION")
       assertThat(response.pagedGroupData.content.size).isEqualTo(6)
       assertThat(response.filters).isNotNull
       assertThat(response.filters.sex).containsExactly("Male", "Female")
@@ -377,7 +376,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       initialiseReferrals()
       stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST006").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST006").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
 
       // When - Get first page
@@ -437,7 +436,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       initialiseReferrals()
       stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST006").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST006").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
 
       // When
@@ -462,7 +461,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       initialiseReferrals()
       stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST006").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST006").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
 
       // When
@@ -487,7 +486,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       initialiseReferrals()
       stubAuthTokenEndpoint()
-      val group = ProgrammeGroupFactory().withCode("TEST006B").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST006B").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
 
       // When
@@ -511,7 +510,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `getGroupAllocations returns 200 for ALLOCATED tab with all data when no filters are provided`() {
       // Given
       initialiseReferrals()
-      val group = testGroupHelper.createGroup(groupCode = "TEST008")
+      val group = testGroupHelper.createGroup(groupCode = "TEST008", region = CodeDescription("REGION", "WIREMOCKED REGION"))
       stubAuthTokenEndpoint()
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
@@ -549,7 +548,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `getGroupAllocations returns 401 when not authorized`() {
       // Given
-      val group = ProgrammeGroupFactory().withCode("TEST009").produce()
+      val group = ProgrammeGroupFactory().withCode("TEST009").withRegionName("WIREMOCKED REGION").produce()
       testDataGenerator.createGroup(group)
 
       // When & Then
@@ -566,7 +565,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getGroupAllocations WAITLIST only returns referrals from the user's own region`() {
+    fun `getGroupAllocations WAITLIST only returns referrals from the group's own region`() {
       // Given
       // The beforeEach stubs AUTH_ADM user as belonging to "WIREMOCKED REGION"
       stubAuthTokenEndpoint()
@@ -610,7 +609,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         referralService.updateStatus(it, status.id, createdBy = "AUTH_USER")
       }
 
-      val group = testGroupHelper.createGroup(groupCode = "TEST_REGION_01")
+      val group = testGroupHelper.createGroup(groupCode = "TEST_REGION_01", region = CodeDescription("TEST_REGION_1", "WIREMOCKED REGION"))
 
       // When
       val response = performRequestAndExpectOk(
@@ -626,7 +625,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getGroupAllocations WAITLIST filters only show PDUs from the user's own region`() {
+    fun `getGroupAllocations WAITLIST filters only show PDUs from the group's own region`() {
       // Given
       // The beforeEach stubs AUTH_ADM user as belonging to "WIREMOCKED REGION"
       stubAuthTokenEndpoint()
@@ -651,7 +650,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         referralService.updateStatus(it, status.id, createdBy = "AUTH_USER")
       }
 
-      val group = testGroupHelper.createGroup(groupCode = "TEST_REGION_02")
+      val group = testGroupHelper.createGroup(groupCode = "TEST_REGION_02", region = CodeDescription("CODE", "WIREMOCKED REGION"))
 
       // When
       val response = performRequestAndExpectOk(
@@ -1810,6 +1809,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(createdGroup.groupFacilitators).hasSize(3)
       assertThat(createdGroup.accreditedProgrammeTemplate).isNotNull
       assertThat(createdGroup.accreditedProgrammeTemplate!!.name).isEqualTo("Building Choices")
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -1825,6 +1825,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
       assertThat(createdGroup.code).isEqualTo(body.groupCode)
       assertThat(createdGroup.id).isNotNull
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -1861,6 +1862,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(createdGroup.id).isNotNull
       assertThat(createdGroup.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
       assertThat(createdGroup.isLdc).isTrue
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -1897,6 +1899,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(createdGroup.probationDeliveryUnitName).isEqualTo(body.pduName)
       assertThat(createdGroup.deliveryLocationCode).isEqualTo(body.deliveryLocationCode)
       assertThat(createdGroup.deliveryLocationName).isEqualTo(body.deliveryLocationName)
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -1931,6 +1934,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       assertThat(actualFacilitatorCodes)
         .containsExactlyInAnyOrderElementsOf(expectedFacilitatorCodes)
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -1977,6 +1981,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         (it.dayOfWeek == DayOfWeek.MONDAY && it.startTime == LocalTime.of(1, 1)) ||
           (it.dayOfWeek == DayOfWeek.TUESDAY && it.startTime == LocalTime.of(13, 1))
       }
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -1993,6 +1998,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val createdGroup = programmeGroupRepository.findByCode(body.groupCode)!!
       assertThat(createdGroup).isNotNull
       assertThat(createdGroup.sessions).isNotEmpty()
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -2131,7 +2137,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response).hasSize(3)
-      assertThat(response.map { it.description }).containsExactly("All NPS North East", "Bradford, Calderdale", "East and West Lincolnshire")
+      assertThat(response.map { it.description }).containsExactly(
+        "All NPS North East",
+        "Bradford, Calderdale",
+        "East and West Lincolnshire",
+      )
       assertThat(response.map { it.code }).containsExactly("P1", "P2", "P3")
     }
 
@@ -2188,7 +2198,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response).hasSize(3)
-      assertThat(response.map { it.description }).containsExactly("All NPS North East", "Bradford, Calderdale", "East and West Lincolnshire")
+      assertThat(response.map { it.description }).containsExactly(
+        "All NPS North East",
+        "Bradford, Calderdale",
+        "East and West Lincolnshire",
+      )
       assertThat(response.map { it.code }).containsExactly("O1", "O2", "O3")
     }
 
@@ -2383,7 +2397,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val referral = referrals.first()
       val group = testGroupHelper.createGroup()
       testGroupHelper.allocateToGroup(group, referral)
-      val sessionTemplate = group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first { it.sessionType == SessionType.ONE_TO_ONE }
+      val sessionTemplate =
+        group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first { it.sessionType == SessionType.ONE_TO_ONE }
       val pastDate = LocalDate.now().minusDays(1)
 
       val scheduleSessionRequest = ScheduleSessionRequest(
@@ -2423,7 +2438,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val referral = referrals.first()
       val group = testGroupHelper.createGroup()
       testGroupHelper.allocateToGroup(group, referral)
-      val sessionTemplate = group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first { it.sessionType == SessionType.ONE_TO_ONE }
+      val sessionTemplate =
+        group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first { it.sessionType == SessionType.ONE_TO_ONE }
       val pastDate = LocalDate.now().minusDays(1)
 
       val scheduleSessionRequest = ScheduleSessionRequest(
@@ -2464,7 +2480,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val group = testGroupHelper.createGroup()
       testGroupHelper.allocateToGroup(group, referral1)
       testGroupHelper.allocateToGroup(group, referral2)
-      val sessionTemplate = group.accreditedProgrammeTemplate!!.modules.first { it.name == "Getting started" }.sessionTemplates.first { it.sessionType == SessionType.GROUP }
+      val sessionTemplate =
+        group.accreditedProgrammeTemplate!!.modules.first { it.name == "Getting started" }.sessionTemplates.first { it.sessionType == SessionType.GROUP }
       val pastDate = LocalDate.now().minusDays(1)
 
       val scheduleSessionRequest = ScheduleSessionRequest(
@@ -3614,10 +3631,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return 200 when updating earliest start date`() {
       // Given
-      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
       val group = testGroupHelper.createGroup()
       val newStartDate = LocalDate.now().plusDays(10)
-      val updateRequest = UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
+      val updateRequest =
+        UpdateGroupRequest(earliestStartDate = newStartDate, automaticallyRescheduleOtherSessions = false)
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -3632,6 +3649,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.successMessage).isEqualTo("The start date has been updated.")
       val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
       assertThat(updatedGroup.earliestPossibleStartDate).isEqualTo(newStartDate)
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -3714,6 +3732,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(updatedGroup.programmeGroupSessionSlots).anyMatch {
         it.dayOfWeek == DayOfWeek.FRIDAY && it.startTime == LocalTime.of(10, 0)
       }
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -3961,6 +3980,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(updatedGroup.programmeGroupSessionSlots.first().dayOfWeek).isEqualTo(DayOfWeek.THURSDAY)
       // Sessions should still exist (rescheduled, not deleted)
       assertThat(updatedGroup.sessions.size).isGreaterThanOrEqualTo(originalSessionCount)
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -3986,6 +4006,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
       assertThat(updatedGroup.programmeGroupSessionSlots).hasSize(1)
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -4073,6 +4094,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val nonPlaceholderSessions = updatedGroup.sessions.filter { !it.isPlaceholder }
       assertThat(nonPlaceholderSessions).allMatch { it.startsAt.toLocalDate() >= newStartDate }
       assertThat(nonPlaceholderSessions).allMatch { it.startsAt.dayOfWeek == DayOfWeek.MONDAY }
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
     }
   }
 

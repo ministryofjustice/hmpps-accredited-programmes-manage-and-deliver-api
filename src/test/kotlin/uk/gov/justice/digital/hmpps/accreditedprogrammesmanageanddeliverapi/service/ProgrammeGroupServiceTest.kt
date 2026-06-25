@@ -7,12 +7,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.springframework.data.domain.PageRequest
-import org.springframework.data.repository.findByIdOrNull
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
@@ -20,7 +16,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
-import java.util.UUID
 
 class ProgrammeGroupServiceTest {
   private val programmeGroupRepository = mockk<ProgrammeGroupRepository>()
@@ -51,33 +46,6 @@ class ProgrammeGroupServiceTest {
       sessionService,
       moduleSessionTemplateRepository,
     )
-  }
-
-  @Test
-  fun shouldThrowExceptionWhenUsernameIsWithoutRegionOnGetGroupWaitlistDataByCriteria() {
-    // Given
-    val groupId = UUID.randomUUID()
-    val username = "user1"
-    val pageRequest = PageRequest.of(0, 10)
-    val groupEntity = ProgrammeGroupFactory().produce()
-    every { programmeGroupRepository.findByIdOrNull(groupId) } returns groupEntity
-    every { userService.getUserRegions(username) } returns emptyList()
-
-    // When
-    val exception = assertThrows<NotFoundException> {
-      service.getGroupWaitlistDataByCriteria(
-        pageRequest,
-        GroupPageTab.ALLOCATED, groupId, null, null, null, null, null, username,
-      )
-    }
-
-    // Then
-    assertTrue(
-      exception.message!!
-        .contains("Region for username $username not found"),
-    )
-    verify { programmeGroupRepository.findByIdOrNull(groupId) }
-    verify { userService.getUserRegions(username) }
   }
 
   @Test
