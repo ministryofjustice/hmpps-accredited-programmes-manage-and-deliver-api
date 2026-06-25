@@ -399,7 +399,7 @@
               "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
               "settings": {
                 "content": {
-                  "Query": "traces\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-ui'\n| extend Action = case(\n    message has '\"event\":\"OVERRIDE_LDC\"', \"OVERRIDE_LDC\",\n    message has '\"event\":\"OVERRIDE_COHORT\"', \"OVERRIDE_COHORT\",\n    message has '\"event\":\"UPDATE_REFERRAL_STATUS\"', \"UPDATE_REFERRAL_STATUS\",\n    message has '\"event\":\"ASSIGN_REFERRAL_TO_GROUP\"', \"ASSIGN_REFERRAL_TO_GROUP\",\n    message has '\"event\":\"REMOVE_REFERRAL_FROM_GROUP\"', \"REMOVE_REFERRAL_FROM_GROUP\",\n    message has '\"event\":\"OVERRIDE_COHORT\"', \"OVERRIDE_COHORT\",\n    message has '\"event\":\"SET_AVAILABILITY\"', \"SET_AVAILABILITY\",\n    message has '\"event\":\"UPDATE_AVAILABILITY\"', \"UPDATE_AVAILABILITY\",\n    message has '\"event\":\"UPDATE_MOTIVATION\"', \"UPDATE_MOTIVATION\",\n    message has '\"event\":\"RECORD_ATTENDANCE\"', \"RECORD_ATTENDANCE\",\n    \"Other\"\n)\n| where Action != \"Other\"\n| extend userRegion = extract(@'\"userRegion\":\"([^\"]+)\"', 1, message)\n| summarize Count = count() by Action, userRegion\n",
+                  "Query": "traces\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-ui'\n| extend Action = case(\n                      message has '\"event\":\"OVERRIDE_LDC\"',\n                      \"OVERRIDE_LDC\",\n                      message has '\"event\":\"OVERRIDE_COHORT\"',\n                      \"OVERRIDE_COHORT\",\n                      message has '\"event\":\"UPDATE_REFERRAL_STATUS\"',\n                      \"UPDATE_REFERRAL_STATUS\",\n                      message has '\"event\":\"ASSIGN_REFERRAL_TO_GROUP\"',\n                      \"ASSIGN_REFERRAL_TO_GROUP\",\n                      message has '\"event\":\"REMOVE_REFERRAL_FROM_GROUP\"',\n                      \"REMOVE_REFERRAL_FROM_GROUP\",\n                      message has '\"event\":\"SET_AVAILABILITY\"',\n                      \"SET_AVAILABILITY\",\n                      message has '\"event\":\"UPDATE_AVAILABILITY\"',\n                      \"UPDATE_AVAILABILITY\",\n                      message has '\"event\":\"UPDATE_MOTIVATION\"',\n                      \"UPDATE_MOTIVATION\",\n                      message has '\"event\":\"RECORD_ATTENDANCE\"',\n                      \"RECORD_ATTENDANCE\",\n                      \"Other\"\n                  )\n| where Action != \"Other\"\n| extend userRegion = extract(@'\"userRegion\":\"([^\"]+)\"', 1, message)\n| summarize Count = count() by Action, userRegion\n\n",
                   "PartTitle": "User Actions by regions",
                   "PartSubTitle": "User actions by activity types and regions",
                   "Dimensions": {
@@ -539,7 +539,7 @@
               "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
               "settings": {
                 "content": {
-                  "Query": "traces\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-ui'\n| extend Action = case(\n                      message has '\"event\":\"OVERRIDE_LDC\"',\n                      \"OVERRIDE_LDC\",\n                      message has '\"event\":\"OVERRIDE_COHORT\"',\n                      \"OVERRIDE_COHORT\",\n                      message has '\"event\":\"UPDATE_REFERRAL_STATUS\"',\n                      \"UPDATE_REFERRAL_STATUS\",\n                      message has '\"event\":\"ASSIGN_REFERRAL_TO_GROUP\"',\n                      \"ASSIGN_REFERRAL_TO_GROUP\",\n                      message has '\"event\":\"REMOVE_REFERRAL_FROM_GROUP\"',\n                      \"REMOVE_REFERRAL_FROM_GROUP\",\n                      message has '\"event\":\"OVERRIDE_COHORT\"',\n                      \"OVERRIDE_COHORT\",\n                      message has '\"event\":\"SET_AVAILABILITY\"',\n                      \"SET_AVAILABILITY\",\n                      message has '\"event\":\"UPDATE_AVAILABILITY\"',\n                      \"UPDATE_AVAILABILITY\",\n                      message has '\"event\":\"UPDATE_MOTIVATION\"',\n                      \"UPDATE_MOTIVATION\",\n                      message has '\"event\":\"RECORD_ATTENDANCE\"',\n                      \"RECORD_ATTENDANCE\",\n                      \"Other\"\n                  )\n| where Action != \"Other\"\n| extend pdu = extract(@'\"pdu\":\"([^\"]+)\"', 1, message)\n| summarize Count = count() by Action, pdu\n\n",
+                  "Query": "traces\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-ui'\n| extend Action = case(\n                      message has '\"event\":\"OVERRIDE_LDC\"',\n                      \"OVERRIDE_LDC\",\n                      message has '\"event\":\"OVERRIDE_COHORT\"',\n                      \"OVERRIDE_COHORT\",\n                      message has '\"event\":\"UPDATE_REFERRAL_STATUS\"',\n                      \"UPDATE_REFERRAL_STATUS\",\n                      message has '\"event\":\"ASSIGN_REFERRAL_TO_GROUP\"',\n                      \"ASSIGN_REFERRAL_TO_GROUP\",\n                      message has '\"event\":\"REMOVE_REFERRAL_FROM_GROUP\"',\n                      \"REMOVE_REFERRAL_FROM_GROUP\",\n                      message has '\"event\":\"SET_AVAILABILITY\"',\n                      \"SET_AVAILABILITY\",\n                      message has '\"event\":\"UPDATE_AVAILABILITY\"',\n                      \"UPDATE_AVAILABILITY\",\n                      message has '\"event\":\"UPDATE_MOTIVATION\"',\n                      \"UPDATE_MOTIVATION\",\n                      message has '\"event\":\"RECORD_ATTENDANCE\"',\n                      \"RECORD_ATTENDANCE\",\n                      \"Other\"\n                  )\n| where Action != \"Other\"\n| extend pdu = extract(@'\"pdu\":\"([^\"]+)\"', 1, message)\n| summarize Count = count() by Action, pdu\n\n",
                   "SpecificChart": "StackedColumn",
                   "PartTitle": "User Actions by PDUs",
                   "PartSubTitle": "User actions by activity types and PDUs",
@@ -1117,14 +1117,14 @@
                 "value": "Past 30 days"
               },
               "filteredPartIds": [
-                "StartboardPart-LogsDashboardPart-f2f41e63-6f64-4a51-89ca-d6e4d6bf8891",
-                "StartboardPart-LogsDashboardPart-f2f41e63-6f64-4a51-89ca-d6e4d6bf8883",
-                "StartboardPart-LogsDashboardPart-f2f41e63-6f64-4a51-89ca-d6e4d6bf8885",
-                "StartboardPart-LogsDashboardPart-f2f41e63-6f64-4a51-89ca-d6e4d6bf8887",
-                "StartboardPart-LogsDashboardPart-f2f41e63-6f64-4a51-89ca-d6e4d6bf8889",
-                "StartboardPart-LogsDashboardPart-f2f41e63-6f64-4a51-89ca-d6e4d6bf888b",
-                "StartboardPart-LogsDashboardPart-f2f41e63-6f64-4a51-89ca-d6e4d6bf888d",
-                "StartboardPart-LogsDashboardPart-f2f41e63-6f64-4a51-89ca-d6e4d6bf8893"
+                "StartboardPart-LogsDashboardPart-4388fb58-f970-498f-ac4d-330d1a76e12e",
+                "StartboardPart-LogsDashboardPart-4388fb58-f970-498f-ac4d-330d1a76e130",
+                "StartboardPart-LogsDashboardPart-4388fb58-f970-498f-ac4d-330d1a76e132",
+                "StartboardPart-LogsDashboardPart-4388fb58-f970-498f-ac4d-330d1a76e134",
+                "StartboardPart-LogsDashboardPart-4388fb58-f970-498f-ac4d-330d1a76e136",
+                "StartboardPart-LogsDashboardPart-4388fb58-f970-498f-ac4d-330d1a76e138",
+                "StartboardPart-LogsDashboardPart-4388fb58-f970-498f-ac4d-330d1a76e13a",
+                "StartboardPart-LogsDashboardPart-4388fb58-f970-498f-ac4d-330d1a76e13c"
               ]
             }
           }
