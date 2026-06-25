@@ -21,7 +21,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.conf
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
@@ -182,6 +181,7 @@ class ScheduleService(
     programmeGroupId: UUID,
     mostRecentSession: SessionEntity? = null,
     skipPreGroupOneToOnePlaceholder: Boolean = false,
+    coveredTemplateIds: Set<UUID> = emptySet(),
   ): MutableSet<SessionEntity> {
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
       ?: throw NotFoundException("Group with id: $programmeGroupId could not be found")
@@ -199,18 +199,13 @@ class ScheduleService(
         moduleEntity.sessionTemplates.sortedBy { it.sessionNumber }
       }
 
-    // If rescheduling, only include sessions after the most recent held session
-    if (mostRecentSession != null) {
-      allSessionTemplates = allSessionTemplates.filter { template ->
-        template.module.moduleNumber > mostRecentSession.moduleNumber ||
-          (
-            template.module.moduleNumber == mostRecentSession.moduleNumber &&
-              template.sessionNumber > mostRecentSession.sessionNumber
-            )
-      }
+    // If rescheduling, only regenerate templates that are not already covered by a session we are
+    // keeping (i.e. a past session, or a retained future placeholder). This ensures we do not drop future sessions
+    // that are sit earlier in the template order than the most recent past session
+    if (coveredTemplateIds.isNotEmpty()) {
+      allSessionTemplates = allSessionTemplates.filter { template -> template.id !in coveredTemplateIds }
     }
 
-    // If skipping pre-group one-to-one placeholder, exclude that template
     if (skipPreGroupOneToOnePlaceholder) {
       allSessionTemplates = allSessionTemplates.filter { template ->
         !(template.sessionType == ONE_TO_ONE && template.module.name == "Pre-group one-to-ones")
@@ -220,10 +215,25 @@ class ScheduleService(
     val groupSlots = group.programmeGroupSessionSlots
     require(groupSlots.isNotEmpty()) { "Programme group slots must not be empty" }
 
+    // When rescheduling after past sessions, start from the later of:
+    // - the day after the most recent past session (so future sessions are never placed before it),
+    // - the group's configured earliest start date (honoured when e.g. a future restart date was set), or
+    // - today (so regenerated sessions are never placed in the past, even when the most recent past
+    //   session ran several days ago and the new slot day falls between then and now)
+    val startFrom = if (mostRecentSession != null) {
+      maxOf(
+        mostRecentSession.startsAt.toLocalDate().plusDays(1),
+        group.earliestPossibleStartDate,
+        LocalDate.now(clock),
+      )
+    } else {
+      group.earliestPossibleStartDate
+    }
+
     var slotQueue = buildSlotQueue(
       bankHolidays = bankHolidays,
       groupSlots = groupSlots,
-      startFrom = group.earliestPossibleStartDate,
+      startFrom = startFrom,
     )
 
     var firstSessionScheduledAndGapApplied = false
@@ -242,7 +252,7 @@ class ScheduleService(
           startsAt = startsAt,
           endsAt = endsAt,
           locationName = group.deliveryLocationName,
-          // If we are scheduling One-to-One here it is a placeholder session
+          // If we are scheduling One-to-One here, it is a placeholder session
           isPlaceholder = template.sessionType == ONE_TO_ONE,
         )
         session.sessionFacilitators = group.groupFacilitators.map {
@@ -314,7 +324,7 @@ class ScheduleService(
       }
     }
 
-    // Save the group here so the parent entity is updated and updates the corresponding sessions
+    // Save the group here so the parent entity is updated and updates the corresponding sessions,
     // otherwise JPA does not always update the inverse side of the relationship.
     group.sessions.addAll(generatedSessions)
     programmeGroupRepository.save(group)
@@ -355,6 +365,14 @@ class ScheduleService(
     val futureNDeliusAppointmentsToRemove = futureSessions.flatMap { session -> session.ndeliusAppointments }
     val mostRecentSession = group.sessions.filter { it.startsAt <= now }.maxByOrNull { it.startsAt }
 
+    // Templates already covered by a session we are keeping (past sessions, plus any retained future
+    // placeholder) must not be regenerated. Catch-ups are excluded.
+    val retainedSessions = group.sessions.filterNot { it in futureSessions }
+    val coveredTemplateIds = retainedSessions
+      .filterNot { it.isCatchup }
+      .mapNotNull { it.moduleSessionTemplate.id }
+      .toSet()
+
     if (futureSessions.isNotEmpty()) {
       removeNDeliusAppointments(futureNDeliusAppointmentsToRemove, futureSessions.toList())
       group.sessions.removeAll(futureSessions)
@@ -362,31 +380,22 @@ class ScheduleService(
     }
 
     // If there is no prior session, just schedule from start
-    val sessions = scheduleSessionsForGroup(programmeGroupId, mostRecentSession, skipPreGroupOneToOnePlaceholder)
+    val sessions = scheduleSessionsForGroup(
+      programmeGroupId,
+      mostRecentSession,
+      skipPreGroupOneToOnePlaceholder,
+      coveredTemplateIds,
+    )
     val attendees = sessions.flatMap { it.attendees }.toList()
-    createNdeliusAppointmentsForSessions(attendees)
+    if (attendees.isNotEmpty()) {
+      createNdeliusAppointmentsForSessions(attendees)
+    }
 
     return sessions
   }
 
-  fun removeFutureSessionsForIndividual(group: ProgrammeGroupEntity, referralId: UUID) {
-    log.info("Removing future sessions for referral with id: $referralId from group with id: ${group.id}")
-    val now = LocalDateTime.now(clock)
-    val futureSessionsToDelete =
-      group.sessions.filter { session -> session.startsAt > now && session.attendees.any { it.referral.id == referralId } }
-    group.sessions.removeAll(futureSessionsToDelete.toSet())
-  }
-
   fun createNdeliusAppointmentsForSessions(attendees: List<AttendeeEntity>) {
-    val now = LocalDateTime.now(clock)
-    val futureAttendees = attendees.filter { it.session.startsAt > now }
-
-    if (futureAttendees.isEmpty()) {
-      log.info("No future appointments to create in NDelius - all sessions are in the past")
-      return
-    }
-
-    val (nDeliusAppointments, nDeliusAppointmentEntities) = futureAttendees.map { attendee ->
+    val (nDeliusAppointments, nDeliusAppointmentEntities) = attendees.map { attendee ->
       // Generate an appointment ID to be used by NDelius
       val appointmentId = UUID.randomUUID()
       val appointment = attendee.toAppointment(appointmentId)
@@ -395,9 +404,9 @@ class ScheduleService(
     }.unzip()
 
     // Extract CRNs and event numbers for diagnostic logging
-    val affectedCrns = futureAttendees.map { it.referral.crn }.distinct()
-    val affectedEventNumbers = futureAttendees.map { "${it.referral.crn}:${it.referral.eventNumber}" }.distinct()
-    val groupId = futureAttendees.firstOrNull()?.session?.programmeGroup?.id
+    val affectedCrns = attendees.map { it.referral.crn }.distinct()
+    val affectedEventNumbers = attendees.map { "${it.referral.crn}:${it.referral.eventNumber}" }.distinct()
+    val groupId = attendees.firstOrNull()?.session?.programmeGroup?.id
 
     when (
       val response =
@@ -444,7 +453,7 @@ class ScheduleService(
           ),
         )
         throw BusinessException(
-          "Failure to create appointments in Ndelius: ${response.exception.message}",
+          "Failure to create appointments in nDelius: ${response.exception.message}",
           response.exception,
         )
       }
@@ -490,9 +499,60 @@ class ScheduleService(
     val nextDate: LocalDate,
   )
 
-  private fun englandAndWalesHolidayDates(): Set<LocalDate> = bankHolidayRepository.findAll()
+  fun englandAndWalesHolidayDates(): Set<LocalDate> = bankHolidayRepository.findAll()
     .map { it.holidayDate }
     .toSet()
+
+  /**
+   * Generates the new dates for an ordered list of sessions being rescheduled (in module/session
+   * template order), placing each on the group's slots. Each session keeps its own template
+   * duration, and the six-week gap before the first Post-programme reviews session is re-applied so
+   * the cascade preserves the same spacing as the initial schedule.
+   */
+  fun generateScheduleDates(
+    programmeGroupSlots: Collection<ProgrammeGroupSessionSlotEntity>,
+    initialStartDate: LocalDate,
+    subsequentSessions: List<SessionEntity>,
+    bankHolidays: Set<LocalDate>,
+  ): List<Pair<LocalDateTime, LocalDateTime>> {
+    // Start from the day after the rescheduled session so that subsequent sessions
+    // are placed on the next available slots.  Building from the initialStartDate + 1 day
+    // works whether the rescheduled session falls on a slot day or not: when it IS a
+    // slot day, the slot is naturally skipped; when it is NOT a slot day, the first
+    // available slot (which belongs to the next session) is no longer incorrectly
+    // consumed as if it were the rescheduled session's own slot.
+    var slotQueue = buildSlotQueue(bankHolidays, programmeGroupSlots, initialStartDate.plusDays(1))
+    val schedule = mutableListOf<Pair<LocalDateTime, LocalDateTime>>()
+    var postProgrammeReviewsGapApplied = false
+
+    subsequentSessions.forEachIndexed { index, sessionToPlace ->
+      val slotInstance = slotQueue.poll()
+      val startsAt = slotInstance.nextDate.atTime(slotInstance.slot.startTime)
+      val endsAt = startsAt.plusMinutes(sessionToPlace.moduleSessionTemplate.durationMinutes.toLong())
+      schedule.add(startsAt to endsAt)
+
+      // Re-apply the six-week gap before the first Post-programme reviews session, mirroring the
+      // initial scheduling in scheduleSessionsForGroup so the cascade keeps the correct spacing.
+      val nextSession = subsequentSessions.getOrNull(index + 1)
+      if (
+        !postProgrammeReviewsGapApplied &&
+        sessionToPlace.moduleName != POST_PROGRAMME_REVIEWS_MODULE_NAME &&
+        nextSession?.moduleName == POST_PROGRAMME_REVIEWS_MODULE_NAME
+      ) {
+        postProgrammeReviewsGapApplied = true
+        slotQueue = buildSlotQueue(
+          bankHolidays = bankHolidays,
+          groupSlots = programmeGroupSlots,
+          startFrom = startsAt.toLocalDate().plusWeeks(POST_PROGRAMME_REVIEWS_GAP_WEEKS),
+        )
+      } else {
+        val nextDate = findNextValidDate(bankHolidays, slotInstance.nextDate.plusDays(1), slotInstance.slot)
+        slotQueue.add(slotInstance.copy(nextDate = nextDate))
+      }
+    }
+
+    return schedule
+  }
 
   private fun englandAndWalesHolidayDatesFromApi(): Set<LocalDate> = when (val response = govUkApiClient.getHolidays()) {
     is ClientResult.Failure.StatusCode -> {

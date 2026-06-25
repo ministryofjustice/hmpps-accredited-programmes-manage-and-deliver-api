@@ -1119,6 +1119,147 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
   }
 
   @Nested
+  @DisplayName("Multi-Endpoint Concurrent Requests avoid deadlock")
+  inner class MultiEndpointConcurrentRequests {
+    @Test
+    fun `should handle concurrent requests to multiple different endpoints without deadlock`() {
+      // Test may have issues when run as part of full build due to large number of calls.
+      // Works at time of writing, but may need to be re-evaluated if test fails in future.
+      val groupAllocateGroup = testGroupHelper.createGroup(groupCode = "MULTI_GROUP_ALLOC")
+      val addToGroupGroup = testGroupHelper.createGroup(groupCode = "MULTI_GROUP_ADD")
+
+      // Create 6 referrals - 2 for status updates, 1 each for other operations
+      val statusUpdateReferrals = listOf(
+        testReferralHelper.createReferral(crn = "MULTIEND00001"),
+        testReferralHelper.createReferral(crn = "MULTIEND00002"),
+      )
+      val cohortUpdateReferrals = listOf(
+        testReferralHelper.createReferral(crn = "MULTIEND00003"),
+      )
+      val groupAllocateReferrals = listOf(
+        testReferralHelper.createReferral(crn = "MULTIEND00004"),
+      )
+      val directStatusUpdateReferrals = listOf(
+        testReferralHelper.createReferral(crn = "MULTIEND00005"),
+      )
+      val addToGroupReferrals = listOf(
+        testReferralHelper.createReferral(crn = "MULTIEND00006"),
+      )
+
+      // Mock nDelius to validate sentence data exists (required by new allocation validation)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      val startLatch = java.util.concurrent.CountDownLatch(1)
+      val failures = mutableListOf<String>()
+
+      // When: Spawn 6 threads - 2 for status updates, 1 each for other endpoint types, all starting simultaneously
+      val statusUpdateThreads = statusUpdateReferrals.map { referral ->
+        kotlin.concurrent.thread {
+          try {
+            startLatch.await()
+            // Awaiting allocation is a valid transition from the initial 'Awaiting assessment' state
+            val awaitingAllocation = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription().id
+            performRequestAndExpectStatus(
+              httpMethod = HttpMethod.POST,
+              uri = "/referral/${referral.id}/status-history",
+              body = CreateReferralStatusHistory(
+                referralStatusDescriptionId = awaitingAllocation,
+                additionalDetails = "multi-endpoint-status-update",
+              ),
+              expectedResponseStatus = HttpStatus.OK.value(),
+            )
+          } catch (ex: Throwable) {
+            failures.add("Status update failed for ${referral.crn}: ${ex.javaClass.simpleName}: ${ex.message}")
+          }
+        }
+      }
+
+      val cohortUpdateThreads = cohortUpdateReferrals.map { referral ->
+        kotlin.concurrent.thread {
+          try {
+            startLatch.await()
+            performRequestAndExpectStatus(
+              httpMethod = HttpMethod.PUT,
+              uri = "/referral/${referral.id}/update-cohort",
+              body = UpdateCohort(OffenceCohort.SEXUAL_OFFENCE),
+              expectedResponseStatus = HttpStatus.OK.value(),
+            )
+          } catch (ex: Throwable) {
+            failures.add("Cohort update failed for ${referral.crn}: ${ex.javaClass.simpleName}: ${ex.message}")
+          }
+        }
+      }
+
+      val groupAllocateThreads = groupAllocateReferrals.map { referral ->
+        kotlin.concurrent.thread {
+          try {
+            startLatch.await()
+            val allocateRequest = uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest(
+              additionalDetails = "multi-endpoint-group-allocate",
+            )
+            performRequestAndExpectStatus(
+              httpMethod = HttpMethod.POST,
+              uri = "/group/${groupAllocateGroup.id}/allocate/${referral.id}",
+              body = allocateRequest,
+              expectedResponseStatus = HttpStatus.OK.value(),
+            )
+          } catch (ex: Throwable) {
+            failures.add("Group allocate failed for ${referral.crn}: ${ex.javaClass.simpleName}: ${ex.message}")
+          }
+        }
+      }
+
+      val directStatusUpdateThreads = directStatusUpdateReferrals.map { referral ->
+        kotlin.concurrent.thread {
+          try {
+            startLatch.await()
+            // Awaiting allocation is a valid transition from the initial 'Awaiting assessment' state
+            val awaitingAllocation = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription().id
+            performRequestAndExpectStatus(
+              httpMethod = HttpMethod.POST,
+              uri = "/referral/${referral.id}/status-history",
+              body = CreateReferralStatusHistory(
+                referralStatusDescriptionId = awaitingAllocation,
+                additionalDetails = "direct-status-update-test",
+              ),
+              expectedResponseStatus = HttpStatus.OK.value(),
+            )
+          } catch (ex: Throwable) {
+            failures.add("Direct status update failed for ${referral.crn}: ${ex.javaClass.simpleName}: ${ex.message}")
+          }
+        }
+      }
+
+      val addToGroupThreads = addToGroupReferrals.map { referral ->
+        kotlin.concurrent.thread {
+          try {
+            startLatch.await()
+            val allocateRequest = uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest(
+              additionalDetails = "add-to-group-test",
+            )
+            performRequestAndExpectStatus(
+              httpMethod = HttpMethod.POST,
+              uri = "/group/${addToGroupGroup.id}/allocate/${referral.id}",
+              body = allocateRequest,
+              expectedResponseStatus = HttpStatus.OK.value(),
+            )
+          } catch (ex: Throwable) {
+            failures.add("Add to group failed for ${referral.crn}: ${ex.javaClass.simpleName}: ${ex.message}")
+          }
+        }
+      }
+
+      // Start all threads simultaneously
+      startLatch.countDown()
+      val allThreads = statusUpdateThreads + cohortUpdateThreads + groupAllocateThreads + directStatusUpdateThreads + addToGroupThreads
+      allThreads.forEach { it.join() }
+
+      // Then: Assert all operations completed successfully
+      assertThat(failures).isEmpty()
+    }
+  }
+
+  @Nested
   @DisplayName("Update cohort of referral")
   inner class UpdateReferralCohort {
     @Test

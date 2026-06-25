@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
@@ -30,6 +31,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import java.time.Clock
 import java.util.UUID
 
 class ProgrammeGroupMembershipServiceTest {
@@ -54,6 +56,7 @@ class ProgrammeGroupMembershipServiceTest {
       nDeliusIntegrationApiClient = nDeliusIntegrationApiClient,
       telemetryClient = telemetryClient,
       applicationEventPublisher = applicationEventPublisher,
+      clock = Clock.systemDefaultZone(),
     )
   }
 
@@ -84,8 +87,11 @@ class ProgrammeGroupMembershipServiceTest {
   @Test
   fun `should allocate referral to group`() {
     // Given
-    val referralEntity = ReferralEntityFactory().withPersonName("John Smith").withId(UUID.randomUUID())
-      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT).produce()
+    val referralEntity = ReferralEntityFactory()
+      .withPersonName("John Smith")
+      .withId(UUID.randomUUID())
+      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
+      .produce()
     val (referralId, groupId) = setupAllocationMocks(referralEntity)
 
     every { referralRepository.save(referralEntity) } returns referralEntity
@@ -104,12 +110,11 @@ class ProgrammeGroupMembershipServiceTest {
     assertThat(result).isEqualTo(referralEntity)
     verify { nDeliusIntegrationApiClient.getRequirementManagerDetails(referralEntity.crn, referralEntity.eventId!!) }
     verify { referralRepository.save(referralEntity) }
-    verify { scheduleService.createNdeliusAppointmentsForSessions(any()) }
     verify { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) }
   }
 
   @Test
-  fun `should throw BusinessException when referral licence condition does not exist in nDelius`() {
+  fun `should throw ConflictException when referral licence condition does not exist in nDelius`() {
     // Given
     val referralEntity = ReferralEntityFactory()
       .withPersonName("John Smith")
@@ -130,18 +135,18 @@ class ProgrammeGroupMembershipServiceTest {
     assertThatThrownBy {
       service.allocateReferralToGroup(referralId, groupId, "testAdmin", "test additional details")
     }
-      .isInstanceOf(BusinessException::class.java)
+      .isInstanceOf(ConflictException::class.java)
       .hasMessageContaining("no longer exists in nDelius")
       .hasMessageContaining("licence condition")
       .hasMessageContaining("Please contact your admin")
 
     verify(exactly = 0) { scheduleService.createNdeliusAppointmentsForSessions(any()) }
     verify(exactly = 0) { referralRepository.save(any()) }
-    verify { telemetryClient.logToAppInsights("Referral.allocate-to-group.ndelius-validation-failure", any()) }
+    verify { telemetryClient.logToAppInsights("Referral.allocate-to-group.ndelius-stale-sentence-data", any()) }
   }
 
   @Test
-  fun `should throw BusinessException when referral requirement does not exist in nDelius`() {
+  fun `should throw ConflictException when referral requirement does not exist in nDelius`() {
     // Given
     val referralEntity = ReferralEntityFactory()
       .withPersonName("John Smith")
@@ -162,14 +167,14 @@ class ProgrammeGroupMembershipServiceTest {
     assertThatThrownBy {
       service.allocateReferralToGroup(referralId, groupId, "testAdmin", "test additional details")
     }
-      .isInstanceOf(BusinessException::class.java)
+      .isInstanceOf(ConflictException::class.java)
       .hasMessageContaining("no longer exists in nDelius")
       .hasMessageContaining("requirement")
       .hasMessageContaining("Please contact your admin")
 
     verify(exactly = 0) { scheduleService.createNdeliusAppointmentsForSessions(any()) }
     verify(exactly = 0) { referralRepository.save(any()) }
-    verify { telemetryClient.logToAppInsights("Referral.allocate-to-group.ndelius-validation-failure", any()) }
+    verify { telemetryClient.logToAppInsights("Referral.allocate-to-group.ndelius-stale-sentence-data", any()) }
   }
 
   @Test

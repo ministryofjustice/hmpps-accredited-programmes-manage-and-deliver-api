@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.eve
 
 import com.fasterxml.jackson.module.kotlin.readValue
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.within
 import org.awaitility.kotlin.await
 import org.awaitility.kotlin.matches
 import org.awaitility.kotlin.untilCallTo
@@ -29,6 +30,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import java.time.Duration.ofMillis
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 class ReferralCompleteEventTest(
@@ -69,7 +72,11 @@ class ReferralCompleteEventTest(
       endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
     )
     val postProgrammeSession = scheduleService.scheduleIndividualSession(programmeGroup.id!!, scheduleSessionRequest)
+    postProgrammeSession.startsAt = LocalDateTime.now().minusHours(2)
+    sessionRepository.save(postProgrammeSession)
     val freshSession = sessionRepository.findByIdOrNull(postProgrammeSession.id!!)!!
+    freshSession.startsAt = LocalDateTime.now().minusHours(2)
+    sessionRepository.save(freshSession)
     val attendee = freshSession.attendees.find { it.referralId == referral.id }!!
 
     // Record attendance as attended and complied
@@ -115,7 +122,7 @@ class ReferralCompleteEventTest(
 
     assertThat(response).isNotNull
     assertThat(response.licReqId).isEqualTo(referral.eventId)
-    assertThat(response.licReqCompletedAt).isEqualTo(postProgrammeSession.startsAt)
+    assertThat(response.licReqCompletedAt).isCloseTo(postProgrammeSession.startsAt, within(1, ChronoUnit.SECONDS))
     assertThat(response.sourcedFromEntityType).isEqualTo(referral.sourcedFrom)
   }
 }

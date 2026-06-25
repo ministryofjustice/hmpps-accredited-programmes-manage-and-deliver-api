@@ -45,7 +45,7 @@ FROM referral r
          LEFT JOIN latest_ldc_status lds ON r.id = lds.referral_id and lds.rn = 1
          LEFT JOIN latest_cohort lc ON r.id = lc.referral_id and lc.rn = 1
          LEFT JOIN referral_reporting_location rrl on r.id = rrl.referral_id
-         LEFT JOIN active_group_membership pgm on r.id = pgm.referral_id
+         LEFT JOIN active_group_membership pgm on r.id = pgm.referral_id and ls.rn = 1
 WHERE pgm IS NOT NULL
    OR rsd.description_text = 'Awaiting allocation';
 
@@ -66,7 +66,6 @@ CREATE INDEX IF NOT EXISTS idx_group_wait_list_reporting_team ON group_waitlist_
 CREATE INDEX IF NOT EXISTS idx_group_wait_list_region_name ON group_waitlist_item_view (region_name);
 CREATE INDEX IF NOT EXISTS idx_group_wait_list_latest_group ON group_waitlist_item_view (active_programme_group_id);
 
-
 CREATE OR REPLACE FUNCTION refresh_group_wait_list_item_view()
     RETURNS TRIGGER AS
 $$
@@ -76,7 +75,14 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    REFRESH MATERIALIZED VIEW CONCURRENTLY group_waitlist_item_view;
+    BEGIN
+        REFRESH MATERIALIZED VIEW CONCURRENTLY group_waitlist_item_view;
+    EXCEPTION
+        WHEN SQLSTATE '40P01' THEN
+            -- Deadlock detected - log and continue
+            -- The view will be refreshed by the next successful refresh operation
+            RAISE WARNING 'Materialized view refresh deadlock detected: %', SQLERRM;
+    END;
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
@@ -122,6 +128,4 @@ CREATE OR REPLACE TRIGGER trigger_refresh_referral_cohort_mapping_group_wait_lis
     ON referral_cohort_history
     FOR EACH STATEMENT
 EXECUTE FUNCTION refresh_group_wait_list_item_view();
-
-
 

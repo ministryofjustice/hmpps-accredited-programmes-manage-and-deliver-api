@@ -19,6 +19,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getReferralCaseListItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withAllowedCrns
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withRegionNames
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
 
 @Service
 class ReferralCaseListItemService(
@@ -42,7 +43,7 @@ class ReferralCaseListItemService(
     val (offenceType, hasLdc) = cohort?.let { ProgrammeGroupCohort.toOffenceTypeAndLdc(it) }
       ?: (null to null)
 
-    val userRegionName = userService.getFirstUserRegionDescription(username)
+    val userRegionNames = userService.getUserRegionNames(username)
 
     val referralsToReturn = getReferralCaseList(
       pageable = pageable,
@@ -51,7 +52,7 @@ class ReferralCaseListItemService(
       crnOrPersonName = crnOrPersonName,
       offenceCohort = offenceType,
       hasLdc = hasLdc,
-      status = status,
+      status = ReferralStatusUtils.unformatStatus(status),
       pdu = pdu,
       reportingTeams = reportingTeams,
     ).map { it.toApi() }
@@ -68,7 +69,7 @@ class ReferralCaseListItemService(
       reportingTeams = reportingTeams,
     ).totalElements
 
-    return CaseListReferrals(referralsToReturn, otherTabCount.toInt(), this.getCaseListFilterData(userRegionName))
+    return CaseListReferrals(referralsToReturn, otherTabCount.toInt(), this.getCaseListFilterData(userRegionNames))
   }
 
   private fun getReferralCaseList(
@@ -95,7 +96,7 @@ class ReferralCaseListItemService(
         reportingTeams = reportingTeams,
       )
 
-    val userRegions = userService.getUserRegions(username).map { it.description }
+    val userRegions = userService.getUserRegionNames(username)
     val specWithRegions = if (userRegions.isEmpty()) {
       log.warn("No regions found for user: $username. Returning empty list for ReferralCaseList.")
       return PageImpl(emptyList(), pageable, 0)
@@ -128,25 +129,28 @@ class ReferralCaseListItemService(
     return PageImpl(caseListReferrals.content, pageable, totalAllowedCount)
   }
 
-  fun getCaseListFilterData(userRegionName: String): CaseListFilterValues {
+  fun getCaseListFilterData(userRegionNames: List<String>): CaseListFilterValues {
     val allStatuses = referralStatusService.getAllStatuses()
 
     val (closed, open) = allStatuses.partition { it.isClosed }
 
-    val referralReportingLocations = referralReportingLocationRepository.getPdusAndReportingTeamsByRegion(userRegionName)
+    val referralReportingLocations = if (userRegionNames.isEmpty()) {
+      emptyList()
+    } else {
+      referralReportingLocationRepository.getPdusAndReportingTeamsByRegions(userRegionNames)
+    }
     val pdusWithReportingTeams = referralReportingLocations.groupBy { it.pduName }
       .map { (pduName, reportingTeams) ->
         LocationFilterValues(pduName = pduName, reportingTeams = reportingTeams.map { it.reportingTeam }.distinct())
       }
+      .sortedBy { it.pduName }
 
     // For this instance of displaying the status' on the front end, the description of "Breach (non-attendance)" needs to be changed.
-    val openDescriptions = open.map {
-      if (it.description == "Breach (non-attendance)") "Breach" else it.description
-    }
+    val openDescriptions = ReferralStatusUtils.sortStatuses(open.map { ReferralStatusUtils.formatStatus(it.description) })
 
     val statusFilterValues = StatusFilterValues(
       open = openDescriptions,
-      closed = closed.map { it.description },
+      closed = ReferralStatusUtils.sortStatuses(closed.map { it.description }),
     )
 
     return CaseListFilterValues(

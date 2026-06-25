@@ -24,6 +24,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomDateOfBirth
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
@@ -42,8 +43,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralLdcHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -52,14 +56,15 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
 import java.time.Duration.ofMillis
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 class ReferralServiceIntegrationTest : IntegrationTestBase() {
   @Autowired
-  private lateinit var referralCohortHistoryRepository: uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
+  private lateinit var referralCohortHistoryRepository: ReferralCohortHistoryRepository
 
   @Autowired
-  private lateinit var referralLdcHistoryRepository: uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
+  private lateinit var referralLdcHistoryRepository: ReferralLdcHistoryRepository
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
@@ -405,6 +410,38 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `updateStatus should throw a BusinessException when the requested transition is not configured`() {
+      // Given - a referral that has just been allocated to a group (current status = Scheduled)
+      val theCrnNumber = randomUppercaseString()
+      oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      val theGroup = testGroupHelper.createGroup()
+      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "Alex River")
+      membershipService.allocateReferralToGroup(referral.id!!, theGroup.id!!, "SYSTEM", "")
+
+      val programmeCompleteStatusDescriptionId =
+        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
+      val referralWithGroup = referralRepository.findByCrn(theCrnNumber).first()
+      val historiesBefore = referralWithGroup.statusHistories.size
+
+      // When / Then - Scheduled -> Programme complete is not a configured transition
+      assertThrows<BusinessException> {
+        referralService.updateStatus(
+          referralWithGroup,
+          programmeCompleteStatusDescriptionId,
+          createdBy = "SYSTEM",
+        )
+      } shouldHaveMessage "Invalid referral status transition: 'Scheduled' -> 'Programme complete'"
+
+      // The status history must not have been mutated and the group membership must still exist
+      val refreshed = referralRepository.findByCrn(theCrnNumber).first()
+      assertThat(refreshed.statusHistories).hasSize(historiesBefore)
+      assertThat(membershipService.getCurrentlyAllocatedGroup(refreshed)).isNotNull()
+    }
+
+    @Test
     fun `updateStatus should throw a NotFoundError if the ReferralStatusDescription does not exist`() {
       // Given
       val aRandomUuid = UUID.randomUUID()
@@ -631,7 +668,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         "CRN-12345",
         1,
-        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
       )
 
       //    When
@@ -674,7 +711,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referralDetails.personReference,
         1,
-        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
       )
 
       // When
@@ -709,7 +746,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referralDetails.personReference,
         1,
-        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
       )
 
       // When
@@ -741,7 +778,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referralDetails.personReference,
         1,
-        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
       )
 
       // When
@@ -770,7 +807,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referralDetails.personReference,
         1,
-        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
       )
 
       // When
@@ -796,7 +833,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referralDetails.personReference,
         1,
-        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
       )
 
       // When
@@ -874,7 +911,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referral.crn,
         referral.eventNumber,
-        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
       )
       nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
@@ -886,6 +923,68 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(referralDetails.interventionName).isEqualTo(referral.interventionName)
       assertThat(referralDetails.createdAt).isEqualTo(referral.createdAt.toLocalDate())
       assertThat(referralDetails.dateOfBirth).isEqualTo(dateOfBirth)
+    }
+
+    @Test
+    fun `refreshPersonalDetailsForReferral updates updatedAt on referral reporting location`() = runTest {
+      val referral = ReferralEntityFactory().produce()
+      val name = randomFullName()
+      val dateOfBirth = randomDateOfBirth()
+      testDataGenerator.createReferralWithStatusHistory(referral)
+      oasysApiStubs.stubSuccessfulPniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory()
+          .withName(name)
+          .withDateOfBirth(dateOfBirth)
+          .produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      val beforeRefresh = LocalDateTime.now().minusSeconds(1)
+
+      // Refresh — creates/updates the reporting location
+      referralService.refreshPersonalDetailsForReferral(referral.id!!)
+      val reportingLocation = reportingLocationRepository.findByReferralId(referral.id)!!
+
+      assertThat(reportingLocation.updatedAt).isAfter(beforeRefresh)
+      assertThat(reportingLocation.updatedAt).isBefore(LocalDateTime.now().plusSeconds(1))
+    }
+
+    @Test
+    fun `refreshPersonalDetailsForReferral updates referral reporting location`() = runTest {
+      val referral = testReferralHelper.createReferral(
+        reportingTeam = "OLD_TEAM",
+        reportingPdu = "OLD_PDU",
+        regionName = "OLD_REGION",
+      )
+      oasysApiStubs.stubSuccessfulPniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory()
+          .withTeam(CodeDescription("NEW_TEAM_CODE", "NEW_TEAM_DESCRIPTION"))
+          .withProbationDeliveryUnit(
+            probationDeliveryUnit = CodeDescription("NEW_PDU_CODE", "NEW_PDU_DESCRIPTION"),
+          )
+          .withRegion(CodeDescription("NEW_REGION_CODE", "NEW_REGION_DESCRIPTION"))
+          .produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      referralService.refreshPersonalDetailsForReferral(referral.id!!)
+      val reportingLocation = reportingLocationRepository.findByReferralId(referral.id)!!
+
+      assertThat(reportingLocation.pduName).isEqualTo("NEW_PDU_DESCRIPTION")
+      assertThat(reportingLocation.reportingTeam).isEqualTo("NEW_TEAM_DESCRIPTION")
+      assertThat(reportingLocation.regionName).isEqualTo("NEW_REGION_DESCRIPTION")
     }
 
     @Test
@@ -904,7 +1003,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referral.crn,
         referral.eventNumber,
-        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
       )
       nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
@@ -926,7 +1025,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referral.crn,
         referral.eventNumber,
-        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
       )
       nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
@@ -942,7 +1041,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     fun `refreshPersonalDetailsForReferral does not overwrite existing cohort if OASys is unavailable`() = runTest {
       // Given: referral with cohort SEXUAL_OFFENCE
       val referral = ReferralEntityFactory().produce()
-      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
+      val cohortHistory =
+        ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referral,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
@@ -973,7 +1073,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     fun `refreshPersonalDetailsForReferral does not overwrite cohort or LDC if manual overrides exist, even if PNI data is present`() = runTest {
       // Given: referral with cohort SEXUAL_OFFENCE and LDC true, both manually overridden
       val referral = ReferralEntityFactory().produce()
-      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
+      val cohortHistory =
+        ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referral,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
@@ -982,7 +1083,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
       // Simulate manual overrides
       // Simulate manual cohort override
-      val manualCohortHistory = uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory()
+      val manualCohortHistory = ReferralCohortHistoryFactory()
         .withReferral(referral)
         .withCohort(OffenceCohort.SEXUAL_OFFENCE)
         .withCreatedBy("MANUAL")
@@ -990,7 +1091,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       referralCohortHistoryRepository.save(manualCohortHistory)
 
       // Simulate manual LDC override
-      val manualLdcHistory = uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralLdcHistoryFactory()
+      val manualLdcHistory = ReferralLdcHistoryFactory()
         .withReferral(referral)
         .withHasLdc(true)
         .withCreatedBy("MANUAL")
@@ -1023,7 +1124,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     fun `refreshPersonalDetailsForReferral does not update cohort if PNI is empty but nDelius data is available`() = runTest {
       // Given: referral with cohort SEXUAL_OFFENCE
       val referral = ReferralEntityFactory().produce()
-      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
+      val cohortHistory =
+        ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referral,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
@@ -1057,7 +1159,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     fun `refreshPersonalDetailsForReferral does not overwrite sexual offence cohort when OASys PNI returns 404`() = runTest {
       // Given: referral with cohort SEXUAL_OFFENCE
       val referral = ReferralEntityFactory().produce()
-      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
+      val cohortHistory =
+        ReferralCohortHistoryFactory().withReferral(referral).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referral,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
@@ -1102,7 +1205,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referral.crn,
         referral.eventNumber,
-        NDeliusSentenceResponseFactory().withLicenceExpiryDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
       )
       nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 

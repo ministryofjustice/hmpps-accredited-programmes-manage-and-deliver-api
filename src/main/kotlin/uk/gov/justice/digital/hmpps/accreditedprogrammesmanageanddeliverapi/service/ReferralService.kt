@@ -50,6 +50,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay
@@ -484,12 +485,24 @@ class ReferralService(
       throw BusinessException("Referral with id ${referral.id} does not have a current status history")
     }
 
+    val currentDescription = currentReferralStatusHistory.referralStatusDescription
     val transition = referralStatusTransitionRepository.findByFromStatusIdAndToStatusId(
-      currentReferralStatusHistory.referralStatusDescription.id,
+      currentDescription.id,
       incomingReferralStatusDescription.id,
     )
 
-    var message = "${referral.personName}'s referral status is now ${incomingReferralStatusDescription.description}."
+    // Guard against invalid transitions (e.g. Scheduled -> Programme complete) that the
+    // frontend should never send. Without this check the requested status was being saved
+    // verbatim, allowing referrals to jump into states they cannot reach via the UI.
+    if (transition == null && currentDescription.id != incomingReferralStatusDescription.id) {
+      throw BusinessException(
+        "Invalid referral status transition: '${currentDescription.description}' -> '${incomingReferralStatusDescription.description}'",
+      )
+    }
+
+    var message = "${referral.personName}'s referral status is now ${
+      ReferralStatusUtils.formatStatus(incomingReferralStatusDescription.description)
+    }."
     val activeGroupMembership = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
 
     if (
@@ -503,7 +516,11 @@ class ReferralService(
       )
       if (incomingReferralStatusDescription.description != "Programme complete") {
         message =
-          "${referral.personName}'s referral status is now ${incomingReferralStatusDescription.description}. They have been removed from group ${activeGroupMembership.programmeGroup.code}"
+          "${referral.personName}'s referral status is now ${
+            ReferralStatusUtils.formatStatus(
+              incomingReferralStatusDescription.description,
+            )
+          }. They have been removed from group ${activeGroupMembership.programmeGroup.code}"
       }
     }
 
@@ -551,6 +568,7 @@ class ReferralService(
       ?.apply {
         pduName = personalDetails.probationDeliveryUnit.description
         reportingTeam = personalDetails.team.description
+        regionName = personalDetails.region.description
       }
       ?: ReferralReportingLocationEntity(
         referral = referral,

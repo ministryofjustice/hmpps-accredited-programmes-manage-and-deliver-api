@@ -11,11 +11,11 @@ enum class ProgrammeGroupCohort(val label: String, val createAndEditDisplayOptio
   ;
 
   companion object {
-    fun from(cohort: OffenceCohort, hasLdc: Boolean): ProgrammeGroupCohort = when {
-      cohort == OffenceCohort.GENERAL_OFFENCE && hasLdc -> GENERAL_LDC
-      cohort == OffenceCohort.GENERAL_OFFENCE && !hasLdc -> GENERAL
-      cohort == OffenceCohort.SEXUAL_OFFENCE && hasLdc -> SEXUAL_LDC
-      cohort == OffenceCohort.SEXUAL_OFFENCE && !hasLdc -> SEXUAL
+    fun from(cohort: OffenceCohort, hasLdc: Boolean): ProgrammeGroupCohort = when (cohort) {
+      OffenceCohort.GENERAL_OFFENCE if hasLdc -> GENERAL_LDC
+      OffenceCohort.GENERAL_OFFENCE if !hasLdc -> GENERAL
+      OffenceCohort.SEXUAL_OFFENCE if hasLdc -> SEXUAL_LDC
+      OffenceCohort.SEXUAL_OFFENCE if !hasLdc -> SEXUAL
       else -> throw IllegalArgumentException("Invalid combination")
     }
 

@@ -19,6 +19,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
@@ -35,6 +36,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import java.time.LocalDate
 import java.util.UUID
@@ -83,6 +85,9 @@ class TestReferralHelper {
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
+
+  @Autowired
+  private lateinit var referralStatusHistoryRepository: ReferralStatusHistoryRepository
 
   /**
    * Creates a single referral by calling the referral service directly.
@@ -154,11 +159,7 @@ class TestReferralHelper {
     val sentenceResponse = NDeliusSentenceResponseFactory(sourcedFrom)
       .apply {
         sentenceEndDate?.let {
-          if (sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION) {
-            withLicenceExpiryDate(it)
-          } else {
-            withExpectedEndDate(it)
-          }
+          withExpectedEndDate(it)
         }
       }
       .produce()
@@ -286,7 +287,17 @@ class TestReferralHelper {
   ): ReferralEntity {
     val status = statusEntity ?: referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
     val referral = if (personName != null) createReferral(personName = personName) else createReferral()
-    referralService.updateStatus(referral, status.id, null, "AUTH_USER")
+    // Persist the status history directly so test fixtures can place a referral in any
+    // state without being constrained by configured transitions (the production
+    // updateStatus path validates transitions).
+    referralStatusHistoryRepository.save(
+      ReferralStatusHistoryEntity(
+        referral = referral,
+        referralStatusDescription = status,
+        additionalDetails = null,
+        createdBy = "AUTH_USER",
+      ),
+    )
 
     return referralRepository.findByIdOrNull(referral.id!!)!!
   }

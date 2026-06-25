@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
@@ -13,6 +14,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.conf
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LIMITED_ACCESS_OFFENDER_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_PERSONAL_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_USER_TEAM_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.UserRegionOverrideRepository
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
 @Service
@@ -20,12 +22,13 @@ class UserService(
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val authenticationHolder: HmppsAuthenticationHolder,
   private val telemetryClient: TelemetryClient,
+  private val userRegionOverrideRepository: UserRegionOverrideRepository,
 ) {
 
   val log = LoggerFactory.getLogger(this::class.java)
 
   fun getFirstUserRegionDescription(username: String): String {
-    val distinctRegionDescriptions = this.getUserRegions(username).map { it.description }.distinct()
+    val distinctRegionDescriptions = this.getUserRegionNames(username)
 
     if (distinctRegionDescriptions.isEmpty()) {
       log.warn("No regions found for user: $username")
@@ -35,6 +38,30 @@ class UserService(
     }
 
     return distinctRegionDescriptions.first()
+  }
+
+  fun getUserRegionNames(username: String): List<String> {
+    val nDeliusRegionNames = this.getUserRegions(username)
+      .map { it.description.trim() }
+      .filter { it.isNotEmpty() }
+      .distinct()
+
+    val manualRegionNames = userRegionOverrideRepository.findActiveRegionNamesByUsername(username)
+      .map { it.trim() }
+      .filter { it.isNotEmpty() }
+      .distinct()
+      .sorted()
+
+    val nDeliusRegionNameSet = nDeliusRegionNames.toSet()
+    val mergedRegionNames = nDeliusRegionNames + manualRegionNames.filterNot { nDeliusRegionNameSet.contains(it) }
+
+    if (mergedRegionNames.isNotEmpty()) {
+      log.debug(
+        "User $username has effective access to regions: ${mergedRegionNames.joinToString(", ")}",
+      )
+    }
+
+    return mergedRegionNames
   }
 
   fun getPersonalDetailsByIdentifier(identifier: String): NDeliusPersonalDetails {
@@ -108,9 +135,14 @@ class UserService(
   /**
    * Fetches the list of region names that the given user has access to via their teams in nDelius.
    *
+   * Note: @Cacheable only works when called from outside this class (via Spring proxy).
+   * Calls from within this class (e.g. getFirstUserRegionDescription) bypass the cache.
+   * This is acceptable — most call sites invoke getUserRegions() directly from other services.
+   *
    * @param username The username to fetch regions for
    * @return List of region codes and names (descriptions) the user has access to
    */
+  @Cacheable(value = ["user-regions"], key = "#username", unless = "#result.isEmpty()")
   fun getUserRegions(username: String): List<CodeDescription> = when (val result = nDeliusIntegrationApiClient.getTeamsForUser(username)) {
     is ClientResult.Success -> {
       telemetryClient.logToAppInsights(

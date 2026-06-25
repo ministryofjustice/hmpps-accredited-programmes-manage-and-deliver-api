@@ -26,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.UserRegionOverrideEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -42,6 +43,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.UserRegionOverrideRepository
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -67,6 +69,9 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var sessionAttendanceOutcomeTypeRepository: SessionAttendanceOutcomeTypeRepository
+
+  @Autowired
+  private lateinit var userRegionOverrideRepository: UserRegionOverrideRepository
 
   @Nested
   @DisplayName("getProgrammeGroupsForRegion")
@@ -209,6 +214,74 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `Returning the ProgrammeGroups for all effective regions including manual overrides`() {
+      // Given
+      userRegionOverrideRepository.save(
+        UserRegionOverrideEntity(
+          username = "the_username",
+          regionName = "A very far away Region",
+          createdAt = LocalDateTime.now(),
+          createdBy = "AUTH_ADM",
+        ),
+      )
+
+      // When
+      val programmeGroups = service.getProgrammeGroupsForRegion(
+        pageable = Pageable.ofSize(10),
+        groupCode = null,
+        pdu = null,
+        deliveryLocations = null,
+        cohort = null,
+        sex = "MALE",
+        selectedTab = GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS,
+        username = "the_username",
+      )
+
+      // Then
+      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(4)
+      assertThat(programmeGroups.pagedGroupData.map { it.code }).contains(
+        "THE_GROUP_CODE",
+        "GROUP_TWO_CODE",
+        "GROUP_THREE_CODE",
+        "THE_VERY_FAR_AWAY_GROUP",
+      )
+    }
+
+    @Test
+    fun `Returning ProgrammeGroups when nDelius has no teams but manual override exists`() {
+      // Given
+      nDeliusApiStubs.stubUserTeamsResponse("the_username", NDeliusUserTeams(emptyList()))
+      userRegionOverrideRepository.save(
+        UserRegionOverrideEntity(
+          username = "the_username",
+          regionName = "Region Description",
+          createdAt = LocalDateTime.now(),
+          createdBy = "AUTH_ADM",
+        ),
+      )
+
+      // When
+      val programmeGroups = service.getProgrammeGroupsForRegion(
+        pageable = Pageable.ofSize(10),
+        groupCode = null,
+        pdu = null,
+        deliveryLocations = null,
+        cohort = null,
+        sex = "MALE",
+        selectedTab = GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS,
+        username = "the_username",
+      )
+
+      // Then
+      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(3)
+      assertThat(programmeGroups.pagedGroupData.map { it.code }).containsExactlyInAnyOrder(
+        "THE_GROUP_CODE",
+        "GROUP_TWO_CODE",
+        "GROUP_THREE_CODE",
+      )
+    }
+
+    @Test
     fun `Partial matching the group code`() {
       // When
       val programmeGroups = service.getProgrammeGroupsForRegion(
@@ -247,9 +320,9 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         "THE_GROUP_CODE",
         "GROUP_THREE_CODE",
       )
-      assertThat(programmeGroups.probationDeliveryUnitNames).containsExactlyInAnyOrder(
-        "PDU Description",
+      assertThat(programmeGroups.probationDeliveryUnitNames).containsExactly(
         "Another PDU Description",
+        "PDU Description",
         "Test PDU 1",
       )
       assertThat(programmeGroups.deliveryLocationNames).containsExactlyInAnyOrder("Location One", "Delivery Location 1")
