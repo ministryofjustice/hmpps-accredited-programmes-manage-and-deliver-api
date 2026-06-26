@@ -391,7 +391,7 @@ class SessionServiceTest {
     )
 
     val facilitator = FacilitatorEntityFactory().produce()
-    val group = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
+    val group = ProgrammeGroupFactory().withId(UUID.randomUUID()).withTreatmentManager(facilitator).produce()
     val template1 = ModuleSessionTemplateEntityFactory()
       .withName("session 1")
       .withSessionNumber(1)
@@ -440,6 +440,7 @@ class SessionServiceTest {
     session2.ndeliusAppointments.add(appointment2)
 
     every { sessionRepository.findById(sessionId) } returns Optional.of(session1)
+    every { programmeGroupMembershipRepository.existsByProgrammeGroupId(any()) } returns true
     every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns ClientResult.Success(
       status = HttpStatus.OK,
       body = Unit,

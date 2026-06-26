@@ -144,7 +144,7 @@ class ScheduleService(
 
     // Otherwise get the date of the last scheduled session (not a catch up) for the module and calculate the next date based on that
     val groupModuleSessions = moduleSessionTemplateRepository.findByModuleIdAndNotOneToOne(moduleId)
-    log.info("Found ${groupModuleSessions.size} session templates for module: $moduleId")
+    log.debug("Found {} session templates for module: {}", groupModuleSessions.size, moduleId)
 
     val sessionsToCheck = mutableListOf<SessionEntity>()
     groupModuleSessions.forEach { groupModuleSessionId ->
@@ -173,7 +173,7 @@ class ScheduleService(
     val nextValidDate = findNextValidDate(bankHolidays, dateToScheduleFrom, nextSlot.slot)
     slotQueue.add(nextSlot.copy(nextDate = nextValidDate))
 
-    log.info("generated next valid slot date: $nextValidDate")
+    log.debug("generated next valid slot date: {}", nextValidDate)
     return nextValidDate
   }
 
@@ -358,24 +358,42 @@ class ScheduleService(
     }
 
     val now = LocalDateTime.now(clock)
-    var futureSessions = group.sessions.filter { it.startsAt > now }.toSet()
-    if (skipPreGroupOneToOnePlaceholder) {
-      futureSessions = futureSessions.filterNot { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }.toSet()
+
+    // Empty groups (no membership, ever) regenerate the whole schedule from the group's start date,
+    // including sessions currently in the past. This supports migrating in-flight groups created with
+    // an early start date. Groups with members keep their past sessions and only reschedule the future.
+    val isEmptyGroup = !programmeGroupMembershipRepository.existsByProgrammeGroupId(programmeGroupId)
+
+    var sessionsToReschedule = if (isEmptyGroup) {
+      group.sessions.toSet()
+    } else {
+      group.sessions.filter { it.startsAt > now }.toSet()
     }
-    val futureNDeliusAppointmentsToRemove = futureSessions.flatMap { session -> session.ndeliusAppointments }
-    val mostRecentSession = group.sessions.filter { it.startsAt <= now }.maxByOrNull { it.startsAt }
+    if (skipPreGroupOneToOnePlaceholder) {
+      sessionsToReschedule =
+        sessionsToReschedule.filterNot { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }.toSet()
+    }
+    val nDeliusAppointmentsToRemove = sessionsToReschedule.flatMap { session -> session.ndeliusAppointments }
+
+    // Anchor the regenerated schedule after the most recent past session for groups with members; for
+    // empty groups schedule from the start date (null), so past sessions are regenerated too.
+    val mostRecentSession = if (isEmptyGroup) {
+      null
+    } else {
+      group.sessions.filter { it.startsAt <= now }.maxByOrNull { it.startsAt }
+    }
 
     // Templates already covered by a session we are keeping (past sessions, plus any retained future
     // placeholder) must not be regenerated. Catch-ups are excluded.
-    val retainedSessions = group.sessions.filterNot { it in futureSessions }
+    val retainedSessions = group.sessions.filterNot { it in sessionsToReschedule }
     val coveredTemplateIds = retainedSessions
       .filterNot { it.isCatchup }
       .mapNotNull { it.moduleSessionTemplate.id }
       .toSet()
 
-    if (futureSessions.isNotEmpty()) {
-      removeNDeliusAppointments(futureNDeliusAppointmentsToRemove, futureSessions.toList())
-      group.sessions.removeAll(futureSessions)
+    if (sessionsToReschedule.isNotEmpty()) {
+      removeNDeliusAppointments(nDeliusAppointmentsToRemove, sessionsToReschedule.toList())
+      group.sessions.removeAll(sessionsToReschedule)
       programmeGroupRepository.save(group)
     }
 
@@ -395,6 +413,9 @@ class ScheduleService(
   }
 
   fun createNdeliusAppointmentsForSessions(attendees: List<AttendeeEntity>) {
+    // Never call nDelius with an empty payload (e.g. rescheduling an empty group has no attendees).
+    if (attendees.isEmpty()) return
+
     val (nDeliusAppointments, nDeliusAppointmentEntities) = attendees.map { attendee ->
       // Generate an appointment ID to be used by NDelius
       val appointmentId = UUID.randomUUID()
