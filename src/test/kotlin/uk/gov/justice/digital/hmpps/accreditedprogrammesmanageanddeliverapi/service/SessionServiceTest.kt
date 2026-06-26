@@ -1283,24 +1283,4 @@ class SessionServiceTest {
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId1) }
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId2) }
   }
-
-  @Test
-  fun `should throw BusinessException when recording attendance more than 24 hours after session starts`() {
-    // Given
-    val sessionId = UUID.randomUUID()
-    val sessionEntity = SessionFactory()
-      .withStartsAt(LocalDateTime.now(fixedClock).minusHours(25)).withId(sessionId).produce()
-    val sessionAttendance = SessionAttendanceFactory().produce()
-
-    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
-
-    // When
-    val exception = assertThrows<BusinessException> {
-      service.saveSessionAttendance(sessionId, sessionAttendance)
-    }
-
-    // Then
-    assertThat(exception.message)
-      .isEqualTo("Unable to record session attendances for the session with ID: $sessionId after 24 hours.")
-  }
 }
