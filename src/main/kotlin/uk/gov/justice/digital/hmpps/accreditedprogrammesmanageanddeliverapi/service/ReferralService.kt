@@ -175,7 +175,7 @@ class ReferralService(
         referral,
         personalDetails,
         referralLdc,
-        latestReferralStatus!!,
+        latestReferralStatus,
         allocatedGroup,
         latestReferralCohort,
       )
@@ -183,7 +183,7 @@ class ReferralService(
       ReferralDetails.toModelFromStoredData(
         referral,
         referralLdc,
-        latestReferralStatus!!,
+        latestReferralStatus,
         allocatedGroup,
         latestReferralCohort,
       )
