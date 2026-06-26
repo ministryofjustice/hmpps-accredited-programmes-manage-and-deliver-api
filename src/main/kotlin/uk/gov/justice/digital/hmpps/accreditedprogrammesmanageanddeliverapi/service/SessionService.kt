@@ -460,10 +460,6 @@ class SessionService(
       NotFoundException("Session not found with id: $sessionId")
     }
 
-    if (LocalDateTime.now(clock).isAfter(session.startsAt.plusDays(1))) {
-      throw BusinessException("Unable to record session attendances for the session with ID: $sessionId after 24 hours.")
-    }
-
     val attendees = sessionAttendance.attendees
     val sessionAttendanceEntities = getSessionAttendanceFromAttendees(attendees, session)
     session.attendances.addAll(sessionAttendanceEntities)
