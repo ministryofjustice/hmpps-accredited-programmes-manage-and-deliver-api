@@ -98,6 +98,46 @@ To send test events to our queues we can run the following command:
 awslocal sqs send-message --queue-url http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/hmpps_domain_events_queue --message-body file://src/test/resources/events/interventions/communityReferralCreatedEvent.json
 ```
 
+##### Environment Queue names <br>
+
+PROD:
+
+```zsh
+hmpps-accredited-programmes-manage-and-deliver-devs-prod-mandd_dlq
+hmpps-accredited-programmes-manage-and-deliver-devs-prod-mandd_queue
+```
+
+PREPROD:
+
+```zsh
+hmpps-accredited-programmes-manage-and-deliver-devs-preprod-mandd_dlq
+hmpps-accredited-programmes-manage-and-deliver-devs-preprod-mandd_queue
+```
+
+DEV:
+
+```zsh
+hmpps-accredited-programmes-manage-and-deliver-devs-dev-hmpps_mandd_events_dlq
+hmpps-accredited-programmes-manage-and-deliver-devs-dev-hmpps_mandd_events_queue
+```
+
+##### Retry messages in Dead Letter Queue <br>
+
+Replace the <domain-name>, <dlq-name> and <token-with-ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR>
+placeholders with the appropriate values.
+
+```zsh
+curl -X PUT 'https://<domain-name>/queue-admin/retry-dlq/<dlq-name>'\
+--header 'Authorization: Bearer <token-with-ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR>'
+```
+
+##### View messages in Dead Letter Queue <br>
+
+```zsh
+curl -X GET 'https://<domain-name>/queue-admin/get-dlq-messages/<dlq-name>'\
+--header 'Authorization: Bearer <token-with-ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR>'
+```
+
 ## Connecting to dev instances of External Services
 
 For local development purposes the service currently calls out to the dev instances of the `Find and Refer Service` and

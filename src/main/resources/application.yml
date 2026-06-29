@@ -79,6 +79,7 @@ management:
 
 hmpps:
   sqs:
+    queueAdminRole: ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR
     reactiveApi: true
     queues:
       hmppsdomaineventsqueue:
