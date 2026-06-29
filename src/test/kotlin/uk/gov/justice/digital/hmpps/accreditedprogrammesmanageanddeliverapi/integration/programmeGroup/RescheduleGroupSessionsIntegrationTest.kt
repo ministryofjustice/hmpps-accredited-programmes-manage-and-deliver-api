@@ -265,6 +265,44 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
       assertThat(rescheduled.single().date.dayOfWeek).isEqualTo(DayOfWeek.WEDNESDAY)
       assertThat(rescheduled.single().date).isAfter(now)
     }
+
+    @Test
+    fun `does not place sessions in the past for a group with members whose start date has passed but no session has run yet`() {
+      // Given a group WITH members whose earliest start date is already in the past (10 Nov), but
+      // whose sessions are all still in the future, so there is no past session to anchor on. A
+      // membership group must never have sessions placed in the past, even when rebuilding from a
+      // passed start date.
+      val fixture = buildGroup(
+        hasMembership = true,
+        earliestStartDate = LocalDate.of(2025, 11, 10),
+        slots = listOf(DayOfWeek.MONDAY to LocalTime.of(10, 0)),
+        sessionSpecs = listOf(
+          1 to LocalDate.of(2025, 11, 24).atTime(10, 0), // future
+          2 to LocalDate.of(2025, 12, 1).atTime(10, 0), // future
+          3 to LocalDate.of(2025, 12, 8).atTime(10, 0), // future
+        ),
+      )
+
+      // When the slot changes to Wednesday with an automatic reschedule
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${fixture.group.id}",
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        body = UpdateGroupRequest(
+          createGroupSessionSlot = setOf(CreateGroupSessionSlot(DayOfWeek.WEDNESDAY, 2, 0, AmOrPm.PM)),
+          automaticallyRescheduleOtherSessions = true,
+        ),
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then every regenerated session is on the new Wednesday slot in the future, anchored on today
+      // rather than the passed start date (which would otherwise place them on past Wednesdays)
+      val overview = scheduleOverview(fixture.group.id!!)
+      assertThat(overview.sessions).hasSize(3)
+      assertThat(overview.sessions).allMatch { it.date.dayOfWeek == DayOfWeek.WEDNESDAY }
+      assertThat(overview.sessions).allMatch { it.date.isAfter(now) }
+      assertThat(overview.sessions.map { it.date }).isSorted
+    }
   }
 
   @Nested
