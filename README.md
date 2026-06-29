@@ -123,16 +123,19 @@ hmpps-accredited-programmes-manage-and-deliver-devs-dev-hmpps_mandd_events_queue
 
 ##### Retry messages in Dead Letter Queue <br>
 
-Replace the <domain-name> and <dlq-name> placeholders with the appropriate values.
+Replace the <domain-name>, <dlq-name> and <token-with-ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR>
+placeholders with the appropriate values.
 
 ```zsh
-curl -X PUT 'https://<domain-name>/queue-admin/retry-dlq/<dlq-name>'
+curl -X PUT 'https://<domain-name>/queue-admin/retry-dlq/<dlq-name>'\
+--header 'Authorization: Bearer <token-with-ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR>'
 ```
 
 ##### View messages in Dead Letter Queue <br>
 
 ```zsh
-curl -X GET 'https://<domain-name>/queue-admin/get-dlq-messages/<dlq-name>'
+curl -X GET 'https://<domain-name>/queue-admin/get-dlq-messages/<dlq-name>'\
+--header 'Authorization: Bearer <token-with-ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR>'
 ```
 
 ## Connecting to dev instances of External Services
