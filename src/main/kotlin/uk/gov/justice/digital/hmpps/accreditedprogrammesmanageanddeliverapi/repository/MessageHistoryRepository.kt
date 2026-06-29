@@ -7,4 +7,5 @@ import java.util.UUID
 
 interface MessageHistoryRepository : JpaRepository<MessageHistoryEntity, UUID> {
   fun findByReferral(referral: ReferralEntity): List<MessageHistoryEntity>
+  fun deleteByReferral(referral: ReferralEntity)
 }
