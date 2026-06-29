@@ -182,6 +182,7 @@ class ScheduleService(
     mostRecentSession: SessionEntity? = null,
     skipPreGroupOneToOnePlaceholder: Boolean = false,
     coveredTemplateIds: Set<UUID> = emptySet(),
+    preventPastScheduling: Boolean = false,
   ): MutableSet<SessionEntity> {
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
       ?: throw NotFoundException("Group with id: $programmeGroupId could not be found")
@@ -226,6 +227,12 @@ class ScheduleService(
         group.earliestPossibleStartDate,
         LocalDate.now(clock),
       )
+    } else if (preventPastScheduling) {
+      // Rescheduling a group with no past session to anchor on (e.g. a membership group whose
+      // sessions are all still in the future) must never place sessions in the past, even when the
+      // group's start date has already passed. Empty groups and initial scheduling leave this false
+      // so in-flight imports can still be generated from a past start date.
+      maxOf(group.earliestPossibleStartDate, LocalDate.now(clock))
     } else {
       group.earliestPossibleStartDate
     }
@@ -403,6 +410,8 @@ class ScheduleService(
       mostRecentSession,
       skipPreGroupOneToOnePlaceholder,
       coveredTemplateIds,
+      // Empty groups may regenerate into the past (in-flight import); groups with members never may.
+      preventPastScheduling = !isEmptyGroup,
     )
     val attendees = sessions.flatMap { it.attendees }.toList()
     if (attendees.isNotEmpty()) {
