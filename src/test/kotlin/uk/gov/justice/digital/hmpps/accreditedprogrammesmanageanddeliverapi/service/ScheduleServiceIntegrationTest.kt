@@ -12,6 +12,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
@@ -37,6 +38,14 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
 
   @Autowired
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
+
+  /** Allocates a single (non-deleted) membership so the group is no longer considered "empty". */
+  private fun allocateMember(group: ProgrammeGroupEntity) {
+    testDataGenerator.allocateReferralsToGroup(
+      listOf(testDataGenerator.createReferral("Member", java.util.UUID.randomUUID().toString().take(7))),
+      group,
+    )
+  }
 
   @BeforeEach
   fun setup() {
@@ -249,6 +258,9 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     group.earliestPossibleStartDate = LocalDate.now(clock).plusYears(2)
     programmeGroupRepository.save(group)
 
+    // A group with members protects its past sessions during a reschedule
+    allocateMember(group)
+
     scheduleService.rescheduleSessionsForGroup(group.id!!)
 
     val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
@@ -294,6 +306,9 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     )
     programmeGroupRepository.save(group)
 
+    // A group with members protects its past sessions during a reschedule
+    allocateMember(group)
+
     scheduleService.rescheduleSessionsForGroup(group.id!!)
 
     val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
@@ -338,6 +353,9 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
       ),
     )
     programmeGroupRepository.save(group)
+
+    // A group with members protects its past sessions during a reschedule
+    allocateMember(group)
 
     scheduleService.rescheduleSessionsForGroup(group.id!!)
 
