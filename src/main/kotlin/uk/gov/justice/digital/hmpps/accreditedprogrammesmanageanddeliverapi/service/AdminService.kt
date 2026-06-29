@@ -6,9 +6,8 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_PERSONAL_DETAILS_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.time.LocalDateTime
@@ -36,6 +35,7 @@ class AdminService(
   private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
   private val transactionTemplate: TransactionTemplate,
   private val telemetryClient: TelemetryClient,
+  private val messageHistoryRepository: MessageHistoryRepository,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -114,26 +114,8 @@ class AdminService(
       if (!personalDetails) {
         log.info("Missing NDelius personal details for crn ${referral.crn}. Deleting referral ${referral.id}...")
         deleteReferralAndDependents(referral)
-
-        telemetryClient.logToAppInsights(
-          "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.failure",
-          mapOf(
-            "integrationActionType" to GET_PERSONAL_DETAILS_N_DELIUS.name,
-            "outcome" to "failure",
-          ),
-        )
-
         return@mapIndexed ProcessingResult.DELETED
-      } else {
-        telemetryClient.logToAppInsights(
-          "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.success",
-          mapOf(
-            "integrationActionType" to GET_PERSONAL_DETAILS_N_DELIUS.name,
-            "outcome" to "success",
-          ),
-        )
       }
-
       val sentenceEndDate = try {
         sentenceService.getSentenceEndDate(
           referral.crn,
@@ -182,6 +164,7 @@ class AdminService(
     log.info("Deleting referral ${referral.id}...")
     transactionTemplate.execute {
       nDeliusAppointmentRepository.deleteByReferral(referral)
+      messageHistoryRepository.deleteByReferral(referral)
       referralRepository.delete(referral)
     }
   }
