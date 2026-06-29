@@ -98,7 +98,7 @@ To send test events to our queues we can run the following command:
 awslocal sqs send-message --queue-url http://sqs.eu-west-2.localhost.localstack.cloud:4566/000000000000/hmpps_domain_events_queue --message-body file://src/test/resources/events/interventions/communityReferralCreatedEvent.json
 ```
 
-##### Environment  Queue names <br>
+##### Environment Queue names <br>
 
 PROD:
 
