@@ -144,7 +144,7 @@ class ScheduleService(
 
     // Otherwise get the date of the last scheduled session (not a catch up) for the module and calculate the next date based on that
     val groupModuleSessions = moduleSessionTemplateRepository.findByModuleIdAndNotOneToOne(moduleId)
-    log.info("Found ${groupModuleSessions.size} session templates for module: $moduleId")
+    log.debug("Found {} session templates for module: {}", groupModuleSessions.size, moduleId)
 
     val sessionsToCheck = mutableListOf<SessionEntity>()
     groupModuleSessions.forEach { groupModuleSessionId ->
@@ -173,7 +173,7 @@ class ScheduleService(
     val nextValidDate = findNextValidDate(bankHolidays, dateToScheduleFrom, nextSlot.slot)
     slotQueue.add(nextSlot.copy(nextDate = nextValidDate))
 
-    log.info("generated next valid slot date: $nextValidDate")
+    log.debug("generated next valid slot date: {}", nextValidDate)
     return nextValidDate
   }
 
@@ -182,6 +182,7 @@ class ScheduleService(
     mostRecentSession: SessionEntity? = null,
     skipPreGroupOneToOnePlaceholder: Boolean = false,
     coveredTemplateIds: Set<UUID> = emptySet(),
+    preventPastScheduling: Boolean = false,
   ): MutableSet<SessionEntity> {
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
       ?: throw NotFoundException("Group with id: $programmeGroupId could not be found")
@@ -226,6 +227,12 @@ class ScheduleService(
         group.earliestPossibleStartDate,
         LocalDate.now(clock),
       )
+    } else if (preventPastScheduling) {
+      // Rescheduling a group with no past session to anchor on (e.g. a membership group whose
+      // sessions are all still in the future) must never place sessions in the past, even when the
+      // group's start date has already passed. Empty groups and initial scheduling leave this false
+      // so in-flight imports can still be generated from a past start date.
+      maxOf(group.earliestPossibleStartDate, LocalDate.now(clock))
     } else {
       group.earliestPossibleStartDate
     }
@@ -358,24 +365,42 @@ class ScheduleService(
     }
 
     val now = LocalDateTime.now(clock)
-    var futureSessions = group.sessions.filter { it.startsAt > now }.toSet()
-    if (skipPreGroupOneToOnePlaceholder) {
-      futureSessions = futureSessions.filterNot { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }.toSet()
+
+    // Empty groups (no membership, ever) regenerate the whole schedule from the group's start date,
+    // including sessions currently in the past. This supports migrating in-flight groups created with
+    // an early start date. Groups with members keep their past sessions and only reschedule the future.
+    val isEmptyGroup = !programmeGroupMembershipRepository.existsByProgrammeGroupId(programmeGroupId)
+
+    var sessionsToReschedule = if (isEmptyGroup) {
+      group.sessions.toSet()
+    } else {
+      group.sessions.filter { it.startsAt > now }.toSet()
     }
-    val futureNDeliusAppointmentsToRemove = futureSessions.flatMap { session -> session.ndeliusAppointments }
-    val mostRecentSession = group.sessions.filter { it.startsAt <= now }.maxByOrNull { it.startsAt }
+    if (skipPreGroupOneToOnePlaceholder) {
+      sessionsToReschedule =
+        sessionsToReschedule.filterNot { it.moduleName == "Pre-group one-to-ones" && it.isPlaceholder }.toSet()
+    }
+    val nDeliusAppointmentsToRemove = sessionsToReschedule.flatMap { session -> session.ndeliusAppointments }
+
+    // Anchor the regenerated schedule after the most recent past session for groups with members; for
+    // empty groups schedule from the start date (null), so past sessions are regenerated too.
+    val mostRecentSession = if (isEmptyGroup) {
+      null
+    } else {
+      group.sessions.filter { it.startsAt <= now }.maxByOrNull { it.startsAt }
+    }
 
     // Templates already covered by a session we are keeping (past sessions, plus any retained future
     // placeholder) must not be regenerated. Catch-ups are excluded.
-    val retainedSessions = group.sessions.filterNot { it in futureSessions }
+    val retainedSessions = group.sessions.filterNot { it in sessionsToReschedule }
     val coveredTemplateIds = retainedSessions
       .filterNot { it.isCatchup }
       .mapNotNull { it.moduleSessionTemplate.id }
       .toSet()
 
-    if (futureSessions.isNotEmpty()) {
-      removeNDeliusAppointments(futureNDeliusAppointmentsToRemove, futureSessions.toList())
-      group.sessions.removeAll(futureSessions)
+    if (sessionsToReschedule.isNotEmpty()) {
+      removeNDeliusAppointments(nDeliusAppointmentsToRemove, sessionsToReschedule.toList())
+      group.sessions.removeAll(sessionsToReschedule)
       programmeGroupRepository.save(group)
     }
 
@@ -385,6 +410,8 @@ class ScheduleService(
       mostRecentSession,
       skipPreGroupOneToOnePlaceholder,
       coveredTemplateIds,
+      // Empty groups may regenerate into the past (in-flight import); groups with members never may.
+      preventPastScheduling = !isEmptyGroup,
     )
     val attendees = sessions.flatMap { it.attendees }.toList()
     if (attendees.isNotEmpty()) {
@@ -395,6 +422,9 @@ class ScheduleService(
   }
 
   fun createNdeliusAppointmentsForSessions(attendees: List<AttendeeEntity>) {
+    // Never call nDelius with an empty payload (e.g. rescheduling an empty group has no attendees).
+    if (attendees.isEmpty()) return
+
     val (nDeliusAppointments, nDeliusAppointmentEntities) = attendees.map { attendee ->
       // Generate an appointment ID to be used by NDelius
       val appointmentId = UUID.randomUUID()

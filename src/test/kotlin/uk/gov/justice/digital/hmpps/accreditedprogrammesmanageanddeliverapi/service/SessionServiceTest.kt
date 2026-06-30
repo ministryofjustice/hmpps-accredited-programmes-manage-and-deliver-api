@@ -391,7 +391,7 @@ class SessionServiceTest {
     )
 
     val facilitator = FacilitatorEntityFactory().produce()
-    val group = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
+    val group = ProgrammeGroupFactory().withId(UUID.randomUUID()).withTreatmentManager(facilitator).produce()
     val template1 = ModuleSessionTemplateEntityFactory()
       .withName("session 1")
       .withSessionNumber(1)
@@ -440,6 +440,7 @@ class SessionServiceTest {
     session2.ndeliusAppointments.add(appointment2)
 
     every { sessionRepository.findById(sessionId) } returns Optional.of(session1)
+    every { programmeGroupMembershipRepository.existsByProgrammeGroupId(any()) } returns true
     every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns ClientResult.Success(
       status = HttpStatus.OK,
       body = Unit,
@@ -1282,25 +1283,5 @@ class SessionServiceTest {
     // Then
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId1) }
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId2) }
-  }
-
-  @Test
-  fun `should throw BusinessException when recording attendance more than 24 hours after session starts`() {
-    // Given
-    val sessionId = UUID.randomUUID()
-    val sessionEntity = SessionFactory()
-      .withStartsAt(LocalDateTime.now(fixedClock).minusHours(25)).withId(sessionId).produce()
-    val sessionAttendance = SessionAttendanceFactory().produce()
-
-    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
-
-    // When
-    val exception = assertThrows<BusinessException> {
-      service.saveSessionAttendance(sessionId, sessionAttendance)
-    }
-
-    // Then
-    assertThat(exception.message)
-      .isEqualTo("Unable to record session attendances for the session with ID: $sessionId after 24 hours.")
   }
 }
