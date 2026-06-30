@@ -19,6 +19,7 @@ generic-service:
     JAVA_OPTS: "-Xmx2048m"
     SPRINGDOC_SWAGGER_UI_ENABLED: "false"
     SPRINGDOC_API_DOCS_ENABLED: "false"
+    REPORTING_ENABLED: "true"
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
 # See https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html#creating-your-own-custom-alerts
