@@ -160,8 +160,8 @@ jobs:
       environment: 'preprod'
       app_version: '${{ needs.build.outputs.app_version }}'
   notify_for_prod_approval:
-    needs:
-      - build
+    #    needs:
+    #      - build
     #      - deploy_preprod
     runs-on: ubuntu-latest
     steps:
