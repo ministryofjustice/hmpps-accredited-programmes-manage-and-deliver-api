@@ -160,9 +160,9 @@ jobs:
       environment: 'preprod'
       app_version: '${{ needs.build.outputs.app_version }}'
   notify_for_prod_approval:
-    #    needs:
-    #      - build
-    #      - deploy_preprod
+    needs:
+      - build
+      - deploy_preprod
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -219,7 +219,6 @@ jobs:
           echo "approval_link=$APPROVAL_LINK" >> $GITHUB_OUTPUT
       - name: Generate pending prod release changelog
         id: changelog
-        # Informational only: never let a changelog hiccup fail the approval notification.
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
