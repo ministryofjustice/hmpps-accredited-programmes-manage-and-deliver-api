@@ -291,9 +291,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(body.filters.cohort).isEqualTo(
         listOf(
           "General offence",
-          "General offence - LDC",
+          "General offence LDC",
           "Sexual offence",
-          "Sexual offence - LDC",
+          "Sexual offence LDC",
         ),
       )
       val expectedTeams = mapOf(
