@@ -279,6 +279,21 @@ class ReferralService(
     return referralRepository.save(referralEntity)
   }
 
+  /**
+   * Updates the CRN of all referrals associated with the given current CRN to the new CRN.
+   *
+   * @param currentCrn The current CRN associated with the referrals that need to be updated.
+   * @param newCrn The new CRN to replace the current CRN in the referrals.
+   */
+  fun updateReferralCrn(currentCrn: String, newCrn: String) {
+    val referrals = referralRepository.findByCrn(currentCrn)
+    referrals.forEach { referral ->
+      referral.crn = newCrn
+    }
+
+    referralRepository.saveAll(referrals)
+  }
+
   fun getReferralById(referralId: UUID): ReferralEntity {
     val referralEntity = referralRepository.findByIdOrNull(referralId) ?: let {
       log.error("Referral with id $referralId does not exist in database")
