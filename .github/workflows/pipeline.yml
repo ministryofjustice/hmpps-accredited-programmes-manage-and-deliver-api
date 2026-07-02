@@ -217,6 +217,42 @@ jobs:
 
           echo "Approval Link: $APPROVAL_LINK"
           echo "approval_link=$APPROVAL_LINK" >> $GITHUB_OUTPUT
+      - name: Send Slack notification
+        run: |
+          # Prepare the JSON payload
+          PAYLOAD=$(jq -n \
+            --arg link "${{ steps.approval-link.outputs.approval_link }}" \
+            --arg slack_user "${{ steps.slack-mapping.outputs.slack_user_id }}" \
+            --arg pr_name "${{ steps.pr-info.outputs.pr_title }}" \
+            --arg pr_number "${{ steps.pr-info.outputs.pr_number }}" \
+            --arg github_user "${{ github.actor }}" \
+            --arg repo "${{ github.repository }}" \
+            '{
+              link_to_approval_step: $link,
+              developer_to_tag_slack_user_id: $slack_user,
+              human_readable_pr_name: $pr_name,
+              pr_number: $pr_number,
+              github_username: $github_user,
+              repository: $repo,
+              timestamp: now
+            }')
+
+          # Send the webhook request
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            "${{ secrets.SLACK_WEBHOOK_URL }}" \
+            --fail \
+            --show-error \
+            --silent
+
+          if [[ $? -eq 0 ]]; then
+            echo "✅ Slack notification sent successfully"
+          else
+            echo "❌ Failed to send Slack notification"
+            echo "Please check the GH_TO_SLACK_MAPPING variable for user "${{ github.actor }}" and SLACK_WEBHOOK_URL secret."
+            exit 1
+          fi
       - name: Generate pending prod release changelog
         id: changelog
         continue-on-error: true
@@ -238,7 +274,7 @@ jobs:
           done
 
           if [[ -z "$PREV_SHA" || "$PREV_SHA" == "$CURRENT_SHA" ]]; then
-            echo "No prior successful prod deployment to diff against; changelog will be empty."
+            echo "No prior successful prod deployment to diff against; skipping changelog."
             exit 0
           fi
 
@@ -246,57 +282,37 @@ jobs:
           CHANGELOG=$(git log --no-merges --pretty=format:'• %s (%an)' "${PREV_SHA}..${CURRENT_SHA}" 2>/dev/null || true)
 
           if [[ -z "$CHANGELOG" ]]; then
-            echo "Empty changelog; leaving output empty."
+            echo "Empty changelog; skipping."
             exit 0
           fi
 
-          # Prepend the heading here (not in the Slack workflow) so it only appears when there are
-          # changes to show — an empty changelog leaves the whole variable blank.
           {
             echo "deployment_changelog<<__CHANGELOG_EOF__"
-            printf 'Changes in this release:\n%s\n' "$CHANGELOG"
+            echo "$CHANGELOG"
             echo "__CHANGELOG_EOF__"
           } >> "$GITHUB_OUTPUT"
-      - name: Send Slack notification
-        env:
-          DEPLOYMENT_CHANGELOG: ${{ steps.changelog.outputs.deployment_changelog }}
-        run: |
-          # Prepare the JSON payload
-          PAYLOAD=$(jq -n \
-            --arg link "${{ steps.approval-link.outputs.approval_link }}" \
-            --arg slack_user "${{ steps.slack-mapping.outputs.slack_user_id }}" \
-            --arg pr_name "${{ steps.pr-info.outputs.pr_title }}" \
-            --arg pr_number "${{ steps.pr-info.outputs.pr_number }}" \
-            --arg github_user "${{ github.actor }}" \
-            --arg repo "${{ github.repository }}" \
-            --arg changelog "$DEPLOYMENT_CHANGELOG" \
-            '{
-              link_to_approval_step: $link,
-              developer_to_tag_slack_user_id: $slack_user,
-              human_readable_pr_name: $pr_name,
-              pr_number: $pr_number,
-              github_username: $github_user,
-              repository: $repo,
-              deployment_changelog: $changelog,
-              timestamp: now
-            }')
-
-          # Send the webhook request
-          curl -X POST \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD" \
-            "${{ secrets.SLACK_WEBHOOK_URL }}" \
-            --fail \
-            --show-error \
-            --silent
-
-          if [[ $? -eq 0 ]]; then
-            echo "✅ Slack notification sent successfully"
-          else
-            echo "❌ Failed to send Slack notification"
-            echo "Please check the GH_TO_SLACK_MAPPING variable for user "${{ github.actor }}" and SLACK_WEBHOOK_URL secret."
-            exit 1
-          fi
+      - name: Post pending prod release changelog to Slack
+        if: steps.changelog.outputs.deployment_changelog != ''
+        uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.HMPPS_SRE_SLACK_BOT_TOKEN }}
+          payload: |
+            channel: hmpps_accredited_programmes_manage_and_deliver_alerts
+            text: "Changes pending production deploy"
+            blocks:
+              - type: "header"
+                text:
+                  type: "plain_text"
+                  text: ":memo: Pending production release"
+              - type: "section"
+                text:
+                  type: "mrkdwn"
+                  text: ${{ toJSON(steps.changelog.outputs.deployment_changelog) }}
+              - type: "context"
+                elements:
+                  - type: "mrkdwn"
+                    text: "Repository: ${{ github.repository }} · Version: `${{ needs.build.outputs.app_version }}`"
   deploy_prod:
     name: Deploy to production environment
     needs:
