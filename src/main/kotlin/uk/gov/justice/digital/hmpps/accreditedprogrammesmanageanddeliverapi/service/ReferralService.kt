@@ -535,7 +535,7 @@ class ReferralService(
             ReferralStatusUtils.formatStatus(
               incomingReferralStatusDescription.description,
             )
-          }. They have been removed from group ${activeGroupMembership.programmeGroup.code}"
+          }. They have been removed from group ${activeGroupMembership.programmeGroup.code}."
       }
     }
 

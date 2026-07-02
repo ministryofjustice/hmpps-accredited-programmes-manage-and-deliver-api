@@ -232,7 +232,7 @@ class ProgrammeGroupMembershipServiceTest {
 
     // Then
     assertThat(result).isNotNull()
-    assertThat(result.message).isEqualTo("John Smith was removed from this group. Their referral status is now ${referralStatusDescriptionEntity.description}")
+    assertThat(result.message).isEqualTo("John Smith was removed from this group. Their referral status is now ${referralStatusDescriptionEntity.description}.")
     verify { programmeGroupRepository.findByIdOrNull(groupId) }
     verify { referralRepository.findByIdOrNull(referralId) }
     verify { programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referralId, groupId) }
