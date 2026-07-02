@@ -5,9 +5,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 
 enum class ProgrammeGroupCohort(val label: String, val createAndEditDisplayOption: String) {
   GENERAL("General offence", "General offence"),
-  GENERAL_LDC("General offence - LDC", "General offence, learning disabilities and challenges (LDC)"),
+  GENERAL_LDC("General offence LDC", "General offence, learning disabilities and challenges (LDC)"),
   SEXUAL("Sexual offence", "Sexual offence"),
-  SEXUAL_LDC("Sexual offence - LDC", "Sexual offence, learning disabilities and challenges (LDC)"),
+  SEXUAL_LDC("Sexual offence LDC", "Sexual offence, learning disabilities and challenges (LDC)"),
   ;
 
   companion object {

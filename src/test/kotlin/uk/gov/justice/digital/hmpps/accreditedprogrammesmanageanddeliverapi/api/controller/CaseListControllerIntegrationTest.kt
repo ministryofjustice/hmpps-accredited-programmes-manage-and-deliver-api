@@ -616,7 +616,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       // Given and When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/open?cohort=General offence - LDC",
+        "/pages/caselist/open?cohort=General offence LDC",
         object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
 
