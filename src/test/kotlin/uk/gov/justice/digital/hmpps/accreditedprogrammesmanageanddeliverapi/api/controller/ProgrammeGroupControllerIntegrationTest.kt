@@ -1424,7 +1424,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
 
       // Then
-      assertThat(response.message).contains("Alex River was removed from this group. Their referral status is now Awaiting allocation")
+      assertThat(response.message).contains("Alex River was removed from this group. Their referral status is now Awaiting allocation.")
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
 
@@ -1521,7 +1521,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
 
       // Then
-      assertThat(response.message).contains("Alex River was removed from this group. Their referral status is now Return to court")
+      assertThat(response.message).contains("Alex River was removed from this group. Their referral status is now Return to court.")
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
 

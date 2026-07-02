@@ -183,7 +183,7 @@ class ProgrammeGroupMembershipService(
     )
 
     return RemoveFromGroupResponse(
-      message = "${savedReferral.personName} was removed from this group. Their referral status is now ${desiredStatus.description}",
+      message = "${savedReferral.personName} was removed from this group. Their referral status is now ${desiredStatus.description}.",
     )
   }
 
