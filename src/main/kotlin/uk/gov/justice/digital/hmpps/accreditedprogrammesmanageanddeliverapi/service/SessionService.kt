@@ -118,6 +118,11 @@ class SessionService(
       NotFoundException("Session not found with id: $sessionId")
     }
 
+    // Once attendance has been recorded, delius will throw an error if we try to resubmit/change attendance
+    if (session.attendances.isNotEmpty()) {
+      throw BusinessException("This session cannot be rescheduled because attendance has already been recorded.")
+    }
+
     val requestedStartTime = LocalDateTime.of(request.sessionStartDate, request.sessionStartTime.toLocalTime())
     val startOffset = Duration.between(session.startsAt, requestedStartTime)
     val requestedEndTime = LocalDateTime.of(
@@ -468,12 +473,53 @@ class SessionService(
       NotFoundException("Session not found with id: $sessionId")
     }
 
-    val attendees = sessionAttendance.attendees
-    val sessionAttendanceEntities = getSessionAttendanceFromAttendees(attendees, session)
+    val latestAttendanceByReferralId = session.attendances
+      .groupBy { it.groupMembership.referral.id }
+      .mapValues { (_, attendances) ->
+        attendances.maxWithOrNull(
+          compareBy<SessionAttendanceEntity> { it.createdAt }
+            .thenBy { it.id },
+        )
+      }
+
+    // nDelius does not allow a recorded outcome to be amended, so reject any updated outcome
+    val amendedOutcomeAttendees = sessionAttendance.attendees.filter { attendee ->
+      val previousOutcome = latestAttendanceByReferralId[attendee.referralId]?.outcomeType?.code
+      previousOutcome != null && previousOutcome != attendee.outcomeCode
+    }
+    if (amendedOutcomeAttendees.isNotEmpty()) {
+      val crns = amendedOutcomeAttendees.map { attendee ->
+        session.attendees.find { it.referralId == attendee.referralId }?.personName ?: attendee.referralId.toString()
+      }
+      throw BusinessException(
+        "Attendance outcome cannot be changed once it has been recorded. An outcome has already been recorded for: ${
+          crns.joinToString(
+            ", ",
+          )
+        }",
+      )
+    }
+
+    // Only record attendees with something new either a first outcome or changed notes. Unchanged resubmissions
+    // must not reach nDelius, which appends the notes on every update.
+    val changedAttendees = sessionAttendance.attendees.filter { attendee ->
+      val latestAttendance = latestAttendanceByReferralId[attendee.referralId] ?: return@filter true
+      val submittedNotes = attendee.sessionNotes?.trim()
+      val latestNotes = latestAttendance.notesHistory.maxByOrNull { it.createdAt }?.notes?.trim()
+      !submittedNotes.isNullOrEmpty() && submittedNotes != latestNotes
+    }
+
+    if (changedAttendees.isEmpty()) {
+      log.info("No new outcomes or session notes submitted for session with id: $sessionId, nothing to record")
+      sessionAttendance.responseMessage = "Attendance saved for session $sessionId"
+      return sessionAttendance
+    }
+
+    val sessionAttendanceEntities = getSessionAttendanceFromAttendees(changedAttendees, session)
     session.attendances.addAll(sessionAttendanceEntities)
     sessionRepository.save(session)
 
-    attendees.firstOrNull()?.let { attendee ->
+    changedAttendees.firstOrNull()?.let { attendee ->
       val referral = referralRepository.findByIdOrNull(attendee.referralId)
       val programmeGroupMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referral?.id!!)
       telemetryClient.logToAppInsights(
@@ -487,70 +533,72 @@ class SessionService(
       )
     }
 
-    log.info("Starting to update appointments in nDelius for ${attendees.size} attendees for session with id: $sessionId")
-    if (attendees.isNotEmpty()) {
-      val updateAppointmentRequests = attendees.mapNotNull { attendee ->
-        val referralId = attendee.referralId
-        val nDeliusAppointment = session.ndeliusAppointments.find { it.referral.id == referralId }
-        nDeliusAppointment?.toUpdateAppointmentRequest(attendee.sessionNotes, attendee.outcomeCode)
-      }
+    log.info("Starting to update appointments in nDelius for ${changedAttendees.size} of ${sessionAttendance.attendees.size} submitted attendees for session with id: $sessionId")
+    val updateAppointmentRequests = changedAttendees.mapNotNull { attendee ->
+      val referralId = attendee.referralId
+      val nDeliusAppointment = session.ndeliusAppointments.find { it.referral.id == referralId }
+      nDeliusAppointment?.toUpdateAppointmentRequest(attendee.sessionNotes, attendee.outcomeCode)
+    }
 
-      log.info("Updating ${updateAppointmentRequests.size} appointments in nDelius for session with id: $sessionId")
-      if (updateAppointmentRequests.isNotEmpty()) {
-        when (
-          val response =
-            nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateAppointmentRequests))
-        ) {
-          is ClientResult.Failure.StatusCode -> {
-            log.error("Failure to update appointments with reason: ${response.getErrorMessage()}")
-            telemetryClient.logToAppInsights(
-              "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
-              mapOf(
-                "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
-                "outcome" to "failure",
-              ),
-            )
-            throw BusinessException("Failure to update appointments", response.toException())
-          }
+    log.info("Updating ${updateAppointmentRequests.size} appointments in nDelius for session with id: $sessionId")
+    if (updateAppointmentRequests.isNotEmpty()) {
+      when (
+        val response =
+          nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateAppointmentRequests))
+      ) {
+        is ClientResult.Failure.StatusCode -> {
+          log.error("Failure to update appointments with reason: ${response.getErrorMessage()}")
+          telemetryClient.logToAppInsights(
+            "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+            mapOf(
+              "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
+              "outcome" to "failure",
+            ),
+          )
+          throw BusinessException("Failure to update appointments", response.toException())
+        }
 
-          is ClientResult.Failure.Other -> {
-            log.error(
-              "Failure to update appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
-              response.exception,
-            )
-            telemetryClient.logToAppInsights(
-              "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
-              mapOf(
-                "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
-                "outcome" to "failure",
-              ),
-            )
-            throw BusinessException(
-              "Failure to update appointments in Ndelius: ${response.exception.message}",
-              response.exception,
-            )
-          }
+        is ClientResult.Failure.Other -> {
+          log.error(
+            "Failure to update appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
+            response.exception,
+          )
+          telemetryClient.logToAppInsights(
+            "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+            mapOf(
+              "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
+              "outcome" to "failure",
+            ),
+          )
+          throw BusinessException(
+            "Failure to update appointments in Ndelius: ${response.exception.message}",
+            response.exception,
+          )
+        }
 
-          is ClientResult.Success -> {
-            log.info("${updateAppointmentRequests.size} appointments created in Ndelius for group with id: ${session.programmeGroup.id}")
-            telemetryClient.logToAppInsights(
-              "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
-              mapOf(
-                "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
-                "outcome" to "success",
-              ),
-            )
-          }
+        is ClientResult.Success -> {
+          log.info("${updateAppointmentRequests.size} appointments created in Ndelius for group with id: ${session.programmeGroup.id}")
+          telemetryClient.logToAppInsights(
+            "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
+            mapOf(
+              "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
+              "outcome" to "success",
+            ),
+          )
         }
       }
     }
 
-    // If this is a post-programme review session, check if completion events should be published
+    // If this is a post-programme review session, check if completion events should be published.
     val isPostProgrammeReviewSession =
       session.moduleSessionTemplate.module.isPostProgrammeModule() && !session.isPlaceholder
     if (isPostProgrammeReviewSession) {
-      attendees.forEach { attendee ->
-        referralStatusService.checkAndPublishCompletionEvent(attendee.referralId)
+      changedAttendees.forEach { attendee ->
+        try {
+          referralStatusService.checkAndPublishCompletionEvent(attendee.referralId)
+        } catch (e: Exception) {
+          log.error("Failed to check and publish completion event for referral with id: ${attendee.referralId}", e)
+        }
       }
     }
 

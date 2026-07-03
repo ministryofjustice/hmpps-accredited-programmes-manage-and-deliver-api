@@ -21,11 +21,16 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionNotesHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType.REGULAR_FACILITATOR
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.AFTC
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.ATTC
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.GROUP
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
@@ -1283,5 +1288,317 @@ class SessionServiceTest {
     // Then
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId1) }
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId2) }
+  }
+
+  @Test
+  fun `should reject reschedule when the session already has recorded attendance`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withPersonName("John Smith").produce()
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity)).also { it.id = sessionId }
+    recordAttendanceOnSession(sessionEntity, referralEntity, ATTC)
+
+    val request = RescheduleSessionRequest(
+      sessionStartDate = LocalDate.now().plusDays(1),
+      sessionStartTime = SessionTime(11, 0, AmOrPm.AM),
+      rescheduleOtherSessions = false,
+    )
+
+    every { sessionRepository.findById(sessionId) } returns Optional.of(sessionEntity)
+
+    // When
+    val exception = assertThrows<BusinessException> {
+      service.rescheduleSessions(sessionId, request)
+    }
+
+    // Then
+    assertThat(exception.message)
+      .isEqualTo("This session cannot be rescheduled because attendance has already been recorded.")
+    verify(exactly = 0) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+  }
+
+  @Test
+  fun `should reject attendance when a different outcome has already been recorded`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity))
+    recordAttendanceOnSession(sessionEntity, referralEntity, ATTC)
+
+    val sessionAttendance = SessionAttendanceFactory()
+      .withAttendees(listOf(SessionAttendeeFactory().withReferralId(referralId).withOutcomeCode(UAAB).produce()))
+      .produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+
+    // When
+    val exception = assertThrows<BusinessException> {
+      service.saveSessionAttendance(sessionId, sessionAttendance)
+    }
+
+    // Then
+    assertThat(exception.message)
+      .contains("Attendance outcome cannot be changed once it has been recorded")
+      .contains(referralEntity.crn)
+    verify(exactly = 0) { sessionRepository.save(any()) }
+    verify(exactly = 0) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+  }
+
+  @Test
+  fun `should not save or update ndelius when outcome and notes are unchanged`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity))
+    recordAttendanceOnSession(sessionEntity, referralEntity, ATTC, notes = "Some session notes")
+
+    val sessionAttendance = SessionAttendanceFactory()
+      .withAttendees(
+        listOf(
+          SessionAttendeeFactory()
+            .withReferralId(referralId)
+            .withOutcomeCode(ATTC)
+            .withSessionNotes("Some session notes")
+            .produce(),
+        ),
+      )
+      .produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+
+    // When
+    val result = service.saveSessionAttendance(sessionId, sessionAttendance)
+
+    // Then
+    assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
+    assertThat(sessionEntity.attendances).hasSize(1)
+    verify(exactly = 0) { sessionRepository.save(any()) }
+    verify(exactly = 0) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+  }
+
+  @Test
+  fun `should update ndelius with new notes when outcome is unchanged`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity))
+    recordAttendanceOnSession(sessionEntity, referralEntity, ATTC, notes = "Old session notes")
+
+    val ndeliusAppointmentId = UUID.randomUUID()
+    sessionEntity.ndeliusAppointments.add(
+      NDeliusAppointmentEntity(
+        ndeliusAppointmentId = ndeliusAppointmentId,
+        session = sessionEntity,
+        referral = referralEntity,
+      ),
+    )
+
+    val sessionAttendance = SessionAttendanceFactory()
+      .withAttendees(
+        listOf(
+          SessionAttendeeFactory()
+            .withReferralId(referralId)
+            .withOutcomeCode(ATTC)
+            .withSessionNotes("New session notes")
+            .produce(),
+        ),
+      )
+      .produce()
+
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every {
+      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any())
+    } returns programmeGroupMembershipEntity
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
+    every { sessionRepository.save(any()) } returns sessionEntity
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns ClientResult.Success(
+      HttpStatus.NO_CONTENT,
+      Unit,
+    )
+    every { referralRepository.findByIdOrNull(any()) } returns referralEntity
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+
+    // When
+    service.saveSessionAttendance(sessionId, sessionAttendance)
+
+    // Then
+    assertThat(sessionEntity.attendances).hasSize(2)
+    verify {
+      nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+        match {
+          it.appointments.single().reference == ndeliusAppointmentId &&
+            it.appointments.single().notes == "New session notes" &&
+            it.appointments.single().outcome?.code == ATTC.name
+        },
+      )
+    }
+  }
+
+  @Test
+  fun `should only send changed attendees to ndelius when submission includes unchanged attendees`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId1 = UUID.randomUUID()
+    val referralId2 = UUID.randomUUID()
+    val referralEntity1 = ReferralEntityFactory().withId(referralId1).withPersonName("John Smith").produce()
+    val referralEntity2 = ReferralEntityFactory().withId(referralId2).withPersonName("Jane Doe").produce()
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity1, referralEntity2))
+    recordAttendanceOnSession(sessionEntity, referralEntity1, ATTC, notes = "Some session notes")
+
+    val ndeliusAppointmentId1 = UUID.randomUUID()
+    val ndeliusAppointmentId2 = UUID.randomUUID()
+    sessionEntity.ndeliusAppointments.add(
+      NDeliusAppointmentEntity(
+        ndeliusAppointmentId = ndeliusAppointmentId1,
+        session = sessionEntity,
+        referral = referralEntity1,
+      ),
+    )
+    sessionEntity.ndeliusAppointments.add(
+      NDeliusAppointmentEntity(
+        ndeliusAppointmentId = ndeliusAppointmentId2,
+        session = sessionEntity,
+        referral = referralEntity2,
+      ),
+    )
+
+    val sessionAttendance = SessionAttendanceFactory()
+      .withAttendees(
+        listOf(
+          SessionAttendeeFactory()
+            .withReferralId(referralId1)
+            .withOutcomeCode(ATTC)
+            .withSessionNotes("Some session notes")
+            .produce(),
+          SessionAttendeeFactory()
+            .withReferralId(referralId2)
+            .withOutcomeCode(UAAB)
+            .produce(),
+        ),
+      )
+      .produce()
+
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity2).produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every {
+      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any())
+    } returns programmeGroupMembershipEntity
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
+      SessionAttendanceNDeliusOutcomeEntityFactory().withCode(UAAB).produce()
+    every { sessionRepository.save(any()) } returns sessionEntity
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns ClientResult.Success(
+      HttpStatus.NO_CONTENT,
+      Unit,
+    )
+    every { referralRepository.findByIdOrNull(any()) } returns referralEntity2
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+
+    // When
+    service.saveSessionAttendance(sessionId, sessionAttendance)
+
+    // Then
+    verify {
+      nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+        match { it.appointments.single().reference == ndeliusAppointmentId2 },
+      )
+    }
+  }
+
+  @Test
+  fun `should not fail attendance save when completion event check throws after ndelius update`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Post-programme reviews")
+
+    val sessionAttendance = SessionAttendanceFactory()
+      .withAttendees(listOf(SessionAttendeeFactory().withReferralId(referralId).produce()))
+      .produce()
+
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every {
+      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any())
+    } returns programmeGroupMembershipEntity
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
+    every { sessionRepository.save(any()) } returns sessionEntity
+    every { referralStatusService.checkAndPublishCompletionEvent(any()) } throws RuntimeException("event failure")
+    every { referralRepository.findByIdOrNull(any()) } returns referralEntity
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
+    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+
+    // When
+    val result = service.saveSessionAttendance(sessionId, sessionAttendance)
+
+    // Then
+    assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
+    verify { referralStatusService.checkAndPublishCompletionEvent(referralId) }
+  }
+
+  private fun sessionWithAttendees(
+    referralEntities: List<ReferralEntity>,
+    moduleName: String = "Module 1",
+  ): SessionEntity {
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity = ProgrammeGroupFactory()
+      .withId(UUID.randomUUID())
+      .withTreatmentManager(facilitator)
+      .produce()
+    val module = ModuleEntityFactory().withName(moduleName).produce()
+    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
+      .withSessionType(GROUP)
+      .withModule(module)
+      .withName("Getting started")
+      .produce()
+    val sessionEntity = SessionFactory()
+      .withAttendees(
+        referralEntities.map { referral ->
+          AttendeeFactory().withReferral(referral)
+            .withSession(
+              SessionFactory().withProgrammeGroup(programmeGroupEntity)
+                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
+            ).produce()
+        }.toMutableList(),
+      )
+      .withIsPlaceholder(false)
+      .withProgrammeGroup(programmeGroupEntity)
+      .withModuleSessionTemplate(moduleSessionTemplateEntity)
+      .produce()
+
+    sessionEntity.sessionFacilitators.add(
+      SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
+    )
+    return sessionEntity
+  }
+
+  private fun recordAttendanceOnSession(
+    session: SessionEntity,
+    referral: ReferralEntity,
+    outcomeCode: SessionAttendanceNDeliusCode,
+    notes: String? = null,
+  ): SessionAttendanceEntity {
+    val groupMembership = ProgrammeGroupMembershipFactory().withReferral(referral).produce()
+    val attendance = SessionAttendanceEntityFactory()
+      .withId(UUID.randomUUID())
+      .withSession(session)
+      .withGroupMembership(groupMembership)
+      .withOutcomeType(SessionAttendanceNDeliusOutcomeEntityFactory().withCode(outcomeCode).produce())
+      .withCreatedAt(LocalDateTime.now().minusDays(1))
+      .produce()
+    notes?.let { attendance.notesHistory.add(SessionNotesHistoryEntity(attendance = attendance, notes = it)) }
+    session.attendances.add(attendance)
+    return attendance
   }
 }
