@@ -79,6 +79,7 @@ class ReferralMergedHandler(
         APP_INSIGHTS_PROCESSED_FAILURE_EVENT_NAME_PROPERTY_VALUE,
         mapOf(
           APP_INSIGHTS_ERROR_MESSAGE_PROPERTY_KEY to (e.message?.trim() ?: ""),
+          "sqsMessage" to sqsMessage.toString(),
         ),
       )
       throw e

@@ -287,6 +287,12 @@ class ReferralService(
    */
   fun updateReferralCrn(currentCrn: String, newCrn: String) {
     val referrals = referralRepository.findByCrn(currentCrn)
+
+    if (referrals.isEmpty()) {
+      log.info("updateReferralCrn: no referrals found for CRN $currentCrn — nothing to update")
+      return
+    }
+
     referrals.forEach { referral ->
       referral.crn = newCrn
     }

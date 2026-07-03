@@ -735,48 +735,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `should update referral CRN on receipt of probation case merge completed message`() {
     // Given
-    val createdAt = LocalDateTime.now()
-    val referralEntity = ReferralEntityFactory()
-      .withCreatedAt(createdAt)
-      .produce()
-
-    val statusHistory = ReferralStatusHistoryEntityFactory()
-      .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
-      .produce(
-        referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
-      )
-    val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
-
-    testDataGenerator.createReferralWithFields(
-      referralEntity,
-      listOf(statusHistory, cohortHistory),
-    )
-
-    val secondStatus = ReferralStatusHistoryEntityFactory()
-      .withCreatedAt(LocalDateTime.of(2025, 9, 24, 16, 0))
-      .produce(
-        referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
-      )
-
-    testDataGenerator.createReferralStatusHistory(secondStatus)
-
-    val groupCode = "AAA111"
-    val group = ProgrammeGroupFactory().withCode(groupCode).produce()
-    testDataGenerator.createGroup(group)
-    val groupMembership =
-      ProgrammeGroupMembershipFactory().withReferral(referralEntity).withProgrammeGroup(group).produce()
-    testDataGenerator.createGroupMembership(groupMembership)
-    val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
-    val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
-
-    nDeliusApiStubs.stubAccessCheck(granted = true, savedReferral.crn)
-    nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
-    nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(savedReferral.crn, savedReferral.eventNumber)
-
-    oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
-
+    val savedReferral = testReferralHelper.createReferral()
     val eventType = "probation-case.merge.completed"
     val newCrn = "X777879"
     val domainEventsMessage = DomainEventsMessageFactory()
@@ -821,48 +780,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `should update referral CRN on receipt of probation case unmerge completed message`() {
     // Given
-    val createdAt = LocalDateTime.now()
-    val referralEntity = ReferralEntityFactory()
-      .withCreatedAt(createdAt)
-      .produce()
-
-    val statusHistory = ReferralStatusHistoryEntityFactory()
-      .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
-      .produce(
-        referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
-      )
-    val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
-
-    testDataGenerator.createReferralWithFields(
-      referralEntity,
-      listOf(statusHistory, cohortHistory),
-    )
-
-    val secondStatus = ReferralStatusHistoryEntityFactory()
-      .withCreatedAt(LocalDateTime.of(2025, 9, 24, 16, 0))
-      .produce(
-        referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
-      )
-
-    testDataGenerator.createReferralStatusHistory(secondStatus)
-
-    val groupCode = "AAA111"
-    val group = ProgrammeGroupFactory().withCode(groupCode).produce()
-    testDataGenerator.createGroup(group)
-    val groupMembership =
-      ProgrammeGroupMembershipFactory().withReferral(referralEntity).withProgrammeGroup(group).produce()
-    testDataGenerator.createGroupMembership(groupMembership)
-    val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
-    val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
-
-    nDeliusApiStubs.stubAccessCheck(granted = true, savedReferral.crn)
-    nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
-    nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(savedReferral.crn, savedReferral.eventNumber)
-
-    oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
-
+    val savedReferral = testReferralHelper.createReferral()
     val eventType = "probation-case.unmerge.completed"
     val reactivatedCrn = "X776371"
     val domainEventsMessage = DomainEventsMessageFactory()
