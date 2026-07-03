@@ -37,7 +37,7 @@ hmpps:
         queueName: hmpps_domain_events_queue
         dlqName: hmpps_domain_events_dlq
         subscribeTopicId: hmppseventtopic
-        subscribeFilter: '{"eventType":[ "interventions.community-referral.created", "interventions.community-referral.imported"] }'
+        subscribeFilter: '{"eventType":[ "interventions.community-referral.created", "interventions.community-referral.imported", "probation-case.merge.completed", "probation-case.unmerge.completed"] }'
         asyncQueueClient: true
 
     topics:
@@ -54,7 +54,7 @@ hmpps:
       expected-render-result:
         path: /sar/sar-api-expected-render-result.html
       attachments-expected: false
-      expected-flyway-schema-version: 107
+      expected-flyway-schema-version: 108
       expected-jpa-entity-schema:
         path: /sar/entity-schema-snapshot.json
 
