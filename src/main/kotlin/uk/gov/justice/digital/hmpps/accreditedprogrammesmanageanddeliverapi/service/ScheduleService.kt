@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
@@ -17,6 +18,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toAppointment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.TerminatedRequirementException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
@@ -405,6 +407,33 @@ class ScheduleService(
             "responseBody" to (response.body?.take(500) ?: ""),
           ),
         )
+
+        // APG-2377: detect the specific "linked requirement terminated in nDelius" case.
+        // Fires an additional, finer-grained telemetry event and throws a typed exception
+        // so future code can react to this failure specifically. Behaviour today is
+        // unchanged for the caller — TerminatedRequirementException IS-A BusinessException.
+        if (response.status.value() == HttpStatus.BAD_REQUEST.value() &&
+          TerminatedRequirementDetector.isTerminated(response.body)
+        ) {
+          val requirementIds = TerminatedRequirementDetector.extractRequirementIds(response.body)
+          telemetryClient.logToAppInsights(
+            "${CREATE_APPOINTMENT_N_DELIUS.eventName}.terminated-requirement",
+            mapOf(
+              "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
+              "outcome" to "terminated-requirement",
+              "requirementIds" to requirementIds.joinToString(","),
+              "crns" to affectedCrns.joinToString(","),
+              "eventNumbers" to affectedEventNumbers.joinToString(","),
+              "groupId" to (groupId?.toString() ?: ""),
+            ),
+          )
+          throw TerminatedRequirementException(
+            requirementIds = requirementIds,
+            message = "nDelius rejected appointment creation — requirement(s) terminated: $requirementIds",
+            cause = response.toException(),
+          )
+        }
+
         throw BusinessException("Failure to create appointments", response.toException())
       }
 
