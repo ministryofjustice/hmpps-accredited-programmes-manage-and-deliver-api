@@ -20,7 +20,7 @@ data class CaseListFilterValues(
   val locationFilterValues: List<LocationFilterValues>,
 
   @Schema(
-    example = "[\"General Offence\", \"General Offence - LDC\", \"Domestic Violence\"]",
+    example = "[\"General Offence\", \"General Offence LDC\", \"Domestic Violence\"]",
     required = true,
     description = "The available cohorts (offence types or programme categories) that can be used for filtering.",
   )

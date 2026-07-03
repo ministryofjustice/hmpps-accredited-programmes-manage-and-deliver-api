@@ -133,7 +133,7 @@ class ProgrammeGroupController(
     @PathVariable @Parameter(description = "Return table data for either the allocated tab or the waitlist tab") selectedTab: GroupPageTab,
     @Parameter(description = "Filter by the sex of the person in the referral")
     @RequestParam(name = "sex", required = false) sex: String?,
-    @Parameter(description = "Filter by the cohort of the referral Eg: 'Sexual Offence' or 'General Offence - LDC")
+    @Parameter(description = "Filter by the cohort of the referral Eg: 'Sexual Offence' or 'General Offence LDC")
     @RequestParam(name = "cohort", required = false) cohort: String?,
     @Parameter(description = "Search by the name or the CRN of the offender in the referral")
     @RequestParam(name = "nameOrCRN", required = false) nameOrCRN: String?,
@@ -207,7 +207,7 @@ class ProgrammeGroupController(
     @RequestParam(name = "pdu", required = false) pdu: String?,
     @Parameter(description = "Filter by the delivery location name")
     @RequestParam(name = "deliveryLocations", required = false) deliveryLocations: List<String>?,
-    @Parameter(description = "Filter by the cohort of the group Eg: 'Sexual Offence' or 'General Offence - LDC")
+    @Parameter(description = "Filter by the cohort of the group Eg: 'Sexual Offence' or 'General Offence LDC")
     @RequestParam(name = "cohort", required = false) cohort: String?,
     @Parameter(description = "Filter by the sex that the group is being run for: 'Male', 'Female' or 'Mixed'")
     @RequestParam(name = "sex", required = false) sex: String?,
@@ -484,8 +484,7 @@ class ProgrammeGroupController(
     val username = authenticationUtils.getUsername()
     val userRegion = userService.getUserRegions(username).firstOrNull()
       ?: return ResponseEntity.ok(emptyList())
-    val pdusForRegion =
-      regionService.getPdusForRegion(userRegion.code).map { CodeDescription(it.code, it.description) }
+    val pdusForRegion = regionService.getPdusForRegion(userRegion.code)
 
     return ResponseEntity.ok(pdusForRegion)
   }
@@ -516,8 +515,7 @@ class ProgrammeGroupController(
   )
   @GetMapping("/bff/office-locations-for-pdu/{pduCode}")
   fun getOfficeLocationsInPdu(@PathVariable pduCode: String): ResponseEntity<List<CodeDescription>> {
-    val officeLocationsForPdu =
-      regionService.getOfficeLocationsForPdu(pduCode).map { CodeDescription(it.code, it.description) }
+    val officeLocationsForPdu = regionService.getOfficeLocationsForPdu(pduCode)
     return ResponseEntity.ok(officeLocationsForPdu)
   }
 

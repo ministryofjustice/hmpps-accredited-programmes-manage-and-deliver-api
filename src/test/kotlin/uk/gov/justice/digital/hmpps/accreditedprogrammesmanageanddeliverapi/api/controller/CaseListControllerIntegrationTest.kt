@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedCaseListReferrals
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.UserRegionOverrideEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
@@ -28,6 +29,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.UserRegionOverrideRepository
 import java.time.LocalDateTime
 
 class CaseListControllerIntegrationTest : IntegrationTestBase() {
@@ -37,6 +39,9 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralCaseListItemRepository: ReferralCaseListItemRepository
+
+  @Autowired
+  private lateinit var userRegionOverrideRepository: UserRegionOverrideRepository
 
   @Nested
   @DisplayName("GetCaseListReferrals")
@@ -321,6 +326,59 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `getCaseListItems for OPEN referrals include manual override regions in results and filters`() {
+      // Given
+      userRegionOverrideRepository.save(
+        UserRegionOverrideEntity(
+          username = "AUTH_ADM",
+          regionName = "OTHER REGION",
+          createdAt = LocalDateTime.now(),
+          createdBy = "AUTH_ADM",
+        ),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      // Then
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(7)
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).contains("OTHER_REGION_PDU")
+    }
+
+    @Test
+    fun `getCaseListItems for OPEN referrals can use manual override regions when user has no nDelius teams`() {
+      // Given
+      nDeliusApiStubs.stubUserTeamsResponse(
+        "AUTH_ADM",
+        NDeliusUserTeams(teams = emptyList()),
+      )
+      userRegionOverrideRepository.save(
+        UserRegionOverrideEntity(
+          username = "AUTH_ADM",
+          regionName = "WIREMOCKED REGION",
+          createdAt = LocalDateTime.now(),
+          createdBy = "AUTH_ADM",
+        ),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      // Then
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(6)
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder("PDU1", "PDU2", "UNKNOWN_PDU_NAME")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).doesNotContain("OTHER_REGION_PDU")
+    }
+
+    @Test
     fun `getCaseListItems for OPEN referrals return 200 and paged list of referral case list items where some referrals are LAO`() {
       // Given
       testReferralHelper.createReferrals(10)
@@ -558,7 +616,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       // Given and When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/open?cohort=General offence - LDC",
+        "/pages/caselist/open?cohort=General offence LDC",
         object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
 

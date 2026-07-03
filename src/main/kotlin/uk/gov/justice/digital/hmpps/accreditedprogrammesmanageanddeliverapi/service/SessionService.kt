@@ -53,6 +53,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
+import java.time.Clock
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -75,13 +76,13 @@ class SessionService(
   private val authenticationUtils: AuthenticationUtils,
   private val userService: UserService,
   private val regionService: RegionService,
+  private val clock: Clock,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
     val session = sessionRepository.findById(sessionId).orElseThrow {
       NotFoundException("Session not found with id: $sessionId")
     }
-
     return EditSessionDetails(
       sessionId = sessionId,
       groupCode = session.programmeGroup.code,
@@ -89,6 +90,7 @@ class SessionService(
       sessionDate = session.startsAt.format(DateTimeFormatter.ofPattern("d/M/yyyy")),
       sessionStartTime = fromDateTime(session.startsAt),
       sessionEndTime = fromDateTime(session.endsAt),
+      isEmptyGroup = !programmeGroupMembershipRepository.existsByProgrammeGroupId(session.programmeGroup.id!!),
     )
   }
 
@@ -131,8 +133,6 @@ class SessionService(
     val currentSessionDuration = Duration.between(session.startsAt, session.endsAt)
     val requestedSessionDuration = Duration.between(requestedStartTime, requestedEndTime)
 
-    val originalSessionStartsAt = session.startsAt
-
     // Past sessions (end time has passed) may not be lengthened; shortening is allowed
     if (session.endsAt.isBefore(LocalDateTime.now()) && requestedSessionDuration > currentSessionDuration) {
       log.warn("Invalid reschedule request received for past session with id: $sessionId. Requested duration $requestedSessionDuration exceeds current duration $currentSessionDuration")
@@ -147,23 +147,61 @@ class SessionService(
 
     // Reschedule later group sessions, place-holder one-to-ones, but not catch-up sessions
     if (request.rescheduleOtherSessions) {
+      val now = LocalDateTime.now(clock)
+
+      // Empty groups (no membership, ever) may cascade-reschedule past sessions too: this supports
+      // migrating in-flight groups that were created with an early start date and then rescheduled
+      // from the point in the programme they are currently at. It is restricted to empty groups so we
+      // never move past sessions that could have recorded attendance/outcomes.
+      val isEmptyGroup = !programmeGroupMembershipRepository.existsByProgrammeGroupId(session.programmeGroup.id!!)
+
+      // Select and order sessions that come AFTER the rescheduled session in template order
+      // (module number then session number), not by the current scheduled date.
+      // A date-based filter would miss sessions that are later in template order but
+      // currently have an earlier date (e.g. due to a prior ordering bug).
+      // For groups with members, only future sessions may be auto-rescheduled: past sessions must
+      // never be moved. For empty groups, past sessions may also be cascaded.
       val subsequentGroupSessions = session.programmeGroup.sessions
         .asSequence()
         .filter { it.sessionType == SessionType.GROUP || it.isPlaceholder }
-        .filter { it.id != session.id } // filter out the original session
+        .filter { it.id != session.id }
         .filter { !it.isCatchup }
-        .filter { it.startsAt.isAfter(originalSessionStartsAt) }
+        .filter { isEmptyGroup || it.startsAt > now }
+        .filter {
+          it.moduleNumber > session.moduleNumber ||
+            (it.moduleNumber == session.moduleNumber && it.sessionNumber > session.sessionNumber)
+        }
+        .sortedWith(compareBy({ it.moduleNumber }, { it.sessionNumber }))
         .toList()
 
-      subsequentGroupSessions.forEach { subsequentSession ->
-        subsequentSession.startsAt = subsequentSession.startsAt.plus(startOffset)
-        subsequentSession.endsAt = subsequentSession.endsAt.plus(startOffset)
+      if (isGroupSession && session.programmeGroup.programmeGroupSessionSlots.isNotEmpty()) {
+        // For groups with members, anchor on the later of the edited session's new date and today, so
+        // later sessions are never generated into the past. For empty groups, honour the edited
+        // session's new date exactly so the schedule can be moved to any point.
+        val anchorDate = if (isEmptyGroup) {
+          session.startsAt.toLocalDate()
+        } else {
+          maxOf(session.startsAt.toLocalDate(), now.toLocalDate())
+        }
+        val scheduleDates = scheduleService.generateScheduleDates(
+          programmeGroupSlots = session.programmeGroup.programmeGroupSessionSlots,
+          initialStartDate = anchorDate,
+          subsequentSessions = subsequentGroupSessions,
+          bankHolidays = scheduleService.englandAndWalesHolidayDates(),
+        )
+
+        subsequentGroupSessions.zip(scheduleDates).forEach { (subsequentSession, newDates) ->
+          subsequentSession.startsAt = newDates.first
+          subsequentSession.endsAt = newDates.second
+        }
+      } else {
+        subsequentGroupSessions.forEach { subsequentSession ->
+          subsequentSession.startsAt = subsequentSession.startsAt.plus(startOffset)
+          subsequentSession.endsAt = subsequentSession.endsAt.plus(startOffset)
+        }
       }
 
-      (subsequentGroupSessions + session).forEach {
-        updateNDeliusAppointmentsForSession(it)
-      }
-
+      updateNDeliusAppointmentsForMultipleSessions(subsequentGroupSessions + session)
       return EditSessionDateAndTimeResponse("The date and time and schedule have been updated.")
     }
 

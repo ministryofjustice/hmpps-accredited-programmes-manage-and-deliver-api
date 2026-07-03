@@ -51,7 +51,7 @@ class CaseListController(
     @PathVariable(required = true) openOrClosed: OpenOrClosed,
     @Parameter(description = "CRN or persons name")
     @RequestParam(name = "crnOrPersonName", required = false) crnOrPersonName: String?,
-    @Parameter(description = "Filter by the cohort of the referral using the human-readable label, e.g. 'General Offence', 'General Offence - LDC', 'Sexual Offence', 'Sexual Offence - LDC'") @RequestParam(
+    @Parameter(description = "Filter by the cohort of the referral using the human-readable label, e.g. 'General Offence', 'General Offence LDC', 'Sexual Offence', 'Sexual Offence LDC'") @RequestParam(
       value = "cohort",
       required = false,
     ) cohort: String?,

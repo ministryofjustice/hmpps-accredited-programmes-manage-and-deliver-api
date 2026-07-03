@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
@@ -46,8 +47,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.Optional
 import java.util.UUID
 
@@ -64,6 +68,7 @@ class SessionServiceTest {
   private val telemetryClient = mockk<TelemetryClient>()
   private val authenticationUtils = mockk<AuthenticationUtils>()
   private val userService = mockk<UserService>()
+  private val fixedClock = Clock.fixed(Instant.now(), ZoneId.systemDefault())
   private val regionService = mockk<RegionService>()
   private lateinit var service: SessionService
   private lateinit var sessionAttendanceTypeEntities: List<SessionAttendanceNDeliusOutcomeEntity>
@@ -84,6 +89,7 @@ class SessionServiceTest {
       authenticationUtils,
       userService,
       regionService,
+      fixedClock,
     )
 
     sessionAttendanceTypeEntities = listOf(
@@ -385,7 +391,7 @@ class SessionServiceTest {
     )
 
     val facilitator = FacilitatorEntityFactory().produce()
-    val group = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
+    val group = ProgrammeGroupFactory().withId(UUID.randomUUID()).withTreatmentManager(facilitator).produce()
     val template1 = ModuleSessionTemplateEntityFactory()
       .withName("session 1")
       .withSessionNumber(1)
@@ -434,6 +440,7 @@ class SessionServiceTest {
     session2.ndeliusAppointments.add(appointment2)
 
     every { sessionRepository.findById(sessionId) } returns Optional.of(session1)
+    every { programmeGroupMembershipRepository.existsByProgrammeGroupId(any()) } returns true
     every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns ClientResult.Success(
       status = HttpStatus.OK,
       body = Unit,
@@ -444,7 +451,7 @@ class SessionServiceTest {
     service.rescheduleSessions(sessionId, request)
 
     // Then
-    verify(exactly = 2) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+    verify(exactly = 1) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
     verify { telemetryClient.logToAppInsights(any(), any()) }
   }
 

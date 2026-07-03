@@ -33,9 +33,12 @@ class ReferralImportedHandler(
     log.info("Starting handle for messageId: ${sqsMessage.messageId}")
     try {
       val message: DomainEventsMessage = objectMapper.readValue<DomainEventsMessage>(sqsMessage.message)
+      if (message.detailUrl == null) {
+        return log.warn("Detail url is null for event with messageId: ${sqsMessage.messageId}")
+      }
       val referralId = message.additionalInformation?.get(ADDITIONAL_INFORMATION_REFERRAL_ID_KEY)?.toString()
         ?.let { UUID.fromString(it) }
-        ?: return log.info("Referral ID is null for event with messageId: ${sqsMessage.messageId}")
+        ?: return log.warn("Referral ID is null for event with messageId: ${sqsMessage.messageId}")
       log.info("Received referral imported event for referral id: $referralId")
 
       telemetryClient.logToAppInsights(
@@ -53,8 +56,22 @@ class ReferralImportedHandler(
         referralService.refreshPersonalDetailsForReferral(referralId, false)
       }
       log.info("Ending handle for messageId: ${sqsMessage.messageId}")
+      telemetryClient.logToAppInsights(
+        "Referral.imported-event-processed.success",
+        mapOf(
+          "eventType" to message.eventType,
+          "referralId" to referralId.toString(),
+          "crn" to message.personReference.findCrn()!!,
+        ),
+      )
     } catch (e: Exception) {
       log.error("Error handling ReferralImportedEvent: ${e.message}", e)
+      telemetryClient.logToAppInsights(
+        "Referral.imported-event-processed.failure",
+        mapOf(
+          "errorMessage" to (e.message?.trim() ?: ""),
+        ),
+      )
       throw e
     }
   }

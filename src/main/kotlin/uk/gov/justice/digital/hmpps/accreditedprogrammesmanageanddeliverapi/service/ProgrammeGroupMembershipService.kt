@@ -101,9 +101,15 @@ class ProgrammeGroupMembershipService(
       attendeeEntity
     }
 
-    // Create appointments in NDelius for each session object for future session only
+    // Create appointments in NDelius for each session object for future session only if they exist
     val now = LocalDateTime.now(clock)
-    scheduleService.createNdeliusAppointmentsForSessions(newAttendees.filter { it.session.startsAt > now })
+    newAttendees
+      .filter { it.session.startsAt > now }
+      .takeIf { it.isNotEmpty() }
+      ?.let(scheduleService::createNdeliusAppointmentsForSessions)
+      ?: run {
+        log.info("Appointment NOT created in nDelius for past session on referral allocation for CRN: ${referral.crn} and group: ${group.code}")
+      }
 
     val savedReferral = referralRepository.save(referral)
 
@@ -177,7 +183,7 @@ class ProgrammeGroupMembershipService(
     )
 
     return RemoveFromGroupResponse(
-      message = "${savedReferral.personName} was removed from this group. Their referral status is now ${desiredStatus.description}",
+      message = "${savedReferral.personName} was removed from this group. Their referral status is now ${desiredStatus.description}.",
     )
   }
 
@@ -268,7 +274,7 @@ class ProgrammeGroupMembershipService(
           result.toException(),
         )
         telemetryClient.logToAppInsights(
-          "Referral.allocate-to-group.ndelius-validation-failure",
+          "Referral.allocate-to-group.ndelius-stale-sentence-data",
           mapOf(
             "referralId" to referral.id.toString(),
             "crn" to referral.crn,
@@ -277,7 +283,11 @@ class ProgrammeGroupMembershipService(
             "statusCode" to result.status.toString(),
           ),
         )
-        throw BusinessException(
+        // Surfaced as HTTP 409 Conflict: the request itself is well-formed, but the referral's
+        // stored sentence data is in a state that conflicts with upstream nDelius (the linked
+        // requirement / licence condition no longer exists). The caller cannot fix this by
+        // retrying or by changing the request body — the underlying data needs to be corrected.
+        throw ConflictException(
           "Cannot allocate referral to group: the $sourceType linked to this referral " +
             "no longer exists in nDelius. The sentence data may be stale following a transfer or termination. " +
             "Please contact your admin to update the referral's sentence data.",

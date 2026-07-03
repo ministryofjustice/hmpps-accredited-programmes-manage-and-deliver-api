@@ -14,6 +14,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.TerminatedRequirementException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
@@ -40,6 +41,14 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
   @Autowired
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
 
+  /** Allocates a single (non-deleted) membership so the group is no longer considered "empty". */
+  private fun allocateMember(group: ProgrammeGroupEntity) {
+    testDataGenerator.allocateReferralsToGroup(
+      listOf(testDataGenerator.createReferral("Member", java.util.UUID.randomUUID().toString().take(7))),
+      group,
+    )
+  }
+
   @BeforeEach
   fun setup() {
     whenever(clock.instant())
@@ -50,6 +59,10 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
 
     nDeliusApiStubs.clearAllStubs()
     govUkApiStubs.stubBankHolidaysResponse()
+    // Register the appointment stubs for every test so they do not depend on a stub leaking in from
+    // an earlier test (clearAllStubs only resets the request journal, not the stub mappings).
+    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+    nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
 
     stubAuthTokenEndpoint()
     nDeliusApiStubs.stubUserTeamsResponse(
@@ -247,6 +260,9 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     group.earliestPossibleStartDate = LocalDate.now(clock).plusYears(2)
     programmeGroupRepository.save(group)
 
+    // A group with members protects its past sessions during a reschedule
+    allocateMember(group)
+
     scheduleService.rescheduleSessionsForGroup(group.id!!)
 
     val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
@@ -292,6 +308,9 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     )
     programmeGroupRepository.save(group)
 
+    // A group with members protects its past sessions during a reschedule
+    allocateMember(group)
+
     scheduleService.rescheduleSessionsForGroup(group.id!!)
 
     val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
@@ -305,6 +324,64 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     assertThat(rescheduled).allMatch {
       it.startsAt.dayOfWeek == DayOfWeek.WEDNESDAY && it.startsAt.toLocalTime() == LocalTime.of(15, 0)
     }
+  }
+
+  @Test
+  fun `Reschedule sessions with multiple slots should schedule all future sessions after the most recent past session`() {
+    // Two slots: Monday and Thursday. Clock is 2025-11-22.
+    // Start date 2025-11-15 means multiple sessions have already run.
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+    val slot2 = CreateGroupSessionSlotFactory().produce(DayOfWeek.THURSDAY, 12, 0, AmOrPm.PM)
+    val body = CreateGroupRequestFactory().produce(
+      earliestStartDate = LocalDate.now(clock).minusDays(7), // 2025-11-15
+      createGroupSessionSlot = setOf(slot1, slot2),
+    )
+    performRequestAndExpectStatus(
+      httpMethod = HttpMethod.POST,
+      uri = "/group",
+      body = body,
+      expectedResponseStatus = HttpStatus.CREATED.value(),
+    )
+
+    val group = programmeGroupRepository.findByCode(body.groupCode)!!
+    assertThat(group.sessions).hasSize(27)
+
+    // Change to a single new slot (Wednesday) to trigger a reschedule
+    group.programmeGroupSessionSlots = mutableSetOf(
+      ProgrammeGroupSessionSlotEntity(
+        programmeGroup = group,
+        dayOfWeek = DayOfWeek.WEDNESDAY,
+        startTime = LocalTime.of(10, 0),
+      ),
+    )
+    programmeGroupRepository.save(group)
+
+    // A group with members protects its past sessions during a reschedule
+    allocateMember(group)
+
+    scheduleService.rescheduleSessionsForGroup(group.id!!)
+
+    val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+    val now = LocalDateTime.now(clock)
+
+    val pastSessions = updatedGroup.sessions.filter { it.startsAt <= now }.sortedBy { it.startsAt }
+    val futureSessions = updatedGroup.sessions.filter { it.startsAt > now }.sortedBy { it.startsAt }
+
+    assertThat(pastSessions).isNotEmpty
+    val mostRecentPastSession = pastSessions.last()
+
+    // Every rescheduled session must come strictly after the most recent past session
+    assertThat(futureSessions).allMatch { it.startsAt > mostRecentPastSession.startsAt }
+
+    // All rescheduled sessions must be on the new slot day
+    assertThat(futureSessions).allMatch { it.startsAt.dayOfWeek == DayOfWeek.WEDNESDAY }
+
+    // Rescheduled sessions must follow module/session template order
+    val sessionsByDate = futureSessions.sortedBy { it.startsAt }
+    val sessionsByTemplateOrder = futureSessions.sortedWith(
+      compareBy({ it.moduleSessionTemplate.module.moduleNumber }, { it.moduleSessionTemplate.sessionNumber }),
+    )
+    assertThat(sessionsByDate.map { it.id }).isEqualTo(sessionsByTemplateOrder.map { it.id })
   }
 
   @Test

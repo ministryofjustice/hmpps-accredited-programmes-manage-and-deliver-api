@@ -144,18 +144,22 @@ data class ReferralDetails(
   val reportingTeam: String,
 ) {
   companion object {
+    private const val DEFAULT_INTERVENTION_NAME_VALUE = "UNKNOWN_INTERVENTION"
+    private const val DEFAULT_STATUS_DESCRIPTION_VALUE = "UNKNOWN_STATUS_DESCRIPTION"
+    private const val DEFAULT_VALUE = "Unknown"
+
     fun toModel(
       referral: ReferralEntity,
       nDeliusPersonalDetails: NDeliusPersonalDetails,
       hasLdc: Boolean? = false,
-      latestReferralStatus: ReferralStatusDescriptionEntity,
+      latestReferralStatus: ReferralStatusDescriptionEntity?,
       currentlyAllocatedGroup: ProgrammeGroupMembershipEntity?,
       cohort: OffenceCohort?,
     ): ReferralDetails = ReferralDetails(
       id = referral.id!!,
       crn = referral.crn,
       personName = nDeliusPersonalDetails.name.getNameAsString(),
-      interventionName = referral.interventionName ?: "UNKNOWN_INTERVENTION",
+      interventionName = referral.interventionName ?: DEFAULT_INTERVENTION_NAME_VALUE,
       createdAt = referral.createdAt.toLocalDate(),
       dateOfBirth = LocalDate.parse(nDeliusPersonalDetails.dateOfBirth),
       probationPractitionerName = nDeliusPersonalDetails.probationPractitioner?.name?.getNameAsString(),
@@ -163,7 +167,7 @@ data class ReferralDetails(
       cohort = cohort ?: OffenceCohort.GENERAL_OFFENCE,
       hasLdc = LdcStatus.fromBoolean(hasLdc).value,
       hasLdcDisplayText = LdcStatus.getDisplayText(hasLdc),
-      currentStatusDescription = latestReferralStatus.description,
+      currentStatusDescription = latestReferralStatus?.description ?: DEFAULT_STATUS_DESCRIPTION_VALUE,
       currentlyAllocatedGroupCode = currentlyAllocatedGroup?.programmeGroup?.code,
       currentlyAllocatedGroupId = currentlyAllocatedGroup?.programmeGroup?.id,
       pdu = nDeliusPersonalDetails.probationDeliveryUnit.description,
@@ -177,14 +181,14 @@ data class ReferralDetails(
     fun toModelFromStoredData(
       referral: ReferralEntity,
       hasLdc: Boolean? = false,
-      latestReferralStatus: ReferralStatusDescriptionEntity,
+      latestReferralStatus: ReferralStatusDescriptionEntity?,
       currentlyAllocatedGroup: ProgrammeGroupMembershipEntity?,
       cohort: OffenceCohort?,
     ): ReferralDetails = ReferralDetails(
       id = referral.id!!,
       crn = referral.crn,
       personName = referral.personName,
-      interventionName = referral.interventionName ?: "UNKNOWN_INTERVENTION",
+      interventionName = referral.interventionName ?: DEFAULT_INTERVENTION_NAME_VALUE,
       createdAt = referral.createdAt.toLocalDate(),
       dateOfBirth = referral.dateOfBirth ?: LocalDate.EPOCH,
       probationPractitionerName = null,
@@ -192,11 +196,11 @@ data class ReferralDetails(
       cohort = cohort ?: OffenceCohort.GENERAL_OFFENCE,
       hasLdc = LdcStatus.fromBoolean(hasLdc).value,
       hasLdcDisplayText = LdcStatus.getDisplayText(hasLdc),
-      currentStatusDescription = latestReferralStatus.description,
+      currentStatusDescription = latestReferralStatus?.description ?: DEFAULT_STATUS_DESCRIPTION_VALUE,
       currentlyAllocatedGroupCode = currentlyAllocatedGroup?.programmeGroup?.code,
       currentlyAllocatedGroupId = currentlyAllocatedGroup?.programmeGroup?.id,
-      pdu = referral.referralReportingLocation?.pduName ?: "Unknown",
-      reportingTeam = referral.referralReportingLocation?.reportingTeam ?: "Unknown",
+      pdu = referral.referralReportingLocation?.pduName ?: DEFAULT_VALUE,
+      reportingTeam = referral.referralReportingLocation?.reportingTeam ?: DEFAULT_VALUE,
     )
   }
 }

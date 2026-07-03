@@ -35,7 +35,14 @@ CREATE OR REPLACE FUNCTION refresh_reporting_group_size_view()
     RETURNS TRIGGER AS
 $$
 BEGIN
-    REFRESH MATERIALIZED VIEW CONCURRENTLY reporting_group_size;
+    BEGIN
+        REFRESH MATERIALIZED VIEW CONCURRENTLY reporting_group_size;
+    EXCEPTION WHEN SQLSTATE '40P01' THEN
+        -- Deadlock detected - log and continue
+        -- The view will be refreshed by the next successful refresh operation
+        RAISE WARNING 'Materialized view refresh deadlock detected: %', SQLERRM;
+        NULL;
+    END;
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;

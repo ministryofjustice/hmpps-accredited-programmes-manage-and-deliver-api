@@ -351,9 +351,7 @@ class ProgrammeGroupService(
     // Verify the group exists first
     val group = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Programme group with id $groupId not found")
-    val userRegion = userService.getUserRegions(username).firstOrNull()
-      ?: throw NotFoundException("Region for username $username not found")
-    val userRegionName = userRegion.description
+    val groupRegionName = group.regionName
 
     val otherTab = if (selectedTab === GroupPageTab.WAITLIST) GroupPageTab.ALLOCATED else GroupPageTab.WAITLIST
 
@@ -366,11 +364,11 @@ class ProgrammeGroupService(
         nameOrCRN,
         pdu,
         reportingTeams,
-        userRegionName,
+        groupRegionName,
       )
 
     val nonActiveSpecification =
-      getGroupWaitlistItemSpecification(otherTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeams, userRegionName)
+      getGroupWaitlistItemSpecification(otherTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeams, groupRegionName)
 
     val groupListDataToReturn: Page<GroupItem> =
       groupWaitlistItemViewRepository.findAll(activeSpecification, pageable).map { it.toApi() }
@@ -383,7 +381,7 @@ class ProgrammeGroupService(
         code = group.code,
         regionName = group.regionName,
       ),
-      filters = getGroupAllocationsFilters(userRegionName),
+      filters = getGroupAllocationsFilters(groupRegionName),
       pagedGroupData = groupListDataToReturn,
       otherTabTotal = otherTabCount,
     )
@@ -417,9 +415,9 @@ class ProgrammeGroupService(
     return GroupDetailsResponse.from(programmeGroup, daysAndTimes, earliestPreGroupSessionDate)
   }
 
-  fun getGroupAllocationsFilters(userRegionName: String): ProgrammeGroupAllocations.ProgrammeGroupAllocationsFilters {
+  fun getGroupAllocationsFilters(regionName: String): ProgrammeGroupAllocations.ProgrammeGroupAllocationsFilters {
     val referralReportingLocations =
-      referralReportingLocationRepository.getPdusAndReportingTeamsByRegion(userRegionName)
+      referralReportingLocationRepository.getPdusAndReportingTeamsByRegions(listOf(regionName))
     val pdusWithReportingTeams = referralReportingLocations.groupBy { it.pduName }
       .map { (pduName, reportingTeams) ->
         LocationFilterValues(pduName = pduName, reportingTeams = reportingTeams.map { it.reportingTeam }.distinct())
@@ -679,7 +677,11 @@ class ProgrammeGroupService(
   ): GroupsByRegion {
     val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
 
-    val firstUserRegionDescription = userService.getFirstUserRegionDescription(username)
+    val userRegionNames = userService.getUserRegionNames(username)
+    if (userRegionNames.isEmpty()) {
+      throw NotFoundException("Cannot find any regions (or teams) for user $username")
+    }
+    val primaryRegionName = userRegionNames.first()
 
     // Base spec without startedAt filter (used for total count)
     val baseSpec = getProgrammeGroupsSpecification(
@@ -688,7 +690,7 @@ class ProgrammeGroupService(
       deliveryLocations = deliveryLocations,
       cohort = groupCohort,
       sex = sex,
-      regionName = firstUserRegionDescription,
+      regionNames = userRegionNames,
     )
 
     val activeSpec = baseSpec.and(getProgrammeGroupsByRegionTabSpecification(selectedTab))
@@ -697,19 +699,18 @@ class ProgrammeGroupService(
     val totalForAllTabs: Long = programmeGroupRepository.count(baseSpec)
     val otherTabTotal: Int = (totalForAllTabs - pagedData.totalElements).toInt()
 
-    val allPduNames = programmeGroupRepository.findDistinctProbationDeliveryUnitNames(firstUserRegionDescription)
+    val allPduNames = programmeGroupRepository.findDistinctProbationDeliveryUnitNames(userRegionNames)
 
     val deliveryLocationNames = if (pdu.isNullOrEmpty()) {
       null
     } else {
-      programmeGroupRepository.findDistinctDeliveryLocationNames(firstUserRegionDescription, pdu)
-        .sortedWith(String.CASE_INSENSITIVE_ORDER)
+      programmeGroupRepository.findDistinctDeliveryLocationNames(userRegionNames, pdu)
     }
 
     return GroupsByRegion(
       pagedGroupData = pagedData,
       otherTabTotal = otherTabTotal,
-      regionName = firstUserRegionDescription,
+      regionName = primaryRegionName,
       probationDeliveryUnitNames = allPduNames,
       deliveryLocationNames = deliveryLocationNames,
     )
