@@ -195,6 +195,78 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `should create message history on receipt of probation case merge completed message`() {
+    // Given
+    val eventType = "probation-case.merge.completed"
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withAdditionalInformation(
+        mapOf(
+          "sourceCRN" to "X777878",
+          "targetCRN" to "X777879",
+        ),
+      )
+      .withEventType(eventType)
+      .produce()
+
+    // When
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
+    await untilCallTo {
+      messageHistoryRepository.findAll().firstOrNull()
+    } matches { it != null }
+
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(eventType)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+      )
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
+  }
+
+  @Test
+  fun `should create message history on receipt of probation case unmerge completed message`() {
+    // Given
+    val eventType = "probation-case.unmerge.completed"
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withAdditionalInformation(
+        mapOf(
+          "reactivatedCRN" to "X334583",
+          "unmergedCRN" to "X776371",
+        ),
+      )
+      .withEventType(eventType)
+      .produce()
+
+    // When
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
+    await untilCallTo {
+      messageHistoryRepository.findAll().firstOrNull()
+    } matches { it != null }
+
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(eventType)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+      )
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
+  }
+
+  @Test
   fun `should create message history on receipt of community-referral created message but not insert referral when detail url is null`() {
     // Given
     val eventType = "interventions.community-referral.created"
@@ -658,5 +730,95 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     assertThat(result.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
     assertThat(result.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
     assertThat(result.sex).isEqualTo(nDeliusPersonalDetails.sex.description)
+  }
+
+  @Test
+  fun `should update referral CRN on receipt of probation case merge completed message`() {
+    // Given
+    val savedReferral = testReferralHelper.createReferral()
+    val eventType = "probation-case.merge.completed"
+    val newCrn = "X777879"
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withAdditionalInformation(
+        mapOf(
+          "sourceCRN" to savedReferral.crn,
+          "targetCRN" to newCrn,
+        ),
+      )
+      .withEventType(eventType)
+      .produce()
+
+    // When
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
+    await untilCallTo {
+      messageHistoryRepository.findAll().firstOrNull()
+    } matches { it != null }
+
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(eventType)
+      assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+      )
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
+
+    val result = referralRepository.findByCrn(newCrn)
+
+    // Then
+    assertThat(result).isNotEmpty()
+    assertThat(result.size).isEqualTo(1)
+  }
+
+  @Test
+  fun `should update referral CRN on receipt of probation case unmerge completed message`() {
+    // Given
+    val savedReferral = testReferralHelper.createReferral()
+    val eventType = "probation-case.unmerge.completed"
+    val reactivatedCrn = "X776371"
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withAdditionalInformation(
+        mapOf(
+          "unmergedCRN" to savedReferral.crn,
+          "reactivatedCRN" to reactivatedCrn,
+        ),
+      )
+      .withEventType(eventType)
+      .produce()
+
+    // When
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
+    await untilCallTo {
+      messageHistoryRepository.findAll().firstOrNull()
+    } matches { it != null }
+
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(eventType)
+      assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+      )
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
+
+    val result = referralRepository.findByCrn(reactivatedCrn)
+
+    // Then
+    assertThat(result).isNotEmpty()
+    assertThat(result.size).isEqualTo(1)
   }
 }
