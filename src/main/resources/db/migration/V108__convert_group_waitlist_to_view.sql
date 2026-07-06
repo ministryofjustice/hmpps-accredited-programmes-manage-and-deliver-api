@@ -10,6 +10,7 @@ DROP FUNCTION IF EXISTS refresh_group_wait_list_item_view();
 
 DROP MATERIALIZED VIEW IF EXISTS group_waitlist_item_view;
 
+-- Unique index is added to preserve the existing constraint that was previously enforced indirectly by the materialized view.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_programme_group_membership_active_referral
     ON programme_group_membership (referral_id)
     WHERE deleted_at IS NULL;
