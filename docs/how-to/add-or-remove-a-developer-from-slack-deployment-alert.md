@@ -1,10 +1,12 @@
 # Adding or removing a developer from the Deployment Slack Notification Workflow
 
-This document explains what you need to do to add (or remove) a developer to Manage & Deliver's Slack Integration bot to alert developers about Deployments that require their
+This document explains what you need to do to add (or remove) a developer to Manage & Deliver's Slack Integration bot to
+alert developers about Deployments that require their
 
 ## Some context
 
-The Manage and Deliver team have an automated step in our GitHub Actions have a "deploy gate" feature in our CI, which requires a manual developer intervention before the Production environment is deployed.
+The Manage and Deliver team have an automated step in our GitHub Actions have a "deploy gate" feature in our CI, which
+requires a manual developer intervention before the Production environment is deployed.
 
 This allows a developer to do any last-minute checks in the Development environment, before releasing to Production.
 
@@ -12,17 +14,28 @@ This is configures in the `.github/workflows/pipeline.yml` file in the `notify_f
 
 To work correctly, the pipeline links three bits of information:
 
-One: What is the github username of the author of the PR?  This comes for free in the GitHub action.
+One: What is the GitHub username of the author of the PR? This comes for free in the GitHub action.
 
-Two: How can we identify that person on Slack?  We do this with a simple key-value hash map in JSON, where the key is the GitHub username, and the value is the "member ID" on Slack.  We store this in the `GH_TO_SLACK_MAPPING` Repository variable in GitHub (more on that below).  An example value looks like:
+Two: How can we identify that person on Slack? We do this with a simple key-value hash map in JSON, where the key is the
+GitHub username, and the value is the "member ID" on Slack. We store this in the `GH_TO_SLACK_MAPPING` Repository
+variable in GitHub (more on that below). An example value looks like:
 
 ```json
 {
-    "alice-github-username": "D0000ABCDE"
+  "alice-github-username": "D0000ABCDE"
 }
 ```
 
-Three: What URL should we ping with the information?  This is stored in the `SLACK_WEBHOOK_URL` Repository _secret_ (not variable).  You won't need to change this value at all, but it's useful to know.
+Three: What URL should we ping with the information? This is stored in the `SLACK_WEBHOOK_URL` Repository _secret_ (not
+variable). You won't need to change this value at all, but it's useful to know.
+
+If you need to view/update this variable, it is stored as a kubernetes secret
+`slack-deploy-bot-webhook-url` in our prod namespace. This value is not directly used from kubernetes in GitHub so this
+secret is just for viewing and storing the information in an accessible place.
+
+```zsh
+cloud-platform decode-secret -s slack-deploy-bot-webhook-url -n <PROD_NAMESPACE>
+```
 
 ## Adding or Removing the value
 
@@ -42,7 +55,7 @@ Fetch your slack ID:
 3. Hit the elipses (...) after "Edit status" and "View as"
 4. Click "Copy member ID"
 
-### Update the repository's values 
+### Update the repository's values
 
 1. Go to the repo in the github web UI
 2. Click on the repository settings
@@ -50,8 +63,9 @@ Fetch your slack ID:
 4. Click the "Variables" tab at the top (a sibling to the "Secrets" tab)
 5. Find the "Repository variables" section
 6. Find the `GH_TO_SLACK_MAPPING` variable in that table
-6. Update the variable with your github username as the key, and the Slack member ID as the value.
+6. Update the variable with your GitHub username as the key, and the Slack member ID as the value.
 
-You are editing inline JSON, to be careful with quotation marks and commas.  You might find it helpful to copy-paste the value into a code editor.
+You are editing inline JSON, to be careful with quotation marks and commas. You might find it helpful to copy-paste the
+value into a code editor.
 
 

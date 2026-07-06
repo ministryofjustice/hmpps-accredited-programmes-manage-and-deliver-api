@@ -496,7 +496,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(theUpdatedReferral.statusHistories.maxByOrNull { it.createdAt }?.referralStatusDescription?.description).isEqualTo(
         "Recall",
       )
-      assertThat(result.message).isEqualTo("Alex River's referral status is now Recall. They have been removed from group AAA111")
+      assertThat(result.message).isEqualTo("Alex River's referral status is now Recall. They have been removed from group AAA111.")
       verifyReferralStatusUpdateEventSent()
     }
 

@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.MessageHistoryEntity
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -19,7 +20,19 @@ data class DomainEventsMessage(
   val description: String? = null,
   val additionalInformation: Map<String, Any>?,
   val personReference: PersonReference,
-)
+) {
+  @JsonIgnore
+  val sourceCrn = additionalInformation?.get("sourceCRN") as String?
+
+  @JsonIgnore
+  val targetCrn = additionalInformation?.get("targetCRN") as String?
+
+  @JsonIgnore
+  val unmergedCrn = additionalInformation?.get("unmergedCRN") as String?
+
+  @JsonIgnore
+  val reactivatedCrn = additionalInformation?.get("reactivatedCRN") as String?
+}
 
 data class PersonReference(val identifiers: List<Identifier> = listOf()) {
   fun findCrn() = get("CRN")

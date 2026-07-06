@@ -291,9 +291,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(body.filters.cohort).isEqualTo(
         listOf(
           "General offence",
-          "General offence - LDC",
+          "General offence LDC",
           "Sexual offence",
-          "Sexual offence - LDC",
+          "Sexual offence LDC",
         ),
       )
       val expectedTeams = mapOf(
@@ -1424,7 +1424,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
 
       // Then
-      assertThat(response.message).contains("Alex River was removed from this group. Their referral status is now Awaiting allocation")
+      assertThat(response.message).contains("Alex River was removed from this group. Their referral status is now Awaiting allocation.")
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
 
@@ -1521,7 +1521,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
 
       // Then
-      assertThat(response.message).contains("Alex River was removed from this group. Their referral status is now Return to court")
+      assertThat(response.message).contains("Alex River was removed from this group. Their referral status is now Return to court.")
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
 
