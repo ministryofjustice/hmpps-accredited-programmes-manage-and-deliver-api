@@ -489,7 +489,7 @@ class SessionService(
     }
     if (amendedOutcomeAttendees.isNotEmpty()) {
       val crns = amendedOutcomeAttendees.map { attendee ->
-        session.attendees.find { it.referralId == attendee.referralId }?.personName ?: attendee.referralId.toString()
+        session.attendees.find { it.referralId == attendee.referralId }?.referral?.crn ?: attendee.referralId.toString()
       }
       throw BusinessException(
         "Attendance outcome cannot be changed once it has been recorded. An outcome has already been recorded for: ${
