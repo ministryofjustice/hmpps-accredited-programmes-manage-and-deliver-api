@@ -478,7 +478,7 @@ class SessionService(
       .mapValues { (_, attendances) ->
         attendances.maxWithOrNull(
           compareBy<SessionAttendanceEntity> { it.createdAt }
-            .thenBy { it.id },
+            .thenBy { it.recordedAt },
         )
       }
 

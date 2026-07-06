@@ -1442,6 +1442,28 @@ class SessionServiceTest {
   }
 
   @Test
+  fun `should not save or update ndelius when outcome is unchanged and no notes were ever recorded`() {
+    val sessionId = UUID.randomUUID()
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity))
+    recordAttendanceOnSession(sessionEntity, referralEntity, ATTC) // no notes
+
+    val sessionAttendance = SessionAttendanceFactory()
+      .withAttendees(listOf(SessionAttendeeFactory().withReferralId(referralId).withOutcomeCode(ATTC).produce()))
+      .produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+
+    val result = service.saveSessionAttendance(sessionId, sessionAttendance)
+
+    assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
+    assertThat(sessionEntity.attendances).hasSize(1)
+    verify(exactly = 0) { sessionRepository.save(any()) }
+    verify(exactly = 0) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+  }
+
+  @Test
   fun `should only send changed attendees to ndelius when submission includes unchanged attendees`() {
     // Given
     val sessionId = UUID.randomUUID()
