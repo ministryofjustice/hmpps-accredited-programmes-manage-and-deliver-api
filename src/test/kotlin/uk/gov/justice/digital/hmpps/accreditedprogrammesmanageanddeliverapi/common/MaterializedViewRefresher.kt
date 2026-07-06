@@ -20,7 +20,5 @@ class MaterializedViewRefresher(
 
   fun refreshReferralCaseListItemView() = refresh("referral_caselist_item_view")
 
-  fun refreshGroupWaitlistItemView() = refresh("group_waitlist_item_view")
-
   fun refreshReportingGroupSizeView() = refresh("reporting_group_size")
 }
