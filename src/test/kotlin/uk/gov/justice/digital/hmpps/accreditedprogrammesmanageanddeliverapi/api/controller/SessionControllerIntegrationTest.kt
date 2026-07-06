@@ -2068,7 +2068,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     // Then
     assertThat(exception.userMessage)
       .contains("Attendance outcome cannot be changed once it has been recorded")
-      .contains(attendee.personName)
+      .contains(attendee.referral.crn)
     val attendances = sessionRepository.findById(sessionId).get().attendances
     assertThat(attendances).hasSize(1)
     assertThat(attendances.first().outcomeType.code).isEqualTo(ATTC)
