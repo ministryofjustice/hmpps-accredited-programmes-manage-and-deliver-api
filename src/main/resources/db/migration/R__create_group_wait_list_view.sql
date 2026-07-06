@@ -1,6 +1,6 @@
-DROP MATERIALIZED VIEW IF EXISTS group_waitlist_item_view;
+DROP VIEW IF EXISTS group_waitlist_item_view;
 
-CREATE MATERIALIZED VIEW group_waitlist_item_view AS
+CREATE VIEW group_waitlist_item_view AS
 WITH latest_status AS (SELECT referral_id,
                               referral_status_description_id,
                               ROW_NUMBER()
@@ -48,84 +48,3 @@ FROM referral r
          LEFT JOIN active_group_membership pgm on r.id = pgm.referral_id and ls.rn = 1
 WHERE pgm IS NOT NULL
    OR rsd.description_text = 'Awaiting allocation';
-
--- Need unique index to be able to refresh view.
-CREATE UNIQUE INDEX IF NOT EXISTS idx_group_wait_list_id ON group_waitlist_item_view (referral_id);
-CREATE INDEX IF NOT EXISTS idx_group_wait_list_crn ON group_waitlist_item_view (crn);
-CREATE INDEX IF NOT EXISTS idx_group_wait_list_person_name ON group_waitlist_item_view (person_name);
-CREATE INDEX IF NOT EXISTS idx_group_wait_list_sentence_end_date ON group_waitlist_item_view (sentence_end_date);
-CREATE INDEX IF NOT EXISTS idx_group_wait_list_sourced_from ON group_waitlist_item_view (sourced_from);
-CREATE INDEX IF NOT EXISTS idx_group_wait_list_cohort ON group_waitlist_item_view (cohort);
-CREATE INDEX IF NOT EXISTS idx_group_wait_list_has_ldc ON group_waitlist_item_view (has_ldc);
-CREATE INDEX IF NOT EXISTS idx_group_wait_list_date_of_birth ON group_waitlist_item_view (date_of_birth);
-CREATE INDEX IF NOT EXISTS idx_group_wait_list_sex ON group_waitlist_item_view (sex);
-CREATE INDEX IF NOT EXISTS idx_group_wait_list_status ON group_waitlist_item_view (status);
-CREATE INDEX IF NOT EXISTS idx_group_wait_list_status ON group_waitlist_item_view (status_colour);
-CREATE INDEX IF NOT EXISTS idx_group_wait_list_pdu_name ON group_waitlist_item_view (pdu_name);
-CREATE INDEX IF NOT EXISTS idx_group_wait_list_reporting_team ON group_waitlist_item_view (reporting_team);
-CREATE INDEX IF NOT EXISTS idx_group_wait_list_region_name ON group_waitlist_item_view (region_name);
-CREATE INDEX IF NOT EXISTS idx_group_wait_list_latest_group ON group_waitlist_item_view (active_programme_group_id);
-
-CREATE OR REPLACE FUNCTION refresh_group_wait_list_item_view()
-    RETURNS TRIGGER AS
-$$
-BEGIN
-    -- This is set to false when doing batch imports from IM so we don't try to refresh multiple thousand times at once
-    IF current_setting('app.skip_mv_refresh', true) = 'true' THEN
-        RETURN NEW;
-    END IF;
-
-    BEGIN
-        REFRESH MATERIALIZED VIEW CONCURRENTLY group_waitlist_item_view;
-    EXCEPTION
-        WHEN SQLSTATE '40P01' THEN
-            -- Deadlock detected - log and continue
-            -- The view will be refreshed by the next successful refresh operation
-            RAISE WARNING 'Materialized view refresh deadlock detected: %', SQLERRM;
-    END;
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE TRIGGER trigger_refresh_referral_status_group_wait_list
-    AFTER INSERT OR UPDATE OR DELETE
-    ON referral
-    FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_group_wait_list_item_view();
-
-CREATE OR REPLACE TRIGGER trigger_refresh_referral_status_history_group_wait_list
-    AFTER INSERT OR UPDATE OR DELETE
-    ON referral_status_history
-    FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_group_wait_list_item_view();
-
-CREATE OR REPLACE TRIGGER trigger_refresh_referral_ldc_history_group_wait_list
-    AFTER INSERT OR UPDATE OR DELETE
-    ON referral_ldc_history
-    FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_group_wait_list_item_view();
-
-CREATE OR REPLACE TRIGGER trigger_refresh_referral_reporting_location_group_wait_list
-    AFTER INSERT OR UPDATE OR DELETE
-    ON referral_reporting_location
-    FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_group_wait_list_item_view();
-
-CREATE OR REPLACE TRIGGER trigger_refresh_referral_status_description_group_wait_list
-    AFTER INSERT OR UPDATE OR DELETE
-    ON referral_status_description
-    FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_group_wait_list_item_view();
-
-CREATE OR REPLACE TRIGGER trigger_refresh_programme_group_membership_group_wait_list
-    AFTER INSERT OR UPDATE OR DELETE
-    ON programme_group_membership
-    FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_group_wait_list_item_view();
-
-CREATE OR REPLACE TRIGGER trigger_refresh_referral_cohort_mapping_group_wait_list
-    AFTER INSERT OR UPDATE OR DELETE
-    ON referral_cohort_history
-    FOR EACH STATEMENT
-EXECUTE FUNCTION refresh_group_wait_list_item_view();
-

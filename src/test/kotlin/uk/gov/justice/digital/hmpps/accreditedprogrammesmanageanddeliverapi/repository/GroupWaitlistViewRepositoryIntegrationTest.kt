@@ -16,7 +16,7 @@ import java.time.LocalDateTime
 class GroupWaitlistViewRepositoryIntegrationTest : IntegrationTestBase() {
 
   @Autowired
-  private lateinit var groupWaitListRepo: GroupWaitlistItemViewRepository
+  private lateinit var groupWaitlistRepository: GroupWaitlistItemViewRepository
 
   @Autowired
   private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
@@ -39,7 +39,7 @@ class GroupWaitlistViewRepositoryIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `retrieve group wait list items`() {
-    val waitlistItems = groupWaitListRepo.findAll()
+    val waitlistItems = groupWaitlistRepository.findAll()
 
     assertThat(waitlistItems.size).isEqualTo(1)
     assertThat(waitlistItems).allSatisfy { item ->
@@ -62,19 +62,19 @@ class GroupWaitlistViewRepositoryIntegrationTest : IntegrationTestBase() {
 
   @Test
   fun `retrieve latest active_programme_group_id`() {
-    val waitlistItems = groupWaitListRepo.findAll()
+    val waitlistItems = groupWaitlistRepository.findAll()
     val referralId = waitlistItems.first().referralId
     val group = testGroupHelper.createGroup()
     nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
     programmeGroupMembershipService.allocateReferralToGroup(referralId, group.id!!, "SYSTEM", "")
 
-    val allocatedReferral = groupWaitListRepo.findByIdOrNull(referralId)!!
+    val allocatedReferral = groupWaitlistRepository.findByIdOrNull(referralId)!!
 
     assertThat(allocatedReferral.activeProgrammeGroupId).isEqualTo(group.id)
   }
 
   @Test
-  fun `duplicate active group memberships cause materialized view refresh to fail`() {
+  fun `duplicate active group memberships are rejected`() {
     val referral = testReferralHelper.createReferral()
 
     val groupA = testGroupHelper.createGroup()
@@ -100,6 +100,6 @@ class GroupWaitlistViewRepositoryIntegrationTest : IntegrationTestBase() {
       )
     }
 
-    assertThat(exception.message).contains("could not execute statement [ERROR: duplicate key value violates unique constraint \"idx_group_wait_list_id\"")
+    assertThat(exception.message).contains("duplicate key value violates unique constraint \"uq_programme_group_membership_active_referral\"")
   }
 }
