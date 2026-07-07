@@ -1356,10 +1356,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         assertThat(appointment.date).isAfterOrEqualTo(today)
       }
 
-      // Verify the referral is still added as attendee to all group sessions (past and future)
+      // Verify the referral is added as attendee only to group sessions in the future
       val allGroupSessions = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
         .filter { it.sessionType == SessionType.GROUP }
-      assertThat(allGroupSessions.sumOf { it.attendees.count() }).isEqualTo(21)
+      assertThat(allGroupSessions.size).isEqualTo(21)
+      assertThat(allGroupSessions.sumOf { it.attendees.count() }).isEqualTo(19)
     }
   }
 
