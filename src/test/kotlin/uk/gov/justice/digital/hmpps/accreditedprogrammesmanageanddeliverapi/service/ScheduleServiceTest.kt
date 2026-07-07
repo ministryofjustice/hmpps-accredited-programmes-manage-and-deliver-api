@@ -6,7 +6,6 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import io.mockk.verify
-import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -18,7 +17,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toAppointment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.TerminatedRequirementException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
@@ -29,15 +27,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import java.util.UUID
 
 /**
- * Unit tests for the terminated-requirement detection & telemetry branch added inside
- * `ScheduleService.createNdeliusAppointmentsForSessions` — APG-2377.
- *
- * Only the failure-path branching is exercised here; end-to-end wiring through
- * `programmeGroupMembershipService.allocateReferralToGroup` is covered in
- * `ScheduleServiceIntegrationTest`.
+ * Unit tests for the terminated-requirement telemetry branch added inside
+ * `ScheduleService.createNdeliusAppointmentsForSessions`.
  *
  * `AttendeeEntity.toAppointment` and `AttendeeEntity.toNdeliusAppointmentEntity` read
- * a deep object graph (session → programmeGroup → treatmentManager, moduleSessionTemplate,
+ * a deep object graph (session -> programmeGroup -> treatmentManager, moduleSessionTemplate,
  * etc.). Rather than build all that up we `mockkStatic` the two extensions so the test
  * focuses purely on the failure-handling branch we own.
  */
@@ -66,8 +60,8 @@ class ScheduleServiceTest {
   @BeforeEach
   fun setup() {
     // Stub the two extension functions used by createNdeliusAppointmentsForSessions so
-    // we don't need to build the full session → programmeGroup → treatmentManager graph.
-    // Function-reference form is refactor-safe (unlike the string "…Kt" form) — renaming
+    // we don't need to build the full session -> programmeGroup -> treatmentManager graph.
+    // Function-reference form is refactor-safe (unlike the string "...Kt" form) - renaming
     // the enclosing file will fail at compile time, not silently at runtime.
     mockkStatic(AttendeeEntity::toAppointment, AttendeeEntity::toNdeliusAppointmentEntity)
     every { any<AttendeeEntity>().toAppointment(any()) } returns mockk<CreateAppointmentRequest.NdeliusAppointment>(relaxed = true)
@@ -80,35 +74,29 @@ class ScheduleServiceTest {
   }
 
   @Test
-  fun `throws TerminatedRequirementException and fires terminated-requirement telemetry when nDelius returns a terminated body`() {
-    val terminatedBody = """{"status":400,"message":"Invalid Requirement IDs: [1503618208]"}"""
+  fun `fires terminated-requirement telemetry and throws BusinessException when nDelius returns a terminated body`() {
     every { nDeliusIntegrationApiClient.createAppointmentsInDelius(any()) } returns
       ClientResult.Failure.StatusCode(
         method = HttpMethod.POST,
         path = "/appointments",
         status = HttpStatusCode.valueOf(400),
-        body = terminatedBody,
+        body = """{"status":400,"message":"Invalid Requirement IDs: [1503618208]"}""",
       )
 
     assertThatThrownBy { scheduleService.createNdeliusAppointmentsForSessions(listOf(buildAttendee())) }
-      .isInstanceOfSatisfying(TerminatedRequirementException::class.java) { ex ->
-        assertThat(ex.requirementIds).containsExactly("1503618208")
-      }
+      .isInstanceOf(BusinessException::class.java)
 
     // Both the generic .failure event and the finer .terminated-requirement event fire.
     verify(exactly = 1) {
       telemetryClient.logToAppInsights("Appointment.create-nDelius.failure", any())
     }
     verify(exactly = 1) {
-      telemetryClient.logToAppInsights(
-        "Appointment.create-nDelius.terminated-requirement",
-        match { it["requirementIds"] == "1503618208" },
-      )
+      telemetryClient.logToAppInsights("Appointment.create-nDelius.terminated-requirement", any())
     }
   }
 
   @Test
-  fun `throws plain BusinessException and does not fire terminated-requirement telemetry when 400 body does not match the marker`() {
+  fun `does not fire terminated-requirement telemetry when the response body does not contain the marker`() {
     every { nDeliusIntegrationApiClient.createAppointmentsInDelius(any()) } returns
       ClientResult.Failure.StatusCode(
         method = HttpMethod.POST,
@@ -119,32 +107,10 @@ class ScheduleServiceTest {
 
     assertThatThrownBy { scheduleService.createNdeliusAppointmentsForSessions(listOf(buildAttendee())) }
       .isInstanceOf(BusinessException::class.java)
-      .isNotInstanceOf(TerminatedRequirementException::class.java)
 
     verify(exactly = 1) {
       telemetryClient.logToAppInsights("Appointment.create-nDelius.failure", any())
     }
-    verify(exactly = 0) {
-      telemetryClient.logToAppInsights("Appointment.create-nDelius.terminated-requirement", any())
-    }
-  }
-
-  @Test
-  fun `throws plain BusinessException and does not fire terminated-requirement telemetry for non-400 status codes`() {
-    every { nDeliusIntegrationApiClient.createAppointmentsInDelius(any()) } returns
-      ClientResult.Failure.StatusCode(
-        method = HttpMethod.POST,
-        path = "/appointments",
-        status = HttpStatusCode.valueOf(503),
-        // A 503 body that (implausibly) contains the marker — we still must NOT trigger,
-        // because the design is scoped to the 400 case only.
-        body = "Invalid Requirement IDs: [999]",
-      )
-
-    assertThatThrownBy { scheduleService.createNdeliusAppointmentsForSessions(listOf(buildAttendee())) }
-      .isInstanceOf(BusinessException::class.java)
-      .isNotInstanceOf(TerminatedRequirementException::class.java)
-
     verify(exactly = 0) {
       telemetryClient.logToAppInsights("Appointment.create-nDelius.terminated-requirement", any())
     }

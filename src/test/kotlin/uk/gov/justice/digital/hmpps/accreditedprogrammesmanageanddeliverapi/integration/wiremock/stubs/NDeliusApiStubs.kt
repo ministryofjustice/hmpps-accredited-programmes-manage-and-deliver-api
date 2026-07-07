@@ -329,23 +329,6 @@ class NDeliusApiStubs {
     )
   }
 
-  /**
-   * Stubs the nDelius "linked requirement has been terminated" failure — HTTP 400 with a
-   * body of the form `{"status":400,"message":"Invalid Requirement IDs: [<id>]"}`.
-   * See `TerminatedRequirementDetector` and APG-2377.
-   */
-  fun stubTerminatedRequirementPostAppointmentsResponse(requirementId: String = "1503618208") {
-    wiremock.stubFor(
-      post(urlEqualTo("/appointments"))
-        .willReturn(
-          aResponse()
-            .withStatus(HttpStatus.BAD_REQUEST.value())
-            .withHeader("Content-Type", "application/json")
-            .withBody("""{"status":400,"message":"Invalid Requirement IDs: [$requirementId]"}"""),
-        ),
-    )
-  }
-
   fun stubSuccessfulDeleteAppointmentsResponse() {
     wiremock.stubFor(
       delete(urlEqualTo("/appointments"))

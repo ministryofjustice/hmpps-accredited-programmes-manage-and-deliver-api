@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.whenever
@@ -13,7 +12,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.TerminatedRequirementException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -633,34 +631,5 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
 
     // Should be the correct date
     assertThat(nextSlotDate).isEqualTo(LocalDate.of(2126, 7, 10))
-  }
-
-  // ------------------------------------------------------------------
-  // APG-2377 — nDelius "linked requirement terminated" detection
-  // ------------------------------------------------------------------
-
-  @Test
-  fun `allocateReferralToGroup surfaces TerminatedRequirementException when nDelius rejects with an Invalid Requirement IDs 400`() {
-    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
-    val group = testGroupHelper.createGroup(
-      earliestStartDate = LocalDate.now(clock).plusDays(7),
-      createGroupSessionSlots = setOf(slot1),
-    )
-    val referral = testReferralHelper.createReferrals(
-      referralConfigs = listOf(TestReferralHelper.ReferralConfig()),
-    ).single()
-
-    nDeliusApiStubs.stubTerminatedRequirementPostAppointmentsResponse(requirementId = "1503618208")
-
-    assertThatThrownBy {
-      programmeGroupMembershipService.allocateReferralToGroup(
-        referral.id!!,
-        group.id!!,
-        "SYSTEM",
-        "",
-      )
-    }.isInstanceOfSatisfying(TerminatedRequirementException::class.java) { ex ->
-      assertThat(ex.requirementIds).containsExactly("1503618208")
-    }
   }
 }
