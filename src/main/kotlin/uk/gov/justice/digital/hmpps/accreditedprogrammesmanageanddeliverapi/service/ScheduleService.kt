@@ -461,6 +461,24 @@ class ScheduleService(
             "responseBody" to (response.body?.take(500) ?: ""),
           ),
         )
+
+        // Fire a finer-grained telemetry event when nDelius rejects the appointment
+        // because the linked requirement / licence condition has been terminated.
+        // The generic .failure event above still fires — this is an additional slice
+        // for observability, not a replacement.
+        if (response.body?.contains("Invalid Requirement IDs") == true) {
+          telemetryClient.logToAppInsights(
+            "${CREATE_APPOINTMENT_N_DELIUS.eventName}.terminated-requirement",
+            mapOf(
+              "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
+              "outcome" to "terminated-requirement",
+              "crns" to affectedCrns.joinToString(","),
+              "eventNumbers" to affectedEventNumbers.joinToString(","),
+              "groupId" to (groupId?.toString() ?: ""),
+            ),
+          )
+        }
+
         throw BusinessException("Failure to create appointments", response.toException())
       }
 
