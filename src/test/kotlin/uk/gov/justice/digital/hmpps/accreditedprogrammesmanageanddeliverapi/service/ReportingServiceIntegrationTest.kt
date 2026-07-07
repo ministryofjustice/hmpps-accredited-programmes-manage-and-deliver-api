@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.MaterializedViewRefresher
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
@@ -53,9 +52,6 @@ class ReportingServiceIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository
-
-  @Autowired
-  private lateinit var materializedViewRefresher: MaterializedViewRefresher
 
   @Autowired
   private lateinit var referralReportingLocationRepository: ReferralReportingLocationRepository
@@ -106,8 +102,6 @@ class ReportingServiceIntegrationTest : IntegrationTestBase() {
       createdAt = LocalDateTime.parse("2026-05-12T09:00:00"),
       earliestStartDate = LocalDate.parse("2026-05-20"),
     )
-
-    materializedViewRefresher.refreshReportingGroupSizeView()
 
     val firstSessionAfter = LocalDateTime.parse("2026-05-10T00:00:00")
 

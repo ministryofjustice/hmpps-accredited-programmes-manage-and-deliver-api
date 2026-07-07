@@ -12,7 +12,6 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.expectBody
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.MaterializedViewRefresher
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
@@ -60,9 +59,6 @@ class ReportingControllerIntegrationTest : IntegrationTestBase() {
   private lateinit var programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository
 
   @Autowired
-  private lateinit var materializedViewRefresher: MaterializedViewRefresher
-
-  @Autowired
   private lateinit var referralReportingLocationRepository: ReferralReportingLocationRepository
 
   @Autowired
@@ -108,8 +104,6 @@ class ReportingControllerIntegrationTest : IntegrationTestBase() {
         createdAt = LocalDateTime.parse("2026-05-10T10:00:00"),
         earliestStartDate = LocalDate.parse("2026-05-20"),
       )
-
-      materializedViewRefresher.refreshReportingGroupSizeView()
 
       // When & Then
       val csvBody = webTestClient
