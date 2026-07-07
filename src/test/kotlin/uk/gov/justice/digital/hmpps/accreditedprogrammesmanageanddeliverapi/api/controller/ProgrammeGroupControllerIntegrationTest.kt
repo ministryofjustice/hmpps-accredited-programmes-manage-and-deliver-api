@@ -1357,12 +1357,50 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       }
 
       // Verify the referral is added as attendee only to group sessions in the future
-      val allGroupSessions = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
-        .filter { it.sessionType == SessionType.GROUP }
-      assertThat(allGroupSessions.size).isEqualTo(21)
+      val allPastGroupSessions = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
+        .filter { it.sessionType == SessionType.GROUP && it.startsAt < now }
+      assertThat(allPastGroupSessions).isNotEmpty()
+      allPastGroupSessions.forEach { session -> assertThat(session.attendees.size).isEqualTo(0) }
+
       val allFutureGroupSessions = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
         .filter { it.sessionType == SessionType.GROUP && it.startsAt > now }
-      assertThat(allGroupSessions.sumOf { it.attendees.count() }).isEqualTo(allFutureGroupSessions.size)
+      assertThat(allFutureGroupSessions).isNotEmpty()
+      allFutureGroupSessions.forEach { session -> assertThat(session.attendees.size).isEqualTo(1) }
+    }
+
+    @Test
+    fun `allocateReferralToGroup in the past will not make appointment calls to NDelius`() {
+      // Given
+      val theCrnNumber = randomUppercaseString()
+      val pastStartDate = LocalDate.now().minusYears(1)
+      val group = testGroupHelper.createGroup(earliestStartDate = pastStartDate)
+      val alreadyAllocatedReferral = testReferralHelper.createReferral()
+      testGroupHelper.allocateToGroup(group, alreadyAllocatedReferral)
+
+      val groupSessionId = group.sessions.find { it.sessionType == SessionType.GROUP }!!.id!!
+      val optionalGroupSession = sessionRepository.findById(groupSessionId)
+      assertThat(optionalGroupSession).isPresent
+      val savedGroupSession = optionalGroupSession.get()
+      savedGroupSession.startsAt = LocalDateTime.now().minusDays(1)
+      savedGroupSession.endsAt = LocalDateTime.now().minusDays(1).plusHours(1)
+      sessionRepository.save(savedGroupSession)
+
+      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "the-forename the-surname")
+      val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "The additional details for the test")
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/allocate/${referral.id}",
+        expectedResponseStatus = HttpStatus.OK.value(),
+        body = allocateToGroupRequest,
+        returnType = object : ParameterizedTypeReference<AllocateToGroupResponse>() {},
+      )
+
+      // Then
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
+      val nDeliusAppointments = nDeliusAppointmentRepository.findAll()
+      assertThat(nDeliusAppointments.size).isEqualTo(0)
     }
   }
 
