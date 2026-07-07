@@ -51,7 +51,6 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     fun beforeEach() {
       testDataCleaner.cleanAllTables()
       createReferralsWithStatusHistoryAndReportingLocations()
-      testDataGenerator.refreshReferralCaseListItemView()
       stubAuthTokenEndpoint()
 
       // Grant permission to all of the following (fake) CRNs

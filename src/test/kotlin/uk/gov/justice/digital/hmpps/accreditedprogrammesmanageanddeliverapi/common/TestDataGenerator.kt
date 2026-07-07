@@ -61,9 +61,6 @@ class TestDataGenerator {
   @Autowired
   private lateinit var attendeeRepository: AttendeeRepository
 
-  @Autowired
-  private lateinit var materializedViewRefresher: MaterializedViewRefresher
-
   fun createPreferredDeliveryLocationProbationDeliveryUnit(preferredDeliveryLocationProbationDeliveryUnit: PreferredDeliveryLocationProbationDeliveryUnitEntity) {
     entityManager.persist(preferredDeliveryLocationProbationDeliveryUnit)
   }
@@ -200,10 +197,6 @@ class TestDataGenerator {
     referralStatusHistoryEntity: ReferralStatusHistoryEntity,
   ) {
     entityManager.persist(referralStatusHistoryEntity)
-  }
-
-  fun refreshReferralCaseListItemView() {
-    materializedViewRefresher.refreshReferralCaseListItemView()
   }
 
   fun createGroup(

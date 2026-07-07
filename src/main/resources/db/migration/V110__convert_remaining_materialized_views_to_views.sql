@@ -1,0 +1,15 @@
+DROP TRIGGER IF EXISTS trigger_refresh_referral_status ON referral;
+DROP TRIGGER IF EXISTS trigger_refresh_referral_status_history ON referral_status_history;
+DROP TRIGGER IF EXISTS trigger_refresh_referral_ldc_history ON referral_ldc_history;
+DROP TRIGGER IF EXISTS trigger_refresh_referral_reporting_location ON referral_reporting_location;
+DROP TRIGGER IF EXISTS trigger_refresh_referral_status_description ON referral_status_description;
+DROP TRIGGER IF EXISTS trigger_refresh_referral_cohort_mapping ON referral_cohort_history;
+DROP FUNCTION IF EXISTS refresh_caselist_item_view();
+
+DROP TRIGGER IF EXISTS trigger_refresh_programme_group_reporting_group_size ON programme_group;
+DROP TRIGGER IF EXISTS trigger_refresh_programme_group_membership_reporting_group_size ON programme_group_membership;
+DROP TRIGGER IF EXISTS trigger_refresh_facilitator_reporting_group_size ON facilitator;
+DROP FUNCTION IF EXISTS refresh_reporting_group_size_view();
+
+DROP MATERIALIZED VIEW IF EXISTS referral_caselist_item_view;
+DROP MATERIALIZED VIEW IF EXISTS reporting_group_size;
