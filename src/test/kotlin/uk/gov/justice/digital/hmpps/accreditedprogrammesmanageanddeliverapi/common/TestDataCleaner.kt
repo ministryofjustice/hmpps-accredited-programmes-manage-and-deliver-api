@@ -43,7 +43,6 @@ class TestDataCleaner(
 
       // Refresh our views after clearing tables
       materializedViewRefresher.refreshReferralCaseListItemView()
-      materializedViewRefresher.refreshGroupWaitlistItemView()
       materializedViewRefresher.refreshReportingGroupSizeView()
     }
   }

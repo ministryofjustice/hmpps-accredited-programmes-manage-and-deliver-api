@@ -2025,6 +2025,123 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `should return 400 when attempting to change a recorded attendance outcome`() {
+    // Given
+    val group = testGroupHelper.createGroup()
+    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+    nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+    val referral = testReferralHelper.createReferral()
+    programmeGroupMembershipService.allocateReferralToGroup(
+      referral.id!!,
+      group.id!!,
+      "SYSTEM",
+      "",
+    )
+    val sessionEntity =
+      sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
+    val sessionId = sessionEntity.id!!
+    val attendee = sessionEntity.attendees.first()
+
+    performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.POST,
+      uri = "/session/$sessionId/attendance",
+      body = SessionAttendance(
+        attendees = listOf(SessionAttendee(referralId = attendee.referralId, outcomeCode = ATTC)),
+      ),
+      returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+      expectedResponseStatus = HttpStatus.CREATED.value(),
+    )
+
+    // When
+    val exception = performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.POST,
+      uri = "/session/$sessionId/attendance",
+      body = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(referralId = attendee.referralId, outcomeCode = SessionAttendanceNDeliusCode.UAAB),
+        ),
+      ),
+      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+      expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+    )
+
+    // Then
+    assertThat(exception.userMessage)
+      .contains("Attendance outcome cannot be changed once it has been recorded")
+      .contains(attendee.referral.crn)
+    val attendances = sessionRepository.findById(sessionId).get().attendances
+    assertThat(attendances).hasSize(1)
+    assertThat(attendances.first().outcomeType.code).isEqualTo(ATTC)
+  }
+
+  @Test
+  fun `should not update nDelius when resubmitting an unchanged attendance`() {
+    // Given
+    val group = testGroupHelper.createGroup()
+    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+    nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+    val referral = testReferralHelper.createReferral()
+    programmeGroupMembershipService.allocateReferralToGroup(
+      referral.id!!,
+      group.id!!,
+      "SYSTEM",
+      "",
+    )
+    val sessionEntity =
+      sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
+    val sessionId = sessionEntity.id!!
+
+    val sessionAttendanceRequest = SessionAttendance(
+      attendees = listOf(
+        SessionAttendee(
+          referralId = sessionEntity.attendees.first().referralId,
+          outcomeCode = ATTC,
+          sessionNotes = "Test session notes",
+        ),
+      ),
+    )
+
+    performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.POST,
+      uri = "/session/$sessionId/attendance",
+      body = sessionAttendanceRequest,
+      returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+      expectedResponseStatus = HttpStatus.CREATED.value(),
+    )
+
+    // When - resubmit the same outcome and notes
+    performRequestAndExpectStatusWithBody(
+      httpMethod = HttpMethod.POST,
+      uri = "/session/$sessionId/attendance",
+      body = sessionAttendanceRequest,
+      returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+      expectedResponseStatus = HttpStatus.CREATED.value(),
+    )
+
+    // Then - no new attendance row is recorded and nDelius is only called once
+    assertThat(sessionRepository.findById(sessionId).get().attendances).hasSize(1)
+    nDeliusApiStubs.verifyPutAppointments(
+      1,
+      UpdateAppointmentsRequest(
+        appointments = listOf(
+          UpdateAppointmentRequestFactory()
+            .withReference(sessionEntity.ndeliusAppointments.first().ndeliusAppointmentId)
+            .withDate(sessionEntity.startsAt.toLocalDate())
+            .withStartTime(sessionEntity.startsAt.toLocalTime())
+            .withEndTime(sessionEntity.endsAt.toLocalTime())
+            .withOutcome(RequestCode(ATTC.name))
+            .withLocation(RequestCode(group.deliveryLocationCode))
+            .withStaff(RequestCode(group.treatmentManager!!.ndeliusPersonCode))
+            .withTeam(RequestCode(group.treatmentManager!!.ndeliusTeamCode))
+            .withNotes("Test session notes")
+            .withSensitive(false)
+            .produce(),
+        ),
+      ),
+    )
+  }
+
+  @Test
   fun `should return 404 when a session is not found on POST session attendance request`() {
     // Given
     val sessionId = UUID.randomUUID()
@@ -2124,7 +2241,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         attendees = listOf(
           SessionAttendee(
             referralId = attendee.referralId,
-            outcomeCode = SessionAttendanceNDeliusCode.UAAB,
+            outcomeCode = ATTC,
             sessionNotes = "Latest test session notes",
           ),
         ),
@@ -2164,8 +2281,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(attendance).satisfies(
-        { assertThat(it?.text).isEqualTo("Did not attend") },
-        { assertThat(it?.code).isEqualTo("UAAB") },
+        { assertThat(it?.text).isEqualTo("Attended") },
+        { assertThat(it?.code).isEqualTo("ATTC") },
       )
     }
 
@@ -2349,7 +2466,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         attendees = listOf(
           SessionAttendee(
             referralId = attendee.referralId,
-            outcomeCode = SessionAttendanceNDeliusCode.UAAB,
+            outcomeCode = ATTC,
             sessionNotes = "Latest updated notes",
           ),
         ),
