@@ -1360,7 +1360,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val allGroupSessions = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
         .filter { it.sessionType == SessionType.GROUP }
       assertThat(allGroupSessions.size).isEqualTo(21)
-      assertThat(allGroupSessions.sumOf { it.attendees.count() }).isEqualTo(19)
+      val allFutureGroupSessions = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
+        .filter { it.sessionType == SessionType.GROUP && it.startsAt > now }
+      assertThat(allGroupSessions.sumOf { it.attendees.count() }).isEqualTo(allFutureGroupSessions.size)
     }
   }
 
