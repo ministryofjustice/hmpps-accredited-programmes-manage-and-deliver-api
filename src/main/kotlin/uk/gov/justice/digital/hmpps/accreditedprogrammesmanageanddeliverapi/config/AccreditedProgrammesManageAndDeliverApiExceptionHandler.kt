@@ -1,7 +1,9 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config
 
+import io.sentry.Sentry
 import jakarta.validation.ValidationException
 import org.slf4j.LoggerFactory
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.HttpStatus.BAD_REQUEST
 import org.springframework.http.HttpStatus.FORBIDDEN
 import org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR
@@ -48,6 +50,31 @@ class AccreditedProgrammesManageAndDeliverApiExceptionHandler {
       ),
     ).also { log.debug("Forbidden (403) returned: {}", e.message) }
 
+  @ExceptionHandler(DataIntegrityViolationException::class)
+  fun handleDataIntegrityViolationException(e: DataIntegrityViolationException): ResponseEntity<ErrorResponse> {
+    val message = e.message.orEmpty()
+    if (message.contains(GROUP_WAITLIST_VIEW) && message.contains(DUPLICATE_ROWS_ERROR)) {
+      Sentry.withScope { scope ->
+        scope.fingerprint = listOf(GROUP_WAITLIST_DUPLICATE_FINGERPRINT)
+        scope.setTag("error.type", GROUP_WAITLIST_DUPLICATE_FINGERPRINT)
+        Sentry.captureException(e)
+      }
+    } else {
+      Sentry.captureException(e)
+    }
+    log.error("Data integrity violation", e)
+
+    return ResponseEntity
+      .status(INTERNAL_SERVER_ERROR)
+      .body(
+        ErrorResponse(
+          status = INTERNAL_SERVER_ERROR,
+          userMessage = "Unexpected error: ${e.message}",
+          developerMessage = e.message,
+        ),
+      )
+  }
+
   @ExceptionHandler(Exception::class)
   fun handleException(e: Exception): ResponseEntity<ErrorResponse> = ResponseEntity
     .status(INTERNAL_SERVER_ERROR)
@@ -61,5 +88,8 @@ class AccreditedProgrammesManageAndDeliverApiExceptionHandler {
 
   private companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
+    private const val GROUP_WAITLIST_VIEW = "group_waitlist_item_view"
+    private const val DUPLICATE_ROWS_ERROR = "duplicate rows"
+    private const val GROUP_WAITLIST_DUPLICATE_FINGERPRINT = "group-waitlist-view-duplicate-rows"
   }
 }
