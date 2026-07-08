@@ -7,4 +7,5 @@ enum class HmppsDomainEventTypes(val value: String) {
   INTERVENTIONS_COMMUNITY_REFERRAL_IMPORTED("interventions.community-referral.imported"),
   PROBATION_CASE_MERGE_COMPLETED("probation-case.merge.completed"),
   PROBATION_CASE_UNMERGE_COMPLETED("probation-case.unmerge.completed"),
+  ACP_M_AND_D_REFERRAL_DETAILS_UPDATED("accredited-programmes-manage-and-deliver.referral.details-updated"),
 }

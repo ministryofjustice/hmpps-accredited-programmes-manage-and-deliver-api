@@ -267,6 +267,42 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `should create message history on receipt of ACP M&D referral details updated message`() {
+    // Given
+    val eventType = "accredited-programmes-manage-and-deliver.referral.details-updated"
+    val referralId = UUID.randomUUID()
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withAdditionalInformation(
+        mapOf(
+          "referralId" to referralId.toString(),
+        ),
+      )
+      .withEventType(eventType)
+      .produce()
+
+    // When
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
+    await untilCallTo {
+      messageHistoryRepository.findAll().firstOrNull()
+    } matches { it != null }
+
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(eventType)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+      )
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
+  }
+
+  @Test
   fun `should create message history on receipt of community-referral created message but not insert referral when detail url is null`() {
     // Given
     val eventType = "interventions.community-referral.created"
@@ -820,5 +856,90 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     // Then
     assertThat(result).isNotEmpty()
     assertThat(result.size).isEqualTo(1)
+  }
+
+  @Test
+  fun `should update referral personal details on receipt of ACP M&D referral details updated message`() {
+    // Given
+    val createdAt = LocalDateTime.now()
+    val referralEntity = ReferralEntityFactory()
+      .withCreatedAt(createdAt)
+      .produce()
+
+    val statusHistory = ReferralStatusHistoryEntityFactory()
+      .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
+      .produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+    val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+    testDataGenerator.createReferralWithFields(
+      referralEntity,
+      listOf(statusHistory, cohortHistory),
+    )
+
+    val secondStatus = ReferralStatusHistoryEntityFactory()
+      .withCreatedAt(LocalDateTime.of(2025, 9, 24, 16, 0))
+      .produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+      )
+
+    testDataGenerator.createReferralStatusHistory(secondStatus)
+
+    val groupCode = "AAA111"
+    val group = ProgrammeGroupFactory().withCode(groupCode).produce()
+    testDataGenerator.createGroup(group)
+    val groupMembership =
+      ProgrammeGroupMembershipFactory().withReferral(referralEntity).withProgrammeGroup(group).produce()
+    testDataGenerator.createGroupMembership(groupMembership)
+    val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+    val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+
+    nDeliusApiStubs.stubAccessCheck(granted = true, savedReferral.crn)
+    nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+    nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(savedReferral.crn, savedReferral.eventNumber)
+
+    oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
+
+    val eventType = "accredited-programmes-manage-and-deliver.referral.details-updated"
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withAdditionalInformation(mapOf("referralId" to savedReferral.id.toString()))
+      .withEventType(eventType)
+      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", savedReferral.crn))))
+      .produce()
+
+    // When
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
+    await untilCallTo {
+      messageHistoryRepository.findAll().firstOrNull()
+    } matches { it != null }
+
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(eventType)
+      assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+      )
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
+
+    val result = referralRepository.findByCrn(referralEntity.crn).first()
+
+    // Then
+    assertThat(result.id).isEqualTo(savedReferral.id)
+    assertThat(result.crn).isEqualTo(savedReferral.crn)
+    assertThat(result.interventionName).isEqualTo(savedReferral.interventionName)
+    assertThat(result.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+    assertThat(result.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
+    assertThat(result.sex).isEqualTo(nDeliusPersonalDetails.sex.description)
   }
 }

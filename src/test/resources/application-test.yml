@@ -37,7 +37,7 @@ hmpps:
         queueName: hmpps_domain_events_queue
         dlqName: hmpps_domain_events_dlq
         subscribeTopicId: hmppseventtopic
-        subscribeFilter: '{"eventType":[ "interventions.community-referral.created", "interventions.community-referral.imported", "probation-case.merge.completed", "probation-case.unmerge.completed"] }'
+        subscribeFilter: '{"eventType":[ "interventions.community-referral.created", "interventions.community-referral.imported", "probation-case.merge.completed", "probation-case.unmerge.completed", "accredited-programmes-manage-and-deliver.referral.details-updated"] }'
         asyncQueueClient: true
 
     topics:
