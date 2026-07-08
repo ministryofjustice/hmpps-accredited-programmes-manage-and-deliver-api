@@ -5,13 +5,13 @@ SELECT r.id,
        r.crn,
        r.person_name,
        -- Default to GENERAL_OFFENCE if there are no entries in the referral_cohort_history_table
-       COALESCE(lc.cohort, 'GENERAL_OFFENCE')                 as cohort,
+       COALESCE(rch.cohort, 'GENERAL_OFFENCE')                 as cohort,
        r.sentence_end_date,
        r.sourced_from                                         as sentence_end_date_source,
-       ls.status,
-       ls.status_label_colour,
+       sd.status,
+       sd.status_label_colour,
        -- Default to false if there are no entries in the referral_ldc_history_table
-       COALESCE(lds.has_ldc, false)                           as has_ldc,
+       COALESCE(rldch.has_ldc, false)                         as has_ldc,
        -- Default values if there are no entries in the referral_reporting_location table for this referral yet
        COALESCE(rrl.pdu_name, 'UNKNOWN_PDU_NAME')             as pdu_name,
        COALESCE(rrl.reporting_team, 'UNKNOWN_REPORTING_TEAM') as reporting_team,
@@ -25,19 +25,19 @@ JOIN LATERAL (
     WHERE rsh.referral_id = r.id
     ORDER BY rsh.created_at DESC
     LIMIT 1
-) ls ON TRUE
+) sd ON TRUE
 LEFT JOIN LATERAL (
     SELECT has_ldc
     FROM referral_ldc_history
     WHERE referral_id = r.id
     ORDER BY created_at DESC
     LIMIT 1
-) lds ON TRUE
+) rldch ON TRUE
 LEFT JOIN LATERAL (
     SELECT cohort
     FROM referral_cohort_history
     WHERE referral_id = r.id
     ORDER BY created_at DESC
     LIMIT 1
-) lc ON TRUE
+) rch ON TRUE
 LEFT JOIN referral_reporting_location rrl on r.id = rrl.referral_id;

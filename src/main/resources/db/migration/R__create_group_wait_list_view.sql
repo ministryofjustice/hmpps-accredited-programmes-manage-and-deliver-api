@@ -7,13 +7,13 @@ SELECT r.id                                           as referral_id,
        r.sentence_end_date,
        r.sourced_from,
        -- Default to GENERAL_OFFENCE if there are no entries in the referral_cohort_history_table
-       COALESCE(lc.cohort, 'GENERAL_OFFENCE')         as cohort,
+       COALESCE(rch.cohort, 'GENERAL_OFFENCE')        as cohort,
        -- Default to false if there are no entries in the referral_ldc_history_table
-       COALESCE(lds.has_ldc, false)                   as has_ldc,
+       COALESCE(rldch.has_ldc, false)                  as has_ldc,
        r.date_of_birth,
        r.sex,
-       ls.status,
-       ls.status_colour,
+       sd.status,
+       sd.status_colour,
        -- Default values if there are no entries in the referral_reporting_location table for this referral yet
        COALESCE(rrl.region_name, 'No information')    as region_name,
        COALESCE(rrl.pdu_name, 'No information')       as pdu_name,
@@ -28,21 +28,21 @@ JOIN LATERAL (
     WHERE rsh.referral_id = r.id
     ORDER BY rsh.created_at DESC
     LIMIT 1
-) ls ON TRUE
+) sd ON TRUE
 LEFT JOIN LATERAL (
     SELECT has_ldc
     FROM referral_ldc_history
     WHERE referral_id = r.id
     ORDER BY created_at DESC
     LIMIT 1
-) lds ON TRUE
+) rldch ON TRUE
 LEFT JOIN LATERAL (
     SELECT cohort
     FROM referral_cohort_history
     WHERE referral_id = r.id
     ORDER BY created_at DESC
     LIMIT 1
-) lc ON TRUE
+) rch ON TRUE
 LEFT JOIN referral_reporting_location rrl on r.id = rrl.referral_id
 LEFT JOIN LATERAL (
     SELECT programme_group_id
@@ -52,4 +52,4 @@ LEFT JOIN LATERAL (
     LIMIT 1
 ) pgm ON TRUE
 WHERE pgm.programme_group_id IS NOT NULL
-   OR ls.status = 'Awaiting allocation';
+   OR sd.status = 'Awaiting allocation';
