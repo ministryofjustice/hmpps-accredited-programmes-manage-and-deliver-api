@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.MaterializedViewRefresher
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
@@ -34,9 +33,6 @@ class ReportingGroupSizeRepositoryIntegrationTest : IntegrationTestBase() {
   private lateinit var programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository
 
   @Autowired
-  private lateinit var materializedViewRefresher: MaterializedViewRefresher
-
-  @Autowired
   private lateinit var jdbcTemplate: JdbcTemplate
 
   @BeforeEach
@@ -50,9 +46,9 @@ class ReportingGroupSizeRepositoryIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should create reporting group size materialized view`() {
+  fun `should create reporting group size view`() {
     val exists = jdbcTemplate.queryForObject(
-      "SELECT EXISTS (SELECT 1 FROM pg_matviews WHERE matviewname = 'reporting_group_size')",
+      "SELECT EXISTS (SELECT 1 FROM pg_views WHERE viewname = 'reporting_group_size')",
       Boolean::class.java,
     )
 
@@ -60,7 +56,7 @@ class ReportingGroupSizeRepositoryIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should populate reporting group size view after refresh`() {
+  fun `should populate reporting group size view`() {
     val facilitator = facilitatorRepository.save(
       FacilitatorEntityFactory()
         .withNdeliusPersonCode("FAC123")
@@ -84,8 +80,6 @@ class ReportingGroupSizeRepositoryIntegrationTest : IntegrationTestBase() {
 
     val referral = referralRepository.save(ReferralEntityFactory().produce())
     programmeGroupMembershipRepository.save(ProgrammeGroupMembershipFactory(referral, group).produce())
-
-    materializedViewRefresher.refreshReportingGroupSizeView()
 
     val rows = repository.findAll()
     assertThat(rows).hasSize(1)
