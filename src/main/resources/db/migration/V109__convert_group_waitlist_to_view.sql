@@ -1,0 +1,16 @@
+DROP TRIGGER IF EXISTS trigger_refresh_referral_status_group_wait_list ON referral;
+DROP TRIGGER IF EXISTS trigger_refresh_referral_status_history_group_wait_list ON referral_status_history;
+DROP TRIGGER IF EXISTS trigger_refresh_referral_ldc_history_group_wait_list ON referral_ldc_history;
+DROP TRIGGER IF EXISTS trigger_refresh_referral_reporting_location_group_wait_list ON referral_reporting_location;
+DROP TRIGGER IF EXISTS trigger_refresh_referral_status_description_group_wait_list ON referral_status_description;
+DROP TRIGGER IF EXISTS trigger_refresh_programme_group_membership_group_wait_list ON programme_group_membership;
+DROP TRIGGER IF EXISTS trigger_refresh_referral_cohort_mapping_group_wait_list ON referral_cohort_history;
+
+DROP FUNCTION IF EXISTS refresh_group_wait_list_item_view();
+
+DROP MATERIALIZED VIEW IF EXISTS group_waitlist_item_view;
+
+-- Unique index is added to preserve the existing constraint that was previously enforced indirectly by the materialized view.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_programme_group_membership_active_referral
+    ON programme_group_membership (referral_id)
+    WHERE deleted_at IS NULL;

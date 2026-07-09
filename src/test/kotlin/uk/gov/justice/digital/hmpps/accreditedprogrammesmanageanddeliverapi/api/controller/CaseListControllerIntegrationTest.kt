@@ -51,7 +51,6 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     fun beforeEach() {
       testDataCleaner.cleanAllTables()
       createReferralsWithStatusHistoryAndReportingLocations()
-      testDataGenerator.refreshReferralCaseListItemView()
       stubAuthTokenEndpoint()
 
       // Grant permission to all of the following (fake) CRNs
@@ -616,7 +615,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       // Given and When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/open?cohort=General offence - LDC",
+        "/pages/caselist/open?cohort=General offence LDC",
         object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
 

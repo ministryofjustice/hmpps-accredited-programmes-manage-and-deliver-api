@@ -16,8 +16,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toSuggestedStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralProgrammeCompleteEvent
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -26,6 +29,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Service
@@ -109,14 +113,8 @@ class ReferralStatusService(
     val currentGroupMembership = referral.programmeGroupMemberships.maxByOrNull { it.createdAt }
       ?: throw NotFoundException("No group membership found for referral $referralId")
 
-    val postProgrammeReviewSession = currentGroupMembership.programmeGroup.sessions
-      .find { it.moduleSessionTemplate.module.isPostProgrammeModule() && !it.isPlaceholder }
-      ?: throw NotFoundException("No post-programme review session found for referral $referralId")
-
-    val attendance = sessionAttendanceRepository.findFirstBySessionIdAndGroupMembershipIdOrderByRecordedAtDesc(
-      sessionId = postProgrammeReviewSession.id!!,
-      groupMembershipId = currentGroupMembership.id!!,
-    ) ?: throw NotFoundException("No attendance record found for referral $referralId in post-programme review session")
+    val (postProgrammeReviewSession, attendance) = findPostProgrammeReviewAttendance(currentGroupMembership)
+      ?: throw NotFoundException("No attendance record found for referral $referralId in post-programme review session")
 
     val attended = attendance.outcomeType.attendance == true
     val complied = attendance.outcomeType.compliant
@@ -158,18 +156,30 @@ class ReferralStatusService(
   private fun hasValidPostProgrammeReviewAttendance(referral: ReferralEntity): Boolean {
     val currentGroupMembership = referral.programmeGroupMemberships.maxByOrNull { it.createdAt } ?: return false
 
-    val postProgrammeReviewSession = currentGroupMembership.programmeGroup.sessions
-      .find { it.moduleSessionTemplate.module.isPostProgrammeModule() && !it.isPlaceholder }
-      ?: return false
-
-    val attendance = sessionAttendanceRepository.findFirstBySessionIdAndGroupMembershipIdOrderByRecordedAtDesc(
-      sessionId = postProgrammeReviewSession.id!!,
-      groupMembershipId = currentGroupMembership.id!!,
-    ) ?: return false
+    val (_, attendance) = findPostProgrammeReviewAttendance(currentGroupMembership) ?: return false
 
     val attended = attendance.outcomeType.attendance == true
     val complied = attendance.outcomeType.compliant == true
 
     return attended && complied
   }
+
+  /**
+   * A programme group can contain multiple post-programme review sessions (one per referral),
+   * so we can't just pick the first post-programme session in the group. Instead, we look at
+   * all non-placeholder post-programme sessions and keep the one that actually has an attendance
+   * recorded against this membership, taking the most recent by recorded date if there is more
+   * than one.
+   */
+  private fun findPostProgrammeReviewAttendance(
+    currentGroupMembership: ProgrammeGroupMembershipEntity,
+  ): Pair<SessionEntity, SessionAttendanceEntity>? = currentGroupMembership.programmeGroup.sessions
+    .filter { it.moduleSessionTemplate.module.isPostProgrammeModule() && !it.isPlaceholder }
+    .mapNotNull { session ->
+      sessionAttendanceRepository.findFirstBySessionIdAndGroupMembershipIdOrderByRecordedAtDesc(
+        sessionId = session.id!!,
+        groupMembershipId = currentGroupMembership.id!!,
+      )?.let { session to it }
+    }
+    .maxByOrNull { (_, attendance) -> attendance.recordedAt ?: LocalDateTime.MIN }
 }

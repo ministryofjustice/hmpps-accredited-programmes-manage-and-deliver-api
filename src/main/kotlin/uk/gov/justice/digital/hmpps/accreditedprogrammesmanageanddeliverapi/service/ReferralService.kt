@@ -279,6 +279,27 @@ class ReferralService(
     return referralRepository.save(referralEntity)
   }
 
+  /**
+   * Updates the CRN of all referrals associated with the given current CRN to the new CRN.
+   *
+   * @param currentCrn The current CRN associated with the referrals that need to be updated.
+   * @param newCrn The new CRN to replace the current CRN in the referrals.
+   */
+  fun updateReferralCrn(currentCrn: String, newCrn: String) {
+    val referrals = referralRepository.findByCrn(currentCrn)
+
+    if (referrals.isEmpty()) {
+      log.info("updateReferralCrn: no referrals found for CRN $currentCrn — nothing to update")
+      return
+    }
+
+    referrals.forEach { referral ->
+      referral.crn = newCrn
+    }
+
+    referralRepository.saveAll(referrals)
+  }
+
   fun getReferralById(referralId: UUID): ReferralEntity {
     val referralEntity = referralRepository.findByIdOrNull(referralId) ?: let {
       log.error("Referral with id $referralId does not exist in database")
@@ -520,7 +541,7 @@ class ReferralService(
             ReferralStatusUtils.formatStatus(
               incomingReferralStatusDescription.description,
             )
-          }. They have been removed from group ${activeGroupMembership.programmeGroup.code}"
+          }. They have been removed from group ${activeGroupMembership.programmeGroup.code}."
       }
     }
 

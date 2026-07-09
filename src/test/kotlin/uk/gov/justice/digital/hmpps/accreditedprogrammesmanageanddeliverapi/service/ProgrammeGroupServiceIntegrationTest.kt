@@ -1051,7 +1051,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(result.deliveryLocation).isEqualTo("Test Location")
       assertThat(result.deliveryLocationCode).isEqualTo("LOC001")
       assertThat(result.sex).isEqualTo("Male")
-      assertThat(result.cohort).isEqualTo("General offence - LDC")
+      assertThat(result.cohort).isEqualTo("General offence LDC")
       assertThat(result.daysAndTimes).containsExactlyInAnyOrder(
         "Mondays, midday to 2:30pm",
         "Thursdays, 2:30pm to 5pm",

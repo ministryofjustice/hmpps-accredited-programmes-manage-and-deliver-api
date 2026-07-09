@@ -10,8 +10,6 @@ import org.springframework.stereotype.Component
 class TestDataCleaner(
   @Autowired
   private val entityManager: EntityManager,
-  @Autowired
-  private val materializedViewRefresher: MaterializedViewRefresher,
 ) {
   fun cleanAllTables() {
     entityManager.apply {
@@ -40,11 +38,6 @@ class TestDataCleaner(
       createNativeQuery("TRUNCATE TABLE session CASCADE").executeUpdate()
 
       // Add additional tables here as the data model grows
-
-      // Refresh our views after clearing tables
-      materializedViewRefresher.refreshReferralCaseListItemView()
-      materializedViewRefresher.refreshGroupWaitlistItemView()
-      materializedViewRefresher.refreshReportingGroupSizeView()
     }
   }
 }

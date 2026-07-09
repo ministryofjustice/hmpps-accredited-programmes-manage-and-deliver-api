@@ -88,9 +88,10 @@ class ProgrammeGroupMembershipService(
     val currentGroupMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId)
       ?: throw NotFoundException("No group membership found for referral $referralId")
 
-    // Filter out individual sessions
+    val now = LocalDateTime.now(clock)
+    // Filter out individual sessions and those in the past
     val coreGroupSessions =
-      group.sessions.filter { it.sessionType == SessionType.GROUP }
+      group.sessions.filter { it.sessionType == SessionType.GROUP && it.startsAt > now }
 
     val newAttendees = coreGroupSessions.map { session ->
       val attendeeEntity = AttendeeEntity(
@@ -102,10 +103,7 @@ class ProgrammeGroupMembershipService(
     }
 
     // Create appointments in NDelius for each session object for future session only if they exist
-    val now = LocalDateTime.now(clock)
-    newAttendees
-      .filter { it.session.startsAt > now }
-      .takeIf { it.isNotEmpty() }
+    newAttendees.takeIf { it.isNotEmpty() }
       ?.let(scheduleService::createNdeliusAppointmentsForSessions)
       ?: run {
         log.info("Appointment NOT created in nDelius for past session on referral allocation for CRN: ${referral.crn} and group: ${group.code}")
@@ -183,7 +181,7 @@ class ProgrammeGroupMembershipService(
     )
 
     return RemoveFromGroupResponse(
-      message = "${savedReferral.personName} was removed from this group. Their referral status is now ${desiredStatus.description}",
+      message = "${savedReferral.personName} was removed from this group. Their referral status is now ${desiredStatus.description}.",
     )
   }
 

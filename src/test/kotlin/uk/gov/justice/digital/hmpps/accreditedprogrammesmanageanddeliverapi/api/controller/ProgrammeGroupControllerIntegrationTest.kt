@@ -291,9 +291,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(body.filters.cohort).isEqualTo(
         listOf(
           "General offence",
-          "General offence - LDC",
+          "General offence LDC",
           "Sexual offence",
-          "Sexual offence - LDC",
+          "Sexual offence LDC",
         ),
       )
       val expectedTeams = mapOf(
@@ -1356,10 +1356,51 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         assertThat(appointment.date).isAfterOrEqualTo(today)
       }
 
-      // Verify the referral is still added as attendee to all group sessions (past and future)
-      val allGroupSessions = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
-        .filter { it.sessionType == SessionType.GROUP }
-      assertThat(allGroupSessions.sumOf { it.attendees.count() }).isEqualTo(21)
+      // Verify the referral is added as attendee only to group sessions in the future
+      val allPastGroupSessions = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
+        .filter { it.sessionType == SessionType.GROUP && it.startsAt < now }
+      assertThat(allPastGroupSessions).isNotEmpty()
+      allPastGroupSessions.forEach { session -> assertThat(session.attendees.size).isEqualTo(0) }
+
+      val allFutureGroupSessions = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
+        .filter { it.sessionType == SessionType.GROUP && it.startsAt > now }
+      assertThat(allFutureGroupSessions).isNotEmpty()
+      allFutureGroupSessions.forEach { session -> assertThat(session.attendees.size).isEqualTo(1) }
+    }
+
+    @Test
+    fun `allocateReferralToGroup in the past will not make appointment calls to NDelius`() {
+      // Given
+      val theCrnNumber = randomUppercaseString()
+      val pastStartDate = LocalDate.now().minusYears(1)
+      val group = testGroupHelper.createGroup(earliestStartDate = pastStartDate)
+      val alreadyAllocatedReferral = testReferralHelper.createReferral()
+      testGroupHelper.allocateToGroup(group, alreadyAllocatedReferral)
+
+      val groupSessionId = group.sessions.find { it.sessionType == SessionType.GROUP }!!.id!!
+      val optionalGroupSession = sessionRepository.findById(groupSessionId)
+      assertThat(optionalGroupSession).isPresent
+      val savedGroupSession = optionalGroupSession.get()
+      savedGroupSession.startsAt = LocalDateTime.now().minusDays(1)
+      savedGroupSession.endsAt = LocalDateTime.now().minusDays(1).plusHours(1)
+      sessionRepository.save(savedGroupSession)
+
+      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "the-forename the-surname")
+      val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "The additional details for the test")
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/allocate/${referral.id}",
+        expectedResponseStatus = HttpStatus.OK.value(),
+        body = allocateToGroupRequest,
+        returnType = object : ParameterizedTypeReference<AllocateToGroupResponse>() {},
+      )
+
+      // Then
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
+      val nDeliusAppointments = nDeliusAppointmentRepository.findAll()
+      assertThat(nDeliusAppointments.size).isEqualTo(0)
     }
   }
 
@@ -1424,7 +1465,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
 
       // Then
-      assertThat(response.message).contains("Alex River was removed from this group. Their referral status is now Awaiting allocation")
+      assertThat(response.message).contains("Alex River was removed from this group. Their referral status is now Awaiting allocation.")
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
 
@@ -1521,7 +1562,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
 
       // Then
-      assertThat(response.message).contains("Alex River was removed from this group. Their referral status is now Return to court")
+      assertThat(response.message).contains("Alex River was removed from this group. Their referral status is now Return to court.")
       assertThat(foundReferral).isNotNull
       assertThat(foundReferral.id).isEqualTo(referral.id)
 

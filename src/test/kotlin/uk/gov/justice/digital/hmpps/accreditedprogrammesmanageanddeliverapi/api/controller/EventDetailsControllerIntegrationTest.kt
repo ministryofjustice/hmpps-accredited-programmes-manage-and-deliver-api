@@ -249,15 +249,13 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
-      val session = scheduleService.scheduleIndividualSession(group.id!!, scheduleSessionRequest)
+      val firstSession = scheduleService.scheduleIndividualSession(group.id!!, scheduleSessionRequest)
 
-      val attendee = session.attendees.find { it.referralId == referral.id }!!
-
-      // Record first attendance as not attended
+      // Record attendance on the first session as "not attended"
       val firstAttendanceRequest = SessionAttendance(
         attendees = listOf(
           SessionAttendee(
-            referralId = attendee.referralId,
+            referralId = firstSession.attendees.find { it.referralId == referral.id }!!.referralId,
             outcomeCode = SessionAttendanceNDeliusCode.UAAB,
             sessionNotes = "Did not attend first time",
           ),
@@ -265,17 +263,21 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
       )
       performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
-        uri = "/session/${session.id}/attendance",
+        uri = "/session/${firstSession.id}/attendance",
         body = firstAttendanceRequest,
         returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
 
-      // Record second attendance as attended and complied
+      // Schedule a second post-programme review session and record attended and complied
+      val secondSession = scheduleService.scheduleIndividualSession(
+        group.id!!,
+        scheduleSessionRequest.copy(startDate = LocalDate.now().plusDays(2)),
+      )
       val secondAttendanceRequest = SessionAttendance(
         attendees = listOf(
           SessionAttendee(
-            referralId = attendee.referralId,
+            referralId = secondSession.attendees.find { it.referralId == referral.id }!!.referralId,
             outcomeCode = SessionAttendanceNDeliusCode.ATTC,
             sessionNotes = "Attended and complied second time",
           ),
@@ -283,7 +285,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
       )
       performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
-        uri = "/session/${session.id}/attendance",
+        uri = "/session/${secondSession.id}/attendance",
         body = secondAttendanceRequest,
         returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
         expectedResponseStatus = HttpStatus.CREATED.value(),
