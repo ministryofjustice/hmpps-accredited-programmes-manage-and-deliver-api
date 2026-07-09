@@ -1,0 +1,129 @@
+{{- if .Values.dataRefreshEnabled -}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-refresh-script
+data:
+  entrypoint.sh: |-
+    #!/bin/bash
+    set -e
+
+    echo "${DB_HOST_PROD}:5432:${DB_NAME_PROD}:${DB_USER_PROD}:${DB_PASS_PROD}" > ~/.pgpass
+    echo "${DB_HOST_PREPROD}:5432:${DB_NAME_PREPROD}:${DB_USER_PREPROD}:${DB_PASS_PREPROD}" >> ~/.pgpass
+    chmod 0600 ~/.pgpass
+
+    set -x
+    # Dump production data
+    pg_dump --host="$DB_HOST_PROD" \
+      --username="$DB_USER_PROD" \
+      --format=custom \
+      --no-privileges \
+      --verbose \
+      --file=/tmp/db.dump \
+      "$DB_NAME_PROD"
+
+    # Dump existing preprod user region override data from user_region_override table 
+    pg_dump --host="$DB_HOST_PREPROD" \
+      --username="$DB_USER_PREPROD" \
+      --on-conflict-do-nothing \
+      --column-inserts \
+      --data-only \
+      --no-privileges \
+      --verbose \
+      --table public.user_region_override \
+      --file=/tmp/user_region_override.dump \
+      "$DB_NAME_PREPROD"
+
+    # Restore production data to preprod
+    pg_restore --host="$DB_HOST_PREPROD" \
+      --username="$DB_USER_PREPROD" \
+      --clean \
+      --no-owner \
+      --verbose \
+      --dbname="$DB_NAME_PREPROD" \
+      /tmp/db.dump
+
+    # Restore existing preprod user_region_override data
+    psql --host="$DB_HOST_PREPROD" \
+      --username="$DB_USER_PREPROD" \
+      "$DB_NAME_PREPROD" < /tmp/user_region_override.dump
+
+    rm -v /tmp/db.dump /tmp/user_region_override.dump ~/.pgpass
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: db-refresh-job
+spec:
+  schedule: "0 20 * * 1,3"
+  concurrencyPolicy: "Forbid"
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 1200
+      template:
+        spec:
+          {{- if .Values.serviceAccountName }}
+          serviceAccountName: {{ .Values.serviceAccountName }}
+          {{- end }}
+          securityContext:
+            runAsUser: 999
+          containers:
+            - name: dbrefresh
+              image: "postgres:16"
+              command:
+                - /bin/entrypoint.sh
+              volumeMounts:
+                - name: db-refresh-script
+                  mountPath: /bin/entrypoint.sh
+                  readOnly: true
+                  subPath: entrypoint.sh
+              env:
+                - name: DB_NAME_PROD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rds-postgresql-instance-output
+                      key: database_name
+                - name: DB_USER_PROD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rds-postgresql-instance-output
+                      key: database_username
+                - name: DB_PASS_PROD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rds-postgresql-instance-output
+                      key: database_password
+                - name: DB_HOST_PROD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rds-postgresql-instance-output
+                      key: rds_instance_address
+                - name: DB_NAME_PREPROD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rds-postgresql-instance-output-preprod
+                      key: database_name
+                - name: DB_USER_PREPROD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rds-postgresql-instance-output-preprod
+                      key: database_username
+                - name: DB_PASS_PREPROD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rds-postgresql-instance-output-preprod
+                      key: database_password
+                - name: DB_HOST_PREPROD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rds-postgresql-instance-output-preprod
+                      key: rds_instance_address
+          restartPolicy: "Never"
+          volumes:
+            - name: db-refresh-script
+              configMap:
+                name: db-refresh-script
+                defaultMode: 0755
+{{- end }}
