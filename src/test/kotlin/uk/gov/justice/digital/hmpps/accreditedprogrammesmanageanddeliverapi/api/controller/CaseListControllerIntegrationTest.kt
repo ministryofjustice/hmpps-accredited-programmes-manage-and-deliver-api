@@ -653,6 +653,32 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `getCaseListItems returns matching referrals when multiple pdus are used as part of request`() {
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?pdu=PDU1&pdu=PDU2",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+      val referralCaseListItems = response.pagedReferrals.content
+
+      assertThat(response).isNotNull
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(5)
+
+      assertThat(referralCaseListItems)
+        .allSatisfy { item ->
+          assertThat(item.pdu).isIn("PDU1", "PDU2")
+        }
+
+      referralCaseListItems.forEach { item ->
+        assertThat(item).hasFieldOrProperty("crn")
+        assertThat(item).hasFieldOrProperty("personName")
+        assertThat(item).hasFieldOrProperty("referralStatus")
+        assertThat(item).hasFieldOrProperty("pdu")
+      }
+      assertThat(response.otherTabTotal).isEqualTo(1)
+    }
+
+    @Test
     fun `getCaseListItems returns matching referrals when reporting team is used as part of request`() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
