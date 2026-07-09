@@ -59,10 +59,10 @@ class CaseListController(
       value = "status",
       required = false,
     ) status: String?,
-    @Parameter(description = "Filter by the pdu of the referral") @RequestParam(
+    @Parameter(description = "Filter by one or more pdus of the referral") @RequestParam(
       value = "pdu",
       required = false,
-    ) pdu: String?,
+    ) pdu: List<String>?,
     @Parameter(description = "Filter by the reporting team of the referral") @RequestParam(
       value = "reportingTeam",
       required = false,
