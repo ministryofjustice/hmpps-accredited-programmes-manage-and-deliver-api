@@ -6,6 +6,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
@@ -324,6 +326,16 @@ class ReferralService(
 
     return referralEntity
   }
+
+  /**
+   * Retrieves a paginated list of ReferralEntity objects that have an updatedAt timestamp
+   * earlier than the specified date and time.
+   *
+   * @param updatedAtBefore The cutoff date and time; only entities updated before this timestamp will be included.
+   * @param pageable The pagination information for the query, including page number and page size.
+   * @return A paginated list of ReferralEntity objects meeting the criteria.
+   */
+  fun findAllByUpdatedAtBefore(updatedAtBefore: LocalDateTime, pageable: Pageable): Page<ReferralEntity> = referralRepository.findAllByUpdatedAtBefore(updatedAtBefore, pageable)
 
   private fun getReferralAndEnsureSourcedFrom(referralId: UUID): ReferralEntity {
     log.info("getReferralAndEnsureSourcedFrom for $referralId")

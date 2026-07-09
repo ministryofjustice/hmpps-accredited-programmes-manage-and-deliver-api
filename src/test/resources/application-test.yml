@@ -8,6 +8,13 @@ management.endpoint:
 hmpps-auth:
   url: "http://localhost:9999/auth"
 
+app:
+  scheduling:
+    referral-details-updated:
+      cron: "0 0 1 * * *"  # every day at 1 AM
+      chunk-size: 100  # process referral records in chunks
+      cutoff: 1 # before updatedAt in seconds
+
 spring:
   jpa:
     show-sql: false
