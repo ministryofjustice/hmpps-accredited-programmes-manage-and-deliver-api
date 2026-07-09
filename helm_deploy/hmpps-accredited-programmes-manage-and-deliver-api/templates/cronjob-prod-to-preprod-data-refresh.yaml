@@ -9,7 +9,7 @@ data:
     #!/bin/bash
     set -e
 
-    echo "${DB_HOST_PROD}:5432:${DB_NAME_PROD}:${DB_USER_PROD}}:${DB_PASS_PROD}" > ~/.pgpass
+    echo "${DB_HOST_PROD}:5432:${DB_NAME_PROD}:${DB_USER_PROD}:${DB_PASS_PROD}" > ~/.pgpass
     echo "${DB_HOST_PREPROD}:5432:${DB_NAME_PREPROD}:${DB_USER_PREPROD}:${DB_PASS_PREPROD}" >> ~/.pgpass
     chmod 0600 ~/.pgpass
 
