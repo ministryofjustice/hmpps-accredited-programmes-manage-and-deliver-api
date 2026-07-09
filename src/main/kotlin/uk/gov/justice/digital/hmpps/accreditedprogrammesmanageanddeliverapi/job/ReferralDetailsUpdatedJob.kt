@@ -48,14 +48,19 @@ class ReferralDetailsUpdatedJob(
     while (hasMoreRecords) {
       val pageable: Pageable = PageRequest.of(currentPage - 1, pageSize)
       val referralPage: Page<ReferralEntity> = referralService.findAllByUpdatedAtBefore(cutoffTime, pageable)
-      val referrals: MutableList<ReferralEntity> = referralPage.getContent()
+      val referrals: MutableList<ReferralEntity> = referralPage.content
 
       referrals.forEach { referral ->
         val referralId = referral.id!!
         val message = getDomainEventMessage(referralId, referral.crn)
         log.info("Publishing ${ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value} event for referralId: $referralId")
         publishEvent(message, referralId)
-        totalUpdated++
+        try {
+          publishEvent(message, referralId)
+          totalUpdated++
+        } catch (exception: Exception) {
+          log.error("Failed to publish event for referralId: $referralId, skipping and continuing", exception)
+        }
       }
 
       hasMoreRecords = referralPage.hasNext()

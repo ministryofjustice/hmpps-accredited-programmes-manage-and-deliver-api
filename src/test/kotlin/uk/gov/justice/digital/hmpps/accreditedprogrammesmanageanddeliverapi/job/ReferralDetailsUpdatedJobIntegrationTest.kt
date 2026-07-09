@@ -43,7 +43,7 @@ class ReferralDetailsUpdatedJobIntegrationTest : IntegrationTestBase() {
 
     // When
     runBlocking {
-      delay(2000) // this is required for savedReferral.updatedAt to be older than 1 second from now
+      delay(1001) // this is required for savedReferral.updatedAt to be older than 1 second from now
     }
     job.process()
 
@@ -60,5 +60,20 @@ class ReferralDetailsUpdatedJobIntegrationTest : IntegrationTestBase() {
       assertThat(it.description).isEqualTo("An Accredited Programmes referral details in community have been updated.")
       assertThat(it.message).contains("\"additionalInformation\":{\"referralId\":\"$referralId\"}")
     }
+  }
+
+  @Test
+  fun `should not publish events when no referrals are stale`() {
+    // Given
+    testReferralHelper.createReferral()
+
+    // When
+    job.process()
+
+    // Then
+    assertThat(
+      with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() },
+    ).isEqualTo(0)
+    assertThat(messageHistoryRepository.findAll()).isEmpty()
   }
 }

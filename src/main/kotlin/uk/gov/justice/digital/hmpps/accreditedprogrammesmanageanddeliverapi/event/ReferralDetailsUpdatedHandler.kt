@@ -61,8 +61,20 @@ class ReferralDetailsUpdatedHandler(
 
       messageHistoryRepository.save(message.toEntity(objectMapper.writeValueAsString(message)))
       val referralId = UUID.fromString(referralIdString)
-      runBlocking {
+      val result = runBlocking {
         referralService.refreshPersonalDetailsForReferral(referralId, false)
+      }
+
+      if (result == null) {
+        log.warn("No referral found for referralId: $referralId — skipping refresh")
+        telemetryClient.logToAppInsights(
+          APP_INSIGHTS_PROCESSED_FAILURE_EVENT_NAME_PROPERTY_VALUE,
+          mapOf(
+            APP_INSIGHTS_ERROR_MESSAGE_PROPERTY_KEY to "referral not found",
+            APP_INSIGHTS_REFERRAL_ID_PROPERTY_KEY to referralId.toString(),
+          ),
+        )
+        return
       }
 
       log.info("Ending handle for messageId: ${sqsMessage.messageId}")
