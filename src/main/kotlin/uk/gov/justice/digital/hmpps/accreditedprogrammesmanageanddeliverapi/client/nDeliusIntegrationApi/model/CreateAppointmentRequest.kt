@@ -1,7 +1,9 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
@@ -31,21 +33,39 @@ data class CreateAppointmentRequest(
   data class Team(val code: String)
 }
 
-fun AttendeeEntity.toAppointment(ndeliusAppointmentId: UUID): CreateAppointmentRequest.NdeliusAppointment = CreateAppointmentRequest.NdeliusAppointment(
-  reference = ndeliusAppointmentId,
-  requirementId = if (referral.sourcedFrom == ReferralEntitySourcedFrom.REQUIREMENT) referral.eventId else null,
-  licenceConditionId = if (referral.sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION) referral.eventId else null,
-  date = session.startsAt.toLocalDate(),
-  startTime = session.startsAt.toLocalTime(),
-  endTime = session.endsAt.toLocalTime(),
-  outcome = null,
-  location = CreateAppointmentRequest.Location(session.programmeGroup.deliveryLocationCode),
-  staff = CreateAppointmentRequest.Staff(session.programmeGroup.treatmentManager!!.ndeliusPersonCode),
-  team = CreateAppointmentRequest.Team(session.programmeGroup.treatmentManager!!.ndeliusTeamCode),
-  notes = null,
-  sensitive = false,
-  type = getAppointmentTypeFromModuleName(session.moduleSessionTemplate.module.name),
-)
+fun AttendeeEntity.toAppointment(ndeliusAppointmentId: UUID): CreateAppointmentRequest.NdeliusAppointment {
+  val facilitators = session.sessionFacilitators.toList()
+  val primaryFacilitator = facilitators.firstOrNull()
+  val additionalFacilitators = facilitators.drop(1)
+
+  return CreateAppointmentRequest.NdeliusAppointment(
+    reference = ndeliusAppointmentId,
+    requirementId = if (referral.sourcedFrom == ReferralEntitySourcedFrom.REQUIREMENT) referral.eventId else null,
+    licenceConditionId = if (referral.sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION) referral.eventId else null,
+    date = session.startsAt.toLocalDate(),
+    startTime = session.startsAt.toLocalTime(),
+    endTime = session.endsAt.toLocalTime(),
+    outcome = null,
+    location = CreateAppointmentRequest.Location(session.programmeGroup.deliveryLocationCode),
+    staff = primaryFacilitator?.let { CreateAppointmentRequest.Staff(it.facilitatorCode) },
+    team = primaryFacilitator?.let { CreateAppointmentRequest.Team(it.teamCode) },
+    notes = buildSessionNotes(session.programmeGroup.treatmentManager, additionalFacilitators),
+    sensitive = false,
+    type = getAppointmentTypeFromModuleName(session.moduleSessionTemplate.module.name),
+  )
+}
+
+private fun buildSessionNotes(
+  treatmentManager: FacilitatorEntity?,
+  additionalFacilitators: List<SessionFacilitatorEntity>,
+): String? {
+  val parts = mutableListOf<String>()
+  treatmentManager?.let { parts.add("Treatment Manager: ${it.personName}") }
+  if (additionalFacilitators.isNotEmpty()) {
+    parts.add("Additional Facilitators: ${additionalFacilitators.joinToString(", ") { it.facilitator.personName }}")
+  }
+  return parts.takeIf { it.isNotEmpty() }?.joinToString("\n")
+}
 
 private fun getAppointmentTypeFromModuleName(moduleName: String): AppointmentType = when (moduleName) {
   "Pre-group one-to-ones" -> AppointmentType.PRE_GROUP_ONE_TO_ONE_MEETING
