@@ -116,7 +116,10 @@ class ScheduleService(
     }
 
     val savedSession = sessionRepository.save(session)
-    createNdeliusAppointmentsForSessions(savedSession.attendees)
+    val sessionAttendees = session.attendees
+    if (sessionAttendees.isNotEmpty()) {
+      createNdeliusAppointmentsForSessions(sessionAttendees)
+    }
 
     return savedSession
   }
