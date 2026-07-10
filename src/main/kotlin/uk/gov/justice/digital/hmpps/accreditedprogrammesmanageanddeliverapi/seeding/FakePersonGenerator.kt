@@ -111,7 +111,7 @@ class FakePersonGenerator {
 
   fun generateCrn(): String {
     // 'S' for "Seeded" - helps make it clear these are fake CRNs
-    return "S" + Faker().number().digits(9)
+    return "S" + Faker().number().digits(6)
   }
 }
 
