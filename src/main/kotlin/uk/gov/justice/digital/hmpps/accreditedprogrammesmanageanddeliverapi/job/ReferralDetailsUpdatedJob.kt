@@ -41,8 +41,7 @@ class ReferralDetailsUpdatedJob(
     log.info("Referral details updated Job started: at $now")
     var totalUpdated = 0
     val cutoffTime = LocalDateTime.now(clock).minusSeconds(cutoff)
-    val startingPage = 1
-    var currentPage = startingPage
+    var currentPage = 1
     var hasMoreRecords = true
 
     while (hasMoreRecords) {
@@ -54,7 +53,6 @@ class ReferralDetailsUpdatedJob(
         val referralId = referral.id!!
         val message = getDomainEventMessage(referralId, referral.crn)
         log.info("Publishing ${ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value} event for referralId: $referralId")
-        publishEvent(message, referralId)
         try {
           publishEvent(message, referralId)
           totalUpdated++
