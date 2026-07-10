@@ -658,14 +658,14 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("referralStatus")
         assertThat(item).hasFieldOrProperty("pdu")
       }
-      assertThat(response.otherTabTotal).isEqualTo(0)
+      assertThat(response.otherTabTotal).isEqualTo(1)
     }
 
     @Test
     fun `getCaseListItems returns matching referrals when multiple pdus are used as part of request`() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/open?pdu=PDU1&pdu=PDU2",
+        "/pages/caselist/open?pdu=${encodeQueryParamValue(pduWithComma)}&pdu=${encodeQueryParamValue(pduSecondary)}",
         object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
       val referralCaseListItems = response.pagedReferrals.content
@@ -675,7 +675,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       assertThat(referralCaseListItems)
         .allSatisfy { item ->
-          assertThat(item.pdu).isIn("PDU1", "PDU2")
+          assertThat(item.pdu).isIn(pduWithComma, pduSecondary)
         }
 
       referralCaseListItems.forEach { item ->
@@ -738,7 +738,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("pdu")
         assertThat(item).hasFieldOrProperty("reportingTeam")
       }
-      assertThat(response.otherTabTotal).isEqualTo(0)
+      assertThat(response.otherTabTotal).isEqualTo(1)
     }
 
     @Test

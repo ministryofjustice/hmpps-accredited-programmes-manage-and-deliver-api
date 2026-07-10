@@ -73,7 +73,10 @@ class CaseListController(
     }
 
     // Read raw repeated query params so comma-containing PDU names are treated as a single value.
-    val pdus = requestParams["pdu"]?.takeIf { it.isNotEmpty() }
+    // Decode each value for exact DB matching (e.g. "%2C" -> ",").
+    val pdus = requestParams["pdu"]
+      ?.takeIf { it.isNotEmpty() }
+      ?.map { URLDecoder.decode(it, "UTF-8") }
 
     return referralCaseListItemService.getReferralCaseListItemServiceByCriteria(
       pageable = pageable,
