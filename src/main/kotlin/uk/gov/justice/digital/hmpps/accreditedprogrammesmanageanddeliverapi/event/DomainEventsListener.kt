@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.awspring.cloud.sqs.annotation.SqsListener
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.ACP_M_AND_D_REFERRAL_DETAILS_UPDATED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.INTERVENTIONS_COMMUNITY_REFERRAL_CREATED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.INTERVENTIONS_COMMUNITY_REFERRAL_IMPORTED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.PROBATION_CASE_MERGE_COMPLETED
@@ -17,6 +18,7 @@ class DomainEventsListener(
   val referralImportedHandler: ReferralImportedHandler,
   val referralMergedHandler: ReferralMergedHandler,
   val referralUnmergedHandler: ReferralUnmergedHandler,
+  val referralDetailsUpdatedHandler: ReferralDetailsUpdatedHandler,
 ) {
   private val logger = LoggerFactory.getLogger(this::class.java)
 
@@ -28,6 +30,7 @@ class DomainEventsListener(
       INTERVENTIONS_COMMUNITY_REFERRAL_IMPORTED.value -> referralImportedHandler.handle(sqsMessage)
       PROBATION_CASE_MERGE_COMPLETED.value -> referralMergedHandler.handle(sqsMessage)
       PROBATION_CASE_UNMERGE_COMPLETED.value -> referralUnmergedHandler.handle(sqsMessage)
+      ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value -> referralDetailsUpdatedHandler.handle(sqsMessage)
       else -> logger.info("Unknown event type ${sqsMessage.eventType}")
     }
   }

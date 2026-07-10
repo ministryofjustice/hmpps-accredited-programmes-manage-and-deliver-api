@@ -8,6 +8,13 @@ management.endpoint:
 hmpps-auth:
   url: "http://localhost:9999/auth"
 
+app:
+  scheduling:
+    referral-details-updated:
+      cron: "0 0 1 * * *"  # every day at 1 AM
+      chunk-size: 100  # process referral records in chunks
+      cutoff: 1 # before updatedAt in seconds
+
 spring:
   jpa:
     show-sql: false
@@ -37,7 +44,7 @@ hmpps:
         queueName: hmpps_domain_events_queue
         dlqName: hmpps_domain_events_dlq
         subscribeTopicId: hmppseventtopic
-        subscribeFilter: '{"eventType":[ "interventions.community-referral.created", "interventions.community-referral.imported", "probation-case.merge.completed", "probation-case.unmerge.completed"] }'
+        subscribeFilter: '{"eventType":[ "interventions.community-referral.created", "interventions.community-referral.imported", "probation-case.merge.completed", "probation-case.unmerge.completed", "accredited-programmes-manage-and-deliver.referral.details-updated"] }'
         asyncQueueClient: true
 
     topics:

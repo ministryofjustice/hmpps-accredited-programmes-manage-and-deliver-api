@@ -32,6 +32,9 @@ data class DomainEventsMessage(
 
   @JsonIgnore
   val reactivatedCrn = additionalInformation?.get("reactivatedCRN") as String?
+
+  @JsonIgnore
+  val referralId = additionalInformation?.get("referralId") as String?
 }
 
 data class PersonReference(val identifiers: List<Identifier> = listOf()) {
