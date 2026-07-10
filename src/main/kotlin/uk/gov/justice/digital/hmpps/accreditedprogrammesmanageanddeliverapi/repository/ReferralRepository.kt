@@ -1,5 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository
 
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
@@ -30,6 +32,8 @@ interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
   ): ReferralEntity?
 
   fun findAllByCreatedAtBefore(createdAtBefore: LocalDateTime): MutableList<ReferralEntity>
+
+  fun findAllByUpdatedAtBefore(updatedAtBefore: LocalDateTime, pageable: Pageable): Page<ReferralEntity>
 
   @Query(
     value = """

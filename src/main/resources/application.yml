@@ -2,6 +2,13 @@ info.app:
   name: HMPPS Accredited Programmes Manage And Deliver Api
   version: 1.0
 
+app:
+  scheduling:
+    referral-details-updated:
+      cron: "0 0 1 * * *"  # every day at 1 AM
+      chunk-size: 100  # process referral records in chunks
+      cutoff: 432000 # before updatedAt in seconds
+
 spring:
   application:
     name: hmpps-accredited-programmes-manage-and-deliver-api
