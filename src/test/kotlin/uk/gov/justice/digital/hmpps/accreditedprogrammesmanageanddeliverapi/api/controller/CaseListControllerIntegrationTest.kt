@@ -30,9 +30,15 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.UserRegionOverrideRepository
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
+import java.util.UUID
 
 class CaseListControllerIntegrationTest : IntegrationTestBase() {
+
+  private lateinit var pduWithComma: String
+  private lateinit var pduSecondary: String
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
@@ -49,6 +55,9 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
   inner class GetCaseListReferrals {
     @BeforeEach
     fun beforeEach() {
+      pduWithComma = "Test PDU, ${UUID.randomUUID()}"
+      pduSecondary = "Test PDU ${UUID.randomUUID()}"
+
       testDataCleaner.cleanAllTables()
       createReferralsWithStatusHistoryAndReportingLocations()
       stubAuthTokenEndpoint()
@@ -93,7 +102,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withInterventionName("Horizon")
         .produce()
       val referralReportingLocation1 = ReferralReportingLocationFactory(referral1)
-        .withPduName("PDU1")
+        .withPduName(pduWithComma)
         .withReportingTeam("reportingTeam1")
         .withRegionName("WIREMOCKED REGION")
         .produce()
@@ -110,7 +119,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withInterventionName("Building Choices")
         .produce()
       val referralReportingLocation2 = ReferralReportingLocationFactory(referral2)
-        .withPduName("PDU1")
+        .withPduName(pduWithComma)
         .withReportingTeam("reportingTeam2")
         .withRegionName("WIREMOCKED REGION")
         .produce()
@@ -133,7 +142,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withStartDate(LocalDateTime.now())
         .produce(referral3, awaitingAssessmentStatusDescription)
       val referralReportingLocation3 = ReferralReportingLocationFactory(referral3)
-        .withPduName("PDU2")
+        .withPduName(pduSecondary)
         .withReportingTeam("reportingTeam1")
         .withRegionName("WIREMOCKED REGION")
         .produce()
@@ -150,7 +159,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withStartDate(LocalDateTime.now())
         .produce(referral4, awaitingAssessmentStatusDescription)
       val referralReportingLocation4 = ReferralReportingLocationFactory(referral4)
-        .withPduName("PDU1")
+        .withPduName(pduWithComma)
         .withReportingTeam("reportingTeam1")
         .withRegionName("WIREMOCKED REGION")
         .produce()
@@ -167,7 +176,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withStartDate(LocalDateTime.parse("2025-07-10T00:00:00"))
         .produce(referral5, awaitingAssessmentStatusDescription)
       val referralReportingLocation5 = ReferralReportingLocationFactory(referral5)
-        .withPduName("PDU2")
+        .withPduName(pduSecondary)
         .withReportingTeam("reportingTeam1")
         .withRegionName("WIREMOCKED REGION")
         .produce()
@@ -201,7 +210,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withStartDate(LocalDateTime.now())
         .produce(referral7, programmeCompleteStatusDescription)
       val referralReportingLocation7 = ReferralReportingLocationFactory(referral7)
-        .withPduName("PDU2")
+        .withPduName(pduWithComma)
         .withReportingTeam("reportingTeam2")
         .withRegionName("WIREMOCKED REGION")
         .produce()
@@ -319,7 +328,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.otherTabTotal).isEqualTo(1)
       assertThat(response.filters).isNotNull
       assertThat(response.filters.statusFilterValues.open).contains("Breach", "On programme")
-      assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder("PDU1", "PDU2", "UNKNOWN_PDU_NAME")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder(pduWithComma, pduSecondary, "UNKNOWN_PDU_NAME")
       assertThat(response.filters.locationFilterValues.map { it.pduName }).doesNotContain("OTHER_REGION_PDU")
       assertThat(response.filters.cohort).containsAll(ProgrammeGroupCohort.entries.map { it.label })
     }
@@ -373,7 +382,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response.pagedReferrals.totalElements).isEqualTo(6)
-      assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder("PDU1", "PDU2", "UNKNOWN_PDU_NAME")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder(pduWithComma, pduSecondary, "UNKNOWN_PDU_NAME")
       assertThat(response.filters.locationFilterValues.map { it.pduName }).doesNotContain("OTHER_REGION_PDU")
     }
 
@@ -408,7 +417,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.otherTabTotal).isEqualTo(1)
       assertThat(response.filters).isNotNull
       assertThat(response.filters.statusFilterValues.open).contains("Breach", "On programme")
-      assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder("PDU1", "PDU2", "UNKNOWN_PDU_NAME")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder(pduWithComma, pduSecondary, "UNKNOWN_PDU_NAME")
       assertThat(response.filters.locationFilterValues.map { it.pduName }).doesNotContain("OTHER_REGION_PDU")
       assertThat(response.filters.cohort).containsAll(ProgrammeGroupCohort.entries.map { it.label })
     }
@@ -630,7 +639,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     fun `getCaseListItems returns matching referrals when pdu is used as part of request`() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/open?pdu=PDU1",
+        "/pages/caselist/open?pdu=${encodeQueryParamValue(pduWithComma)}",
         object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
       val referralCaseListItems = response.pagedReferrals.content
@@ -640,7 +649,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       assertThat(referralCaseListItems)
         .allSatisfy { item ->
-          assertThat(item.pdu).isEqualTo("PDU1")
+          assertThat(item.pdu).isEqualTo(pduWithComma)
         }
 
       referralCaseListItems.forEach { item ->
@@ -682,7 +691,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     fun `getCaseListItems returns matching referrals when reporting team is used as part of request`() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/open?pdu=PDU1&reportingTeam=reportingTeam1",
+        "/pages/caselist/open?pdu=${encodeQueryParamValue(pduWithComma)}&reportingTeam=reportingTeam1",
         object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
       val referralCaseListItems = response.pagedReferrals.content
@@ -709,7 +718,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     fun `getCaseListItems returns matching referrals when multiple reporting teams are used as part of request`() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/open?pdu=PDU1&reportingTeam=reportingTeam1&reportingTeam=reportingTeam2",
+        "/pages/caselist/open?pdu=${encodeQueryParamValue(pduWithComma)}&reportingTeam=reportingTeam1&reportingTeam=reportingTeam2",
         object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
       val referralCaseListItems = response.pagedReferrals.content
@@ -730,6 +739,60 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("reportingTeam")
       }
       assertThat(response.otherTabTotal).isEqualTo(0)
+    }
+
+    @Test
+    fun `getCaseListItems for OPEN referrals supports single comma-containing pdu query value`() {
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?pdu=${encodeQueryParamValue(pduWithComma)}",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(3)
+      assertThat(response.pagedReferrals.content)
+        .allSatisfy { item -> assertThat(item.pdu).isEqualTo(pduWithComma) }
+    }
+
+    @Test
+    fun `getCaseListItems for OPEN referrals supports repeated pdu query values including comma-containing names`() {
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?pdu=${encodeQueryParamValue(pduSecondary)}&pdu=${encodeQueryParamValue(pduWithComma)}",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(5)
+      assertThat(response.pagedReferrals.content)
+        .allSatisfy { item ->
+          assertThat(item.pdu).isIn(pduWithComma, pduSecondary)
+        }
+    }
+
+    @Test
+    fun `getCaseListItems for CLOSED referrals supports single comma-containing pdu query value`() {
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/closed?pdu=${encodeQueryParamValue(pduWithComma)}",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
+      assertThat(response.pagedReferrals.content)
+        .allSatisfy { item -> assertThat(item.pdu).isEqualTo(pduWithComma) }
+    }
+
+    @Test
+    fun `getCaseListItems for CLOSED referrals supports repeated pdu query values including comma-containing names`() {
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/closed?pdu=${encodeQueryParamValue(pduSecondary)}&pdu=${encodeQueryParamValue(pduWithComma)}",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
+      assertThat(response.pagedReferrals.content)
+        .allSatisfy { item -> assertThat(item.pdu).isEqualTo(pduWithComma) }
     }
 
     @Test
@@ -809,7 +872,9 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactly("OTHER_REGION_PDU")
-      assertThat(response.filters.locationFilterValues.map { it.pduName }).doesNotContain("PDU1", "PDU2", "UNKNOWN_PDU_NAME")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).doesNotContain(pduWithComma, pduSecondary, "UNKNOWN_PDU_NAME")
     }
+
+    private fun encodeQueryParamValue(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8)
   }
 }
