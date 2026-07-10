@@ -12,6 +12,7 @@ import org.springframework.data.web.PageableDefault
 import org.springframework.http.MediaType
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException
+import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
@@ -59,20 +60,23 @@ class CaseListController(
       value = "status",
       required = false,
     ) status: String?,
-    @Parameter(description = "Filter by one or more pdus of the referral") @RequestParam(
-      value = "pdu",
-      required = false,
-    ) pdu: List<String>?,
     @Parameter(description = "Filter by the reporting team of the referral") @RequestParam(
       value = "reportingTeam",
       required = false,
     ) reportingTeams: List<String>?,
+    @RequestParam requestParams: MultiValueMap<String, String>,
   ): CaseListReferrals {
     val username = authenticationHolder.username
 
     if (username.isNullOrBlank()) {
       throw AuthenticationCredentialsNotFoundException("No authenticated user found")
     }
+
+    // Read raw repeated query params so comma-containing PDU names are treated as a single value.
+    // Decode each value for exact DB matching (e.g. "%2C" -> ",").
+    val pdus = requestParams["pdu"]
+      ?.takeIf { it.isNotEmpty() }
+      ?.map { URLDecoder.decode(it, "UTF-8") }
 
     return referralCaseListItemService.getReferralCaseListItemServiceByCriteria(
       pageable = pageable,
@@ -81,7 +85,7 @@ class CaseListController(
       crnOrPersonName = crnOrPersonName,
       cohort = cohort?.let { ProgrammeGroupCohort.fromString(it) },
       status = if (status.isNullOrEmpty()) null else URLDecoder.decode(status, "UTF-8"),
-      pdu = pdu,
+      pdus = pdus,
       reportingTeams = reportingTeams,
     )
   }

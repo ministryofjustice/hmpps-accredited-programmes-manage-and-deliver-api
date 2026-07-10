@@ -14,7 +14,7 @@ fun getReferralCaseListItemSpecification(
   offenceCohort: OffenceCohort? = null,
   hasLdc: Boolean? = null,
   status: String? = null,
-  pdu: List<String>? = null,
+  pdus: List<String>? = null,
   reportingTeams: List<String>? = null,
 ): Specification<ReferralCaseListItemViewEntity> = Specification { root: Root<ReferralCaseListItemViewEntity>, query: CriteriaQuery<*>?, criteriaBuilder: CriteriaBuilder ->
   val predicates: MutableList<Predicate> = mutableListOf()
@@ -67,14 +67,14 @@ fun getReferralCaseListItemSpecification(
     )
   }
 
-  pdu?.let {
+  pdus?.takeIf { it.isNotEmpty() }?.let {
     predicates.add(
-      root.get<String>("pduName").`in`(pdu),
+      root.get<String>("pduName").`in`(it),
     )
   }
 
   reportingTeams?.let {
-    pdu?.let {
+    pdus?.takeIf { it.isNotEmpty() }?.let {
       predicates.add(
         root.get<String>("reportingTeam").`in`(reportingTeams),
       )

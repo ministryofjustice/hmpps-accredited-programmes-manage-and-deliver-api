@@ -37,7 +37,7 @@ class ReferralCaseListItemService(
     crnOrPersonName: String?,
     cohort: ProgrammeGroupCohort?,
     status: String?,
-    pdu: List<String>?,
+    pdus: List<String>?,
     reportingTeams: List<String>?,
   ): CaseListReferrals {
     val (offenceType, hasLdc) = cohort?.let { ProgrammeGroupCohort.toOffenceTypeAndLdc(it) }
@@ -53,7 +53,7 @@ class ReferralCaseListItemService(
       offenceCohort = offenceType,
       hasLdc = hasLdc,
       status = ReferralStatusUtils.unformatStatus(status),
-      pdu = pdu,
+      pdus = pdus,
       reportingTeams = reportingTeams,
     ).map { it.toApi() }
 
@@ -65,7 +65,7 @@ class ReferralCaseListItemService(
       offenceCohort = offenceType,
       hasLdc = hasLdc,
       status = status,
-      pdu = pdu,
+      pdus = pdus,
       reportingTeams = reportingTeams,
     ).totalElements
 
@@ -80,7 +80,7 @@ class ReferralCaseListItemService(
     offenceCohort: OffenceCohort?,
     hasLdc: Boolean?,
     status: String?,
-    pdu: List<String>?,
+    pdus: List<String>?,
     reportingTeams: List<String>?,
   ): Page<ReferralCaseListItemViewEntity> {
     val possibleStatuses = referralStatusService.getOpenOrClosedStatusesDescriptions(openOrClosed)
@@ -92,7 +92,7 @@ class ReferralCaseListItemService(
         offenceCohort = offenceCohort,
         hasLdc = hasLdc,
         status = status,
-        pdu = pdu,
+        pdus = pdus,
         reportingTeams = reportingTeams,
       )
 
