@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.repository.findByIdOrNull
@@ -214,7 +213,7 @@ class ProgrammeGroupController(
   ): ResponseEntity<GroupsByRegion> {
     val username = authenticationUtils.getUsername()
 
-    //Handle non-alpha characters in the PDU or delivery location, such as ','
+    // Handle non-alpha characters in the PDU or delivery location, such as ','
     val pdusDecoded = requestParams["pdu"]
       ?.takeIf { it.isNotEmpty() }
       ?.map { URLDecoder.decode(it, "UTF-8") }

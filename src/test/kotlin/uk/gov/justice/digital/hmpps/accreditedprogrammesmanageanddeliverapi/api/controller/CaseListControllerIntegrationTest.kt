@@ -796,6 +796,220 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `getCaseListItems for OPEN referrals supports single comma-containing reportingTeam query value`() {
+      val reportingTeamWithComma = "Team A, Manchester"
+
+      // Create a referral with a reportingTeam containing a comma
+      val referral = ReferralEntityFactory()
+        .withPersonName("Test Person")
+        .withCrn("CRN-COMMA-TEAM")
+        .withInterventionName("Horizon")
+        .produce()
+      val reportingLocation = ReferralReportingLocationFactory(referral)
+        .withPduName(pduWithComma)
+        .withReportingTeam(reportingTeamWithComma)
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      referral.referralReportingLocation = reportingLocation
+
+      val awaitingAssessmentStatus = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+      val statusHistory = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .withCreatedBy("USER_ID_12345")
+        .withStartDate(LocalDateTime.now())
+        .produce(referral, awaitingAssessmentStatus)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).produce()
+      referral.referralCohortHistories = mutableSetOf(cohortHistory)
+
+      testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, reportingLocation))
+
+      nDeliusApiStubs.stubAccessCheck(true, "CRN-COMMA-TEAM")
+
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?reportingTeam=${encodeQueryParamValue(reportingTeamWithComma)}",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
+      assertThat(response.pagedReferrals.content)
+        .allSatisfy { item -> assertThat(item.reportingTeam).isEqualTo(reportingTeamWithComma) }
+    }
+
+    @Test
+    fun `getCaseListItems for OPEN referrals supports repeated reportingTeam query values including comma-containing names`() {
+      val reportingTeamWithComma = "Team B, London"
+      val reportingTeamNormal = "Team C"
+
+      // Create first referral with comma-containing team
+      val referral1 = ReferralEntityFactory()
+        .withPersonName("Person One")
+        .withCrn("CRN-MULTI-TEAM-1")
+        .withInterventionName("Horizon")
+        .produce()
+      val reportingLocation1 = ReferralReportingLocationFactory(referral1)
+        .withPduName(pduWithComma)
+        .withReportingTeam(reportingTeamWithComma)
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      referral1.referralReportingLocation = reportingLocation1
+
+      // Create second referral with normal team name
+      val referral2 = ReferralEntityFactory()
+        .withPersonName("Person Two")
+        .withCrn("CRN-MULTI-TEAM-2")
+        .withInterventionName("Building Choices")
+        .produce()
+      val reportingLocation2 = ReferralReportingLocationFactory(referral2)
+        .withPduName(pduSecondary)
+        .withReportingTeam(reportingTeamNormal)
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      referral2.referralReportingLocation = reportingLocation2
+
+      val awaitingAssessmentStatus = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+      val statusHistory1 = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .withCreatedBy("USER_ID_12345")
+        .withStartDate(LocalDateTime.now())
+        .produce(referral1, awaitingAssessmentStatus)
+      val statusHistory2 = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .withCreatedBy("USER_ID_12345")
+        .withStartDate(LocalDateTime.now())
+        .produce(referral2, awaitingAssessmentStatus)
+
+      val cohortHistory1 = ReferralCohortHistoryFactory().withReferral(referral1).produce()
+      val cohortHistory2 = ReferralCohortHistoryFactory().withReferral(referral2).produce()
+      referral1.referralCohortHistories = mutableSetOf(cohortHistory1)
+      referral2.referralCohortHistories = mutableSetOf(cohortHistory2)
+
+      testDataGenerator.createReferralWithFields(referral1, listOf(statusHistory1, reportingLocation1))
+      testDataGenerator.createReferralWithFields(referral2, listOf(statusHistory2, reportingLocation2))
+
+      nDeliusApiStubs.stubAccessCheck(true, "CRN-MULTI-TEAM-1", "CRN-MULTI-TEAM-2")
+
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?reportingTeam=${encodeQueryParamValue(reportingTeamWithComma)}&reportingTeam=${encodeQueryParamValue(reportingTeamNormal)}",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(2)
+      assertThat(response.pagedReferrals.content)
+        .allSatisfy { item ->
+          assertThat(item.reportingTeam).isIn(reportingTeamWithComma, reportingTeamNormal)
+        }
+    }
+
+    @Test
+    fun `getCaseListItems for CLOSED referrals supports single comma-containing reportingTeam query value`() {
+      val reportingTeamWithComma = "Team D, Birmingham"
+
+      // Create a closed referral with a reportingTeam containing a comma
+      val referral = ReferralEntityFactory()
+        .withPersonName("Closed Person")
+        .withCrn("CRN-CLOSED-COMMA")
+        .withInterventionName("New Me")
+        .produce()
+      val reportingLocation = ReferralReportingLocationFactory(referral)
+        .withPduName(pduWithComma)
+        .withReportingTeam(reportingTeamWithComma)
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      referral.referralReportingLocation = reportingLocation
+
+      val programmeCompleteStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+      val statusHistory = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .withCreatedBy("USER_ID_12345")
+        .withStartDate(LocalDateTime.now())
+        .produce(referral, programmeCompleteStatus)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).produce()
+      referral.referralCohortHistories = mutableSetOf(cohortHistory)
+
+      testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, reportingLocation))
+
+      nDeliusApiStubs.stubAccessCheck(true, "CRN-CLOSED-COMMA")
+
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/closed?reportingTeam=${encodeQueryParamValue(reportingTeamWithComma)}",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
+      assertThat(response.pagedReferrals.content)
+        .allSatisfy { item -> assertThat(item.reportingTeam).isEqualTo(reportingTeamWithComma) }
+    }
+
+    @Test
+    fun `getCaseListItems for CLOSED referrals supports repeated reportingTeam query values including comma-containing names`() {
+      val reportingTeamWithComma = "Team E, Leeds"
+      val reportingTeamWithAmpersand = "Team F & Associates"
+
+      // Create first closed referral with comma-containing team
+      val referral1 = ReferralEntityFactory()
+        .withPersonName("Closed One")
+        .withCrn("CRN-CLOSED-MULTI-1")
+        .withInterventionName("Horizon")
+        .produce()
+      val reportingLocation1 = ReferralReportingLocationFactory(referral1)
+        .withPduName(pduWithComma)
+        .withReportingTeam(reportingTeamWithComma)
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      referral1.referralReportingLocation = reportingLocation1
+
+      // Create second closed referral with ampersand in team name
+      val referral2 = ReferralEntityFactory()
+        .withPersonName("Closed Two")
+        .withCrn("CRN-CLOSED-MULTI-2")
+        .withInterventionName("Building Choices")
+        .produce()
+      val reportingLocation2 = ReferralReportingLocationFactory(referral2)
+        .withPduName(pduSecondary)
+        .withReportingTeam(reportingTeamWithAmpersand)
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      referral2.referralReportingLocation = reportingLocation2
+
+      val programmeCompleteStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+      val statusHistory1 = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .withCreatedBy("USER_ID_12345")
+        .withStartDate(LocalDateTime.now())
+        .produce(referral1, programmeCompleteStatus)
+      val statusHistory2 = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .withCreatedBy("USER_ID_12345")
+        .withStartDate(LocalDateTime.now())
+        .produce(referral2, programmeCompleteStatus)
+
+      val cohortHistory1 = ReferralCohortHistoryFactory().withReferral(referral1).produce()
+      val cohortHistory2 = ReferralCohortHistoryFactory().withReferral(referral2).produce()
+      referral1.referralCohortHistories = mutableSetOf(cohortHistory1)
+      referral2.referralCohortHistories = mutableSetOf(cohortHistory2)
+
+      testDataGenerator.createReferralWithFields(referral1, listOf(statusHistory1, reportingLocation1))
+      testDataGenerator.createReferralWithFields(referral2, listOf(statusHistory2, reportingLocation2))
+
+      nDeliusApiStubs.stubAccessCheck(true, "CRN-CLOSED-MULTI-1", "CRN-CLOSED-MULTI-2")
+
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/closed?reportingTeam=${encodeQueryParamValue(reportingTeamWithComma)}&reportingTeam=${encodeQueryParamValue(reportingTeamWithAmpersand)}",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(2)
+      assertThat(response.pagedReferrals.content)
+        .allSatisfy { item ->
+          assertThat(item.reportingTeam).isIn(reportingTeamWithComma, reportingTeamWithAmpersand)
+        }
+    }
+
+    @Test
     fun `getCaseListItems should only return referrals with a matching status when supplied`() {
       // When
       val response = performRequestAndExpectOk(
