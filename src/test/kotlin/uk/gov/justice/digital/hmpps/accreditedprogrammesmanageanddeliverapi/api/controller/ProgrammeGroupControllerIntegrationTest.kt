@@ -425,7 +425,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       response.pagedGroupData.content.forEach { item ->
         assertThat(item.sex).isEqualTo("Male")
         assertThat(item.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
-        assertThat(item.pdu).isEqualTo("Test PDU 1")
+        assertThat(item.pdu).contains("Test PDU 1")
         assertThat(item.referralId).isNotNull
         assertThat(item.sourcedFrom).isNotNull
       }
@@ -501,7 +501,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.pagedGroupData.content).hasSize(2)
 
       response.pagedGroupData.content.forEach { item ->
-        assertThat(item.pdu).isEqualTo("PDU 1")
+        assertThat(item.pdu).contains("PDU 1")
         assertThat(item.reportingTeam).isEqualTo("Team A")
       }
     }
@@ -1029,6 +1029,498 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
+    }
+
+    @Test
+    fun `should filter by single PDU`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val region = "WIREMOCKED REGION"
+
+      val groupPdu1 = ProgrammeGroupFactory()
+        .withCode("GROUP-PDU1-A")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .produce()
+
+      val groupPdu2 = ProgrammeGroupFactory()
+        .withCode("GROUP-PDU2-A")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU002", "Test PDU 2")
+        .produce()
+
+      val groupPdu1B = ProgrammeGroupFactory()
+        .withCode("GROUP-PDU1-B")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .produce()
+
+      listOf(groupPdu1, groupPdu2, groupPdu1B).forEach { testDataGenerator.createGroup(it) }
+
+      // When - filter by PDU001
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=Test%20PDU%201",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+
+      // Then
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(2)
+      val codes = response.pagedGroupData.content.map { it.code }
+      assertThat(codes).containsExactlyInAnyOrder("GROUP-PDU1-A", "GROUP-PDU1-B")
+    }
+
+    @Test
+    fun `should filter by multiple PDUs`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val region = "WIREMOCKED REGION"
+
+      val groupPdu1 = ProgrammeGroupFactory()
+        .withCode("GROUP-PDU1")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .produce()
+
+      val groupPdu2 = ProgrammeGroupFactory()
+        .withCode("GROUP-PDU2")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU002", "Test PDU 2")
+        .produce()
+
+      val groupPdu3 = ProgrammeGroupFactory()
+        .withCode("GROUP-PDU3")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU003", "Test PDU 3")
+        .produce()
+
+      val groupPdu1B = ProgrammeGroupFactory()
+        .withCode("GROUP-PDU1-B")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .produce()
+
+      val groupPdu2B = ProgrammeGroupFactory()
+        .withCode("GROUP-PDU2-B")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU002", "Test PDU 2")
+        .produce()
+
+      listOf(groupPdu1, groupPdu2, groupPdu3, groupPdu1B, groupPdu2B).forEach {
+        testDataGenerator.createGroup(it)
+      }
+
+      // When - filter by multiple PDUs (PDU001 and PDU002)
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=Test%20PDU%201&pdu=Test%20PDU%202",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+
+      // Then - should return groups from both PDU001 and PDU002 but not PDU003
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(4)
+      val codes = response.pagedGroupData.content.map { it.code }
+      assertThat(codes).containsExactlyInAnyOrder("GROUP-PDU1", "GROUP-PDU2", "GROUP-PDU1-B", "GROUP-PDU2-B")
+      assertThat(codes).doesNotContain("GROUP-PDU3")
+    }
+
+    @Test
+    fun `should filter by multiple PDUs with special characters`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val region = "WIREMOCKED REGION"
+
+      nDeliusApiStubs.stubUserTeamsResponse(
+        "AUTH_ADM",
+        NDeliusUserTeams(
+          teams = listOf(
+            NDeliusUserTeam(
+              code = "TEAM001",
+              description = "Test Team 1",
+              pdu = CodeDescription("PDU001", "North West, Manchester"),
+              region = CodeDescription("REGION001", region),
+            ),
+          ),
+        ),
+      )
+
+      val groupWithComma = ProgrammeGroupFactory()
+        .withCode("GROUP-COMMA")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU001", "North West, Manchester")
+        .produce()
+
+      val groupWithAmpersand = ProgrammeGroupFactory()
+        .withCode("GROUP-AMP")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU002", "South East & London")
+        .produce()
+
+      val groupNormal = ProgrammeGroupFactory()
+        .withCode("GROUP-NORMAL")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU003", "Yorkshire")
+        .produce()
+
+      listOf(groupWithComma, groupWithAmpersand, groupNormal).forEach {
+        testDataGenerator.createGroup(it)
+      }
+
+      // When - filter by PDUs with special characters (URL encoded)
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=North%20West%2C%20Manchester&pdu=South%20East%20%26%20London",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+
+      // Then
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(2)
+      val codes = response.pagedGroupData.content.map { it.code }
+      assertThat(codes).containsExactlyInAnyOrder("GROUP-COMMA", "GROUP-AMP")
+      assertThat(codes).doesNotContain("GROUP-NORMAL")
+    }
+
+    @Test
+    fun `should filter by multiple PDUs and maintain correct otherTabTotal`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val region = "WIREMOCKED REGION"
+
+      nDeliusApiStubs.stubUserTeamsResponse(
+        "AUTH_ADM",
+        NDeliusUserTeams(
+          teams = listOf(
+            NDeliusUserTeam(
+              code = "TEAM001",
+              description = "Test Team 1",
+              pdu = CodeDescription("PDU001", "Test PDU 1"),
+              region = CodeDescription("REGION001", region),
+            ),
+          ),
+        ),
+      )
+
+      // Create started groups in PDU1
+      val startedPdu1 = ProgrammeGroupFactory()
+        .withCode("STARTED-PDU1")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .withEarliestStartDate(LocalDate.now().minusDays(5))
+        .produce()
+
+      // Create completed group in PDU1
+      val completedPdu1 = ProgrammeGroupFactory()
+        .withCode("COMPLETED-PDU1")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .withEarliestStartDate(LocalDate.now().minusDays(20))
+        .produce()
+
+      // Create started groups in PDU2
+      val startedPdu2 = ProgrammeGroupFactory()
+        .withCode("STARTED-PDU2")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU002", "Test PDU 2")
+        .withEarliestStartDate(LocalDate.now().minusDays(3))
+        .produce()
+
+      // Create completed group in PDU2
+      val completedPdu2 = ProgrammeGroupFactory()
+        .withCode("COMPLETED-PDU2")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU002", "Test PDU 2")
+        .withEarliestStartDate(LocalDate.now().minusDays(25))
+        .produce()
+
+      // Create group in PDU3 (should not be included)
+      val startedPdu3 = ProgrammeGroupFactory()
+        .withCode("STARTED-PDU3")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU003", "Test PDU 3")
+        .withEarliestStartDate(LocalDate.now().minusDays(2))
+        .produce()
+
+      listOf(startedPdu1, completedPdu1, startedPdu2, completedPdu2, startedPdu3).forEach {
+        testDataGenerator.createGroup(it)
+      }
+
+      // Set up completed groups with referrals and PPR
+      val referral1 = testDataGenerator.createReferral(personName = "Person 1", crn = "X123460")
+      val referral2 = testDataGenerator.createReferral(personName = "Person 2", crn = "X123461")
+
+      val membership1 = testDataGenerator.allocateReferralsToGroup(
+        listOf(referral1),
+        completedPdu1,
+        deletedAt = LocalDateTime.now(),
+      ).first()
+      val membership2 = testDataGenerator.allocateReferralsToGroup(
+        listOf(referral2),
+        completedPdu2,
+        deletedAt = LocalDateTime.now(),
+      ).first()
+
+      setupPostProgrammeReviewForGroup(completedPdu1, listOf(membership1), attended = true)
+      setupPostProgrammeReviewForGroup(completedPdu2, listOf(membership2), attended = true)
+
+      val programmeCompleteStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(referral1, programmeCompleteStatus),
+      )
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(referral2, programmeCompleteStatus),
+      )
+
+      // When - filter NOT_STARTED_OR_IN_PROGRESS by PDU1 and PDU2
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=Test%20PDU%201&pdu=Test%20PDU%202",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+
+      // Then
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(2)
+      val codes = response.pagedGroupData.content.map { it.code }
+      assertThat(codes).containsExactlyInAnyOrder("STARTED-PDU1", "STARTED-PDU2")
+      assertThat(codes).doesNotContain("STARTED-PDU3", "COMPLETED-PDU1", "COMPLETED-PDU2")
+
+      // otherTabTotal should be 2 (the completed groups in PDU1 and PDU2, excluding PDU3)
+      assertThat(response.otherTabTotal).isEqualTo(2)
+    }
+
+    @Test
+    fun `should return empty when filtering by PDUs that have no groups`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val region = "WIREMOCKED REGION"
+
+      nDeliusApiStubs.stubUserTeamsResponse(
+        "AUTH_ADM",
+        NDeliusUserTeams(
+          teams = listOf(
+            NDeliusUserTeam(
+              code = "TEAM001",
+              description = "Test Team 1",
+              pdu = CodeDescription("PDU001", "Test PDU 1"),
+              region = CodeDescription("REGION001", region),
+            ),
+          ),
+        ),
+      )
+
+      val groupPdu1 = ProgrammeGroupFactory()
+        .withCode("GROUP-PDU1")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .produce()
+
+      testDataGenerator.createGroup(groupPdu1)
+
+      // When - filter by PDU that doesn't exist
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=Non%20Existent%20PDU",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+
+      // Then
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(0)
+      assertThat(response.pagedGroupData.content).isEmpty()
+    }
+
+    @Test
+    fun `should combine multiple PDU filter with other filters`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val region = "WIREMOCKED REGION"
+
+      nDeliusApiStubs.stubUserTeamsResponse(
+        "AUTH_ADM",
+        NDeliusUserTeams(
+          teams = listOf(
+            NDeliusUserTeam(
+              code = "TEAM001",
+              description = "Test Team 1",
+              pdu = CodeDescription("PDU001", "Test PDU 1"),
+              region = CodeDescription("REGION001", region),
+            ),
+          ),
+        ),
+      )
+
+      // PDU1, Male, Sexual Offence
+      val group1 = ProgrammeGroupFactory()
+        .withCode("GROUP-1")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .withSex(ProgrammeGroupSexEnum.MALE)
+        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
+        .produce()
+
+      // PDU1, Female, Sexual Offence
+      val group2 = ProgrammeGroupFactory()
+        .withCode("GROUP-2")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .withSex(ProgrammeGroupSexEnum.FEMALE)
+        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
+        .produce()
+
+      // PDU2, Male, Sexual Offence
+      val group3 = ProgrammeGroupFactory()
+        .withCode("GROUP-3")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU002", "Test PDU 2")
+        .withSex(ProgrammeGroupSexEnum.MALE)
+        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
+        .produce()
+
+      // PDU2, Male, General Offence
+      val group4 = ProgrammeGroupFactory()
+        .withCode("GROUP-4")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU002", "Test PDU 2")
+        .withSex(ProgrammeGroupSexEnum.MALE)
+        .withCohort(OffenceCohort.GENERAL_OFFENCE)
+        .produce()
+
+      listOf(group1, group2, group3, group4).forEach { testDataGenerator.createGroup(it) }
+
+      // When - filter by PDU1 & PDU2, Male, Sexual Offence
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=Test%20PDU%201&pdu=Test%20PDU%202&sex=Male&cohort=Sexual%20offence",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+
+      // Then - should return only Male, Sexual Offence groups from PDU1 and PDU2
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(2)
+      val codes = response.pagedGroupData.content.map { it.code }
+      assertThat(codes).containsExactlyInAnyOrder("GROUP-1", "GROUP-3")
+    }
+
+    @Test
+    fun `should filter by delivery location with special characters`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val region = "WIREMOCKED REGION"
+
+      nDeliusApiStubs.stubUserTeamsResponse(
+        "AUTH_ADM",
+        NDeliusUserTeams(
+          teams = listOf(
+            NDeliusUserTeam(
+              code = "TEAM001",
+              description = "Test Team 1",
+              pdu = CodeDescription("PDU001", "Test PDU 1"),
+              region = CodeDescription("REGION001", region),
+            ),
+          ),
+        ),
+      )
+
+      val groupWithComma = ProgrammeGroupFactory()
+        .withCode("GROUP-DL-COMMA")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .withDeliveryLocation("DL001", "St. Mary's, London")
+        .produce()
+
+      val groupWithAmpersand = ProgrammeGroupFactory()
+        .withCode("GROUP-DL-AMP")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .withDeliveryLocation("DL002", "Arts & Crafts Centre")
+        .produce()
+
+      val groupWithApostrophe = ProgrammeGroupFactory()
+        .withCode("GROUP-DL-APOS")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .withDeliveryLocation("DL003", "Queen's Court")
+        .produce()
+
+      val groupNormal = ProgrammeGroupFactory()
+        .withCode("GROUP-DL-NORMAL")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .withDeliveryLocation("DL004", "Central Office")
+        .produce()
+
+      listOf(groupWithComma, groupWithAmpersand, groupWithApostrophe, groupNormal).forEach {
+        testDataGenerator.createGroup(it)
+      }
+
+      // When - filter by delivery locations with special characters (URL encoded)
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=Test%20PDU%201&deliveryLocations=St.%20Mary%27s%2C%20London&deliveryLocations=Arts%20%26%20Crafts%20Centre",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+
+      // Then
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(2)
+      val codes = response.pagedGroupData.content.map { it.code }
+      assertThat(codes).containsExactlyInAnyOrder("GROUP-DL-COMMA", "GROUP-DL-AMP")
+      assertThat(codes).doesNotContain("GROUP-DL-APOS", "GROUP-DL-NORMAL")
+    }
+
+    @Test
+    fun `should filter by PDU and delivery location with special characters together`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val region = "WIREMOCKED REGION"
+
+      nDeliusApiStubs.stubUserTeamsResponse(
+        "AUTH_ADM",
+        NDeliusUserTeams(
+          teams = listOf(
+            NDeliusUserTeam(
+              code = "TEAM001",
+              description = "Test Team 1",
+              pdu = CodeDescription("PDU001", "North & South PDU"),
+              region = CodeDescription("REGION001", region),
+            ),
+          ),
+        ),
+      )
+
+      val groupMatch = ProgrammeGroupFactory()
+        .withCode("GROUP-MATCH")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU001", "North & South PDU")
+        .withDeliveryLocation("DL001", "St. John's Centre")
+        .produce()
+
+      val groupWrongPdu = ProgrammeGroupFactory()
+        .withCode("GROUP-WRONG-PDU")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU002", "East PDU")
+        .withDeliveryLocation("DL001", "St. John's Centre")
+        .produce()
+
+      val groupWrongLocation = ProgrammeGroupFactory()
+        .withCode("GROUP-WRONG-LOC")
+        .withRegionName(region)
+        .withProbationDeliveryUnit("PDU001", "North & South PDU")
+        .withDeliveryLocation("DL002", "West Centre")
+        .produce()
+
+      listOf(groupMatch, groupWrongPdu, groupWrongLocation).forEach {
+        testDataGenerator.createGroup(it)
+      }
+
+      // When - filter by both PDU and delivery location with special characters
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=North%20%26%20South%20PDU&deliveryLocations=St.%20John%27s%20Centre",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+
+      // Then - should only return groups matching both PDU and delivery location
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(1)
+      val codes = response.pagedGroupData.content.map { it.code }
+      assertThat(codes).containsExactly("GROUP-MATCH")
+      assertThat(codes).doesNotContain("GROUP-WRONG-PDU", "GROUP-WRONG-LOC")
     }
   }
 

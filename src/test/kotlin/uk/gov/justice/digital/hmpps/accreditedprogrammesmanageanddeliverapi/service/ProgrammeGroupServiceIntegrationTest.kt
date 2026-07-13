@@ -306,7 +306,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       val programmeGroups = service.getProgrammeGroupsForRegion(
         pageable = Pageable.ofSize(10),
         groupCode = null,
-        pdu = "PDU Description",
+        pdu = listOf("PDU Description"),
         deliveryLocations = null,
         cohort = null,
         sex = "MALE",
