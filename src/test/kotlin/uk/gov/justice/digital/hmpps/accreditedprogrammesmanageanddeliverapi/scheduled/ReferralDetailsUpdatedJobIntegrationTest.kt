@@ -1,4 +1,4 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.job
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.scheduled
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking

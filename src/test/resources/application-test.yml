@@ -14,6 +14,9 @@ app:
       cron: "0 0 1 * * *"  # every day at 1 AM
       chunk-size: 100  # process referral records in chunks
       cutoff: 1 # before updatedAt in seconds
+      shedlock:
+        lock-most: PT1M # lock for max 1 minute
+        lock-least: PT1M # lock at least for 1 minute
 
 spring:
   jpa:
@@ -61,7 +64,7 @@ hmpps:
       expected-render-result:
         path: /sar/sar-api-expected-render-result.html
       attachments-expected: false
-      expected-flyway-schema-version: 108
+      expected-flyway-schema-version: 112
       expected-jpa-entity-schema:
         path: /sar/entity-schema-snapshot.json
 
