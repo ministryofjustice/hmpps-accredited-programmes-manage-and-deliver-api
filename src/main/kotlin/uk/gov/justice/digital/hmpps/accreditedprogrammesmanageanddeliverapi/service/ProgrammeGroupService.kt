@@ -668,7 +668,7 @@ class ProgrammeGroupService(
   fun getProgrammeGroupsForRegion(
     pageable: Pageable,
     groupCode: String?,
-    pdu: String?,
+    pdu: List<String>?,
     deliveryLocations: List<String>?,
     cohort: String?,
     sex: String?,

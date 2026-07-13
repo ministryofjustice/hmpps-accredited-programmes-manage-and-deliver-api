@@ -41,7 +41,7 @@ fun hasAtLeastOneActiveMembership(
 
 fun getProgrammeGroupsSpecification(
   groupCode: String?,
-  pdu: String?,
+  pdu: List<String>?,
   deliveryLocations: List<String>?,
   cohort: ProgrammeGroupCohort?,
   sex: String?,
@@ -57,7 +57,7 @@ fun getProgrammeGroupsSpecification(
   }
 
   pdu?.let {
-    predicates.add(cb.equal(root.get<String>("probationDeliveryUnitName"), it))
+    predicates.add(root.get<String>("probationDeliveryUnitName").`in`(it))
   }
 
   deliveryLocations?.let { locations ->
