@@ -195,7 +195,6 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     }
   }
 
-  // TODO: FIX THIS TEST - IT SHOULD BE CREATING A MESSAGE_HISTORY ROW
   @Test
   fun `should create message history on receipt of probation case merge completed message`() {
     // Given
@@ -327,8 +326,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     assertThat(referralRepository.count()).isEqualTo(0)
 
     val messageHistory = messageHistoryRepository.findAll().firstOrNull()
-    // TODO: FIX THIS LINE
-    assertThat(messageHistory).isNull()
+    assertThat(messageHistory).isNotNull
+    assertThat(messageHistory!!.referral).isNull()
+    assertThat(messageHistory.msToProcess).isNull()
   }
 
   @Test
