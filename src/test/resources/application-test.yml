@@ -14,6 +14,9 @@ app:
       cron: "0 0 1 * * *"  # every day at 1 AM
       chunk-size: 100  # process referral records in chunks
       cutoff: 1 # before updatedAt in seconds
+      shedlock:
+        lock-most: PT1M # lock for max 1 minute
+        lock-least: PT1M # lock at least for 1 minute
 
 spring:
   jpa:

@@ -1,6 +1,7 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.job
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.scheduled
 
 import com.microsoft.applicationinsights.TelemetryClient
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Page
@@ -36,6 +37,11 @@ class ReferralDetailsUpdatedJob(
   }
 
   @Scheduled(cron = "\${app.scheduling.referral-details-updated.cron}")
+  @SchedulerLock(
+    name = "referralDetailsUpdatedJob",
+    lockAtMostFor = $$"${app.scheduling.referral-details-updated.shedlock.lock-most:PT2H}",
+    lockAtLeastFor = $$"${app.scheduling.referral-details-updated.shedlock.lock-least:PT1H}",
+  )
   fun process() {
     val now = clock.instant()
     log.info("Referral details updated Job started: at $now")
