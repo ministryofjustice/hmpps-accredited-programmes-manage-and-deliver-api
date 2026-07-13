@@ -817,6 +817,92 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `getCaseListItems for OPEN tab filtered by Breach returns matching referral and correct otherTabTotal`() {
+      // Given a Breach (non-attendance) referral seeded in addition to the standard fixtures
+      seedBreachReferral()
+
+      // When: filter the OPEN tab by the UI-facing label "Breach"
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?status=Breach",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      // Then the main query normalises "Breach" -> "Breach (non-attendance)" for the DB lookup
+      // and returns the seeded referral. The API-level label is formatted back to "Breach".
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
+      assertThat(response.pagedReferrals.content)
+        .allSatisfy { item ->
+          assertThat(item.crn).isEqualTo("CRN-BREACH1")
+          assertThat(item.referralStatus).isEqualTo("Breach")
+        }
+      // And Breach is an open-only status, so the CLOSED tab count is 0
+      assertThat(response.otherTabTotal).isEqualTo(0)
+    }
+
+    @Test
+    fun `getCaseListItems for CLOSED tab filtered by Breach normalises status for otherTabCount`() {
+      // Given a Breach (non-attendance) referral (OPEN) seeded in addition to the standard fixtures.
+      // Previously the otherTabCount query received the raw "Breach" string which never matched
+      // the DB value "Breach (non-attendance)", so otherTabTotal was always 0.
+      seedBreachReferral()
+
+      // When: user is on the CLOSED tab filtering by Breach
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/closed?status=Breach",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      // Then the CLOSED tab has no Breach referrals
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(0)
+      // And the OPEN tab count (otherTabTotal) correctly reflects the seeded Breach referral
+      assertThat(response.otherTabTotal).isEqualTo(1)
+    }
+
+    private fun seedBreachReferral() {
+      val breachStatusDescription = referralStatusDescriptionRepository.getBreachNonAttendanceStatusDescription()
+
+      // Re-stub access check to include the additional CRN alongside the ones set up in @BeforeEach
+      nDeliusApiStubs.stubAccessCheck(
+        true,
+        "X7182552",
+        "CRN-999999",
+        "CRN-888888",
+        "CRN-777777",
+        "CRN-66666",
+        "CRN-555555",
+        "CRN-111111",
+        "CRN-BREACH1",
+      )
+
+      val breachReferral = ReferralEntityFactory()
+        .withPersonName("Barry Reach")
+        .withCrn("CRN-BREACH1")
+        .withInterventionName("Building Choices")
+        .produce()
+      val breachReportingLocation = ReferralReportingLocationFactory(breachReferral)
+        .withPduName(pduWithComma)
+        .withReportingTeam("reportingTeam1")
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      val breachStatusHistory = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .withCreatedBy("USER_ID_12345")
+        .withStartDate(LocalDateTime.now())
+        .produce(breachReferral, breachStatusDescription)
+      val breachCohortHistory = ReferralCohortHistoryFactory().withReferral(breachReferral).produce()
+
+      breachReferral.referralReportingLocation = breachReportingLocation
+      breachReferral.referralCohortHistories = mutableSetOf(breachCohortHistory)
+
+      testDataGenerator.createReferralWithFields(
+        breachReferral,
+        listOf(breachStatusHistory, breachStatusHistory, breachCohortHistory, breachReportingLocation),
+      )
+    }
+
+    @Test
     fun `getCaseListItems for OPEN referrals with reporting location should default to 'UNKNOWN' values and return 200 and paged list of referral case list items`() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,

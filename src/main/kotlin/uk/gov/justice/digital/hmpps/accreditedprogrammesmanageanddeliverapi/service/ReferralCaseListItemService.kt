@@ -45,6 +45,10 @@ class ReferralCaseListItemService(
 
     val userRegionNames = userService.getUserRegionNames(username)
 
+    // Normalise the status filter once so both the main query and the otherTabCount query
+    // receive the same DB-compatible value (e.g. "Breach" -> "Breach (non-attendance)").
+    val normalisedStatus = ReferralStatusUtils.unformatStatus(status)
+
     val referralsToReturn = getReferralCaseList(
       pageable = pageable,
       openOrClosed = openOrClosed,
@@ -52,7 +56,7 @@ class ReferralCaseListItemService(
       crnOrPersonName = crnOrPersonName,
       offenceCohort = offenceType,
       hasLdc = hasLdc,
-      status = ReferralStatusUtils.unformatStatus(status),
+      status = normalisedStatus,
       pdus = pdus,
       reportingTeams = reportingTeams,
     ).map { it.toApi() }
@@ -64,7 +68,7 @@ class ReferralCaseListItemService(
       crnOrPersonName = crnOrPersonName,
       offenceCohort = offenceType,
       hasLdc = hasLdc,
-      status = status,
+      status = normalisedStatus,
       pdus = pdus,
       reportingTeams = reportingTeams,
     ).totalElements
