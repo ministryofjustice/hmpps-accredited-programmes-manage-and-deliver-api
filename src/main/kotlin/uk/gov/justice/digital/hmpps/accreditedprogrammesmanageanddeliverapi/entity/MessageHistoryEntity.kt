@@ -43,4 +43,7 @@ class MessageHistoryEntity(
   @OneToOne(fetch = FetchType.LAZY, optional = true)
   @JoinColumn(name = "referral_id")
   var referral: ReferralEntity? = null,
+
+  @Column(name = "ms_to_process")
+  var msToProcess: Long? = null,
 )
