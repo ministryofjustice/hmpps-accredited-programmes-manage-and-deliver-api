@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.even
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import java.util.UUID
+import kotlin.system.measureTimeMillis
 
 @Service
 @Transactional
@@ -31,8 +32,10 @@ class ReferralCreatedHandler(
     val domainEventMessage: DomainEventsMessage = objectMapper.readValue<DomainEventsMessage>(sqsMessage.message)
 
     if (domainEventMessage.detailUrl == null) {
+      messageHistoryRepository.save(domainEventMessage.toEntity(objectMapper.writeValueAsString(domainEventMessage)))
       return log.info("Detail url is null for event with messageId: ${sqsMessage.messageId}")
     }
+
     val referralId = UUID.fromString(domainEventMessage.detailUrl.split("/").last())
     log.info("Received referral created event for referral id: $referralId for CRN: ${domainEventMessage.personReference.findCrn()}")
 
@@ -48,10 +51,14 @@ class ReferralCreatedHandler(
     val savedMessage =
       messageHistoryRepository.save(domainEventMessage.toEntity(objectMapper.writeValueAsString(domainEventMessage)))
 
-    val referralDetails = referralService.getFindAndReferReferralDetails(referralId)
-    val savedReferral = referralService.createReferral(referralDetails)
+    val time = measureTimeMillis {
+      val referralDetails = referralService.getFindAndReferReferralDetails(referralId)
+      val savedReferral = referralService.createReferral(referralDetails)
+      savedMessage.referral = savedReferral
+      messageHistoryRepository.save(savedMessage)
+    }
 
-    savedMessage.referral = savedReferral
+    savedMessage.msToProcess = time
     messageHistoryRepository.save(savedMessage)
   }
 }

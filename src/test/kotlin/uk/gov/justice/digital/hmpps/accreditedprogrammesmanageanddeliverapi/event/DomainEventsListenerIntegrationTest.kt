@@ -152,6 +152,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.eventType).isEqualTo(eventType)
       assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
       assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.msToProcess).isGreaterThan(0) // impossible to know ahead of time
       assertThat(it.occurredAt).isEqualToIgnoringNanos(
         domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
       )
@@ -323,6 +324,11 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     } matches { it == 0 }
 
     assertThat(referralRepository.count()).isEqualTo(0)
+
+    val messageHistory = messageHistoryRepository.findAll().firstOrNull()
+    assertThat(messageHistory).isNotNull
+    assertThat(messageHistory!!.referral).isNull()
+    assertThat(messageHistory.msToProcess).isNull()
   }
 
   @Test
