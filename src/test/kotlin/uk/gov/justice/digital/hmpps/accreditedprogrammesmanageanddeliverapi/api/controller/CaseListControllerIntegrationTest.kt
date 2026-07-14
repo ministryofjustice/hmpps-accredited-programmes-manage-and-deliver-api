@@ -798,6 +798,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `getCaseListItems for OPEN referrals supports single comma-containing reportingTeam query value`() {
       val reportingTeamWithComma = "Team A, Manchester"
+      val nonMatchingReportingTeam = "Team Z, Some-Region-Name"
 
       // Create a referral with a reportingTeam containing a comma
       val referral = ReferralEntityFactory()
@@ -812,18 +813,38 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .produce()
       referral.referralReportingLocation = reportingLocation
 
+      val referralNoMatch = ReferralEntityFactory()
+        .withPersonName("Test Person No Match")
+        .withCrn("CRN-COMMA-TEAM-NO-MATCH")
+        .withInterventionName("Building Choices")
+        .produce()
+      val reportingLocationNoMatch = ReferralReportingLocationFactory(referralNoMatch)
+        .withPduName(pduWithComma)
+        .withReportingTeam(nonMatchingReportingTeam)
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      referralNoMatch.referralReportingLocation = reportingLocationNoMatch
+
       val awaitingAssessmentStatus = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
       val statusHistory = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
         .produce(referral, awaitingAssessmentStatus)
+      val statusHistoryNoMatch = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .withCreatedBy("USER_ID_12345")
+        .withStartDate(LocalDateTime.now())
+        .produce(referralNoMatch, awaitingAssessmentStatus)
       val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).produce()
+      val cohortHistoryNoMatch = ReferralCohortHistoryFactory().withReferral(referralNoMatch).produce()
       referral.referralCohortHistories = mutableSetOf(cohortHistory)
+      referralNoMatch.referralCohortHistories = mutableSetOf(cohortHistoryNoMatch)
 
       testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, reportingLocation))
+      testDataGenerator.createReferralWithFields(referralNoMatch, listOf(statusHistoryNoMatch, reportingLocationNoMatch))
 
-      nDeliusApiStubs.stubAccessCheck(true, "CRN-COMMA-TEAM")
+      nDeliusApiStubs.stubAccessCheck(true, "CRN-COMMA-TEAM", "CRN-COMMA-TEAM-NO-MATCH")
 
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
@@ -840,6 +861,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     fun `getCaseListItems for OPEN referrals supports repeated reportingTeam query values including comma-containing names`() {
       val reportingTeamWithComma = "Team B, London"
       val reportingTeamNormal = "Team C"
+      val nonMatchingReportingTeam = "Team Z, Some-Region-Name"
 
       // Create first referral with comma-containing team
       val referral1 = ReferralEntityFactory()
@@ -884,10 +906,30 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       referral1.referralCohortHistories = mutableSetOf(cohortHistory1)
       referral2.referralCohortHistories = mutableSetOf(cohortHistory2)
 
+      val referralNoMatch = ReferralEntityFactory()
+        .withPersonName("Person Three")
+        .withCrn("CRN-MULTI-TEAM-NO-MATCH")
+        .withInterventionName("Building Choices")
+        .produce()
+      val reportingLocationNoMatch = ReferralReportingLocationFactory(referralNoMatch)
+        .withPduName(pduWithComma)
+        .withReportingTeam(nonMatchingReportingTeam)
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      referralNoMatch.referralReportingLocation = reportingLocationNoMatch
+      val statusHistoryNoMatch = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .withCreatedBy("USER_ID_12345")
+        .withStartDate(LocalDateTime.now())
+        .produce(referralNoMatch, awaitingAssessmentStatus)
+      val cohortHistoryNoMatch = ReferralCohortHistoryFactory().withReferral(referralNoMatch).produce()
+      referralNoMatch.referralCohortHistories = mutableSetOf(cohortHistoryNoMatch)
+
       testDataGenerator.createReferralWithFields(referral1, listOf(statusHistory1, reportingLocation1))
       testDataGenerator.createReferralWithFields(referral2, listOf(statusHistory2, reportingLocation2))
+      testDataGenerator.createReferralWithFields(referralNoMatch, listOf(statusHistoryNoMatch, reportingLocationNoMatch))
 
-      nDeliusApiStubs.stubAccessCheck(true, "CRN-MULTI-TEAM-1", "CRN-MULTI-TEAM-2")
+      nDeliusApiStubs.stubAccessCheck(true, "CRN-MULTI-TEAM-1", "CRN-MULTI-TEAM-2", "CRN-MULTI-TEAM-NO-MATCH")
 
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
@@ -905,6 +947,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `getCaseListItems for CLOSED referrals supports single comma-containing reportingTeam query value`() {
       val reportingTeamWithComma = "Team D, Birmingham"
+      val nonMatchingReportingTeam = "Team Z, Some-Region-Name"
 
       // Create a closed referral with a reportingTeam containing a comma
       val referral = ReferralEntityFactory()
@@ -919,18 +962,38 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .produce()
       referral.referralReportingLocation = reportingLocation
 
+      val referralNoMatch = ReferralEntityFactory()
+        .withPersonName("Closed Person No Match")
+        .withCrn("CRN-CLOSED-COMMA-NO-MATCH")
+        .withInterventionName("New Me")
+        .produce()
+      val reportingLocationNoMatch = ReferralReportingLocationFactory(referralNoMatch)
+        .withPduName(pduSecondary)
+        .withReportingTeam(nonMatchingReportingTeam)
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      referralNoMatch.referralReportingLocation = reportingLocationNoMatch
+
       val programmeCompleteStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
       val statusHistory = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
         .produce(referral, programmeCompleteStatus)
+      val statusHistoryNoMatch = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .withCreatedBy("USER_ID_12345")
+        .withStartDate(LocalDateTime.now())
+        .produce(referralNoMatch, programmeCompleteStatus)
       val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).produce()
+      val cohortHistoryNoMatch = ReferralCohortHistoryFactory().withReferral(referralNoMatch).produce()
       referral.referralCohortHistories = mutableSetOf(cohortHistory)
+      referralNoMatch.referralCohortHistories = mutableSetOf(cohortHistoryNoMatch)
 
       testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, reportingLocation))
+      testDataGenerator.createReferralWithFields(referralNoMatch, listOf(statusHistoryNoMatch, reportingLocationNoMatch))
 
-      nDeliusApiStubs.stubAccessCheck(true, "CRN-CLOSED-COMMA")
+      nDeliusApiStubs.stubAccessCheck(true, "CRN-CLOSED-COMMA", "CRN-CLOSED-COMMA-NO-MATCH")
 
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
@@ -947,6 +1010,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     fun `getCaseListItems for CLOSED referrals supports repeated reportingTeam query values including comma-containing names`() {
       val reportingTeamWithComma = "Team E, Leeds"
       val reportingTeamWithAmpersand = "Team F & Associates"
+      val nonMatchingReportingTeam = "Team Z, Some-Region-Name"
 
       // Create first closed referral with comma-containing team
       val referral1 = ReferralEntityFactory()
@@ -991,10 +1055,30 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       referral1.referralCohortHistories = mutableSetOf(cohortHistory1)
       referral2.referralCohortHistories = mutableSetOf(cohortHistory2)
 
+      val referralNoMatch = ReferralEntityFactory()
+        .withPersonName("Closed Three")
+        .withCrn("CRN-CLOSED-MULTI-NO-MATCH")
+        .withInterventionName("Building Choices")
+        .produce()
+      val reportingLocationNoMatch = ReferralReportingLocationFactory(referralNoMatch)
+        .withPduName(pduWithComma)
+        .withReportingTeam(nonMatchingReportingTeam)
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      referralNoMatch.referralReportingLocation = reportingLocationNoMatch
+      val statusHistoryNoMatch = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .withCreatedBy("USER_ID_12345")
+        .withStartDate(LocalDateTime.now())
+        .produce(referralNoMatch, programmeCompleteStatus)
+      val cohortHistoryNoMatch = ReferralCohortHistoryFactory().withReferral(referralNoMatch).produce()
+      referralNoMatch.referralCohortHistories = mutableSetOf(cohortHistoryNoMatch)
+
       testDataGenerator.createReferralWithFields(referral1, listOf(statusHistory1, reportingLocation1))
       testDataGenerator.createReferralWithFields(referral2, listOf(statusHistory2, reportingLocation2))
+      testDataGenerator.createReferralWithFields(referralNoMatch, listOf(statusHistoryNoMatch, reportingLocationNoMatch))
 
-      nDeliusApiStubs.stubAccessCheck(true, "CRN-CLOSED-MULTI-1", "CRN-CLOSED-MULTI-2")
+      nDeliusApiStubs.stubAccessCheck(true, "CRN-CLOSED-MULTI-1", "CRN-CLOSED-MULTI-2", "CRN-CLOSED-MULTI-NO-MATCH")
 
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
