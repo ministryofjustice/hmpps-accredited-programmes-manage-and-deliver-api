@@ -225,7 +225,7 @@ class ProgrammeGroupController(
     val groups = programmeGroupService.getProgrammeGroupsForRegion(
       pageable = pageable,
       groupCode = groupCode,
-      pdu = pdusDecoded,
+      pdus = pdusDecoded,
       deliveryLocations = deliveryLocationsDecoded,
       cohort = cohort,
       sex = sex,

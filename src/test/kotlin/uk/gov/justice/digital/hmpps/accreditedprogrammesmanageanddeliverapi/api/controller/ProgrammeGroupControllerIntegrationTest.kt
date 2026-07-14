@@ -426,6 +426,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item.sex).isEqualTo("Male")
         assertThat(item.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
         assertThat(item.pdu).contains("Test PDU 1")
+        assertThat(item.pdu?.length).isEqualTo(1)
         assertThat(item.referralId).isNotNull
         assertThat(item.sourcedFrom).isNotNull
       }

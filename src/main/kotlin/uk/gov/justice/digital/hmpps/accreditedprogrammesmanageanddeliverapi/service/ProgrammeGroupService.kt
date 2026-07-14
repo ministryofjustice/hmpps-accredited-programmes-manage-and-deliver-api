@@ -668,7 +668,7 @@ class ProgrammeGroupService(
   fun getProgrammeGroupsForRegion(
     pageable: Pageable,
     groupCode: String?,
-    pdu: List<String>?,
+    pdus: List<String>?,
     deliveryLocations: List<String>?,
     cohort: String?,
     sex: String?,
@@ -686,7 +686,7 @@ class ProgrammeGroupService(
     // Base spec without startedAt filter (used for total count)
     val baseSpec = getProgrammeGroupsSpecification(
       groupCode = groupCode,
-      pdu = pdu,
+      pdus = pdus,
       deliveryLocations = deliveryLocations,
       cohort = groupCohort,
       sex = sex,
@@ -701,10 +701,10 @@ class ProgrammeGroupService(
 
     val allPduNames = programmeGroupRepository.findDistinctProbationDeliveryUnitNames(userRegionNames)
 
-    val deliveryLocationNames = if (pdu.isNullOrEmpty()) {
+    val deliveryLocationNames = if (pdus.isNullOrEmpty()) {
       null
     } else {
-      programmeGroupRepository.findDistinctDeliveryLocationNames(userRegionNames, pdu)
+      programmeGroupRepository.findDistinctDeliveryLocationNames(userRegionNames, pdus)
     }
 
     return GroupsByRegion(
