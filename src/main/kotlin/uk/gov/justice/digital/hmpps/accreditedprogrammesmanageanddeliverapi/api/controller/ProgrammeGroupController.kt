@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.util.MultiValueMap
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -66,6 +67,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
+import java.net.URLDecoder
 import java.util.UUID
 
 @Tag(
@@ -203,22 +205,28 @@ class ProgrammeGroupController(
     @PathVariable @Parameter(description = "Return table data for either the Not started/In progress tab or the Completed tab") selectedTab: GroupPageByRegionTab,
     @Parameter(description = "Filter by the unique group code")
     @RequestParam(name = "groupCode", required = false) groupCode: String?,
-    @Parameter(description = "Filter by the human readable pdu of the group, i.e. 'All London'")
-    @RequestParam(name = "pdu", required = false) pdu: String?,
-    @Parameter(description = "Filter by the delivery location name")
-    @RequestParam(name = "deliveryLocations", required = false) deliveryLocations: List<String>?,
     @Parameter(description = "Filter by the cohort of the group Eg: 'Sexual Offence' or 'General Offence LDC")
     @RequestParam(name = "cohort", required = false) cohort: String?,
     @Parameter(description = "Filter by the sex that the group is being run for: 'Male', 'Female' or 'Mixed'")
     @RequestParam(name = "sex", required = false) sex: String?,
+    @RequestParam requestParams: MultiValueMap<String, String>,
   ): ResponseEntity<GroupsByRegion> {
     val username = authenticationUtils.getUsername()
+
+    // Handle non-alpha characters in the PDU or delivery location, such as ','
+    val pdusDecoded = requestParams["pdu"]
+      ?.takeIf { it.isNotEmpty() }
+      ?.map { URLDecoder.decode(it, "UTF-8") }
+
+    val deliveryLocationsDecoded = requestParams["deliveryLocations"]
+      ?.takeIf { it.isNotEmpty() }
+      ?.map { URLDecoder.decode(it, "UTF-8") }
 
     val groups = programmeGroupService.getProgrammeGroupsForRegion(
       pageable = pageable,
       groupCode = groupCode,
-      pdu = pdu,
-      deliveryLocations = deliveryLocations,
+      pdus = pdusDecoded,
+      deliveryLocations = deliveryLocationsDecoded,
       cohort = cohort,
       sex = sex,
       selectedTab = selectedTab,

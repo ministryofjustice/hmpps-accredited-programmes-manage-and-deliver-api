@@ -170,7 +170,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         service.getProgrammeGroupsForRegion(
           pageable,
           groupCode = null,
-          pdu = null,
+          pdus = null,
           deliveryLocations = null,
           cohort = null,
           sex = null,
@@ -188,7 +188,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       val programmeGroups = service.getProgrammeGroupsForRegion(
         pageable = Pageable.ofSize(10),
         groupCode = null,
-        pdu = null,
+        pdus = null,
         deliveryLocations = null,
         cohort = null,
         sex = "MALE",
@@ -229,7 +229,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       val programmeGroups = service.getProgrammeGroupsForRegion(
         pageable = Pageable.ofSize(10),
         groupCode = null,
-        pdu = null,
+        pdus = null,
         deliveryLocations = null,
         cohort = null,
         sex = "MALE",
@@ -264,7 +264,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       val programmeGroups = service.getProgrammeGroupsForRegion(
         pageable = Pageable.ofSize(10),
         groupCode = null,
-        pdu = null,
+        pdus = null,
         deliveryLocations = null,
         cohort = null,
         sex = "MALE",
@@ -287,7 +287,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       val programmeGroups = service.getProgrammeGroupsForRegion(
         pageable = Pageable.ofSize(10),
         groupCode = "THE_G",
-        pdu = null,
+        pdus = null,
         deliveryLocations = null,
         cohort = null,
         sex = null,
@@ -306,7 +306,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       val programmeGroups = service.getProgrammeGroupsForRegion(
         pageable = Pageable.ofSize(10),
         groupCode = null,
-        pdu = "PDU Description",
+        pdus = listOf("PDU Description"),
         deliveryLocations = null,
         cohort = null,
         sex = "MALE",
@@ -398,7 +398,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       val programmeGroups = service.getProgrammeGroupsForRegion(
         pageable = Pageable.ofSize(10),
         groupCode = null,
-        pdu = null,
+        pdus = null,
         deliveryLocations = null,
         cohort = null,
         sex = "MALE",

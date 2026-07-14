@@ -25,9 +25,9 @@ interface ProgrammeGroupRepository :
   @Query(
     "SELECT DISTINCT p.deliveryLocationName FROM ProgrammeGroupEntity p " +
       "WHERE p.regionName IN (:regionNames) " +
-      "AND p.probationDeliveryUnitName = :pdu " +
+      "AND p.probationDeliveryUnitName IN (:pdu) " +
       "AND p.deliveryLocationName IS NOT NULL " +
       "ORDER BY p.deliveryLocationName",
   )
-  fun findDistinctDeliveryLocationNames(regionNames: Collection<String>, pdu: String): List<String>
+  fun findDistinctDeliveryLocationNames(regionNames: Collection<String>, pdu: List<String>): List<String>
 }
