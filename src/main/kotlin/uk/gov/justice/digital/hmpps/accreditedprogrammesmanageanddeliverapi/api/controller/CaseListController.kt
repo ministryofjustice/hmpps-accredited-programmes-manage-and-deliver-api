@@ -60,10 +60,6 @@ class CaseListController(
       value = "status",
       required = false,
     ) status: String?,
-    @Parameter(description = "Filter by the reporting team of the referral") @RequestParam(
-      value = "reportingTeam",
-      required = false,
-    ) reportingTeams: List<String>?,
     @RequestParam requestParams: MultiValueMap<String, String>,
   ): CaseListReferrals {
     val username = authenticationHolder.username
@@ -78,6 +74,10 @@ class CaseListController(
       ?.takeIf { it.isNotEmpty() }
       ?.map { URLDecoder.decode(it, "UTF-8") }
 
+    val reportingTeamsDecoded = requestParams["reportingTeam"]
+      ?.takeIf { it.isNotEmpty() }
+      ?.map { URLDecoder.decode(it, "UTF-8") }
+
     return referralCaseListItemService.getReferralCaseListItemServiceByCriteria(
       pageable = pageable,
       openOrClosed = openOrClosed,
@@ -86,7 +86,7 @@ class CaseListController(
       cohort = cohort?.let { ProgrammeGroupCohort.fromString(it) },
       status = if (status.isNullOrEmpty()) null else URLDecoder.decode(status, "UTF-8"),
       pdus = pdus,
-      reportingTeams = reportingTeams,
+      reportingTeams = reportingTeamsDecoded,
     )
   }
 }

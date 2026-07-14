@@ -73,12 +73,10 @@ fun getReferralCaseListItemSpecification(
     )
   }
 
-  reportingTeams?.let {
-    pdus?.takeIf { it.isNotEmpty() }?.let {
-      predicates.add(
-        root.get<String>("reportingTeam").`in`(reportingTeams),
-      )
-    }
+  reportingTeams?.takeIf { it.isNotEmpty() }?.let {
+    predicates.add(
+      root.get<String>("reportingTeam").`in`(it),
+    )
   }
 
   query?.distinct(true)

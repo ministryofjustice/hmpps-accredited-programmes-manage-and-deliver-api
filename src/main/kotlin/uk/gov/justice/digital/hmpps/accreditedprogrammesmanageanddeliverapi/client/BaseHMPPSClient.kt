@@ -60,9 +60,10 @@ abstract class BaseHMPPSClient(
     val requestBuilder = HMPPSRequestConfiguration()
     requestBuilderConfiguration(requestBuilder)
 
+    val path = requestBuilder.path ?: ""
     try {
       val request = webClient.method(method)
-        .uri(requestBuilder.path ?: "")
+        .uri(path)
         .headers { it.addAll(requestBuilder.headers) }
 
       if (requestBuilder.body != null) {
@@ -80,32 +81,37 @@ abstract class BaseHMPPSClient(
 
       return ClientResult.Success(result.statusCode, deserialized)
     } catch (exception: WebClientResponseException) {
+      val body = exception.responseBodyAsString.takeIf { it.isNotBlank() } ?: "<empty>"
       if (exception.statusCode.is5xxServerError) {
         log.error(
-          "Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.",
+          "Request to $serviceName $method $path failed with status ${exception.statusCode.value()} - body: $body",
           exception,
         )
         throw ServiceUnavailableException(
-          "$serviceName is temporarily unavailable. Please try again later.",
+          "$serviceName is temporarily unavailable (${exception.statusCode.value()}): $body",
           exception,
         )
       } else if (!exception.statusCode.is2xxSuccessful) {
         return ClientResult.Failure.StatusCode(
           method,
-          requestBuilder.path ?: "",
+          path,
           exception.statusCode,
           exception.responseBodyAsString,
+          serviceName,
         )
       } else {
         log.error(
-          "Request to $serviceName failed with status code ${exception.statusCode.value()} reason ${exception.message}.",
+          "Request to $serviceName $method $path failed with status ${exception.statusCode.value()} - body: $body",
           exception,
         )
         throw exception
       }
     } catch (exception: Exception) {
-      log.error("Exception occurred whilst processing request: ${exception.message}.", exception)
-      return ClientResult.Failure.Other(method, requestBuilder.path ?: "", exception, serviceName)
+      log.error(
+        "Exception whilst processing $serviceName $method $path: ${exception::class.simpleName}: ${exception.message ?: "no message"}",
+        exception,
+      )
+      return ClientResult.Failure.Other(method, path, exception, serviceName)
     }
   }
 
@@ -129,13 +135,18 @@ sealed interface ClientResult<ResponseType> {
       val path: String,
       val status: HttpStatusCode,
       val body: String?,
+      val serviceName: String = "",
     ) : Failure<ResponseType> {
       override fun toException(): Throwable = RuntimeException(
         "Unable to complete $method request to $path: $status" +
           (body?.takeIf { it.isNotEmpty() }?.let { " with error: $it" } ?: ""),
       )
 
-      override fun getErrorMessage() = body ?: ""
+      override fun getErrorMessage(): String {
+        val service = serviceName.takeIf { it.isNotEmpty() }?.let { "$it " } ?: ""
+        val bodyText = body?.takeIf { it.isNotBlank() } ?: "<empty>"
+        return "$service$method $path failed: $status - body: $bodyText"
+      }
 
       inline fun <reified ResponseType> deserializeTo(): ResponseType = jacksonObjectMapper().readValue(body, ResponseType::class.java)
     }
@@ -148,7 +159,7 @@ sealed interface ClientResult<ResponseType> {
     ) : Failure<ResponseType> {
       override fun toException(): Throwable = RuntimeException("Unable to complete request. Service $serviceName for $method request to $path", exception)
 
-      override fun getErrorMessage() = exception.message ?: "Unknown error from $serviceName"
+      override fun getErrorMessage() = "$serviceName $method $path failed: ${exception::class.simpleName}: ${exception.message ?: "no message"}"
     }
   }
 }

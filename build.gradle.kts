@@ -14,6 +14,7 @@ configurations {
 }
 
 dependencies {
+  val shedLockVersion = "7.7.0"
   implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:2.3.0")
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:7.3.2")
   implementation("org.springframework.boot:spring-boot-starter-webclient")
@@ -28,6 +29,8 @@ dependencies {
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
   implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-csv")
   implementation("com.fasterxml.jackson.core:jackson-databind")
+  implementation("net.javacrumbs.shedlock:shedlock-spring:$shedLockVersion")
+  implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:$shedLockVersion")
 
   // Seeding
   implementation("net.datafaker:datafaker:2.5.4")
