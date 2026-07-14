@@ -137,8 +137,8 @@ class ProgrammeGroupController(
     @RequestParam(name = "cohort", required = false) cohort: String?,
     @Parameter(description = "Search by the name or the CRN of the offender in the referral")
     @RequestParam(name = "nameOrCRN", required = false) nameOrCRN: String?,
-    @Parameter(description = "Filter by the human readable pdu of the referral, i.e. 'All London'")
-    @RequestParam(name = "pdu", required = false) pdu: String?,
+    @Parameter(description = "Filter by the human readable pdus of the referral, i.e. 'All London'")
+    @RequestParam(name = "pdu", required = false) pdu: List<String>?,
     @Parameter(description = "Filter by one or more reporting teams. Repeat the parameter to include multiple teams.")
     @RequestParam(name = "reportingTeam", required = false) reportingTeams: List<String>?,
   ): ResponseEntity<ProgrammeGroupAllocations> {

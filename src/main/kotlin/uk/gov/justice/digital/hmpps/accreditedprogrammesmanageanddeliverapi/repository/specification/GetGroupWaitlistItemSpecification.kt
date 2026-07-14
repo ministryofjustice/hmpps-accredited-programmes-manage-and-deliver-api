@@ -13,7 +13,7 @@ fun getGroupWaitlistItemSpecification(
   sex: String?,
   cohort: ProgrammeGroupCohort?,
   nameOrCRN: String?,
-  pdu: String?,
+  pdu: List<String>?,
   reportingTeams: List<String>?,
   regionName: String,
 ): Specification<GroupWaitlistItemViewEntity> = Specification { root, _, criteriaBuilder ->
@@ -41,7 +41,7 @@ fun getGroupWaitlistItemSpecification(
       }
 
       pdu?.let {
-        predicates.add(criteriaBuilder.equal(root.get<String>("pduName"), it))
+        predicates.add(root.get<String>("pduName").`in`(pdu))
       }
 
       reportingTeams?.let {

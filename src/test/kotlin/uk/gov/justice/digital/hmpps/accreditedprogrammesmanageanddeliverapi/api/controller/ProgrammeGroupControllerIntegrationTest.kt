@@ -457,6 +457,27 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `getGroupAllocations filters by multiple pdus on WAITLIST tab`() {
+      // Given
+      initialiseReferrals()
+      stubAuthTokenEndpoint()
+      val group = ProgrammeGroupFactory().withCode("TEST006A").withRegionName("WIREMOCKED REGION").produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/group/${group.id}/WAITLIST?pdu=PDU 1&pdu=PDU 2",
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
+      )
+
+      // Then
+      assertThat(response.pagedGroupData.content).isNotEmpty
+      assertThat(response.pagedGroupData.content).hasSize(5)
+      assertThat(response.pagedGroupData.content.mapNotNull { it.pdu }).containsOnly("PDU 1", "PDU 2")
+    }
+
+    @Test
     fun `getGroupAllocations should ignore reportingTeam if PDU is not also present`() {
       // Given
       initialiseReferrals()

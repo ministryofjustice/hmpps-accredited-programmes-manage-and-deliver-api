@@ -344,7 +344,7 @@ class ProgrammeGroupService(
     sex: String?,
     cohort: ProgrammeGroupCohort?,
     nameOrCRN: String?,
-    pdu: String?,
+    pdu: List<String>?,
     reportingTeams: List<String>?,
     username: String,
   ): ProgrammeGroupAllocations {
