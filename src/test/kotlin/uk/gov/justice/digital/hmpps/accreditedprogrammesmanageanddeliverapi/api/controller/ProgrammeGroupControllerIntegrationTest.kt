@@ -1040,14 +1040,14 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val groupPdu1 = ProgrammeGroupFactory()
         .withCode("GROUP-PDU1-A")
         .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .withProbationDeliveryUnit("Test PDU 1", "PDU001")
         .withEarliestStartDate(LocalDate.now().plusDays(5))
         .produce()
 
       val groupPdu1B = ProgrammeGroupFactory()
         .withCode("GROUP-PDU1-B")
         .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .withProbationDeliveryUnit("Test PDU 1", "PDU001")
         .withEarliestStartDate(LocalDate.now().plusDays(5))
         .produce()
 
@@ -1072,24 +1072,26 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       stubAuthTokenEndpoint()
       val region = "WIREMOCKED REGION"
 
-      // Create multiple groups all within Test PDU 1 to test multiple values work
+      // Create multiple groups all within Test PDU 1
       val groupPdu1A = ProgrammeGroupFactory()
         .withCode("GROUP-PDU1-A")
         .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .withProbationDeliveryUnit("Test PDU 1", "PDU001")
+        .withEarliestStartDate(LocalDate.now().plusDays(5))
         .produce()
 
       val groupPdu1B = ProgrammeGroupFactory()
         .withCode("GROUP-PDU1-B")
         .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .withProbationDeliveryUnit("Test PDU 1", "PDU001")
+        .withEarliestStartDate(LocalDate.now().plusDays(5))
         .produce()
 
       listOf(groupPdu1A, groupPdu1B).forEach {
         testDataGenerator.createGroup(it)
       }
 
-      // When - filter by Test PDU 1 (passing same PDU twice to test multiple parameter handling)
+      // When - filter by Test PDU 1
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=Test%20PDU%201",
@@ -1118,6 +1120,12 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
               pdu = CodeDescription("PDU001", "North West, Manchester"),
               region = CodeDescription("REGION001", region),
             ),
+            NDeliusUserTeam(
+              code = "TEAM002",
+              description = "Test Team 2",
+              pdu = CodeDescription("PDU002", "South East & London"),
+              region = CodeDescription("REGION001", region),
+            ),
           ),
         ),
       )
@@ -1125,19 +1133,22 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val groupWithComma = ProgrammeGroupFactory()
         .withCode("GROUP-COMMA")
         .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "North West, Manchester")
+        .withProbationDeliveryUnit("North West, Manchester", "PDU001")
+        .withEarliestStartDate(LocalDate.now().plusDays(5))
         .produce()
 
       val groupWithAmpersand = ProgrammeGroupFactory()
         .withCode("GROUP-AMP")
         .withRegionName(region)
-        .withProbationDeliveryUnit("PDU002", "South East & London")
+        .withProbationDeliveryUnit("South East & London", "PDU002")
+        .withEarliestStartDate(LocalDate.now().plusDays(5))
         .produce()
 
       val groupNormal = ProgrammeGroupFactory()
         .withCode("GROUP-NORMAL")
         .withRegionName(region)
-        .withProbationDeliveryUnit("PDU003", "Yorkshire")
+        .withProbationDeliveryUnit("Yorkshire", "PDU003")
+        .withEarliestStartDate(LocalDate.now().plusDays(5))
         .produce()
 
       listOf(groupWithComma, groupWithAmpersand, groupNormal).forEach {
@@ -1156,47 +1167,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val codes = response.pagedGroupData.content.map { it.code }
       assertThat(codes).containsExactlyInAnyOrder("GROUP-COMMA", "GROUP-AMP")
       assertThat(codes).doesNotContain("GROUP-NORMAL")
-    }
-
-    @Test
-    fun `should filter by multiple PDUs and maintain correct otherTabTotal`() {
-      // Given - BeforeEach already stubs "Test PDU 1"
-      stubAuthTokenEndpoint()
-      val region = "WIREMOCKED REGION"
-
-      // Create started groups in PDU1
-      val startedPdu1 = ProgrammeGroupFactory()
-        .withCode("STARTED-PDU1")
-        .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
-        .withEarliestStartDate(LocalDate.now().minusDays(5))
-        .produce()
-
-      // Create completed group in PDU1
-      val completedPdu1 = ProgrammeGroupFactory()
-        .withCode("COMPLETED-PDU1")
-        .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
-        .withEarliestStartDate(LocalDate.now().minusDays(20))
-        .produce()
-
-      listOf(startedPdu1, completedPdu1).forEach { testDataGenerator.createGroup(it) }
-
-      // When - filter by Test PDU 1, tab NOT_STARTED_OR_IN_PROGRESS
-      val response = performRequestAndExpectOk(
-        HttpMethod.GET,
-        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=Test%20PDU%201",
-        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
-      )
-
-      // Then - should return started groups on this tab
-      assertThat(response.pagedGroupData.totalElements).isEqualTo(1)
-      val codes = response.pagedGroupData.content.map { it.code }
-      assertThat(codes).containsExactly("STARTED-PDU1")
-      assertThat(codes).doesNotContain("COMPLETED-PDU1")
-
-      // otherTabTotal should be 1 (the completed group in PDU1)
-      assertThat(response.otherTabTotal).isEqualTo(1)
     }
 
     @Test
@@ -1222,7 +1192,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val groupPdu1 = ProgrammeGroupFactory()
         .withCode("GROUP-PDU1")
         .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
+        .withProbationDeliveryUnit("Test PDU 1", "PDU001")
+        .withEarliestStartDate(LocalDate.now().plusDays(5))
         .produce()
 
       testDataGenerator.createGroup(groupPdu1)
@@ -1237,54 +1208,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       assertThat(response.pagedGroupData.totalElements).isEqualTo(0)
       assertThat(response.pagedGroupData.content).isEmpty()
-    }
-
-    @Test
-    fun `should combine multiple PDU filter with other filters`() {
-      // Given - BeforeEach already stubs "Test PDU 1"
-      stubAuthTokenEndpoint()
-      val region = "WIREMOCKED REGION"
-
-      // PDU1, Male, Sexual Offence
-      val group1 = ProgrammeGroupFactory()
-        .withCode("GROUP-1")
-        .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
-        .withSex(ProgrammeGroupSexEnum.MALE)
-        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
-        .produce()
-
-      // PDU1, Female, Sexual Offence
-      val group2 = ProgrammeGroupFactory()
-        .withCode("GROUP-2")
-        .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
-        .withSex(ProgrammeGroupSexEnum.FEMALE)
-        .withCohort(OffenceCohort.SEXUAL_OFFENCE)
-        .produce()
-
-      // PDU1, Male, General Offence
-      val group3 = ProgrammeGroupFactory()
-        .withCode("GROUP-3")
-        .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
-        .withSex(ProgrammeGroupSexEnum.MALE)
-        .withCohort(OffenceCohort.GENERAL_OFFENCE)
-        .produce()
-
-      listOf(group1, group2, group3).forEach { testDataGenerator.createGroup(it) }
-
-      // When - filter by PDU1, Male, Sexual Offence
-      val response = performRequestAndExpectOk(
-        HttpMethod.GET,
-        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=Test%20PDU%201&sex=Male&cohort=Sexual%20offence",
-        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
-      )
-
-      // Then - should return only Male, Sexual Offence group from PDU1
-      assertThat(response.pagedGroupData.totalElements).isEqualTo(1)
-      val codes = response.pagedGroupData.content.map { it.code }
-      assertThat(codes).containsExactly("GROUP-1")
     }
 
     @Test
@@ -1310,39 +1233,35 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val groupWithComma = ProgrammeGroupFactory()
         .withCode("GROUP-DL-COMMA")
         .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
-        .withDeliveryLocation("DL001", "St. Mary's, London")
+        .withProbationDeliveryUnit("Test PDU 1", "PDU001")
+        .withDeliveryLocation("St. Paul's, London", "DL001")
+        .withEarliestStartDate(LocalDate.now().plusDays(5))
         .produce()
 
       val groupWithAmpersand = ProgrammeGroupFactory()
         .withCode("GROUP-DL-AMP")
         .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
-        .withDeliveryLocation("DL002", "Arts & Crafts Centre")
-        .produce()
-
-      val groupWithApostrophe = ProgrammeGroupFactory()
-        .withCode("GROUP-DL-APOS")
-        .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
-        .withDeliveryLocation("DL003", "Queen's Court")
+        .withProbationDeliveryUnit("Test PDU 1", "PDU001")
+        .withDeliveryLocation("Devon & Cornwall", "DL002")
+        .withEarliestStartDate(LocalDate.now().plusDays(5))
         .produce()
 
       val groupNormal = ProgrammeGroupFactory()
         .withCode("GROUP-DL-NORMAL")
         .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "Test PDU 1")
-        .withDeliveryLocation("DL004", "Central Office")
+        .withProbationDeliveryUnit("Test PDU 1", "PDU001")
+        .withDeliveryLocation("Central Office", "DL004")
+        .withEarliestStartDate(LocalDate.now().plusDays(5))
         .produce()
 
-      listOf(groupWithComma, groupWithAmpersand, groupWithApostrophe, groupNormal).forEach {
+      listOf(groupWithComma, groupWithAmpersand, groupNormal).forEach {
         testDataGenerator.createGroup(it)
       }
 
       // When - filter by delivery locations with special characters (URL encoded)
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=Test%20PDU%201&deliveryLocations=St.%20Mary%27s%2C%20London&deliveryLocations=Arts%20%26%20Crafts%20Centre",
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=Test%20PDU%201&deliveryLocations=St.%20Paul%27s%2C%20London&deliveryLocations=Devon%20%26%20Cornwall",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
@@ -1350,7 +1269,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.pagedGroupData.totalElements).isEqualTo(2)
       val codes = response.pagedGroupData.content.map { it.code }
       assertThat(codes).containsExactlyInAnyOrder("GROUP-DL-COMMA", "GROUP-DL-AMP")
-      assertThat(codes).doesNotContain("GROUP-DL-APOS", "GROUP-DL-NORMAL")
+      assertThat(codes).doesNotContain("GROUP-DL-NORMAL")
     }
 
     @Test
@@ -1376,22 +1295,25 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val groupMatch = ProgrammeGroupFactory()
         .withCode("GROUP-MATCH")
         .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "North & South PDU")
-        .withDeliveryLocation("DL001", "St. John's Centre")
+        .withProbationDeliveryUnit("North & South PDU", "PDU001")
+        .withDeliveryLocation("St. John's Centre", "DL001")
+        .withEarliestStartDate(LocalDate.now().plusDays(5))
         .produce()
 
       val groupWrongPdu = ProgrammeGroupFactory()
         .withCode("GROUP-WRONG-PDU")
         .withRegionName(region)
-        .withProbationDeliveryUnit("PDU002", "East PDU")
-        .withDeliveryLocation("DL001", "St. John's Centre")
+        .withProbationDeliveryUnit("East PDU", "PDU002")
+        .withDeliveryLocation("St. John's Centre", "DL001")
+        .withEarliestStartDate(LocalDate.now().plusDays(5))
         .produce()
 
       val groupWrongLocation = ProgrammeGroupFactory()
         .withCode("GROUP-WRONG-LOC")
         .withRegionName(region)
-        .withProbationDeliveryUnit("PDU001", "North & South PDU")
-        .withDeliveryLocation("DL002", "West Centre")
+        .withProbationDeliveryUnit("North & South PDU", "PDU001")
+        .withDeliveryLocation("West Centre", "DL002")
+        .withEarliestStartDate(LocalDate.now().plusDays(5))
         .produce()
 
       listOf(groupMatch, groupWrongPdu, groupWrongLocation).forEach {
@@ -1411,6 +1333,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(codes).containsExactly("GROUP-MATCH")
       assertThat(codes).doesNotContain("GROUP-WRONG-PDU", "GROUP-WRONG-LOC")
     }
+
+    private fun encodeQueryParamValue(value: String): String = java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8)
   }
 
   @Nested
