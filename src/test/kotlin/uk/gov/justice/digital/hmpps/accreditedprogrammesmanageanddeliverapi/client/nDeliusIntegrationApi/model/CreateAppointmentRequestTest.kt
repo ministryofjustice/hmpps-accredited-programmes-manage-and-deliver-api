@@ -109,7 +109,7 @@ class CreateAppointmentRequestTest {
   }
 
   @Test
-  fun `toAppointment should include catch up session type in notes`() {
+  fun `toAppointment should include catch up session type in notes when no treatment manager and no facilitator`() {
     // Given
     val session = buildSession(
       facilitators = listOf(),
