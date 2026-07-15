@@ -28,11 +28,10 @@ class LdcController(
     consumes = [MediaType.APPLICATION_JSON_VALUE],
   )
   fun updateLdcStatusForReferral(
-    @Parameter(
+    @PathVariable @Parameter(
       description = "The referralId (UUID) of a referral",
       required = true,
-    )
-    @PathVariable("referralId") referralId: UUID,
+    ) referralId: UUID,
     @Parameter(
       description = "Does the person associated with the referral have LDC needs.",
       required = true,
