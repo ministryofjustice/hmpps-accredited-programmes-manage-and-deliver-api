@@ -1,16 +1,24 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model
 
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest.Companion.DATE_TIME_FORMATTER_PATTERN
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 data class CreateAppointmentRequest(
   val appointments: List<NdeliusAppointment>,
 ) {
+  companion object {
+    const val DATE_TIME_FORMATTER_PATTERN = "dd/MM/yyyy' at 'HH:mm"
+  }
+
   data class NdeliusAppointment(
     val reference: UUID,
     val requirementId: String?,
@@ -49,7 +57,7 @@ fun AttendeeEntity.toAppointment(ndeliusAppointmentId: UUID): CreateAppointmentR
     location = CreateAppointmentRequest.Location(session.programmeGroup.deliveryLocationCode),
     staff = primaryFacilitator?.let { CreateAppointmentRequest.Staff(it.facilitatorCode) },
     team = primaryFacilitator?.let { CreateAppointmentRequest.Team(it.teamCode) },
-    notes = buildSessionNotes(session.programmeGroup.treatmentManager, additionalFacilitators),
+    notes = buildSessionNotes(session.programmeGroup.treatmentManager, additionalFacilitators, session),
     sensitive = false,
     type = getAppointmentTypeFromModuleName(session.moduleSessionTemplate.module.name),
   )
@@ -58,13 +66,29 @@ fun AttendeeEntity.toAppointment(ndeliusAppointmentId: UUID): CreateAppointmentR
 private fun buildSessionNotes(
   treatmentManager: FacilitatorEntity?,
   additionalFacilitators: List<SessionFacilitatorEntity>,
+  session: SessionEntity,
 ): String? {
   val parts = mutableListOf<String>()
+  parts.add(getCreatedByPart())
+  parts.add(getSessionPart(session))
   treatmentManager?.let { parts.add("Treatment Manager: ${it.personName}") }
   if (additionalFacilitators.isNotEmpty()) {
     parts.add("Additional Facilitators: ${additionalFacilitators.joinToString(", ") { it.facilitator.personName }}")
   }
   return parts.takeIf { it.isNotEmpty() }?.joinToString("\n")
+}
+
+private fun getSessionPart(session: SessionEntity): String {
+  val type = if (session.isCatchup) "catch-up" else "main"
+
+  return "(Prog ID: ${session.programmeGroup.code}, Type: $type, Session: ${session.sessionName})"
+}
+
+private fun getCreatedByPart(): String {
+  val formatter = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN)
+  val formattedDate = LocalDateTime.now().format(formatter)
+
+  return "Contact created by Accredited Programmes service on $formattedDate"
 }
 
 private fun getAppointmentTypeFromModuleName(moduleName: String): AppointmentType = when (moduleName) {
