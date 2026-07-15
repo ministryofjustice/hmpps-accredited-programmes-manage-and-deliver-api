@@ -232,6 +232,6 @@ class HmppsSubjectAccessRequestControllerIntegrationTest : IntegrationTestBase()
       .returnResult().responseBody!!
 
     // Then
-    assertThat(response).contains("Manage and Deliver - Accredited Programmes")
+    assertThat(response).contains("Accredited Programmes in Community")
   }
 }
