@@ -104,6 +104,14 @@ data class ReferralDetails(
   val hasLdcDisplayText: String = LdcStatus.NO_LDC.displayText,
 
   @Schema(
+    example = "may need an LDC-adapted programme (Building Choices Plus).",
+    required = true,
+    description = "The text to display in the UI success banner after updating the LDC status of this referral",
+  )
+  @get:JsonProperty("hasLdcSuccessMessageText", required = true)
+  val hasLdcSuccessMessageText: String = LdcStatus.NO_LDC.successMessageText,
+
+  @Schema(
     example = "Awaiting assessment",
     required = true,
     description = "The display name of the Referral's current Status",
@@ -167,6 +175,7 @@ data class ReferralDetails(
       cohort = cohort ?: OffenceCohort.GENERAL_OFFENCE,
       hasLdc = LdcStatus.fromBoolean(hasLdc).value,
       hasLdcDisplayText = LdcStatus.getDisplayText(hasLdc),
+      hasLdcSuccessMessageText = LdcStatus.getSuccessMessageText(hasLdc),
       currentStatusDescription = latestReferralStatus?.description ?: DEFAULT_STATUS_DESCRIPTION_VALUE,
       currentlyAllocatedGroupCode = currentlyAllocatedGroup?.programmeGroup?.code,
       currentlyAllocatedGroupId = currentlyAllocatedGroup?.programmeGroup?.id,
@@ -196,6 +205,7 @@ data class ReferralDetails(
       cohort = cohort ?: OffenceCohort.GENERAL_OFFENCE,
       hasLdc = LdcStatus.fromBoolean(hasLdc).value,
       hasLdcDisplayText = LdcStatus.getDisplayText(hasLdc),
+      hasLdcSuccessMessageText = LdcStatus.getSuccessMessageText(hasLdc),
       currentStatusDescription = latestReferralStatus?.description ?: DEFAULT_STATUS_DESCRIPTION_VALUE,
       currentlyAllocatedGroupCode = currentlyAllocatedGroup?.programmeGroup?.code,
       currentlyAllocatedGroupId = currentlyAllocatedGroup?.programmeGroup?.id,

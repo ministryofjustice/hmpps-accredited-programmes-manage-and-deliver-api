@@ -18,6 +18,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import java.util.UUID
 
 class CreateAppointmentRequestTest {
+  companion object {
+    val NOTES_CREATED_BY_PATTERN =
+      "^Contact created by Accredited Programmes service on \\d{2}/\\d{2}/\\d{4} at \\d{2}:\\d{2}".toRegex()
+  }
 
   @Test
   fun `toAppointment should map Pre-group one-to-ones module name to PRE_GROUP_ONE_TO_ONE_MEETING`() {
@@ -81,7 +85,8 @@ class CreateAppointmentRequestTest {
   }
 
   @Test
-  fun `toAppointment should include additional facilitator names in notes`() {
+  fun `toAppointment should include createdBy, session info and additional facilitator names in notes`() {
+    // Given
     val primaryFacilitator = FacilitatorEntityFactory().withPersonName("Primary Facilitator").produce()
     val secondFacilitator = FacilitatorEntityFactory().withPersonName("Second Facilitator").produce()
     val thirdFacilitator = FacilitatorEntityFactory().withPersonName("Third Facilitator").produce()
@@ -92,15 +97,36 @@ class CreateAppointmentRequestTest {
     )
     val attendee = attendeeFor(session)
 
+    // When
     val appointment = attendee.toAppointment(UUID.randomUUID())
 
+    // Then
+    assertThat(appointment.notes).containsPattern(NOTES_CREATED_BY_PATTERN.pattern)
+    assertThat(appointment.notes).contains("(Prog ID: AAA111, Type: main, Session: Module Session Template 1)")
     assertThat(appointment.notes).contains("Treatment Manager: Treatment Manager Name")
     assertThat(appointment.notes).contains("Additional Facilitators: Second Facilitator, Third Facilitator")
     assertThat(appointment.notes).doesNotContain("Primary Facilitator")
   }
 
   @Test
-  fun `toAppointment should produce null notes when no treatment manager and only one facilitator`() {
+  fun `toAppointment should include catch up session type in notes when no treatment manager and no facilitator`() {
+    // Given
+    val session = buildSession(
+      facilitators = listOf(),
+      treatmentManager = null,
+      isCatch = true,
+    )
+    val attendee = attendeeFor(session)
+
+    // When
+    val appointment = attendee.toAppointment(UUID.randomUUID())
+
+    // Then
+    assertThat(appointment.notes).contains("(Prog ID: AAA111, Type: catch-up, Session: Module Session Template 1)")
+  }
+
+  @Test
+  fun `toAppointment should produce notes when no treatment manager and only one facilitator`() {
     val session = buildSession(
       facilitators = listOf(FacilitatorEntityFactory().produce()),
       treatmentManager = null,
@@ -109,13 +135,17 @@ class CreateAppointmentRequestTest {
 
     val appointment = attendee.toAppointment(UUID.randomUUID())
 
-    assertThat(appointment.notes).isNull()
+    assertThat(appointment.notes).containsPattern(NOTES_CREATED_BY_PATTERN.pattern)
+    assertThat(appointment.notes).contains("(Prog ID: AAA111, Type: main, Session: Module Session Template 1)")
+    assertThat(appointment.notes).doesNotContain("Treatment Manager:")
+    assertThat(appointment.notes).doesNotContain("Additional Facilitators:")
   }
 
   private fun buildSession(
     moduleName: String = "Module",
     facilitators: List<FacilitatorEntity> = emptyList(),
     treatmentManager: FacilitatorEntity? = FacilitatorEntityFactory().produce(),
+    isCatch: Boolean = false,
   ): SessionEntity {
     val accreditedProgrammeTemplate = AccreditedProgrammeTemplateEntityFactory().produce()
     val groupFactory = ProgrammeGroupFactory().withAccreditedProgrammeTemplate(accreditedProgrammeTemplate)
@@ -124,6 +154,7 @@ class CreateAppointmentRequestTest {
 
     val session = SessionFactory()
       .withProgrammeGroup(group)
+      .withIsCatchup(isCatch)
       .withModuleSessionTemplate(
         ModuleSessionTemplateEntityFactory()
           .withModule(
