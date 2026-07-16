@@ -104,6 +104,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import uk.gov.justice.hmpps.test.kotlin.auth.WithMockAuthUser
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.time.DayOfWeek
 import java.time.Duration.ofMillis
 import java.time.LocalDate
@@ -443,7 +445,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?pdu=PDU 1&reportingTeam=Team A&reportingTeam=Team C",
+        "/bff/group/${group.id}/WAITLIST?pdu=${encodeQueryParamValue("PDU 1")}&reportingTeam=${encodeQueryParamValue("Team A")}&reportingTeam=${encodeQueryParamValue("Team C")}",
         object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
@@ -468,7 +470,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?pdu=PDU 1&pdu=PDU 2",
+        "/bff/group/${group.id}/WAITLIST?pdu=${encodeQueryParamValue("PDU 1")}&pdu=${encodeQueryParamValue("PDU 2")}",
         object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
@@ -489,7 +491,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?reportingTeam=Team A&reportingTeam=Team C",
+        "/bff/group/${group.id}/WAITLIST?reportingTeam=${encodeQueryParamValue("Team A")}&reportingTeam=${encodeQueryParamValue("Team C")}",
         object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
@@ -514,7 +516,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?pdu=PDU 1&reportingTeam=Team A",
+        "/bff/group/${group.id}/WAITLIST?pdu=${encodeQueryParamValue("PDU 1")}&reportingTeam=${encodeQueryParamValue("Team A")}",
         object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
@@ -526,6 +528,84 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item.pdu).contains("PDU 1")
         assertThat(item.reportingTeam).isEqualTo("Team A")
       }
+    }
+
+    @Test
+    fun `getGroupAllocations decodes comma-containing pdu on WAITLIST tab`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val commaPdu = "PDU 1, North"
+      val referralsWithCommaPdu = testReferralHelper.createReferrals(
+        referralConfigs = listOf(
+          TestReferralHelper.ReferralConfig(
+            reportingPdu = commaPdu,
+            reportingTeam = "Team A",
+            regionName = "WIREMOCKED REGION",
+          ),
+          TestReferralHelper.ReferralConfig(
+            reportingPdu = commaPdu,
+            reportingTeam = "Team B",
+            regionName = "WIREMOCKED REGION",
+          ),
+        ),
+      )
+      val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+      referralsWithCommaPdu.forEach { referralService.updateStatus(it, status.id, createdBy = "AUTH_USER") }
+      val group = ProgrammeGroupFactory().withCode("TEST006C").withRegionName("WIREMOCKED REGION").produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/group/${group.id}/WAITLIST?pdu=${encodeQueryParamValue(commaPdu)}",
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
+      )
+
+      // Then
+      assertThat(response.pagedGroupData.content).hasSize(2)
+      assertThat(response.pagedGroupData.content.mapNotNull { it.pdu }).containsOnly(commaPdu)
+    }
+
+    @Test
+    fun `getGroupAllocations decodes comma-containing reportingTeam on WAITLIST tab`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val commaPdu = "PDU 1, North"
+      val commaReportingTeam = "Team A, Unit 1"
+      val referralsWithCommaReportingTeam = testReferralHelper.createReferrals(
+        referralConfigs = listOf(
+          TestReferralHelper.ReferralConfig(
+            reportingPdu = commaPdu,
+            reportingTeam = commaReportingTeam,
+            regionName = "WIREMOCKED REGION",
+          ),
+          TestReferralHelper.ReferralConfig(
+            reportingPdu = commaPdu,
+            reportingTeam = "Team B",
+            regionName = "WIREMOCKED REGION",
+          ),
+          TestReferralHelper.ReferralConfig(
+            reportingPdu = commaPdu,
+            reportingTeam = commaReportingTeam,
+            regionName = "WIREMOCKED REGION",
+          ),
+        ),
+      )
+      val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+      referralsWithCommaReportingTeam.forEach { referralService.updateStatus(it, status.id, createdBy = "AUTH_USER") }
+      val group = ProgrammeGroupFactory().withCode("TEST006D").withRegionName("WIREMOCKED REGION").produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/group/${group.id}/WAITLIST?pdu=${encodeQueryParamValue(commaPdu)}&reportingTeam=${encodeQueryParamValue(commaReportingTeam)}",
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
+      )
+
+      // Then
+      assertThat(response.pagedGroupData.content).hasSize(2)
+      assertThat(response.pagedGroupData.content.mapNotNull { it.reportingTeam }).containsOnly(commaReportingTeam)
     }
 
     @Test
@@ -686,6 +766,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(pduNames).contains("East Midlands PDU")
       assertThat(pduNames).doesNotContain("Greater Manchester PDU")
     }
+
+    private fun encodeQueryParamValue(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8)
   }
 
   @Nested
