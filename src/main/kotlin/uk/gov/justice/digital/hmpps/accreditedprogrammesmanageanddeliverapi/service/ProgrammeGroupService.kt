@@ -344,7 +344,7 @@ class ProgrammeGroupService(
     sex: String?,
     cohort: ProgrammeGroupCohort?,
     nameOrCRN: String?,
-    pdu: List<String>?,
+    pdus: List<String>?,
     reportingTeams: List<String>?,
     username: String,
   ): ProgrammeGroupAllocations {
@@ -362,13 +362,13 @@ class ProgrammeGroupService(
         sex,
         cohort,
         nameOrCRN,
-        pdu,
+        pdus,
         reportingTeams,
         groupRegionName,
       )
 
     val nonActiveSpecification =
-      getGroupWaitlistItemSpecification(otherTab, groupId, sex, cohort, nameOrCRN, pdu, reportingTeams, groupRegionName)
+      getGroupWaitlistItemSpecification(otherTab, groupId, sex, cohort, nameOrCRN, pdus, reportingTeams, groupRegionName)
 
     val groupListDataToReturn: Page<GroupItem> =
       groupWaitlistItemViewRepository.findAll(activeSpecification, pageable).map { it.toApi() }
