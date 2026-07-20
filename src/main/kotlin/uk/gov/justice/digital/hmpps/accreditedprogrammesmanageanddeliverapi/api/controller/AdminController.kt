@@ -15,12 +15,19 @@ import org.springframework.context.annotation.Profile
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.PopulatePersonalDetailsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AdminService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import java.util.UUID
 
 data class PopulatePersonalDetailsResponse(val ids: List<String>)
@@ -34,6 +41,8 @@ data class PopulatePersonalDetailsResponse(val ids: List<String>)
 class AdminController(
   private val adminService: AdminService,
   private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+  private val referralService: ReferralService,
+  private val authenticationUtils: AuthenticationUtils,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -131,5 +140,78 @@ class AdminController(
       log.error("Error during cleanup", e)
     }
     return ResponseEntity.accepted().build()
+  }
+
+  @Operation(
+    tags = ["Admin"],
+    summary = "Force-update referral status",
+    operationId = "updateReferralStatus",
+    description = """For the specified referral force-update referral status.
+      |
+      |This is useful if the referral status is out od sync with nDelius, and we wish to update it to match the 
+      |nDelius status.""",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Referral status update successful",
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid request format or invalid UUID format",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PostMapping("/admin/referral/{referralId}/force-status", consumes = [MediaType.APPLICATION_JSON_VALUE])
+  fun updateReferralStatus(
+    @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) referralId: UUID,
+    @RequestBody request: CreateReferralStatusHistory,
+  ): ResponseEntity<StatusUpdateResponse> {
+    log.info("Received request to force-update referral status for referral ID: $referralId")
+    val username = authenticationUtils.getUsername()
+    val response = referralService.updateStatus(referralId, request, username)
+
+    return ResponseEntity.ok(response)
+  }
+
+  @Operation(
+    tags = ["Admin"],
+    summary = "Repoint referral sentence reference",
+    operationId = "repointReferralSentenceReference",
+    description = "For the specified referral repoint the sentence reference",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Repointed the referral sentence reference successful",
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid request format or invalid UUID format",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PostMapping("/admin/referral/{referralId}/repoint-sentence-reference", consumes = [MediaType.APPLICATION_JSON_VALUE])
+  fun repointReferralSentenceReference(
+    @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) referralId: UUID,
+    @RequestBody request: ReferralSentenceReferenceRequest,
+  ): ResponseEntity<ReferralSentenceReferenceResponse> {
+    log.info("Received request to repoint referral sentence reference for referral ID: $referralId")
+    val username = authenticationUtils.getUsername()
+    val response = referralService.updateReferralSentenceReference(referralId, request, username)
+
+    return ResponseEntity.ok(response)
   }
 }

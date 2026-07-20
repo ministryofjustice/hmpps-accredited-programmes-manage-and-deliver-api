@@ -74,7 +74,7 @@ private fun buildSessionNotes(
 private fun getSessionPart(session: SessionEntity): String {
   val type = if (session.isCatchup) "catch-up" else "main"
 
-  return "(Prog ID: ${session.programmeGroup.code}, Type: $type, Session: ${session.sessionName})"
+  return "(Prog ID: ${session.programmeGroup.code.trim()}, Type: $type, Session: ${session.sessionName})"
 }
 
 private fun getAppointmentTypeFromModuleName(moduleName: String): AppointmentType = when (moduleName) {

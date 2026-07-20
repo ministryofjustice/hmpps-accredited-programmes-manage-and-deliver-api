@@ -228,7 +228,7 @@ class ProgrammeGroupMembershipService(
    * before attempting to create appointments. This prevents 400 errors from nDelius when
    * the sentence data is stale (e.g., after a transfer or sentence termination).
    */
-  private fun validateReferralSentenceDataExistsInNDelius(referral: ReferralEntity) {
+  fun validateReferralSentenceDataExistsInNDelius(referral: ReferralEntity, conflictErrorMessage: String? = null) {
     val eventId = referral.eventId
     if (eventId == null) {
       log.error("Cannot validate nDelius sentence data: eventId is null for referral ${referral.id}")
@@ -286,9 +286,11 @@ class ProgrammeGroupMembershipService(
         // requirement / licence condition no longer exists). The caller cannot fix this by
         // retrying or by changing the request body — the underlying data needs to be corrected.
         throw ConflictException(
-          "Cannot allocate referral to group: the $sourceType linked to this referral " +
-            "no longer exists in nDelius. The sentence data may be stale following a transfer or termination. " +
-            "Please contact your admin to update the referral's sentence data.",
+          conflictErrorMessage ?: (
+            "Cannot allocate referral to group: the $sourceType linked to this referral " +
+              "no longer exists in nDelius. The sentence data may be stale following a transfer or termination. " +
+              "Please contact your admin to update the referral's sentence data."
+            ),
         )
       }
 
