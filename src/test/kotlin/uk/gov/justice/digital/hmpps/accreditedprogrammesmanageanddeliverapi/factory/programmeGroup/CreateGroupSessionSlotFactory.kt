@@ -12,16 +12,18 @@ class CreateGroupSessionSlotFactory {
     hour: Int? = null,
     minutes: Int? = null,
     amOrPm: AmOrPm? = null,
-  ): CreateGroupSessionSlot = CreateGroupSessionSlot(
-    dayOfWeek = dayOfWeek ?: randomDayOfWeek(),
-    hour = hour ?: Random.nextInt(1, 13), // 1–12 inclusive
-    minutes = minutes ?: Random.nextInt(0, 60), // 0–59 inclusive
-    amOrPm = amOrPm ?: randomAmOrPm(),
-  )
+  ): CreateGroupSessionSlot {
+    // Constrain session times to not overlap midnight
+    val hour24 = Random.nextInt(6, 21)
+    return CreateGroupSessionSlot(
+      dayOfWeek = dayOfWeek ?: randomDayOfWeek(),
+      hour = hour ?: if (hour24 % 12 == 0) 12 else hour24 % 12,
+      minutes = minutes ?: Random.nextInt(0, 60), // 0–59 inclusive
+      amOrPm = amOrPm ?: if (hour24 < 12) AmOrPm.AM else AmOrPm.PM,
+    )
+  }
 
   private fun randomDayOfWeek(): DayOfWeek = DayOfWeek.entries.random()
-
-  private fun randomAmOrPm(): AmOrPm = AmOrPm.entries.random()
 
   fun produceUniqueSlots(
     count: Int,

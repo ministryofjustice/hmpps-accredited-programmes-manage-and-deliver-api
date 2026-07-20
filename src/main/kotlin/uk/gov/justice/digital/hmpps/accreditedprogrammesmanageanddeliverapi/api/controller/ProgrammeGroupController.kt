@@ -139,16 +139,22 @@ class ProgrammeGroupController(
     @RequestParam(name = "cohort", required = false) cohort: String?,
     @Parameter(description = "Search by the name or the CRN of the offender in the referral")
     @RequestParam(name = "nameOrCRN", required = false) nameOrCRN: String?,
-    @Parameter(description = "Filter by the human readable pdu of the referral, i.e. 'All London'")
-    @RequestParam(name = "pdu", required = false) pdu: String?,
-    @Parameter(description = "Filter by one or more reporting teams. Repeat the parameter to include multiple teams.")
-    @RequestParam(name = "reportingTeam", required = false) reportingTeams: List<String>?,
+    @RequestParam requestParams: MultiValueMap<String, String>,
   ): ResponseEntity<ProgrammeGroupAllocations> {
     // This logic is non-trivial, please see [this doc](docs/2025-11-group-details-page-tabs.md)
     // for an explanation of the flow of data and expected behaviour.
     val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
 
     val username = authenticationUtils.getUsername()
+
+    // Handle non-alpha characters in the PDU or delivery location, such as ','
+    val pdusDecoded = requestParams["pdu"]
+      ?.takeIf { it.isNotEmpty() }
+      ?.map { URLDecoder.decode(it, "UTF-8") }
+
+    val reportingTeamsDecoded = requestParams["reportingTeam"]
+      ?.takeIf { it.isNotEmpty() }
+      ?.map { URLDecoder.decode(it, "UTF-8") }
 
     val programmeDetails = programmeGroupService.getGroupWaitlistDataByCriteria(
       pageable,
@@ -157,8 +163,8 @@ class ProgrammeGroupController(
       sex,
       groupCohort,
       nameOrCRN,
-      pdu,
-      reportingTeams,
+      pdusDecoded,
+      reportingTeamsDecoded,
       username,
     )
 
