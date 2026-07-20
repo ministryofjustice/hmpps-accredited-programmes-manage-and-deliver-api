@@ -12,12 +12,4 @@ data class ReferralSentenceReferenceRequest(
   @get:JsonProperty("eventId", required = true)
   @Schema(example = "2500828798", description = "Event ID of the referral", required = true)
   val eventId: String,
-
-  @get:JsonProperty("additionalDetails", required = false)
-  @Schema(
-    example = "Updating the sentence reference following repoint of the sentence",
-    description = "Description that allows a user to add context or information to the sentence reference change",
-    required = false,
-  )
-  val additionalDetails: String?,
 )

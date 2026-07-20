@@ -26,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.CreateReferralStatusHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralSentenceReferenceRequestFactory
@@ -222,7 +223,7 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should repoint sentence reference for a referral`() {
+  fun `should repoint to a requirement sentence reference for a referral`() {
     // Given
     val referralEntity = ReferralEntityFactory().produce()
     testDataGenerator.createReferralWithStatusHistory(referralEntity)
@@ -250,6 +251,58 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
     val requirementResponse =
       NDeliusCaseRequirementOrLicenceConditionResponse(manager = managerDetails, eventNumber = 1)
     nDeliusApiStubs.stubSuccessfulRequirementManagerResponse(referralEntity.crn, body.eventId, requirementResponse)
+
+    // When
+    val response = performRequestAndExpectStatusWithBody(
+      HttpMethod.POST,
+      "/admin/referral/${referralEntity.id}/repoint-sentence-reference",
+      object : ParameterizedTypeReference<ReferralSentenceReferenceResponse>() {},
+      body = body,
+      expectedResponseStatus = HttpStatus.OK.value(),
+    )
+
+    // Then
+    assertThat(response).isNotNull()
+    assertThat(response.message).isNotNull()
+    assertThat(response.message).isEqualTo("Referral with ID: ${referralEntity.id} now has the sourceFrom: ${body.sourcedFrom.name} and eventId: ${body.eventId}.")
+
+    val updatedReferralResult = referralRepository.findByIdOrNull(referralEntity.id!!)
+    assertThat(updatedReferralResult).isNotNull()
+    assertThat(updatedReferralResult!!.eventId).isEqualTo(body.eventId)
+    assertThat(updatedReferralResult.sourcedFrom).isEqualTo(body.sourcedFrom)
+  }
+
+  @Test
+  fun `should repoint to a licence condition sentence reference for a referral`() {
+    // Given
+    val referralEntity = ReferralEntityFactory().produce()
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
+    val body = ReferralSentenceReferenceRequestFactory()
+      .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
+      .produce()
+    val primaryPdu = NDeliusApiProbationDeliveryUnit(
+      code = "PDU001",
+      description = "East Sussex",
+    )
+
+    val primaryOffices = listOf(
+      CodeDescription(
+        code = "OFFICE-CODE-123",
+        description = "Brighton and Hove: Probation Office",
+      ),
+    )
+    val managerDetails = RequirementOrLicenceConditionManager(
+      staff = RequirementStaff(
+        code = "STAFF001",
+        name = FullName(forename = "Jane", surname = "Smith"),
+      ),
+      team = CodeDescription("TEAM001", "Primary Team"),
+      probationDeliveryUnit = primaryPdu,
+      officeLocations = primaryOffices,
+    )
+    val requirementResponse =
+      NDeliusCaseRequirementOrLicenceConditionResponse(manager = managerDetails, eventNumber = 1)
+    nDeliusApiStubs.stubSuccessfulLicenceConditionManagerResponse(referralEntity.crn, body.eventId, requirementResponse)
 
     // When
     val response = performRequestAndExpectStatusWithBody(

@@ -531,7 +531,7 @@ class ReferralService(
     )
 
     val message =
-      "Referral with ID: ${updatedReferralEntity.id} now has the sourceFrom: ${updatedReferralEntity.sourcedFrom} and eventId: ${updatedReferralEntity.eventId}."
+      "Referral with ID: ${updatedReferralEntity.id} now has the sourceFrom: ${updatedReferralEntity.sourcedFrom?.name} and eventId: ${updatedReferralEntity.eventId}."
 
     return ReferralSentenceReferenceResponse(
       message = message,
