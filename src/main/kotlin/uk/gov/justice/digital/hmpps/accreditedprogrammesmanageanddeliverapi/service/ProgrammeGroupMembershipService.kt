@@ -228,7 +228,7 @@ class ProgrammeGroupMembershipService(
    * before attempting to create appointments. This prevents 400 errors from nDelius when
    * the sentence data is stale (e.g., after a transfer or sentence termination).
    */
-  private fun validateReferralSentenceDataExistsInNDelius(referral: ReferralEntity) {
+  fun validateReferralSentenceDataExistsInNDelius(referral: ReferralEntity) {
     val eventId = referral.eventId
     if (eventId == null) {
       log.error("Cannot validate nDelius sentence data: eventId is null for referral ${referral.id}")

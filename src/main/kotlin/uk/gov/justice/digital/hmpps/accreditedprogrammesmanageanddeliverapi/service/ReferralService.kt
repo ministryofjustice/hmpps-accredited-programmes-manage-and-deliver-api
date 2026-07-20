@@ -13,6 +13,8 @@ import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.AttendanceHistoryResponse
@@ -42,8 +44,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.even
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_PERSONAL_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_SENTENCE_REFERENCE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_STATUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.VIEW_REFERRAL
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
@@ -491,9 +495,73 @@ class ReferralService(
   fun attemptToFindNonPrimaryPdusForReferral(referralId: UUID): List<NDeliusApiProbationDeliveryUnitWithOfficeLocations>? {
     val referral = this.getReferralAndEnsureSourcedFrom(referralId)
 
-    val ndeliusApiResponse = this.getRetRequirementOrLicenceCondition(referral) ?: return null
+    val nDeliusApiResponse = this.getRetRequirementOrLicenceCondition(referral) ?: return null
 
-    return ndeliusApiResponse.probationDeliveryUnits
+    return nDeliusApiResponse.probationDeliveryUnits
+  }
+
+  fun updateReferralSentenceReference(
+    referralId: UUID,
+    referralSentenceReferenceRequest: ReferralSentenceReferenceRequest,
+    username: String,
+  ): ReferralSentenceReferenceResponse {
+    val referralEntity = getReferralById(referralId)
+    val fromSourcedFrom = referralEntity.sourcedFrom
+    val fromEventId = referralEntity.eventId
+    referralEntity.sourcedFrom = referralSentenceReferenceRequest.sourcedFrom
+    referralEntity.eventId = referralSentenceReferenceRequest.eventId
+    programmeGroupMembershipService.validateReferralSentenceDataExistsInNDelius(referralEntity)
+    val updatedReferralEntity = referralRepository.save(referralEntity)
+
+    telemetryClient.logToAppInsights(
+      "Referral.admin-repoint-sentence-reference.applied.success",
+      mapOf(
+        "activityType" to UPDATE_REFERRAL_SENTENCE_REFERENCE.name,
+        "referralId" to referralEntity.id.toString(),
+        "crn" to referralEntity.crn,
+        "fromSourcedFrom" to fromSourcedFrom!!.name,
+        "fromEventId" to (fromEventId ?: ""),
+        "toSourcedFrom" to referralSentenceReferenceRequest.sourcedFrom.name,
+        "toEventId" to referralSentenceReferenceRequest.eventId,
+        "appliedBy" to username,
+      ),
+    )
+
+    val message =
+      "Referral with ID: ${updatedReferralEntity.id} now has the sourceFrom: ${updatedReferralEntity.sourcedFrom} and eventId: ${updatedReferralEntity.eventId}."
+
+    return ReferralSentenceReferenceResponse(
+      message = message,
+    )
+  }
+
+  fun updateStatus(
+    referralId: UUID,
+    createReferralStatusHistory: CreateReferralStatusHistory,
+    createdBy: String,
+  ): StatusUpdateResponse {
+    val referralEntity = getReferralById(referralId)
+
+    val statusUpdateResponse = updateStatus(
+      referralEntity,
+      createReferralStatusHistory.referralStatusDescriptionId,
+      createReferralStatusHistory.additionalDetails,
+      createdBy,
+    )
+
+    telemetryClient.logToAppInsights(
+      "Referral.admin-update-status.success",
+      mapOf(
+        "activityType" to UPDATE_REFERRAL_STATUS.name,
+        "referralId" to (referralEntity.id.toString()),
+        "crn" to (referralEntity.crn),
+        "fromStatus" to (referralEntity.statusHistories.first().referralStatusDescription.id.toString()),
+        "toStatus" to (createReferralStatusHistory.referralStatusDescriptionId.toString()),
+        "appliedBy" to (createdBy),
+      ),
+    )
+
+    return statusUpdateResponse
   }
 
   fun updateStatus(

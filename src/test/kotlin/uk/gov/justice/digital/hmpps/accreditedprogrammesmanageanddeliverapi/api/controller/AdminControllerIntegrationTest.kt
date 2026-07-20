@@ -14,12 +14,16 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
 import org.springframework.jdbc.core.JdbcTemplate
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.PopulatePersonalDetailsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.time.Duration.ofMillis
+import java.util.UUID
 
 class AdminControllerIntegrationTest : IntegrationTestBase() {
 
@@ -51,7 +55,7 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
       expectedResponseStatus = 200,
     )
 
-    //    Then
+    // Then
     assertEquals(response.ids, listOf("*"))
   }
 
@@ -133,6 +137,41 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
     )
 
     assertThat(referralRepository.findByIdOrNull(referralEntity.id!!)).isNull()
+  }
+
+  @Test
+  fun `should force update referral status`() {
+    // Given
+    val referralEntity = ReferralEntityFactory().produce()
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
+    val referralStatusDescriptionId = UUID.fromString("76b2f8d8-260c-4766-a716-de9325292609")
+    val additionalDetails = "This is a test comment"
+
+    // When
+    val response = performRequestAndExpectStatusWithBody(
+      HttpMethod.POST,
+      "/admin/referral/${referralEntity.id}/force-status",
+      object : ParameterizedTypeReference<StatusUpdateResponse>() {},
+      body = CreateReferralStatusHistory(
+        referralStatusDescriptionId = referralStatusDescriptionId,
+        additionalDetails = additionalDetails,
+      ),
+      expectedResponseStatus = HttpStatus.OK.value(),
+    )
+
+    // Then
+    assertThat(response).isNotNull()
+    assertThat(response.referralStatusHistory).isNotNull()
+    assertThat(response.referralStatusHistory.referralStatusDescriptionId).isEqualTo(referralStatusDescriptionId)
+    assertThat(response.referralStatusHistory.additionalDetails).isEqualTo(additionalDetails)
+
+    val updatedReferralResult = referralRepository.findByIdOrNull(referralEntity.id!!)
+    assertThat(updatedReferralResult).isNotNull()
+    assertThat(updatedReferralResult!!.statusHistories).isNotEmpty()
+    assertThat(updatedReferralResult.statusHistories.first().referralStatusDescription.id).isEqualTo(
+      referralStatusDescriptionId,
+    )
+    assertThat(updatedReferralResult.statusHistories.first().additionalDetails).isEqualTo(additionalDetails)
   }
 
   private fun buildPopulatePersonalDetailsResponse(
