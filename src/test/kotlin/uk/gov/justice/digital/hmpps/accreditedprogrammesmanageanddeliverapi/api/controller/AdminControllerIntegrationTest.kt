@@ -15,13 +15,24 @@ import org.springframework.core.ParameterizedTypeReference
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnit
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.CreateReferralStatusHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralSentenceReferenceRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.PopulatePersonalDetailsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.time.Duration.ofMillis
 import java.util.UUID
 
@@ -29,6 +40,9 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralRepository: ReferralRepository
+
+  @Autowired
+  private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
 
   @Autowired
   lateinit var entityManager: EntityManager
@@ -39,6 +53,8 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
   @BeforeEach
   fun setup() {
     testDataCleaner.cleanAllTables()
+
+    stubAuthTokenEndpoint()
   }
 
   @Test
@@ -144,34 +160,170 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
     // Given
     val referralEntity = ReferralEntityFactory().produce()
     testDataGenerator.createReferralWithStatusHistory(referralEntity)
-    val referralStatusDescriptionId = UUID.fromString("76b2f8d8-260c-4766-a716-de9325292609")
-    val additionalDetails = "This is a test comment"
+    val referralStatusDescription = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    val body = CreateReferralStatusHistoryFactory()
+      .withReferralStatusDescriptionId(referralStatusDescription.id)
+      .produce()
 
     // When
     val response = performRequestAndExpectStatusWithBody(
       HttpMethod.POST,
       "/admin/referral/${referralEntity.id}/force-status",
       object : ParameterizedTypeReference<StatusUpdateResponse>() {},
-      body = CreateReferralStatusHistory(
-        referralStatusDescriptionId = referralStatusDescriptionId,
-        additionalDetails = additionalDetails,
-      ),
+      body = body,
       expectedResponseStatus = HttpStatus.OK.value(),
     )
 
     // Then
     assertThat(response).isNotNull()
     assertThat(response.referralStatusHistory).isNotNull()
-    assertThat(response.referralStatusHistory.referralStatusDescriptionId).isEqualTo(referralStatusDescriptionId)
-    assertThat(response.referralStatusHistory.additionalDetails).isEqualTo(additionalDetails)
+    assertThat(response.referralStatusHistory.referralStatusDescriptionId).isEqualTo(body.referralStatusDescriptionId)
+    assertThat(response.referralStatusHistory.additionalDetails).isEqualTo(body.additionalDetails)
 
     val updatedReferralResult = referralRepository.findByIdOrNull(referralEntity.id!!)
     assertThat(updatedReferralResult).isNotNull()
     assertThat(updatedReferralResult!!.statusHistories).isNotEmpty()
     assertThat(updatedReferralResult.statusHistories.first().referralStatusDescription.id).isEqualTo(
-      referralStatusDescriptionId,
+      body.referralStatusDescriptionId,
     )
-    assertThat(updatedReferralResult.statusHistories.first().additionalDetails).isEqualTo(additionalDetails)
+    assertThat(updatedReferralResult.statusHistories.first().additionalDetails).isEqualTo(body.additionalDetails)
+  }
+
+  @Test
+  fun `should return 404 when force update referral status`() {
+    val nonExistentReferralId = UUID.randomUUID()
+    val body = CreateReferralStatusHistoryFactory().produce()
+
+    performRequestAndExpectStatusWithBody(
+      HttpMethod.POST,
+      "/admin/referral/$nonExistentReferralId/force-status",
+      object : ParameterizedTypeReference<ErrorResponse>() {},
+      body = body,
+      expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+    )
+  }
+
+  @Test
+  fun `return 401 when unauthorised on force update referral status request`() {
+    val nonExistentReferralId = UUID.randomUUID()
+    val body = CreateReferralStatusHistoryFactory().produce()
+
+    webTestClient
+      .method(HttpMethod.POST)
+      .uri("/admin/referral/$nonExistentReferralId/force-status")
+      .contentType(MediaType.APPLICATION_JSON)
+      .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+      .accept(MediaType.APPLICATION_JSON)
+      .bodyValue(body)
+      .exchange()
+      .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+      .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+      .returnResult().responseBody!!
+  }
+
+  @Test
+  fun `should repoint sentence reference for a referral`() {
+    // Given
+    val referralEntity = ReferralEntityFactory().produce()
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
+    val body = ReferralSentenceReferenceRequestFactory().produce()
+    val primaryPdu = NDeliusApiProbationDeliveryUnit(
+      code = "PDU001",
+      description = "East Sussex",
+    )
+
+    val primaryOffices = listOf(
+      CodeDescription(
+        code = "OFFICE-CODE-123",
+        description = "Brighton and Hove: Probation Office",
+      ),
+    )
+    val managerDetails = RequirementOrLicenceConditionManager(
+      staff = RequirementStaff(
+        code = "STAFF001",
+        name = FullName(forename = "Jane", surname = "Smith"),
+      ),
+      team = CodeDescription("TEAM001", "Primary Team"),
+      probationDeliveryUnit = primaryPdu,
+      officeLocations = primaryOffices,
+    )
+    val requirementResponse =
+      NDeliusCaseRequirementOrLicenceConditionResponse(manager = managerDetails, eventNumber = 1)
+    nDeliusApiStubs.stubSuccessfulRequirementManagerResponse(referralEntity.crn, body.eventId, requirementResponse)
+
+    // When
+    val response = performRequestAndExpectStatusWithBody(
+      HttpMethod.POST,
+      "/admin/referral/${referralEntity.id}/repoint-sentence-reference",
+      object : ParameterizedTypeReference<ReferralSentenceReferenceResponse>() {},
+      body = body,
+      expectedResponseStatus = HttpStatus.OK.value(),
+    )
+
+    // Then
+    assertThat(response).isNotNull()
+    assertThat(response.message).isNotNull()
+    assertThat(response.message).isEqualTo("Referral with ID: ${referralEntity.id} now has the sourceFrom: ${body.sourcedFrom.name} and eventId: ${body.eventId}.")
+
+    val updatedReferralResult = referralRepository.findByIdOrNull(referralEntity.id!!)
+    assertThat(updatedReferralResult).isNotNull()
+    assertThat(updatedReferralResult!!.eventId).isEqualTo(body.eventId)
+    assertThat(updatedReferralResult.sourcedFrom).isEqualTo(body.sourcedFrom)
+  }
+
+  @Test
+  fun `should handle error response from nDelius on repoint sentence reference for a referral request`() {
+    // Given
+    val referralEntity = ReferralEntityFactory().produce()
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
+    val body = ReferralSentenceReferenceRequestFactory().produce()
+    nDeliusApiStubs.stubNotFoundRequirementManagerResponse(crn = referralEntity.crn, requirementId = body.eventId)
+
+    // When
+    val response = performRequestAndExpectStatusWithBody(
+      HttpMethod.POST,
+      "/admin/referral/${referralEntity.id}/repoint-sentence-reference",
+      object : ParameterizedTypeReference<ErrorResponse>() {},
+      body = body,
+      expectedResponseStatus = HttpStatus.CONFLICT.value(),
+    )
+
+    // Then
+    assertThat(response).isNotNull()
+    assertThat(response.userMessage).isNotNull()
+    assertThat(response.userMessage).isEqualTo("Conflict: Cannot repoint referral: the supplied ${body.sourcedFrom} id ${body.eventId} does not exist in nDelius for CRN ${referralEntity.crn}. Confirm the live id with the integration team and retry.")
+  }
+
+  @Test
+  fun `should return 404 when repoint sentence reference for a referral`() {
+    val nonExistentReferralId = UUID.randomUUID()
+    val body = ReferralSentenceReferenceRequestFactory().produce()
+
+    performRequestAndExpectStatusWithBody(
+      HttpMethod.POST,
+      "/admin/referral/$nonExistentReferralId/repoint-sentence-reference",
+      object : ParameterizedTypeReference<ErrorResponse>() {},
+      body = body,
+      expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+    )
+  }
+
+  @Test
+  fun `return 401 when unauthorised on repoint sentence reference for referral request`() {
+    val nonExistentReferralId = UUID.randomUUID()
+    val body = ReferralSentenceReferenceRequestFactory().produce()
+
+    webTestClient
+      .method(HttpMethod.POST)
+      .uri("/admin/referral/$nonExistentReferralId/repoint-sentence-reference")
+      .contentType(MediaType.APPLICATION_JSON)
+      .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+      .accept(MediaType.APPLICATION_JSON)
+      .bodyValue(body)
+      .exchange()
+      .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+      .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+      .returnResult().responseBody!!
   }
 
   private fun buildPopulatePersonalDetailsResponse(

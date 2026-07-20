@@ -510,7 +510,10 @@ class ReferralService(
     val fromEventId = referralEntity.eventId
     referralEntity.sourcedFrom = referralSentenceReferenceRequest.sourcedFrom
     referralEntity.eventId = referralSentenceReferenceRequest.eventId
-    programmeGroupMembershipService.validateReferralSentenceDataExistsInNDelius(referralEntity)
+    val conflictErrorMessage = "Cannot repoint referral: the supplied " +
+      "${referralSentenceReferenceRequest.sourcedFrom} id ${referralSentenceReferenceRequest.eventId} does not exist " +
+      "in nDelius for CRN ${referralEntity.crn}. Confirm the live id with the integration team and retry."
+    programmeGroupMembershipService.validateReferralSentenceDataExistsInNDelius(referralEntity, conflictErrorMessage)
     val updatedReferralEntity = referralRepository.save(referralEntity)
 
     telemetryClient.logToAppInsights(
@@ -519,7 +522,7 @@ class ReferralService(
         "activityType" to UPDATE_REFERRAL_SENTENCE_REFERENCE.name,
         "referralId" to referralEntity.id.toString(),
         "crn" to referralEntity.crn,
-        "fromSourcedFrom" to fromSourcedFrom!!.name,
+        "fromSourcedFrom" to (fromSourcedFrom?.name ?: ""),
         "fromEventId" to (fromEventId ?: ""),
         "toSourcedFrom" to referralSentenceReferenceRequest.sourcedFrom.name,
         "toEventId" to referralSentenceReferenceRequest.eventId,
