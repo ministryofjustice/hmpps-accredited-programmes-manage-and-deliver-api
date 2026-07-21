@@ -118,11 +118,6 @@ class SessionService(
       NotFoundException("Session not found with id: $sessionId")
     }
 
-    // Once attendance has been recorded, delius will throw an error if we try to resubmit/change attendance
-    if (session.attendances.isNotEmpty()) {
-      throw BusinessException("This session cannot be rescheduled because attendance has already been recorded.")
-    }
-
     val requestedStartTime = LocalDateTime.of(request.sessionStartDate, request.sessionStartTime.toLocalTime())
     val startOffset = Duration.between(session.startsAt, requestedStartTime)
     val requestedEndTime = LocalDateTime.of(

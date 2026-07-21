@@ -1291,33 +1291,6 @@ class SessionServiceTest {
   }
 
   @Test
-  fun `should reject reschedule when the session already has recorded attendance`() {
-    // Given
-    val sessionId = UUID.randomUUID()
-    val referralEntity = ReferralEntityFactory().withPersonName("John Smith").produce()
-    val sessionEntity = sessionWithAttendees(listOf(referralEntity)).also { it.id = sessionId }
-    recordAttendanceOnSession(sessionEntity, referralEntity, ATTC)
-
-    val request = RescheduleSessionRequest(
-      sessionStartDate = LocalDate.now().plusDays(1),
-      sessionStartTime = SessionTime(11, 0, AmOrPm.AM),
-      rescheduleOtherSessions = false,
-    )
-
-    every { sessionRepository.findById(sessionId) } returns Optional.of(sessionEntity)
-
-    // When
-    val exception = assertThrows<BusinessException> {
-      service.rescheduleSessions(sessionId, request)
-    }
-
-    // Then
-    assertThat(exception.message)
-      .isEqualTo("This session cannot be rescheduled because attendance has already been recorded.")
-    verify(exactly = 0) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
-  }
-
-  @Test
   fun `should reject attendance when a different outcome has already been recorded`() {
     // Given
     val sessionId = UUID.randomUUID()
