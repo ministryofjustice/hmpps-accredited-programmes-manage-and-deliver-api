@@ -2,6 +2,20 @@ info.app:
   name: HMPPS Accredited Programmes Manage And Deliver Api
   version: 1.0
 
+sentry:
+  # Run Sentry's exception resolver first so exceptions handled by @RestControllerAdvice are still captured,
+  # removing the need for manual Sentry.captureException calls in exception handlers.
+  exception-resolver-order: -2147483647
+  # Most 4xx exceptions are deliberately still reported — they have surfaced real bugs in the past.
+  # Only genuinely un-actionable noise is ignored: auth failures, requests to routes that don't exist
+  # (bot scans), and clients disconnecting mid-response.
+  ignored-exceptions-for-type: >-
+    org.springframework.security.access.AccessDeniedException,
+    org.springframework.web.servlet.resource.NoResourceFoundException,
+    org.apache.catalina.connector.ClientAbortException,
+    org.springframework.web.context.request.async.AsyncRequestNotUsableException
+  send-default-pii: false
+
 app:
   scheduling:
     referral-details-updated:

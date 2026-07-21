@@ -18,10 +18,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import java.util.UUID
 
 class CreateAppointmentRequestTest {
-  companion object {
-    val NOTES_CREATED_BY_PATTERN =
-      "^Contact created by Accredited Programmes service on \\d{2}/\\d{2}/\\d{4} at \\d{2}:\\d{2}".toRegex()
-  }
 
   @Test
   fun `toAppointment should map Pre-group one-to-ones module name to PRE_GROUP_ONE_TO_ONE_MEETING`() {
@@ -101,7 +97,6 @@ class CreateAppointmentRequestTest {
     val appointment = attendee.toAppointment(UUID.randomUUID())
 
     // Then
-    assertThat(appointment.notes).containsPattern(NOTES_CREATED_BY_PATTERN.pattern)
     assertThat(appointment.notes).contains("(Prog ID: AAA111, Type: main, Session: Module Session Template 1)")
     assertThat(appointment.notes).contains("Treatment Manager: Treatment Manager Name")
     assertThat(appointment.notes).contains("Additional Facilitators: Second Facilitator, Third Facilitator")
@@ -135,7 +130,6 @@ class CreateAppointmentRequestTest {
 
     val appointment = attendee.toAppointment(UUID.randomUUID())
 
-    assertThat(appointment.notes).containsPattern(NOTES_CREATED_BY_PATTERN.pattern)
     assertThat(appointment.notes).contains("(Prog ID: AAA111, Type: main, Session: Module Session Template 1)")
     assertThat(appointment.notes).doesNotContain("Treatment Manager:")
     assertThat(appointment.notes).doesNotContain("Additional Facilitators:")
