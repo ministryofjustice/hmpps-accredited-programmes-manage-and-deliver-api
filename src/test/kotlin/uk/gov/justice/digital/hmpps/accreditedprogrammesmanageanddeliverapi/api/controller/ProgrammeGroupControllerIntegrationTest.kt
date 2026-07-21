@@ -2206,6 +2206,101 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val foundNdeliusAppointment = nDeliusAppointmentRepository.findBySessionId(session.id!!)
       assertThat(foundNdeliusAppointment).isEmpty()
     }
+
+    @Test
+    fun `should remove referral from group and NOT delete any sessions which are 'one-to-one AND not placeholder'`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+
+      val referralToRemove = testReferralHelper.createReferralAndUpdateStatus(
+        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+      )
+      val referralNotToRemove = testReferralHelper.createReferralAndUpdateStatus(
+        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+      )
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+
+      // Allocate the referral to the group first
+      testGroupHelper.allocateToGroup(group, referralToRemove)
+      testGroupHelper.allocateToGroup(group, referralNotToRemove)
+
+      val removeFromGroupRequest = RemoveFromGroupRequest(
+        referralStatusDescriptionId = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription().id,
+        additionalDetails = "The additional details for the removal",
+      )
+
+      val oneToOneSession =
+        buildingChoicesTemplate.modules
+          .firstNotNullOf { module ->
+            module.sessionTemplates.find { it.sessionType == SessionType.ONE_TO_ONE }
+          }
+
+      // Add a future scheduled one-to-one session for the referral
+      val session = sessionRepository.save(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(oneToOneSession)
+          .withStartsAt(LocalDateTime.now().plusDays(1))
+          .withEndsAt(LocalDateTime.now().plusDays(1).plusHours(1))
+          .withIsPlaceholder(false)
+          .withIsCatchup(false)
+          .produce(),
+      )
+
+      val session2 = sessionRepository.save(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(oneToOneSession)
+          .withStartsAt(LocalDateTime.now().plusDays(1))
+          .withEndsAt(LocalDateTime.now().plusDays(1).plusHours(1))
+          .withIsPlaceholder(false)
+          .withIsCatchup(false)
+          .produce(),
+      )
+
+      session.attendees.add(
+        AttendeeFactory()
+          .withReferral(referralToRemove)
+          .withSession(session)
+          .produce(),
+      )
+      session2.attendees.add(
+        AttendeeFactory()
+          .withReferral(referralNotToRemove)
+          .withSession(session2)
+          .produce(),
+      )
+      sessionRepository.save(session)
+      sessionRepository.save(session2)
+
+      // When
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/remove/${referralToRemove.id}",
+        expectedResponseStatus = HttpStatus.OK.value(),
+        body = removeFromGroupRequest,
+        returnType = object : ParameterizedTypeReference<RemoveFromGroupResponse>() {},
+      )
+
+      val foundReferral = referralRepository.findByIdOrNull(referralToRemove.id!!)!!
+
+      // Then
+      // Check that all future sessions associated with group don't contain removed attendee
+      val remainingAttendeeNames = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
+        .flatMap { session -> session.attendees.map { it.personName } }
+
+      assertThat(remainingAttendeeNames).doesNotContain(foundReferral.personName)
+      // Validate our future group catchup session has not been removed
+      val foundSession = sessionRepository.findByIdOrNull(session.id!!)
+      assertThat(foundSession).isNotNull()
+      val foundSession2 = sessionRepository.findByIdOrNull(session2.id!!)
+      assertThat(foundSession2).isNotNull
+      assertThat(foundSession2!!.attendees.map { it.personName }).doesNotContain(referralToRemove.personName)
+      // Validate that associated ndelius appointments have been removed from the DB
+      val foundNdeliusAppointment = nDeliusAppointmentRepository.findBySessionId(session.id!!)
+      assertThat(foundNdeliusAppointment).isEmpty()
+    }
   }
 
   @Nested

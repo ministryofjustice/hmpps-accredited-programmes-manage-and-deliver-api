@@ -216,7 +216,7 @@ class ProgrammeGroupMembershipService(
     attendeesToRemove.forEach { it.session.attendees.remove(it) }
 
     val sessionsToRemove =
-      futureSessions.filter { (it.sessionType == SessionType.ONE_TO_ONE && !it.isPlaceholder) || (it.isCatchup && it.attendees.isEmpty()) }
+      futureSessions.filter { (it.sessionType == SessionType.ONE_TO_ONE && it.isPlaceholder && it.attendees.isEmpty()) || (it.isCatchup && it.attendees.isEmpty()) }
     group.sessions.removeAll(sessionsToRemove.toSet())
 
     log.info("...Successfully found Referral (${referral.id}), Group (${group.id}), and Membership (${groupMembership.id}) to remove")
