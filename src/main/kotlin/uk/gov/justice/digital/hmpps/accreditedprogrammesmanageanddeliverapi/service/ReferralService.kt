@@ -201,18 +201,11 @@ class ReferralService(
   ) {
     is ClientResult.Success -> result.body
 
-    is ClientResult.Failure.StatusCode -> if (result.status.value() == 404) {
-      log.warn("No referral found in Find and Refer for id: $referralId - ${result.getErrorMessage()}")
-      throw NotFoundException("No referral details found for id: $referralId")
-    } else {
-      log.error("Failed to retrieve referral details for id: $referralId - ${result.getErrorMessage()}")
-      throw BusinessException(
-        "Failed to retrieve referral details for id: $referralId - ${result.getErrorMessage()} ",
-        result.toException(),
-      )
-    }
-
     is ClientResult.Failure -> {
+      if (result is ClientResult.Failure.StatusCode && result.status.value() == 404) {
+        log.warn("No referral found in Find and Refer for id: $referralId - ${result.getErrorMessage()}")
+        throw NotFoundException("No referral details found for id: $referralId")
+      }
       log.error("Failed to retrieve referral details for id: $referralId - ${result.getErrorMessage()}")
       throw BusinessException(
         "Failed to retrieve referral details for id: $referralId - ${result.getErrorMessage()} ",

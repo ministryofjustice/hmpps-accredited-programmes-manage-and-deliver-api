@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.FindAndReferInterventionApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
@@ -48,7 +49,7 @@ class ReferralServiceTest {
   private lateinit var referralStatusHistoryRepository: ReferralStatusHistoryRepository
 
   @Mock
-  private lateinit var referalStatusTransitionRepository: ReferralStatusTransitionRepository
+  private lateinit var referralStatusTransitionRepository: ReferralStatusTransitionRepository
 
   @Mock
   private lateinit var programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository
@@ -107,7 +108,7 @@ class ReferralServiceTest {
       ndeliusIntegrationApiClient = ndeliusIntegrationApiClient,
       referralRepository = referralRepository,
       referralStatusDescriptionRepository = referralStatusDescriptionRepository,
-      referralStatusTransitionRepository = referalStatusTransitionRepository,
+      referralStatusTransitionRepository = referralStatusTransitionRepository,
       userService = userService,
       cohortService = cohortService,
       pniService = pniService,
@@ -167,13 +168,32 @@ class ReferralServiceTest {
     // Given
     val referralId = UUID.randomUUID()
     `when`(findAndReferInterventionApiClient.getFindAndReferReferral(referralId)).thenReturn(
-      ClientResult.Failure.StatusCode(HttpMethod.GET, "/referral/$referralId", HttpStatusCode.valueOf(400), "Bad request"),
+      ClientResult.Failure.StatusCode(
+        HttpMethod.GET,
+        "/referral/$referralId",
+        HttpStatusCode.valueOf(400),
+        "Bad request",
+      ),
     )
 
     // When & Then
-    assertThrows<Exception> { referralService.getFindAndReferReferralDetails(referralId) }.also {
-      assertThat(it).isNotInstanceOf(NotFoundException::class.java)
-    }
+    assertThrows<BusinessException> { referralService.getFindAndReferReferralDetails(referralId) }
+    verify(findAndReferInterventionApiClient).getFindAndReferReferral(referralId)
+  }
+
+  @Test
+  fun `getFindAndReferReferralDetails should throw BusinessException when a non-HTTP failure occurs`() {
+    val referralId = UUID.randomUUID()
+    `when`(findAndReferInterventionApiClient.getFindAndReferReferral(referralId)).thenReturn(
+      ClientResult.Failure.Other(
+        HttpMethod.GET,
+        "/referral/$referralId",
+        RuntimeException("timeout"),
+        "find-and-refer",
+      ),
+    )
+
+    assertThrows<BusinessException> { referralService.getFindAndReferReferralDetails(referralId) }
     verify(findAndReferInterventionApiClient).getFindAndReferReferral(referralId)
   }
 }
