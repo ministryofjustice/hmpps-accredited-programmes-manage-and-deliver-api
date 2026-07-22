@@ -91,6 +91,19 @@ class WebClientConfiguration(
     return buildWebClient(assessRiskAndNeedsBaseUrl, oauth2Client)
   }
 
+  @Bean(name = ["probationAccessControlWebClient"])
+  fun probationAccessControlWebClient(
+    clientRegistrations: ClientRegistrationRepository,
+    authorizedClients: OAuth2AuthorizedClientRepository,
+    authorizedClientManager: OAuth2AuthorizedClientManager,
+    @Value("\${services.probation-access-control-api.base-url}") probationAccessControlApiUrl: String,
+  ): WebClient {
+    val oauth2Client = ServletOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager)
+
+    oauth2Client.setDefaultClientRegistrationId("manage-and-deliver-api-client")
+    return buildWebClient(probationAccessControlApiUrl, oauth2Client)
+  }
+
   @Bean(name = ["govUkApiWebClient"])
   fun govUKApiWebClient(
     @Value($$"${services.govuk-api.base-url}") govukBaseUrl: String,
