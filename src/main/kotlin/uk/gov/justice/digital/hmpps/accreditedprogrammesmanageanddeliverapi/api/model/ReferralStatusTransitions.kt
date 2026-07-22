@@ -1,13 +1,12 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model
 
-import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusTransitionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
-import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Schema(description = "Status transition information for the update status form in the M&D UI")
@@ -76,10 +75,9 @@ data class CurrentStatus(
   @get:JsonProperty("updatedByName", required = true)
   val updatedByName: String,
 
-  @Schema(description = "The date that the status was last updated")
+  @Schema(description = "The date and time that the status was last updated", format = "date-time")
   @get:JsonProperty("createdAt", required = true)
-  @JsonFormat(pattern = "d MMMM yyyy")
-  val createdAt: LocalDate,
+  val createdAt: LocalDateTime,
 )
 
 fun ReferralStatusTransitionEntity.toSuggestedStatus(): SuggestedStatus = SuggestedStatus(
@@ -124,5 +122,5 @@ fun ReferralStatusHistoryEntity.toCurrentStatus() = CurrentStatus(
   title = ReferralStatusUtils.formatStatus(referralStatusDescription.description),
   tagColour = referralStatusDescription.labelColour,
   updatedByName = createdBy,
-  createdAt = createdAt.toLocalDate(),
+  createdAt = createdAt,
 )
