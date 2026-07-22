@@ -161,4 +161,19 @@ class ReferralServiceTest {
     assertThrows<NotFoundException> { referralService.getFindAndReferReferralDetails(referralId) }
     verify(findAndReferInterventionApiClient).getFindAndReferReferral(referralId)
   }
+
+  @Test
+  fun `getFindAndReferReferralDetails should not throw NotFoundException when the call fails for a non-404 reason`() {
+    // Given
+    val referralId = UUID.randomUUID()
+    `when`(findAndReferInterventionApiClient.getFindAndReferReferral(referralId)).thenReturn(
+      ClientResult.Failure.StatusCode(HttpMethod.GET, "/referral/$referralId", HttpStatusCode.valueOf(400), "Bad request"),
+    )
+
+    // When & Then
+    assertThrows<Exception> { referralService.getFindAndReferReferralDetails(referralId) }.also {
+      assertThat(it).isNotInstanceOf(NotFoundException::class.java)
+    }
+    verify(findAndReferInterventionApiClient).getFindAndReferReferral(referralId)
+  }
 }
