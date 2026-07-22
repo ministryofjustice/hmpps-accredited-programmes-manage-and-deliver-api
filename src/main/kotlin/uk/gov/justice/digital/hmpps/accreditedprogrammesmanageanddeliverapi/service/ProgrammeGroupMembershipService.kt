@@ -215,8 +215,9 @@ class ProgrammeGroupMembershipService(
     // remove the attendees from the sessions
     attendeesToRemove.forEach { it.session.attendees.remove(it) }
 
+    // Only remove a future one-to-one / catch-up session if the removed referral was its sole attendee
     val sessionsToRemove =
-      futureSessions.filter { (it.sessionType == SessionType.ONE_TO_ONE && !it.isPlaceholder) || (it.isCatchup && it.attendees.isEmpty()) }
+      futureSessions.filter { it.attendees.isEmpty() && ((it.sessionType == SessionType.ONE_TO_ONE && !it.isPlaceholder) || it.isCatchup) }
     group.sessions.removeAll(sessionsToRemove.toSet())
 
     log.info("...Successfully found Referral (${referral.id}), Group (${group.id}), and Membership (${groupMembership.id}) to remove")
@@ -228,7 +229,7 @@ class ProgrammeGroupMembershipService(
    * before attempting to create appointments. This prevents 400 errors from nDelius when
    * the sentence data is stale (e.g., after a transfer or sentence termination).
    */
-  private fun validateReferralSentenceDataExistsInNDelius(referral: ReferralEntity) {
+  fun validateReferralSentenceDataExistsInNDelius(referral: ReferralEntity, conflictErrorMessage: String? = null) {
     val eventId = referral.eventId
     if (eventId == null) {
       log.error("Cannot validate nDelius sentence data: eventId is null for referral ${referral.id}")
@@ -286,9 +287,11 @@ class ProgrammeGroupMembershipService(
         // requirement / licence condition no longer exists). The caller cannot fix this by
         // retrying or by changing the request body — the underlying data needs to be corrected.
         throw ConflictException(
-          "Cannot allocate referral to group: the $sourceType linked to this referral " +
-            "no longer exists in nDelius. The sentence data may be stale following a transfer or termination. " +
-            "Please contact your admin to update the referral's sentence data.",
+          conflictErrorMessage ?: (
+            "Cannot allocate referral to group: the $sourceType linked to this referral " +
+              "no longer exists in nDelius. The sentence data may be stale following a transfer or termination. " +
+              "Please contact your admin to update the referral's sentence data."
+            ),
         )
       }
 

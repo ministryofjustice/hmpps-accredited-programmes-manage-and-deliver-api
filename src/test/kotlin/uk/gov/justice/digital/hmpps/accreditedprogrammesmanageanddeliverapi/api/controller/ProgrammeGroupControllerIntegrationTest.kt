@@ -447,7 +447,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?pdu=${encodeQueryParamValue("PDU 1")}&reportingTeam=${encodeQueryParamValue("Team A")}&reportingTeam=${encodeQueryParamValue("Team C")}",
+        "/bff/group/${group.id}/WAITLIST?pdu=${encodeQueryParamValue("PDU 1")}&reportingTeam=${encodeQueryParamValue("Team A")}&reportingTeam=${
+          encodeQueryParamValue(
+            "Team C",
+          )
+        }",
         object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
@@ -493,7 +497,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?reportingTeam=${encodeQueryParamValue("Team A")}&reportingTeam=${encodeQueryParamValue("Team C")}",
+        "/bff/group/${group.id}/WAITLIST?reportingTeam=${encodeQueryParamValue("Team A")}&reportingTeam=${
+          encodeQueryParamValue(
+            "Team C",
+          )
+        }",
         object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
@@ -601,7 +609,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?pdu=${encodeQueryParamValue(commaPdu)}&reportingTeam=${encodeQueryParamValue(commaReportingTeam)}",
+        "/bff/group/${group.id}/WAITLIST?pdu=${encodeQueryParamValue(commaPdu)}&reportingTeam=${
+          encodeQueryParamValue(
+            commaReportingTeam,
+          )
+        }",
         object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
@@ -614,7 +626,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `getGroupAllocations returns 200 for ALLOCATED tab with all data when no filters are provided`() {
       // Given
       initialiseReferrals()
-      val group = testGroupHelper.createGroup(groupCode = "TEST008", region = CodeDescription("REGION", "WIREMOCKED REGION"))
+      val group =
+        testGroupHelper.createGroup(groupCode = "TEST008", region = CodeDescription("REGION", "WIREMOCKED REGION"))
       stubAuthTokenEndpoint()
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
@@ -713,7 +726,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         referralService.updateStatus(it, status.id, createdBy = "AUTH_USER")
       }
 
-      val group = testGroupHelper.createGroup(groupCode = "TEST_REGION_01", region = CodeDescription("TEST_REGION_1", "WIREMOCKED REGION"))
+      val group = testGroupHelper.createGroup(
+        groupCode = "TEST_REGION_01",
+        region = CodeDescription("TEST_REGION_1", "WIREMOCKED REGION"),
+      )
 
       // When
       val response = performRequestAndExpectOk(
@@ -754,7 +770,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         referralService.updateStatus(it, status.id, createdBy = "AUTH_USER")
       }
 
-      val group = testGroupHelper.createGroup(groupCode = "TEST_REGION_02", region = CodeDescription("CODE", "WIREMOCKED REGION"))
+      val group =
+        testGroupHelper.createGroup(groupCode = "TEST_REGION_02", region = CodeDescription("CODE", "WIREMOCKED REGION"))
 
       // When
       val response = performRequestAndExpectOk(
@@ -2206,6 +2223,99 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(foundSession!!.attendees.map { it.personName }).doesNotContain(referralToRemove.personName)
       // Validate that associated ndelius appointments have been removed from the DB
       val foundNdeliusAppointment = nDeliusAppointmentRepository.findBySessionId(session.id!!)
+      assertThat(foundNdeliusAppointment).isEmpty()
+    }
+
+    @Test
+    fun `should remove referral from group and NOT delete any sessions which are 'one-to-one AND not placeholder'`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+
+      val referralToRemove = testReferralHelper.createReferralAndUpdateStatus(
+        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+      )
+      val referralToKeep = testReferralHelper.createReferralAndUpdateStatus(
+        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+      )
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+
+      // Allocate the referral to the group first
+      testGroupHelper.allocateToGroup(group, referralToRemove)
+      testGroupHelper.allocateToGroup(group, referralToKeep)
+
+      val removeFromGroupRequest = RemoveFromGroupRequest(
+        referralStatusDescriptionId = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription().id,
+        additionalDetails = "The additional details for the removal",
+      )
+
+      val oneToOneSessionTemplate =
+        buildingChoicesTemplate.modules
+          .firstNotNullOf { module ->
+            module.sessionTemplates.find { it.sessionType == SessionType.ONE_TO_ONE }
+          }
+
+      // Add a future scheduled one-to-one session for the referral
+      val sessionToRemove = sessionRepository.save(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(oneToOneSessionTemplate)
+          .withStartsAt(LocalDateTime.now().plusDays(1))
+          .withEndsAt(LocalDateTime.now().plusDays(1).plusHours(1))
+          .withIsPlaceholder(false)
+          .withIsCatchup(false)
+          .produce(),
+      )
+
+      val sessionToKeep = sessionRepository.save(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(oneToOneSessionTemplate)
+          .withStartsAt(LocalDateTime.now().plusDays(1))
+          .withEndsAt(LocalDateTime.now().plusDays(1).plusHours(1))
+          .withIsPlaceholder(false)
+          .withIsCatchup(false)
+          .produce(),
+      )
+
+      sessionToRemove.attendees.add(
+        AttendeeFactory()
+          .withReferral(referralToRemove)
+          .withSession(sessionToRemove)
+          .produce(),
+      )
+      sessionToKeep.attendees.add(
+        AttendeeFactory()
+          .withReferral(referralToKeep)
+          .withSession(sessionToKeep)
+          .produce(),
+      )
+      sessionRepository.save(sessionToRemove)
+      sessionRepository.save(sessionToKeep)
+
+      // When
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/remove/${referralToRemove.id}",
+        expectedResponseStatus = HttpStatus.OK.value(),
+        body = removeFromGroupRequest,
+        returnType = object : ParameterizedTypeReference<RemoveFromGroupResponse>() {},
+      )
+
+      val foundReferral = referralRepository.findByIdOrNull(referralToRemove.id!!)!!
+
+      // Then
+      // Check that all future sessions associated with group don't contain removed attendee
+      val remainingAttendeeNames = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
+        .flatMap { session -> session.attendees.map { it.personName } }
+
+      assertThat(remainingAttendeeNames).doesNotContain(foundReferral.personName)
+      assertThat(sessionRepository.findByIdOrNull(sessionToRemove.id!!)).isNull()
+      val retrieveSessionToKeep = sessionRepository.findByIdOrNull(sessionToKeep.id!!)
+      assertThat(retrieveSessionToKeep).isNotNull
+      assertThat(retrieveSessionToKeep!!.attendees.map { it.personName }).doesNotContain(referralToRemove.personName)
+      // Validate that associated ndelius appointments have been removed from the DB
+      val foundNdeliusAppointment = nDeliusAppointmentRepository.findBySessionId(sessionToRemove.id!!)
       assertThat(foundNdeliusAppointment).isEmpty()
     }
   }
