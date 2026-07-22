@@ -55,6 +55,7 @@ data class AttendanceAndSessionNotes(
   val name: String,
   val referralId: UUID,
   val crn: String,
+  val lao: Boolean,
   val attendance: String,
   val sessionNotes: String,
 )

@@ -157,6 +157,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     testDataCleaner.cleanAllTables()
     nDeliusApiStubs.clearAllStubs()
     govUkApiStubs.stubBankHolidaysResponse()
+    probationAccessControlApiStubs.stubOpenAccessForAnyCrn()
     nDeliusApiStubs.stubUserTeamsResponse(
       "AUTH_ADM",
       NDeliusUserTeams(
@@ -253,6 +254,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.otherTabTotal).isEqualTo(1)
       assertThat(response.pagedGroupData).isNotNull
       assertThat(response.pagedGroupData.content.map { it.statusColour }).isNotEmpty
+      assertThat(response.pagedGroupData.content).allMatch { !it.lao }
     }
 
     @Test
@@ -3805,8 +3807,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .filteredOn { it.crn == groupWithAllocation.programmeGroupMemberships.first().crn }
         .hasSize(1)
         .first()
-        .extracting("attendance", "sessionNotes")
-        .containsExactly("Did not attend", "Test session notes")
+        .extracting("attendance", "sessionNotes", "lao")
+        .containsExactly("Did not attend", "Test session notes", false)
     }
 
     @Test
@@ -3977,14 +3979,17 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val notes1 = response.attendanceAndSessionNotes.find { it.crn == referral1.crn }!!
       assertThat(notes1.attendance).isEqualTo("Attended - Complied")
       assertThat(notes1.sessionNotes).isEqualTo("Notes for referral 1 - latest")
+      assertThat(notes1.lao).isFalse
 
       val notes2 = response.attendanceAndSessionNotes.find { it.crn == referral2.crn }!!
       assertThat(notes2.attendance).isEqualTo("Did not attend")
       assertThat(notes2.sessionNotes).isEqualTo("Notes for referral 2 - latest")
+      assertThat(notes2.lao).isFalse
 
       val notes3 = response.attendanceAndSessionNotes.find { it.crn == referral3.crn }!!
       assertThat(notes3.attendance).isEqualTo("To be confirmed")
       assertThat(notes3.sessionNotes).isEqualTo("Not added")
+      assertThat(notes3.lao).isFalse
     }
   }
 
