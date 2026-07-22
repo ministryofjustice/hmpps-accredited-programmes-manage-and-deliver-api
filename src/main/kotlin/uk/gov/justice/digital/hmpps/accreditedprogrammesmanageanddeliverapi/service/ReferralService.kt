@@ -196,17 +196,22 @@ class ReferralService(
     }
   }
 
-  fun getFindAndReferReferralDetails(referralId: UUID): FindAndReferReferralDetails {
-    val referralDetails =
-      when (val result = findAndReferInterventionApiClient.getFindAndReferReferral(referralId = referralId)) {
-        is ClientResult.Failure -> {
-          log.warn("Failure to retrieve referral details for uuid : $referralId")
-          throw NotFoundException("No referral details found for id: $referralId")
-        }
+  fun getFindAndReferReferralDetails(referralId: UUID): FindAndReferReferralDetails = when (
+    val result = findAndReferInterventionApiClient.getFindAndReferReferral(referralId = referralId)
+  ) {
+    is ClientResult.Success -> result.body
 
-        is ClientResult.Success -> result.body
+    is ClientResult.Failure -> {
+      if (result is ClientResult.Failure.StatusCode && result.status.value() == 404) {
+        log.warn("No referral found in Find and Refer for id: $referralId - ${result.getErrorMessage()}")
+        throw NotFoundException("No referral details found for id: $referralId")
       }
-    return referralDetails
+      log.error("Failed to retrieve referral details for id: $referralId - ${result.getErrorMessage()}")
+      throw BusinessException(
+        "Failed to retrieve referral details for id: $referralId - ${result.getErrorMessage()} ",
+        result.toException(),
+      )
+    }
   }
 
   fun createReferral(findAndReferReferralDetails: FindAndReferReferralDetails): ReferralEntity {
