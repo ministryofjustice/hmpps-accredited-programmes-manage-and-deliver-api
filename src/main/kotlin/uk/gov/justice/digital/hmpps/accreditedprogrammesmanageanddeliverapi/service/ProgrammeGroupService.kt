@@ -730,6 +730,8 @@ class ProgrammeGroupService(
     val session = sessionRepository.findByIdOrNull(sessionId)
       ?: throw NotFoundException("Session with $sessionId not found")
 
+    val laoByCrn = session.attendees.map { it.referral.crn }.distinct().associateWith { getLaoByCrn(it) }
+
     val attendanceAndSessionNotes = session.attendees.map { attendee ->
       val attendanceRecord = session.attendances
         .filter { it.groupMembership.referral.id == attendee.referralId }
@@ -740,6 +742,7 @@ class ProgrammeGroupService(
         name = attendee.personName,
         referralId = attendee.referralId,
         crn = attendee.referral.crn,
+        lao = laoByCrn[attendee.referral.crn] ?: false,
         attendance = getAttendanceTextFromOutcome(attendanceRecord?.outcomeType),
         sessionNotes = attendanceRecord?.notesHistory?.maxByOrNull { it.createdAt }?.notes ?: "Not added",
       )
