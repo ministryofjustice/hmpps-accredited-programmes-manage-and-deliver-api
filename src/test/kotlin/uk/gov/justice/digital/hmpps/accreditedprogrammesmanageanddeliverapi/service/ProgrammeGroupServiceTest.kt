@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.ProbationAccessControlApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
@@ -29,6 +30,7 @@ class ProgrammeGroupServiceTest {
   private val sessionNameFormatter = mockk<SessionNameFormatter>()
   private val sessionService = mockk<SessionService>()
   private val moduleSessionTemplateRepository = mockk<ModuleSessionTemplateRepository>()
+  private val probationAccessControlApiClient = mockk<ProbationAccessControlApiClient>()
   private lateinit var service: ProgrammeGroupService
 
   @BeforeEach
@@ -45,6 +47,7 @@ class ProgrammeGroupServiceTest {
       sessionNameFormatter,
       sessionService,
       moduleSessionTemplateRepository,
+      probationAccessControlApiClient,
     )
   }
 
