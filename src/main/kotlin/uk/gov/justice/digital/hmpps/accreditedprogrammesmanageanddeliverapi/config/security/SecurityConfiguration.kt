@@ -33,7 +33,9 @@ class SecurityConfiguration {
           "/api.yml",
           "/info",
           "/swagger-ui.html",
-          "/dev/seed/referrals",
+          // All seeding endpoints (referrals, groups, health). The whole /dev/seed controller is
+          // dev-only, gated by @Profile("seeding") which must never be enabled in prod/pre-prod.
+          "/dev/seed/**",
         ).permitAll()
         .anyRequest().authenticated()
     }

@@ -7,18 +7,22 @@ set -e
 
 API_BASE_URL="${API_BASE_URL:-http://localhost:8080}"
 DEFAULT_COUNT=50
+DEFAULT_GROUP_COUNT=5
 
 usage() {
     echo "Usage: $0 [command] [options]"
     echo ""
     echo "Commands:"
-    echo "  seed [count]    Create seeded referrals (default: $DEFAULT_COUNT)"
-    echo "  teardown        Remove all seeded data"
-    echo "  health          Check if seeding endpoints are available"
+    echo "  seed [referralCount] [groupCount]   Create seeded referrals (default: $DEFAULT_COUNT)"
+    echo "                                      and groups (default: $DEFAULT_GROUP_COUNT)"
+    echo "  teardown                            Remove all seeded data (groups and referrals)"
+    echo "  health                              Check if seeding endpoints are available"
     echo ""
     echo "Examples:"
-    echo "  $0 seed 100     # Create 100 referrals"
-    echo "  $0 teardown     # Remove all seeded data"
+    echo "  $0 seed             # 50 referrals + 5 groups"
+    echo "  $0 seed 100         # 100 referrals + 5 groups"
+    echo "  $0 seed 100 10      # 100 referrals + 10 groups"
+    echo "  $0 teardown         # Remove all seeded data"
 }
 
 wait_for_api() {
@@ -37,11 +41,18 @@ wait_for_api() {
 
 seed() {
     local count="${1:-$DEFAULT_COUNT}"
+    local group_count="${2:-$DEFAULT_GROUP_COUNT}"
     wait_for_api
 
     echo "Seeding $count referrals..."
     response=$(curl -s -X POST "${API_BASE_URL}/dev/seed/referrals?count=${count}")
     echo "$response" | jq . 2>/dev/null || echo "$response"
+
+    echo ""
+    echo "Seeding $group_count groups..."
+    response=$(curl -s -X POST "${API_BASE_URL}/dev/seed/groups?count=${group_count}")
+    echo "$response" | jq . 2>/dev/null || echo "$response"
+
     echo ""
     echo "Seeding complete. You may need to restart Wiremock to pick up new stubs."
 }
@@ -49,7 +60,15 @@ seed() {
 teardown() {
     wait_for_api
 
-    echo "Removing all seeded data..."
+    # Remove groups before referrals: a referral allocated in a previous run has a group membership
+    # that references it, so clearing groups (and their memberships) first avoids an FK error when
+    # the referrals are deleted.
+    echo "Removing all seeded groups..."
+    response=$(curl -s -X DELETE "${API_BASE_URL}/dev/seed/groups")
+    echo "$response" | jq . 2>/dev/null || echo "$response"
+
+    echo ""
+    echo "Removing all seeded referrals..."
     response=$(curl -s -X DELETE "${API_BASE_URL}/dev/seed/referrals")
     echo "$response" | jq . 2>/dev/null || echo "$response"
 }
@@ -67,7 +86,7 @@ health() {
 
 case "${1:-}" in
     seed)
-        seed "$2"
+        seed "$2" "$3"
         ;;
     teardown)
         teardown
