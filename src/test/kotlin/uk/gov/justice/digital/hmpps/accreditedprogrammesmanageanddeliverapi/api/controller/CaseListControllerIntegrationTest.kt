@@ -73,6 +73,16 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         "CRN-555555",
         "CRN-111111",
       )
+      probationAccessControlApiStubs.stubOpenAccessForAnyCrn()
+      probationAccessControlApiStubs.stubOpenAccessByCrns(
+        "X7182552",
+        "CRN-999999",
+        "CRN-888888",
+        "CRN-777777",
+        "CRN-66666",
+        "CRN-555555",
+        "CRN-111111",
+      )
 
       nDeliusApiStubs.stubUserTeamsResponse(
         "AUTH_ADM",
@@ -331,6 +341,23 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder(pduWithComma, pduSecondary, "UNKNOWN_PDU_NAME")
       assertThat(response.filters.locationFilterValues.map { it.pduName }).doesNotContain("OTHER_REGION_PDU")
       assertThat(response.filters.cohort).containsAll(ProgrammeGroupCohort.entries.map { it.label })
+    }
+
+    @Test
+    fun `getCaseListItems for OPEN referrals marks referral as lao when PAC returns restrictions`() {
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = "CRN-999999",
+        restrictedTo = listOf(probationAccessControlApiStubs.usernameRange()),
+      )
+
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?crnOrPersonName=CRN-999999",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
+      assertThat(response.pagedReferrals.content.single().lao).isTrue
     }
 
     @Test
@@ -845,6 +872,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createReferralWithFields(referralNoMatch, listOf(statusHistoryNoMatch, reportingLocationNoMatch))
 
       nDeliusApiStubs.stubAccessCheck(true, "CRN-COMMA-TEAM", "CRN-COMMA-TEAM-NO-MATCH")
+      probationAccessControlApiStubs.stubOpenAccessByCrns("CRN-COMMA-TEAM", "CRN-COMMA-TEAM-NO-MATCH")
 
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
@@ -930,6 +958,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createReferralWithFields(referralNoMatch, listOf(statusHistoryNoMatch, reportingLocationNoMatch))
 
       nDeliusApiStubs.stubAccessCheck(true, "CRN-MULTI-TEAM-1", "CRN-MULTI-TEAM-2", "CRN-MULTI-TEAM-NO-MATCH")
+      probationAccessControlApiStubs.stubOpenAccessByCrns("CRN-MULTI-TEAM-1", "CRN-MULTI-TEAM-2", "CRN-MULTI-TEAM-NO-MATCH")
 
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
@@ -994,6 +1023,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createReferralWithFields(referralNoMatch, listOf(statusHistoryNoMatch, reportingLocationNoMatch))
 
       nDeliusApiStubs.stubAccessCheck(true, "CRN-CLOSED-COMMA", "CRN-CLOSED-COMMA-NO-MATCH")
+      probationAccessControlApiStubs.stubOpenAccessByCrns("CRN-CLOSED-COMMA", "CRN-CLOSED-COMMA-NO-MATCH")
 
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
@@ -1079,6 +1109,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createReferralWithFields(referralNoMatch, listOf(statusHistoryNoMatch, reportingLocationNoMatch))
 
       nDeliusApiStubs.stubAccessCheck(true, "CRN-CLOSED-MULTI-1", "CRN-CLOSED-MULTI-2", "CRN-CLOSED-MULTI-NO-MATCH")
+      probationAccessControlApiStubs.stubOpenAccessByCrns("CRN-CLOSED-MULTI-1", "CRN-CLOSED-MULTI-2", "CRN-CLOSED-MULTI-NO-MATCH")
 
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
@@ -1164,6 +1195,16 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       // Re-stub access check to include the additional CRN alongside the ones set up in @BeforeEach
       nDeliusApiStubs.stubAccessCheck(
         true,
+        "X7182552",
+        "CRN-999999",
+        "CRN-888888",
+        "CRN-777777",
+        "CRN-66666",
+        "CRN-555555",
+        "CRN-111111",
+        "CRN-BREACH1",
+      )
+      probationAccessControlApiStubs.stubOpenAccessByCrns(
         "X7182552",
         "CRN-999999",
         "CRN-888888",
