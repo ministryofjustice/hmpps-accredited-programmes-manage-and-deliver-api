@@ -150,6 +150,14 @@ data class ReferralDetails(
   )
   @get:JsonProperty("reportingTeam", required = true)
   val reportingTeam: String,
+
+  @Schema(
+    example = "false",
+    required = true,
+    description = "Whether the person associated with this referral is a Leave of Absence (LOA) offender.",
+  )
+  @get:JsonProperty("isLAO", required = true)
+  val isLAO: Boolean,
 ) {
   companion object {
     private const val DEFAULT_INTERVENTION_NAME_VALUE = "UNKNOWN_INTERVENTION"
@@ -163,6 +171,7 @@ data class ReferralDetails(
       latestReferralStatus: ReferralStatusDescriptionEntity?,
       currentlyAllocatedGroup: ProgrammeGroupMembershipEntity?,
       cohort: OffenceCohort?,
+      isLAO: Boolean,
     ): ReferralDetails = ReferralDetails(
       id = referral.id!!,
       crn = referral.crn,
@@ -181,6 +190,7 @@ data class ReferralDetails(
       currentlyAllocatedGroupId = currentlyAllocatedGroup?.programmeGroup?.id,
       pdu = nDeliusPersonalDetails.probationDeliveryUnit.description,
       reportingTeam = nDeliusPersonalDetails.team.description,
+      isLAO = isLAO,
     )
 
     /**
@@ -193,6 +203,7 @@ data class ReferralDetails(
       latestReferralStatus: ReferralStatusDescriptionEntity?,
       currentlyAllocatedGroup: ProgrammeGroupMembershipEntity?,
       cohort: OffenceCohort?,
+      isLAO: Boolean = true,
     ): ReferralDetails = ReferralDetails(
       id = referral.id!!,
       crn = referral.crn,
@@ -211,6 +222,7 @@ data class ReferralDetails(
       currentlyAllocatedGroupId = currentlyAllocatedGroup?.programmeGroup?.id,
       pdu = referral.referralReportingLocation?.pduName ?: DEFAULT_VALUE,
       reportingTeam = referral.referralReportingLocation?.reportingTeam ?: DEFAULT_VALUE,
+      isLAO = isLAO,
     )
   }
 }

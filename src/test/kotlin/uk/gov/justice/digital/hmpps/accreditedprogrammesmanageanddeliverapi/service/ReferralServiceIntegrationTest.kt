@@ -131,6 +131,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     stubAuthTokenEndpoint()
 
     nDeliusApiStubs.stubPersonalDetailsResponse(personalDetails)
+    probationAccessControlApiStubs.stubOpenAccessForAnyCrn()
   }
 
   @Nested
@@ -923,6 +924,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(referralDetails.interventionName).isEqualTo(referral.interventionName)
       assertThat(referralDetails.createdAt).isEqualTo(referral.createdAt.toLocalDate())
       assertThat(referralDetails.dateOfBirth).isEqualTo(dateOfBirth)
+      assertThat(referralDetails.isLAO).isFalse()
     }
 
     @Test
@@ -1014,6 +1016,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(referralDetails.personName).isEqualTo(name.getNameAsString())
       assertThat(referralDetails.hasLdc).isFalse()
       assertThat(referralDetails.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
+      assertThat(referralDetails.isLAO).isFalse()
     }
 
     @Test
@@ -1035,6 +1038,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(referralDetails.id).isEqualTo(referral.id!!)
       assertThat(referralDetails.crn).isEqualTo(referral.crn)
       assertThat(referralDetails.personName).isEqualTo(referral.personName)
+      assertThat(referralDetails.isLAO).isFalse()
     }
 
     @Test

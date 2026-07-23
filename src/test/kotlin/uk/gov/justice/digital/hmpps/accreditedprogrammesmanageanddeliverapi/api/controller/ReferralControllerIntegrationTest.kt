@@ -77,6 +77,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     testDataCleaner.cleanAllTables()
 
     stubAuthTokenEndpoint()
+    probationAccessControlApiStubs.stubOpenAccessForAnyCrn()
   }
 
   @Nested
@@ -154,6 +155,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.currentlyAllocatedGroupId).isEqualTo(group.id)
       assertThat(response.pdu).isEqualTo(nDeliusPersonalDetails.probationDeliveryUnit.description)
       assertThat(response.reportingTeam).isEqualTo(nDeliusPersonalDetails.team.description)
+      assertThat(response.isLAO).isFalse()
     }
 
     @Test
@@ -207,6 +209,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.hasLdcSuccessMessageText).isEqualTo(LdcStatus.NO_LDC.successMessageText)
       assertThat(response.currentlyAllocatedGroupId).isNull()
       assertThat(response.currentlyAllocatedGroupCode).isNull()
+      assertThat(response.isLAO).isFalse()
     }
 
     @Test
@@ -267,6 +270,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.currentlyAllocatedGroupCode).isNull()
       assertThat(response.pdu).isEqualTo(nDeliusPersonalDetails.probationDeliveryUnit.description)
       assertThat(response.reportingTeam).isEqualTo(nDeliusPersonalDetails.team.description)
+      assertThat(response.isLAO).isFalse()
     }
 
     @Test
@@ -319,6 +323,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.currentlyAllocatedGroupCode).isNull()
       assertThat(response.pdu).isEqualTo(nDeliusPersonalDetails.probationDeliveryUnit.description)
       assertThat(response.reportingTeam).isEqualTo(nDeliusPersonalDetails.team.description)
+      assertThat(response.isLAO).isFalse()
     }
 
     @Test

@@ -31,6 +31,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.ProbationAccessControlApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
@@ -90,6 +91,7 @@ class ReferralService(
   private val telemetryClient: TelemetryClient,
   private val referralEventNumberResolverService: ReferralEventNumberResolverService,
   private val applicationEventPublisher: ApplicationEventPublisher,
+  private val probationAccessControlApiClient: ProbationAccessControlApiClient,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -175,6 +177,8 @@ class ReferralService(
     val latestReferralCohort =
       referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.cohort
     val allocatedGroup = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
+    val isLAO = getLaoByCrn(referral.crn)
+
 
     if (personalDetails != null) {
       ReferralDetails.toModel(
@@ -184,6 +188,7 @@ class ReferralService(
         latestReferralStatus,
         allocatedGroup,
         latestReferralCohort,
+        isLAO,
       )
     } else {
       ReferralDetails.toModelFromStoredData(
@@ -192,6 +197,7 @@ class ReferralService(
         latestReferralStatus,
         allocatedGroup,
         latestReferralCohort,
+        isLAO,
       )
     }
   }
@@ -766,5 +772,10 @@ class ReferralService(
 
       null
     }
+  }
+
+  private fun getLaoByCrn(crn: String): Boolean = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
+    is ClientResult.Success -> response.body.excludedFrom.isNotEmpty() || response.body.restrictedTo.isNotEmpty()
+    is ClientResult.Failure -> throw response.toException()
   }
 }
