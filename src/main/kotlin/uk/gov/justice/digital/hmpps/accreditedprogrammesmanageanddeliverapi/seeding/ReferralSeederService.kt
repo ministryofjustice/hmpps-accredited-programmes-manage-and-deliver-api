@@ -36,7 +36,7 @@ class ReferralSeederService(
   }
 
   @Transactional
-  fun seedReferrals(count: Int): SeedingResult {
+  fun seedReferrals(count: Int): ReferralSeedingResult {
     val createdReferrals = mutableListOf<SeededReferralInfo>()
 
     val statusDescription = referralStatusDescriptionRepository
@@ -66,7 +66,7 @@ class ReferralSeederService(
       )
     }
 
-    return SeedingResult(
+    return ReferralSeedingResult(
       count = createdReferrals.size,
       referrals = createdReferrals,
     )
@@ -158,7 +158,7 @@ class ReferralSeederService(
   }
 }
 
-data class SeedingResult(
+data class ReferralSeedingResult(
   val count: Int,
   val referrals: List<SeededReferralInfo>,
 )
