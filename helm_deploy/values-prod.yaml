@@ -14,7 +14,7 @@ generic-service:
     SERVICES_OASYS-API_BASE-URL: "https://accredited-programmes-and-oasys.hmpps.service.justice.gov.uk"
     SERVICES_ASSESS-RISKS-AND-NEEDS-API_BASE-URL: "https://assess-risks-and-needs.hmpps.service.justice.gov.uk"
     SERVICES_GOVUK-API_BASE-URL: "https://www.gov.uk"
-    SERVICES_PROBATION_ACCESS_CONTROL_API_BASE_URL: "https://probation-access-control.hmpps.service.justice.gov.uk"
+    SERVICES_PROBATION-ACCESS-CONTROL-API_BASE-URL: "https://probation-access-control.hmpps.service.justice.gov.uk"
     CACHE_EVICT_BANK_HOLIDAYS_CRON: "0 0 0 */1 * ?" #every day on PROD
     SENTRY_ENVIRONMENT: prod
     JAVA_OPTS: "-Xmx2048m"
