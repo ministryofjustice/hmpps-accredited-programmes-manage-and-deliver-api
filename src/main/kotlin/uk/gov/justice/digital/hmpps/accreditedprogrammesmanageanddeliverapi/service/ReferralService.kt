@@ -179,7 +179,6 @@ class ReferralService(
     val allocatedGroup = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
     val isLAO = getLaoByCrn(referral.crn)
 
-
     if (personalDetails != null) {
       ReferralDetails.toModel(
         referral,
