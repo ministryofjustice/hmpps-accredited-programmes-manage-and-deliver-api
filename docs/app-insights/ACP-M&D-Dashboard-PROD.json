@@ -119,7 +119,7 @@
               "settings": {
                 "content": {
                   "Query": "let activityTypeList = dynamic([\"UPDATE_REFERRAL_STATUS\", \"ASSIGN_REFERRAL_TO_GROUP\", \"REMOVE_REFERRAL_FROM_GROUP\", \"OVERRIDE_LDC\", \"OVERRIDE_COHORT\", \"SET_AVAILABILITY\", \"UPDATE_AVAILABILITY\", \"SET_MOTIVATION\", \"UPDATE_MOTIVATION\", \"RECORD_ATTENDANCE\"]);\ncustomEvents\n| extend activityType = tostring(customDimensions[\"activityType\"]), regionName = tostring(customDimensions[\"regionName\"]), pdu = tostring(customDimensions[\"deliveryUnitCode\"])\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and activityType in (activityTypeList)\n\n",
-                  "PartTitle": "User Actions by regions",
+                  "PartTitle": "Actions by regions",
                   "PartSubTitle": "User actions by activity types and regions"
                 }
               }
@@ -240,7 +240,7 @@
               "settings": {
                 "content": {
                   "Query": "let activityTypeList = dynamic([\"UPDATE_REFERRAL_STATUS\", \"ASSIGN_REFERRAL_TO_GROUP\", \"REMOVE_REFERRAL_FROM_GROUP\", \"OVERRIDE_LDC\", \"OVERRIDE_COHORT\", \"SET_AVAILABILITY\", \"UPDATE_AVAILABILITY\", \"SET_MOTIVATION\", \"UPDATE_MOTIVATION\", \"RECORD_ATTENDANCE\"]);\ncustomEvents\n| extend activityType = tostring(customDimensions[\"activityType\"]), regionName = tostring(customDimensions[\"regionName\"]), pdu = tostring(customDimensions[\"deliveryUnitCode\"])\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and activityType in (activityTypeList)\n",
-                  "PartTitle": "User Actions by PDUs",
+                  "PartTitle": "Actions by PDUs",
                   "PartSubTitle": "User actions by activity types and PDUs"
                 }
               }
@@ -250,6 +250,286 @@
             "position": {
               "x": 0,
               "y": 7,
+              "colSpan": 11,
+              "rowSpan": 7
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "resourceTypeMode",
+                  "isOptional": true
+                },
+                {
+                  "name": "ComponentId",
+                  "isOptional": true
+                },
+                {
+                  "name": "Scope",
+                  "value": {
+                    "resourceIds": [
+                      "/subscriptions/a5ddf257-3b21-4ba9-a28c-ab30f751b383/resourceGroups/nomisapi-prod-rg/providers/microsoft.insights/components/nomisapi-prod"
+                    ]
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "PartId",
+                  "value": "147b6345-27a3-4f09-b09d-193a7a8b403c",
+                  "isOptional": true
+                },
+                {
+                  "name": "Version",
+                  "value": "2.0",
+                  "isOptional": true
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "P1D",
+                  "isOptional": true
+                },
+                {
+                  "name": "DashboardId",
+                  "isOptional": true
+                },
+                {
+                  "name": "DraftRequestParameters",
+                  "isOptional": true
+                },
+                {
+                  "name": "Query",
+                  "value": "customEvents\n| extend activityType = tostring(customDimensions[\"activityType\"]), regionName = tostring(customDimensions[\"regionName\"]), pdu = tostring(customDimensions[\"deliveryUnitCode\"])\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and customDimensions contains \"activityType\"\n\n",
+                  "isOptional": true
+                },
+                {
+                  "name": "ControlType",
+                  "value": "FrameControlChart",
+                  "isOptional": true
+                },
+                {
+                  "name": "SpecificChart",
+                  "value": "StackedColumn",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartTitle",
+                  "value": "Analytics",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartSubTitle",
+                  "value": "nomisapi-prod",
+                  "isOptional": true
+                },
+                {
+                  "name": "Dimensions",
+                  "value": {
+                    "xAxis": {
+                      "name": "activityType",
+                      "type": "string"
+                    },
+                    "yAxis": [
+                      {
+                        "name": "itemCount",
+                        "type": "int"
+                      }
+                    ],
+                    "splitBy": [
+                      {
+                        "name": "regionName",
+                        "type": "string"
+                      }
+                    ],
+                    "aggregation": "Sum"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "LegendOptions",
+                  "value": {
+                    "isEnabled": true,
+                    "position": "Bottom"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "IsQueryContainTimeRange",
+                  "value": false,
+                  "isOptional": true
+                }
+              ],
+              "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+              "settings": {
+                "content": {
+                  "Query": "traces\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-ui'\n| extend Action = case(\n                      message has '\"event\":\"OVERRIDE_LDC\"',\n                      \"OVERRIDE_LDC\",\n                      message has '\"event\":\"OVERRIDE_COHORT\"',\n                      \"OVERRIDE_COHORT\",\n                      message has '\"event\":\"UPDATE_REFERRAL_STATUS\"',\n                      \"UPDATE_REFERRAL_STATUS\",\n                      message has '\"event\":\"ASSIGN_REFERRAL_TO_GROUP\"',\n                      \"ASSIGN_REFERRAL_TO_GROUP\",\n                      message has '\"event\":\"REMOVE_REFERRAL_FROM_GROUP\"',\n                      \"REMOVE_REFERRAL_FROM_GROUP\",\n                      message has '\"event\":\"SET_AVAILABILITY\"',\n                      \"SET_AVAILABILITY\",\n                      message has '\"event\":\"UPDATE_AVAILABILITY\"',\n                      \"UPDATE_AVAILABILITY\",\n                      message has '\"event\":\"UPDATE_MOTIVATION\"',\n                      \"UPDATE_MOTIVATION\",\n                      message has '\"event\":\"RECORD_ATTENDANCE\"',\n                      \"RECORD_ATTENDANCE\",\n                      \"Other\"\n                  )\n| where Action != \"Other\"\n| extend userRegion = extract(@'\"userRegion\":\"([^\"]+)\"', 1, message)\n| summarize Count = count() by Action, userRegion\n\n",
+                  "PartTitle": "User Actions by regions",
+                  "PartSubTitle": "User actions by activity types and regions",
+                  "Dimensions": {
+                    "xAxis": {
+                      "name": "Action",
+                      "type": "string"
+                    },
+                    "yAxis": [
+                      {
+                        "name": "Count",
+                        "type": "long"
+                      }
+                    ],
+                    "splitBy": [
+                      {
+                        "name": "userRegion",
+                        "type": "string"
+                      }
+                    ],
+                    "aggregation": "Sum"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "position": {
+              "x": 11,
+              "y": 7,
+              "colSpan": 12,
+              "rowSpan": 7
+            },
+            "metadata": {
+              "inputs": [
+                {
+                  "name": "resourceTypeMode",
+                  "isOptional": true
+                },
+                {
+                  "name": "ComponentId",
+                  "isOptional": true
+                },
+                {
+                  "name": "Scope",
+                  "value": {
+                    "resourceIds": [
+                      "/subscriptions/a5ddf257-3b21-4ba9-a28c-ab30f751b383/resourceGroups/nomisapi-prod-rg/providers/microsoft.insights/components/nomisapi-prod"
+                    ]
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "PartId",
+                  "value": "14c8bf4c-4d7c-4a8a-8b11-62f99133ab29",
+                  "isOptional": true
+                },
+                {
+                  "name": "Version",
+                  "value": "2.0",
+                  "isOptional": true
+                },
+                {
+                  "name": "TimeRange",
+                  "value": "P1D",
+                  "isOptional": true
+                },
+                {
+                  "name": "DashboardId",
+                  "isOptional": true
+                },
+                {
+                  "name": "DraftRequestParameters",
+                  "isOptional": true
+                },
+                {
+                  "name": "Query",
+                  "value": "customEvents\n| extend activityType = tostring(customDimensions[\"activityType\"]), regionName = tostring(customDimensions[\"regionName\"]), pdu = tostring(customDimensions[\"deliveryUnitCode\"])\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-api' and customDimensions contains \"activityType\"\n\n",
+                  "isOptional": true
+                },
+                {
+                  "name": "ControlType",
+                  "value": "FrameControlChart",
+                  "isOptional": true
+                },
+                {
+                  "name": "SpecificChart",
+                  "value": "StackedBar",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartTitle",
+                  "value": "Analytics",
+                  "isOptional": true
+                },
+                {
+                  "name": "PartSubTitle",
+                  "value": "nomisapi-prod",
+                  "isOptional": true
+                },
+                {
+                  "name": "Dimensions",
+                  "value": {
+                    "xAxis": {
+                      "name": "activityType",
+                      "type": "string"
+                    },
+                    "yAxis": [
+                      {
+                        "name": "itemCount",
+                        "type": "int"
+                      }
+                    ],
+                    "splitBy": [
+                      {
+                        "name": "pdu",
+                        "type": "string"
+                      }
+                    ],
+                    "aggregation": "Sum"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "LegendOptions",
+                  "value": {
+                    "isEnabled": true,
+                    "position": "Bottom"
+                  },
+                  "isOptional": true
+                },
+                {
+                  "name": "IsQueryContainTimeRange",
+                  "value": false,
+                  "isOptional": true
+                }
+              ],
+              "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart",
+              "settings": {
+                "content": {
+                  "Query": "traces\n| where cloud_RoleName == 'hmpps-accredited-programmes-manage-and-deliver-ui'\n| extend Action = case(\n                      message has '\"event\":\"OVERRIDE_LDC\"',\n                      \"OVERRIDE_LDC\",\n                      message has '\"event\":\"OVERRIDE_COHORT\"',\n                      \"OVERRIDE_COHORT\",\n                      message has '\"event\":\"UPDATE_REFERRAL_STATUS\"',\n                      \"UPDATE_REFERRAL_STATUS\",\n                      message has '\"event\":\"ASSIGN_REFERRAL_TO_GROUP\"',\n                      \"ASSIGN_REFERRAL_TO_GROUP\",\n                      message has '\"event\":\"REMOVE_REFERRAL_FROM_GROUP\"',\n                      \"REMOVE_REFERRAL_FROM_GROUP\",\n                      message has '\"event\":\"SET_AVAILABILITY\"',\n                      \"SET_AVAILABILITY\",\n                      message has '\"event\":\"UPDATE_AVAILABILITY\"',\n                      \"UPDATE_AVAILABILITY\",\n                      message has '\"event\":\"UPDATE_MOTIVATION\"',\n                      \"UPDATE_MOTIVATION\",\n                      message has '\"event\":\"RECORD_ATTENDANCE\"',\n                      \"RECORD_ATTENDANCE\",\n                      \"Other\"\n                  )\n| where Action != \"Other\"\n| extend pdu = extract(@'\"pdu\":\"([^\"]+)\"', 1, message)\n| summarize Count = count() by Action, pdu\n\n",
+                  "PartTitle": "User Actions by PDUs",
+                  "PartSubTitle": "User actions by activity types and PDUs",
+                  "Dimensions": {
+                    "xAxis": {
+                      "name": "Action",
+                      "type": "string"
+                    },
+                    "yAxis": [
+                      {
+                        "name": "Count",
+                        "type": "long"
+                      }
+                    ],
+                    "splitBy": [
+                      {
+                        "name": "pdu",
+                        "type": "string"
+                      }
+                    ],
+                    "aggregation": "Sum"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "position": {
+              "x": 0,
+              "y": 14,
               "colSpan": 11,
               "rowSpan": 7
             },
@@ -380,7 +660,7 @@
           {
             "position": {
               "x": 11,
-              "y": 7,
+              "y": 14,
               "colSpan": 12,
               "rowSpan": 7
             },
@@ -500,7 +780,7 @@
           {
             "position": {
               "x": 0,
-              "y": 14,
+              "y": 21,
               "colSpan": 11,
               "rowSpan": 7
             },
@@ -630,7 +910,7 @@
           {
             "position": {
               "x": 11,
-              "y": 14,
+              "y": 21,
               "colSpan": 12,
               "rowSpan": 7
             },
@@ -797,12 +1077,14 @@
                 "value": "Past 30 days"
               },
               "filteredPartIds": [
-                "StartboardPart-LogsDashboardPart-ee8d2dec-7b27-4305-a126-7350906100a2",
-                "StartboardPart-LogsDashboardPart-ee8d2dec-7b27-4305-a126-7350906100a4",
-                "StartboardPart-LogsDashboardPart-ee8d2dec-7b27-4305-a126-7350906100a6",
-                "StartboardPart-LogsDashboardPart-ee8d2dec-7b27-4305-a126-73509061029b",
-                "StartboardPart-LogsDashboardPart-ee8d2dec-7b27-4305-a126-7350906100a8",
-                "StartboardPart-LogsDashboardPart-ee8d2dec-7b27-4305-a126-7350906100aa"
+                "StartboardPart-LogsDashboardPart-4388fb58-f970-498f-ac4d-330d1a76e245",
+                "StartboardPart-LogsDashboardPart-4388fb58-f970-498f-ac4d-330d1a76e247",
+                "StartboardPart-LogsDashboardPart-4388fb58-f970-498f-ac4d-330d1a76e249",
+                "StartboardPart-LogsDashboardPart-4388fb58-f970-498f-ac4d-330d1a76e24b",
+                "StartboardPart-LogsDashboardPart-4388fb58-f970-498f-ac4d-330d1a76e24d",
+                "StartboardPart-LogsDashboardPart-4388fb58-f970-498f-ac4d-330d1a76e24f",
+                "StartboardPart-LogsDashboardPart-4388fb58-f970-498f-ac4d-330d1a76e251",
+                "StartboardPart-LogsDashboardPart-4388fb58-f970-498f-ac4d-330d1a76e253"
               ]
             }
           }
