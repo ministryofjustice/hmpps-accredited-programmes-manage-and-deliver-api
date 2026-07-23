@@ -3,10 +3,10 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.1"
-  kotlin("plugin.spring") version "2.3.21"
-  kotlin("plugin.jpa") version "2.3.21"
-  kotlin("plugin.allopen") version "2.3.21"
-  id("io.sentry.jvm.gradle") version "6.7.1"
+  kotlin("plugin.spring") version "2.4.10"
+  kotlin("plugin.jpa") version "2.4.10"
+  kotlin("plugin.allopen") version "2.4.10"
+  id("io.sentry.jvm.gradle") version "6.16.0"
 }
 
 configurations {
@@ -16,7 +16,7 @@ configurations {
 dependencies {
   val shedLockVersion = "7.7.0"
   implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:3.0.0")
-  implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:7.3.2")
+  implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:7.4.0")
   implementation("org.springframework.boot:spring-boot-starter-webclient")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -33,24 +33,24 @@ dependencies {
   implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:$shedLockVersion")
 
   // Seeding
-  implementation("net.datafaker:datafaker:2.5.4")
+  implementation("net.datafaker:datafaker:2.7.0")
 
   // Coroutines
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
 
   // security
-  implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:4.0.6")
-  implementation("org.springframework.boot:spring-boot-starter-oauth2-client:4.0.6")
-  implementation("org.springframework.security:spring-security-crypto:7.0.5")
-  implementation("com.nimbusds:oauth2-oidc-sdk:11.37.2")
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server:4.1.0")
+  implementation("org.springframework.boot:spring-boot-starter-oauth2-client:4.1.0")
+  implementation("org.springframework.security:spring-security-crypto:7.1.0")
+  implementation("com.nimbusds:oauth2-oidc-sdk:11.38.2")
   implementation("io.github.resilience4j:resilience4j-spring-boot2:2.3.0")
 
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:2.3.0")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:2.5.0")
   testImplementation("org.springframework.boot:spring-boot-starter-webclient-test")
   testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
   testImplementation("org.wiremock:wiremock-standalone:3.13.2")
-  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.42") {
+  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.45") {
     exclude(group = "io.swagger.core.v3")
   }
   testImplementation("org.testcontainers:testcontainers:2.0.5")
@@ -58,13 +58,13 @@ dependencies {
   testImplementation("org.testcontainers:testcontainers-localstack:2.0.5")
   testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.5")
   testImplementation("com.ninja-squad:springmockk:5.0.1")
-  testImplementation("io.kotest:kotest-assertions-core:6.1.11")
-  testImplementation("io.mockk:mockk:1.14.9")
+  testImplementation("io.kotest:kotest-assertions-core:6.2.3")
+  testImplementation("io.mockk:mockk:1.14.11")
   testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.4.2")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.6.2")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
-  runtimeOnly("org.postgresql:postgresql:42.7.11")
+  runtimeOnly("org.postgresql:postgresql:42.7.13")
 }
 
 kotlin {
