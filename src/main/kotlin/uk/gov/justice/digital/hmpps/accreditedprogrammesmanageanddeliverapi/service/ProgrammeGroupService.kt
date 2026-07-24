@@ -39,6 +39,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.ProbationAccessControlApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
@@ -84,6 +86,7 @@ class ProgrammeGroupService(
   private val sessionNameFormatter: SessionNameFormatter,
   private val sessionService: SessionService,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
+  private val probationAccessControlApiClient: ProbationAccessControlApiClient,
 ) {
   val log = LoggerFactory.getLogger(this::class.java)
 
@@ -370,8 +373,12 @@ class ProgrammeGroupService(
     val nonActiveSpecification =
       getGroupWaitlistItemSpecification(otherTab, groupId, sex, cohort, nameOrCRN, pdus, reportingTeams, groupRegionName)
 
-    val groupListDataToReturn: Page<GroupItem> =
-      groupWaitlistItemViewRepository.findAll(activeSpecification, pageable).map { it.toApi() }
+    val pagedData = groupWaitlistItemViewRepository.findAll(activeSpecification, pageable)
+
+    // Fetch LAO status for all distinct CRNs
+    val laoByCrn = pagedData.content.map { it.crn }.distinct().associateWith { getLaoByCrn(it) }
+
+    val groupListDataToReturn: Page<GroupItem> = pagedData.map { it.toApi(laoByCrn[it.crn] ?: false) }
 
     val otherTabCount: Int = groupWaitlistItemViewRepository.count(nonActiveSpecification).toInt()
 
@@ -723,6 +730,8 @@ class ProgrammeGroupService(
     val session = sessionRepository.findByIdOrNull(sessionId)
       ?: throw NotFoundException("Session with $sessionId not found")
 
+    val laoByCrn = session.attendees.map { it.referral.crn }.distinct().associateWith { getLaoByCrn(it) }
+
     val attendanceAndSessionNotes = session.attendees.map { attendee ->
       val attendanceRecord = session.attendances
         .filter { it.groupMembership.referral.id == attendee.referralId }
@@ -733,6 +742,7 @@ class ProgrammeGroupService(
         name = attendee.personName,
         referralId = attendee.referralId,
         crn = attendee.referral.crn,
+        lao = laoByCrn[attendee.referral.crn] ?: false,
         attendance = getAttendanceTextFromOutcome(attendanceRecord?.outcomeType),
         sessionNotes = attendanceRecord?.notesHistory?.maxByOrNull { it.createdAt }?.notes ?: "Not added",
       )
@@ -757,5 +767,10 @@ class ProgrammeGroupService(
     UAAB -> "Did not attend"
     null -> "To be confirmed"
     else -> attendanceOutcome.description!!
+  }
+
+  private fun getLaoByCrn(crn: String): Boolean = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
+    is ClientResult.Success -> response.body.excludedFrom.isNotEmpty() || response.body.restrictedTo.isNotEmpty()
+    is ClientResult.Failure -> false
   }
 }

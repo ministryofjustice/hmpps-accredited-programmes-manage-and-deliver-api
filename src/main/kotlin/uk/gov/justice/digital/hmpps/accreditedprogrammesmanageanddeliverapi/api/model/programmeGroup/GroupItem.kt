@@ -38,6 +38,14 @@ data class GroupItem(
   val crn: String,
 
   @Schema(
+    example = "false",
+    required = true,
+    description = "Whether the person has Limited Access Offender (LAO) status.",
+  )
+  @get:JsonProperty("lao", required = true)
+  val lao: Boolean,
+
+  @Schema(
     example = "John Doe",
     required = true,
     description = "The name of the person associated with this referral.",
@@ -127,10 +135,11 @@ data class GroupItem(
   val activeProgrammeGroupId: UUID? = null,
 )
 
-fun GroupWaitlistItemViewEntity.toApi() = GroupItem(
+fun GroupWaitlistItemViewEntity.toApi(lao: Boolean = false) = GroupItem(
   referralId = referralId,
   sourcedFrom = sourcedFrom?.toDisplayString(),
   crn = crn,
+  lao = lao,
   personName = personName,
   sentenceEndDate = sentenceEndDate,
   cohort = cohort.let { OffenceCohort.fromDisplayName(it) },

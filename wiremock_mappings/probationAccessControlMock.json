@@ -1,0 +1,38 @@
+{
+  "mappings": [
+    {
+      "priority": 1,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/case/.*[12]/access"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": "{\"crn\":\"{{request.pathSegments.[1]}}\",\"excludedFrom\":[{\"username\":\"AUTH_ADM\",\"since\":\"2024-01-01T00:00:00Z\",\"until\":null}],\"restrictedTo\":[],\"exclusionMessage\":null,\"restrictionMessage\":null}",
+        "transformers": [
+          "response-template"
+        ]
+      }
+    },
+    {
+      "priority": 10,
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/case/.*/access"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": "{\"crn\":\"{{request.pathSegments.[1]}}\",\"excludedFrom\":[],\"restrictedTo\":[],\"exclusionMessage\":null,\"restrictionMessage\":null}",
+        "transformers": [
+          "response-template"
+        ]
+      }
+    }
+  ]
+}

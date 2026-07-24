@@ -13,6 +13,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.StatusFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.ProbationAccessControlApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
@@ -27,7 +29,7 @@ class ReferralCaseListItemService(
   private val userService: UserService,
   private val referralStatusService: ReferralStatusService,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
-
+  private val probationAccessControlApiClient: ProbationAccessControlApiClient,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
   fun getReferralCaseListItemServiceByCriteria(
@@ -49,7 +51,7 @@ class ReferralCaseListItemService(
     // receive the same DB-compatible value (e.g. "Breach" -> "Breach (non-attendance)").
     val normalisedStatus = ReferralStatusUtils.unformatStatus(status)
 
-    val referralsToReturn = getReferralCaseList(
+    val referralsPage = getReferralCaseList(
       pageable = pageable,
       openOrClosed = openOrClosed,
       username = username,
@@ -59,7 +61,12 @@ class ReferralCaseListItemService(
       status = normalisedStatus,
       pdus = pdus,
       reportingTeams = reportingTeams,
-    ).map { it.toApi() }
+    )
+    val laoByCrn = referralsPage.content
+      .map { it.crn }
+      .distinct()
+      .associateWith(::getLaoByCrn)
+    val referralsToReturn = referralsPage.map { it.toApi(lao = laoByCrn[it.crn] ?: false) }
 
     val otherTabCount = getReferralCaseList(
       pageable = pageable,
@@ -131,6 +138,11 @@ class ReferralCaseListItemService(
 
     if (caseListReferrals.totalElements < 50) log.warn("Only ${caseListReferrals.totalElements} out of ${pageable.pageSize} referrals returned due to Limited Access Offender check ")
     return PageImpl(caseListReferrals.content, pageable, totalAllowedCount)
+  }
+
+  private fun getLaoByCrn(crn: String): Boolean = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
+    is ClientResult.Success -> response.body.excludedFrom.isNotEmpty() || response.body.restrictedTo.isNotEmpty()
+    is ClientResult.Failure -> throw response.toException()
   }
 
   fun getCaseListFilterData(userRegionNames: List<String>): CaseListFilterValues {

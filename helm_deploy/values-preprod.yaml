@@ -17,6 +17,7 @@ generic-service:
     SERVICES_OASYS-API_BASE-URL: "https://accredited-programmes-and-oasys-preprod.hmpps.service.justice.gov.uk"
     SERVICES_ASSESS-RISKS-AND-NEEDS-API_BASE-URL: "https://assess-risks-and-needs-preprod.hmpps.service.justice.gov.uk"
     SERVICES_GOVUK-API_BASE-URL: "https://www.gov.uk"
+    SERVICES_PROBATION_ACCESS_CONTROL_API_BASE_URL: "https://probation-access-control-preprod.hmpps.service.justice.gov.uk"
     SENTRY_ENVIRONMENT: preprod
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
