@@ -586,6 +586,102 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val latestCohortEntry = updatedReferral.referralCohortHistories.maxByOrNull { it.createdAt }
       assertThat(latestCohortEntry?.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
     }
+
+    @Test
+    fun `should return referral details with isLAO true when offender has excluded access`() {
+      // Given
+      val createdAt = LocalDateTime.now()
+      val referralEntity = ReferralEntityFactory()
+        .withCreatedAt(createdAt)
+        .produce()
+
+      val statusHistory = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
+        .produce(
+          referralEntity,
+          referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        )
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
+
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+      val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(referralEntity.crn, referralEntity.eventNumber)
+      oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
+
+      // Stub restricted access with excludedFrom list populated
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        referralEntity.crn,
+        excludedFrom = listOf(probationAccessControlApiStubs.usernameRange("EXCLUDED_USER")),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
+      )
+
+      // Then
+      assertThat(response.id).isEqualTo(savedReferral.id)
+      assertThat(response.crn).isEqualTo(savedReferral.crn)
+      assertThat(response.isLAO).isTrue()
+    }
+
+    @Test
+    fun `should return referral details with isLAO true when offender has restricted access`() {
+      // Given
+      val createdAt = LocalDateTime.now()
+      val referralEntity = ReferralEntityFactory()
+        .withCreatedAt(createdAt)
+        .produce()
+
+      val statusHistory = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
+        .produce(
+          referralEntity,
+          referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        )
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
+
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+      val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(referralEntity.crn, referralEntity.eventNumber)
+      oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
+
+      // Stub restricted access with restrictedTo list populated
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        referralEntity.crn,
+        restrictedTo = listOf(probationAccessControlApiStubs.usernameRange("AUTHORIZED_USER")),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
+      )
+
+      // Then
+      assertThat(response.id).isEqualTo(savedReferral.id)
+      assertThat(response.crn).isEqualTo(savedReferral.crn)
+      assertThat(response.isLAO).isTrue()
+    }
   }
 
   @Nested
