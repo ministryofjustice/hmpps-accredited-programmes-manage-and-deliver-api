@@ -682,6 +682,51 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.crn).isEqualTo(savedReferral.crn)
       assertThat(response.isLAO).isTrue()
     }
+
+    @Test
+    fun `should return referral details with isLAO false when offender has no excluded or restricted access`() {
+      // Given
+      val createdAt = LocalDateTime.now()
+      val referralEntity = ReferralEntityFactory()
+        .withCreatedAt(createdAt)
+        .produce()
+
+      val statusHistory = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
+        .produce(
+          referralEntity,
+          referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        )
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
+
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+      val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(referralEntity.crn, referralEntity.eventNumber)
+      oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
+
+      // Stub explicit open access (no excludedFrom or restrictedTo)
+      probationAccessControlApiStubs.stubCaseAccessByCrn(referralEntity.crn)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ReferralDetails>() {},
+      )
+
+      // Then
+      assertThat(response.id).isEqualTo(savedReferral.id)
+      assertThat(response.crn).isEqualTo(savedReferral.crn)
+      assertThat(response.isLAO).isFalse()
+    }
   }
 
   @Nested
