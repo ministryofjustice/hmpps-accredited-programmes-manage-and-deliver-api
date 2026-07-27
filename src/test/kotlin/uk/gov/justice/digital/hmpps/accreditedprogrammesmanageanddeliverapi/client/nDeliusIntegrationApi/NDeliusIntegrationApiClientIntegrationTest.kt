@@ -14,25 +14,35 @@ import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.AppointmentReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodedValue
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.DeleteAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LicenceCondition
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LicenceConditions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Manager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnitWithOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.PduOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Requirement
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Requirements
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffenceFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UpdateAppointmentsRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.util.UUID
+import kotlin.collections.listOf
 
 class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
 
@@ -458,6 +468,206 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
       else -> {
         fail("Unexpected result: ${response::class.simpleName}")
       }
+    }
+  }
+
+  @Test
+  fun `should return licence conditions for known crn`() {
+    // Given
+    stubAuthTokenEndpoint()
+    val crn = "X123456"
+    val licenceConditions = LicenceConditions(
+      content = listOf(
+        LicenceCondition(
+          id = 1L,
+          mainCategory = CodedValue("LAP", "Licence - Accredited Programmes"),
+          subCategory = CodedValue("code", "description"),
+          manager = Manager(
+            staff = ProbationPractitioner(
+              name = FullName(forename = "Forname", surname = "Surname"),
+              code = "Test Office Location",
+              email = "test@example.com",
+            ),
+            team = CodedValue("TEAM01", "Test Team"),
+            probationDeliveryUnit = CodedValue("PDU1", "Test PDU"),
+            officeLocations = listOf(CodedValue("OFFICE1", "Test Office Location")),
+          ),
+          probationDeliveryUnits = listOf(
+            PduOfficeLocations(
+              "PDU1",
+              "Test PDU",
+              officeLocations = listOf(CodedValue("OFFICE1", "Test Office Location")),
+            ),
+          ),
+          eventNumber = "1",
+          createdAt = LocalDateTime.now(),
+        ),
+      ),
+    )
+
+    wiremock.stubFor(
+      get("/case/$crn/licence-conditions")
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(objectMapper.writeValueAsString(licenceConditions)),
+        ),
+    )
+
+    // When
+    when (val response = nDeliusIntegrationApiClient.getLicenceConditions("X123456")) {
+      is ClientResult.Success<*> -> {
+        assertThat(response.status).isEqualTo(HttpStatus.OK)
+        val body = response.body as LicenceConditions
+        assertThat(body.content).isNotEmpty()
+        // Then
+        val licenceCondition = body.content[0]
+        assertThat(licenceCondition.id).isEqualTo(1L)
+        assertThat(licenceCondition.mainCategory.code).isEqualTo("LAP")
+        assertThat(licenceCondition.mainCategory.description).isEqualTo("Licence - Accredited Programmes")
+        assertThat(licenceCondition.subCategory?.code).isEqualTo("code")
+        assertThat(licenceCondition.subCategory?.description).isEqualTo("description")
+        assertThat(licenceCondition.manager.staff.name.forename).isEqualTo("Forname")
+        assertThat(licenceCondition.manager.staff.name.surname).isEqualTo("Surname")
+        assertThat(licenceCondition.manager.staff.code).isEqualTo("Test Office Location")
+        assertThat(licenceCondition.manager.staff.email).isEqualTo("test@example.com")
+        assertThat(licenceCondition.manager.team.code).isEqualTo("TEAM01")
+        assertThat(licenceCondition.manager.team.description).isEqualTo("Test Team")
+        assertThat(licenceCondition.manager.probationDeliveryUnit.code).isEqualTo("PDU1")
+        assertThat(licenceCondition.manager.probationDeliveryUnit.description).isEqualTo("Test PDU")
+        assertThat(licenceCondition.manager.officeLocations).hasSize(1)
+        assertThat(licenceCondition.manager.officeLocations[0].code).isEqualTo("OFFICE1")
+        assertThat(licenceCondition.manager.officeLocations[0].description).isEqualTo("Test Office Location")
+        assertThat(licenceCondition.probationDeliveryUnits).hasSize(1)
+        assertThat(licenceCondition.probationDeliveryUnits[0].code).isEqualTo("PDU1")
+        assertThat(licenceCondition.probationDeliveryUnits[0].description).isEqualTo("Test PDU")
+        assertThat(licenceCondition.probationDeliveryUnits[0].officeLocations).hasSize(1)
+        assertThat(licenceCondition.probationDeliveryUnits[0].officeLocations[0].code).isEqualTo("OFFICE1")
+        assertThat(licenceCondition.probationDeliveryUnits[0].officeLocations[0].description).isEqualTo("Test Office Location")
+        assertThat(licenceCondition.eventNumber).isEqualTo("1")
+        assertThat(licenceCondition.createdAt).isNotNull()
+      }
+
+      else -> {
+        fail("Unexpected result: ${response::class.simpleName}")
+      }
+    }
+  }
+
+  @Test
+  fun `should return NOT FOUND for unknown CRN when getting multiple licence conditions`() {
+    stubAuthTokenEndpoint()
+    val crn = "UNKNOWN"
+
+    wiremock.stubFor(
+      get(urlEqualTo("/case/$crn/licence-conditions"))
+        .willReturn(aResponse().withStatus(404)),
+    )
+
+    when (val response = nDeliusIntegrationApiClient.getLicenceConditions(crn)) {
+      is ClientResult.Failure.StatusCode<*> -> assertThat(response.status).isEqualTo(HttpStatus.NOT_FOUND)
+      else -> fail("Unexpected result: ${response::class.simpleName}")
+    }
+  }
+
+  @Test
+  fun `should return requirements for known crn`() {
+    // Given
+    stubAuthTokenEndpoint()
+    val crn = "X123456"
+    val requirements = Requirements(
+      content = listOf(
+        Requirement(
+          id = 1L,
+          mainCategory = CodedValue("LAP", "Licence - Accredited Programmes"),
+          subCategory = CodedValue("code", "description"),
+          manager = Manager(
+            staff = ProbationPractitioner(
+              name = FullName(forename = "Forname", surname = "Surname"),
+              code = "Test Office Location",
+              email = "test@example.com",
+            ),
+            team = CodedValue("TEAM01", "Test Team"),
+            probationDeliveryUnit = CodedValue("PDU1", "Test PDU"),
+            officeLocations = listOf(CodedValue("OFFICE1", "Test Office Location")),
+          ),
+          probationDeliveryUnits = listOf(
+            PduOfficeLocations(
+              "PDU1",
+              "Test PDU",
+              officeLocations = listOf(CodedValue("OFFICE1", "Test Office Location")),
+            ),
+          ),
+          eventNumber = "1",
+          createdAt = ZonedDateTime.now(),
+        ),
+      ),
+    )
+
+    wiremock.stubFor(
+      get("/case/$crn/requirements")
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(objectMapper.writeValueAsString(requirements)),
+        ),
+    )
+
+    // When
+    when (val response = nDeliusIntegrationApiClient.getRequirements("X123456")) {
+      is ClientResult.Success<*> -> {
+        assertThat(response.status).isEqualTo(HttpStatus.OK)
+        val body = response.body as Requirements
+        assertThat(body.content).isNotEmpty()
+        // Then
+        val requirement = body.content[0]
+        assertThat(requirement.id).isEqualTo(1L)
+        assertThat(requirement.mainCategory?.code).isEqualTo("LAP")
+        assertThat(requirement.mainCategory?.description).isEqualTo("Licence - Accredited Programmes")
+        assertThat(requirement.subCategory?.code).isEqualTo("code")
+        assertThat(requirement.subCategory?.description).isEqualTo("description")
+        assertThat(requirement.manager.staff.name.forename).isEqualTo("Forname")
+        assertThat(requirement.manager.staff.name.surname).isEqualTo("Surname")
+        assertThat(requirement.manager.staff.code).isEqualTo("Test Office Location")
+        assertThat(requirement.manager.staff.email).isEqualTo("test@example.com")
+        assertThat(requirement.manager.team.code).isEqualTo("TEAM01")
+        assertThat(requirement.manager.team.description).isEqualTo("Test Team")
+        assertThat(requirement.manager.probationDeliveryUnit.code).isEqualTo("PDU1")
+        assertThat(requirement.manager.probationDeliveryUnit.description).isEqualTo("Test PDU")
+        assertThat(requirement.manager.officeLocations).hasSize(1)
+        assertThat(requirement.manager.officeLocations[0].code).isEqualTo("OFFICE1")
+        assertThat(requirement.manager.officeLocations[0].description).isEqualTo("Test Office Location")
+        assertThat(requirement.probationDeliveryUnits).hasSize(1)
+        assertThat(requirement.probationDeliveryUnits[0].code).isEqualTo("PDU1")
+        assertThat(requirement.probationDeliveryUnits[0].description).isEqualTo("Test PDU")
+        assertThat(requirement.probationDeliveryUnits[0].officeLocations).hasSize(1)
+        assertThat(requirement.probationDeliveryUnits[0].officeLocations[0].code).isEqualTo("OFFICE1")
+        assertThat(requirement.probationDeliveryUnits[0].officeLocations[0].description).isEqualTo("Test Office Location")
+        assertThat(requirement.eventNumber).isEqualTo("1")
+        assertThat(requirement.createdAt).isNotNull()
+      }
+
+      else -> {
+        fail("Unexpected result: ${response::class.simpleName}")
+      }
+    }
+  }
+
+  @Test
+  fun `should return NOT FOUND for unknown crn when getting multiple requirements`() {
+    stubAuthTokenEndpoint()
+    val crn = "UNKNOWN"
+
+    wiremock.stubFor(
+      get(urlEqualTo("/case/$crn/requirements"))
+        .willReturn(aResponse().withStatus(404)),
+    )
+
+    when (val response = nDeliusIntegrationApiClient.getRequirements(crn)) {
+      is ClientResult.Failure.StatusCode<*> -> assertThat(response.status).isEqualTo(HttpStatus.NOT_FOUND)
+      else -> fail("Unexpected result: ${response::class.simpleName}")
     }
   }
 }
