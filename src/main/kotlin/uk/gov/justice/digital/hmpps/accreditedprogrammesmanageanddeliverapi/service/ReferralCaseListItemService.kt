@@ -142,7 +142,11 @@ class ReferralCaseListItemService(
 
   private fun getLaoByCrn(crn: String): Boolean = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
     is ClientResult.Success -> response.body.excludedFrom.isNotEmpty() || response.body.restrictedTo.isNotEmpty()
-    is ClientResult.Failure -> throw response.toException()
+    is ClientResult.Failure -> {
+      val exception = response.toException()
+      log.error("Failed to retrieve LAO case access for CRN $crn: ${response.getErrorMessage()}", exception)
+      throw response.toException()
+    }
   }
 
   fun getCaseListFilterData(userRegionNames: List<String>): CaseListFilterValues {
