@@ -45,12 +45,12 @@ seed() {
     wait_for_api
 
     echo "Seeding $count referrals..."
-    response=$(curl -s -X POST "${API_BASE_URL}/dev/seed/referrals?count=${count}")
+    response=$(curl -s --fail -X POST "${API_BASE_URL}/dev/seed/referrals?count=${count}")
     echo "$response" | jq . 2>/dev/null || echo "$response"
 
     echo ""
     echo "Seeding $group_count groups..."
-    response=$(curl -s -X POST "${API_BASE_URL}/dev/seed/groups?count=${group_count}")
+    response=$(curl -s --fail -X POST "${API_BASE_URL}/dev/seed/groups?count=${group_count}")
     echo "$response" | jq . 2>/dev/null || echo "$response"
 
     echo ""
