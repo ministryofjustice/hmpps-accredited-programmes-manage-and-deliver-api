@@ -4,8 +4,8 @@ import java.time.ZonedDateTime
 
 data class Requirement(
   val id: Long,
-  val mainCategory: CodedValue?,
-  val subCategory: CodedValue?,
+  val mainCategory: CodeDescription?,
+  val subCategory: CodeDescription?,
   val manager: Manager,
   val probationDeliveryUnits: List<PduOfficeLocations>,
   val eventNumber: String,

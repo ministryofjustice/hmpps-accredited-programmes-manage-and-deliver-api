@@ -4,8 +4,8 @@ import java.time.LocalDateTime
 
 data class LicenceCondition(
   val id: Long,
-  val mainCategory: CodedValue,
-  val subCategory: CodedValue?,
+  val mainCategory: CodeDescription,
+  val subCategory: CodeDescription?,
   val manager: Manager,
   val probationDeliveryUnits: List<PduOfficeLocations>,
   val eventNumber: String,

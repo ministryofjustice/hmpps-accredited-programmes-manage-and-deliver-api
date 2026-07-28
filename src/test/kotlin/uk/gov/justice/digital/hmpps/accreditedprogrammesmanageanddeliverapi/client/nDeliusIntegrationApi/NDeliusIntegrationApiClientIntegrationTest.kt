@@ -14,7 +14,6 @@ import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.AppointmentReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodedValue
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.DeleteAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LicenceCondition
@@ -480,23 +479,23 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
       content = listOf(
         LicenceCondition(
           id = 1L,
-          mainCategory = CodedValue("LAP", "Licence - Accredited Programmes"),
-          subCategory = CodedValue("code", "description"),
+          mainCategory = CodeDescription("LAP", "Licence - Accredited Programmes"),
+          subCategory = CodeDescription("code", "description"),
           manager = Manager(
             staff = ProbationPractitioner(
               name = FullName(forename = "Forname", surname = "Surname"),
               code = "Test Office Location",
               email = "test@example.com",
             ),
-            team = CodedValue("TEAM01", "Test Team"),
-            probationDeliveryUnit = CodedValue("PDU1", "Test PDU"),
-            officeLocations = listOf(CodedValue("OFFICE1", "Test Office Location")),
+            team = CodeDescription("TEAM01", "Test Team"),
+            probationDeliveryUnit = CodeDescription("PDU1", "Test PDU"),
+            officeLocations = listOf(CodeDescription("OFFICE1", "Test Office Location")),
           ),
           probationDeliveryUnits = listOf(
             PduOfficeLocations(
               "PDU1",
               "Test PDU",
-              officeLocations = listOf(CodedValue("OFFICE1", "Test Office Location")),
+              officeLocations = listOf(CodeDescription("OFFICE1", "Test Office Location")),
             ),
           ),
           eventNumber = "1",
@@ -580,23 +579,23 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
       content = listOf(
         Requirement(
           id = 1L,
-          mainCategory = CodedValue("LAP", "Licence - Accredited Programmes"),
-          subCategory = CodedValue("code", "description"),
+          mainCategory = CodeDescription("LAP", "Licence - Accredited Programmes"),
+          subCategory = CodeDescription("code", "description"),
           manager = Manager(
             staff = ProbationPractitioner(
               name = FullName(forename = "Forname", surname = "Surname"),
               code = "Test Office Location",
               email = "test@example.com",
             ),
-            team = CodedValue("TEAM01", "Test Team"),
-            probationDeliveryUnit = CodedValue("PDU1", "Test PDU"),
-            officeLocations = listOf(CodedValue("OFFICE1", "Test Office Location")),
+            team = CodeDescription("TEAM01", "Test Team"),
+            probationDeliveryUnit = CodeDescription("PDU1", "Test PDU"),
+            officeLocations = listOf(CodeDescription("OFFICE1", "Test Office Location")),
           ),
           probationDeliveryUnits = listOf(
             PduOfficeLocations(
               "PDU1",
               "Test PDU",
-              officeLocations = listOf(CodedValue("OFFICE1", "Test Office Location")),
+              officeLocations = listOf(CodeDescription("OFFICE1", "Test Office Location")),
             ),
           ),
           eventNumber = "1",

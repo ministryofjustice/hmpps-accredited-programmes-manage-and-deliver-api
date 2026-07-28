@@ -2,7 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 
 data class Manager(
   val staff: ProbationPractitioner,
-  val team: CodedValue,
-  val probationDeliveryUnit: CodedValue,
-  val officeLocations: List<CodedValue>,
+  val team: CodeDescription,
+  val probationDeliveryUnit: CodeDescription,
+  val officeLocations: List<CodeDescription>,
 )
