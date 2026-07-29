@@ -68,17 +68,16 @@ dependencies {
 
 kotlin {
   jvmToolchain(25)
-  compilerOptions {
-    freeCompilerArgs.addAll("-Xannotation-default-target=param-property")
-  }
 }
 
 // This test is required for schema spy implementation and should NOT be run alongside our normal testsuite as it runs against a local application rather than the testcontainers instances.
 tasks.test {
   exclude("**/InitialiseDatabase.class")
+  // Netty loads native libraries; on JDK 24+ this needs explicit native-access to avoid warnings.
+  jvmArgs("--enable-native-access=ALL-UNNAMED")
 }
 
-val test by testing.suites.existing(JvmTestSuite::class)
+val test = testing.suites.named<JvmTestSuite>("test")
 
 tasks.register<Test>("initialiseDatabase") {
   testClassesDirs = files(test.map { it.sources.output.classesDirs })
@@ -92,17 +91,8 @@ tasks {
     compilerOptions.jvmTarget = JvmTarget.JVM_25
   }
 }
-val compileKotlin: KotlinCompile by tasks
-compileKotlin.compilerOptions {
-  freeCompilerArgs.set(listOf("-Xannotation-default-target=param-property"))
-}
-
 allOpen {
   annotation("jakarta.persistence.Entity")
   annotation("jakarta.persistence.MappedSuperclass")
   annotation("jakarta.persistence.Embeddable")
-}
-val compileTestKotlin: KotlinCompile by tasks
-compileTestKotlin.compilerOptions {
-  freeCompilerArgs.set(listOf("-Xannotation-default-target=param-property"))
 }
