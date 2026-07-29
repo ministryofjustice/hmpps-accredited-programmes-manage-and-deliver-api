@@ -304,6 +304,76 @@
       "response": {
         "status": 204
       }
+    },
+    {
+      "request": {
+        "urlPattern": "/delius/user/REFER_MONITOR_PP",
+        "method": "GET"
+      },
+      "response": {
+        "status": 200,
+        "jsonBody": {
+          "userId": 2500099998,
+          "username": "REFER_MONITOR_PP",
+          "firstName": "Bernard",
+          "surname": "Beaks",
+          "email": "bernard.beaks@digital.justice.gov.uk",
+          "enabled": true,
+          "roles": [
+            "ROLE_PROBATION"
+          ],
+          "auth_source": "delius"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      }
+    },
+    {
+      "request": {
+        "urlPattern": "/delius/authenticate",
+        "method": "POST",
+        "bodyPatterns": [
+          {
+            "equalToJson": "{\"username\":\"REFER_MONITOR_PP\",\"password\":\"R8Mpassword\"}"
+          }
+        ]
+      },
+      "response": {
+        "status": 200
+      }
+    },
+    {
+      "request": {
+        "urlPattern": "/delius/user?email=.*",
+        "method": "GET"
+      },
+      "response": {
+        "status": 200,
+        "jsonBody": [
+          {
+            "userId": 1234567890,
+            "username": "deliususer",
+            "firstName": "Delius",
+            "surname": "User",
+            "email": "delius.user@example.com",
+            "enabled": true,
+            "roles": []
+          }
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      }
+    },
+    {
+      "request": {
+        "urlPattern": "/delius/health.*",
+        "method": "GET"
+      },
+      "response": {
+        "status": 200
+      }
     }
   ]
 }

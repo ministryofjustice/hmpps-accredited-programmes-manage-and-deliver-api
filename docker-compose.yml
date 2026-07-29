@@ -10,7 +10,7 @@ services:
     ports:
       - "8090:8080"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/auth/health" ]
+      test: [ 'CMD-SHELL', 'bash -c "echo -e \"GET /auth/health HTTP/1.1\r\nHost: localhost\r\n\r\n\" > /dev/tcp/localhost/8080"' ]
     environment:
       - SERVER_PORT=8080
       - SPRING_PROFILES_ACTIVE=dev,delius,local-postgres
@@ -18,6 +18,10 @@ services:
       - SPRING_H2_CONSOLE_SETTINGS_WEBALLOWOTHERS=true
       - SPRING_DATASOURCE_URL=jdbc:postgresql://auth-db:5432/auth-db
       - APPLICATION_AUTHENTICATION_UI_ALLOWLIST=0.0.0.0/0
+      - DELIUS_ENABLED=true
+      - DELIUS_ENDPOINT_URL=http://wiremock:8080/delius
+      - DELIUS_CLIENT_CLIENT-ID=delius-auth-api-client
+      - DELIUS_CLIENT_CLIENT-SECRET=delius-auth-api-client
 
   auth-db:
     image: postgres:18
@@ -77,6 +81,56 @@ services:
       - ./wiremock_mappings:/home/wiremock/mappings
     command: >
       --verbose
+
+  hmpps-accredited-programmes-manage-and-deliver-ui:
+    image: ghcr.io/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-ui:latest
+    container_name: manage-and-deliver-ui
+    networks:
+      - hmpps
+    ports:
+      - '3000:3000'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - HMPPS_AUTH_URL=http://hmpps-auth:8080/auth
+      - HMPPS_AUTH_EXTERNAL_URL=http://localhost:8090/auth
+      - PORT=3000
+
+      - ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_URL=http://host.docker.internal:8080
+
+      - TOKEN_VERIFICATION_ENABLED=false
+      - TOKEN_VERIFICATION_API_URL=http://localhost:8100
+
+      - REDIS_ENABLED=false
+      - REDIS_HOST=localhost
+      - REDIS_PORT=6379
+      - REDIS_AUTH_TOKEN=
+      - REDIS_TLS_ENABLED=false
+
+      - BUILD_NUMBER=1_0_0
+      - PRODUCT_ID=UNASSIGNED
+      - GIT_REF=xxxxxxxxxxxxxxxxxxx
+      - GIT_BRANCH=xxxxxxxxxxxxxxxxxxx
+
+      - SESSION_SECRET=app-insecure-default-session
+      - WEB_SESSION_TIMEOUT_IN_MINUTES=120
+
+      - AUTH_CODE_CLIENT_ID=hmpps-accredited-programmes-manage-and-deliver-ui
+      - AUTH_CODE_CLIENT_SECRET=clientsecret
+      - CLIENT_CREDS_CLIENT_ID=hmpps-accredited-programmes-manage-and-deliver-ui-client-1
+      - CLIENT_CREDS_CLIENT_SECRET=clientsecret
+
+      - INGRESS_URL=http://localhost:3000
+      - ENVIRONMENT_NAME=local
+      - NO_HTTPS=true
+      - ENABLE_PAST_DATE_REGION_RESTRICTION=false
+      - ENABLE_REGION_RESTRICTION=false
+      - AUDIT_SQS_REGION=EU_WEST_2
+      - AUDIT_SQS_QUEUE_URL=http://localhost:9999
+      - AUDIT_SERVICE_NAME=queue
+    depends_on:
+      hmpps-auth:
+        condition: service_healthy
 
 networks:
   hmpps:
