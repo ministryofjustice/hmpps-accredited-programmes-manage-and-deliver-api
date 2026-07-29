@@ -126,6 +126,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     val sentenceInformation =
       NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2025-10-01")).produce()
     nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(crn, eventNumber, sentenceInformation)
+    probationAccessControlApiStubs.stubOpenAccessForAnyCrn()
   }
 
   @Test
