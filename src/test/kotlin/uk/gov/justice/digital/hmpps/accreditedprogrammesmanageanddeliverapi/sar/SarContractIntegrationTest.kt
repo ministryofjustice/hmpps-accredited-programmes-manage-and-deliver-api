@@ -10,6 +10,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.subjectAccessRequest.SubjectAccessRequestContent
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
@@ -104,6 +105,9 @@ class SarContractIntegrationTest :
   @Autowired
   private lateinit var entityManager: EntityManager
 
+  @Autowired
+  private lateinit var sarIntegrationTestHelper: SarIntegrationTestHelper
+
   private val uuidRegex = Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
   private val dateTimeRegex = Regex("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?")
   private val humanDateTimeRegex = Regex("\\d{1,2} \\w+ \\d{4}, \\d{1,2}:\\d{2}:\\d{2} (?:am|pm)")
@@ -114,17 +118,6 @@ class SarContractIntegrationTest :
   private val fixedDob = LocalDate.of(1994, 4, 13)
   private val fixedSentenceEndDate = LocalDate.of(2028, 5, 12)
 
-  private val sarIntegrationTestHelper by lazy {
-    SarIntegrationTestHelper(
-      jwtAuthHelper = jwtAuthHelper,
-      expectedApiResponsePath = "/sar/sar-api-response.json",
-      expectedRenderResultPath = "/sar/sar-expected-render-result.html",
-      attachmentsExpected = false,
-      expectedFlywaySchemaVersion = "113",
-      expectedJpaEntitySchemaPath = "/sar/entity-schema-snapshot.json",
-    )
-  }
-
   override fun getSarHelper(): SarIntegrationTestHelper = sarIntegrationTestHelper
 
   override fun getWebTestClientInstance(): WebTestClient = webTestClient
@@ -134,6 +127,8 @@ class SarContractIntegrationTest :
   override fun getEntityManagerInstance(): EntityManager = entityManager
 
   override fun getCrn(): String = "X123456"
+
+  override fun getContentType(): Class<*> = SubjectAccessRequestContent::class.java
 
   override fun setupTestData() {
     testDataCleaner.cleanAllTables()
@@ -298,7 +293,7 @@ class SarContractIntegrationTest :
   override fun `SAR API should return expected data`() {
     setupTestData()
 
-    val response = sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient)
+    val response = sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient, getContentType())
     val normalizedActual = normalizeDynamicValues(sarIntegrationTestHelper.toJson(response))
 
     if (generateActual) {
@@ -318,7 +313,7 @@ class SarContractIntegrationTest :
     sarIntegrationTestHelper.stubFindLocationNameByNomisIdWith("PROPERTY BOX 1")
     sarIntegrationTestHelper.stubFindLocationNameByDpsIdWith("PROPERTY BOX 2")
 
-    val dataResponse = sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient)
+    val dataResponse = sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient, getContentType())
     val templateResponse = sarIntegrationTestHelper.requestSarTemplate(webTestClient)
 
     val renderResult = sarIntegrationTestHelper.renderServiceReport(

@@ -38,6 +38,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestGroupHelper
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
+import uk.gov.justice.digital.hmpps.subjectaccessrequest.SarIntegrationTestHelperConfig
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 import java.time.Clock
 
@@ -45,7 +46,12 @@ import java.time.Clock
 @ExtendWith(HmppsAuthApiExtension::class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @ActiveProfiles("test")
-@Import(TestReferralHelper::class, DomainEventsQueueConfig::class, TestGroupHelper::class)
+@Import(
+  TestReferralHelper::class,
+  DomainEventsQueueConfig::class,
+  TestGroupHelper::class,
+  SarIntegrationTestHelperConfig::class,
+)
 @AutoConfigureWebTestClient
 abstract class IntegrationTestBase {
 
