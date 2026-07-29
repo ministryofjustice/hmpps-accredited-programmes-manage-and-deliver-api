@@ -8,11 +8,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.OasysApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.PniResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.toPniScore
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.time.LocalDate
 
 @Service
 class PniService(
   private val oasysApiClient: OasysApiClient,
+  private val referralRepository: ReferralRepository,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -22,9 +24,15 @@ class PniService(
    * If OASys is unavailable or returns no data, returns null (not cached).
    */
   @Cacheable(value = ["pni-daily"], key = "#crn + '-' + #date", unless = "#result == null")
-  fun getDailyPniCalculation(crn: String, date: LocalDate = LocalDate.now()): PniScore? = getPniResponse(crn)?.toPniScore()
+  fun getDailyPniCalculation(crn: String, date: LocalDate = LocalDate.now()): PniScore? = getPniResponse(crn)?.let { pniResponse ->
+    val mostRecentReferral = referralRepository.findByCrn(crn).maxByOrNull { it.createdAt }
+    pniResponse.toPniScore(mostRecentReferral?.sourcedFrom)
+  }
 
-  fun getPniCalculation(crn: String): PniScore = getPniResponse(crn)?.toPniScore() ?: PniScore.empty()
+  fun getPniCalculation(crn: String): PniScore = getPniResponse(crn)?.let { pniResponse ->
+    val mostRecentReferral = referralRepository.findByCrn(crn).maxByOrNull { it.createdAt }
+    pniResponse.toPniScore(mostRecentReferral?.sourcedFrom)
+  } ?: PniScore.empty()
 
   private fun getPniResponse(crn: String): PniResponse? = try {
     when (val result = oasysApiClient.getPniCalculation(crn)) {
