@@ -15,13 +15,20 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.OverallIntensity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Type
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniCalculationFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 
 @ExtendWith(MockitoExtension::class)
 class PniServiceTest {
 
   @Mock
   private lateinit var oasysApiClient: OasysApiClient
+
+  @Mock
+  private lateinit var referralRepository: ReferralRepository
 
   @InjectMocks
   private lateinit var pniService: PniService
@@ -134,5 +141,94 @@ class PniServiceTest {
     `when`(oasysApiClient.getPniCalculation(crn)).thenThrow(RuntimeException("Network error"))
     val result = pniService.getDailyPniCalculation(crn)
     assertThat(result).isNull()
+  }
+
+  @Test
+  fun `displayIneligibleWarning is true when sourcedFrom is REQUIREMENT and overallIntensity is ALTERNATIVE_PATHWAY`() {
+    val crn = randomCrn()
+    val pniResponse = PniResponseFactory().withPniCalculation(
+      PniCalculationFactory().withPni(Type.A).produce(),
+    ).produce()
+    `when`(oasysApiClient.getPniCalculation(crn)).thenReturn(
+      ClientResult.Success(status = HttpStatus.OK, body = pniResponse),
+    )
+    val referral = ReferralEntityFactory().withCrn(crn).withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT).produce()
+    `when`(referralRepository.findByCrn(crn)).thenReturn(listOf(referral))
+
+    val result = pniService.getPniCalculation(crn)
+
+    assertThat(result.displayIneligibleWarning).isTrue()
+    assertThat(result.overallIntensity).isEqualTo(OverallIntensity.ALTERNATIVE_PATHWAY)
+  }
+
+  @Test
+  fun `displayIneligibleWarning is false when sourcedFrom is REQUIREMENT but overallIntensity is not ALTERNATIVE_PATHWAY`() {
+    val crn = randomCrn()
+    val pniResponse = PniResponseFactory().withPniCalculation(
+      PniCalculationFactory().withPni(Type.H).produce(),
+    ).produce()
+    `when`(oasysApiClient.getPniCalculation(crn)).thenReturn(
+      ClientResult.Success(status = HttpStatus.OK, body = pniResponse),
+    )
+    val referral = ReferralEntityFactory().withCrn(crn).withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT).produce()
+    `when`(referralRepository.findByCrn(crn)).thenReturn(listOf(referral))
+
+    val result = pniService.getPniCalculation(crn)
+
+    assertThat(result.displayIneligibleWarning).isFalse()
+    assertThat(result.overallIntensity).isEqualTo(OverallIntensity.HIGH)
+  }
+
+  @Test
+  fun `displayIneligibleWarning is false when overallIntensity is ALTERNATIVE_PATHWAY but sourcedFrom is not REQUIREMENT`() {
+    val crn = randomCrn()
+    val pniResponse = PniResponseFactory().withPniCalculation(
+      PniCalculationFactory().withPni(Type.A).produce(),
+    ).produce()
+    `when`(oasysApiClient.getPniCalculation(crn)).thenReturn(
+      ClientResult.Success(status = HttpStatus.OK, body = pniResponse),
+    )
+    val referral = ReferralEntityFactory().withCrn(crn).withSourcedFrom(null).produce()
+    `when`(referralRepository.findByCrn(crn)).thenReturn(listOf(referral))
+
+    val result = pniService.getPniCalculation(crn)
+
+    assertThat(result.displayIneligibleWarning).isFalse()
+    assertThat(result.overallIntensity).isEqualTo(OverallIntensity.ALTERNATIVE_PATHWAY)
+  }
+
+  @Test
+  fun `displayIneligibleWarning is false when neither condition is met`() {
+    val crn = randomCrn()
+    val pniResponse = PniResponseFactory().withPniCalculation(
+      PniCalculationFactory().withPni(Type.M).produce(),
+    ).produce()
+    `when`(oasysApiClient.getPniCalculation(crn)).thenReturn(
+      ClientResult.Success(status = HttpStatus.OK, body = pniResponse),
+    )
+    val referral = ReferralEntityFactory().withCrn(crn).withSourcedFrom(null).produce()
+    `when`(referralRepository.findByCrn(crn)).thenReturn(listOf(referral))
+
+    val result = pniService.getPniCalculation(crn)
+
+    assertThat(result.displayIneligibleWarning).isFalse()
+    assertThat(result.overallIntensity).isEqualTo(OverallIntensity.MODERATE)
+  }
+
+  @Test
+  fun `displayIneligibleWarning is false when no referral exists`() {
+    val crn = randomCrn()
+    val pniResponse = PniResponseFactory().withPniCalculation(
+      PniCalculationFactory().withPni(Type.A).produce(),
+    ).produce()
+    `when`(oasysApiClient.getPniCalculation(crn)).thenReturn(
+      ClientResult.Success(status = HttpStatus.OK, body = pniResponse),
+    )
+    `when`(referralRepository.findByCrn(crn)).thenReturn(emptyList())
+
+    val result = pniService.getPniCalculation(crn)
+
+    assertThat(result.displayIneligibleWarning).isFalse()
+    assertThat(result.overallIntensity).isEqualTo(OverallIntensity.ALTERNATIVE_PATHWAY)
   }
 }
