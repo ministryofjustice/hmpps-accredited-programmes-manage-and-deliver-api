@@ -163,11 +163,13 @@ class SarContractIntegrationTest :
     )
 
     val referral = referrals[0]
+    referral.referralCohortHistories.forEach { it.createdAt = fixedNow }
     referral.referralCohortHistories.add(
       ReferralCohortHistoryFactory()
         .withReferral(referral)
         .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .withCreatedBy("AUTH_USER")
+        .withCreatedAt(fixedNow.minusMinutes(1))
         .produce(),
     )
     referralRepository.saveAndFlush(referral)
