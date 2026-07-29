@@ -163,15 +163,18 @@ class SarContractIntegrationTest :
     )
 
     val referral = referrals[0]
-    referral.referralCohortHistories.forEach { it.createdAt = fixedNow }
     referral.referralCohortHistories.add(
       ReferralCohortHistoryFactory()
         .withReferral(referral)
         .withCohort(OffenceCohort.GENERAL_OFFENCE)
         .withCreatedBy("AUTH_USER")
-        .withCreatedAt(fixedNow.minusMinutes(1))
         .produce(),
     )
+    referralRepository.saveAndFlush(referral)
+
+    referral.referralCohortHistories.forEach {
+      it.createdAt = if (it.createdBy == "SYSTEM") fixedNow else fixedNow.minusMinutes(1)
+    }
     referralRepository.saveAndFlush(referral)
 
     val motivationBackgroundAndNonAssociation = ReferralMotivationBackgroundAndNonAssociationsFactory()
