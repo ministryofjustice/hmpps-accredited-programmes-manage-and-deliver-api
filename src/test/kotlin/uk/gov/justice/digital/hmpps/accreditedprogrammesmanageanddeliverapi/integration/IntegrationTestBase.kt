@@ -34,6 +34,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.GovUkApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.ProbationAccessControlApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestGroupHelper
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
@@ -50,6 +51,7 @@ import java.time.Clock
   DomainEventsQueueConfig::class,
   TestGroupHelper::class,
   SarIntegrationTestHelperConfig::class,
+  ProbationAccessControlApiStubs::class,
 )
 @AutoConfigureWebTestClient
 abstract class IntegrationTestBase {
@@ -77,6 +79,9 @@ abstract class IntegrationTestBase {
 
   @Autowired
   lateinit var govUkApiStubs: GovUkApiStubs
+
+  @Autowired
+  lateinit var probationAccessControlApiStubs: ProbationAccessControlApiStubs
 
   @Autowired
   lateinit var wiremock: WireMockServer
