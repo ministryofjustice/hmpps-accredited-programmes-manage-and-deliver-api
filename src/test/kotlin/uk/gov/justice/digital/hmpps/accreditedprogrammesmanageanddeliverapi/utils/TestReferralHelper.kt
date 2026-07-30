@@ -121,6 +121,7 @@ class TestReferralHelper {
     dateOfBirth: LocalDate? = null,
     sentenceEndDate: LocalDate? = null,
     sourcedFromReference: String = randomNumberAsInt(11).toString(),
+    eventNumber: Int = 1,
   ): ReferralEntity {
     val findAndReferReferralDetails = FindAndReferReferralDetailsFactory()
       .withInterventionName("Test Intervention")
@@ -130,7 +131,7 @@ class TestReferralHelper {
       .withPersonReferenceType(PersonReferenceType.CRN)
       .withSourcedFromReferenceType(sourcedFrom)
       .withSourcedFromReference(sourcedFromReference)
-      .withEventNumber(1)
+      .withEventNumber(eventNumber)
       .produce()
 
     // Stub PNI response based on cohort

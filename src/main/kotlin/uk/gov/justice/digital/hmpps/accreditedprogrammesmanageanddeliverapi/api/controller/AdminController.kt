@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
@@ -26,6 +27,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.PopulatePersonalDetailsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AdminService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralEventNumberResolverService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import java.util.UUID
@@ -43,6 +45,7 @@ class AdminController(
   private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
   private val referralService: ReferralService,
   private val authenticationUtils: AuthenticationUtils,
+  private val referralEventNumberResolverService: ReferralEventNumberResolverService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -213,5 +216,25 @@ class AdminController(
     val response = referralService.updateReferralSentenceReference(referralId, request, username)
 
     return ResponseEntity.ok(response)
+  }
+
+  @PutMapping("/admin/resolve-referral-event-numbers")
+  fun resolveReferralEventNumbers(): ResponseEntity<Void> {
+    log.info("Received request to resolve referral event numbers")
+    val referralsWithInvalidEventNumbers = referralService.findReferralsWithInvalidEventNumbers()
+    if (referralsWithInvalidEventNumbers.isEmpty()) {
+      log.info("Nothing to do - No referrals with invalid event numbers found")
+      return ResponseEntity.ok().build()
+    }
+    log.info("Found ${referralsWithInvalidEventNumbers.size} referrals with invalid event numbers")
+
+    var referralsUpdated = 0
+    referralsWithInvalidEventNumbers.forEach { referral ->
+      if (referralEventNumberResolverService.resolveEventNumber(referral)) {
+        referralsUpdated++
+      }
+    }
+    log.info("Successfully resolved event numbers for $referralsUpdated out of ${referralsWithInvalidEventNumbers.size} referrals")
+    return ResponseEntity.ok().build()
   }
 }

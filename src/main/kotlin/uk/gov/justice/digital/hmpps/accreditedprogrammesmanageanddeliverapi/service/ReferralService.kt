@@ -767,4 +767,6 @@ class ReferralService(
       null
     }
   }
+
+  fun findReferralsWithInvalidEventNumbers(): List<ReferralEntity> = referralRepository.findByEventNumber(ReferralEventNumberResolverService.INVALID_EVENT_NUMBER)
 }

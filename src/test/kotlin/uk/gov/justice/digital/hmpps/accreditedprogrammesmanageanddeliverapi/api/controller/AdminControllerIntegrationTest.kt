@@ -22,14 +22,18 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LicenceConditions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Requirements
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.CreateReferralStatusHistoryFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.LicenceConditionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralSentenceReferenceRequestFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.RequirementFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.PopulatePersonalDetailsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -388,4 +392,73 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
     Int::class.java,
     referralId,
   ) ?: 0
+
+  @Test
+  fun `should update referral event numbers for invalid event numbers`() {
+    // Given
+    // Create three referrals
+    // 1 with valid (non-zero) event number
+    val referral1 = testReferralHelper.createReferral(
+      crn = "E123456",
+      eventNumber = 9,
+    )
+
+    // 2 with sourced from requirement with invalid event number
+    val referral2 = testReferralHelper.createReferral(
+      crn = "R654321",
+      sourcedFrom = ReferralEntitySourcedFrom.REQUIREMENT,
+      eventNumber = 0,
+    )
+
+    // 3 with sourced from licence condition with invalid event number
+    val referral3 = testReferralHelper.createReferral(
+      crn = "L333333",
+      sourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION,
+      eventNumber = 0,
+    )
+
+    // stub out both calls to get requirements/licence conditions endpoints
+    nDeliusApiStubs.stubSuccessfulRequirementsResponse(
+      "R654321",
+      Requirements(
+        content = listOf(
+          RequirementFactory()
+            .withId(2500949965)
+            .withSubCategory(CodeDescription("734", "Building Choices"))
+            .withEventNumber("3")
+            .produce(),
+        ),
+      ),
+    )
+
+    nDeliusApiStubs.stubSuccessfulLicenceConditionsResponse(
+      "L333333",
+      LicenceConditions(
+        content = listOf(
+          LicenceConditionFactory()
+            .withId(2500910296)
+            .withSubCategory(CodeDescription("LC266", "Building Choices"))
+            .withEventNumber("5")
+            .produce(),
+        ),
+      ),
+    )
+
+    // When
+    performRequestAndExpectStatusNoBody(
+      HttpMethod.PUT,
+      "/admin/resolve-referral-event-numbers",
+      expectedResponseStatus = HttpStatus.OK.value(),
+    )
+
+    // Then
+    val updatedReferral1 = referralRepository.findByIdOrNull(referral1.id!!)
+    assertThat(updatedReferral1?.eventNumber).isEqualTo(9) // should be unchanged
+    val updatedReferral2 = referralRepository.findByIdOrNull(referral2.id!!)
+    assertThat(updatedReferral2?.eventNumber).isEqualTo(3)
+    assertThat(updatedReferral2?.eventId).isEqualTo("2500949965")
+    val updatedReferral3 = referralRepository.findByIdOrNull(referral3.id!!)
+    assertThat(updatedReferral3?.eventNumber).isEqualTo(5)
+    assertThat(updatedReferral3?.eventId).isEqualTo("2500910296")
+  }
 }

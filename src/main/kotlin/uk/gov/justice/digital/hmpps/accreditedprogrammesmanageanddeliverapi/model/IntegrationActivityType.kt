@@ -10,6 +10,8 @@ enum class IntegrationActivityType(val eventName: String) {
   GET_REGISTRATION_N_DELIUS("Registration.get-nDelius"),
   GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS("RequirementManagerDetails.get-nDelius"),
   GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS("LicenceConditionManagerDetails.get-nDelius"),
+  GET_LICENCE_CONDITIONS_N_DELIUS("LicenceConditions.get-nDelius"),
+  GET_REQUIREMENTS_N_DELIUS("Requirements.get-nDelius"),
   GET_USER_TEAM_N_DELIUS("UserTeam.get-nDelius"),
   GET_REGION_PDU_N_DELIUS("Pdu.get-for-region-nDelius"),
   GET_PDU_OFFICE_LOCATION_N_DELIUS("OfficeLocation.get-for-PDU-nDelius"),
