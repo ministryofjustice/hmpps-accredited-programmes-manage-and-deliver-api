@@ -773,7 +773,6 @@ class ReferralService(
     }
   }
 
-
   private fun getLaoByCrn(crn: String): Boolean = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
     is ClientResult.Success -> response.body.excludedFrom.isNotEmpty() || response.body.restrictedTo.isNotEmpty()
     is ClientResult.Failure -> throw response.toException()
