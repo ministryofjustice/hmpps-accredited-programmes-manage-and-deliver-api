@@ -154,7 +154,7 @@ data class ReferralDetails(
   @Schema(
     example = "false",
     required = true,
-    description = "Whether the person associated with this referral is a Leave of Absence (LOA) offender.",
+    description = "Whether the person associated with this referral is a Limited Access Offender (LAO).",
   )
   @get:JsonProperty("isLAO", required = true)
   val isLAO: Boolean,
