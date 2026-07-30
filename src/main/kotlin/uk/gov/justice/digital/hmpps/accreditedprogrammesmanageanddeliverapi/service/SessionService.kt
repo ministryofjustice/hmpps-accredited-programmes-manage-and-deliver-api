@@ -30,6 +30,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toUpdateAppointmentRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.AppointmentUpdateException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
@@ -224,8 +225,8 @@ class SessionService(
     when (
       val response = nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateRequests))
     ) {
-      is ClientResult.Failure.StatusCode -> {
-        log.warn("Failure to update appointments with reason: ${response.getErrorMessage()}")
+      is ClientResult.Failure -> {
+        log.warn("Failure to update appointments: ${response.getErrorMessage()}")
         telemetryClient.logToAppInsights(
           "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
           mapOf(
@@ -233,25 +234,7 @@ class SessionService(
             "outcome" to "failure",
           ),
         )
-        throw BusinessException("Failure to update appointments", response.toException())
-      }
-
-      is ClientResult.Failure.Other -> {
-        log.warn(
-          "Failure to update appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
-          response.exception,
-        )
-        telemetryClient.logToAppInsights(
-          "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
-          mapOf(
-            "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
-            "outcome" to "failure",
-          ),
-        )
-        throw BusinessException(
-          "Failure to update appointments in nDelius: ${response.exception.message}",
-          response.exception,
-        )
+        throw AppointmentUpdateException("Failure to update appointments", response.toException())
       }
 
       is ClientResult.Success -> {
@@ -279,8 +262,8 @@ class SessionService(
     when (
       val response = nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateRequests))
     ) {
-      is ClientResult.Failure.StatusCode -> {
-        log.warn("Failure to update appointments with reason: ${response.getErrorMessage()}")
+      is ClientResult.Failure -> {
+        log.warn("Failure to update appointments: ${response.getErrorMessage()}")
         telemetryClient.logToAppInsights(
           "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
           mapOf(
@@ -288,25 +271,7 @@ class SessionService(
             "outcome" to "failure",
           ),
         )
-        throw BusinessException("Failure to update appointments", response.toException())
-      }
-
-      is ClientResult.Failure.Other -> {
-        log.warn(
-          "Failure to update appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
-          response.exception,
-        )
-        telemetryClient.logToAppInsights(
-          "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
-          mapOf(
-            "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
-            "outcome" to "failure",
-          ),
-        )
-        throw BusinessException(
-          "Failure to update appointments in nDelius: ${response.exception.message}",
-          response.exception,
-        )
+        throw AppointmentUpdateException("Failure to update appointments", response.toException())
       }
 
       is ClientResult.Success -> {
@@ -541,8 +506,8 @@ class SessionService(
         val response =
           nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateAppointmentRequests))
       ) {
-        is ClientResult.Failure.StatusCode -> {
-          log.error("Failure to update appointments with reason: ${response.getErrorMessage()}")
+        is ClientResult.Failure -> {
+          log.warn("Failure to update appointments: ${response.getErrorMessage()}")
           telemetryClient.logToAppInsights(
             "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
             mapOf(
@@ -550,25 +515,7 @@ class SessionService(
               "outcome" to "failure",
             ),
           )
-          throw BusinessException("Failure to update appointments", response.toException())
-        }
-
-        is ClientResult.Failure.Other -> {
-          log.error(
-            "Failure to update appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
-            response.exception,
-          )
-          telemetryClient.logToAppInsights(
-            "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
-            mapOf(
-              "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
-              "outcome" to "failure",
-            ),
-          )
-          throw BusinessException(
-            "Failure to update appointments in Ndelius: ${response.exception.message}",
-            response.exception,
-          )
+          throw AppointmentUpdateException("Failure to update appointments", response.toException())
         }
 
         is ClientResult.Success -> {

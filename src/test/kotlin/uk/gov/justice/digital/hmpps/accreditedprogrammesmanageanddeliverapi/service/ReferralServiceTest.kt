@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.FindAndReferInterventionApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.ProbationAccessControlApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
@@ -99,6 +100,9 @@ class ReferralServiceTest {
   @Mock
   private lateinit var telemetryClient: TelemetryClient
 
+  @Mock
+  private lateinit var probationAccessControlApiClient: ProbationAccessControlApiClient
+
   private lateinit var referralService: ReferralService
 
   @BeforeEach
@@ -126,6 +130,7 @@ class ReferralServiceTest {
       telemetryClient = telemetryClient,
       referralEventNumberResolverService = referralEventNumberResolverService,
       applicationEventPublisher = applicationEventPublisher,
+      probationAccessControlApiClient = probationAccessControlApiClient,
     )
   }
 
