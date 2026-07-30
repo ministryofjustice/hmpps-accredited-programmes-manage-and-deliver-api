@@ -30,4 +30,14 @@ class FormatTimeForUiDisplayTest {
     assertThat(formatTimeForUiDisplay(LocalTime.of(18, 45))).isEqualTo("6:45pm")
     assertThat(formatTimeForUiDisplay(LocalTime.of(23, 59))).isEqualTo("11:59pm")
   }
+
+  @Test
+  fun `formatTimeForUiDisplay can capitalise midday and midnight`() {
+    assertThat(formatTimeForUiDisplay(LocalTime.of(0, 0), capitaliseSpecialTimes = true)).isEqualTo("Midnight")
+    assertThat(formatTimeForUiDisplay(LocalTime.of(12, 0), capitaliseSpecialTimes = true)).isEqualTo("Midday")
+
+    // Other times should not be affected.
+    assertThat(formatTimeForUiDisplay(LocalTime.of(9, 30), capitaliseSpecialTimes = true)).isEqualTo("9:30am")
+    assertThat(formatTimeForUiDisplay(LocalTime.of(13, 15), capitaliseSpecialTimes = true)).isEqualTo("1:15pm")
+  }
 }
