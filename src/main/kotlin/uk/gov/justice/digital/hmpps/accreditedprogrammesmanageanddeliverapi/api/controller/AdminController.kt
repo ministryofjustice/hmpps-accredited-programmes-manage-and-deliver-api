@@ -246,21 +246,7 @@ class AdminController(
   )
   @PutMapping("/admin/resolve-referral-event-numbers")
   fun resolveReferralEventNumbers(): ResponseEntity<Void> {
-    log.info("Received request to resolve referral event numbers")
-    val referralsWithInvalidEventNumbers = referralService.findReferralsWithInvalidEventNumbers()
-    if (referralsWithInvalidEventNumbers.isEmpty()) {
-      log.info("Nothing to do - No referrals with invalid event numbers found")
-      return ResponseEntity.ok().build()
-    }
-    log.info("Found ${referralsWithInvalidEventNumbers.size} referrals with invalid event numbers")
-
-    var referralsUpdated = 0
-    referralsWithInvalidEventNumbers.forEach { referral ->
-      if (referralEventNumberResolverService.resolveEventNumber(referral)) {
-        referralsUpdated++
-      }
-    }
-    log.info("Successfully resolved event numbers for $referralsUpdated out of ${referralsWithInvalidEventNumbers.size} referrals")
+    referralEventNumberResolverService.resolveAllEventNumbers()
     return ResponseEntity.ok().build()
   }
 }

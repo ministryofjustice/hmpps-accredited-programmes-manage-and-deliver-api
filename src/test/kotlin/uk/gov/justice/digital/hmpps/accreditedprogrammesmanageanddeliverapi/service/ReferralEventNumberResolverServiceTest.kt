@@ -11,6 +11,7 @@ import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.any
 import org.mockito.kotlin.inOrder
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
@@ -30,6 +31,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.RequirementFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralEventNumberResolverService.Companion.INVALID_EVENT_NUMBER
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -71,13 +73,13 @@ class ReferralEventNumberResolverServiceTest {
         .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
         .produce()
 
+    `when`(referralRepository.findByEventNumber(INVALID_EVENT_NUMBER)).thenReturn(listOf(referral))
+
     // When
-    val result = service.resolveEventNumber(referral)
+    service.resolveAllEventNumbers()
 
     // Then
-    assertThat(result).isFalse
-    assertThat(referral.eventNumber).isEqualTo(3)
-    assertThat(referral.eventId).isEqualTo("1234567")
+    verify(referralRepository, times(0)).save(any())
     verifyNoInteractions(telemetryClient)
   }
 
@@ -92,6 +94,8 @@ class ReferralEventNumberResolverServiceTest {
         .withEventNumber(0)
         .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
         .produce()
+
+    `when`(referralRepository.findByEventNumber(INVALID_EVENT_NUMBER)).thenReturn(listOf(referral))
 
     val licenceConditions = LicenceConditions(
       listOf(
@@ -108,10 +112,9 @@ class ReferralEventNumberResolverServiceTest {
       )
 
     // When
-    val result = service.resolveEventNumber(referral)
+    service.resolveAllEventNumbers()
 
     // Then
-    assertThat(result).isTrue
     assertThat(referral.eventNumber).isEqualTo(5)
     assertThat(referral.eventId).isEqualTo("484848484")
 
@@ -139,6 +142,8 @@ class ReferralEventNumberResolverServiceTest {
         .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
         .produce()
 
+    `when`(referralRepository.findByEventNumber(INVALID_EVENT_NUMBER)).thenReturn(listOf(referral))
+
     val requirements = Requirements(
       content = listOf(
         RequirementFactory()
@@ -154,10 +159,9 @@ class ReferralEventNumberResolverServiceTest {
       )
 
     // When
-    val result = service.resolveEventNumber(referral)
+    service.resolveAllEventNumbers()
 
     // Then
-    assertThat(result).isTrue
     assertThat(referral.eventNumber).isEqualTo(2)
     assertThat(referral.eventId).isEqualTo("1684953")
 

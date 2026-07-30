@@ -35,7 +35,25 @@ class ReferralEventNumberResolverService(
     const val INVALID_EVENT_NUMBER = 0
   }
 
-  fun resolveEventNumber(referral: ReferralEntity): Boolean {
+  fun resolveAllEventNumbers() {
+    log.info("Received request to resolve referral event numbers")
+    val referralsWithInvalidEventNumbers = referralRepository.findByEventNumber(INVALID_EVENT_NUMBER)
+    if (referralsWithInvalidEventNumbers.isEmpty()) {
+      log.info("Nothing to do - No referrals with invalid event numbers found")
+      return
+    }
+    log.info("Found ${referralsWithInvalidEventNumbers.size} referrals with invalid event numbers")
+
+    var referralsUpdated = 0
+    referralsWithInvalidEventNumbers.forEach { referral ->
+      if (resolveEventNumber(referral)) {
+        referralsUpdated++
+      }
+    }
+    log.info("Successfully resolved event numbers for $referralsUpdated out of ${referralsWithInvalidEventNumbers.size} referrals")
+  }
+
+  private fun resolveEventNumber(referral: ReferralEntity): Boolean {
     if (referral.eventNumber != INVALID_EVENT_NUMBER) return false
 
     return when (referral.sourcedFrom) {
