@@ -218,6 +218,32 @@ class AdminController(
     return ResponseEntity.ok(response)
   }
 
+  @Operation(
+    tags = ["Admin"],
+    summary = "Resolve referral event numbers",
+    operationId = "resolveReferralEventNumbers",
+    description = """Find and resolve referrals with invalid event numbers by attempting to fetching the correct event number 
+      |from the nDelius for the particular CRN associated with the referral.
+      |
+      |Referrals are left untouched when no specific Building Choices Requirement or Licence condition data is found in nDelius.""",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Event number resolution completed successfully",
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid request format",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
   @PutMapping("/admin/resolve-referral-event-numbers")
   fun resolveReferralEventNumbers(): ResponseEntity<Void> {
     log.info("Received request to resolve referral event numbers")
