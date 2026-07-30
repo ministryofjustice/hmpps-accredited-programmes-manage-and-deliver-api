@@ -128,6 +128,7 @@ services:
       - AUDIT_SQS_REGION=EU_WEST_2
       - AUDIT_SQS_QUEUE_URL=http://localhost:9999
       - AUDIT_SERVICE_NAME=queue
+      - SENTRY_ENVIRONMENT=local
     depends_on:
       hmpps-auth:
         condition: service_healthy
