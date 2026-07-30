@@ -30,6 +30,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toUpdateAppointmentRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.AppointmentUpdateException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
@@ -233,7 +234,7 @@ class SessionService(
             "outcome" to "failure",
           ),
         )
-        throw BusinessException("Failure to update appointments", response.toException())
+        throw AppointmentUpdateException("Failure to update appointments", response.toException())
       }
 
       is ClientResult.Failure.Other -> {
@@ -248,7 +249,7 @@ class SessionService(
             "outcome" to "failure",
           ),
         )
-        throw BusinessException(
+        throw AppointmentUpdateException(
           "Failure to update appointments in nDelius: ${response.exception.message}",
           response.exception,
         )
@@ -288,7 +289,7 @@ class SessionService(
             "outcome" to "failure",
           ),
         )
-        throw BusinessException("Failure to update appointments", response.toException())
+        throw AppointmentUpdateException("Failure to update appointments", response.toException())
       }
 
       is ClientResult.Failure.Other -> {
@@ -303,7 +304,7 @@ class SessionService(
             "outcome" to "failure",
           ),
         )
-        throw BusinessException(
+        throw AppointmentUpdateException(
           "Failure to update appointments in nDelius: ${response.exception.message}",
           response.exception,
         )
@@ -550,7 +551,7 @@ class SessionService(
               "outcome" to "failure",
             ),
           )
-          throw BusinessException("Failure to update appointments", response.toException())
+          throw AppointmentUpdateException("Failure to update appointments", response.toException())
         }
 
         is ClientResult.Failure.Other -> {
@@ -565,7 +566,7 @@ class SessionService(
               "outcome" to "failure",
             ),
           )
-          throw BusinessException(
+          throw AppointmentUpdateException(
             "Failure to update appointments in Ndelius: ${response.exception.message}",
             response.exception,
           )
