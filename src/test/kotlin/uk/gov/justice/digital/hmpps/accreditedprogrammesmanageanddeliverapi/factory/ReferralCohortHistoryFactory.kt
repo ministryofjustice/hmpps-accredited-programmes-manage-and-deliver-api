@@ -17,6 +17,7 @@ class ReferralCohortHistoryFactory(
   fun withCohort(cohort: OffenceCohort) = apply { this.cohort = cohort }
   fun withReferral(referral: ReferralEntity) = apply { this.referral = referral }
   fun withCreatedBy(createdBy: String) = apply { this.createdBy = createdBy }
+  fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
 
   fun produce(): ReferralCohortHistoryEntity = ReferralCohortHistoryEntity(
     id = id,

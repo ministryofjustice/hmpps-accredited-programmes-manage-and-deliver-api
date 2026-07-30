@@ -104,6 +104,9 @@ class SarContractIntegrationTest :
   @Autowired
   private lateinit var entityManager: EntityManager
 
+  @Autowired
+  private lateinit var sarIntegrationTestHelper: SarIntegrationTestHelper
+
   private val uuidRegex = Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
   private val dateTimeRegex = Regex("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?")
   private val humanDateTimeRegex = Regex("\\d{1,2} \\w+ \\d{4}, \\d{1,2}:\\d{2}:\\d{2} (?:am|pm)")
@@ -113,17 +116,6 @@ class SarContractIntegrationTest :
   private val fixedNow = LocalDateTime.of(2026, 5, 13, 12, 0)
   private val fixedDob = LocalDate.of(1994, 4, 13)
   private val fixedSentenceEndDate = LocalDate.of(2028, 5, 12)
-
-  private val sarIntegrationTestHelper by lazy {
-    SarIntegrationTestHelper(
-      jwtAuthHelper = jwtAuthHelper,
-      expectedApiResponsePath = "/sar/sar-api-response.json",
-      expectedRenderResultPath = "/sar/sar-expected-render-result.html",
-      attachmentsExpected = false,
-      expectedFlywaySchemaVersion = "113",
-      expectedJpaEntitySchemaPath = "/sar/entity-schema-snapshot.json",
-    )
-  }
 
   override fun getSarHelper(): SarIntegrationTestHelper = sarIntegrationTestHelper
 
@@ -175,6 +167,11 @@ class SarContractIntegrationTest :
         .withCreatedBy("AUTH_USER")
         .produce(),
     )
+    referralRepository.saveAndFlush(referral)
+
+    referral.referralCohortHistories.forEach {
+      it.createdAt = if (it.createdBy == "SYSTEM") fixedNow else fixedNow.minusMinutes(1)
+    }
     referralRepository.saveAndFlush(referral)
 
     val motivationBackgroundAndNonAssociation = ReferralMotivationBackgroundAndNonAssociationsFactory()

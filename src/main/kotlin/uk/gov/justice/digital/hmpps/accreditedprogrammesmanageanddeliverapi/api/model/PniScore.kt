@@ -31,6 +31,9 @@ data class PniScore(
   @Schema(description = "Whether the LDC (Learning Disabilities and Challenges) threshold is met", example = "false")
   val hasLdc: Boolean = false,
 
+  @Schema(description = "Whether to display the ineligible warning on the UI", example = "false")
+  val displayIneligibleWarning: Boolean = false,
+
   @Schema(description = "The LDC (Learning Disabilities and Challenges) score", example = "2")
   val ldcScore: Int? = null,
 ) {
@@ -40,6 +43,7 @@ data class PniScore(
       domainScores = DomainScores.empty(),
       riskScore = RiskScore.empty(),
       validationErrors = emptyList(),
+      displayIneligibleWarning = false,
       hasLdc = false,
       ldcScore = null,
     )

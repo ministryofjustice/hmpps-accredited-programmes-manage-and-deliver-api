@@ -21,10 +21,9 @@ import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
 import org.springframework.test.web.reactive.server.WebTestClient
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.containers.localstack.LocalStackContainer
-import org.testcontainers.containers.localstack.LocalStackContainer.Service
 import org.testcontainers.junit.jupiter.Testcontainers
+import org.testcontainers.localstack.LocalStackContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataCleaner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.TestDataGenerator
@@ -38,6 +37,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestGroupHelper
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
+import uk.gov.justice.digital.hmpps.subjectaccessrequest.SarIntegrationTestHelperConfig
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 import java.time.Clock
 
@@ -45,7 +45,12 @@ import java.time.Clock
 @ExtendWith(HmppsAuthApiExtension::class)
 @SpringBootTest(webEnvironment = RANDOM_PORT)
 @ActiveProfiles("test")
-@Import(TestReferralHelper::class, DomainEventsQueueConfig::class, TestGroupHelper::class)
+@Import(
+  TestReferralHelper::class,
+  DomainEventsQueueConfig::class,
+  TestGroupHelper::class,
+  SarIntegrationTestHelperConfig::class,
+)
 @AutoConfigureWebTestClient
 abstract class IntegrationTestBase {
 
@@ -116,12 +121,12 @@ abstract class IntegrationTestBase {
       LocalStackContainer(DockerImageName.parse("localstack/localstack:3.8.1"))
         .apply {
           withEnv("DEFAULT_REGION", "eu-west-2")
-          withServices(Service.SNS, Service.SQS)
+          withServices("sqs", "sns")
           withReuse(true)
         }
 
     @JvmStatic
-    private val postgresContainer = PostgreSQLContainer<Nothing>("postgres:17")
+    private val postgresContainer = PostgreSQLContainer(DockerImageName.parse("postgres:17"))
       .apply {
         withUsername("admin")
         withPassword("admin_password")
@@ -138,7 +143,7 @@ abstract class IntegrationTestBase {
     @DynamicPropertySource
     @JvmStatic
     fun setUpProperties(registry: DynamicPropertyRegistry) {
-      registry.add("hmpps.sqs.localstackUrl") { localStackContainer.getEndpointOverride(Service.SNS).toString() }
+      registry.add("hmpps.sqs.localstackUrl") { localStackContainer.endpoint.toString() }
       registry.add("hmpps.sqs.region") { localStackContainer.region }
       registry.add("spring.datasource.url") { postgresContainer.jdbcUrl }
       registry.add("spring.datasource.username") { postgresContainer.username }
