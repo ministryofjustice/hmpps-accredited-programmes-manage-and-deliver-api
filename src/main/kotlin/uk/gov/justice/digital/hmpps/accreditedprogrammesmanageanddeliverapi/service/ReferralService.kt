@@ -267,7 +267,7 @@ class ReferralService(
       referralStatusDescription = awaitingAssessmentStatusDescription,
       startDate = LocalDateTime.now(),
       additionalDetails = null,
-      createdBy = "SYSTEM",
+      createdBy = "Accredited Programmes service automated update",
     )
     referralEntity.statusHistories = mutableListOf(statusHistoryEntity)
     log.info("Inserting the default ReferralStatusHistory row for newly created Referral with id ${referral.id!!}")

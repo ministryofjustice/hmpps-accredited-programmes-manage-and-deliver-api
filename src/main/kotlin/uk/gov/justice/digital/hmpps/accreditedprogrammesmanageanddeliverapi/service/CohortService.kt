@@ -70,7 +70,7 @@ class CohortService(
 
   fun hasOverriddenCohort(referralId: UUID): Boolean {
     referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.let {
-      return it.createdBy != "SYSTEM"
+      return it.createdBy != "SYSTEM" && it.createdBy != "Accredited Programmes service automated update"
     }
     return false
   }

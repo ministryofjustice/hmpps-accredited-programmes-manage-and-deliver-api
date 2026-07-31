@@ -55,7 +55,7 @@ class LdcService(
 
   fun hasOverriddenLdcStatus(referralId: UUID): Boolean {
     ldcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.let {
-      return it.createdBy != "SYSTEM"
+      return it.createdBy != "SYSTEM" && it.createdBy != "Accredited Programmes service automated update"
     }
     return false
   }
