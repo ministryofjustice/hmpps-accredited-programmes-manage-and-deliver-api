@@ -16,32 +16,27 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.DeleteAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LicenceCondition
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LicenceConditions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Manager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnit
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnitWithOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.PduOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Requirement
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Requirements
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.LicenceConditionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffenceFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.OffencesFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.RequirementFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UpdateAppointmentsRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZonedDateTime
 import java.util.UUID
-import kotlin.collections.listOf
 
 class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
 
@@ -475,34 +470,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
     // Given
     stubAuthTokenEndpoint()
     val crn = "X123456"
-    val licenceConditions = LicenceConditions(
-      content = listOf(
-        LicenceCondition(
-          id = 1L,
-          mainCategory = CodeDescription("LAP", "Licence - Accredited Programmes"),
-          subCategory = CodeDescription("code", "description"),
-          manager = Manager(
-            staff = ProbationPractitioner(
-              name = FullName(forename = "Forname", surname = "Surname"),
-              code = "Test Office Location",
-              email = "test@example.com",
-            ),
-            team = CodeDescription("TEAM01", "Test Team"),
-            probationDeliveryUnit = CodeDescription("PDU1", "Test PDU"),
-            officeLocations = listOf(CodeDescription("OFFICE1", "Test Office Location")),
-          ),
-          probationDeliveryUnits = listOf(
-            PduOfficeLocations(
-              "PDU1",
-              "Test PDU",
-              officeLocations = listOf(CodeDescription("OFFICE1", "Test Office Location")),
-            ),
-          ),
-          eventNumber = "1",
-          createdAt = LocalDateTime.now(),
-        ),
-      ),
-    )
+    val licenceConditions = LicenceConditions(listOf(LicenceConditionFactory().produce()))
 
     wiremock.stubFor(
       get("/case/$crn/licence-conditions")
@@ -527,7 +495,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
         assertThat(licenceCondition.mainCategory.description).isEqualTo("Licence - Accredited Programmes")
         assertThat(licenceCondition.subCategory?.code).isEqualTo("code")
         assertThat(licenceCondition.subCategory?.description).isEqualTo("description")
-        assertThat(licenceCondition.manager.staff.name.forename).isEqualTo("Forname")
+        assertThat(licenceCondition.manager.staff.name.forename).isEqualTo("Forename")
         assertThat(licenceCondition.manager.staff.name.surname).isEqualTo("Surname")
         assertThat(licenceCondition.manager.staff.code).isEqualTo("Test Office Location")
         assertThat(licenceCondition.manager.staff.email).isEqualTo("test@example.com")
@@ -575,34 +543,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
     // Given
     stubAuthTokenEndpoint()
     val crn = "X123456"
-    val requirements = Requirements(
-      content = listOf(
-        Requirement(
-          id = 1L,
-          mainCategory = CodeDescription("LAP", "Licence - Accredited Programmes"),
-          subCategory = CodeDescription("code", "description"),
-          manager = Manager(
-            staff = ProbationPractitioner(
-              name = FullName(forename = "Forname", surname = "Surname"),
-              code = "Test Office Location",
-              email = "test@example.com",
-            ),
-            team = CodeDescription("TEAM01", "Test Team"),
-            probationDeliveryUnit = CodeDescription("PDU1", "Test PDU"),
-            officeLocations = listOf(CodeDescription("OFFICE1", "Test Office Location")),
-          ),
-          probationDeliveryUnits = listOf(
-            PduOfficeLocations(
-              "PDU1",
-              "Test PDU",
-              officeLocations = listOf(CodeDescription("OFFICE1", "Test Office Location")),
-            ),
-          ),
-          eventNumber = "1",
-          createdAt = ZonedDateTime.now(),
-        ),
-      ),
-    )
+    val requirements = Requirements(content = listOf(RequirementFactory().produce()))
 
     wiremock.stubFor(
       get("/case/$crn/requirements")

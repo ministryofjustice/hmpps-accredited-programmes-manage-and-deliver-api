@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
@@ -26,6 +27,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.PopulatePersonalDetailsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AdminService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralEventNumberResolverService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import java.util.UUID
@@ -43,6 +45,7 @@ class AdminController(
   private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
   private val referralService: ReferralService,
   private val authenticationUtils: AuthenticationUtils,
+  private val referralEventNumberResolverService: ReferralEventNumberResolverService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -213,5 +216,37 @@ class AdminController(
     val response = referralService.updateReferralSentenceReference(referralId, request, username)
 
     return ResponseEntity.ok(response)
+  }
+
+  @Operation(
+    tags = ["Admin"],
+    summary = "Resolve referral event numbers",
+    operationId = "resolveReferralEventNumbers",
+    description = """Find and resolve referrals with invalid event numbers by attempting to fetching the correct event number 
+      |from the nDelius for the particular CRN associated with the referral.
+      |
+      |Referrals are left untouched when no specific Building Choices Requirement or Licence condition data is found in nDelius.""",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Event number resolution completed successfully",
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid request format",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PutMapping("/admin/resolve-referral-event-numbers")
+  fun resolveReferralEventNumbers(): ResponseEntity<Void> {
+    referralEventNumberResolverService.resolveAllEventNumbers()
+    return ResponseEntity.ok().build()
   }
 }

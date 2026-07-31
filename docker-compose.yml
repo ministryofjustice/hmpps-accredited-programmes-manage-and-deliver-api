@@ -23,7 +23,7 @@ services:
     image: postgres:18
     networks:
       - hmpps
-    restart: always
+    restart: no
     ports:
       - "5434:5432"
     environment:
@@ -38,7 +38,7 @@ services:
     container_name: postgres-api
     networks:
       - hmpps
-    restart: always
+    restart: no
     ports:
       - '5432:5432'
     healthcheck:
@@ -70,7 +70,7 @@ services:
     image: wiremock/wiremock:3.13.2
     networks:
       - hmpps
-    restart: always
+    restart: no
     ports:
       - "9095:8080"
     volumes:

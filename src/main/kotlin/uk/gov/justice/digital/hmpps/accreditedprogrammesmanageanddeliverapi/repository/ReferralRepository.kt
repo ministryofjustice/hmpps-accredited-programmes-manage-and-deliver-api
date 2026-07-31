@@ -58,8 +58,9 @@ interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
     referralsCreatedSince: LocalDate?,
     referralsCompletedAfter: LocalDate?,
   ): List<DosageReportReferralProjection>
-}
 
+  fun findByEventNumber(eventNumber: Int): List<ReferralEntity>
+}
 interface DosageReportReferralProjection {
   val referralId: UUID
   val licReqNo: String?

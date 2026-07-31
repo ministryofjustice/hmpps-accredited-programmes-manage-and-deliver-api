@@ -390,4 +390,64 @@ class EntityFactoriesTest {
       assertThat(e.message).isEqualTo("Exactly one of crn or nomsId must be provided")
     }
   }
+
+  @Test
+  fun `LicenceConditionFactory should create entity with default values`() {
+    val licenceCondition = LicenceConditionFactory().produce()
+
+    assertThat(licenceCondition.id).isEqualTo(1L)
+    assertThat(licenceCondition.mainCategory.code).isEqualTo("LAP")
+    assertThat(licenceCondition.mainCategory.description).isEqualTo("Licence - Accredited Programmes")
+    assertThat(licenceCondition.subCategory?.code).isEqualTo("code")
+    assertThat(licenceCondition.subCategory?.description).isEqualTo("description")
+    assertThat(licenceCondition.manager.staff.name.forename).isEqualTo("Forename")
+    assertThat(licenceCondition.manager.staff.name.surname).isEqualTo("Surname")
+    assertThat(licenceCondition.manager.staff.code).isEqualTo("Test Office Location")
+    assertThat(licenceCondition.manager.staff.email).isEqualTo("test@example.com")
+    assertThat(licenceCondition.manager.team.code).isEqualTo("TEAM01")
+    assertThat(licenceCondition.manager.team.description).isEqualTo("Test Team")
+    assertThat(licenceCondition.manager.probationDeliveryUnit.code).isEqualTo("PDU1")
+    assertThat(licenceCondition.manager.probationDeliveryUnit.description).isEqualTo("Test PDU")
+    assertThat(licenceCondition.manager.officeLocations).hasSize(1)
+    assertThat(licenceCondition.manager.officeLocations[0].code).isEqualTo("OFFICE1")
+    assertThat(licenceCondition.manager.officeLocations[0].description).isEqualTo("Test Office Location")
+    assertThat(licenceCondition.probationDeliveryUnits).hasSize(1)
+    assertThat(licenceCondition.probationDeliveryUnits[0].code).isEqualTo("PDU1")
+    assertThat(licenceCondition.probationDeliveryUnits[0].description).isEqualTo("Test PDU")
+    assertThat(licenceCondition.probationDeliveryUnits[0].officeLocations).hasSize(1)
+    assertThat(licenceCondition.probationDeliveryUnits[0].officeLocations[0].code).isEqualTo("OFFICE1")
+    assertThat(licenceCondition.probationDeliveryUnits[0].officeLocations[0].description).isEqualTo("Test Office Location")
+    assertThat(licenceCondition.eventNumber).isEqualTo("1")
+    assertThat(licenceCondition.createdAt).isNotNull()
+  }
+
+  @Test
+  fun `RequirementFactory should create entity with default values`() {
+    val requirement = RequirementFactory().produce()
+
+    assertThat(requirement.id).isEqualTo(1L)
+    assertThat(requirement.mainCategory?.code).isEqualTo("LAP")
+    assertThat(requirement.mainCategory?.description).isEqualTo("Licence - Accredited Programmes")
+    assertThat(requirement.subCategory?.code).isEqualTo("code")
+    assertThat(requirement.subCategory?.description).isEqualTo("description")
+    assertThat(requirement.manager.staff.name.forename).isEqualTo("Forname")
+    assertThat(requirement.manager.staff.name.surname).isEqualTo("Surname")
+    assertThat(requirement.manager.staff.code).isEqualTo("Test Office Location")
+    assertThat(requirement.manager.staff.email).isEqualTo("test@example.com")
+    assertThat(requirement.manager.team.code).isEqualTo("TEAM01")
+    assertThat(requirement.manager.team.description).isEqualTo("Test Team")
+    assertThat(requirement.manager.probationDeliveryUnit.code).isEqualTo("PDU1")
+    assertThat(requirement.manager.probationDeliveryUnit.description).isEqualTo("Test PDU")
+    assertThat(requirement.manager.officeLocations).hasSize(1)
+    assertThat(requirement.manager.officeLocations[0].code).isEqualTo("OFFICE1")
+    assertThat(requirement.manager.officeLocations[0].description).isEqualTo("Test Office Location")
+    assertThat(requirement.probationDeliveryUnits).hasSize(1)
+    assertThat(requirement.probationDeliveryUnits[0].code).isEqualTo("PDU1")
+    assertThat(requirement.probationDeliveryUnits[0].description).isEqualTo("Test PDU")
+    assertThat(requirement.probationDeliveryUnits[0].officeLocations).hasSize(1)
+    assertThat(requirement.probationDeliveryUnits[0].officeLocations[0].code).isEqualTo("OFFICE1")
+    assertThat(requirement.probationDeliveryUnits[0].officeLocations[0].description).isEqualTo("Test Office Location")
+    assertThat(requirement.eventNumber).isEqualTo("1")
+    assertThat(requirement.createdAt).isNotNull()
+  }
 }
