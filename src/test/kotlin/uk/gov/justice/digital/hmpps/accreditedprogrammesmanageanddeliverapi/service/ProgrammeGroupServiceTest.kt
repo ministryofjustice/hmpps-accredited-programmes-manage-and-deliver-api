@@ -48,6 +48,7 @@ class ProgrammeGroupServiceTest {
       sessionService,
       moduleSessionTemplateRepository,
       probationAccessControlApiClient,
+      true,
     )
   }
 
