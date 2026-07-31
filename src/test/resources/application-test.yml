@@ -9,6 +9,8 @@ hmpps-auth:
   url: "http://localhost:9999/auth"
 
 app:
+  features:
+    lao-access-check-enabled: true
   scheduling:
     referral-details-updated:
       cron: "0 0 1 * * *"  # every day at 1 AM

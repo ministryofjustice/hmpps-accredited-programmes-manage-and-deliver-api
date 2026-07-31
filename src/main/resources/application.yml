@@ -17,6 +17,9 @@ sentry:
   send-default-pii: false
 
 app:
+  features:
+    lao-access-check-enabled: false
+
   scheduling:
     referral-details-updated:
       cron: "0 0 1 * * *"  # every day at 1 AM

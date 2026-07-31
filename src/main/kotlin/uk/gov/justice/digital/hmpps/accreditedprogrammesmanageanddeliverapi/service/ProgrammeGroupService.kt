@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
@@ -87,6 +88,8 @@ class ProgrammeGroupService(
   private val sessionService: SessionService,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
   private val probationAccessControlApiClient: ProbationAccessControlApiClient,
+  @Value("\${app.features.lao-access-check-enabled}")
+  private val laoAccessCheckEnabled: Boolean,
 ) {
   val log = LoggerFactory.getLogger(this::class.java)
 
@@ -376,9 +379,12 @@ class ProgrammeGroupService(
     val pagedData = groupWaitlistItemViewRepository.findAll(activeSpecification, pageable)
 
     // Fetch LAO status for all distinct CRNs
-    val laoByCrn = pagedData.content.map { it.crn }.distinct().associateWith { getLaoByCrn(it) }
+    var laoByCrn: Map<String, Boolean>? = null
+    if (laoAccessCheckEnabled) {
+      laoByCrn = pagedData.content.map { it.crn }.distinct().associateWith { getLaoByCrn(it) }
+    }
 
-    val groupListDataToReturn: Page<GroupItem> = pagedData.map { it.toApi(laoByCrn[it.crn] ?: false) }
+    val groupListDataToReturn: Page<GroupItem> = pagedData.map { it.toApi(laoByCrn?.get(it.crn) ?: false) }
 
     val otherTabCount: Int = groupWaitlistItemViewRepository.count(nonActiveSpecification).toInt()
 
