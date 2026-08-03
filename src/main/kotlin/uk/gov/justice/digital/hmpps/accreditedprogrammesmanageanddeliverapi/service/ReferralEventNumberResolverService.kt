@@ -74,7 +74,7 @@ class ReferralEventNumberResolverService(
         it.subCategory.description == BUILDING_CHOICES_SUBCATEGORY_DESCRIPTION
     }?.let {
       if (duplicateReferralDetailsExists(referral, it.id.toString())) {
-        log.warn("Existing referral details found for crn: ${referral.crn}, event_id: $it.id.toString(), sourced_from: ${referral.sourcedFrom}")
+        log.warn("Existing referral details found for crn: ${referral.crn}, event_id: ${it.id}, sourced_from: ${referral.sourcedFrom}")
         return false
       }
       referral.eventNumber = it.eventNumber.toInt()
@@ -95,7 +95,7 @@ class ReferralEventNumberResolverService(
     }
     buildingChoicesRequirement?.let {
       if (duplicateReferralDetailsExists(referral, it.id.toString())) {
-        log.warn("Existing referral details found for crn: ${referral.crn}, event_id: $it.id.toString(), sourced_from: ${referral.sourcedFrom}")
+        log.warn("Existing referral details found for crn: ${referral.crn}, event_id: ${it.id}, sourced_from: ${referral.sourcedFrom}")
         return false
       }
       referral.eventNumber = it.eventNumber.toInt()
@@ -108,7 +108,7 @@ class ReferralEventNumberResolverService(
   }
 
   // A unique key on the referral table exists to prevent duplicate referrals being created for a given crn, event_id and sourced_from
-  fun duplicateReferralDetailsExists(
+  private fun duplicateReferralDetailsExists(
     referral: ReferralEntity,
     newEventId: String,
   ): Boolean = referralRepository.existsByCrnAndEventIdAndSourcedFrom(
