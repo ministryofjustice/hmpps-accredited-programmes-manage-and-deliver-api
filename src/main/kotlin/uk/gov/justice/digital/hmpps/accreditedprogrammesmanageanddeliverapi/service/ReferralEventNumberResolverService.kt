@@ -69,7 +69,7 @@ class ReferralEventNumberResolverService(
   private fun resolveLicenceCondition(referral: ReferralEntity): Boolean {
     val licenceConditions = getLicenceConditions(referral)
 
-    licenceConditions?.content?.takeIf { it.isNotEmpty() }?.first {
+    licenceConditions?.content?.takeIf { it.isNotEmpty() }?.firstOrNull {
       it.subCategory?.code == LICENCE_CONDITION_BUILDING_CHOICES_SUBCATEGORY_CODE &&
         it.subCategory.description == BUILDING_CHOICES_SUBCATEGORY_DESCRIPTION
     }?.let {
@@ -85,7 +85,7 @@ class ReferralEventNumberResolverService(
   private fun resolveRequirement(referral: ReferralEntity): Boolean {
     val requirements = getRequirements(referral)
 
-    val buildingChoicesRequirement = requirements?.content?.takeIf { it.isNotEmpty() }?.first {
+    val buildingChoicesRequirement = requirements?.content?.takeIf { it.isNotEmpty() }?.firstOrNull {
       it.subCategory?.code == REQUIREMENT_BUILDING_CHOICES_SUBCATEGORY_CODE &&
         it.subCategory.description == BUILDING_CHOICES_SUBCATEGORY_DESCRIPTION
     }
