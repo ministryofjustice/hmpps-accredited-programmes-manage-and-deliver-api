@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.RiskScoreLevel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.ACCREDITED_PROGRAMMES_AUTOMATED_UPDATE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.AuditorContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCohortHistoryEntity
@@ -70,7 +71,7 @@ class CohortService(
 
   fun hasOverriddenCohort(referralId: UUID): Boolean {
     referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.let {
-      return it.createdBy != "SYSTEM" && it.createdBy != "Accredited Programmes service automated update"
+      return it.createdBy != "SYSTEM" && it.createdBy != ACCREDITED_PROGRAMMES_AUTOMATED_UPDATE
     }
     return false
   }

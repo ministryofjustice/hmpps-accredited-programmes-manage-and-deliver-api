@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.UpdateLdc
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.ACCREDITED_PROGRAMMES_AUTOMATED_UPDATE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.AuditorContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
@@ -55,7 +56,7 @@ class LdcService(
 
   fun hasOverriddenLdcStatus(referralId: UUID): Boolean {
     ldcHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.let {
-      return it.createdBy != "SYSTEM" && it.createdBy != "Accredited Programmes service automated update"
+      return it.createdBy != "SYSTEM" && it.createdBy != ACCREDITED_PROGRAMMES_AUTOMATED_UPDATE
     }
     return false
   }
