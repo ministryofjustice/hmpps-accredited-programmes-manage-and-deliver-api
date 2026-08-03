@@ -31,6 +31,12 @@ interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
     sourcedFrom: ReferralEntitySourcedFrom,
   ): ReferralEntity?
 
+  fun existsByCrnAndEventIdAndSourcedFrom(
+    crn: String,
+    eventId: String,
+    sourcedFrom: ReferralEntitySourcedFrom,
+  ): Boolean
+
   fun findAllByCreatedAtBefore(createdAtBefore: LocalDateTime): MutableList<ReferralEntity>
 
   fun findAllByUpdatedAtBefore(updatedAtBefore: LocalDateTime, pageable: Pageable): Page<ReferralEntity>
