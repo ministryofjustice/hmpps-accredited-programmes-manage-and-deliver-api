@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
@@ -28,6 +29,7 @@ class SessionFactory(
   private var createdByUsername: String? = "UNKNOWN_USER"
   private var attendances: MutableSet<SessionAttendanceEntity> = mutableSetOf()
   private var attendees: MutableList<AttendeeEntity> = mutableListOf()
+  private var ndeliusAppointments: MutableSet<NDeliusAppointmentEntity> = mutableSetOf<NDeliusAppointmentEntity>()
 
   fun withId(id: UUID?) = apply { this.id = id }
   fun withProgrammeGroup(programmeGroup: ProgrammeGroupEntity) = apply { this.programmeGroup = programmeGroup }
@@ -44,6 +46,7 @@ class SessionFactory(
   fun withCreatedByUsername(createdByUsername: String?) = apply { this.createdByUsername = createdByUsername }
   fun withAttendances(attendances: MutableSet<SessionAttendanceEntity>) = apply { this.attendances = attendances }
   fun withAttendees(attendees: MutableList<AttendeeEntity>) = apply { this.attendees = attendees }
+  fun withNdeliusAppointments(ndeliusAppointments: MutableSet<NDeliusAppointmentEntity>) = apply { this.ndeliusAppointments = ndeliusAppointments }
 
   fun produce() = SessionEntity(
     id = this.id,
@@ -59,5 +62,6 @@ class SessionFactory(
     attendances = this.attendances,
     attendees = this.attendees,
     isPlaceholder = this.isPlaceholder,
+    ndeliusAppointments = this.ndeliusAppointments,
   )
 }

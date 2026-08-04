@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -17,7 +16,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralStatusUpdateEvent
@@ -31,6 +29,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.time.Clock
 import java.util.UUID
 
@@ -41,7 +40,7 @@ class ProgrammeGroupMembershipServiceTest {
   private val programmeGroupMembershipRepository = mockk<ProgrammeGroupMembershipRepository>()
   private val scheduleService = mockk<ScheduleService>()
   private val nDeliusIntegrationApiClient = mockk<NDeliusIntegrationApiClient>()
-  private val telemetryClient = mockk<TelemetryClient>()
+  private val telemetryService = mockk<TelemetryService>()
   private val applicationEventPublisher = mockk<ApplicationEventPublisher>()
   private lateinit var service: ProgrammeGroupMembershipService
 
@@ -54,7 +53,7 @@ class ProgrammeGroupMembershipServiceTest {
       programmeGroupMembershipRepository = programmeGroupMembershipRepository,
       scheduleService = scheduleService,
       nDeliusIntegrationApiClient = nDeliusIntegrationApiClient,
-      telemetryClient = telemetryClient,
+      telemetryService = telemetryService,
       applicationEventPublisher = applicationEventPublisher,
       clock = Clock.systemDefaultZone(),
     )
@@ -79,7 +78,7 @@ class ProgrammeGroupMembershipServiceTest {
     every { referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId) } returns referralStatusDescriptionEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns null andThen programmeGroupMembershipEntity
     every { referralStatusDescriptionRepository.getScheduledStatusDescription() } returns referralStatusDescriptionEntity
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any()) } returns Unit
 
     return referralId to groupId
   }
@@ -101,6 +100,7 @@ class ProgrammeGroupMembershipServiceTest {
     )
     every { scheduleService.createNdeliusAppointmentsForSessions(any()) } returns Unit
     every { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val result = service.allocateReferralToGroup(referralId, groupId, "testAdmin", "test additional details")
@@ -111,6 +111,15 @@ class ProgrammeGroupMembershipServiceTest {
     verify { nDeliusIntegrationApiClient.getRequirementManagerDetails(referralEntity.crn, referralEntity.eventId!!) }
     verify { referralRepository.save(referralEntity) }
     verify { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) }
+    verify {
+      telemetryService.logToAppInsights(
+        referralEntity = any(ReferralEntity::class),
+        eventName = "Referral.allocate-to-group.success",
+        activityType = "ASSIGN_REFERRAL_TO_GROUP",
+        toReferralStatusId = null,
+        appliedBy = null,
+      )
+    }
   }
 
   @Test
@@ -124,7 +133,12 @@ class ProgrammeGroupMembershipServiceTest {
       .produce()
     val (referralId, groupId) = setupAllocationMocks(referralEntity)
 
-    every { nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(any(), any()) } returns ClientResult.Failure.StatusCode(
+    every {
+      nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(
+        any(),
+        any(),
+      )
+    } returns ClientResult.Failure.StatusCode(
       method = HttpMethod.GET,
       path = "/case/${referralEntity.crn}/licence-conditions/1503834986",
       status = HttpStatusCode.valueOf(404),
@@ -142,7 +156,7 @@ class ProgrammeGroupMembershipServiceTest {
 
     verify(exactly = 0) { scheduleService.createNdeliusAppointmentsForSessions(any()) }
     verify(exactly = 0) { referralRepository.save(any()) }
-    verify { telemetryClient.logToAppInsights("Referral.allocate-to-group.ndelius-stale-sentence-data", any()) }
+    verify { telemetryService.logToAppInsights("Referral.allocate-to-group.ndelius-stale-sentence-data", any()) }
   }
 
   @Test
@@ -156,7 +170,12 @@ class ProgrammeGroupMembershipServiceTest {
       .produce()
     val (referralId, groupId) = setupAllocationMocks(referralEntity)
 
-    every { nDeliusIntegrationApiClient.getRequirementManagerDetails(any(), any()) } returns ClientResult.Failure.StatusCode(
+    every {
+      nDeliusIntegrationApiClient.getRequirementManagerDetails(
+        any(),
+        any(),
+      )
+    } returns ClientResult.Failure.StatusCode(
       method = HttpMethod.GET,
       path = "/case/${referralEntity.crn}/requirement/1503604735",
       status = HttpStatusCode.valueOf(404),
@@ -174,7 +193,7 @@ class ProgrammeGroupMembershipServiceTest {
 
     verify(exactly = 0) { scheduleService.createNdeliusAppointmentsForSessions(any()) }
     verify(exactly = 0) { referralRepository.save(any()) }
-    verify { telemetryClient.logToAppInsights("Referral.allocate-to-group.ndelius-stale-sentence-data", any()) }
+    verify { telemetryService.logToAppInsights("Referral.allocate-to-group.ndelius-stale-sentence-data", any()) }
   }
 
   @Test
@@ -225,7 +244,7 @@ class ProgrammeGroupMembershipServiceTest {
     every { referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId) } returns referralStatusDescriptionEntity
     every { referralRepository.save(referralEntity) } returns referralEntity
     every { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) } returns Unit
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val result = service.removeReferralFromGroup(referralId, groupId, removedFromGroupBy, removeFromGroupRequest)
@@ -241,6 +260,197 @@ class ProgrammeGroupMembershipServiceTest {
     verify { referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId) }
     verify { referralRepository.save(referralEntity) }
     verify { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        referralEntity = any(ReferralEntity::class),
+        eventName = "Referral.remove-from-group.success",
+        activityType = "REMOVE_REFERRAL_FROM_GROUP",
+        toReferralStatusId = null,
+        appliedBy = null,
+      )
+    }
+  }
+
+  @Test
+  fun `validateReferralSentenceDataExistsInNDelius should throw BusinessException when eventId is null`() {
+    // Given
+    val referral = ReferralEntityFactory().withEventId("").produce()
+    referral.eventId = null
+
+    // When / Then
+    assertThatThrownBy {
+      service.validateReferralSentenceDataExistsInNDelius(referral)
+    }
+      .isInstanceOf(BusinessException::class.java)
+      .hasMessageContaining("the referral has no associated requirement or licence condition ID")
+
+    verify(exactly = 0) { nDeliusIntegrationApiClient.getRequirementManagerDetails(any(), any()) }
+  }
+
+  @Test
+  fun `validateReferralSentenceDataExistsInNDelius should throw BusinessException when sourcedFrom is null`() {
+    // Given
+    val referral = ReferralEntityFactory()
+      .withEventId("12345")
+      .withSourcedFrom(null)
+      .produce()
+
+    // When / Then
+    assertThatThrownBy {
+      service.validateReferralSentenceDataExistsInNDelius(referral)
+    }
+      .isInstanceOf(BusinessException::class.java)
+      .hasMessageContaining("sentence source type is not set")
+
+    verify(exactly = 0) { nDeliusIntegrationApiClient.getRequirementManagerDetails(any(), any()) }
+  }
+
+  @Test
+  fun `validateReferralSentenceDataExistsInNDelius should pass when Requirement exists`() {
+    // Given
+    val referral = ReferralEntityFactory()
+      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
+      .withEventId("12345")
+      .produce()
+
+    every {
+      nDeliusIntegrationApiClient.getRequirementManagerDetails(referral.crn, "12345")
+    } returns ClientResult.Success(HttpStatusCode.valueOf(200), mockk())
+
+    // When / Then (should not throw)
+    service.validateReferralSentenceDataExistsInNDelius(referral)
+
+    verify { nDeliusIntegrationApiClient.getRequirementManagerDetails(referral.crn, "12345") }
+  }
+
+  @Test
+  fun `validateReferralSentenceDataExistsInNDelius should throw ConflictException when Requirement does not exist`() {
+    // Given
+    val referral = ReferralEntityFactory()
+      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
+      .withEventId("12345")
+      .produce()
+
+    every {
+      nDeliusIntegrationApiClient.getRequirementManagerDetails(referral.crn, "12345")
+    } returns ClientResult.Failure.StatusCode(
+      method = HttpMethod.GET,
+      path = "/path",
+      status = HttpStatusCode.valueOf(404),
+      body = "Not found",
+    )
+    every { telemetryService.logToAppInsights(any(), any()) } returns Unit
+
+    // When / Then
+    assertThatThrownBy {
+      service.validateReferralSentenceDataExistsInNDelius(referral)
+    }
+      .isInstanceOf(ConflictException::class.java)
+      .hasMessageContaining("requirement linked to this referral no longer exists")
+
+    verify {
+      telemetryService.logToAppInsights(
+        "Referral.allocate-to-group.ndelius-stale-sentence-data",
+        match {
+          it["referralId"] == referral.id.toString() &&
+            it["sourcedFrom"] == "REQUIREMENT" &&
+            it["eventId"] == "12345" &&
+            it["statusCode"] == "404 NOT_FOUND"
+        },
+      )
+    }
+  }
+
+  @Test
+  fun `validateReferralSentenceDataExistsInNDelius should pass when Licence Condition exists`() {
+    // Given
+    val referral = ReferralEntityFactory()
+      .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
+      .withEventId("12345")
+      .produce()
+
+    every {
+      nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, "12345")
+    } returns ClientResult.Success(HttpStatusCode.valueOf(200), mockk())
+
+    // When / Then (should not throw)
+    service.validateReferralSentenceDataExistsInNDelius(referral)
+
+    verify { nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, "12345") }
+  }
+
+  @Test
+  fun `validateReferralSentenceDataExistsInNDelius should throw ConflictException when Licence Condition does not exist`() {
+    // Given
+    val referral = ReferralEntityFactory()
+      .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
+      .withEventId("12345")
+      .produce()
+
+    every {
+      nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, "12345")
+    } returns ClientResult.Failure.StatusCode(
+      method = HttpMethod.GET,
+      path = "/path",
+      status = HttpStatusCode.valueOf(404),
+      body = "Not found",
+    )
+    every { telemetryService.logToAppInsights(any(), any()) } returns Unit
+
+    // When / Then
+    assertThatThrownBy {
+      service.validateReferralSentenceDataExistsInNDelius(referral)
+    }
+      .isInstanceOf(ConflictException::class.java)
+      .hasMessageContaining("licence condition linked to this referral no longer exists")
+
+    verify {
+      telemetryService.logToAppInsights(
+        "Referral.allocate-to-group.ndelius-stale-sentence-data",
+        match {
+          it["referralId"] == referral.id.toString() &&
+            it["sourcedFrom"] == "LICENCE_CONDITION" &&
+            it["eventId"] == "12345" &&
+            it["statusCode"] == "404 NOT_FOUND"
+        },
+      )
+    }
+  }
+
+  @Test
+  fun `validateReferralSentenceDataExistsInNDelius should throw BusinessException on network failure`() {
+    // Given
+    val referral = ReferralEntityFactory()
+      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
+      .withEventId("12345")
+      .produce()
+
+    every {
+      nDeliusIntegrationApiClient.getRequirementManagerDetails(referral.crn, "12345")
+    } returns ClientResult.Failure.Other(
+      method = HttpMethod.GET,
+      path = "/path",
+      exception = RuntimeException("Network error"),
+      serviceName = "nDelius",
+    )
+    every { telemetryService.logToAppInsights(any(), any()) } returns Unit
+
+    // When / Then
+    assertThatThrownBy {
+      service.validateReferralSentenceDataExistsInNDelius(referral)
+    }
+      .isInstanceOf(BusinessException::class.java)
+      .hasMessageContaining("unable to reach nDelius to verify sentence data")
+
+    verify {
+      telemetryService.logToAppInsights(
+        "Referral.allocate-to-group.ndelius-validation-failure",
+        match {
+          it["referralId"] == referral.id.toString() &&
+            it["errorType"] == "network" &&
+            it["errorMessage"] == "Network error"
+        },
+      )
+    }
   }
 }

@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.AlcoholMisuseDetails
@@ -31,8 +30,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.toModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REGISTRATION_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.time.LocalDateTime
 
 @Service
@@ -41,7 +40,7 @@ class RisksAndNeedsService(
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val assessRiskAndNeedsApiClient: AssessRiskAndNeedsApiClient,
   private val pniService: PniService,
-  private val telemetryClient: TelemetryClient,
+  private val telemetryService: TelemetryService,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -189,24 +188,20 @@ class RisksAndNeedsService(
 
   fun getActiveAlerts(crn: String): NDeliusRegistrations? = when (val response = nDeliusIntegrationApiClient.getRegistrations(crn)) {
     is ClientResult.Failure -> {
-      telemetryClient.logToAppInsights(
-        "${GET_REGISTRATION_N_DELIUS.eventName}.failure",
-        mapOf(
-          "integrationActionType" to GET_REGISTRATION_N_DELIUS.name,
-          "outcome" to "failure",
-        ),
+      telemetryService.logToAppInsights(
+        eventName = "${GET_REGISTRATION_N_DELIUS.eventName}.failure",
+        integrationActionType = GET_REGISTRATION_N_DELIUS.name,
+        outcome = "failure",
       )
       log.warn("Failure to retrieve ActiveAlerts for crn: $crn reason ${response.toException().message}")
       throw NotFoundException("Failure to retrieve ActiveAlerts for crn: $crn, reason: '${response.toException().message}'")
     }
 
     is ClientResult.Success -> {
-      telemetryClient.logToAppInsights(
-        "${GET_REGISTRATION_N_DELIUS.eventName}.success",
-        mapOf(
-          "integrationActionType" to GET_REGISTRATION_N_DELIUS.name,
-          "outcome" to "success",
-        ),
+      telemetryService.logToAppInsights(
+        eventName = "${GET_REGISTRATION_N_DELIUS.eventName}.success",
+        integrationActionType = GET_REGISTRATION_N_DELIUS.name,
+        outcome = "success",
       )
 
       response.body

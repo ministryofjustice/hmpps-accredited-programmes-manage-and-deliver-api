@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -10,15 +9,17 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.AppointmentUpdateException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
@@ -46,10 +47,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.RECORD_ATTENDANCE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.Clock
@@ -70,7 +73,7 @@ class SessionServiceTest {
   private val nDeliusIntegrationApiClient = mockk<NDeliusIntegrationApiClient>()
   private val sessionNameFormatter = SessionNameFormatter()
   private val referralStatusService = mockk<ReferralStatusService>()
-  private val telemetryClient = mockk<TelemetryClient>()
+  private val telemetryService = mockk<TelemetryService>()
   private val authenticationUtils = mockk<AuthenticationUtils>()
   private val userService = mockk<UserService>()
   private val fixedClock = Clock.fixed(Instant.now(), ZoneId.systemDefault())
@@ -80,38 +83,40 @@ class SessionServiceTest {
 
   @BeforeEach
   fun setup() {
-    service = SessionService(
-      sessionRepository,
-      scheduleService,
-      programmeGroupMembershipRepository,
-      facilitatorService,
-      referralRepository,
-      nDeliusIntegrationApiClient,
-      sessionAttendanceOutcomeTypeRepository,
-      sessionNameFormatter,
-      referralStatusService,
-      telemetryClient,
-      authenticationUtils,
-      userService,
-      regionService,
-      fixedClock,
-    )
+    service =
+      SessionService(
+        sessionRepository,
+        scheduleService,
+        programmeGroupMembershipRepository,
+        facilitatorService,
+        referralRepository,
+        nDeliusIntegrationApiClient,
+        sessionAttendanceOutcomeTypeRepository,
+        sessionNameFormatter,
+        referralStatusService,
+        telemetryService,
+        authenticationUtils,
+        userService,
+        regionService,
+        fixedClock,
+      )
 
-    sessionAttendanceTypeEntities = listOf(
-      SessionAttendanceNDeliusOutcomeEntityFactory().produce(),
-      SessionAttendanceNDeliusOutcomeEntityFactory()
-        .withCode(AFTC)
-        .withDescription("Attended - Failed to Comply")
-        .withAttendance(true)
-        .withCompliant(false)
-        .produce(),
-      SessionAttendanceNDeliusOutcomeEntityFactory()
-        .withCode(UAAB)
-        .withDescription("Unacceptable Absence")
-        .withAttendance(false)
-        .withCompliant(false)
-        .produce(),
-    )
+    sessionAttendanceTypeEntities =
+      listOf(
+        SessionAttendanceNDeliusOutcomeEntityFactory().produce(),
+        SessionAttendanceNDeliusOutcomeEntityFactory()
+          .withCode(AFTC)
+          .withDescription("Attended - Failed to Comply")
+          .withAttendance(true)
+          .withCompliant(false)
+          .produce(),
+        SessionAttendanceNDeliusOutcomeEntityFactory()
+          .withCode(UAAB)
+          .withDescription("Unacceptable Absence")
+          .withAttendance(false)
+          .withCompliant(false)
+          .produce(),
+      )
   }
 
   @Test
@@ -121,27 +126,31 @@ class SessionServiceTest {
     val facilitator = FacilitatorEntityFactory().produce()
     val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
     val module = ModuleEntityFactory().withName("Post-programme reviews").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(ONE_TO_ONE)
-      .withName("Post-programme review")
-      .withModule(module)
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(ONE_TO_ONE)
+        .withName("Post-programme review")
+        .withModule(module)
+        .produce()
     val referralEntity = ReferralEntityFactory().withPersonName("John Smith").produce()
-    val sessionEntity = SessionFactory()
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .withAttendees(
-        listOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ) as MutableList<AttendeeEntity>,
-      )
-      .withIsCatchup(false)
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .withAttendees(
+          listOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ) as MutableList<AttendeeEntity>,
+        ).withIsCatchup(false)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
     every { sessionRepository.findByIdOrNull(any()) } returns sessionEntity
     every { sessionRepository.delete(any()) } returns Unit
@@ -164,26 +173,30 @@ class SessionServiceTest {
     val facilitator = FacilitatorEntityFactory().produce()
     val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
     val module = ModuleEntityFactory().withName("Module 1").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(ONE_TO_ONE)
-      .withModule(module)
-      .withName("Getting started one-to-one")
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(ONE_TO_ONE)
+        .withModule(module)
+        .withName("Getting started one-to-one")
+        .produce()
     val referralEntity = ReferralEntityFactory().withPersonName("John Smith").produce()
-    val sessionEntity = SessionFactory()
-      .withAttendees(
-        listOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ) as MutableList<AttendeeEntity>,
-      )
-      .withIsCatchup(false)
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          listOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ) as MutableList<AttendeeEntity>,
+        ).withIsCatchup(false)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
     every { sessionRepository.findByIdOrNull(any()) } returns sessionEntity
     every { sessionRepository.delete(any()) } returns Unit
@@ -206,26 +219,30 @@ class SessionServiceTest {
     val facilitator = FacilitatorEntityFactory().produce()
     val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
     val module = ModuleEntityFactory().withName("Getting started").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(GROUP)
-      .withModule(module)
-      .withName("Getting started")
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(GROUP)
+        .withModule(module)
+        .withName("Getting started")
+        .produce()
     val referralEntity = ReferralEntityFactory().withPersonName("John Smith").produce()
-    val sessionEntity = SessionFactory()
-      .withAttendees(
-        listOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ) as MutableList<AttendeeEntity>,
-      )
-      .withIsCatchup(true)
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          listOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ) as MutableList<AttendeeEntity>,
+        ).withIsCatchup(true)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
     every { sessionRepository.findByIdOrNull(any()) } returns sessionEntity
     every { sessionRepository.delete(any()) } returns Unit
@@ -251,10 +268,11 @@ class SessionServiceTest {
 
     val programmeGroup = ProgrammeGroupFactory().produce()
     val moduleSessionTemplate = ModuleSessionTemplateEntityFactory().withName("Template 1").produce()
-    val session = SessionFactory()
-      .withProgrammeGroup(programmeGroup)
-      .withModuleSessionTemplate(moduleSessionTemplate)
-      .produce()
+    val session =
+      SessionFactory()
+        .withProgrammeGroup(programmeGroup)
+        .withModuleSessionTemplate(moduleSessionTemplate)
+        .produce()
     val referral1 = ReferralEntityFactory().withId(referralId1).withPersonName("John Doe").produce()
     val referral2 = ReferralEntityFactory().withId(referralId2).withPersonName("Jane Smith").produce()
 
@@ -287,10 +305,11 @@ class SessionServiceTest {
 
     val programmeGroup = ProgrammeGroupFactory().produce()
     val moduleSessionTemplate = ModuleSessionTemplateEntityFactory().withName("Template 1").produce()
-    val session = SessionFactory()
-      .withProgrammeGroup(programmeGroup)
-      .withModuleSessionTemplate(moduleSessionTemplate)
-      .produce()
+    val session =
+      SessionFactory()
+        .withProgrammeGroup(programmeGroup)
+        .withModuleSessionTemplate(moduleSessionTemplate)
+        .produce()
     val referral1 = ReferralEntityFactory().withId(referralId1).withPersonName("John Doe").produce()
     session.attendees.add(AttendeeEntity(referral = referral1, session = session))
 
@@ -318,10 +337,11 @@ class SessionServiceTest {
 
     val programmeGroup = ProgrammeGroupFactory().produce()
     val moduleSessionTemplate = ModuleSessionTemplateEntityFactory().withName("Template 1").produce()
-    val session = SessionFactory()
-      .withProgrammeGroup(programmeGroup)
-      .withModuleSessionTemplate(moduleSessionTemplate)
-      .produce()
+    val session =
+      SessionFactory()
+        .withProgrammeGroup(programmeGroup)
+        .withModuleSessionTemplate(moduleSessionTemplate)
+        .produce()
     val referral1 = ReferralEntityFactory().withId(referralId1).withPersonName("John Doe").produce()
     val referral2 = ReferralEntityFactory().withId(referralId2).withPersonName("Jane Smith").produce()
     session.attendees.add(AttendeeEntity(referral = referral1, session = session))
@@ -347,41 +367,51 @@ class SessionServiceTest {
   fun `rescheduleSessions should update nDelius appointments for single session`() {
     // Given
     val sessionId = UUID.randomUUID()
-    val request = RescheduleSessionRequest(
-      sessionStartDate = LocalDate.now().plusDays(1),
-      sessionStartTime = SessionTime(10, 0, AmOrPm.AM),
-      rescheduleOtherSessions = false,
-    )
+    val request =
+      RescheduleSessionRequest(
+        sessionStartDate = LocalDate.now().plusDays(1),
+        sessionStartTime = SessionTime(10, 0, AmOrPm.AM),
+        rescheduleOtherSessions = false,
+      )
 
     val facilitator = FacilitatorEntityFactory().produce()
     val group = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
     val moduleSessionTemplate = ModuleSessionTemplateEntityFactory().withName("session 1").produce()
-    val session = SessionFactory()
-      .withProgrammeGroup(group)
-      .withModuleSessionTemplate(moduleSessionTemplate)
-      .withStartsAt(LocalDateTime.now().plusDays(1))
-      .produce()
+    val session =
+      SessionFactory()
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(moduleSessionTemplate)
+        .withStartsAt(LocalDateTime.now().plusDays(1))
+        .produce()
 
-    val appointment = NDeliusAppointmentEntity(
-      ndeliusAppointmentId = UUID.randomUUID(),
-      session = session,
-      referral = ReferralEntityFactory().produce(),
-    )
+    val appointment =
+      NDeliusAppointmentEntity(
+        ndeliusAppointmentId = UUID.randomUUID(),
+        session = session,
+        referral = ReferralEntityFactory().produce(),
+      )
     session.ndeliusAppointments.add(appointment)
 
     every { sessionRepository.findById(sessionId) } returns Optional.of(session)
-    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns ClientResult.Success(
-      status = HttpStatus.OK,
-      body = Unit,
-    )
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
+      ClientResult.Success(
+        status = HttpStatus.OK,
+        body = Unit,
+      )
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
     service.rescheduleSessions(sessionId, request)
 
     // Then
     verify { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "Appointment.update-nDelius.success",
+        integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
+        outcome = "success",
+      )
+    }
   }
 
   @Test
@@ -389,75 +419,103 @@ class SessionServiceTest {
     // Given
     val sessionId = UUID.randomUUID()
     val sessionStartDate = LocalDate.now().plusDays(1)
-    val request = RescheduleSessionRequest(
-      sessionStartDate = sessionStartDate,
-      sessionStartTime = SessionTime(11, 0, AmOrPm.AM),
-      rescheduleOtherSessions = true,
-    )
+    val request =
+      RescheduleSessionRequest(
+        sessionStartDate = sessionStartDate,
+        sessionStartTime = SessionTime(11, 0, AmOrPm.AM),
+        rescheduleOtherSessions = true,
+      )
 
     val facilitator = FacilitatorEntityFactory().produce()
     val group = ProgrammeGroupFactory().withId(UUID.randomUUID()).withTreatmentManager(facilitator).produce()
-    val template1 = ModuleSessionTemplateEntityFactory()
-      .withName("session 1")
-      .withSessionNumber(1)
-      .withSessionType(GROUP)
-      .produce()
-    val template2 = ModuleSessionTemplateEntityFactory()
-      .withName("session 2")
-      .withSessionNumber(2)
-      .withSessionType(GROUP)
-      .produce()
+    val template1 =
+      ModuleSessionTemplateEntityFactory()
+        .withName("session 1")
+        .withSessionNumber(1)
+        .withSessionType(GROUP)
+        .produce()
+    val template2 =
+      ModuleSessionTemplateEntityFactory()
+        .withName("session 2")
+        .withSessionNumber(2)
+        .withSessionType(GROUP)
+        .produce()
 
-    val session1Start = LocalDateTime.now().plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0)
-    val session2Start = LocalDateTime.now().plusDays(2).withHour(10).withMinute(0).withSecond(0).withNano(0)
+    val session1Start =
+      LocalDateTime
+        .now()
+        .plusDays(1)
+        .withHour(10)
+        .withMinute(0)
+        .withSecond(0)
+        .withNano(0)
+    val session2Start =
+      LocalDateTime
+        .now()
+        .plusDays(2)
+        .withHour(10)
+        .withMinute(0)
+        .withSecond(0)
+        .withNano(0)
 
-    val session1 = SessionFactory()
-      .withId(sessionId)
-      .withProgrammeGroup(group)
-      .withModuleSessionTemplate(template1)
-      .withStartsAt(session1Start)
-      .withEndsAt(session1Start.plusHours(1))
-      .produce()
+    val session1 =
+      SessionFactory()
+        .withId(sessionId)
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(template1)
+        .withStartsAt(session1Start)
+        .withEndsAt(session1Start.plusHours(1))
+        .produce()
 
-    val session2 = SessionFactory()
-      .withId(UUID.randomUUID())
-      .withProgrammeGroup(group)
-      .withModuleSessionTemplate(template2)
-      .withStartsAt(session2Start)
-      .withEndsAt(session2Start.plusHours(1))
-      .produce()
+    val session2 =
+      SessionFactory()
+        .withId(UUID.randomUUID())
+        .withProgrammeGroup(group)
+        .withModuleSessionTemplate(template2)
+        .withStartsAt(session2Start)
+        .withEndsAt(session2Start.plusHours(1))
+        .produce()
 
     group.sessions.add(session1)
     group.sessions.add(session2)
 
-    val appointment1 = NDeliusAppointmentEntity(
-      ndeliusAppointmentId = UUID.randomUUID(),
-      session = session1,
-      referral = ReferralEntityFactory().produce(),
-    )
+    val appointment1 =
+      NDeliusAppointmentEntity(
+        ndeliusAppointmentId = UUID.randomUUID(),
+        session = session1,
+        referral = ReferralEntityFactory().produce(),
+      )
     session1.ndeliusAppointments.add(appointment1)
 
-    val appointment2 = NDeliusAppointmentEntity(
-      ndeliusAppointmentId = UUID.randomUUID(),
-      session = session2,
-      referral = ReferralEntityFactory().produce(),
-    )
+    val appointment2 =
+      NDeliusAppointmentEntity(
+        ndeliusAppointmentId = UUID.randomUUID(),
+        session = session2,
+        referral = ReferralEntityFactory().produce(),
+      )
     session2.ndeliusAppointments.add(appointment2)
 
     every { sessionRepository.findById(sessionId) } returns Optional.of(session1)
     every { programmeGroupMembershipRepository.existsByProgrammeGroupId(any()) } returns true
-    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns ClientResult.Success(
-      status = HttpStatus.OK,
-      body = Unit,
-    )
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
+      ClientResult.Success(
+        status = HttpStatus.OK,
+        body = Unit,
+      )
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
     service.rescheduleSessions(sessionId, request)
 
     // Then
     verify(exactly = 1) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "Appointment.update-nDelius.success",
+        integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
+        outcome = "success",
+      )
+    }
   }
 
   @Test
@@ -468,34 +526,48 @@ class SessionServiceTest {
     val sessionAttendee = SessionAttendeeFactory().withReferralId(referralId).produce()
     val sessionAttendance = SessionAttendanceFactory().withAttendees(listOf(sessionAttendee)).produce()
     val facilitator = FacilitatorEntityFactory().produce()
-    val programmeGroupEntity = ProgrammeGroupFactory()
-      .withId(UUID.randomUUID())
-      .withTreatmentManager(facilitator)
-      .produce()
+    val programmeGroupEntity =
+      ProgrammeGroupFactory()
+        .withId(UUID.randomUUID())
+        .withTreatmentManager(facilitator)
+        .produce()
     val module = ModuleEntityFactory().withName("Module 1").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(GROUP)
-      .withModule(module)
-      .withName("Getting started")
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(GROUP)
+        .withModule(module)
+        .withName("Getting started")
+        .produce()
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
-    val sessionEntity = SessionFactory()
-      .withAttendees(
-        mutableListOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ),
-      )
-      .withIsCatchup(true)
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          mutableListOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ),
+        ).withIsCatchup(true)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
     sessionEntity.sessionFacilitators.add(
       SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
+    )
+
+    val nDeliusAppointmentId = UUID.randomUUID()
+    sessionEntity.ndeliusAppointments.add(
+      NDeliusAppointmentEntity(
+        ndeliusAppointmentId = nDeliusAppointmentId,
+        session = sessionEntity,
+        referral = referralEntity,
+      ),
     )
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
@@ -511,8 +583,14 @@ class SessionServiceTest {
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
-    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any()) } returns Unit
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
+      ClientResult.Success(
+        HttpStatus.NO_CONTENT,
+        Unit,
+      )
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val result = service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -522,12 +600,31 @@ class SessionServiceTest {
     verify { sessionRepository.findById(any()) }
     verify { programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any()) }
     verify { sessionRepository.save(any()) }
-    verify { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
+    verify {
+      nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+        match { it.appointments.single().reference == nDeliusAppointmentId },
+      )
+    }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "Appointment.update-nDelius.success",
+        integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
+        outcome = "success",
+      )
+    }
+    verify {
+      telemetryService.logToAppInsights(
+        referralEntity = any(ReferralEntity::class),
+        eventName = "Session.create-attendance.success",
+        activityType = RECORD_ATTENDANCE.name,
+        toReferralStatusId = null,
+        appliedBy = null,
+      )
+    }
   }
 
   @Test
-  fun `should save a new session attendance and update ndelius when notes are present`() {
+  fun `should save a new session attendance and update nDelius when notes are present`() {
     // Given
     val sessionId = UUID.randomUUID()
     val referralId = UUID.randomUUID()
@@ -535,32 +632,37 @@ class SessionServiceTest {
     val sessionAttendee = SessionAttendeeFactory().withReferralId(referralId).withSessionNotes(sessionNotes).produce()
     val sessionAttendance = SessionAttendanceFactory().withAttendees(listOf(sessionAttendee)).produce()
     val facilitator = FacilitatorEntityFactory().produce()
-    val programmeGroupEntity = ProgrammeGroupFactory()
-      .withId(UUID.randomUUID())
-      .withTreatmentManager(facilitator)
-      .produce()
+    val programmeGroupEntity =
+      ProgrammeGroupFactory()
+        .withId(UUID.randomUUID())
+        .withTreatmentManager(facilitator)
+        .produce()
     val module = ModuleEntityFactory().withName("Module 1").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(GROUP)
-      .withModule(module)
-      .withName("Getting started")
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(GROUP)
+        .withModule(module)
+        .withName("Getting started")
+        .produce()
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
     val ndeliusAppointmentId = UUID.randomUUID()
-    val sessionEntity = SessionFactory()
-      .withAttendees(
-        mutableListOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ),
-      )
-      .withIsCatchup(true)
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          mutableListOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ),
+        ).withIsCatchup(true)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
     sessionEntity.sessionFacilitators.add(
       SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
@@ -586,55 +688,85 @@ class SessionServiceTest {
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
-    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns ClientResult.Success(
-      HttpStatus.NO_CONTENT,
-      Unit,
-    )
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
+      ClientResult.Success(
+        HttpStatus.NO_CONTENT,
+        Unit,
+      )
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
 
     // Then
-    verify { nDeliusIntegrationApiClient.updateAppointmentsInDelius(match { it.appointments.any { app -> app.notes == sessionNotes && app.reference == ndeliusAppointmentId } }) }
-    verify { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
+    verify {
+      nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+        match {
+          it.appointments.any { app ->
+            app.notes == sessionNotes &&
+              app.reference == ndeliusAppointmentId
+          }
+        },
+      )
+    }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "Appointment.update-nDelius.success",
+        integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
+        outcome = "success",
+      )
+    }
+    verify {
+      telemetryService.logToAppInsights(
+        referralEntity = any(ReferralEntity::class),
+        eventName = "Session.create-attendance.success",
+        activityType = RECORD_ATTENDANCE.name,
+        toReferralStatusId = null,
+        appliedBy = null,
+      )
+    }
   }
 
   @Test
-  fun `should save a new session attendance and NOT update ndelius when notes are blank`() {
+  fun `should save a new session attendance and NOT update nDelius when notes are blank`() {
     // Given
     val sessionId = UUID.randomUUID()
     val referralId = UUID.randomUUID()
     val sessionAttendee = SessionAttendeeFactory().withReferralId(referralId).withSessionNotes(" ").produce()
     val sessionAttendance = SessionAttendanceFactory().withAttendees(listOf(sessionAttendee)).produce()
     val facilitator = FacilitatorEntityFactory().produce()
-    val programmeGroupEntity = ProgrammeGroupFactory()
-      .withId(UUID.randomUUID())
-      .withTreatmentManager(facilitator)
-      .produce()
+    val programmeGroupEntity =
+      ProgrammeGroupFactory()
+        .withId(UUID.randomUUID())
+        .withTreatmentManager(facilitator)
+        .produce()
     val module = ModuleEntityFactory().withName("Module 1").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(GROUP)
-      .withModule(module)
-      .withName("Getting started")
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(GROUP)
+        .withModule(module)
+        .withName("Getting started")
+        .produce()
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
-    val sessionEntity = SessionFactory()
-      .withAttendees(
-        mutableListOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ),
-      )
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          mutableListOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ),
+        ).withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
     sessionEntity.sessionFacilitators.add(
       SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
@@ -654,15 +786,29 @@ class SessionServiceTest {
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
 
     // Then
     verify(exactly = 0) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
-    verify { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
+    verify(exactly = 0) {
+      telemetryService.logToAppInsights(
+        eventName = any(),
+        integrationActionType = any(),
+        outcome = any(),
+      )
+    }
+    verify {
+      telemetryService.logToAppInsights(
+        referralEntity = any(ReferralEntity::class),
+        eventName = "Session.create-attendance.success",
+        activityType = RECORD_ATTENDANCE.name,
+        toReferralStatusId = null,
+        appliedBy = null,
+      )
+    }
   }
 
   @Test
@@ -674,9 +820,10 @@ class SessionServiceTest {
     every { sessionRepository.findById(any()) } returns Optional.empty<SessionEntity>()
 
     // When
-    val exception = assertThrows<NotFoundException> {
-      service.saveSessionAttendance(sessionId, sessionAttendance)
-    }
+    val exception =
+      assertThrows<NotFoundException> {
+        service.saveSessionAttendance(sessionId, sessionAttendance)
+      }
 
     // Then
     assertTrue(exception.message!!.contains("Session not found with id: $sessionId"))
@@ -688,36 +835,42 @@ class SessionServiceTest {
     // Given
     val sessionId = UUID.randomUUID()
     val referralId = UUID.randomUUID()
-    val sessionAttendance = SessionAttendanceFactory()
-      .withAttendees(listOf(SessionAttendeeFactory().withReferralId(referralId).produce()))
-      .produce()
+    val sessionAttendance =
+      SessionAttendanceFactory()
+        .withAttendees(listOf(SessionAttendeeFactory().withReferralId(referralId).produce()))
+        .produce()
     val facilitator = FacilitatorEntityFactory().produce()
     val programmeGroupId = UUID.randomUUID()
-    val programmeGroupEntity = ProgrammeGroupFactory()
-      .withId(programmeGroupId)
-      .withTreatmentManager(facilitator)
-      .produce()
+    val programmeGroupEntity =
+      ProgrammeGroupFactory()
+        .withId(programmeGroupId)
+        .withTreatmentManager(facilitator)
+        .produce()
     val module = ModuleEntityFactory().withName("Module 1").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(GROUP)
-      .withModule(module)
-      .withName("Getting started")
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(GROUP)
+        .withModule(module)
+        .withName("Getting started")
+        .produce()
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
-    val sessionEntity = SessionFactory()
-      .withAttendees(
-        mutableListOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ),
-      )
-      .withIsCatchup(true)
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          mutableListOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ),
+        ).withIsCatchup(true)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
     sessionEntity.sessionFacilitators.add(
       SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
@@ -732,9 +885,10 @@ class SessionServiceTest {
     } returns null
 
     // When
-    val exception = assertThrows<NotFoundException> {
-      service.saveSessionAttendance(sessionId, sessionAttendance)
-    }
+    val exception =
+      assertThrows<NotFoundException> {
+        service.saveSessionAttendance(sessionId, sessionAttendance)
+      }
 
     // Then
     assertTrue(
@@ -750,34 +904,40 @@ class SessionServiceTest {
     // Given
     val sessionId = UUID.randomUUID()
     val referralId = UUID.randomUUID()
-    val sessionAttendance = SessionAttendanceFactory()
-      .withAttendees(listOf(SessionAttendeeFactory().withReferralId(referralId).produce()))
-      .produce()
+    val sessionAttendance =
+      SessionAttendanceFactory()
+        .withAttendees(listOf(SessionAttendeeFactory().withReferralId(referralId).produce()))
+        .produce()
     val facilitator = FacilitatorEntityFactory().produce()
-    val programmeGroupEntity = ProgrammeGroupFactory()
-      .withId(UUID.randomUUID())
-      .withTreatmentManager(facilitator)
-      .produce()
+    val programmeGroupEntity =
+      ProgrammeGroupFactory()
+        .withId(UUID.randomUUID())
+        .withTreatmentManager(facilitator)
+        .produce()
     val module = ModuleEntityFactory().withName("Module 1").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(GROUP)
-      .withModule(module)
-      .withName("Getting started")
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(GROUP)
+        .withModule(module)
+        .withName("Getting started")
+        .produce()
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
-    val sessionEntity = SessionFactory()
-      .withAttendees(
-        mutableListOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ),
-      )
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          mutableListOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ),
+        ).withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
 
@@ -797,37 +957,43 @@ class SessionServiceTest {
     val facilitator = FacilitatorEntityFactory().produce()
     val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
     val module = ModuleEntityFactory().withName("Getting started").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(GROUP)
-      .withName("Template 1")
-      .withModule(module)
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(GROUP)
+        .withName("Template 1")
+        .withModule(module)
+        .produce()
     val referralId = UUID.randomUUID()
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
     val sessionId = UUID.randomUUID()
-    val sessionEntity = SessionFactory()
-      .withId(sessionId)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .withAttendees(
-        listOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ) as MutableList<AttendeeEntity>,
-      )
-      .withIsCatchup(true)
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withId(sessionId)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .withAttendees(
+          listOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ) as MutableList<AttendeeEntity>,
+        ).withIsCatchup(true)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
-    sessionEntity.attendances = mutableSetOf(
-      SessionAttendanceEntityFactory()
-        .withSession(sessionEntity)
-        .withOutcomeType(SessionAttendanceNDeliusOutcomeEntityFactory().produce())
-        .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
-    )
+    sessionEntity.attendances =
+      mutableSetOf(
+        SessionAttendanceEntityFactory()
+          .withSession(sessionEntity)
+          .withOutcomeType(SessionAttendanceNDeliusOutcomeEntityFactory().produce())
+          .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce())
+          .produce(),
+      )
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every { sessionAttendanceOutcomeTypeRepository.findAll() } returns sessionAttendanceTypeEntities
@@ -861,44 +1027,49 @@ class SessionServiceTest {
     val facilitator = FacilitatorEntityFactory().produce()
     val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
     val module = ModuleEntityFactory().withName("Post-programme reviews").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(ONE_TO_ONE)
-      .withName("Template 1")
-      .withModule(module)
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(ONE_TO_ONE)
+        .withName("Template 1")
+        .withModule(module)
+        .produce()
     val referralId = UUID.randomUUID()
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
     val sessionId = UUID.randomUUID()
-    val sessionEntity = SessionFactory()
-      .withId(sessionId)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .withAttendees(
-        listOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ) as MutableList<AttendeeEntity>,
-      )
-      .withIsCatchup(true)
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withId(sessionId)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .withAttendees(
+          listOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ) as MutableList<AttendeeEntity>,
+        ).withIsCatchup(true)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
-    sessionEntity.attendances = mutableSetOf(
-      SessionAttendanceEntityFactory()
-        .withSession(sessionEntity)
-        .withOutcomeType(
-          SessionAttendanceNDeliusOutcomeEntityFactory()
-            .withCode(AFTC)
-            .withDescription("Attended - Failed to Comply")
-            .withAttendance(true)
-            .withCompliant(false)
-            .produce(),
-        )
-        .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()).produce(),
-    )
+    sessionEntity.attendances =
+      mutableSetOf(
+        SessionAttendanceEntityFactory()
+          .withSession(sessionEntity)
+          .withOutcomeType(
+            SessionAttendanceNDeliusOutcomeEntityFactory()
+              .withCode(AFTC)
+              .withDescription("Attended - Failed to Comply")
+              .withAttendance(true)
+              .withCompliant(false)
+              .produce(),
+          ).withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce())
+          .produce(),
+      )
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every { sessionAttendanceOutcomeTypeRepository.findAll() } returns sessionAttendanceTypeEntities
@@ -921,45 +1092,49 @@ class SessionServiceTest {
     val facilitator = FacilitatorEntityFactory().produce()
     val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
     val module = ModuleEntityFactory().withName("Post-programme reviews").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(ONE_TO_ONE)
-      .withName("Template 1")
-      .withModule(module)
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(ONE_TO_ONE)
+        .withName("Template 1")
+        .withModule(module)
+        .produce()
     val referralId = UUID.randomUUID()
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
     val sessionId = UUID.randomUUID()
-    val sessionEntity = SessionFactory()
-      .withId(sessionId)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .withAttendees(
-        listOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ) as MutableList<AttendeeEntity>,
-      )
-      .withIsCatchup(true)
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withId(sessionId)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .withAttendees(
+          listOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ) as MutableList<AttendeeEntity>,
+        ).withIsCatchup(true)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
-    sessionEntity.attendances = mutableSetOf(
-      SessionAttendanceEntityFactory()
-        .withSession(sessionEntity)
-        .withOutcomeType(
-          SessionAttendanceNDeliusOutcomeEntityFactory()
-            .withCode(UAAB)
-            .withDescription("Unacceptable Absence")
-            .withAttendance(false)
-            .withCompliant(false)
-            .produce(),
-        )
-        .withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce())
-        .produce(),
-    )
+    sessionEntity.attendances =
+      mutableSetOf(
+        SessionAttendanceEntityFactory()
+          .withSession(sessionEntity)
+          .withOutcomeType(
+            SessionAttendanceNDeliusOutcomeEntityFactory()
+              .withCode(UAAB)
+              .withDescription("Unacceptable Absence")
+              .withAttendance(false)
+              .withCompliant(false)
+              .produce(),
+          ).withGroupMembership(ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce())
+          .produce(),
+      )
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every { sessionAttendanceOutcomeTypeRepository.findAll() } returns sessionAttendanceTypeEntities
@@ -981,30 +1156,34 @@ class SessionServiceTest {
     val facilitator = FacilitatorEntityFactory().produce()
     val programmeGroupEntity = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
     val module = ModuleEntityFactory().withName("Post-programme reviews").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(ONE_TO_ONE)
-      .withName("Template 1")
-      .withModule(module)
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(ONE_TO_ONE)
+        .withName("Template 1")
+        .withModule(module)
+        .produce()
     val referralId = UUID.randomUUID()
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
     val sessionId = UUID.randomUUID()
-    val sessionEntity = SessionFactory()
-      .withId(sessionId)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .withAttendees(
-        listOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ) as MutableList<AttendeeEntity>,
-      )
-      .withIsCatchup(true)
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withId(sessionId)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .withAttendees(
+          listOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ) as MutableList<AttendeeEntity>,
+        ).withIsCatchup(true)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
     sessionEntity.attendances = mutableSetOf()
     every { sessionAttendanceOutcomeTypeRepository.findAll() } returns sessionAttendanceTypeEntities
@@ -1028,9 +1207,10 @@ class SessionServiceTest {
     every { sessionRepository.findById(any()) } returns Optional.empty()
 
     // When
-    val exception = assertThrows<NotFoundException> {
-      service.getRecordAttendanceBySessionId(sessionId, null)
-    }
+    val exception =
+      assertThrows<NotFoundException> {
+        service.getRecordAttendanceBySessionId(sessionId, null)
+      }
 
     // Then
     assertTrue(
@@ -1047,31 +1227,36 @@ class SessionServiceTest {
     val sessionAttendee = SessionAttendeeFactory().withReferralId(referralId).produce()
     val sessionAttendance = SessionAttendanceFactory().withAttendees(listOf(sessionAttendee)).produce()
     val facilitator = FacilitatorEntityFactory().produce()
-    val programmeGroupEntity = ProgrammeGroupFactory()
-      .withId(UUID.randomUUID())
-      .withTreatmentManager(facilitator)
-      .produce()
+    val programmeGroupEntity =
+      ProgrammeGroupFactory()
+        .withId(UUID.randomUUID())
+        .withTreatmentManager(facilitator)
+        .produce()
     val postProgrammeModule = ModuleEntityFactory().withName("Post-programme reviews").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(ONE_TO_ONE)
-      .withModule(postProgrammeModule)
-      .withName("Post-programme review")
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(ONE_TO_ONE)
+        .withModule(postProgrammeModule)
+        .withName("Post-programme review")
+        .produce()
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
-    val sessionEntity = SessionFactory()
-      .withAttendees(
-        mutableListOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ),
-      )
-      .withIsPlaceholder(false)
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          mutableListOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ),
+        ).withIsPlaceholder(false)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
     sessionEntity.sessionFacilitators.add(
       SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
@@ -1088,8 +1273,7 @@ class SessionServiceTest {
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralStatusService.checkAndPublishCompletionEvent(any()) } returns true
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
-    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val result = service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1097,8 +1281,15 @@ class SessionServiceTest {
     // Then
     assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
-    verify { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        referralEntity = any(ReferralEntity::class),
+        eventName = "Session.create-attendance.success",
+        activityType = "RECORD_ATTENDANCE",
+        toReferralStatusId = null,
+        appliedBy = null,
+      )
+    }
   }
 
   @Test
@@ -1109,31 +1300,36 @@ class SessionServiceTest {
     val sessionAttendee = SessionAttendeeFactory().withReferralId(referralId).produce()
     val sessionAttendance = SessionAttendanceFactory().withAttendees(listOf(sessionAttendee)).produce()
     val facilitator = FacilitatorEntityFactory().produce()
-    val programmeGroupEntity = ProgrammeGroupFactory()
-      .withId(UUID.randomUUID())
-      .withTreatmentManager(facilitator)
-      .produce()
+    val programmeGroupEntity =
+      ProgrammeGroupFactory()
+        .withId(UUID.randomUUID())
+        .withTreatmentManager(facilitator)
+        .produce()
     val regularModule = ModuleEntityFactory().withName("Module 1").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(GROUP)
-      .withModule(regularModule)
-      .withName("Getting started")
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(GROUP)
+        .withModule(regularModule)
+        .withName("Getting started")
+        .produce()
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
-    val sessionEntity = SessionFactory()
-      .withAttendees(
-        mutableListOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ),
-      )
-      .withIsPlaceholder(false)
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          mutableListOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ),
+        ).withIsPlaceholder(false)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
     sessionEntity.sessionFacilitators.add(
       SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
@@ -1149,16 +1345,22 @@ class SessionServiceTest {
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
-    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
 
     // Then
     verify(exactly = 0) { referralStatusService.checkAndPublishCompletionEvent(any()) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
-    verify { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        referralEntity = any(ReferralEntity::class),
+        eventName = "Session.create-attendance.success",
+        activityType = "RECORD_ATTENDANCE",
+        toReferralStatusId = null,
+        appliedBy = null,
+      )
+    }
   }
 
   @Test
@@ -1169,31 +1371,36 @@ class SessionServiceTest {
     val sessionAttendee = SessionAttendeeFactory().withReferralId(referralId).produce()
     val sessionAttendance = SessionAttendanceFactory().withAttendees(listOf(sessionAttendee)).produce()
     val facilitator = FacilitatorEntityFactory().produce()
-    val programmeGroupEntity = ProgrammeGroupFactory()
-      .withId(UUID.randomUUID())
-      .withTreatmentManager(facilitator)
-      .produce()
+    val programmeGroupEntity =
+      ProgrammeGroupFactory()
+        .withId(UUID.randomUUID())
+        .withTreatmentManager(facilitator)
+        .produce()
     val postProgrammeModule = ModuleEntityFactory().withName("Post-programme reviews").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(ONE_TO_ONE)
-      .withModule(postProgrammeModule)
-      .withName("Post-programme review")
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(ONE_TO_ONE)
+        .withModule(postProgrammeModule)
+        .withName("Post-programme review")
+        .produce()
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
-    val sessionEntity = SessionFactory()
-      .withAttendees(
-        mutableListOf(
-          AttendeeFactory().withReferral(referralEntity)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ),
-      )
-      .withIsPlaceholder(true)
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          mutableListOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ),
+        ).withIsPlaceholder(true)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
     sessionEntity.sessionFacilitators.add(
       SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
@@ -1209,16 +1416,29 @@ class SessionServiceTest {
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
-    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
 
     // Then
     verify(exactly = 0) { referralStatusService.checkAndPublishCompletionEvent(any()) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
-    verify { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) }
+    verify(exactly = 0) {
+      telemetryService.logToAppInsights(
+        eventName = any(),
+        integrationActionType = any(),
+        outcome = any(),
+      )
+    }
+    verify {
+      telemetryService.logToAppInsights(
+        referralEntity = any(ReferralEntity::class),
+        eventName = "Session.create-attendance.success",
+        activityType = RECORD_ATTENDANCE.name,
+        toReferralStatusId = null,
+        appliedBy = null,
+      )
+    }
   }
 
   @Test
@@ -1232,37 +1452,45 @@ class SessionServiceTest {
     val sessionAttendance =
       SessionAttendanceFactory().withAttendees(listOf(sessionAttendee1, sessionAttendee2)).produce()
     val facilitator = FacilitatorEntityFactory().produce()
-    val programmeGroupEntity = ProgrammeGroupFactory()
-      .withId(UUID.randomUUID())
-      .withTreatmentManager(facilitator)
-      .produce()
+    val programmeGroupEntity =
+      ProgrammeGroupFactory()
+        .withId(UUID.randomUUID())
+        .withTreatmentManager(facilitator)
+        .produce()
     val postProgrammeModule = ModuleEntityFactory().withName("Post-programme reviews").produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(ONE_TO_ONE)
-      .withModule(postProgrammeModule)
-      .withName("Post-programme review")
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(ONE_TO_ONE)
+        .withModule(postProgrammeModule)
+        .withName("Post-programme review")
+        .produce()
     val referralEntity1 = ReferralEntityFactory().withId(referralId1).withPersonName("John Smith").produce()
     val referralEntity2 = ReferralEntityFactory().withId(referralId2).withPersonName("Jane Doe").produce()
-    val sessionEntity = SessionFactory()
-      .withAttendees(
-        mutableListOf(
-          AttendeeFactory().withReferral(referralEntity1)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-          AttendeeFactory().withReferral(referralEntity2)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce(),
-        ),
-      )
-      .withIsPlaceholder(false)
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          mutableListOf(
+            AttendeeFactory()
+              .withReferral(referralEntity1)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+            AttendeeFactory()
+              .withReferral(referralEntity2)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ),
+        ).withIsPlaceholder(false)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
     sessionEntity.sessionFacilitators.add(
       SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
@@ -1280,7 +1508,7 @@ class SessionServiceTest {
     every { referralStatusService.checkAndPublishCompletionEvent(any()) } returns true
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity1
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1288,6 +1516,22 @@ class SessionServiceTest {
     // Then
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId1) }
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId2) }
+    verify(exactly = 0) {
+      telemetryService.logToAppInsights(
+        eventName = any(),
+        integrationActionType = any(),
+        outcome = any(),
+      )
+    }
+    verify {
+      telemetryService.logToAppInsights(
+        referralEntity = any(ReferralEntity::class),
+        eventName = "Session.create-attendance.success",
+        activityType = RECORD_ATTENDANCE.name,
+        toReferralStatusId = null,
+        appliedBy = null,
+      )
+    }
   }
 
   @Test
@@ -1299,16 +1543,18 @@ class SessionServiceTest {
     val sessionEntity = sessionWithAttendees(listOf(referralEntity))
     recordAttendanceOnSession(sessionEntity, referralEntity, ATTC)
 
-    val sessionAttendance = SessionAttendanceFactory()
-      .withAttendees(listOf(SessionAttendeeFactory().withReferralId(referralId).withOutcomeCode(UAAB).produce()))
-      .produce()
+    val sessionAttendance =
+      SessionAttendanceFactory()
+        .withAttendees(listOf(SessionAttendeeFactory().withReferralId(referralId).withOutcomeCode(UAAB).produce()))
+        .produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
 
     // When
-    val exception = assertThrows<BusinessException> {
-      service.saveSessionAttendance(sessionId, sessionAttendance)
-    }
+    val exception =
+      assertThrows<BusinessException> {
+        service.saveSessionAttendance(sessionId, sessionAttendance)
+      }
 
     // Then
     assertThat(exception.message)
@@ -1327,17 +1573,17 @@ class SessionServiceTest {
     val sessionEntity = sessionWithAttendees(listOf(referralEntity))
     recordAttendanceOnSession(sessionEntity, referralEntity, ATTC, notes = "Some session notes")
 
-    val sessionAttendance = SessionAttendanceFactory()
-      .withAttendees(
-        listOf(
-          SessionAttendeeFactory()
-            .withReferralId(referralId)
-            .withOutcomeCode(ATTC)
-            .withSessionNotes("Some session notes")
-            .produce(),
-        ),
-      )
-      .produce()
+    val sessionAttendance =
+      SessionAttendanceFactory()
+        .withAttendees(
+          listOf(
+            SessionAttendeeFactory()
+              .withReferralId(referralId)
+              .withOutcomeCode(ATTC)
+              .withSessionNotes("Some session notes")
+              .produce(),
+          ),
+        ).produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
 
@@ -1352,7 +1598,7 @@ class SessionServiceTest {
   }
 
   @Test
-  fun `should update ndelius with new notes when outcome is unchanged`() {
+  fun `should update nDelius with new notes when outcome is unchanged`() {
     // Given
     val sessionId = UUID.randomUUID()
     val referralId = UUID.randomUUID()
@@ -1369,17 +1615,17 @@ class SessionServiceTest {
       ),
     )
 
-    val sessionAttendance = SessionAttendanceFactory()
-      .withAttendees(
-        listOf(
-          SessionAttendeeFactory()
-            .withReferralId(referralId)
-            .withOutcomeCode(ATTC)
-            .withSessionNotes("New session notes")
-            .produce(),
-        ),
-      )
-      .produce()
+    val sessionAttendance =
+      SessionAttendanceFactory()
+        .withAttendees(
+          listOf(
+            SessionAttendeeFactory()
+              .withReferralId(referralId)
+              .withOutcomeCode(ATTC)
+              .withSessionNotes("New session notes")
+              .produce(),
+          ),
+        ).produce()
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()
 
@@ -1390,13 +1636,15 @@ class SessionServiceTest {
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
-    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns ClientResult.Success(
-      HttpStatus.NO_CONTENT,
-      Unit,
-    )
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
+      ClientResult.Success(
+        HttpStatus.NO_CONTENT,
+        Unit,
+      )
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1408,7 +1656,10 @@ class SessionServiceTest {
         match {
           it.appointments.single().reference == ndeliusAppointmentId &&
             it.appointments.single().notes == "New session notes" &&
-            it.appointments.single().outcome?.code == ATTC.name
+            it.appointments
+              .single()
+              .outcome
+              ?.code == ATTC.name
         },
       )
     }
@@ -1422,9 +1673,10 @@ class SessionServiceTest {
     val sessionEntity = sessionWithAttendees(listOf(referralEntity))
     recordAttendanceOnSession(sessionEntity, referralEntity, ATTC) // no notes
 
-    val sessionAttendance = SessionAttendanceFactory()
-      .withAttendees(listOf(SessionAttendeeFactory().withReferralId(referralId).withOutcomeCode(ATTC).produce()))
-      .produce()
+    val sessionAttendance =
+      SessionAttendanceFactory()
+        .withAttendees(listOf(SessionAttendeeFactory().withReferralId(referralId).withOutcomeCode(ATTC).produce()))
+        .produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
 
@@ -1437,7 +1689,7 @@ class SessionServiceTest {
   }
 
   @Test
-  fun `should only send changed attendees to ndelius when submission includes unchanged attendees`() {
+  fun `should only send changed attendees to nDelius when submission includes unchanged attendees`() {
     // Given
     val sessionId = UUID.randomUUID()
     val referralId1 = UUID.randomUUID()
@@ -1464,21 +1716,21 @@ class SessionServiceTest {
       ),
     )
 
-    val sessionAttendance = SessionAttendanceFactory()
-      .withAttendees(
-        listOf(
-          SessionAttendeeFactory()
-            .withReferralId(referralId1)
-            .withOutcomeCode(ATTC)
-            .withSessionNotes("Some session notes")
-            .produce(),
-          SessionAttendeeFactory()
-            .withReferralId(referralId2)
-            .withOutcomeCode(UAAB)
-            .produce(),
-        ),
-      )
-      .produce()
+    val sessionAttendance =
+      SessionAttendanceFactory()
+        .withAttendees(
+          listOf(
+            SessionAttendeeFactory()
+              .withReferralId(referralId1)
+              .withOutcomeCode(ATTC)
+              .withSessionNotes("Some session notes")
+              .produce(),
+            SessionAttendeeFactory()
+              .withReferralId(referralId2)
+              .withOutcomeCode(UAAB)
+              .produce(),
+          ),
+        ).produce()
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity2).produce()
 
@@ -1489,13 +1741,15 @@ class SessionServiceTest {
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
       SessionAttendanceNDeliusOutcomeEntityFactory().withCode(UAAB).produce()
     every { sessionRepository.save(any()) } returns sessionEntity
-    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns ClientResult.Success(
-      HttpStatus.NO_CONTENT,
-      Unit,
-    )
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
+      ClientResult.Success(
+        HttpStatus.NO_CONTENT,
+        Unit,
+      )
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity2
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1509,16 +1763,17 @@ class SessionServiceTest {
   }
 
   @Test
-  fun `should not fail attendance save when completion event check throws after ndelius update`() {
+  fun `should not fail attendance save when completion event check throws after nDelius update`() {
     // Given
     val sessionId = UUID.randomUUID()
     val referralId = UUID.randomUUID()
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
     val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Post-programme reviews")
 
-    val sessionAttendance = SessionAttendanceFactory()
-      .withAttendees(listOf(SessionAttendeeFactory().withReferralId(referralId).produce()))
-      .produce()
+    val sessionAttendance =
+      SessionAttendanceFactory()
+        .withAttendees(listOf(SessionAttendeeFactory().withReferralId(referralId).produce()))
+        .produce()
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()
 
@@ -1532,7 +1787,7 @@ class SessionServiceTest {
     every { referralStatusService.checkAndPublishCompletionEvent(any()) } throws RuntimeException("event failure")
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val result = service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1542,35 +1797,225 @@ class SessionServiceTest {
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId) }
   }
 
+  @Test
+  fun `should successfully update NDelius appointments for multiple sessions`() {
+    // Given
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Post-programme reviews")
+    val nDeliusAppointmentId = UUID.randomUUID()
+    sessionEntity.ndeliusAppointments.add(
+      NDeliusAppointmentEntity(
+        ndeliusAppointmentId = nDeliusAppointmentId,
+        session = sessionEntity,
+        referral = referralEntity,
+      ),
+    )
+
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
+      ClientResult.Success(
+        HttpStatus.NO_CONTENT,
+        Unit,
+      )
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When
+    val result = service.updateNDeliusAppointmentsForMultipleSessions(listOf(sessionEntity))
+
+    // Then
+    assertThat { result }.isNotNull
+    verify {
+      nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+        match { it.appointments.single().reference == nDeliusAppointmentId },
+      )
+    }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "Appointment.update-nDelius.success",
+        integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
+        outcome = "success",
+      )
+    }
+  }
+
+  @Test
+  fun `should fail to update NDelius appointments for multiple sessions`() {
+    // Given
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Post-programme reviews")
+    val nDeliusAppointmentId = UUID.randomUUID()
+    sessionEntity.ndeliusAppointments.add(
+      NDeliusAppointmentEntity(
+        ndeliusAppointmentId = nDeliusAppointmentId,
+        session = sessionEntity,
+        referral = referralEntity,
+      ),
+    )
+
+    every {
+      nDeliusIntegrationApiClient.updateAppointmentsInDelius(any())
+    } returns
+      ClientResult.Failure.StatusCode(
+        method = HttpMethod.PUT,
+        path = "/path",
+        status = HttpStatusCode.valueOf(404),
+        body = "Not found",
+      )
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When
+    val exception =
+      assertThrows<AppointmentUpdateException> {
+        service.updateNDeliusAppointmentsForMultipleSessions(listOf(sessionEntity))
+      }
+
+    // Then
+    assertThat { exception }.isNotNull
+    assertTrue(
+      exception.message!!.contains("Failure to update appointments"),
+    )
+    verify {
+      nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+        match { it.appointments.single().reference == nDeliusAppointmentId },
+      )
+    }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "Appointment.update-nDelius.failure",
+        integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
+        outcome = "failure",
+      )
+    }
+  }
+
+  @Test
+  fun `should successfully update NDelius appointments for a single session`() {
+    // Given
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Post-programme reviews")
+    val nDeliusAppointmentId = UUID.randomUUID()
+    sessionEntity.ndeliusAppointments.add(
+      NDeliusAppointmentEntity(
+        ndeliusAppointmentId = nDeliusAppointmentId,
+        session = sessionEntity,
+        referral = referralEntity,
+      ),
+    )
+
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
+      ClientResult.Success(
+        HttpStatus.NO_CONTENT,
+        Unit,
+      )
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When
+    val result = service.updateNDeliusAppointmentsForSession(sessionEntity)
+
+    // Then
+    assertThat { result }.isNotNull
+    verify {
+      nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+        match { it.appointments.single().reference == nDeliusAppointmentId },
+      )
+    }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "Appointment.update-nDelius.success",
+        integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
+        outcome = "success",
+      )
+    }
+  }
+
+  @Test
+  fun `should fail to update NDelius appointments for a single session`() {
+    // Given
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Post-programme reviews")
+    val nDeliusAppointmentId = UUID.randomUUID()
+    sessionEntity.ndeliusAppointments.add(
+      NDeliusAppointmentEntity(
+        ndeliusAppointmentId = nDeliusAppointmentId,
+        session = sessionEntity,
+        referral = referralEntity,
+      ),
+    )
+
+    every {
+      nDeliusIntegrationApiClient.updateAppointmentsInDelius(any())
+    } returns
+      ClientResult.Failure.StatusCode(
+        method = HttpMethod.PUT,
+        path = "/path",
+        status = HttpStatusCode.valueOf(404),
+        body = "Not found",
+      )
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When
+    val exception =
+      assertThrows<AppointmentUpdateException> {
+        service.updateNDeliusAppointmentsForSession(sessionEntity)
+      }
+
+    // Then
+    assertThat { exception }.isNotNull
+    assertTrue(
+      exception.message!!.contains("Failure to update appointments"),
+    )
+    verify {
+      nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+        match { it.appointments.single().reference == nDeliusAppointmentId },
+      )
+    }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "Appointment.update-nDelius.failure",
+        integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
+        outcome = "failure",
+      )
+    }
+  }
+
   private fun sessionWithAttendees(
     referralEntities: List<ReferralEntity>,
     moduleName: String = "Module 1",
   ): SessionEntity {
     val facilitator = FacilitatorEntityFactory().produce()
-    val programmeGroupEntity = ProgrammeGroupFactory()
-      .withId(UUID.randomUUID())
-      .withTreatmentManager(facilitator)
-      .produce()
+    val programmeGroupEntity =
+      ProgrammeGroupFactory()
+        .withId(UUID.randomUUID())
+        .withTreatmentManager(facilitator)
+        .produce()
     val module = ModuleEntityFactory().withName(moduleName).produce()
-    val moduleSessionTemplateEntity = ModuleSessionTemplateEntityFactory()
-      .withSessionType(GROUP)
-      .withModule(module)
-      .withName("Getting started")
-      .produce()
-    val sessionEntity = SessionFactory()
-      .withAttendees(
-        referralEntities.map { referral ->
-          AttendeeFactory().withReferral(referral)
-            .withSession(
-              SessionFactory().withProgrammeGroup(programmeGroupEntity)
-                .withModuleSessionTemplate(moduleSessionTemplateEntity).produce(),
-            ).produce()
-        }.toMutableList(),
-      )
-      .withIsPlaceholder(false)
-      .withProgrammeGroup(programmeGroupEntity)
-      .withModuleSessionTemplate(moduleSessionTemplateEntity)
-      .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(GROUP)
+        .withModule(module)
+        .withName("Getting started")
+        .produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          referralEntities
+            .map { referral ->
+              AttendeeFactory()
+                .withReferral(referral)
+                .withSession(
+                  SessionFactory()
+                    .withProgrammeGroup(programmeGroupEntity)
+                    .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                    .produce(),
+                ).produce()
+            }.toMutableList(),
+        ).withIsPlaceholder(false)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
 
     sessionEntity.sessionFacilitators.add(
       SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
@@ -1585,13 +2030,14 @@ class SessionServiceTest {
     notes: String? = null,
   ): SessionAttendanceEntity {
     val groupMembership = ProgrammeGroupMembershipFactory().withReferral(referral).produce()
-    val attendance = SessionAttendanceEntityFactory()
-      .withId(UUID.randomUUID())
-      .withSession(session)
-      .withGroupMembership(groupMembership)
-      .withOutcomeType(SessionAttendanceNDeliusOutcomeEntityFactory().withCode(outcomeCode).produce())
-      .withCreatedAt(LocalDateTime.now().minusDays(1))
-      .produce()
+    val attendance =
+      SessionAttendanceEntityFactory()
+        .withId(UUID.randomUUID())
+        .withSession(session)
+        .withGroupMembership(groupMembership)
+        .withOutcomeType(SessionAttendanceNDeliusOutcomeEntityFactory().withCode(outcomeCode).produce())
+        .withCreatedAt(LocalDateTime.now().minusDays(1))
+        .produce()
     notes?.let { attendance.notesHistory.add(SessionNotesHistoryEntity(attendance = attendance, notes = it)) }
     session.attendances.add(attendance)
     return attendance
