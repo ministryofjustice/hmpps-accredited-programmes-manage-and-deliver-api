@@ -41,6 +41,9 @@ data class GroupSessionResponse(
   @Schema(description = "The time of the session", required = true, example = "11am")
   val time: String,
 
+  @Schema(description = "The time of the session with special times capitalised", required = true, example = "Midday to 1pm")
+  val timeWithCapitalisedMidday: String = "",
+
   @Schema(description = "The list of people scheduled to attend", required = true, example = "[John Smith, Jane Doe]")
   val scheduledToAttend: List<String>,
 

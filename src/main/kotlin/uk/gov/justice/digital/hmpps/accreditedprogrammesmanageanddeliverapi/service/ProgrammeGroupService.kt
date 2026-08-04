@@ -608,9 +608,9 @@ class ProgrammeGroupService(
     else -> "Estimated date of $moduleName one-to-ones"
   }
 
-  private fun formatTimeOfSession(startTime: LocalTime, endTime: LocalTime): String {
-    val formattedStartTime = formatTimeForUiDisplay(startTime)
-    val formattedEndTime = formatTimeForUiDisplay(endTime)
+  private fun formatTimeOfSession(startTime: LocalTime, endTime: LocalTime, capitaliseSpecialTimes: Boolean = false): String {
+    val formattedStartTime = formatTimeForUiDisplay(startTime, capitaliseSpecialTimes)
+    val formattedEndTime = formatTimeForUiDisplay(endTime, capitaliseSpecialTimes)
     return "$formattedStartTime to $formattedEndTime"
   }
 
@@ -648,9 +648,12 @@ class ProgrammeGroupService(
             time = if (session.isPlaceholder) {
               "Various times"
             } else {
-              "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${
-                formatTimeForUiDisplay(session.endsAt.toLocalTime())
-              }"
+              formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime())
+            },
+            timeWithCapitalisedMidday = if (session.isPlaceholder) {
+              "Various times"
+            } else {
+              formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime(), capitaliseSpecialTimes = true)
             },
           )
         }
@@ -761,6 +764,7 @@ class ProgrammeGroupService(
       isCatchup = session.isCatchup,
       date = session.startsAt.toLocalDate(),
       time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
+      timeWithCapitalisedMidday = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime(), capitaliseSpecialTimes = true),
       unformattedEndDate = session.endsAt,
       scheduledToAttend = session.attendees.map { it.personName },
       facilitators = session.sessionFacilitators.sortedBy { it.facilitator.personName }

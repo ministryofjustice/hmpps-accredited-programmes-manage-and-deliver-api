@@ -734,6 +734,7 @@ class ReferralService(
             date = session.startsAt.format(DateTimeFormatter.ofPattern("d MMMM yyyy")),
             unformattedDate = session.startsAt,
             time = "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${formatTimeForUiDisplay(session.endsAt.toLocalTime())}",
+            timeWithCapitalisedMidday = "${formatTimeForUiDisplay(session.startsAt.toLocalTime(), capitaliseSpecialTimes = true)} to ${formatTimeForUiDisplay(session.endsAt.toLocalTime(), capitaliseSpecialTimes = true)}",
             attendanceStatus = programmeGroupService.getAttendanceTextFromOutcome(latestAttendance?.outcomeType),
             hasNotes = latestAttendance?.notesHistory?.isNotEmpty() == true,
             isCatchup = session.isCatchup,

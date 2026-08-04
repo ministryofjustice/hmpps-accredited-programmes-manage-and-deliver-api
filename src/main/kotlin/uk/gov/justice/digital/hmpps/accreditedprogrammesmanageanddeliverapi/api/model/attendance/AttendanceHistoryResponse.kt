@@ -83,6 +83,12 @@ data class AttendanceHistorySession(
   val time: String,
 
   @Schema(
+    description = "The time range of the session with special times capitalised",
+    example = "Midday to 2pm",
+  )
+  val timeWithCapitalisedMidday: String = "",
+
+  @Schema(
     description = "The attendance status for the session",
     example = "Attended",
   )
