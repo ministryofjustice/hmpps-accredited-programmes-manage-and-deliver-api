@@ -29,7 +29,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.time.Clock
 import java.util.UUID
 
@@ -40,7 +40,7 @@ class ProgrammeGroupMembershipServiceTest {
   private val programmeGroupMembershipRepository = mockk<ProgrammeGroupMembershipRepository>()
   private val scheduleService = mockk<ScheduleService>()
   private val nDeliusIntegrationApiClient = mockk<NDeliusIntegrationApiClient>()
-  private val telemetryUtils = mockk<TelemetryUtils>()
+  private val telemetryService = mockk<TelemetryService>()
   private val applicationEventPublisher = mockk<ApplicationEventPublisher>()
   private lateinit var service: ProgrammeGroupMembershipService
 
@@ -53,7 +53,7 @@ class ProgrammeGroupMembershipServiceTest {
       programmeGroupMembershipRepository = programmeGroupMembershipRepository,
       scheduleService = scheduleService,
       nDeliusIntegrationApiClient = nDeliusIntegrationApiClient,
-      telemetryUtils = telemetryUtils,
+      telemetryService = telemetryService,
       applicationEventPublisher = applicationEventPublisher,
       clock = Clock.systemDefaultZone(),
     )
@@ -78,7 +78,7 @@ class ProgrammeGroupMembershipServiceTest {
     every { referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId) } returns referralStatusDescriptionEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns null andThen programmeGroupMembershipEntity
     every { referralStatusDescriptionRepository.getScheduledStatusDescription() } returns referralStatusDescriptionEntity
-    every { telemetryUtils.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any()) } returns Unit
 
     return referralId to groupId
   }
@@ -100,7 +100,7 @@ class ProgrammeGroupMembershipServiceTest {
     )
     every { scheduleService.createNdeliusAppointmentsForSessions(any()) } returns Unit
     every { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val result = service.allocateReferralToGroup(referralId, groupId, "testAdmin", "test additional details")
@@ -112,7 +112,7 @@ class ProgrammeGroupMembershipServiceTest {
     verify { referralRepository.save(referralEntity) }
     verify { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity = any(ReferralEntity::class),
         eventName = "Referral.allocate-to-group.success",
         activityType = "ASSIGN_REFERRAL_TO_GROUP",
@@ -156,7 +156,7 @@ class ProgrammeGroupMembershipServiceTest {
 
     verify(exactly = 0) { scheduleService.createNdeliusAppointmentsForSessions(any()) }
     verify(exactly = 0) { referralRepository.save(any()) }
-    verify { telemetryUtils.logToAppInsights("Referral.allocate-to-group.ndelius-stale-sentence-data", any()) }
+    verify { telemetryService.logToAppInsights("Referral.allocate-to-group.ndelius-stale-sentence-data", any()) }
   }
 
   @Test
@@ -193,7 +193,7 @@ class ProgrammeGroupMembershipServiceTest {
 
     verify(exactly = 0) { scheduleService.createNdeliusAppointmentsForSessions(any()) }
     verify(exactly = 0) { referralRepository.save(any()) }
-    verify { telemetryUtils.logToAppInsights("Referral.allocate-to-group.ndelius-stale-sentence-data", any()) }
+    verify { telemetryService.logToAppInsights("Referral.allocate-to-group.ndelius-stale-sentence-data", any()) }
   }
 
   @Test
@@ -244,7 +244,7 @@ class ProgrammeGroupMembershipServiceTest {
     every { referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId) } returns referralStatusDescriptionEntity
     every { referralRepository.save(referralEntity) } returns referralEntity
     every { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val result = service.removeReferralFromGroup(referralId, groupId, removedFromGroupBy, removeFromGroupRequest)
@@ -261,7 +261,7 @@ class ProgrammeGroupMembershipServiceTest {
     verify { referralRepository.save(referralEntity) }
     verify { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity = any(ReferralEntity::class),
         eventName = "Referral.remove-from-group.success",
         activityType = "REMOVE_REFERRAL_FROM_GROUP",
@@ -339,7 +339,7 @@ class ProgrammeGroupMembershipServiceTest {
       status = HttpStatusCode.valueOf(404),
       body = "Not found",
     )
-    every { telemetryUtils.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any()) } returns Unit
 
     // When / Then
     assertThatThrownBy {
@@ -349,7 +349,7 @@ class ProgrammeGroupMembershipServiceTest {
       .hasMessageContaining("requirement linked to this referral no longer exists")
 
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         "Referral.allocate-to-group.ndelius-stale-sentence-data",
         match {
           it["referralId"] == referral.id.toString() &&
@@ -395,7 +395,7 @@ class ProgrammeGroupMembershipServiceTest {
       status = HttpStatusCode.valueOf(404),
       body = "Not found",
     )
-    every { telemetryUtils.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any()) } returns Unit
 
     // When / Then
     assertThatThrownBy {
@@ -405,7 +405,7 @@ class ProgrammeGroupMembershipServiceTest {
       .hasMessageContaining("licence condition linked to this referral no longer exists")
 
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         "Referral.allocate-to-group.ndelius-stale-sentence-data",
         match {
           it["referralId"] == referral.id.toString() &&
@@ -433,7 +433,7 @@ class ProgrammeGroupMembershipServiceTest {
       exception = RuntimeException("Network error"),
       serviceName = "nDelius",
     )
-    every { telemetryUtils.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any()) } returns Unit
 
     // When / Then
     assertThatThrownBy {
@@ -443,7 +443,7 @@ class ProgrammeGroupMembershipServiceTest {
       .hasMessageContaining("unable to reach nDelius to verify sentence data")
 
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         "Referral.allocate-to-group.ndelius-validation-failure",
         match {
           it["referralId"] == referral.id.toString() &&

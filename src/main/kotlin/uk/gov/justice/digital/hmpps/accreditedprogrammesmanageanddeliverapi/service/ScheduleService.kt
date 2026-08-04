@@ -33,9 +33,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
 import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -59,7 +59,7 @@ class ScheduleService(
   private val sessionRepository: SessionRepository,
   private val sessionNameFormatter: SessionNameFormatter,
   private val bankHolidayRepository: BankHolidayRepository,
-  private val telemetryUtils: TelemetryUtils,
+  private val telemetryService: TelemetryService,
 ) {
 
   private companion object {
@@ -449,7 +449,7 @@ class ScheduleService(
             "CRNs: $affectedCrns, eventNumbers: $affectedEventNumbers, " +
             "responseBody: ${response.body}",
         )
-        telemetryUtils.logToAppInsights(
+        telemetryService.logToAppInsights(
           eventName = "${CREATE_APPOINTMENT_N_DELIUS.eventName}.failure",
           properties = mapOf(
             "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
@@ -467,7 +467,7 @@ class ScheduleService(
         // The generic .failure event above still fires — this is an additional slice
         // for observability, not a replacement.
         if (response.body?.contains("Invalid Requirement IDs") == true) {
-          telemetryUtils.logToAppInsights(
+          telemetryService.logToAppInsights(
             eventName = "${CREATE_APPOINTMENT_N_DELIUS.eventName}.terminated-requirement",
             properties = mapOf(
               "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
@@ -489,7 +489,7 @@ class ScheduleService(
             "exception: ${response.exception.message}",
           response.exception,
         )
-        telemetryUtils.logToAppInsights(
+        telemetryService.logToAppInsights(
           eventName = "${CREATE_APPOINTMENT_N_DELIUS.eventName}.failure",
           properties = mapOf(
             "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
@@ -508,7 +508,7 @@ class ScheduleService(
 
       is ClientResult.Success -> {
         log.info("${nDeliusAppointments.size} appointments created in nDelius for groupId: $groupId, CRNs: $affectedCrns")
-        telemetryUtils.logToAppInsights(
+        telemetryService.logToAppInsights(
           eventName = "${CREATE_APPOINTMENT_N_DELIUS.eventName}.success",
           properties = mapOf(
             "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
@@ -632,7 +632,7 @@ class ScheduleService(
           "Failure deleting appointments in nDelius with reason: ${response.getErrorMessage()}",
           response.toException(),
         )
-        telemetryUtils.logToAppInsights(
+        telemetryService.logToAppInsights(
           eventName = "${DELETE_APPOINTMENT_N_DELIUS.eventName}.failure",
           integrationActionType = DELETE_APPOINTMENT_N_DELIUS.name,
           outcome = "failure",
@@ -648,7 +648,7 @@ class ScheduleService(
           "Failure to delete appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
           response.exception,
         )
-        telemetryUtils.logToAppInsights(
+        telemetryService.logToAppInsights(
           eventName = "${DELETE_APPOINTMENT_N_DELIUS.eventName}.failure",
           integrationActionType = DELETE_APPOINTMENT_N_DELIUS.name,
           outcome = "failure",
@@ -665,7 +665,7 @@ class ScheduleService(
             .removeIf { appointment -> appointment.ndeliusAppointmentId in nDeliusAppointmentsToRemove.map { it.ndeliusAppointmentId } }
         }
         log.info("${nDeliusAppointmentsToRemove.size} appointments deleted in NDelius")
-        telemetryUtils.logToAppInsights(
+        telemetryService.logToAppInsights(
           eventName = "${DELETE_APPOINTMENT_N_DELIUS.eventName}.success",
           integrationActionType = DELETE_APPOINTMENT_N_DELIUS.name,
           outcome = "success",

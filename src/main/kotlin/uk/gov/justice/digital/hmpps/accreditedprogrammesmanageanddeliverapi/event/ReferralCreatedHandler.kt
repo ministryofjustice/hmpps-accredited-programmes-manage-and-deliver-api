@@ -10,7 +10,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.even
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.util.UUID
 import kotlin.system.measureTimeMillis
 
@@ -20,7 +20,7 @@ class ReferralCreatedHandler(
   private val objectMapper: ObjectMapper,
   private val messageHistoryRepository: MessageHistoryRepository,
   private val referralService: ReferralService,
-  private val telemetryUtils: TelemetryUtils,
+  private val telemetryService: TelemetryService,
 ) {
 
   companion object {
@@ -38,7 +38,7 @@ class ReferralCreatedHandler(
     val referralId = UUID.fromString(domainEventMessage.detailUrl.split("/").last())
     log.info("Received referral created event for referral id: $referralId for CRN: ${domainEventMessage.personReference.findCrn()}")
 
-    telemetryUtils.logToAppInsights(
+    telemetryService.logToAppInsights(
       eventName = "Probation.case-requirement.created event received",
       properties = mapOf(
         "eventType" to domainEventMessage.eventType,

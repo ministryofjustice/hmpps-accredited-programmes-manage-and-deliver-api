@@ -10,7 +10,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_MOTIVATION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateOrUpdateReferralMotivationBackgroundAndNonAssociations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralMotivationBackgroundAndNonAssociationsRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -18,7 +18,7 @@ import java.util.UUID
 @Transactional
 class GroupAllocationNotesService(
   private val referralMotivationBackgroundAndNonAssociationsRepository: ReferralMotivationBackgroundAndNonAssociationsRepository,
-  private val telemetryUtils: TelemetryUtils,
+  private val telemetryService: TelemetryService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -58,7 +58,7 @@ class GroupAllocationNotesService(
     val savedReferralMotivationBackgroundAndNonAssociations =
       referralMotivationBackgroundAndNonAssociationsRepository.save(motivationBackgroundAndNonAssociations)
     log.info("Created motivation, background and non-associations for referral id: ${referral.id}")
-    telemetryUtils.logToAppInsights(
+    telemetryService.logToAppInsights(
       referralEntity = referral,
       eventName = "Referral.create-motivation-background-non-associations.success",
       activityType = SET_MOTIVATION.name,
@@ -85,7 +85,7 @@ class GroupAllocationNotesService(
     val updatedReferralMotivationBackgroundAndNonAssociations =
       referralMotivationBackgroundAndNonAssociationsRepository.save(referral.referralMotivationBackgroundAndNonAssociations!!)
     log.info("Updated motivation, background and non-associations for referral id: ${referral.id}")
-    telemetryUtils.logToAppInsights(
+    telemetryService.logToAppInsights(
       referralEntity = referral,
       eventName = "Referral.update-motivation-background-non-associations.success",
       activityType = UPDATE_MOTIVATION.name,

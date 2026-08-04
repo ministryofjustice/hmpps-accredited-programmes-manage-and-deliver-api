@@ -12,7 +12,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AppInsightsConstants.APP_INSIGHTS_ERROR_MESSAGE_PROPERTY_KEY
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AppInsightsConstants.APP_INSIGHTS_TARGET_EVENT_TYPE_PROPERTY_KEY
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 
 @Component
 @Transactional
@@ -20,7 +20,7 @@ class ReferralMergedHandler(
   private val objectMapper: ObjectMapper,
   private val messageHistoryRepository: MessageHistoryRepository,
   private val referralService: ReferralService,
-  private val telemetryUtils: TelemetryUtils,
+  private val telemetryService: TelemetryService,
 ) {
 
   companion object {
@@ -39,7 +39,7 @@ class ReferralMergedHandler(
       val sourceCrn = message.sourceCrn
       val targetCrn = message.targetCrn
       if (sourceCrn.isNullOrEmpty() || targetCrn.isNullOrEmpty()) {
-        telemetryUtils.logToAppInsights(
+        telemetryService.logToAppInsights(
           eventName = APP_INSIGHTS_PROCESSED_FAILURE_EVENT_NAME_PROPERTY_VALUE,
           properties = mapOf(
             APP_INSIGHTS_ERROR_MESSAGE_PROPERTY_KEY to "sourceCrn or targetCrn is null",
@@ -51,7 +51,7 @@ class ReferralMergedHandler(
       }
 
       log.info("Received referral merged event for sourceCrn: $sourceCrn and targetCrn: $targetCrn")
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "Referral.merged-event-received.success",
         properties = mapOf(
           APP_INSIGHTS_TARGET_EVENT_TYPE_PROPERTY_KEY to message.eventType,
@@ -64,7 +64,7 @@ class ReferralMergedHandler(
       referralService.updateReferralCrn(sourceCrn, targetCrn)
 
       log.info("Ending handle for messageId: ${sqsMessage.messageId}")
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "Referral.merged-event-processed.success",
         properties = mapOf(
           APP_INSIGHTS_TARGET_EVENT_TYPE_PROPERTY_KEY to message.eventType,
@@ -74,7 +74,7 @@ class ReferralMergedHandler(
       )
     } catch (e: Exception) {
       log.error("Error handling ReferralMergedEvent: ${e.message}", e)
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = APP_INSIGHTS_PROCESSED_FAILURE_EVENT_NAME_PROPERTY_VALUE,
         properties = mapOf(
           APP_INSIGHTS_ERROR_MESSAGE_PROPERTY_KEY to (e.message?.trim() ?: ""),

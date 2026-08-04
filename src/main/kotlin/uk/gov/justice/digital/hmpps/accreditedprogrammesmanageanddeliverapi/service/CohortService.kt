@@ -12,14 +12,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.OVERRIDE_COHORT
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.util.UUID
 
 @Service
 @Transactional
 class CohortService(
   private val referralCohortHistoryRepository: ReferralCohortHistoryRepository,
-  private val telemetryUtils: TelemetryUtils,
+  private val telemetryService: TelemetryService,
 ) {
   companion object {
     private const val SEX_DOMAIN_MINIMUM_THRESHOLD = 0.0
@@ -51,7 +51,7 @@ class CohortService(
     } finally {
       AuditorContext.clear()
     }
-    telemetryUtils.logToAppInsights(
+    telemetryService.logToAppInsights(
       referralEntity = referralEntity,
       eventName = "Referral.update-cohort.success",
       activityType = OVERRIDE_COHORT.name,

@@ -11,12 +11,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_OFFENCE_N_DELIUS
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 
 @Service
 class OffenceService(
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
-  private val telemetryUtils: TelemetryUtils,
+  private val telemetryService: TelemetryService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -33,7 +33,7 @@ class OffenceService(
 
   fun getOffences(crn: String, eventNumber: Int): Offences = when (val result = nDeliusIntegrationApiClient.getOffences(crn, eventNumber)) {
     is ClientResult.Failure -> {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "${GET_OFFENCE_N_DELIUS.eventName}.failure",
         integrationActionType = GET_OFFENCE_N_DELIUS.name,
         outcome = "failure",
@@ -43,7 +43,7 @@ class OffenceService(
     }
 
     is ClientResult.Success -> {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "${GET_OFFENCE_N_DELIUS.eventName}.success",
         integrationActionType = GET_OFFENCE_N_DELIUS.name,
         outcome = "success",

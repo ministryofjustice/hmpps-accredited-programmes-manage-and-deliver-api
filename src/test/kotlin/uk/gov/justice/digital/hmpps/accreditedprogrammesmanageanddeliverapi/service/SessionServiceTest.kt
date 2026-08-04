@@ -52,9 +52,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -73,7 +73,7 @@ class SessionServiceTest {
   private val nDeliusIntegrationApiClient = mockk<NDeliusIntegrationApiClient>()
   private val sessionNameFormatter = SessionNameFormatter()
   private val referralStatusService = mockk<ReferralStatusService>()
-  private val telemetryUtils = mockk<TelemetryUtils>()
+  private val telemetryService = mockk<TelemetryService>()
   private val authenticationUtils = mockk<AuthenticationUtils>()
   private val userService = mockk<UserService>()
   private val fixedClock = Clock.fixed(Instant.now(), ZoneId.systemDefault())
@@ -94,7 +94,7 @@ class SessionServiceTest {
         sessionAttendanceOutcomeTypeRepository,
         sessionNameFormatter,
         referralStatusService,
-        telemetryUtils,
+        telemetryService,
         authenticationUtils,
         userService,
         regionService,
@@ -398,7 +398,7 @@ class SessionServiceTest {
         status = HttpStatus.OK,
         body = Unit,
       )
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
     service.rescheduleSessions(sessionId, request)
@@ -406,7 +406,7 @@ class SessionServiceTest {
     // Then
     verify { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "Appointment.update-nDelius.success",
         integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
         outcome = "success",
@@ -502,7 +502,7 @@ class SessionServiceTest {
         status = HttpStatus.OK,
         body = Unit,
       )
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
     service.rescheduleSessions(sessionId, request)
@@ -510,7 +510,7 @@ class SessionServiceTest {
     // Then
     verify(exactly = 1) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "Appointment.update-nDelius.success",
         integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
         outcome = "success",
@@ -583,14 +583,14 @@ class SessionServiceTest {
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any()) } returns Unit
     every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
       ClientResult.Success(
         HttpStatus.NO_CONTENT,
         Unit,
       )
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val result = service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -606,14 +606,14 @@ class SessionServiceTest {
       )
     }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "Appointment.update-nDelius.success",
         integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
         outcome = "success",
       )
     }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity = any(ReferralEntity::class),
         eventName = "Session.create-attendance.success",
         activityType = RECORD_ATTENDANCE.name,
@@ -695,8 +695,8 @@ class SessionServiceTest {
       )
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -713,14 +713,14 @@ class SessionServiceTest {
       )
     }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "Appointment.update-nDelius.success",
         integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
         outcome = "success",
       )
     }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity = any(ReferralEntity::class),
         eventName = "Session.create-attendance.success",
         activityType = RECORD_ATTENDANCE.name,
@@ -786,7 +786,7 @@ class SessionServiceTest {
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -794,14 +794,14 @@ class SessionServiceTest {
     // Then
     verify(exactly = 0) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
     verify(exactly = 0) {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = any(),
         integrationActionType = any(),
         outcome = any(),
       )
     }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity = any(ReferralEntity::class),
         eventName = "Session.create-attendance.success",
         activityType = RECORD_ATTENDANCE.name,
@@ -1273,7 +1273,7 @@ class SessionServiceTest {
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralStatusService.checkAndPublishCompletionEvent(any()) } returns true
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val result = service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1282,7 +1282,7 @@ class SessionServiceTest {
     assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId) }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity = any(ReferralEntity::class),
         eventName = "Session.create-attendance.success",
         activityType = "RECORD_ATTENDANCE",
@@ -1345,7 +1345,7 @@ class SessionServiceTest {
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1353,7 +1353,7 @@ class SessionServiceTest {
     // Then
     verify(exactly = 0) { referralStatusService.checkAndPublishCompletionEvent(any()) }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity = any(ReferralEntity::class),
         eventName = "Session.create-attendance.success",
         activityType = "RECORD_ATTENDANCE",
@@ -1416,7 +1416,7 @@ class SessionServiceTest {
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1424,14 +1424,14 @@ class SessionServiceTest {
     // Then
     verify(exactly = 0) { referralStatusService.checkAndPublishCompletionEvent(any()) }
     verify(exactly = 0) {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = any(),
         integrationActionType = any(),
         outcome = any(),
       )
     }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity = any(ReferralEntity::class),
         eventName = "Session.create-attendance.success",
         activityType = RECORD_ATTENDANCE.name,
@@ -1508,7 +1508,7 @@ class SessionServiceTest {
     every { referralStatusService.checkAndPublishCompletionEvent(any()) } returns true
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity1
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1517,14 +1517,14 @@ class SessionServiceTest {
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId1) }
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId2) }
     verify(exactly = 0) {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = any(),
         integrationActionType = any(),
         outcome = any(),
       )
     }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity = any(ReferralEntity::class),
         eventName = "Session.create-attendance.success",
         activityType = RECORD_ATTENDANCE.name,
@@ -1643,8 +1643,8 @@ class SessionServiceTest {
       )
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1748,8 +1748,8 @@ class SessionServiceTest {
       )
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity2
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1787,7 +1787,7 @@ class SessionServiceTest {
     every { referralStatusService.checkAndPublishCompletionEvent(any()) } throws RuntimeException("event failure")
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val result = service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1817,7 +1817,7 @@ class SessionServiceTest {
         HttpStatus.NO_CONTENT,
         Unit,
       )
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
     val result = service.updateNDeliusAppointmentsForMultipleSessions(listOf(sessionEntity))
@@ -1830,7 +1830,7 @@ class SessionServiceTest {
       )
     }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "Appointment.update-nDelius.success",
         integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
         outcome = "success",
@@ -1862,7 +1862,7 @@ class SessionServiceTest {
         status = HttpStatusCode.valueOf(404),
         body = "Not found",
       )
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
     val exception =
@@ -1881,7 +1881,7 @@ class SessionServiceTest {
       )
     }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "Appointment.update-nDelius.failure",
         integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
         outcome = "failure",
@@ -1909,7 +1909,7 @@ class SessionServiceTest {
         HttpStatus.NO_CONTENT,
         Unit,
       )
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
     val result = service.updateNDeliusAppointmentsForSession(sessionEntity)
@@ -1922,7 +1922,7 @@ class SessionServiceTest {
       )
     }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "Appointment.update-nDelius.success",
         integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
         outcome = "success",
@@ -1954,7 +1954,7 @@ class SessionServiceTest {
         status = HttpStatusCode.valueOf(404),
         body = "Not found",
       )
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
     val exception =
@@ -1973,7 +1973,7 @@ class SessionServiceTest {
       )
     }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "Appointment.update-nDelius.failure",
         integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
         outcome = "failure",

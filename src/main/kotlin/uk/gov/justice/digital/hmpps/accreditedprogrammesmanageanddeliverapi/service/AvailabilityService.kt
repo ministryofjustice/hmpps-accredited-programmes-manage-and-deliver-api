@@ -15,7 +15,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.toDayOfWeek
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.update.UpdateAvailability
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeParseException
@@ -26,7 +26,7 @@ class AvailabilityService(
   val availabilityRepository: AvailabilityRepository,
   val defaultAvailabilityConfigService: DefaultAvailabilityConfigService,
   private val referralService: ReferralService,
-  private val telemetryUtils: TelemetryUtils,
+  private val telemetryService: TelemetryService,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -58,7 +58,7 @@ class AvailabilityService(
 
     val availabilityEntity = createAvailability.toEntity(getAuthenticatedReferrerUser(), referral)
     val savedAvailabilityEntity = availabilityRepository.save(availabilityEntity)
-    telemetryUtils.logToAppInsights(
+    telemetryService.logToAppInsights(
       referralEntity = referral,
       eventName = "Availability.create-availability.success",
       activityType = SET_AVAILABILITY.name,
@@ -102,7 +102,7 @@ class AvailabilityService(
       }
 
     val updateAvailability = availabilityRepository.save(availabilityEntity)
-    telemetryUtils.logToAppInsights(
+    telemetryService.logToAppInsights(
       referralEntity = referral,
       eventName = "Availability.update-availability.success",
       activityType = UPDATE_AVAILABILITY.name,

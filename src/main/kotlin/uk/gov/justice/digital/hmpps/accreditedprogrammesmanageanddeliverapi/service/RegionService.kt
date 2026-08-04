@@ -10,12 +10,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_PDU_OFFICE_LOCATION_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REGION_PDU_N_DELIUS
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 
 @Service
 class RegionService(
   private val nDeliusApiIntegrationApiClient: NDeliusIntegrationApiClient,
-  private val telemetryUtils: TelemetryUtils,
+  private val telemetryService: TelemetryService,
 ) {
 
   val log: Logger = LoggerFactory.getLogger(this::class.java)
@@ -24,7 +24,7 @@ class RegionService(
     is ClientResult.Success -> {
       val pduNames = result.body.pdus
       log.debug("Region code: {} returned pduNames: {}", regionCode, pduNames.map { it.description }.distinct())
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "${GET_REGION_PDU_N_DELIUS.eventName}.success",
         integrationActionType = GET_REGION_PDU_N_DELIUS.name,
         outcome = "success",
@@ -40,7 +40,7 @@ class RegionService(
 
     is ClientResult.Failure -> {
       log.error("Failed to fetch PDU's for regionCode: $regionCode:  ${result.toException().message}")
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "${GET_REGION_PDU_N_DELIUS.eventName}.failure",
         integrationActionType = GET_REGION_PDU_N_DELIUS.name,
         outcome = "failure",
@@ -54,7 +54,7 @@ class RegionService(
     is ClientResult.Success -> {
       val officeNames = result.body.officeLocations
       log.debug("Pdu code: {} returned officeNames: {}", pduCode, officeNames.map { it.description }.distinct())
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "${GET_PDU_OFFICE_LOCATION_N_DELIUS.eventName}.success",
         integrationActionType = GET_PDU_OFFICE_LOCATION_N_DELIUS.name,
         outcome = "success",
@@ -63,7 +63,7 @@ class RegionService(
         .sortedBy { it.description.lowercase() }
         .ifEmpty {
           log.warn("No office location's returned for pduCode: $pduCode")
-          telemetryUtils.logToAppInsights(
+          telemetryService.logToAppInsights(
             eventName = "${GET_PDU_OFFICE_LOCATION_N_DELIUS.eventName}.failure",
             integrationActionType = GET_PDU_OFFICE_LOCATION_N_DELIUS.name,
             outcome = "failure",
@@ -111,7 +111,7 @@ class RegionService(
   }
 
   private fun logTelemetry(outcome: String) {
-    telemetryUtils.logToAppInsights(
+    telemetryService.logToAppInsights(
       eventName = "${GET_REGION_PDU_N_DELIUS.eventName}.$outcome",
       integrationActionType = GET_REGION_PDU_N_DELIUS.name,
       outcome = outcome,

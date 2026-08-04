@@ -8,19 +8,19 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_SENTENCE_DETAILS_N_DELIUS
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.time.LocalDate
 
 @Service
 class SentenceService(
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
-  private val telemetryUtils: TelemetryUtils,
+  private val telemetryService: TelemetryService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
   fun getSentenceInformationByIdentifier(crn: String, eventNumber: Int?): NDeliusSentenceResponse? = when (val response = nDeliusIntegrationApiClient.getSentenceInformation(crn, eventNumber)) {
     is ClientResult.Failure.StatusCode -> {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "${GET_SENTENCE_DETAILS_N_DELIUS.eventName}.failure",
         integrationActionType = GET_SENTENCE_DETAILS_N_DELIUS.name,
         outcome = "failure",
@@ -38,7 +38,7 @@ class SentenceService(
     }
 
     is ClientResult.Success -> {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "${GET_SENTENCE_DETAILS_N_DELIUS.eventName}.success",
         integrationActionType = GET_SENTENCE_DETAILS_N_DELIUS.name,
         outcome = "success",
@@ -52,7 +52,7 @@ class SentenceService(
         "Failure to retrieve Sentence information for crn : $crn and event number: $eventNumber with reason ${response.toException().cause}",
         response.toException(),
       )
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "${GET_SENTENCE_DETAILS_N_DELIUS.eventName}.failure",
         integrationActionType = GET_SENTENCE_DETAILS_N_DELIUS.name,
         outcome = "failure",

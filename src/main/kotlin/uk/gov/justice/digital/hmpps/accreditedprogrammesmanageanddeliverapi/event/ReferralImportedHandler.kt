@@ -11,7 +11,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.even
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.util.UUID
 
 @Component
@@ -20,7 +20,7 @@ class ReferralImportedHandler(
   private val objectMapper: ObjectMapper,
   private val messageHistoryRepository: MessageHistoryRepository,
   private val referralService: ReferralService,
-  private val telemetryUtils: TelemetryUtils,
+  private val telemetryService: TelemetryService,
 ) {
 
   companion object {
@@ -40,7 +40,7 @@ class ReferralImportedHandler(
         ?: return log.warn("Referral ID is null for event with messageId: ${sqsMessage.messageId}")
       log.info("Received referral imported event for referral id: $referralId")
 
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "Referral.imported-event-received.success",
         properties = mapOf(
           "eventType" to message.eventType,
@@ -55,7 +55,7 @@ class ReferralImportedHandler(
         referralService.refreshPersonalDetailsForReferral(referralId, false)
       }
       log.info("Ending handle for messageId: ${sqsMessage.messageId}")
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "Referral.imported-event-processed.success",
         properties = mapOf(
           "eventType" to message.eventType,
@@ -65,7 +65,7 @@ class ReferralImportedHandler(
       )
     } catch (e: Exception) {
       log.error("Error handling ReferralImportedEvent: ${e.message}", e)
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "Referral.imported-event-processed.failure",
         properties = mapOf(
           "errorMessage" to (e.message?.trim() ?: ""),

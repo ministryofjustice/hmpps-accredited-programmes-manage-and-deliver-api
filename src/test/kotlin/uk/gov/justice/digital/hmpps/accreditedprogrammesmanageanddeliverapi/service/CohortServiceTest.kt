@@ -28,14 +28,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.util.UUID
 
 class CohortServiceTest {
 
   private val pniService: PniService = mockk()
   private val referralCohortHistoryRepository: ReferralCohortHistoryRepository = mockk()
-  private val telemetryUtils: TelemetryUtils = mockk()
+  private val telemetryService: TelemetryService = mockk()
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository = mockk()
 
   private lateinit var cohortService: CohortService
@@ -44,7 +44,7 @@ class CohortServiceTest {
   fun setup() {
     cohortService = CohortService(
       referralCohortHistoryRepository,
-      telemetryUtils,
+      telemetryService,
     )
   }
 
@@ -63,7 +63,7 @@ class CohortServiceTest {
 
     every { referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralEntity.id!!) } returns null
     every { referralCohortHistoryRepository.save(any()) } returns mockk()
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val result = cohortService.updateCohortForReferral(referralEntity, newCohort)
@@ -80,7 +80,7 @@ class CohortServiceTest {
       )
     }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity = referralEntity,
         eventName = "Referral.update-cohort.success",
         activityType = "OVERRIDE_COHORT",
@@ -109,7 +109,7 @@ class CohortServiceTest {
 
     every { referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralEntity.id!!) } returns existingHistory
     every { referralCohortHistoryRepository.save(any()) } returns mockk()
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     cohortService.updateCohortForReferral(referralEntity, newCohort)
@@ -142,7 +142,7 @@ class CohortServiceTest {
     SecurityContextHolder.setContext(securityContext)
 
     every { referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralEntity.id!!) } returns existingHistory
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     cohortService.updateCohortForReferral(referralEntity, newCohort)

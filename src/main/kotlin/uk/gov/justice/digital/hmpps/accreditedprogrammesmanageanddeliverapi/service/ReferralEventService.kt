@@ -11,14 +11,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.even
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.PersonReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.REFERRAL_COMPLETED_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.UPDATE_REFERRAL_STATUS_N_DELIUS
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.time.ZonedDateTime
 import java.util.UUID
 
 @Service
 class ReferralEventService(
   private val domainEventPublisher: DomainEventPublisher,
-  private val telemetryUtils: TelemetryUtils,
+  private val telemetryService: TelemetryService,
   @Value("\${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
   private val referralService: ReferralService,
 ) {
@@ -74,7 +74,7 @@ class ReferralEventService(
   ) {
     try {
       domainEventPublisher.publish(domainEventsMessage)
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "$eventName.success",
         properties = mapOf(
           "integrationActionType" to integrationActionType,
@@ -84,7 +84,7 @@ class ReferralEventService(
         ),
       )
     } catch (exception: Exception) {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "$eventName.failure",
         properties = mapOf(
           "integrationActionType" to integrationActionType,

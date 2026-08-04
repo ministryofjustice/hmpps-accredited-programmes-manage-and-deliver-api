@@ -30,7 +30,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.RequirementFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralEventNumberResolverService.Companion.INVALID_EVENT_NUMBER
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -43,7 +43,7 @@ class ReferralEventNumberResolverServiceTest {
   private lateinit var referralRepository: ReferralRepository
 
   @Mock
-  private lateinit var telemetryUtils: TelemetryUtils
+  private lateinit var telemetryService: TelemetryService
 
   @InjectMocks
   private lateinit var service: ReferralEventNumberResolverService
@@ -59,7 +59,7 @@ class ReferralEventNumberResolverServiceTest {
     assertThat(result.sourcedFrom).isEqualTo(ReferralEntitySourcedFrom.REQUIREMENT)
     verifyNoInteractions(nDeliusIntegrationApiClient)
     verifyNoInteractions(referralRepository)
-    verifyNoInteractions(telemetryUtils)
+    verifyNoInteractions(telemetryService)
   }
 
   @Test
@@ -79,7 +79,7 @@ class ReferralEventNumberResolverServiceTest {
 
     // Then
     verify(referralRepository, times(0)).save(any())
-    verifyNoInteractions(telemetryUtils)
+    verifyNoInteractions(telemetryService)
   }
 
   @Test
@@ -117,14 +117,14 @@ class ReferralEventNumberResolverServiceTest {
     assertThat(referral.eventNumber).isEqualTo(5)
     assertThat(referral.eventId).isEqualTo("484848484")
 
-    val inOrder = inOrder(telemetryUtils)
+    val inOrder = inOrder(telemetryService)
 
-    inOrder.verify(telemetryUtils).logToAppInsights(
+    inOrder.verify(telemetryService).logToAppInsights(
       eventName = "LicenceConditions.get-nDelius.success",
       integrationActionType = "GET_LICENCE_CONDITIONS_N_DELIUS",
       outcome = "success",
     )
-    inOrder.verify(telemetryUtils).logToAppInsights(
+    inOrder.verify(telemetryService).logToAppInsights(
       "Referral.event-number-resolution.success",
       mapOf("referralId" to "$referralId", "newEventNumber" to "5", "newEventId" to "484848484"),
     )
@@ -165,14 +165,14 @@ class ReferralEventNumberResolverServiceTest {
     assertThat(referral.eventNumber).isEqualTo(2)
     assertThat(referral.eventId).isEqualTo("1684953")
 
-    val inOrder = inOrder(telemetryUtils)
+    val inOrder = inOrder(telemetryService)
 
-    inOrder.verify(telemetryUtils).logToAppInsights(
+    inOrder.verify(telemetryService).logToAppInsights(
       eventName = "Requirements.get-nDelius.success",
       integrationActionType = "GET_REQUIREMENTS_N_DELIUS",
       outcome = "success",
     )
-    inOrder.verify(telemetryUtils).logToAppInsights(
+    inOrder.verify(telemetryService).logToAppInsights(
       "Referral.event-number-resolution.success",
       mapOf("referralId" to "$referralId", "newEventNumber" to "2", "newEventId" to "1684953"),
     )

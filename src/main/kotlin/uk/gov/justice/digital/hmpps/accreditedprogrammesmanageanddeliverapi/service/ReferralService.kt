@@ -56,10 +56,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeOfSession
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -88,7 +88,7 @@ class ReferralService(
   private val sessionNameFormatter: SessionNameFormatter,
   private val referralStatusService: ReferralStatusService,
   private val referralCohortHistoryRepository: ReferralCohortHistoryRepository,
-  private val telemetryUtils: TelemetryUtils,
+  private val telemetryService: TelemetryService,
   private val referralEventNumberResolverService: ReferralEventNumberResolverService,
   private val applicationEventPublisher: ApplicationEventPublisher,
   private val probationAccessControlApiClient: ProbationAccessControlApiClient,
@@ -326,7 +326,7 @@ class ReferralService(
       log.error("Referral with id $referralId does not exist in database")
       throw NotFoundException("No Referral found for id: $referralId")
     }
-    telemetryUtils.logToAppInsights(
+    telemetryService.logToAppInsights(
       referralEntity = referralEntity,
       eventName = "Referral.get.success",
       activityType = VIEW_REFERRAL.name,
@@ -366,7 +366,7 @@ class ReferralService(
         log.info("Referral with id ${referral.id} appears to be sourced from a Requirement, saving Entity and continuing...")
         referral.sourcedFrom = ReferralEntitySourcedFrom.REQUIREMENT
         referralRepository.save(referral)
-        telemetryUtils.logToAppInsights(
+        telemetryService.logToAppInsights(
           "${GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.success",
           GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
           "success",
@@ -377,7 +377,7 @@ class ReferralService(
 
       else -> {
         log.info("Referral does not appear to come from Requirement, going to attempt to find a Licence Condition")
-        telemetryUtils.logToAppInsights(
+        telemetryService.logToAppInsights(
           "${GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
           GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
           "failure",
@@ -390,7 +390,7 @@ class ReferralService(
         log.info("Referral with id ${referral.id} appears to be sourced from a LicenceCondition, saving Entity and continuing...")
         referral.sourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION
         referralRepository.save(referral)
-        telemetryUtils.logToAppInsights(
+        telemetryService.logToAppInsights(
           "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.success",
           GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
           "success",
@@ -401,7 +401,7 @@ class ReferralService(
 
       else -> {
         log.info("Referral does not appear to come from Licence Condition, going to return null")
-        telemetryUtils.logToAppInsights(
+        telemetryService.logToAppInsights(
           "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
           GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
           "failure",
@@ -423,7 +423,7 @@ class ReferralService(
       ) {
         is ClientResult.Success -> {
           log.info("...success! Found a Requirement for referral with ID: $referralIdString")
-          telemetryUtils.logToAppInsights(
+          telemetryService.logToAppInsights(
             "${GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.success",
             GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
             "success",
@@ -434,7 +434,7 @@ class ReferralService(
 
         else -> {
           log.error("...failure, encountered an error while fetching Requirement for Referral with ID: $referralIdString from nDelius Integration API")
-          telemetryUtils.logToAppInsights(
+          telemetryService.logToAppInsights(
             "${GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
             GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
             "failure",
@@ -448,7 +448,7 @@ class ReferralService(
       when (val response = nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, eventId)) {
         is ClientResult.Success -> {
           log.info("...success! Found a Licence Condition for referral with ID: $referralIdString")
-          telemetryUtils.logToAppInsights(
+          telemetryService.logToAppInsights(
             "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.success",
             GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
             "success",
@@ -459,7 +459,7 @@ class ReferralService(
 
         else -> {
           log.error("...failure, neither a Requirement or Licence Condition returned for Referral with ID $referralIdString")
-          telemetryUtils.logToAppInsights(
+          telemetryService.logToAppInsights(
             "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
             GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
             "failure",
@@ -505,7 +505,7 @@ class ReferralService(
       "in nDelius for CRN ${referralEntity.crn}. Confirm the live id with the integration team and retry."
     programmeGroupMembershipService.validateReferralSentenceDataExistsInNDelius(referralEntity, conflictErrorMessage)
     val updatedReferralEntity = referralRepository.save(referralEntity)
-    telemetryUtils.logToAppInsights(
+    telemetryService.logToAppInsights(
       referralEntity = referralEntity,
       eventName = "Referral.admin-repoint-sentence-reference.applied.success",
       activityType = UPDATE_REFERRAL_SENTENCE_REFERENCE.name,
@@ -536,7 +536,7 @@ class ReferralService(
       createReferralStatusHistory.additionalDetails,
       createdBy,
     )
-    telemetryUtils.logToAppInsights(
+    telemetryService.logToAppInsights(
       referralEntity,
       "Referral.admin-update-status.success",
       UPDATE_REFERRAL_STATUS.name,
@@ -623,7 +623,7 @@ class ReferralService(
     if (incomingReferralStatusDescription.description == "Programme complete") {
       referralStatusService.checkAndPublishCompletionEvent(referral.id!!)
     }
-    telemetryUtils.logToAppInsights(
+    telemetryService.logToAppInsights(
       referralEntity = referral,
       eventName = "Referral.update-status.success",
       activityType = UPDATE_REFERRAL_STATUS.name,
@@ -695,7 +695,11 @@ class ReferralService(
             date = session.startsAt.format(DateTimeFormatter.ofPattern("d MMMM yyyy")),
             unformattedDate = session.startsAt,
             time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
-            timeWithCapitalisedMidday = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime(), capitaliseMidday = true),
+            timeWithCapitalisedMidday = formatTimeOfSession(
+              session.startsAt.toLocalTime(),
+              session.endsAt.toLocalTime(),
+              capitaliseMidday = true,
+            ),
             attendanceStatus = programmeGroupService.getAttendanceTextFromOutcome(latestAttendance?.outcomeType),
             hasNotes = latestAttendance?.notesHistory?.isNotEmpty() == true,
             isCatchup = session.isCatchup,
@@ -717,7 +721,7 @@ class ReferralService(
 
   private fun getPersonalDetails(crn: String) = when (val result = nDeliusIntegrationApiClient.getPersonalDetails(crn)) {
     is ClientResult.Success -> {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.success",
         GET_PERSONAL_DETAILS_N_DELIUS.name,
         "success",
@@ -727,7 +731,7 @@ class ReferralService(
     }
 
     else -> {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.failure",
         GET_PERSONAL_DETAILS_N_DELIUS.name,
         "failure",

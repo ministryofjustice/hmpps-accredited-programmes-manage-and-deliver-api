@@ -31,7 +31,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REGISTRATION_N_DELIUS
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.time.LocalDateTime
 
 @Service
@@ -40,7 +40,7 @@ class RisksAndNeedsService(
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val assessRiskAndNeedsApiClient: AssessRiskAndNeedsApiClient,
   private val pniService: PniService,
-  private val telemetryUtils: TelemetryUtils,
+  private val telemetryService: TelemetryService,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -188,7 +188,7 @@ class RisksAndNeedsService(
 
   fun getActiveAlerts(crn: String): NDeliusRegistrations? = when (val response = nDeliusIntegrationApiClient.getRegistrations(crn)) {
     is ClientResult.Failure -> {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "${GET_REGISTRATION_N_DELIUS.eventName}.failure",
         integrationActionType = GET_REGISTRATION_N_DELIUS.name,
         outcome = "failure",
@@ -198,7 +198,7 @@ class RisksAndNeedsService(
     }
 
     is ClientResult.Success -> {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "${GET_REGISTRATION_N_DELIUS.eventName}.success",
         integrationActionType = GET_REGISTRATION_N_DELIUS.name,
         outcome = "success",

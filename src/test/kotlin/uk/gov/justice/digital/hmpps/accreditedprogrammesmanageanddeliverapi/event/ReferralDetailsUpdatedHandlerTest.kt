@@ -19,7 +19,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.even
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.DomainEventsMessageFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -34,7 +34,7 @@ class ReferralDetailsUpdatedHandlerTest {
   private lateinit var referralService: ReferralService
 
   @Mock
-  private lateinit var telemetryUtils: TelemetryUtils
+  private lateinit var telemetryService: TelemetryService
 
   private lateinit var handler: ReferralDetailsUpdatedHandler
 
@@ -44,7 +44,7 @@ class ReferralDetailsUpdatedHandlerTest {
       objectMapper = objectMapper,
       messageHistoryRepository = messageHistoryRepository,
       referralService = referralService,
-      telemetryUtils = telemetryUtils,
+      telemetryService = telemetryService,
     )
   }
 
@@ -62,7 +62,7 @@ class ReferralDetailsUpdatedHandlerTest {
     handler.handle(sqsMessage)
 
     // Then
-    verify(telemetryUtils).logToAppInsights(anyString(), anyMap())
+    verify(telemetryService).logToAppInsights(anyString(), anyMap())
     verify(messageHistoryRepository, times(0)).save(any())
     runBlocking {
       verify(referralService, times(0)).refreshPersonalDetailsForReferral(any(), any())
@@ -88,7 +88,7 @@ class ReferralDetailsUpdatedHandlerTest {
     handler.handle(sqsMessage)
 
     // Then
-    verify(telemetryUtils, times(2)).logToAppInsights(anyString(), anyMap())
+    verify(telemetryService, times(2)).logToAppInsights(anyString(), anyMap())
     verify(messageHistoryRepository).save(any())
     runBlocking {
       verify(referralService).refreshPersonalDetailsForReferral(referralId, false)
@@ -114,7 +114,7 @@ class ReferralDetailsUpdatedHandlerTest {
     handler.handle(sqsMessage)
 
     // Then
-    verify(telemetryUtils, times(2)).logToAppInsights(anyString(), anyMap())
+    verify(telemetryService, times(2)).logToAppInsights(anyString(), anyMap())
     verify(messageHistoryRepository).save(any())
     runBlocking {
       verify(referralService).refreshPersonalDetailsForReferral(referralId, false)

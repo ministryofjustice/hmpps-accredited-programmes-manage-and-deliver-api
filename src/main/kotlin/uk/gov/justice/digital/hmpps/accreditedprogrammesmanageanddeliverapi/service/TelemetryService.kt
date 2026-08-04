@@ -1,15 +1,15 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import com.microsoft.applicationinsights.TelemetryClient
-import org.springframework.stereotype.Component
+import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import java.util.UUID
 
-@Component
-class TelemetryUtils(
+@Service
+class TelemetryService(
   private val telemetryClient: TelemetryClient,
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
 ) {

@@ -13,14 +13,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_PERSONAL_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_USER_TEAM_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.UserRegionOverrideRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
 @Service
 class UserService(
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val authenticationHolder: HmppsAuthenticationHolder,
-  private val telemetryUtils: TelemetryUtils,
+  private val telemetryService: TelemetryService,
   private val userRegionOverrideRepository: UserRegionOverrideRepository,
 ) {
 
@@ -76,7 +76,7 @@ class UserService(
 
   fun getPersonalDetailsWithoutAuthentication(identifier: String): NDeliusPersonalDetails = when (val result = nDeliusIntegrationApiClient.getPersonalDetails(identifier)) {
     is ClientResult.Success -> {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.success",
         integrationActionType = GET_PERSONAL_DETAILS_N_DELIUS.name,
         outcome = "success",
@@ -86,7 +86,7 @@ class UserService(
     }
 
     is ClientResult.Failure -> {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.failure",
         integrationActionType = GET_PERSONAL_DETAILS_N_DELIUS.name,
         outcome = "failure",
@@ -100,7 +100,7 @@ class UserService(
 
   fun getAccessibleOffenders(username: String, identifiers: List<String>): Set<String> = when (val result = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, identifiers)) {
     is ClientResult.Success -> {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "${GET_LIMITED_ACCESS_OFFENDER_N_DELIUS.eventName}.success",
         integrationActionType = GET_LIMITED_ACCESS_OFFENDER_N_DELIUS.name,
         outcome = "success",
@@ -113,7 +113,7 @@ class UserService(
     }
 
     is ClientResult.Failure -> {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "${GET_LIMITED_ACCESS_OFFENDER_N_DELIUS.eventName}.failure",
         integrationActionType = GET_LIMITED_ACCESS_OFFENDER_N_DELIUS.name,
         outcome = "failure",
@@ -136,7 +136,7 @@ class UserService(
   @Cacheable(value = ["user-regions"], key = "#username", unless = "#result.isEmpty()")
   fun getUserRegions(username: String): List<CodeDescription> = when (val result = nDeliusIntegrationApiClient.getTeamsForUser(username)) {
     is ClientResult.Success -> {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "${GET_USER_TEAM_N_DELIUS.eventName}.success",
         integrationActionType = GET_USER_TEAM_N_DELIUS.name,
         outcome = "success",
@@ -157,7 +157,7 @@ class UserService(
 
     is ClientResult.Failure -> {
       log.error("Failed to fetch teams for user $username: ${result.toException().message}")
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "${GET_USER_TEAM_N_DELIUS.eventName}.failure",
         integrationActionType = GET_USER_TEAM_N_DELIUS.name,
         outcome = "failure",

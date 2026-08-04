@@ -43,8 +43,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
 import java.util.UUID
 
 class ReferralServiceTest {
@@ -69,7 +69,7 @@ class ReferralServiceTest {
   private val sessionNameFormatter: SessionNameFormatter = mockk()
   private val referralCohortHistoryRepository: ReferralCohortHistoryRepository = mockk()
   private val referralEventNumberResolverService: ReferralEventNumberResolverService = mockk()
-  private val telemetryUtils: TelemetryUtils = mockk()
+  private val telemetryService: TelemetryService = mockk()
   private val probationAccessControlApiClient: ProbationAccessControlApiClient = mockk()
 
   private lateinit var referralService: ReferralService
@@ -96,7 +96,7 @@ class ReferralServiceTest {
       sessionNameFormatter = sessionNameFormatter,
       referralStatusService = referralStatusService,
       referralCohortHistoryRepository = referralCohortHistoryRepository,
-      telemetryUtils = telemetryUtils,
+      telemetryService = telemetryService,
       referralEventNumberResolverService = referralEventNumberResolverService,
       applicationEventPublisher = applicationEventPublisher,
       probationAccessControlApiClient = probationAccessControlApiClient,
@@ -174,7 +174,7 @@ class ReferralServiceTest {
     // Given
     val referralEntity = ReferralEntityFactory().withId(UUID.randomUUID()).produce()
     every { referralRepository.findByIdOrNull(referralEntity.id!!) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val result = referralService.getReferralById(referralEntity.id!!)
@@ -183,7 +183,7 @@ class ReferralServiceTest {
     assertThat(result).isEqualTo(referralEntity)
     verify { referralRepository.findByIdOrNull(referralEntity.id!!) }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity = referralEntity,
         eventName = "Referral.get.success",
         activityType = VIEW_REFERRAL.name,
@@ -203,7 +203,7 @@ class ReferralServiceTest {
     val exception = assertThrows<NotFoundException> { referralService.getReferralById(referralId) }
     assertThat(exception.message).isEqualTo("No Referral found for id: $referralId")
     verify { referralRepository.findByIdOrNull(referralId) }
-    verify(exactly = 0) { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) }
+    verify(exactly = 0) { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) }
   }
 
   @Test
@@ -220,8 +220,8 @@ class ReferralServiceTest {
     val managerResponse = NDeliusCaseRequirementOrLicenceConditionResponseFactory().produce()
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
     every {
       nDeliusIntegrationApiClient.getRequirementManagerDetails(referralEntity.crn, referralEntity.eventId!!)
     } returns ClientResult.Success(status = HttpStatusCode.valueOf(200), body = managerResponse)
@@ -232,7 +232,7 @@ class ReferralServiceTest {
     // Then
     assertThat(result).isEqualTo(managerResponse.manager)
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         "RequirementManagerDetails.get-nDelius.success",
         "GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS",
         "success",
@@ -252,8 +252,8 @@ class ReferralServiceTest {
       .produce()
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
     every {
       nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(referralEntity.crn, referralEntity.eventId!!)
     } returns ClientResult.Failure.StatusCode(
@@ -280,7 +280,7 @@ class ReferralServiceTest {
     referralEntity.eventId = null
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When & Then
     val exception = assertThrows<NotFoundException> {
@@ -302,8 +302,8 @@ class ReferralServiceTest {
     val managerResponse = NDeliusCaseRequirementOrLicenceConditionResponseFactory().produce()
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
     every {
       nDeliusIntegrationApiClient.getRequirementManagerDetails(
         referralEntity.crn,
@@ -336,8 +336,8 @@ class ReferralServiceTest {
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
     every { referralRepository.save(any()) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
     every {
       nDeliusIntegrationApiClient.getRequirementManagerDetails(
         referralEntity.crn,
@@ -356,7 +356,7 @@ class ReferralServiceTest {
     assertThat(referralEntity.sourcedFrom).isEqualTo(ReferralEntitySourcedFrom.REQUIREMENT)
     verify(exactly = 1) { referralRepository.save(referralEntity) }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         "${GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.success",
         GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
         "success",
@@ -378,8 +378,8 @@ class ReferralServiceTest {
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
     every { referralRepository.save(any()) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     every {
       nDeliusIntegrationApiClient.getRequirementManagerDetails(
@@ -410,7 +410,7 @@ class ReferralServiceTest {
     assertThat(referralEntity.sourcedFrom).isEqualTo(ReferralEntitySourcedFrom.LICENCE_CONDITION)
     verify(exactly = 1) { referralRepository.save(referralEntity) }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         "LicenceConditionManagerDetails.get-nDelius.success",
         "GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS",
         "success",
@@ -429,8 +429,8 @@ class ReferralServiceTest {
       .produce()
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     every {
       nDeliusIntegrationApiClient.getRequirementManagerDetails(
@@ -462,7 +462,7 @@ class ReferralServiceTest {
     assertThat(exception.message).isEqualTo("No LicenceCondition or Requirement found with id 12345")
 
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         "LicenceConditionManagerDetails.get-nDelius.failure",
         "GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS",
         "failure",
@@ -479,7 +479,7 @@ class ReferralServiceTest {
     val createdBy = "test-user"
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // Mock the overloaded updateStatus call
     val incomingStatusDescription = ReferralStatusDescriptionEntityFactory().produce()
@@ -502,7 +502,7 @@ class ReferralServiceTest {
     // Then
     verify { referralRepository.findByIdOrNull(referralId) }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity,
         "Referral.admin-update-status.success",
         UPDATE_REFERRAL_STATUS.name,
@@ -601,7 +601,7 @@ class ReferralServiceTest {
       .withId(UUID.randomUUID())
       .produce(referral, incomingStatus)
     every { applicationEventPublisher.publishEvent(any<Any>()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val response = referralService.updateStatus(referral, incomingStatus.id, createdBy = "test-user")
@@ -646,7 +646,7 @@ class ReferralServiceTest {
       .withId(UUID.randomUUID())
       .produce(referral, incomingStatus)
     every { applicationEventPublisher.publishEvent(any<Any>()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     referralService.updateStatus(referral, incomingStatus.id, createdBy = "test-user")
@@ -691,7 +691,7 @@ class ReferralServiceTest {
       .produce(referral, incomingStatus)
     every { referralStatusHistoryRepository.save(any()) } returns savedHistory
     every { applicationEventPublisher.publishEvent(any<Any>()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val response = referralService.updateStatus(referral, incomingStatus.id, additionalDetails, createdBy)
@@ -712,7 +712,7 @@ class ReferralServiceTest {
     }
     verify { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId!!)) }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity = referral,
         eventName = "Referral.update-status.success",
         activityType = UPDATE_REFERRAL_STATUS.name,
@@ -744,7 +744,7 @@ class ReferralServiceTest {
       .produce(referral, currentStatus)
     every { referralStatusHistoryRepository.save(any()) } returns savedHistory
     every { applicationEventPublisher.publishEvent(any<Any>()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When & Then - should not throw
     referralService.updateStatus(referral, currentStatus.id, createdBy = "test-user")
@@ -783,7 +783,7 @@ class ReferralServiceTest {
     every { referralStatusHistoryRepository.save(any()) } returns savedHistory
     every { applicationEventPublisher.publishEvent(any<Any>()) } returns Unit
     every { referralStatusService.checkAndPublishCompletionEvent(referralId) } returns true
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val response = referralService.updateStatus(referral, incomingStatus.id, createdBy = "test-user")
@@ -820,7 +820,7 @@ class ReferralServiceTest {
       .produce(referral, incomingStatus)
     every { applicationEventPublisher.publishEvent(any<Any>()) } returns Unit
     every { referralStatusService.checkAndPublishCompletionEvent(referralId) } returns true
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     referralService.updateStatus(referral, incomingStatus.id, createdBy = "test-user")
@@ -844,7 +844,7 @@ class ReferralServiceTest {
       status = HttpStatusCode.valueOf(200),
       body = personalDetails,
     )
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // We test this via createReferral which calls the private getPersonalDetails
     // Need to mock other things that createReferral calls
@@ -867,7 +867,7 @@ class ReferralServiceTest {
     // Then
     verify { nDeliusIntegrationApiClient.getPersonalDetails(crn) }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         "PersonalDetails.get-nDelius.success",
         "GET_PERSONAL_DETAILS_N_DELIUS",
         "success",
@@ -887,7 +887,7 @@ class ReferralServiceTest {
       status = HttpStatusCode.valueOf(404),
       body = "Not Found",
     )
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // Other mocks for createReferral
     every { referralRepository.findByCrnAndEventIdAndSourcedFrom(any(), any(), any()) } returns null
@@ -909,7 +909,7 @@ class ReferralServiceTest {
     // Then
     verify { nDeliusIntegrationApiClient.getPersonalDetails(crn) }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         "PersonalDetails.get-nDelius.failure",
         "GET_PERSONAL_DETAILS_N_DELIUS",
         "failure",
@@ -936,9 +936,9 @@ class ReferralServiceTest {
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
     every { programmeGroupMembershipService.validateReferralSentenceDataExistsInNDelius(any(), any()) } returns Unit
     every { referralRepository.save(any()) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
     every {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity = any(),
         eventName = any(),
         activityType = any(),
@@ -961,7 +961,7 @@ class ReferralServiceTest {
     verify { programmeGroupMembershipService.validateReferralSentenceDataExistsInNDelius(referralEntity, any()) }
     verify { referralRepository.save(referralEntity) }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity = referralEntity,
         eventName = "Referral.admin-repoint-sentence-reference.applied.success",
         activityType = UPDATE_REFERRAL_SENTENCE_REFERENCE.name,
@@ -997,7 +997,7 @@ class ReferralServiceTest {
     val request = ReferralSentenceReferenceRequestFactory().produce()
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
     every {
       programmeGroupMembershipService.validateReferralSentenceDataExistsInNDelius(any(), any())
     } throws ConflictException("Validation failed")
@@ -1026,8 +1026,8 @@ class ReferralServiceTest {
     val requirementResponse = NDeliusCaseRequirementOrLicenceConditionResponseFactory().produce()
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     every {
       nDeliusIntegrationApiClient.getRequirementManagerDetails(
@@ -1042,7 +1042,7 @@ class ReferralServiceTest {
     // Then
     assertThat(result).isEqualTo(requirementResponse.manager)
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         "RequirementManagerDetails.get-nDelius.success",
         "GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS",
         "success",
@@ -1061,8 +1061,8 @@ class ReferralServiceTest {
       .produce()
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     every {
       nDeliusIntegrationApiClient.getRequirementManagerDetails(
@@ -1083,7 +1083,7 @@ class ReferralServiceTest {
     assertThat(exception.message).isEqualTo("Could not fetch a Requirement with ID ${referralEntity.id}, for Referral with ID: ${referralEntity.id}")
 
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         "RequirementManagerDetails.get-nDelius.failure",
         "GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS",
         "failure",
@@ -1104,8 +1104,8 @@ class ReferralServiceTest {
     val licenceConditionResponse = NDeliusCaseRequirementOrLicenceConditionResponseFactory().produce()
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     every {
       nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(
@@ -1120,7 +1120,7 @@ class ReferralServiceTest {
     // Then
     assertThat(result).isEqualTo(licenceConditionResponse.manager)
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         "LicenceConditionManagerDetails.get-nDelius.success",
         "GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS",
         "success",
@@ -1139,8 +1139,8 @@ class ReferralServiceTest {
       .produce()
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     every {
       nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(
@@ -1160,7 +1160,7 @@ class ReferralServiceTest {
     // Then
     assertThat(result).isNull()
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         "LicenceConditionManagerDetails.get-nDelius.failure",
         "GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS",
         "failure",
@@ -1179,8 +1179,8 @@ class ReferralServiceTest {
       .produce()
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
   }
 
   @Test
@@ -1205,8 +1205,8 @@ class ReferralServiceTest {
       .copy(probationDeliveryUnits = listOf(pduWithOfficeLocations))
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
-    every { telemetryUtils.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     every {
       nDeliusIntegrationApiClient.getRequirementManagerDetails(
@@ -1221,7 +1221,7 @@ class ReferralServiceTest {
     // Then
     assertThat(result).isEqualTo(requirementResponse.probationDeliveryUnits)
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         "RequirementManagerDetails.get-nDelius.success",
         "GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS",
         "success",

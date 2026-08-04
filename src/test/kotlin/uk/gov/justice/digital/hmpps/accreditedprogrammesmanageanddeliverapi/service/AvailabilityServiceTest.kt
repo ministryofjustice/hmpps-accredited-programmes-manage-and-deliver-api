@@ -18,7 +18,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.DailyAvailabilityModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.Slot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.time.DayOfWeek
 import java.util.Optional
 import java.util.UUID
@@ -27,7 +27,7 @@ class AvailabilityServiceTest {
   private val availabilityRepository = mockk<AvailabilityRepository>()
   private val defaultAvailabilityConfigService = mockk<DefaultAvailabilityConfigService>()
   private var referralService = mockk<ReferralService>()
-  private var telemetryUtils = mockk<TelemetryUtils>()
+  private var telemetryService = mockk<TelemetryService>()
   private lateinit var availabilityService: AvailabilityService
 
   @BeforeEach
@@ -36,7 +36,7 @@ class AvailabilityServiceTest {
       availabilityRepository,
       defaultAvailabilityConfigService,
       referralService,
-      telemetryUtils,
+      telemetryService,
     )
   }
 
@@ -61,7 +61,7 @@ class AvailabilityServiceTest {
 
     every { referralService.getReferralById(referralEntity.id!!) } returns referralEntity
     every { availabilityRepository.save(any()) } returns savedEntity
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val (result, isDuplicate) = availabilityService.createAvailability(createAvailability)
@@ -76,7 +76,7 @@ class AvailabilityServiceTest {
     verify { referralService.getReferralById(referralEntity.id!!) }
     verify { availabilityRepository.save(any()) }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity = referralEntity,
         eventName = "Availability.create-availability.success",
         activityType = "SET_AVAILABILITY",
@@ -200,7 +200,7 @@ class AvailabilityServiceTest {
     every { referralService.getReferralById(referralEntity.id!!) } returns referralEntity
     every { availabilityRepository.findById(existingAvailability.id!!) } returns Optional.of(existingAvailability)
     every { availabilityRepository.save(any()) } returns existingAvailability
-    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
 
     // When
     val result = availabilityService.updateAvailability(updateAvailability)
@@ -216,7 +216,7 @@ class AvailabilityServiceTest {
     verify { availabilityRepository.findById(existingAvailability.id!!) }
     verify { availabilityRepository.save(any()) }
     verify {
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         referralEntity = referralEntity,
         eventName = "Availability.update-availability.success",
         activityType = "UPDATE_AVAILABILITY",

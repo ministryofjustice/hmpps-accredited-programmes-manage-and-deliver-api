@@ -9,13 +9,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.OVERRIDE_LDC
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.util.UUID
 
 @Service
 class LdcService(
   private val ldcHistoryRepository: ReferralLdcHistoryRepository,
-  private val telemetryUtils: TelemetryUtils,
+  private val telemetryService: TelemetryService,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -37,7 +37,7 @@ class LdcService(
     } finally {
       AuditorContext.clear()
     }
-    telemetryUtils.logToAppInsights(
+    telemetryService.logToAppInsights(
       referralEntity = referralEntity,
       eventName = "Ldc.update-ldc.success",
       activityType = OVERRIDE_LDC.name,

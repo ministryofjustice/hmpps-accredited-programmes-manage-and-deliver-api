@@ -13,7 +13,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AppInsightsConstants.APP_INSIGHTS_ERROR_MESSAGE_PROPERTY_KEY
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AppInsightsConstants.APP_INSIGHTS_TARGET_EVENT_TYPE_PROPERTY_KEY
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.util.UUID
 
 @Component
@@ -22,7 +22,7 @@ class ReferralDetailsUpdatedHandler(
   private val objectMapper: ObjectMapper,
   private val messageHistoryRepository: MessageHistoryRepository,
   private val referralService: ReferralService,
-  private val telemetryUtils: TelemetryUtils,
+  private val telemetryService: TelemetryService,
 ) {
 
   companion object {
@@ -39,7 +39,7 @@ class ReferralDetailsUpdatedHandler(
       val message: DomainEventsMessage = objectMapper.readValue<DomainEventsMessage>(sqsMessage.message)
       val referralIdString = message.referralId
       if (referralIdString.isNullOrEmpty()) {
-        telemetryUtils.logToAppInsights(
+        telemetryService.logToAppInsights(
           eventName = APP_INSIGHTS_PROCESSED_FAILURE_EVENT_NAME_PROPERTY_VALUE,
           properties = mapOf(
             APP_INSIGHTS_ERROR_MESSAGE_PROPERTY_KEY to "referralId is blank",
@@ -50,7 +50,7 @@ class ReferralDetailsUpdatedHandler(
       }
 
       log.info("Received referral details updated event for referralId: $referralIdString")
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "Referral.details-updated-event-received.success",
         properties = mapOf(
           APP_INSIGHTS_TARGET_EVENT_TYPE_PROPERTY_KEY to message.eventType,
@@ -66,7 +66,7 @@ class ReferralDetailsUpdatedHandler(
 
       if (result == null) {
         log.warn("No referral found for referralId: $referralId — skipping refresh")
-        telemetryUtils.logToAppInsights(
+        telemetryService.logToAppInsights(
           eventName = APP_INSIGHTS_PROCESSED_FAILURE_EVENT_NAME_PROPERTY_VALUE,
           properties = mapOf(
             APP_INSIGHTS_ERROR_MESSAGE_PROPERTY_KEY to "referral not found",
@@ -77,7 +77,7 @@ class ReferralDetailsUpdatedHandler(
       }
 
       log.info("Ending handle for messageId: ${sqsMessage.messageId}")
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = "Referral.details-updated-event-processed.success",
         properties = mapOf(
           APP_INSIGHTS_TARGET_EVENT_TYPE_PROPERTY_KEY to message.eventType,
@@ -86,7 +86,7 @@ class ReferralDetailsUpdatedHandler(
       )
     } catch (e: Exception) {
       log.error("Error handling ReferralDetailsUpdatedEvent: ${e.message}", e)
-      telemetryUtils.logToAppInsights(
+      telemetryService.logToAppInsights(
         eventName = APP_INSIGHTS_PROCESSED_FAILURE_EVENT_NAME_PROPERTY_VALUE,
         properties = mapOf(
           APP_INSIGHTS_ERROR_MESSAGE_PROPERTY_KEY to (e.message?.trim() ?: ""),

@@ -1,4 +1,4 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import com.microsoft.applicationinsights.TelemetryClient
 import io.mockk.every
@@ -18,15 +18,15 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import java.util.UUID
 
-class TelemetryUtilsTest {
+class TelemetryServiceTest {
   private val telemetryClient = mockk<TelemetryClient>()
   private val programmeGroupMembershipRepository = mockk<ProgrammeGroupMembershipRepository>()
 
-  private lateinit var util: TelemetryUtils
+  private lateinit var service: TelemetryService
 
   @BeforeEach
   fun setup() {
-    util = TelemetryUtils(
+    service = TelemetryService(
       telemetryClient,
       programmeGroupMembershipRepository,
     )
@@ -57,7 +57,7 @@ class TelemetryUtilsTest {
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
 
     // When
-    util.logToAppInsights(
+    service.logToAppInsights(
       referralEntity = referralEntity,
       eventName = eventName,
       activityType = activityType,
@@ -99,7 +99,7 @@ class TelemetryUtilsTest {
     every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
-    util.logToAppInsights(
+    service.logToAppInsights(
       referralEntity = referralEntity,
       eventName = eventName,
       activityType = activityType,
@@ -143,7 +143,7 @@ class TelemetryUtilsTest {
     every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
-    util.logToAppInsights(
+    service.logToAppInsights(
       referralEntity = referralEntity,
       eventName = eventName,
       activityType = activityType,
@@ -181,7 +181,7 @@ class TelemetryUtilsTest {
     every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
-    util.logToAppInsights(
+    service.logToAppInsights(
       eventName = eventName,
       integrationActionType = integrationActionType,
       outcome = outcome,
@@ -208,7 +208,7 @@ class TelemetryUtilsTest {
     every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
 
     // When
-    util.logToAppInsights(
+    service.logToAppInsights(
       eventName = eventName,
       properties = properties,
     )
