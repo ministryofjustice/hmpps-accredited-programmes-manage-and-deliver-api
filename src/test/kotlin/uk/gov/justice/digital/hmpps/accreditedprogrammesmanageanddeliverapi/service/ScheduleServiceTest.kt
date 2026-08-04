@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -20,7 +19,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toAppointment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
@@ -33,6 +31,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.util.UUID
 
@@ -48,7 +47,7 @@ import java.util.UUID
 class ScheduleServiceTest {
 
   private val nDeliusIntegrationApiClient = mockk<NDeliusIntegrationApiClient>()
-  private val telemetryClient = mockk<TelemetryClient>(relaxed = true)
+  private val telemetryService = mockk<TelemetryService>(relaxed = true)
   private val programmeGroupRepository = mockk<ProgrammeGroupRepository>(relaxed = true)
   private val moduleSessionTemplateRepository = mockk<ModuleSessionTemplateRepository>(relaxed = true)
   private val facilitatorService = mockk<FacilitatorService>(relaxed = true)
@@ -62,7 +61,6 @@ class ScheduleServiceTest {
     clock = mockk(relaxed = true),
     programmeGroupMembershipRepository = mockk(relaxed = true),
     moduleSessionTemplateRepository = moduleSessionTemplateRepository,
-    govUkApiClient = mockk(relaxed = true),
     nDeliusIntegrationApiClient = nDeliusIntegrationApiClient,
     nDeliusAppointmentRepository = mockk(relaxed = true),
     facilitatorService = facilitatorService,
@@ -70,7 +68,7 @@ class ScheduleServiceTest {
     sessionRepository = sessionRepository,
     sessionNameFormatter = sessionNameFormatter,
     bankHolidayRepository = mockk(relaxed = true),
-    telemetryClient = telemetryClient,
+    telemetryService = telemetryService,
   )
 
   @BeforeEach
@@ -106,10 +104,10 @@ class ScheduleServiceTest {
 
     // Both the generic .failure event and the finer .terminated-requirement event fire.
     verify(exactly = 1) {
-      telemetryClient.logToAppInsights("Appointment.create-nDelius.failure", any())
+      telemetryService.logToAppInsights("Appointment.create-nDelius.failure", any())
     }
     verify(exactly = 1) {
-      telemetryClient.logToAppInsights("Appointment.create-nDelius.terminated-requirement", any())
+      telemetryService.logToAppInsights("Appointment.create-nDelius.terminated-requirement", any())
     }
   }
 
@@ -127,10 +125,10 @@ class ScheduleServiceTest {
       .isInstanceOf(BusinessException::class.java)
 
     verify(exactly = 1) {
-      telemetryClient.logToAppInsights("Appointment.create-nDelius.failure", any())
+      telemetryService.logToAppInsights("Appointment.create-nDelius.failure", any())
     }
     verify(exactly = 0) {
-      telemetryClient.logToAppInsights("Appointment.create-nDelius.terminated-requirement", any())
+      telemetryService.logToAppInsights("Appointment.create-nDelius.terminated-requirement", any())
     }
   }
 

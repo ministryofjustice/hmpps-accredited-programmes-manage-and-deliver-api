@@ -2,11 +2,9 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.eve
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.DomainEventsMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.toEntity
@@ -14,6 +12,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AppInsightsConstants.APP_INSIGHTS_ERROR_MESSAGE_PROPERTY_KEY
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AppInsightsConstants.APP_INSIGHTS_TARGET_EVENT_TYPE_PROPERTY_KEY
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 
 @Component
 @Transactional
@@ -21,7 +20,7 @@ class ReferralMergedHandler(
   private val objectMapper: ObjectMapper,
   private val messageHistoryRepository: MessageHistoryRepository,
   private val referralService: ReferralService,
-  private val telemetryClient: TelemetryClient,
+  private val telemetryService: TelemetryService,
 ) {
 
   companion object {
@@ -40,9 +39,9 @@ class ReferralMergedHandler(
       val sourceCrn = message.sourceCrn
       val targetCrn = message.targetCrn
       if (sourceCrn.isNullOrEmpty() || targetCrn.isNullOrEmpty()) {
-        telemetryClient.logToAppInsights(
-          APP_INSIGHTS_PROCESSED_FAILURE_EVENT_NAME_PROPERTY_VALUE,
-          mapOf(
+        telemetryService.logToAppInsights(
+          eventName = APP_INSIGHTS_PROCESSED_FAILURE_EVENT_NAME_PROPERTY_VALUE,
+          properties = mapOf(
             APP_INSIGHTS_ERROR_MESSAGE_PROPERTY_KEY to "sourceCrn or targetCrn is null",
             APP_INSIGHTS_SOURCE_CRN_PROPERTY_KEY to (sourceCrn?.trim() ?: ""),
             APP_INSIGHTS_TARGET_CRN_PROPERTY_KEY to (targetCrn?.trim() ?: ""),
@@ -52,9 +51,9 @@ class ReferralMergedHandler(
       }
 
       log.info("Received referral merged event for sourceCrn: $sourceCrn and targetCrn: $targetCrn")
-      telemetryClient.logToAppInsights(
-        "Referral.merged-event-received.success",
-        mapOf(
+      telemetryService.logToAppInsights(
+        eventName = "Referral.merged-event-received.success",
+        properties = mapOf(
           APP_INSIGHTS_TARGET_EVENT_TYPE_PROPERTY_KEY to message.eventType,
           APP_INSIGHTS_SOURCE_CRN_PROPERTY_KEY to sourceCrn,
           APP_INSIGHTS_TARGET_CRN_PROPERTY_KEY to targetCrn,
@@ -65,9 +64,9 @@ class ReferralMergedHandler(
       referralService.updateReferralCrn(sourceCrn, targetCrn)
 
       log.info("Ending handle for messageId: ${sqsMessage.messageId}")
-      telemetryClient.logToAppInsights(
-        "Referral.merged-event-processed.success",
-        mapOf(
+      telemetryService.logToAppInsights(
+        eventName = "Referral.merged-event-processed.success",
+        properties = mapOf(
           APP_INSIGHTS_TARGET_EVENT_TYPE_PROPERTY_KEY to message.eventType,
           APP_INSIGHTS_SOURCE_CRN_PROPERTY_KEY to sourceCrn,
           APP_INSIGHTS_TARGET_CRN_PROPERTY_KEY to targetCrn,
@@ -75,9 +74,9 @@ class ReferralMergedHandler(
       )
     } catch (e: Exception) {
       log.error("Error handling ReferralMergedEvent: ${e.message}", e)
-      telemetryClient.logToAppInsights(
-        APP_INSIGHTS_PROCESSED_FAILURE_EVENT_NAME_PROPERTY_VALUE,
-        mapOf(
+      telemetryService.logToAppInsights(
+        eventName = APP_INSIGHTS_PROCESSED_FAILURE_EVENT_NAME_PROPERTY_VALUE,
+        properties = mapOf(
           APP_INSIGHTS_ERROR_MESSAGE_PROPERTY_KEY to (e.message?.trim() ?: ""),
           "sqsMessage" to sqsMessage.toString(),
         ),
