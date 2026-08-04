@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
@@ -9,20 +8,18 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.RiskScoreLevel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.AuditorContext
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCohortHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.OVERRIDE_COHORT
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.util.UUID
 
 @Service
 @Transactional
 class CohortService(
   private val referralCohortHistoryRepository: ReferralCohortHistoryRepository,
-  private val telemetryClient: TelemetryClient,
-  private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
+  private val telemetryService: TelemetryService,
 ) {
   companion object {
     private const val SEX_DOMAIN_MINIMUM_THRESHOLD = 0.0
@@ -37,7 +34,8 @@ class CohortService(
     // Overwrite the username to be written when system is automatically updating this value
     AuditorContext.set(createdBy)
     try {
-      val latestCohortHistory = referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralEntity.id!!)
+      val latestCohortHistory =
+        referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralEntity.id!!)
       val referralCohortHistory = ReferralCohortHistoryEntity(
         referral = referralEntity,
         cohort = cohort,
@@ -53,16 +51,12 @@ class CohortService(
     } finally {
       AuditorContext.clear()
     }
-
-    val programmeGroupMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralEntity.id!!)
-    telemetryClient.logToAppInsights(
-      "Referral.update-cohort.success",
-      mapOf(
-        "activityType" to OVERRIDE_COHORT.name,
-        "regionName" to (referralEntity.referralReportingLocation?.regionName ?: ""),
-        "deliveryUnitCode" to (referralEntity.referralReportingLocation?.pduName ?: ""),
-        "deliveryLocation" to (programmeGroupMembership?.programmeGroup?.deliveryLocationName ?: ""),
-      ),
+    telemetryService.logToAppInsights(
+      referralEntity = referralEntity,
+      eventName = "Referral.update-cohort.success",
+      activityType = OVERRIDE_COHORT.name,
+      toReferralStatusId = null,
+      appliedBy = null,
     )
 
     return referralEntity
