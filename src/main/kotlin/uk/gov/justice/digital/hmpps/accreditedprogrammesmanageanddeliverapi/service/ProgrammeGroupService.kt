@@ -66,7 +66,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeOfSession
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -476,7 +476,7 @@ class ProgrammeGroupService(
             timeWithCapitalisedMidday = formatTimeOfSession(
               scheduledSession.startsAt.toLocalTime(),
               scheduledSession.endsAt.toLocalTime(),
-              capitaliseSpecialTimes = true,
+              capitaliseMidday = true,
             ),
             participants = when {
               sessionTemplate.sessionType == SessionType.GROUP && !scheduledSession.isCatchup -> listOf("All")
@@ -613,12 +613,6 @@ class ProgrammeGroupService(
     else -> "Estimated date of $moduleName one-to-ones"
   }
 
-  private fun formatTimeOfSession(startTime: LocalTime, endTime: LocalTime, capitaliseSpecialTimes: Boolean = false): String {
-    val formattedStartTime = formatTimeForUiDisplay(startTime, capitaliseSpecialTimes)
-    val formattedEndTime = formatTimeForUiDisplay(endTime, capitaliseSpecialTimes)
-    return "$formattedStartTime to $formattedEndTime"
-  }
-
   fun getScheduledSessionForGroupAndSessionTemplate(
     groupId: UUID,
     sessionTemplateId: UUID,
@@ -658,7 +652,7 @@ class ProgrammeGroupService(
             timeWithCapitalisedMidday = if (session.isPlaceholder) {
               "Various times"
             } else {
-              formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime(), capitaliseSpecialTimes = true)
+              formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime(), capitaliseMidday = true)
             },
           )
         }
@@ -769,7 +763,7 @@ class ProgrammeGroupService(
       isCatchup = session.isCatchup,
       date = session.startsAt.toLocalDate(),
       time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
-      timeWithCapitalisedMidday = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime(), capitaliseSpecialTimes = true),
+      timeWithCapitalisedMidday = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime(), capitaliseMidday = true),
       unformattedEndDate = session.endsAt,
       scheduledToAttend = session.attendees.map { it.personName },
       facilitators = session.sessionFacilitators.sortedBy { it.facilitator.personName }

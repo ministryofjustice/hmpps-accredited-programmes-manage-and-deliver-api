@@ -61,7 +61,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeForUiDisplay
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeOfSession
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -733,8 +733,8 @@ class ReferralService(
             popName = referral.personName,
             date = session.startsAt.format(DateTimeFormatter.ofPattern("d MMMM yyyy")),
             unformattedDate = session.startsAt,
-            time = "${formatTimeForUiDisplay(session.startsAt.toLocalTime())} to ${formatTimeForUiDisplay(session.endsAt.toLocalTime())}",
-            timeWithCapitalisedMidday = "${formatTimeForUiDisplay(session.startsAt.toLocalTime(), capitaliseSpecialTimes = true)} to ${formatTimeForUiDisplay(session.endsAt.toLocalTime(), capitaliseSpecialTimes = true)}",
+            time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
+            timeWithCapitalisedMidday = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime(), capitaliseMidday = true),
             attendanceStatus = programmeGroupService.getAttendanceTextFromOutcome(latestAttendance?.outcomeType),
             hasNotes = latestAttendance?.notesHistory?.isNotEmpty() == true,
             isCatchup = session.isCatchup,
