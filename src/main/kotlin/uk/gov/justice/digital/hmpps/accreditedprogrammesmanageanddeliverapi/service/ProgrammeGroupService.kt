@@ -473,6 +473,11 @@ class ProgrammeGroupService(
               scheduledSession.startsAt.toLocalTime(),
               scheduledSession.endsAt.toLocalTime(),
             ),
+            timeWithCapitalisedMidday = formatTimeOfSession(
+              scheduledSession.startsAt.toLocalTime(),
+              scheduledSession.endsAt.toLocalTime(),
+              capitaliseSpecialTimes = true,
+            ),
             participants = when {
               sessionTemplate.sessionType == SessionType.GROUP && !scheduledSession.isCatchup -> listOf("All")
               sessionTemplate.sessionType == SessionType.ONE_TO_ONE -> scheduledSession.attendees.map { it.personName }

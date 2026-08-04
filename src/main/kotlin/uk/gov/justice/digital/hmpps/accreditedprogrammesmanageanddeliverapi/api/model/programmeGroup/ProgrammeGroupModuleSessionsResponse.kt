@@ -77,6 +77,9 @@ data class ProgrammeGroupModuleSessionsResponseGroupSession(
   @Schema(description = "The time of the session", required = true, example = "11am")
   val timeOfSession: String,
 
+  @Schema(description = "The time of the session with special times capitalised", required = true, example = "11am to Midday")
+  val timeWithCapitalisedMidday: String = "",
+
   @Schema(description = "The names of the participants in the session", required = true, example = "[\"John Doe\", \"Jane Smith\"]")
   val participants: List<String>,
 
