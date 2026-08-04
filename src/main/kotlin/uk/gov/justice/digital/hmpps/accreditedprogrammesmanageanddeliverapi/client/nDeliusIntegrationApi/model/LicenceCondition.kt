@@ -1,6 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model
 
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 
 data class LicenceCondition(
   val id: Long,
@@ -9,7 +9,7 @@ data class LicenceCondition(
   val manager: Manager,
   val probationDeliveryUnits: List<PduOfficeLocations>,
   val eventNumber: String,
-  val createdAt: LocalDateTime,
+  val createdAt: ZonedDateTime,
 )
 
 data class LicenceConditions(

@@ -461,4 +461,52 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
     assertThat(updatedReferral3?.eventNumber).isEqualTo(5)
     assertThat(updatedReferral3?.eventId).isEqualTo("2500910296")
   }
+
+  @Test
+  fun `should not update referral event number if a duplicate referral already exists`() {
+    // Given
+    val crn = "X123456"
+    val duplicateEventId = "2500949965"
+
+    // 1. Existing referral with the target eventId
+    testReferralHelper.createReferral(
+      crn = crn,
+      sourcedFrom = ReferralEntitySourcedFrom.REQUIREMENT,
+      sourcedFromReference = duplicateEventId,
+      eventNumber = 3,
+    )
+
+    // 2. Referral with invalid event number that would resolve to the same eventId
+    val referralToResolve = testReferralHelper.createReferral(
+      crn = crn,
+      sourcedFrom = ReferralEntitySourcedFrom.REQUIREMENT,
+      eventNumber = 0,
+    )
+
+    // Stub nDelius to return the same requirement (eventId) for the CRN
+    nDeliusApiStubs.stubSuccessfulRequirementsResponse(
+      crn,
+      Requirements(
+        content = listOf(
+          RequirementFactory()
+            .withId(duplicateEventId.toLong())
+            .withSubCategory(CodeDescription("734", "Building Choices"))
+            .withEventNumber("3")
+            .produce(),
+        ),
+      ),
+    )
+
+    // When
+    performRequestAndExpectStatusNoBody(
+      HttpMethod.PUT,
+      "/admin/resolve-referral-event-numbers",
+      expectedResponseStatus = HttpStatus.OK.value(),
+    )
+
+    // Then
+    val unresolvedReferral = referralRepository.findByIdOrNull(referralToResolve.id!!)
+    assertThat(unresolvedReferral?.eventNumber).isEqualTo(0)
+    assertThat(unresolvedReferral?.eventId).isNotEqualTo(duplicateEventId)
+  }
 }
