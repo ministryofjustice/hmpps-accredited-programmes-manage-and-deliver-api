@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
@@ -34,7 +33,6 @@ class AdminService(
   private val pniService: PniService,
   private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
   private val transactionTemplate: TransactionTemplate,
-  private val telemetryClient: TelemetryClient,
   private val messageHistoryRepository: MessageHistoryRepository,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)

@@ -61,6 +61,54 @@ can optionally be run in detached mode in order to retain terminal use
 docker-compose up -d
 ```
 
+### Running the full stack locally (Makefile)
+
+There is a `Makefile` that runs the whole local stack for backend development. It brings up the
+service dependencies (`HMPPS Auth`, Postgres, Localstack and Wiremock) and the UI in docker, while
+you run the API itself from IntelliJ so it can be debugged. For this reason the `docker-compose.yml`
+does not include the API.
+
+To bring up the dependencies and the UI run the following command. This waits for the containers to
+become healthy and then prints the local URLs.
+
+```zsh
+make local-up
+```
+
+| Service    | URL                        |
+|------------|----------------------------|
+| UI         | http://localhost:3000      |
+| HMPPS Auth | http://localhost:8090/auth |
+| Postgres   | localhost:5432             |
+| Wiremock   | http://localhost:9095      |
+| Localstack | http://localhost:4566      |
+
+Once the containers are up, start the API from IntelliJ using the `dev,local,seeding` profiles. The
+`seeding` profile enables the `/dev/seed/*` endpoints used to generate test data. The UI reaches the
+API on the host via `host.docker.internal:8080`, so the API must use the local `HMPPS Auth` at
+`http://localhost:8090/auth` in order for tokens issued to the UI to validate against the same
+instance.
+
+With the API running you can seed test data. By default this creates 50 referrals and 5 groups,
+which can be overridden with `SEED_COUNT` and `GROUP_COUNT`. Seeding restarts Wiremock afterwards so
+it serves the new person stubs the API writes into `./wiremock_mappings/seeded`.
+
+```zsh
+make seed
+make seed SEED_COUNT=100 GROUP_COUNT=10
+```
+
+The remaining targets manage the containers and seeded data.
+
+| Target          | Description                                                       |
+|-----------------|------------------------------------------------------------------|
+| `make down`     | Stop and remove the containers                                    |
+| `make clean`    | Stop and remove the containers and volumes, wiping the database   |
+| `make logs`     | Follow logs from all containers                                   |
+| `make ps`       | Show container status                                             |
+| `make teardown` | Remove all seeded data                                            |
+| `make reseed`   | Run `teardown` then `seed` for a clean, repeatable data set       |
+
 ### Connecting to local database
 
 The service uses a postgres database alongside flyway migrations to create and populate the database. To connect to the

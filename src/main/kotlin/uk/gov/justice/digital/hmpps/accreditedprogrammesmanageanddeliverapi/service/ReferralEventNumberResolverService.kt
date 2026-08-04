@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -9,7 +8,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LicenceConditions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Requirements
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LICENCE_CONDITIONS_N_DELIUS
@@ -17,6 +15,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REQUIREMENTS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 
 private const val REQUIREMENT_BUILDING_CHOICES_SUBCATEGORY_CODE = "734"
 private const val LICENCE_CONDITION_BUILDING_CHOICES_SUBCATEGORY_CODE = "LC266"
@@ -27,7 +26,7 @@ private const val BUILDING_CHOICES_SUBCATEGORY_DESCRIPTION = "Building Choices"
 class ReferralEventNumberResolverService(
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val referralRepository: ReferralRepository,
-  private val telemetryClient: TelemetryClient,
+  private val telemetryService: TelemetryService,
 ) {
 
   companion object {
@@ -58,7 +57,9 @@ class ReferralEventNumberResolverService(
 
     return when (referral.sourcedFrom) {
       ReferralEntitySourcedFrom.REQUIREMENT -> resolveRequirement(referral)
+
       ReferralEntitySourcedFrom.LICENCE_CONDITION -> resolveLicenceCondition(referral)
+
       else -> {
         log.error("${referral.sourcedFrom} is not a valid value")
         false
@@ -173,24 +174,20 @@ class ReferralEventNumberResolverService(
         nDeliusIntegrationApiClient.getLicenceConditions(referral.crn)
     ) {
       is ClientResult.Success -> {
-        telemetryClient.logToAppInsights(
-          "${GET_LICENCE_CONDITIONS_N_DELIUS.eventName}.success",
-          mapOf(
-            "integrationActionType" to GET_LICENCE_CONDITIONS_N_DELIUS.name,
-            "outcome" to "success",
-          ),
+        telemetryService.logToAppInsights(
+          eventName = "${GET_LICENCE_CONDITIONS_N_DELIUS.eventName}.success",
+          integrationActionType = GET_LICENCE_CONDITIONS_N_DELIUS.name,
+          outcome = "success",
         )
         response.body
       }
 
       else -> {
         log.error("Could not fetch Licence conditions for referral with CRN ${referral.crn}")
-        telemetryClient.logToAppInsights(
-          "${GET_LICENCE_CONDITIONS_N_DELIUS.eventName}.failure",
-          mapOf(
-            "integrationActionType" to GET_LICENCE_CONDITIONS_N_DELIUS.name,
-            "outcome" to "failure",
-          ),
+        telemetryService.logToAppInsights(
+          eventName = "${GET_LICENCE_CONDITIONS_N_DELIUS.eventName}.failure",
+          integrationActionType = GET_LICENCE_CONDITIONS_N_DELIUS.name,
+          outcome = "failure",
         )
         null
       }
@@ -207,12 +204,10 @@ class ReferralEventNumberResolverService(
         nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(referral.crn, eventId)
     ) {
       is ClientResult.Success -> {
-        telemetryClient.logToAppInsights(
-          "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.success",
-          mapOf(
-            "integrationActionType" to GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
-            "outcome" to "success",
-          ),
+        telemetryService.logToAppInsights(
+          eventName = "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.success",
+          integrationActionType = GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
+          outcome = "success",
         )
 
         response.body
@@ -220,12 +215,10 @@ class ReferralEventNumberResolverService(
 
       else -> {
         log.error("Could not fetch a Licence condition with ID $eventId, for Referral with ID: ${referral.id}")
-        telemetryClient.logToAppInsights(
-          "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
-          mapOf(
-            "integrationActionType" to GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
-            "outcome" to "failure",
-          ),
+        telemetryService.logToAppInsights(
+          eventName = "${GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
+          integrationActionType = GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS.name,
+          outcome = "failure",
         )
         null
       }
@@ -239,24 +232,20 @@ class ReferralEventNumberResolverService(
         nDeliusIntegrationApiClient.getRequirements(referral.crn)
     ) {
       is ClientResult.Success -> {
-        telemetryClient.logToAppInsights(
-          "${GET_REQUIREMENTS_N_DELIUS.eventName}.success",
-          mapOf(
-            "integrationActionType" to GET_REQUIREMENTS_N_DELIUS.name,
-            "outcome" to "success",
-          ),
+        telemetryService.logToAppInsights(
+          eventName = "${GET_REQUIREMENTS_N_DELIUS.eventName}.success",
+          integrationActionType = GET_REQUIREMENTS_N_DELIUS.name,
+          outcome = "success",
         )
         response.body
       }
 
       else -> {
         log.error("Could not fetch requirements for referral with CRN ${referral.crn}")
-        telemetryClient.logToAppInsights(
-          "${GET_REQUIREMENTS_N_DELIUS.eventName}.failure",
-          mapOf(
-            "integrationActionType" to GET_REQUIREMENTS_N_DELIUS.name,
-            "outcome" to "failure",
-          ),
+        telemetryService.logToAppInsights(
+          eventName = "${GET_REQUIREMENTS_N_DELIUS.eventName}.failure",
+          integrationActionType = GET_REQUIREMENTS_N_DELIUS.name,
+          outcome = "failure",
         )
         null
       }
@@ -273,24 +262,20 @@ class ReferralEventNumberResolverService(
         nDeliusIntegrationApiClient.getRequirementManagerDetails(referral.crn, eventId)
     ) {
       is ClientResult.Success -> {
-        telemetryClient.logToAppInsights(
-          "${GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.success",
-          mapOf(
-            "integrationActionType" to GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
-            "outcome" to "success",
-          ),
+        telemetryService.logToAppInsights(
+          eventName = "${GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.success",
+          integrationActionType = GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
+          outcome = "success",
         )
         response.body
       }
 
       else -> {
         log.error("Could not fetch a Requirement with ID $eventId, for Referral with ID: ${referral.id}")
-        telemetryClient.logToAppInsights(
-          "${GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
-          mapOf(
-            "integrationActionType" to GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
-            "outcome" to "failure",
-          ),
+        telemetryService.logToAppInsights(
+          eventName = "${GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.eventName}.failure",
+          integrationActionType = GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS.name,
+          outcome = "failure",
         )
         null
       }
@@ -302,9 +287,9 @@ class ReferralEventNumberResolverService(
       "Could not resolve a valid event number and event id for Referral with ID '${referral.id}'. Keeping event number as 0.",
     )
 
-    telemetryClient.logToAppInsights(
-      "Referral.event-number-resolution.failure",
-      mapOf(
+    telemetryService.logToAppInsights(
+      eventName = "Referral.event-number-resolution.failure",
+      properties = mapOf(
         "referralId" to referral.id.toString(),
       ),
     )
@@ -315,9 +300,9 @@ class ReferralEventNumberResolverService(
       "Resolved event number for Referral with ID '${referral.id}' - New event number is '$newEventNumber'. New event ID is '$newEventId'.",
     )
 
-    telemetryClient.logToAppInsights(
-      "Referral.event-number-resolution.success",
-      mapOf(
+    telemetryService.logToAppInsights(
+      eventName = "Referral.event-number-resolution.success",
+      properties = mapOf(
         "referralId" to referral.id.toString(),
         "newEventNumber" to newEventNumber.toString(),
         "newEventId" to newEventId,

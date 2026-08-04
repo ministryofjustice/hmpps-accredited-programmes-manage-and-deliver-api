@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
@@ -22,19 +21,21 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LIMITED_ACCESS_OFFENDER_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.UserRegionOverrideRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
 @ExtendWith(MockKExtension::class)
-class ServiceUserServiceTest {
+class UserServiceTest {
 
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient = mockk()
   private val hmppsAuthenticationHolder: HmppsAuthenticationHolder = mockk()
-  private val telemetryClient: TelemetryClient = mockk()
+  private val telemetryService: TelemetryService = mockk()
   private val userRegionOverrideRepository: UserRegionOverrideRepository = mockk()
-  private val service = UserService(nDeliusIntegrationApiClient, hmppsAuthenticationHolder, telemetryClient, userRegionOverrideRepository)
+  private val service =
+    UserService(nDeliusIntegrationApiClient, hmppsAuthenticationHolder, telemetryService, userRegionOverrideRepository)
 
   @BeforeEach
   fun setUp() {
@@ -45,7 +46,7 @@ class ServiceUserServiceTest {
   @Test
   fun `getUserRegionNames should merge nDelius regions with manual overrides`() {
     val username = "jsmith"
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
     every { nDeliusIntegrationApiClient.getTeamsForUser(username) } returns ClientResult.Success(
       body = NDeliusUserTeams(
         teams = listOf(
@@ -77,7 +78,7 @@ class ServiceUserServiceTest {
   @Test
   fun `getUserRegionNames should return manual overrides when nDelius teams cannot be loaded`() {
     val username = "jsmith"
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
     every { nDeliusIntegrationApiClient.getTeamsForUser(username) } returns ClientResult.Failure.StatusCode(
       method = HttpMethod.GET,
       path = "/user/$username/teams",
@@ -112,7 +113,7 @@ class ServiceUserServiceTest {
     } returns ClientResult.Success(body = accessResponse, status = HttpStatusCode.valueOf(200))
     every { nDeliusIntegrationApiClient.getPersonalDetails(identifier) } returns
       ClientResult.Success(body = personalDetails, status = HttpStatusCode.valueOf(200))
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
     val result = service.getPersonalDetailsByIdentifier(identifier)
@@ -128,6 +129,13 @@ class ServiceUserServiceTest {
     assertEquals(personalDetails.probationDeliveryUnit, result.probationDeliveryUnit)
 
     verify { nDeliusIntegrationApiClient.getPersonalDetails(identifier) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "PersonalDetails.get-nDelius.success",
+        integrationActionType = "GET_PERSONAL_DETAILS_N_DELIUS",
+        outcome = "success",
+      )
+    }
   }
 
   @Test
@@ -150,7 +158,7 @@ class ServiceUserServiceTest {
     } returns ClientResult.Success(body = accessResponse, status = HttpStatusCode.valueOf(200))
     every { nDeliusIntegrationApiClient.getPersonalDetails(identifier) } returns
       ClientResult.Success(body = personalDetails, status = HttpStatusCode.valueOf(200))
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
     val result = service.getPersonalDetailsByIdentifier(identifier)
@@ -166,7 +174,13 @@ class ServiceUserServiceTest {
     assertEquals(personalDetails.probationDeliveryUnit, result.probationDeliveryUnit)
 
     verify { nDeliusIntegrationApiClient.getPersonalDetails(identifier) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "PersonalDetails.get-nDelius.success",
+        integrationActionType = "GET_PERSONAL_DETAILS_N_DELIUS",
+        outcome = "success",
+      )
+    }
   }
 
   @Test
@@ -185,7 +199,7 @@ class ServiceUserServiceTest {
     every {
       nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, identifiers)
     } returns ClientResult.Success(body = accessResponse, status = HttpStatusCode.valueOf(200))
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
     val result = service.getAccessibleOffenders(username, identifiers)
@@ -193,7 +207,13 @@ class ServiceUserServiceTest {
     // Then
     assertEquals(setOf("X123456"), result)
     verify { nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, identifiers) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "LimitedAccessOffender.get-nDelius.success",
+        integrationActionType = "GET_LIMITED_ACCESS_OFFENDER_N_DELIUS",
+        outcome = "success",
+      )
+    }
   }
 
   @Test
@@ -214,7 +234,7 @@ class ServiceUserServiceTest {
     every {
       nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier))
     } returns ClientResult.Success(body = accessResponse, status = HttpStatusCode.valueOf(200))
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
     val result = service.hasAccessToLimitedAccessOffender(username, identifier)
@@ -222,7 +242,13 @@ class ServiceUserServiceTest {
     // Then
     assertTrue(result)
     verify { nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier)) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "LimitedAccessOffender.get-nDelius.success",
+        integrationActionType = GET_LIMITED_ACCESS_OFFENDER_N_DELIUS.name,
+        outcome = "success",
+      )
+    }
   }
 
   @Test
@@ -243,7 +269,7 @@ class ServiceUserServiceTest {
     every {
       nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier))
     } returns ClientResult.Success(body = accessResponse, status = HttpStatusCode.valueOf(200))
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
     val result = service.hasAccessToLimitedAccessOffender(username, identifier)
@@ -251,7 +277,13 @@ class ServiceUserServiceTest {
     // Then
     assertFalse(result)
     verify { nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier)) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "LimitedAccessOffender.get-nDelius.success",
+        integrationActionType = "GET_LIMITED_ACCESS_OFFENDER_N_DELIUS",
+        outcome = "success",
+      )
+    }
   }
 
   @Test
@@ -272,7 +304,7 @@ class ServiceUserServiceTest {
     every {
       nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier))
     } returns ClientResult.Success(body = accessResponse, status = HttpStatusCode.valueOf(200))
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
     val result = service.hasAccessToLimitedAccessOffender(username, identifier)
@@ -280,7 +312,13 @@ class ServiceUserServiceTest {
     // Then
     assertFalse(result)
     verify { nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier)) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "LimitedAccessOffender.get-nDelius.success",
+        integrationActionType = "GET_LIMITED_ACCESS_OFFENDER_N_DELIUS",
+        outcome = "success",
+      )
+    }
   }
 
   @Test
@@ -292,13 +330,19 @@ class ServiceUserServiceTest {
     every {
       nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier))
     } returns ClientResult.Success(body = accessResponse, status = HttpStatusCode.valueOf(200))
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     val result = service.hasAccessToLimitedAccessOffender(username, identifier)
 
     assertFalse(result)
     verify { nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier)) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "LimitedAccessOffender.get-nDelius.success",
+        integrationActionType = "GET_LIMITED_ACCESS_OFFENDER_N_DELIUS",
+        outcome = "success",
+      )
+    }
   }
 
   @Test
@@ -315,7 +359,7 @@ class ServiceUserServiceTest {
       status = HttpStatusCode.valueOf(500),
       body = """{"error":"Access check failed"}""",
     )
-    every { telemetryClient.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
     val exception = assertThrows<RuntimeException> {
@@ -325,6 +369,12 @@ class ServiceUserServiceTest {
     // Then
     assertTrue(exception.message!!.contains("Unable to complete POST request"))
     verify { nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, listOf(identifier)) }
-    verify { telemetryClient.logToAppInsights(any(), any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "LimitedAccessOffender.get-nDelius.failure",
+        integrationActionType = "GET_LIMITED_ACCESS_OFFENDER_N_DELIUS",
+        outcome = "failure",
+      )
+    }
   }
 }
