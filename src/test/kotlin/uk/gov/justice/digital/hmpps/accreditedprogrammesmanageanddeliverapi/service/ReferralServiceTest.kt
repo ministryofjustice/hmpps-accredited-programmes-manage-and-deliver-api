@@ -100,6 +100,7 @@ class ReferralServiceTest {
       referralEventNumberResolverService = referralEventNumberResolverService,
       applicationEventPublisher = applicationEventPublisher,
       probationAccessControlApiClient = probationAccessControlApiClient,
+      true,
     )
   }
 

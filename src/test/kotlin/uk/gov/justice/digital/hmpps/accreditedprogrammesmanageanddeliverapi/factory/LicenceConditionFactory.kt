@@ -6,7 +6,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Manager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.PduOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 
 class LicenceConditionFactory {
   private var id: Long = 1L
@@ -30,7 +30,7 @@ class LicenceConditionFactory {
     ),
   )
   private var eventNumber: String = "1"
-  private var createdAt: LocalDateTime = LocalDateTime.now()
+  private var createdAt: ZonedDateTime = ZonedDateTime.now()
 
   fun withId(id: Long) = apply { this.id = id }
   fun withMainCategory(mainCategory: CodeDescription) = apply { this.mainCategory = mainCategory }
@@ -38,7 +38,7 @@ class LicenceConditionFactory {
   fun withManager(manager: Manager) = apply { this.manager = manager }
   fun withProbationDeliveryUnits(probationDeliveryUnits: List<PduOfficeLocations>) = apply { this.probationDeliveryUnits = probationDeliveryUnits }
   fun withEventNumber(eventNumber: String) = apply { this.eventNumber = eventNumber }
-  fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
+  fun withCreatedAt(createdAt: ZonedDateTime) = apply { this.createdAt = createdAt }
 
   fun produce() = LicenceCondition(
     id = id,

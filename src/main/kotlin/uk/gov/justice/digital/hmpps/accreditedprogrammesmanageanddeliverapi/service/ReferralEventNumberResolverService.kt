@@ -70,10 +70,14 @@ class ReferralEventNumberResolverService(
   private fun resolveLicenceCondition(referral: ReferralEntity): Boolean {
     val licenceConditions = getLicenceConditions(referral)
 
-    licenceConditions?.content?.takeIf { it.isNotEmpty() }?.first {
+    licenceConditions?.content?.takeIf { it.isNotEmpty() }?.firstOrNull {
       it.subCategory?.code == LICENCE_CONDITION_BUILDING_CHOICES_SUBCATEGORY_CODE &&
         it.subCategory.description == BUILDING_CHOICES_SUBCATEGORY_DESCRIPTION
     }?.let {
+      if (duplicateReferralDetailsExists(referral, it.id.toString())) {
+        log.warn("Existing referral details found for crn: ${referral.crn}, event_id: ${it.id}, sourced_from: ${referral.sourcedFrom}")
+        return false
+      }
       referral.eventNumber = it.eventNumber.toInt()
       referral.eventId = it.id.toString()
       referralRepository.save(referral)
@@ -86,11 +90,15 @@ class ReferralEventNumberResolverService(
   private fun resolveRequirement(referral: ReferralEntity): Boolean {
     val requirements = getRequirements(referral)
 
-    val buildingChoicesRequirement = requirements?.content?.takeIf { it.isNotEmpty() }?.first {
+    val buildingChoicesRequirement = requirements?.content?.takeIf { it.isNotEmpty() }?.firstOrNull {
       it.subCategory?.code == REQUIREMENT_BUILDING_CHOICES_SUBCATEGORY_CODE &&
         it.subCategory.description == BUILDING_CHOICES_SUBCATEGORY_DESCRIPTION
     }
     buildingChoicesRequirement?.let {
+      if (duplicateReferralDetailsExists(referral, it.id.toString())) {
+        log.warn("Existing referral details found for crn: ${referral.crn}, event_id: ${it.id}, sourced_from: ${referral.sourcedFrom}")
+        return false
+      }
       referral.eventNumber = it.eventNumber.toInt()
       referral.eventId = it.id.toString()
       referralRepository.save(referral)
@@ -99,6 +107,16 @@ class ReferralEventNumberResolverService(
     } ?: logFailureEvent(referral)
     return false
   }
+
+  // A unique key on the referral table exists to prevent duplicate referrals being created for a given crn, event_id and sourced_from
+  private fun duplicateReferralDetailsExists(
+    referral: ReferralEntity,
+    newEventId: String,
+  ): Boolean = referralRepository.existsByCrnAndEventIdAndSourcedFrom(
+    referral.crn,
+    newEventId,
+    referral.sourcedFrom!!,
+  )
 
   /**
    * When Referrals are populated by the data-importer-service, they have the eventNumber of 0, we know that this

@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
@@ -30,6 +31,8 @@ class ReferralCaseListItemService(
   private val referralStatusService: ReferralStatusService,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
   private val probationAccessControlApiClient: ProbationAccessControlApiClient,
+  @Value("\${app.features.lao-access-check-enabled}")
+  private val laoAccessCheckEnabled: Boolean,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
   fun getReferralCaseListItemServiceByCriteria(
@@ -62,11 +65,14 @@ class ReferralCaseListItemService(
       pdus = pdus,
       reportingTeams = reportingTeams,
     )
-    val laoByCrn = referralsPage.content
-      .map { it.crn }
-      .distinct()
-      .associateWith(::getLaoByCrn)
-    val referralsToReturn = referralsPage.map { it.toApi(lao = laoByCrn[it.crn] ?: false) }
+    var laoByCrn: Map<String, Boolean>? = null
+    if (laoAccessCheckEnabled) {
+      laoByCrn = referralsPage.content
+        .map { it.crn }
+        .distinct()
+        .associateWith(::getLaoByCrn)
+    }
+    val referralsToReturn = referralsPage.map { it.toApi(lao = laoByCrn?.get(it.crn) ?: false) }
 
     val otherTabCount = getReferralCaseList(
       pageable = pageable,
