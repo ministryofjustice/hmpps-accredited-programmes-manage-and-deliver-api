@@ -65,4 +65,11 @@ data class GroupScheduleOverviewSession(
     example = "Various times",
   )
   val time: String,
+
+  @Schema(
+    description = "The time(s) of the session with special times capitalised. For example Midday or Midnight",
+    required = true,
+    example = "Various times",
+  )
+  val timeWithCapitalisedMidday: String = "",
 )
