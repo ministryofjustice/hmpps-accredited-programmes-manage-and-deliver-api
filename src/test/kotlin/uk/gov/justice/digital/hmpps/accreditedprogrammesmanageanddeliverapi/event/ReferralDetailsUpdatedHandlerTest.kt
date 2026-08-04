@@ -2,23 +2,24 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.eve
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonMapperBuilder
-import com.microsoft.applicationinsights.TelemetryClient
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.ArgumentMatchers.anyMap
+import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mock
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.times
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.DomainEventsMessageFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -33,7 +34,7 @@ class ReferralDetailsUpdatedHandlerTest {
   private lateinit var referralService: ReferralService
 
   @Mock
-  private lateinit var telemetryClient: TelemetryClient
+  private lateinit var telemetryUtils: TelemetryUtils
 
   private lateinit var handler: ReferralDetailsUpdatedHandler
 
@@ -43,7 +44,7 @@ class ReferralDetailsUpdatedHandlerTest {
       objectMapper = objectMapper,
       messageHistoryRepository = messageHistoryRepository,
       referralService = referralService,
-      telemetryClient = telemetryClient,
+      telemetryUtils = telemetryUtils,
     )
   }
 
@@ -61,7 +62,7 @@ class ReferralDetailsUpdatedHandlerTest {
     handler.handle(sqsMessage)
 
     // Then
-    verify(telemetryClient).trackEvent(any(), any(), anyOrNull())
+    verify(telemetryUtils).logToAppInsights(anyString(), anyMap())
     verify(messageHistoryRepository, times(0)).save(any())
     runBlocking {
       verify(referralService, times(0)).refreshPersonalDetailsForReferral(any(), any())
@@ -87,7 +88,7 @@ class ReferralDetailsUpdatedHandlerTest {
     handler.handle(sqsMessage)
 
     // Then
-    verify(telemetryClient, times(2)).trackEvent(any(), any(), anyOrNull())
+    verify(telemetryUtils, times(2)).logToAppInsights(anyString(), anyMap())
     verify(messageHistoryRepository).save(any())
     runBlocking {
       verify(referralService).refreshPersonalDetailsForReferral(referralId, false)
@@ -113,7 +114,7 @@ class ReferralDetailsUpdatedHandlerTest {
     handler.handle(sqsMessage)
 
     // Then
-    verify(telemetryClient, times(2)).trackEvent(any(), any(), anyOrNull())
+    verify(telemetryUtils, times(2)).logToAppInsights(anyString(), anyMap())
     verify(messageHistoryRepository).save(any())
     runBlocking {
       verify(referralService).refreshPersonalDetailsForReferral(referralId, false)

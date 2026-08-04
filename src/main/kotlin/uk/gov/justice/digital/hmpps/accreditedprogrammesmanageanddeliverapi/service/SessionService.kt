@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -33,7 +32,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.AppointmentUpdateException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
@@ -54,6 +52,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
 import java.time.Clock
 import java.time.Duration
 import java.time.LocalDateTime
@@ -73,7 +72,7 @@ class SessionService(
   private val sessionAttendanceOutcomeTypeRepository: SessionAttendanceOutcomeTypeRepository,
   private val sessionNameFormatter: SessionNameFormatter,
   private val referralStatusService: ReferralStatusService,
-  private val telemetryClient: TelemetryClient,
+  private val telemetryUtils: TelemetryUtils,
   private val authenticationUtils: AuthenticationUtils,
   private val userService: UserService,
   private val regionService: RegionService,
@@ -227,12 +226,10 @@ class SessionService(
     ) {
       is ClientResult.Failure -> {
         log.warn("Failure to update appointments: ${response.getErrorMessage()}")
-        telemetryClient.logToAppInsights(
-          "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
-          mapOf(
-            "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
-            "outcome" to "failure",
-          ),
+        telemetryUtils.logToAppInsights(
+          eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+          integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
+          outcome = "failure",
         )
         throw AppointmentUpdateException("Failure to update appointments", response.toException())
       }
@@ -243,12 +240,10 @@ class SessionService(
             sessionsWithAppointment.map { it.id }.joinToString(", ")
           }",
         )
-        telemetryClient.logToAppInsights(
-          "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
-          mapOf(
-            "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
-            "outcome" to "success",
-          ),
+        telemetryUtils.logToAppInsights(
+          eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
+          integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
+          outcome = "success",
         )
       }
     }
@@ -264,24 +259,20 @@ class SessionService(
     ) {
       is ClientResult.Failure -> {
         log.warn("Failure to update appointments: ${response.getErrorMessage()}")
-        telemetryClient.logToAppInsights(
-          "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
-          mapOf(
-            "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
-            "outcome" to "failure",
-          ),
+        telemetryUtils.logToAppInsights(
+          eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+          integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
+          outcome = "failure",
         )
         throw AppointmentUpdateException("Failure to update appointments", response.toException())
       }
 
       is ClientResult.Success -> {
         log.info("${updateRequests.size} appointments updated in nDelius for session with id: ${session.id}")
-        telemetryClient.logToAppInsights(
-          "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
-          mapOf(
-            "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
-            "outcome" to "success",
-          ),
+        telemetryUtils.logToAppInsights(
+          eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
+          integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
+          outcome = "success",
         )
       }
     }
@@ -479,20 +470,6 @@ class SessionService(
     session.attendances.addAll(sessionAttendanceEntities)
     sessionRepository.save(session)
 
-    changedAttendees.firstOrNull()?.let { attendee ->
-      val referral = referralRepository.findByIdOrNull(attendee.referralId)
-      val programmeGroupMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referral?.id!!)
-      telemetryClient.logToAppInsights(
-        "Session.create-attendance.success",
-        mapOf(
-          "activityType" to RECORD_ATTENDANCE.name,
-          "regionName" to (referral.referralReportingLocation?.regionName ?: ""),
-          "deliveryUnitCode" to (referral.referralReportingLocation?.pduName ?: ""),
-          "deliveryLocation" to (programmeGroupMembership?.programmeGroup?.deliveryLocationName ?: ""),
-        ),
-      )
-    }
-
     log.info("Starting to update appointments in nDelius for ${changedAttendees.size} of ${sessionAttendance.attendees.size} submitted attendees for session with id: $sessionId")
     val updateAppointmentRequests = changedAttendees.mapNotNull { attendee ->
       val referralId = attendee.referralId
@@ -508,24 +485,20 @@ class SessionService(
       ) {
         is ClientResult.Failure -> {
           log.warn("Failure to update appointments: ${response.getErrorMessage()}")
-          telemetryClient.logToAppInsights(
-            "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
-            mapOf(
-              "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
-              "outcome" to "failure",
-            ),
+          telemetryUtils.logToAppInsights(
+            eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+            integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
+            outcome = "failure",
           )
           throw AppointmentUpdateException("Failure to update appointments", response.toException())
         }
 
         is ClientResult.Success -> {
           log.info("${updateAppointmentRequests.size} appointments created in Ndelius for group with id: ${session.programmeGroup.id}")
-          telemetryClient.logToAppInsights(
-            "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
-            mapOf(
-              "integrationActionType" to UPDATE_APPOINTMENT_N_DELIUS.name,
-              "outcome" to "success",
-            ),
+          telemetryUtils.logToAppInsights(
+            eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
+            integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
+            outcome = "success",
           )
         }
       }
@@ -542,6 +515,17 @@ class SessionService(
           log.error("Failed to check and publish completion event for referral with id: ${attendee.referralId}", e)
         }
       }
+    }
+
+    changedAttendees.firstOrNull()?.let { attendee ->
+      val referral = referralRepository.findByIdOrNull(attendee.referralId)
+      telemetryUtils.logToAppInsights(
+        referralEntity = referral,
+        eventName = "Session.create-attendance.success",
+        activityType = RECORD_ATTENDANCE.name,
+        toReferralStatusId = null,
+        appliedBy = null,
+      )
     }
 
     sessionAttendance.responseMessage = "Attendance saved for session $sessionId"

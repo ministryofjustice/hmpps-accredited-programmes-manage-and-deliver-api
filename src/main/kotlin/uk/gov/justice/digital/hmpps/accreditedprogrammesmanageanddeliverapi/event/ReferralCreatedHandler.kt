@@ -2,16 +2,15 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.eve
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.DomainEventsMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
 import java.util.UUID
 import kotlin.system.measureTimeMillis
 
@@ -21,7 +20,7 @@ class ReferralCreatedHandler(
   private val objectMapper: ObjectMapper,
   private val messageHistoryRepository: MessageHistoryRepository,
   private val referralService: ReferralService,
-  private val telemetryClient: TelemetryClient,
+  private val telemetryUtils: TelemetryUtils,
 ) {
 
   companion object {
@@ -39,9 +38,9 @@ class ReferralCreatedHandler(
     val referralId = UUID.fromString(domainEventMessage.detailUrl.split("/").last())
     log.info("Received referral created event for referral id: $referralId for CRN: ${domainEventMessage.personReference.findCrn()}")
 
-    telemetryClient.logToAppInsights(
-      "Probation.case-requirement.created event received",
-      mapOf(
+    telemetryUtils.logToAppInsights(
+      eventName = "Probation.case-requirement.created event received",
+      properties = mapOf(
         "eventType" to domainEventMessage.eventType,
         "referralId" to referralId.toString(),
         "crn" to domainEventMessage.personReference.findCrn()!!,

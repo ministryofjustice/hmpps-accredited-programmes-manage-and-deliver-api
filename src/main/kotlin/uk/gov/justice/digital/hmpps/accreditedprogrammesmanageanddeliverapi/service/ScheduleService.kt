@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -9,7 +8,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.govUkHolidaysApi.GovUkApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.AppointmentReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
@@ -17,7 +15,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toAppointment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
@@ -38,6 +35,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
 import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -54,7 +52,6 @@ class ScheduleService(
   private val clock: Clock,
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
-  private val govUkApiClient: GovUkApiClient,
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
   private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
   private val facilitatorService: FacilitatorService,
@@ -62,7 +59,7 @@ class ScheduleService(
   private val sessionRepository: SessionRepository,
   private val sessionNameFormatter: SessionNameFormatter,
   private val bankHolidayRepository: BankHolidayRepository,
-  private val telemetryClient: TelemetryClient,
+  private val telemetryUtils: TelemetryUtils,
 ) {
 
   private companion object {
@@ -452,9 +449,9 @@ class ScheduleService(
             "CRNs: $affectedCrns, eventNumbers: $affectedEventNumbers, " +
             "responseBody: ${response.body}",
         )
-        telemetryClient.logToAppInsights(
-          "${CREATE_APPOINTMENT_N_DELIUS.eventName}.failure",
-          mapOf(
+        telemetryUtils.logToAppInsights(
+          eventName = "${CREATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+          properties = mapOf(
             "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
             "outcome" to "failure",
             "statusCode" to response.status.toString(),
@@ -470,9 +467,9 @@ class ScheduleService(
         // The generic .failure event above still fires — this is an additional slice
         // for observability, not a replacement.
         if (response.body?.contains("Invalid Requirement IDs") == true) {
-          telemetryClient.logToAppInsights(
-            "${CREATE_APPOINTMENT_N_DELIUS.eventName}.terminated-requirement",
-            mapOf(
+          telemetryUtils.logToAppInsights(
+            eventName = "${CREATE_APPOINTMENT_N_DELIUS.eventName}.terminated-requirement",
+            properties = mapOf(
               "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
               "outcome" to "terminated-requirement",
               "crns" to affectedCrns.joinToString(","),
@@ -492,9 +489,9 @@ class ScheduleService(
             "exception: ${response.exception.message}",
           response.exception,
         )
-        telemetryClient.logToAppInsights(
-          "${CREATE_APPOINTMENT_N_DELIUS.eventName}.failure",
-          mapOf(
+        telemetryUtils.logToAppInsights(
+          eventName = "${CREATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+          properties = mapOf(
             "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
             "outcome" to "failure",
             "crns" to affectedCrns.joinToString(","),
@@ -511,9 +508,9 @@ class ScheduleService(
 
       is ClientResult.Success -> {
         log.info("${nDeliusAppointments.size} appointments created in nDelius for groupId: $groupId, CRNs: $affectedCrns")
-        telemetryClient.logToAppInsights(
-          "${CREATE_APPOINTMENT_N_DELIUS.eventName}.success",
-          mapOf(
+        telemetryUtils.logToAppInsights(
+          eventName = "${CREATE_APPOINTMENT_N_DELIUS.eventName}.success",
+          properties = mapOf(
             "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
             "outcome" to "success",
             "appointmentCount" to nDeliusAppointments.size.toString(),
@@ -605,36 +602,6 @@ class ScheduleService(
     return schedule
   }
 
-  private fun englandAndWalesHolidayDatesFromApi(): Set<LocalDate> = when (val response = govUkApiClient.getHolidays()) {
-    is ClientResult.Failure.StatusCode -> {
-      log.warn("Failed to retrieve UK bank holidays - Status: ${response.status}, Path: ${response.path}, Body: ${response.body}")
-      throw BusinessException(
-        "Could not retrieve bank holidays from GovUk Api. Status: ${response.status}",
-        response.toException(),
-      )
-    }
-
-    is ClientResult.Failure.Other -> {
-      log.warn(
-        "Failed to retrieve UK bank holidays - Service: ${response.serviceName}, Exception: ${response.exception.message}",
-        response.exception,
-      )
-      throw BusinessException(
-        "Could not retrieve bank holidays from GovUk Api: ${response.exception.message}",
-        response.exception,
-      )
-    }
-
-    is ClientResult.Success -> {
-      log.debug("Successfully retrieved UK bank holidays...")
-      response.body.englandAndWales.events
-        .mapNotNull { event ->
-          runCatching { LocalDate.parse(event.date) }.getOrNull()
-        }
-        .toSet()
-    }
-  }
-
   private fun convertToLocalDateTime(startDate: LocalDate, sessionTime: SessionTime): LocalDateTime = LocalDateTime.of(
     startDate,
     LocalTime.of(
@@ -665,12 +632,10 @@ class ScheduleService(
           "Failure deleting appointments in nDelius with reason: ${response.getErrorMessage()}",
           response.toException(),
         )
-        telemetryClient.logToAppInsights(
-          "${DELETE_APPOINTMENT_N_DELIUS.eventName}.failure",
-          mapOf(
-            "integrationActionType" to DELETE_APPOINTMENT_N_DELIUS.name,
-            "outcome" to "failure",
-          ),
+        telemetryUtils.logToAppInsights(
+          eventName = "${DELETE_APPOINTMENT_N_DELIUS.eventName}.failure",
+          integrationActionType = DELETE_APPOINTMENT_N_DELIUS.name,
+          outcome = "failure",
         )
         throw BusinessException(
           "Failure deleting appointments in nDelius with status code : ${response.status}",
@@ -683,12 +648,10 @@ class ScheduleService(
           "Failure to delete appointments - Service: ${response.serviceName}, Exception: ${response.exception.message}",
           response.exception,
         )
-        telemetryClient.logToAppInsights(
-          "${DELETE_APPOINTMENT_N_DELIUS.eventName}.failure",
-          mapOf(
-            "integrationActionType" to DELETE_APPOINTMENT_N_DELIUS.name,
-            "outcome" to "failure",
-          ),
+        telemetryUtils.logToAppInsights(
+          eventName = "${DELETE_APPOINTMENT_N_DELIUS.eventName}.failure",
+          integrationActionType = DELETE_APPOINTMENT_N_DELIUS.name,
+          outcome = "failure",
         )
         throw BusinessException(
           "Failure to delete appointments in NDelius: ${response.exception.message}",
@@ -702,12 +665,10 @@ class ScheduleService(
             .removeIf { appointment -> appointment.ndeliusAppointmentId in nDeliusAppointmentsToRemove.map { it.ndeliusAppointmentId } }
         }
         log.info("${nDeliusAppointmentsToRemove.size} appointments deleted in NDelius")
-        telemetryClient.logToAppInsights(
-          "${DELETE_APPOINTMENT_N_DELIUS.eventName}.success",
-          mapOf(
-            "integrationActionType" to DELETE_APPOINTMENT_N_DELIUS.name,
-            "outcome" to "success",
-          ),
+        telemetryUtils.logToAppInsights(
+          eventName = "${DELETE_APPOINTMENT_N_DELIUS.eventName}.success",
+          integrationActionType = DELETE_APPOINTMENT_N_DELIUS.name,
+          outcome = "success",
         )
       }
     }

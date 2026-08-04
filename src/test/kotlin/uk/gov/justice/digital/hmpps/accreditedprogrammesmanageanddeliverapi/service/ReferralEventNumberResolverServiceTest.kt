@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -25,13 +24,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Requirements
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.LicenceConditionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.RequirementFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralEventNumberResolverService.Companion.INVALID_EVENT_NUMBER
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -44,7 +43,7 @@ class ReferralEventNumberResolverServiceTest {
   private lateinit var referralRepository: ReferralRepository
 
   @Mock
-  private lateinit var telemetryClient: TelemetryClient
+  private lateinit var telemetryUtils: TelemetryUtils
 
   @InjectMocks
   private lateinit var service: ReferralEventNumberResolverService
@@ -60,7 +59,7 @@ class ReferralEventNumberResolverServiceTest {
     assertThat(result.sourcedFrom).isEqualTo(ReferralEntitySourcedFrom.REQUIREMENT)
     verifyNoInteractions(nDeliusIntegrationApiClient)
     verifyNoInteractions(referralRepository)
-    verifyNoInteractions(telemetryClient)
+    verifyNoInteractions(telemetryUtils)
   }
 
   @Test
@@ -80,7 +79,7 @@ class ReferralEventNumberResolverServiceTest {
 
     // Then
     verify(referralRepository, times(0)).save(any())
-    verifyNoInteractions(telemetryClient)
+    verifyNoInteractions(telemetryUtils)
   }
 
   @Test
@@ -118,13 +117,14 @@ class ReferralEventNumberResolverServiceTest {
     assertThat(referral.eventNumber).isEqualTo(5)
     assertThat(referral.eventId).isEqualTo("484848484")
 
-    val inOrder = inOrder(telemetryClient)
+    val inOrder = inOrder(telemetryUtils)
 
-    inOrder.verify(telemetryClient).logToAppInsights(
-      "LicenceConditions.get-nDelius.success",
-      mapOf("integrationActionType" to "GET_LICENCE_CONDITIONS_N_DELIUS", "outcome" to "success"),
+    inOrder.verify(telemetryUtils).logToAppInsights(
+      eventName = "LicenceConditions.get-nDelius.success",
+      integrationActionType = "GET_LICENCE_CONDITIONS_N_DELIUS",
+      outcome = "success",
     )
-    inOrder.verify(telemetryClient).logToAppInsights(
+    inOrder.verify(telemetryUtils).logToAppInsights(
       "Referral.event-number-resolution.success",
       mapOf("referralId" to "$referralId", "newEventNumber" to "5", "newEventId" to "484848484"),
     )
@@ -165,13 +165,14 @@ class ReferralEventNumberResolverServiceTest {
     assertThat(referral.eventNumber).isEqualTo(2)
     assertThat(referral.eventId).isEqualTo("1684953")
 
-    val inOrder = inOrder(telemetryClient)
+    val inOrder = inOrder(telemetryUtils)
 
-    inOrder.verify(telemetryClient).logToAppInsights(
-      "Requirements.get-nDelius.success",
-      mapOf("integrationActionType" to "GET_REQUIREMENTS_N_DELIUS", "outcome" to "success"),
+    inOrder.verify(telemetryUtils).logToAppInsights(
+      eventName = "Requirements.get-nDelius.success",
+      integrationActionType = "GET_REQUIREMENTS_N_DELIUS",
+      outcome = "success",
     )
-    inOrder.verify(telemetryClient).logToAppInsights(
+    inOrder.verify(telemetryUtils).logToAppInsights(
       "Referral.event-number-resolution.success",
       mapOf("referralId" to "$referralId", "newEventNumber" to "2", "newEventId" to "1684953"),
     )

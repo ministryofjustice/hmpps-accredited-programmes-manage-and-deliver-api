@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.repository.findByIdOrNull
@@ -13,7 +12,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
@@ -28,9 +26,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
 import java.time.Clock
 import java.time.LocalDateTime
 import java.util.UUID
+import kotlin.String
 
 @Service
 @Transactional
@@ -41,7 +41,7 @@ class ProgrammeGroupMembershipService(
   private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository,
   private val scheduleService: ScheduleService,
   private val nDeliusIntegrationApiClient: NDeliusIntegrationApiClient,
-  private val telemetryClient: TelemetryClient,
+  private val telemetryUtils: TelemetryUtils,
   private val applicationEventPublisher: ApplicationEventPublisher,
   private val clock: Clock,
 ) {
@@ -113,14 +113,12 @@ class ProgrammeGroupMembershipService(
 
     applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId))
 
-    telemetryClient.logToAppInsights(
-      "Referral.allocate-to-group.success",
-      mapOf(
-        "activityType" to ASSIGN_REFERRAL_TO_GROUP.name,
-        "regionName" to (savedReferral.referralReportingLocation?.regionName ?: ""),
-        "deliveryUnitCode" to (savedReferral.referralReportingLocation?.pduName ?: ""),
-        "deliveryLocation" to group.deliveryLocationName,
-      ),
+    telemetryUtils.logToAppInsights(
+      referralEntity = savedReferral,
+      eventName = "Referral.allocate-to-group.success",
+      activityType = ASSIGN_REFERRAL_TO_GROUP.name,
+      toReferralStatusId = null,
+      appliedBy = null,
     )
 
     return savedReferral
@@ -170,14 +168,12 @@ class ProgrammeGroupMembershipService(
     val savedReferral = referralRepository.save(referral)
     applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId))
 
-    telemetryClient.logToAppInsights(
-      "Referral.remove-from-group.success",
-      mapOf(
-        "activityType" to REMOVE_REFERRAL_FROM_GROUP.name,
-        "regionName" to (savedReferral.referralReportingLocation?.regionName ?: ""),
-        "deliveryUnitCode" to (savedReferral.referralReportingLocation?.pduName ?: ""),
-        "deliveryLocation" to group.deliveryLocationName,
-      ),
+    telemetryUtils.logToAppInsights(
+      referralEntity = savedReferral,
+      eventName = "Referral.remove-from-group.success",
+      activityType = REMOVE_REFERRAL_FROM_GROUP.name,
+      toReferralStatusId = null,
+      appliedBy = null,
     )
 
     return RemoveFromGroupResponse(
@@ -272,7 +268,7 @@ class ProgrammeGroupMembershipService(
             "does not exist in nDelius for CRN ${referral.crn} (status: ${result.status})",
           result.toException(),
         )
-        telemetryClient.logToAppInsights(
+        telemetryUtils.logToAppInsights(
           "Referral.allocate-to-group.ndelius-stale-sentence-data",
           mapOf(
             "referralId" to referral.id.toString(),
@@ -301,7 +297,7 @@ class ProgrammeGroupMembershipService(
             "to verify $sourceType with ID $eventId for CRN ${referral.crn}",
           result.exception,
         )
-        telemetryClient.logToAppInsights(
+        telemetryUtils.logToAppInsights(
           "Referral.allocate-to-group.ndelius-validation-failure",
           mapOf(
             "referralId" to referral.id.toString(),

@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.scheduled
 
-import com.microsoft.applicationinsights.TelemetryClient
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -9,13 +8,13 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.DomainEventPublisher
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.ACP_M_AND_D_REFERRAL_DETAILS_UPDATED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.DomainEventsMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.PersonReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
 import java.time.Clock
 import java.time.Duration
 import java.time.LocalDateTime
@@ -25,7 +24,7 @@ import java.util.UUID
 @Component
 class ReferralDetailsUpdatedJob(
   private val domainEventPublisher: DomainEventPublisher,
-  private val telemetryClient: TelemetryClient,
+  private val telemetryUtils: TelemetryUtils,
   private val referralService: ReferralService,
   @Value("\${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
   @Value("\${app.scheduling.referral-details-updated.chunk-size:100}") private val pageSize: Int,
@@ -102,9 +101,9 @@ class ReferralDetailsUpdatedJob(
     try {
       domainEventPublisher.publish(domainEventsMessage)
       log.info("Successfully published ${ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value} event for referralId: $referralId")
-      telemetryClient.logToAppInsights(
-        "Referral.details-updated-event-published.success",
-        mapOf(
+      telemetryUtils.logToAppInsights(
+        eventName = "Referral.details-updated-event-published.success",
+        properties = mapOf(
           "referralId" to referralId.toString(),
           "outcome" to "success",
         ),
@@ -114,9 +113,9 @@ class ReferralDetailsUpdatedJob(
         "Unsuccessfully published ${ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value} event for referralId: $referralId with exception: ${exception.message}",
         exception,
       )
-      telemetryClient.logToAppInsights(
-        "Referral.details-updated-event-published.failure",
-        mapOf(
+      telemetryUtils.logToAppInsights(
+        eventName = "Referral.details-updated-event-published.failure",
+        properties = mapOf(
           "referralId" to referralId.toString(),
           "outcome" to "failure",
         ),

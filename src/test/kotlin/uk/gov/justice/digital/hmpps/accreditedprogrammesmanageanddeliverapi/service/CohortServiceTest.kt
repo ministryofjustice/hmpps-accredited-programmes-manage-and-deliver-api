@@ -1,12 +1,14 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import com.microsoft.applicationinsights.TelemetryClient
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
-import org.mockito.Mock
-import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.security.core.Authentication
+import org.springframework.security.core.context.SecurityContext
+import org.springframework.security.core.context.SecurityContextHolder
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.DomainScores
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.IndividualCognitiveScores
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.IndividualRelationshipScores
@@ -22,26 +24,132 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ThinkingDomainScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.NeedLevel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.OverallIntensity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.factory.ReferralCohortHistoryEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TelemetryUtils
+import java.util.UUID
 
-@ExtendWith(MockitoExtension::class)
 class CohortServiceTest {
 
-  @Mock
-  private lateinit var pniService: PniService
+  private val pniService: PniService = mockk()
+  private val referralCohortHistoryRepository: ReferralCohortHistoryRepository = mockk()
+  private val telemetryUtils: TelemetryUtils = mockk()
+  private val programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository = mockk()
 
-  @Mock
-  private lateinit var referralCohortHistoryRepository: ReferralCohortHistoryRepository
-
-  @Mock
-  private lateinit var telemetryClient: TelemetryClient
-
-  @Mock
-  private lateinit var programmeGroupMembershipRepository: ProgrammeGroupMembershipRepository
-
-  @InjectMocks
   private lateinit var cohortService: CohortService
+
+  @BeforeEach
+  fun setup() {
+    cohortService = CohortService(
+      referralCohortHistoryRepository,
+      telemetryUtils,
+    )
+  }
+
+  @Test
+  fun `updateCohortForReferral should save new history when none exists`() {
+    // Given
+    val referralEntity = ReferralEntityFactory().withId(UUID.randomUUID()).produce()
+    val newCohort = OffenceCohort.SEXUAL_OFFENCE
+    val createdBy = "test-user"
+
+    val securityContext = mockk<SecurityContext>()
+    val authentication = mockk<Authentication>()
+    every { securityContext.authentication } returns authentication
+    every { authentication.name } returns createdBy
+    SecurityContextHolder.setContext(securityContext)
+
+    every { referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralEntity.id!!) } returns null
+    every { referralCohortHistoryRepository.save(any()) } returns mockk()
+    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+
+    // When
+    val result = cohortService.updateCohortForReferral(referralEntity, newCohort)
+
+    // Then
+    assertThat(result).isEqualTo(referralEntity)
+    verify {
+      referralCohortHistoryRepository.save(
+        withArg {
+          assertThat(it.referral).isEqualTo(referralEntity)
+          assertThat(it.cohort).isEqualTo(newCohort)
+          assertThat(it.createdBy).isEqualTo(createdBy)
+        },
+      )
+    }
+    verify {
+      telemetryUtils.logToAppInsights(
+        referralEntity = referralEntity,
+        eventName = "Referral.update-cohort.success",
+        activityType = "OVERRIDE_COHORT",
+        toReferralStatusId = null,
+        appliedBy = null,
+      )
+    }
+  }
+
+  @Test
+  fun `updateCohortForReferral should save new history when cohort is different from latest`() {
+    // Given
+    val referralEntity = ReferralEntityFactory().withId(UUID.randomUUID()).produce()
+    val existingHistory = ReferralCohortHistoryEntityFactory()
+      .withReferral(referralEntity)
+      .withCohort(OffenceCohort.GENERAL_OFFENCE)
+      .produce()
+    val newCohort = OffenceCohort.SEXUAL_OFFENCE
+    val createdBy = "test-user"
+
+    val securityContext = mockk<SecurityContext>()
+    val authentication = mockk<Authentication>()
+    every { securityContext.authentication } returns authentication
+    every { authentication.name } returns createdBy
+    SecurityContextHolder.setContext(securityContext)
+
+    every { referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralEntity.id!!) } returns existingHistory
+    every { referralCohortHistoryRepository.save(any()) } returns mockk()
+    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+
+    // When
+    cohortService.updateCohortForReferral(referralEntity, newCohort)
+
+    // Then
+    verify {
+      referralCohortHistoryRepository.save(
+        withArg {
+          assertThat(it.cohort).isEqualTo(newCohort)
+          assertThat(it.createdBy).isEqualTo(createdBy)
+        },
+      )
+    }
+  }
+
+  @Test
+  fun `updateCohortForReferral should NOT save new history when cohort is the same as latest`() {
+    // Given
+    val referralEntity = ReferralEntityFactory().withId(UUID.randomUUID()).produce()
+    val newCohort = OffenceCohort.GENERAL_OFFENCE
+    val existingHistory = ReferralCohortHistoryEntityFactory()
+      .withReferral(referralEntity)
+      .withCohort(newCohort)
+      .produce()
+
+    val securityContext = mockk<SecurityContext>()
+    val authentication = mockk<Authentication>()
+    every { securityContext.authentication } returns authentication
+    every { authentication.name } returns "test-user"
+    SecurityContextHolder.setContext(securityContext)
+
+    every { referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralEntity.id!!) } returns existingHistory
+    every { telemetryUtils.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+
+    // When
+    cohortService.updateCohortForReferral(referralEntity, newCohort)
+
+    // Then
+    verify(exactly = 0) { referralCohortHistoryRepository.save(any()) }
+  }
 
   @Test
   fun `should return SEXUAL_OFFENCE when OSP DC score is significant`() {
