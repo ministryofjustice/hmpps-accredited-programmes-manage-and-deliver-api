@@ -18,7 +18,6 @@ import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import org.springframework.security.core.context.SecurityContextHolder
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import java.time.LocalDateTime
@@ -127,11 +126,11 @@ class SessionEntity(
   )
 }
 
-fun SessionEntity.primaryFacilitator(): SessionFacilitatorEntity {
-  val byName = compareBy<SessionFacilitatorEntity> { it.facilitator.personName }
-  return sessionFacilitators
-    .filter { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }
-    .minWithOrNull(byName)
-    ?: sessionFacilitators.minWithOrNull(byName)
-    ?: throw BusinessException("No facilitator found for session: $id")
+fun SessionEntity.primaryFacilitator(): FacilitatorEntity {
+  val byName = compareBy<SessionFacilitatorEntity>({ it.facilitator.personName }, { it.facilitatorCode })
+  val sessionFacilitator =
+    sessionFacilitators.filter { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }.minWithOrNull(byName)
+      ?: sessionFacilitators.minWithOrNull(byName)
+  return sessionFacilitator?.facilitator
+    ?: programmeGroup.treatmentManager!!
 }

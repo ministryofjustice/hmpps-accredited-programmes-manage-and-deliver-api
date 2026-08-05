@@ -949,10 +949,20 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return group details with correctly formatted data`() {
       // Given
-      val treatmentManager = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withPersonName("Alex River").produce())
-      val facilitator1 = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withPersonName("Archibald Quentin").produce())
-      val facilitator2 = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withPersonName("Jane Doe").produce())
-      val coverFacilitator = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withPersonName("John Doe").produce())
+      val treatmentManager =
+        testDataGenerator.createFacilitator(FacilitatorEntityFactory().withPersonName("Alex River").produce())
+      val facilitator1 =
+        testDataGenerator.createFacilitator(
+          FacilitatorEntityFactory().withPersonName("Archibald Quentin").withNdeliusPersonCode("1111").produce(),
+        )
+      val facilitator2 =
+        testDataGenerator.createFacilitator(
+          FacilitatorEntityFactory().withPersonName("Jane Doe").withNdeliusPersonCode("2222").produce(),
+        )
+      val coverFacilitator =
+        testDataGenerator.createFacilitator(
+          FacilitatorEntityFactory().withPersonName("John Doe").withNdeliusPersonCode("3333").produce(),
+        )
       val template = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
       val buildingChoicesTemplateId = template.id!!
 
@@ -1056,14 +1066,14 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         "Mondays, midday to 2:30pm",
         "Thursdays, 2:30pm to 5pm",
       )
-      assertThat(result.treatmentManager.facilitator).isEqualTo("Alex River")
-      assertThat(result.treatmentManager.facilitatorCode).isEqualTo("123456")
-      assertThat(result.treatmentManager.teamCode).isEqualTo("12345")
-      assertThat(result.treatmentManager.teamName).isEqualTo("Team 1")
+      assertThat(result.treatmentManager.facilitator).isEqualTo(treatmentManager.personName)
+      assertThat(result.treatmentManager.facilitatorCode).isEqualTo(treatmentManager.ndeliusPersonCode)
+      assertThat(result.treatmentManager.teamCode).isEqualTo(treatmentManager.ndeliusTeamCode)
+      assertThat(result.treatmentManager.teamName).isEqualTo(treatmentManager.ndeliusTeamName)
       assertThat(result.currentlyAllocatedNumber).isEqualTo(2)
-      assertThat(result.facilitators).anyMatch { it.facilitator == "Archibald Quentin" && it.facilitatorCode == "123456" }
+      assertThat(result.facilitators).anyMatch { it.facilitator == "Archibald Quentin" && it.facilitatorCode == "1111" }
       assertThat(result.facilitators).anyMatch { it.facilitator == "Jane Doe" }
-      assertThat(result.coverFacilitators!!).anyMatch { it.facilitator == "John Doe" && it.facilitatorCode == "123456" }
+      assertThat(result.coverFacilitators!!).anyMatch { it.facilitator == "John Doe" && it.facilitatorCode == "3333" }
     }
   }
 }

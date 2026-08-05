@@ -2028,8 +2028,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
             .withEndTime(sessionEntity.endsAt.toLocalTime())
             .withOutcome(RequestCode(ATTC.name))
             .withLocation(RequestCode(group.deliveryLocationCode))
-            .withStaff(RequestCode(primaryFacilitator.facilitatorCode))
-            .withTeam(RequestCode(primaryFacilitator.teamCode))
+            .withStaff(RequestCode(primaryFacilitator.ndeliusPersonCode))
+            .withTeam(RequestCode(primaryFacilitator.ndeliusTeamCode))
             .withNotes("Test session notes")
             .withSensitive(false)
             .produce(),
@@ -2146,8 +2146,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
             .withEndTime(sessionEntity.endsAt.toLocalTime())
             .withOutcome(RequestCode(ATTC.name))
             .withLocation(RequestCode(group.deliveryLocationCode))
-            .withStaff(RequestCode(primaryFacilitator.facilitatorCode))
-            .withTeam(RequestCode(primaryFacilitator.teamCode))
+            .withStaff(RequestCode(primaryFacilitator.ndeliusPersonCode))
+            .withTeam(RequestCode(primaryFacilitator.ndeliusTeamCode))
             .withNotes("Test session notes")
             .withSensitive(false)
             .produce(),

@@ -2,8 +2,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom.REQUIREMENT
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
@@ -58,7 +56,7 @@ class CreateAppointmentRequestTest {
   }
 
   @Test
-  fun `toAppointment should select regular facilitators deterministically by name and never a cover facilitator`() {
+  fun `toAppointment should select regular facilitators deterministically by name`() {
     val coverFacilitator = FacilitatorEntityFactory()
       .withPersonName("Aaron Cover")
       .withNdeliusPersonCode("COVER")
@@ -99,14 +97,6 @@ class CreateAppointmentRequestTest {
 
     assertThat(appointment.staff).isEqualTo(RequestCode("COVER"))
     assertThat(appointment.team).isEqualTo(RequestCode("COVER_TEAM"))
-  }
-
-  @Test
-  fun `toAppointment should throw when session has no facilitators at all`() {
-    val session = buildSession(facilitators = emptyList())
-    val attendee = attendeeFor(session)
-
-    assertThrows<BusinessException> { attendee.toAppointment(UUID.randomUUID()) }
   }
 
   @Test

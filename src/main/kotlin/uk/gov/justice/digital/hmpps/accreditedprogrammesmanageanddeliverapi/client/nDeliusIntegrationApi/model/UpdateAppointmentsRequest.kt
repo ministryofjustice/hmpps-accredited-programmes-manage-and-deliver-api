@@ -35,8 +35,8 @@ fun NDeliusAppointmentEntity.toUpdateAppointmentRequest(
     endTime = session.endsAt.toLocalTime(),
     outcome = outcome?.let { RequestCode(it.name) },
     location = RequestCode(session.programmeGroup.deliveryLocationCode),
-    staff = RequestCode(primaryFacilitator.facilitatorCode),
-    team = RequestCode(primaryFacilitator.teamCode),
+    staff = RequestCode(primaryFacilitator.ndeliusPersonCode),
+    team = RequestCode(primaryFacilitator.ndeliusTeamCode),
     notes = sessionNotes,
     sensitive = false,
   )

@@ -34,7 +34,7 @@ data class CreateAppointmentRequest(
 fun AttendeeEntity.toAppointment(ndeliusAppointmentId: UUID): CreateAppointmentRequest.NdeliusAppointment {
   val primaryFacilitator = session.primaryFacilitator()
   val additionalFacilitators = session.sessionFacilitators
-    .filter { it != primaryFacilitator }
+    .filter { it.facilitatorCode != primaryFacilitator.ndeliusPersonCode }
     .sortedBy { it.facilitator.personName }
 
   return CreateAppointmentRequest.NdeliusAppointment(
@@ -46,8 +46,8 @@ fun AttendeeEntity.toAppointment(ndeliusAppointmentId: UUID): CreateAppointmentR
     endTime = session.endsAt.toLocalTime(),
     outcome = null,
     location = RequestCode(session.programmeGroup.deliveryLocationCode),
-    staff = RequestCode(primaryFacilitator.facilitatorCode),
-    team = RequestCode(primaryFacilitator.teamCode),
+    staff = RequestCode(primaryFacilitator.ndeliusPersonCode),
+    team = RequestCode(primaryFacilitator.ndeliusTeamCode),
     notes = buildSessionNotes(session.programmeGroup.treatmentManager, additionalFacilitators, session),
     sensitive = false,
     type = getAppointmentTypeFromModuleName(session.moduleSessionTemplate.module.name),
