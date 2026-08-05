@@ -119,6 +119,7 @@ class CreateAppointmentRequestTest {
   fun `toAppointment should throw when session has no facilitators at all`() {
     val session = buildSession(facilitators = emptyList())
     val attendee = attendeeFor(session)
+    session.programmeGroup.treatmentManager = null
 
     assertThrows<BusinessException> { attendee.toAppointment(UUID.randomUUID()) }
   }
