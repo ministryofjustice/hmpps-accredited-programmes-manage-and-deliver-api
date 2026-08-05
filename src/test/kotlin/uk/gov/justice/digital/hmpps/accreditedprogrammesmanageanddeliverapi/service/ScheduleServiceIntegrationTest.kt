@@ -9,6 +9,7 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
@@ -17,6 +18,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
@@ -240,6 +242,10 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     val body = CreateGroupRequestFactory().produce(
       earliestStartDate = LocalDate.now(clock).minusDays(4),
       createGroupSessionSlot = setOf(slot1, slot2, slot3),
+      teamMembers = listOf(
+        CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR),
+        CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER),
+      ),
     )
     performRequestAndExpectStatus(
       httpMethod = HttpMethod.POST,
@@ -282,6 +288,10 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     val body = CreateGroupRequestFactory().produce(
       earliestStartDate = LocalDate.now(clock).minusDays(7),
       createGroupSessionSlot = setOf(slot1),
+      teamMembers = listOf(
+        CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR),
+        CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER),
+      ),
     )
     performRequestAndExpectStatus(
       httpMethod = HttpMethod.POST,
@@ -333,6 +343,10 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
     val body = CreateGroupRequestFactory().produce(
       earliestStartDate = LocalDate.now(clock).minusDays(7), // 2025-11-15
       createGroupSessionSlot = setOf(slot1, slot2),
+      teamMembers = listOf(
+        CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR),
+        CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER),
+      ),
     )
     performRequestAndExpectStatus(
       httpMethod = HttpMethod.POST,

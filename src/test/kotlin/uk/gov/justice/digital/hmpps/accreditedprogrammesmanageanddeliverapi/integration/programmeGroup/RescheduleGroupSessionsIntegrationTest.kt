@@ -645,6 +645,7 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
       ProgrammeGroupSessionSlotEntity(programmeGroup = group, dayOfWeek = day, startTime = time)
     }.toMutableSet()
     testDataGenerator.createGroup(group)
+    testDataGenerator.createGroupFacilitator(group, testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce()))
 
     // A normal (non-empty) group protects past sessions during a reschedule. Empty groups
     // (hasMembership = false) may cascade-reschedule past sessions.
@@ -689,6 +690,7 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
       ProgrammeGroupSessionSlotEntity(programmeGroup = group, dayOfWeek = slotDay, startTime = slotTime),
     )
     testDataGenerator.createGroup(group)
+    testDataGenerator.createGroupFacilitator(group, testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce()))
     if (hasMembership) {
       addMembership(group)
     }
