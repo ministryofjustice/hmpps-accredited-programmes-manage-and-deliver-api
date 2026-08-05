@@ -5,6 +5,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.primaryFacilitator
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
@@ -20,25 +21,21 @@ data class CreateAppointmentRequest(
     val date: LocalDate,
     val startTime: LocalTime,
     val endTime: LocalTime,
-    val outcome: Outcome?,
-    val location: Location?,
-    val staff: Staff?,
-    val team: Team?,
+    val outcome: RequestCode?,
+    val location: RequestCode?,
+    val staff: RequestCode,
+    val team: RequestCode,
     val notes: String?,
     val sensitive: Boolean,
     val type: AppointmentType,
   )
-
-  data class Outcome(val code: String)
-  data class Location(val code: String)
-  data class Staff(val code: String)
-  data class Team(val code: String)
 }
 
 fun AttendeeEntity.toAppointment(ndeliusAppointmentId: UUID): CreateAppointmentRequest.NdeliusAppointment {
-  val facilitators = session.sessionFacilitators.toList()
-  val primaryFacilitator = facilitators.firstOrNull()
-  val additionalFacilitators = facilitators.drop(1)
+  val primaryFacilitator = session.primaryFacilitator()
+  val additionalFacilitators = session.sessionFacilitators
+    .filter { it.facilitatorCode != primaryFacilitator.ndeliusPersonCode }
+    .sortedBy { it.facilitator.personName }
 
   return CreateAppointmentRequest.NdeliusAppointment(
     reference = ndeliusAppointmentId,
@@ -48,9 +45,9 @@ fun AttendeeEntity.toAppointment(ndeliusAppointmentId: UUID): CreateAppointmentR
     startTime = session.startsAt.toLocalTime(),
     endTime = session.endsAt.toLocalTime(),
     outcome = null,
-    location = CreateAppointmentRequest.Location(session.programmeGroup.deliveryLocationCode),
-    staff = primaryFacilitator?.let { CreateAppointmentRequest.Staff(it.facilitatorCode) },
-    team = primaryFacilitator?.let { CreateAppointmentRequest.Team(it.teamCode) },
+    location = RequestCode(session.programmeGroup.deliveryLocationCode),
+    staff = RequestCode(primaryFacilitator.ndeliusPersonCode),
+    team = RequestCode(primaryFacilitator.ndeliusTeamCode),
     notes = buildSessionNotes(session.programmeGroup.treatmentManager, additionalFacilitators, session),
     sensitive = false,
     type = getAppointmentTypeFromModuleName(session.moduleSessionTemplate.module.name),

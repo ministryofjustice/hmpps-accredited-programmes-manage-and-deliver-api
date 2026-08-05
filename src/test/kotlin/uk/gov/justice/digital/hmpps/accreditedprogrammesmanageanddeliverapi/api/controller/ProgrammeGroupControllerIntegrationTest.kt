@@ -3631,6 +3631,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
       val body = CreateGroupRequestFactory().produce(
         createGroupSessionSlot = setOf(slot1),
+        teamMembers = listOf(
+          CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR),
+          CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER),
+        ),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       performRequestAndExpectStatus(
@@ -3849,6 +3853,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val body = CreateGroupRequestFactory().produce(
         earliestStartDate = LocalDate.of(2126, 5, 7),
         createGroupSessionSlot = setOf(slot1),
+        teamMembers = listOf(
+          CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR),
+          CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER),
+        ),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
@@ -3989,6 +3997,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
       val body = CreateGroupRequestFactory().produce(
         createGroupSessionSlot = setOf(slot1),
+        teamMembers = listOf(
+          CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR),
+          CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER),
+        ),
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 

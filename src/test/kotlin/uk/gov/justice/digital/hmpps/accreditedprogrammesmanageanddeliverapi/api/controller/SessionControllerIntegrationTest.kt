@@ -46,6 +46,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.primaryFacilitator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
@@ -699,6 +700,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     )
     testDataGenerator.createNDeliusAppointment(session3, referral)
 
+    val regularFacilitator = testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce())
+    listOf(session1, session2, session3).forEach {
+      testDataGenerator.createSessionFacilitator(it, regularFacilitator)
+    }
+
     nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
     // Reschedule Session 1 (Tuesday) to Thursday (same day as Session 2)
@@ -882,6 +888,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     )
     testDataGenerator.createNDeliusAppointment(oneToOneNonPlaceholderSession, referral)
 
+    val regularFacilitator = testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce())
+    listOf(session1, session2, placeholderOneToOneSession).forEach {
+      testDataGenerator.createSessionFacilitator(it, regularFacilitator)
+    }
+
     nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
     // Reschedule Session 1 to be 1 hour later: start time Monday week 1, 11:00 am
@@ -942,8 +953,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
             .withStartTime(LocalTime.of(10, 0))
             .withEndTime(LocalTime.of(11, 0))
             .withLocation(RequestCode(group.deliveryLocationCode))
-            .withStaff(RequestCode(group.treatmentManager!!.ndeliusPersonCode))
-            .withTeam(RequestCode(group.treatmentManager!!.ndeliusTeamCode))
+            .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
+            .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
             .withNotes(null)
             .produce(),
           UpdateAppointmentRequestFactory()
@@ -952,8 +963,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
             .withStartTime(LocalTime.of(10, 0))
             .withEndTime(LocalTime.of(11, 0))
             .withLocation(RequestCode(group.deliveryLocationCode))
-            .withStaff(RequestCode(group.treatmentManager!!.ndeliusPersonCode))
-            .withTeam(RequestCode(group.treatmentManager!!.ndeliusTeamCode))
+            .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
+            .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
             .withNotes(null)
             .produce(),
           UpdateAppointmentRequestFactory()
@@ -962,8 +973,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
             .withStartTime(LocalTime.of(11, 0))
             .withEndTime(LocalTime.of(12, 0))
             .withLocation(RequestCode(group.deliveryLocationCode))
-            .withStaff(RequestCode(group.treatmentManager!!.ndeliusPersonCode))
-            .withTeam(RequestCode(group.treatmentManager!!.ndeliusTeamCode))
+            .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
+            .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
             .withNotes(null)
             .produce(),
         ),
@@ -1001,6 +1012,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         .produce(),
     )
     val app = testDataGenerator.createNDeliusAppointment(session, referral)
+    val regularFacilitator = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withId(null).produce())
+    testDataGenerator.createSessionFacilitator(session, regularFacilitator)
 
     nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
@@ -1031,8 +1044,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
             .withStartTime(LocalTime.of(11, 0))
             .withEndTime(LocalTime.of(12, 0))
             .withLocation(RequestCode(group.deliveryLocationCode))
-            .withStaff(RequestCode(group.treatmentManager!!.ndeliusPersonCode))
-            .withTeam(RequestCode(group.treatmentManager!!.ndeliusTeamCode))
+            .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
+            .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
             .withNotes(null)
             .produce(),
         ),
@@ -2003,6 +2016,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     assertThat(sessionAttendanceEntity.notesHistory.first().notes).isEqualTo("Test session notes")
     assertThat(sessionAttendanceEntity.outcomeType.code).isEqualTo(ATTC)
 
+    val primaryFacilitator = sessionEntity.primaryFacilitator()
     nDeliusApiStubs.verifyPutAppointments(
       1,
       UpdateAppointmentsRequest(
@@ -2014,8 +2028,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
             .withEndTime(sessionEntity.endsAt.toLocalTime())
             .withOutcome(RequestCode(ATTC.name))
             .withLocation(RequestCode(group.deliveryLocationCode))
-            .withStaff(RequestCode(group.treatmentManager!!.ndeliusPersonCode))
-            .withTeam(RequestCode(group.treatmentManager!!.ndeliusTeamCode))
+            .withStaff(RequestCode(primaryFacilitator.ndeliusPersonCode))
+            .withTeam(RequestCode(primaryFacilitator.ndeliusTeamCode))
             .withNotes("Test session notes")
             .withSensitive(false)
             .produce(),
@@ -2120,6 +2134,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
     // Then - no new attendance row is recorded and nDelius is only called once
     assertThat(sessionRepository.findById(sessionId).get().attendances).hasSize(1)
+    val primaryFacilitator = sessionEntity.primaryFacilitator()
     nDeliusApiStubs.verifyPutAppointments(
       1,
       UpdateAppointmentsRequest(
@@ -2131,8 +2146,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
             .withEndTime(sessionEntity.endsAt.toLocalTime())
             .withOutcome(RequestCode(ATTC.name))
             .withLocation(RequestCode(group.deliveryLocationCode))
-            .withStaff(RequestCode(group.treatmentManager!!.ndeliusPersonCode))
-            .withTeam(RequestCode(group.treatmentManager!!.ndeliusTeamCode))
+            .withStaff(RequestCode(primaryFacilitator.ndeliusPersonCode))
+            .withTeam(RequestCode(primaryFacilitator.ndeliusTeamCode))
             .withNotes("Test session notes")
             .withSensitive(false)
             .produce(),

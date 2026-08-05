@@ -2,6 +2,8 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom.REQUIREMENT
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
@@ -41,7 +43,7 @@ class CreateAppointmentRequestTest {
   }
 
   @Test
-  fun `toAppointment should use first facilitator as staff officer`() {
+  fun `toAppointment should use the first regular facilitator as staff officer`() {
     val primaryFacilitator = FacilitatorEntityFactory()
       .withNdeliusPersonCode("FAC001")
       .withNdeliusTeamCode("TEAM001")
@@ -51,19 +53,52 @@ class CreateAppointmentRequestTest {
 
     val appointment = attendee.toAppointment(UUID.randomUUID())
 
-    assertThat(appointment.staff).isEqualTo(CreateAppointmentRequest.Staff("FAC001"))
-    assertThat(appointment.team).isEqualTo(CreateAppointmentRequest.Team("TEAM001"))
+    assertThat(appointment.staff).isEqualTo(RequestCode("FAC001"))
+    assertThat(appointment.team).isEqualTo(RequestCode("TEAM001"))
   }
 
   @Test
-  fun `toAppointment should produce null staff and team when session has no facilitators`() {
-    val session = buildSession(facilitators = emptyList())
+  fun `toAppointment should select regular facilitators deterministically by name`() {
+    val coverFacilitator = FacilitatorEntityFactory()
+      .withPersonName("Aaron Cover")
+      .withNdeliusPersonCode("COVER")
+      .withNdeliusTeamCode("COVER_TEAM")
+      .produce()
+    val laterRegular = FacilitatorEntityFactory().withPersonName("Zoe Regular").produce()
+    val earlierRegular = FacilitatorEntityFactory()
+      .withPersonName("Bilal Regular")
+      .withNdeliusPersonCode("REG")
+      .withNdeliusTeamCode("REG_TEAM")
+      .produce()
+    val session = buildSession(
+      facilitators = listOf(laterRegular, earlierRegular),
+      coverFacilitators = listOf(coverFacilitator),
+    )
     val attendee = attendeeFor(session)
 
     val appointment = attendee.toAppointment(UUID.randomUUID())
 
-    assertThat(appointment.staff).isNull()
-    assertThat(appointment.team).isNull()
+    // Cover facilitator sorts first alphabetically but must be ignored; the earliest regular facilitator by name wins
+    assertThat(appointment.staff).isEqualTo(RequestCode("REG"))
+    assertThat(appointment.team).isEqualTo(RequestCode("REG_TEAM"))
+  }
+
+  @Test
+  fun `toAppointment should fall back to a cover facilitator when there is no regular facilitator`() {
+    val coverFacilitator = FacilitatorEntityFactory()
+      .withNdeliusPersonCode("COVER")
+      .withNdeliusTeamCode("COVER_TEAM")
+      .produce()
+    val session = buildSession(
+      facilitators = emptyList(),
+      coverFacilitators = listOf(coverFacilitator),
+    )
+    val attendee = attendeeFor(session)
+
+    val appointment = attendee.toAppointment(UUID.randomUUID())
+
+    assertThat(appointment.staff).isEqualTo(RequestCode("COVER"))
+    assertThat(appointment.team).isEqualTo(RequestCode("COVER_TEAM"))
   }
 
   @Test
@@ -78,6 +113,15 @@ class CreateAppointmentRequestTest {
     val appointment = attendee.toAppointment(UUID.randomUUID())
 
     assertThat(appointment.notes).contains("Treatment Manager: Treatment Manager Name")
+  }
+
+  @Test
+  fun `toAppointment should throw when session has no facilitators at all`() {
+    val session = buildSession(facilitators = emptyList())
+    val attendee = attendeeFor(session)
+    session.programmeGroup.treatmentManager = null
+
+    assertThrows<BusinessException> { attendee.toAppointment(UUID.randomUUID()) }
   }
 
   @Test
@@ -107,7 +151,7 @@ class CreateAppointmentRequestTest {
   fun `toAppointment should include catch up session type in notes when no treatment manager and no facilitator`() {
     // Given
     val session = buildSession(
-      facilitators = listOf(),
+      facilitators = listOf(FacilitatorEntityFactory().produce()),
       treatmentManager = null,
       isCatch = true,
     )
@@ -137,7 +181,8 @@ class CreateAppointmentRequestTest {
 
   private fun buildSession(
     moduleName: String = "Module",
-    facilitators: List<FacilitatorEntity> = emptyList(),
+    facilitators: List<FacilitatorEntity> = listOf(FacilitatorEntityFactory().produce()),
+    coverFacilitators: List<FacilitatorEntity> = emptyList(),
     treatmentManager: FacilitatorEntity? = FacilitatorEntityFactory().produce(),
     isCatch: Boolean = false,
   ): SessionEntity {
@@ -162,8 +207,10 @@ class CreateAppointmentRequestTest {
       )
       .produce()
 
-    session.sessionFacilitators = facilitators
-      .mapTo(linkedSetOf()) { SessionFacilitatorEntity(it, session, FacilitatorType.REGULAR_FACILITATOR) }
+    session.sessionFacilitators = buildList {
+      facilitators.forEach { add(SessionFacilitatorEntity(it, session, FacilitatorType.REGULAR_FACILITATOR)) }
+      coverFacilitators.forEach { add(SessionFacilitatorEntity(it, session, FacilitatorType.COVER_FACILITATOR)) }
+    }.toCollection(linkedSetOf())
 
     return session
   }
