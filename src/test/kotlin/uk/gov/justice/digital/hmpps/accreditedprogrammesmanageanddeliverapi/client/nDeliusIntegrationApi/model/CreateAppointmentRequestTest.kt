@@ -2,6 +2,8 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom.REQUIREMENT
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
@@ -111,6 +113,14 @@ class CreateAppointmentRequestTest {
     val appointment = attendee.toAppointment(UUID.randomUUID())
 
     assertThat(appointment.notes).contains("Treatment Manager: Treatment Manager Name")
+  }
+
+  @Test
+  fun `toAppointment should throw when session has no facilitators at all`() {
+    val session = buildSession(facilitators = emptyList())
+    val attendee = attendeeFor(session)
+
+    assertThrows<BusinessException> { attendee.toAppointment(UUID.randomUUID()) }
   }
 
   @Test
