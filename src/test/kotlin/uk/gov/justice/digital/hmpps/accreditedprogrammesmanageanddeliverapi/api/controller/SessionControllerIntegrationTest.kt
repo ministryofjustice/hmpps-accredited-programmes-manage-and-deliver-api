@@ -97,965 +97,1058 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
   @Autowired
   private lateinit var facilitatorRepository: FacilitatorRepository
 
-  @Test
-  fun `retrieveSessionDetailsToEdit returns 200 and session details`() {
-    // Given
-    val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
-    val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
-    val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
-      ModuleSessionTemplateEntity(
-        module = module,
-        sessionNumber = 2,
-        sessionType = SessionType.GROUP,
-        pathway = Pathway.MODERATE_INTENSITY,
-        name = "Test Session Template",
-        durationMinutes = 120,
-      ),
-    )
-    val group = testDataGenerator.createGroup(
-      ProgrammeGroupFactory()
-        .withAccreditedProgrammeTemplate(programmeTemplate)
-        .withCode("GROUPCODE")
-        .produce(),
-    )
-    val session = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate)
-        .withStartsAt(LocalDateTime.of(2026, 4, 23, 13, 30))
-        .withEndsAt(LocalDateTime.of(2026, 4, 23, 14, 30))
-        .produce(),
-    )
+  @Nested
+  @DisplayName("GET /bff/session/{sessionId}")
+  inner class GetSessionDetails {
+    @Test
+    fun `should GET session details and return 200`() {
+      // Given
+      // Create group
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+      val referral = testReferralHelper.createReferral()
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
+      val sessionEntity =
+        sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+      val sessionId = sessionEntity!!.id!!
 
-    // When
-    val response = performRequestAndExpectOk(
-      HttpMethod.GET,
-      "/bff/session/${session.id}/edit-session-date-and-time",
-      object : ParameterizedTypeReference<EditSessionDetails>() {},
-    )
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "bff/session/$sessionId",
+        object : ParameterizedTypeReference<Session>() {},
+      )
 
-    // Then
-    assertThat(response.sessionId).isEqualTo(session.id)
-    assertThat(response.groupCode).isEqualTo("GROUPCODE")
-    assertThat(response.sessionName).isEqualTo("Test Module 2")
-    assertThat(response.sessionDate).isEqualTo("23/4/2026")
-    assertThat(response.sessionStartTime.hour).isEqualTo(1)
-    assertThat(response.sessionStartTime.minutes).isEqualTo(30)
-    assertThat(response.sessionStartTime.amOrPm).isEqualTo(AmOrPm.PM)
-    assertThat(response.sessionEndTime.hour).isEqualTo(2)
-    assertThat(response.sessionEndTime.minutes).isEqualTo(30)
-    assertThat(response.sessionEndTime.amOrPm).isEqualTo(AmOrPm.PM)
-  }
-
-  @Test
-  fun `getRescheduleSessionDetails returns 200 and reschedule details for group session`() {
-    // Given
-    val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-    val sessionTemplate = moduleSessionTemplateRepository.findByName("Future me plan")
-
-    val group = testDataGenerator.createGroup(
-      ProgrammeGroupFactory()
-        .withAccreditedProgrammeTemplate(programmeTemplate)
-        .produce(),
-    )
-    val session = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate!!)
-        .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
-        .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
-        .produce(),
-    )
-
-    // When
-    val response = performRequestAndExpectOk(
-      HttpMethod.GET,
-      "/bff/session/${session.id}/edit-session-date-and-time/reschedule",
-      object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
-    )
-
-    // Then
-    assertThat(response.sessionId).isEqualTo(session.id)
-    assertThat(response.sessionName).isEqualTo("Bringing it all together 1")
-    assertThat(response.previousSessionDateAndTime).isEqualTo("Thursday 21 May 2026, 11am to 1:30pm")
-  }
-
-  @Test
-  fun `getRescheduleSessionDetails returns 200 and reschedule details for group catch-up session`() {
-    // Given
-    val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-    val sessionTemplate = moduleSessionTemplateRepository.findByName("Module skills practice")
-
-    val group = testDataGenerator.createGroup(
-      ProgrammeGroupFactory()
-        .withAccreditedProgrammeTemplate(programmeTemplate)
-        .produce(),
-    )
-    val session = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate!!)
-        .withIsCatchup(true)
-        .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
-        .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
-        .produce(),
-    )
-
-    // When
-    val response = performRequestAndExpectOk(
-      HttpMethod.GET,
-      "/bff/session/${session.id}/edit-session-date-and-time/reschedule",
-      object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
-    )
-
-    // Then
-    assertThat(response.sessionName).isEqualTo("Managing people around me 6 catch-up")
-  }
-
-  @Test
-  fun `getRescheduleSessionDetails returns 200 and reschedule details for one-to-one session`() {
-    // Given
-    val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
-    val sessionTemplate = moduleSessionTemplateRepository.findByName("Managing myself one-to-one")
-
-    val group = testDataGenerator.createGroup(
-      ProgrammeGroupFactory()
-        .withAccreditedProgrammeTemplate(programmeTemplate)
-        .produce(),
-    )
-    val session = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate!!)
-        .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
-        .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
-        .produce(),
-    )
-    val referral = testDataGenerator.createReferral(
-      personName = "John Doe",
-      crn = "X123456",
-    )
-    testDataGenerator.createAttendee(referral, session)
-
-    // When
-    val response = performRequestAndExpectOk(
-      HttpMethod.GET,
-      "/bff/session/${session.id}/edit-session-date-and-time/reschedule",
-      object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
-    )
-
-    // Then
-    assertThat(response.sessionName).isEqualTo("John Doe: Managing myself one-to-one")
-  }
-
-  @Test
-  fun `getRescheduleSessionDetails returns 200 and reschedule details for post-programme review`() {
-    // Given
-    val programmeTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
-    val sessionTemplate = moduleSessionTemplateRepository.findByName("Post-programme review")
-
-    val group = testDataGenerator.createGroup(
-      ProgrammeGroupFactory()
-        .withAccreditedProgrammeTemplate(programmeTemplate)
-        .withCode("RESCHR")
-        .produce(),
-    )
-    val session = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate!!)
-        .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
-        .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
-        .produce(),
-    )
-    val referral = testDataGenerator.createReferral(
-      personName = "Jane Smith",
-      crn = "Y654321",
-    )
-    testDataGenerator.createAttendee(referral, session)
-
-    // When
-    val response = performRequestAndExpectOk(
-      HttpMethod.GET,
-      "/bff/session/${session.id}/edit-session-date-and-time/reschedule",
-      object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
-    )
-
-    // Then
-    assertThat(response.sessionName).isEqualTo("Jane Smith: Post-programme review")
-  }
-
-  @Test
-  fun `retrieveSessionDetailsToEdit returns 404 when session does not exist`() {
-    // Given
-    val nonExistentSessionId = UUID.randomUUID()
-    // When & Then
-    performRequestAndExpectStatusNoBody(
-      HttpMethod.GET,
-      "/bff/session/$nonExistentSessionId/edit-session-date-and-time",
-      HttpStatus.NOT_FOUND.value(),
-    )
-  }
-
-  @Test
-  fun `retrieveSessionDetailsToEdit returns 403 when unauthorized`() {
-    // Given
-    val sessionId = UUID.randomUUID()
-    // When & Then
-    performRequestAndExpectStatusNoBody(
-      HttpMethod.GET,
-      "/bff/session/$sessionId/edit-session-date-and-time",
-      HttpStatus.FORBIDDEN.value(),
-      roles = listOf("ROLE_OTHER"),
-    )
-  }
-
-  @Test
-  fun `should return HTTP 400 code when attempting to amend the duration of a session in the past `() {
-    // Given
-    val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
-    val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
-    val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
-      ModuleSessionTemplateEntity(
-        module = module,
-        sessionNumber = 2,
-        sessionType = SessionType.GROUP,
-        pathway = Pathway.MODERATE_INTENSITY,
-        name = "Test Session Template",
-        durationMinutes = 120,
-      ),
-    )
-    val group = testDataGenerator.createGroup(
-      ProgrammeGroupFactory()
-        .withAccreditedProgrammeTemplate(programmeTemplate)
-        .withCode("RESCHED")
-        .produce(),
-    )
-    val session = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate)
-        .withStartsAt(LocalDateTime.now().minusDays(2).withHour(13).withMinute(30))
-        .withEndsAt(LocalDateTime.now().minusDays(2).withHour(14).withMinute(30))
-        .produce(),
-    )
-
-    val rescheduleRequest = RescheduleSessionRequest(
-      sessionStartDate = LocalDate.now().plusDays(2),
-      sessionStartTime = SessionTime(hour = 9, minutes = 0, amOrPm = AmOrPm.AM),
-      sessionEndTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
-      rescheduleOtherSessions = false,
-    )
-
-    // When
-    val response = performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.PUT,
-      uri = "/session/${session.id}/reschedule",
-      body = rescheduleRequest,
-      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-      expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
-    )
-
-    // Then
-    assertThat(response.userMessage).isEqualTo("Bad request: The session duration cannot be longer than originally scheduled. Change the start or end time.")
-  }
-
-  @Test
-  fun `should return HTTP 400 when requested session end time is before start time`() {
-    // Given
-    val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
-    val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
-    val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
-      ModuleSessionTemplateEntity(
-        module = module,
-        sessionNumber = 2,
-        sessionType = SessionType.GROUP,
-        pathway = Pathway.MODERATE_INTENSITY,
-        name = "Test Session Template",
-        durationMinutes = 120,
-      ),
-    )
-    val group = testDataGenerator.createGroup(
-      ProgrammeGroupFactory()
-        .withAccreditedProgrammeTemplate(programmeTemplate)
-        .withCode("RESCHED")
-        .produce(),
-    )
-    val session = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate)
-        .withStartsAt(LocalDateTime.now().plusDays(1).withHour(13).withMinute(30).withSecond(0).withNano(0))
-        .withEndsAt(LocalDateTime.now().plusDays(1).withHour(14).withMinute(30).withSecond(0).withNano(0))
-        .produce(),
-    )
-
-    val rescheduleRequest = RescheduleSessionRequest(
-      sessionStartDate = LocalDate.now().plusDays(2),
-      sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
-      sessionEndTime = SessionTime(hour = 9, minutes = 0, amOrPm = AmOrPm.AM),
-      rescheduleOtherSessions = false,
-    )
-
-    // When
-    val response = performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.PUT,
-      uri = "/session/${session.id}/reschedule",
-      body = rescheduleRequest,
-      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-      expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
-    )
-
-    // Then
-    assertThat(response.userMessage).isEqualTo("Bad request: The session end time must be after the session start time.")
-  }
-
-  @Test
-  fun `should allow the rescheduling of a session in the past, without modifying the duration of the session`() {
-    // Given
-    val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
-    val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
-    val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
-      ModuleSessionTemplateEntity(
-        module = module,
-        sessionNumber = 2,
-        sessionType = SessionType.GROUP,
-        pathway = Pathway.MODERATE_INTENSITY,
-        name = "Test Session Template",
-        durationMinutes = 120,
-      ),
-    )
-    val group = testDataGenerator.createGroup(
-      ProgrammeGroupFactory()
-        .withAccreditedProgrammeTemplate(programmeTemplate)
-        .withCode("RESCHED")
-        .produce(),
-    )
-    val session = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate)
-        .withStartsAt(LocalDateTime.now().minusDays(2).withHour(13).withMinute(30).withSecond(0).withNano(0))
-        .withEndsAt(LocalDateTime.now().minusDays(2).withHour(14).withMinute(30).withSecond(0).withNano(0))
-        .produce(),
-    )
-
-    val rescheduleRequest = RescheduleSessionRequest(
-      sessionStartDate = LocalDate.now().plusDays(2),
-      sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
-      null,
-      rescheduleOtherSessions = false,
-    )
-
-    // When
-    val response = performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.PUT,
-      uri = "/session/${session.id}/reschedule",
-      body = rescheduleRequest,
-      returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
-      expectedResponseStatus = HttpStatus.OK.value(),
-    )
-
-    // Then
-    assertThat(response.message).isEqualTo("The date and time have been updated.")
-
-    // Verify the session was rescheduled and duration was preserved (original was 1hr: 13:30–14:30)
-    val updatedSession = sessionRepository.findById(session.id!!).get()
-    val expectedStart = LocalDateTime.of(LocalDate.now().plusDays(2), LocalTime.of(10, 0))
-    val expectedEnd = expectedStart.plusHours(1) // original duration preserved
-    assertThat(updatedSession.startsAt).isEqualTo(expectedStart)
-    assertThat(updatedSession.endsAt).isEqualTo(expectedEnd)
-  }
-
-  @Test
-  fun `should allow shortening the duration of a completed session`() {
-    // Given
-    val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
-    val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
-    val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
-      ModuleSessionTemplateEntity(
-        module = module,
-        sessionNumber = 2,
-        sessionType = SessionType.GROUP,
-        pathway = Pathway.MODERATE_INTENSITY,
-        name = "Test Session Template",
-        durationMinutes = 120,
-      ),
-    )
-    val group = testDataGenerator.createGroup(
-      ProgrammeGroupFactory()
-        .withAccreditedProgrammeTemplate(programmeTemplate)
-        .withCode("RESCHED")
-        .produce(),
-    )
-    val session = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate)
-        .withStartsAt(LocalDateTime.now().minusDays(2).withHour(15).withMinute(51).withSecond(0).withNano(0))
-        .withEndsAt(LocalDateTime.now().minusDays(2).withHour(15).withMinute(59).withSecond(0).withNano(0))
-        .produce(),
-    )
-
-    val targetDate = LocalDate.now().plusDays(2)
-    val rescheduleRequest = RescheduleSessionRequest(
-      sessionStartDate = targetDate,
-      sessionStartTime = SessionTime(hour = 3, minutes = 51, amOrPm = AmOrPm.PM),
-      sessionEndTime = SessionTime(hour = 3, minutes = 58, amOrPm = AmOrPm.PM),
-      rescheduleOtherSessions = false,
-    )
-
-    // When
-    val response = performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.PUT,
-      uri = "/session/${session.id}/reschedule",
-      body = rescheduleRequest,
-      returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
-      expectedResponseStatus = HttpStatus.OK.value(),
-    )
-
-    // Then
-    assertThat(response.message).isEqualTo("The date and time have been updated.")
-    val updatedSession = sessionRepository.findById(session.id!!).get()
-    assertThat(updatedSession.startsAt).isEqualTo(LocalDateTime.of(targetDate, LocalTime.of(15, 51)))
-    assertThat(updatedSession.endsAt).isEqualTo(LocalDateTime.of(targetDate, LocalTime.of(15, 58)))
-  }
-
-  @Test
-  fun `should allow lengthening the duration of a session that has started but not yet ended`() {
-    // Given
-    val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
-    val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
-    val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
-      ModuleSessionTemplateEntity(
-        module = module,
-        sessionNumber = 2,
-        sessionType = SessionType.GROUP,
-        pathway = Pathway.MODERATE_INTENSITY,
-        name = "Test Session Template",
-        durationMinutes = 60,
-      ),
-    )
-    val group = testDataGenerator.createGroup(
-      ProgrammeGroupFactory()
-        .withAccreditedProgrammeTemplate(programmeTemplate)
-        .withCode("RESCHED")
-        .produce(),
-    )
-
-    val now = LocalDateTime.now().withSecond(0).withNano(0)
-    val session = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate)
-        .withStartsAt(now.minusMinutes(30))
-        .withEndsAt(now.plusMinutes(30))
-        .produce(),
-    )
-
-    // Move to a future date and lengthen duration from 60 to 90 minutes.
-    val targetDate = LocalDate.now().plusDays(2)
-    val rescheduleRequest = RescheduleSessionRequest(
-      sessionStartDate = targetDate,
-      sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
-      sessionEndTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
-      rescheduleOtherSessions = false,
-    )
-
-    // When
-    val response = performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.PUT,
-      uri = "/session/${session.id}/reschedule",
-      body = rescheduleRequest,
-      returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
-      expectedResponseStatus = HttpStatus.OK.value(),
-    )
-
-    // Then
-    assertThat(response.message).isEqualTo("The date and time have been updated.")
-    val updatedSession = sessionRepository.findById(session.id!!).get()
-    assertThat(updatedSession.startsAt).isEqualTo(LocalDateTime.of(targetDate, LocalTime.of(10, 0)))
-    assertThat(updatedSession.endsAt).isEqualTo(LocalDateTime.of(targetDate, LocalTime.of(11, 30)))
-  }
-
-  @Test
-  fun `rescheduleSession returns 200 and updates session without rescheduling other sessions`() {
-    // Given
-    val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
-    val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
-    val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
-      ModuleSessionTemplateEntity(
-        module = module,
-        sessionNumber = 2,
-        sessionType = SessionType.GROUP,
-        pathway = Pathway.MODERATE_INTENSITY,
-        name = "Test Session Template",
-        durationMinutes = 120,
-      ),
-    )
-    val group = testDataGenerator.createGroup(
-      ProgrammeGroupFactory()
-        .withAccreditedProgrammeTemplate(programmeTemplate)
-        .withCode("RESCHED")
-        .produce(),
-    )
-    val session = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate)
-        .withStartsAt(LocalDateTime.now().plusDays(1).withHour(13).withMinute(30).withSecond(0).withNano(0))
-        .withEndsAt(LocalDateTime.now().plusDays(1).withHour(14).withMinute(30).withSecond(0).withNano(0))
-        .produce(),
-    )
-
-    val rescheduleRequest = RescheduleSessionRequest(
-      sessionStartDate = LocalDate.now().plusDays(2),
-      sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
-      null,
-      rescheduleOtherSessions = false,
-    )
-
-    // When
-    val response = performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.PUT,
-      uri = "/session/${session.id}/reschedule",
-      body = rescheduleRequest,
-      returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
-      expectedResponseStatus = HttpStatus.OK.value(),
-    )
-
-    // Then
-    assertThat(response.message).isEqualTo("The date and time have been updated.")
-    val updatedSession = sessionRepository.findById(session.id!!).get()
-    assertThat(updatedSession.startsAt).isEqualTo(LocalDate.now().plusDays(2).atTime(10, 0))
-    assertThat(updatedSession.endsAt).isEqualTo(LocalDate.now().plusDays(2).atTime(11, 0))
-  }
-
-  @Test
-  fun `rescheduleSession should maintain cadence when moving a Tuesday session to Thursday`() {
-    // Given
-    stubAuthTokenEndpoint()
-    val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Cadence Programme")
-    val module = testDataGenerator.createModule(programmeTemplate, "Cadence Module", 1)
-
-    val sessionTemplate1 = testDataGenerator.createModuleSessionTemplate(module, "Session 1", 1)
-    val sessionTemplate2 = testDataGenerator.createModuleSessionTemplate(module, "Session 2", 2)
-    val sessionTemplate3 = testDataGenerator.createModuleSessionTemplate(module, "Session 3", 3)
-
-    val treatmentManager = testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce())
-    val group = ProgrammeGroupFactory()
-      .withAccreditedProgrammeTemplate(programmeTemplate)
-      .withTreatmentManager(treatmentManager)
-      .produce()
-    group.programmeGroupSessionSlots = mutableSetOf(
-      ProgrammeGroupSessionSlotEntity(
-        programmeGroup = group,
-        dayOfWeek = DayOfWeek.TUESDAY,
-        startTime = LocalTime.of(10, 0),
-      ),
-      ProgrammeGroupSessionSlotEntity(
-        programmeGroup = group,
-        dayOfWeek = DayOfWeek.THURSDAY,
-        startTime = LocalTime.of(10, 0),
-      ),
-    )
-    testDataGenerator.createGroup(group)
-
-    val referral = testDataGenerator.createReferral("John Doe", "X987654")
-
-    val nextTuesday = LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.TUESDAY))
-    val nextThursday = nextTuesday.plusDays(2)
-    val followingTuesday = nextTuesday.plusDays(7)
-
-    // Session 1: Next Tuesday
-    val session1 = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate1)
-        .withStartsAt(nextTuesday.atTime(10, 0))
-        .withEndsAt(nextTuesday.atTime(11, 0))
-        .produce(),
-    )
-    testDataGenerator.createNDeliusAppointment(session1, referral)
-
-    // Session 2: Next Thursday
-    val session2 = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate2)
-        .withStartsAt(nextThursday.atTime(10, 0))
-        .withEndsAt(nextThursday.atTime(11, 0))
-        .produce(),
-    )
-    testDataGenerator.createNDeliusAppointment(session2, referral)
-
-    // Session 3: Following Tuesday
-    val session3 = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate3)
-        .withStartsAt(followingTuesday.atTime(10, 0))
-        .withEndsAt(followingTuesday.atTime(11, 0))
-        .produce(),
-    )
-    testDataGenerator.createNDeliusAppointment(session3, referral)
-
-    val regularFacilitator = testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce())
-    listOf(session1, session2, session3).forEach {
-      testDataGenerator.createSessionFacilitator(it, regularFacilitator)
+      // Then
+      assertThat(response.id).isEqualTo(sessionId)
+      assertThat(response.type).isEqualTo(sessionEntity.sessionType.value)
+      assertThat(response.name).isEqualTo(sessionEntity.moduleSessionTemplate.module.name)
+      assertThat(response.number).isEqualTo(sessionEntity.sessionNumber)
+      assertThat(response.referrals).isNotEmpty()
+      assertThat(response.referrals.size).isEqualTo(1)
+      assertThat(response.referrals[0].personName).isEqualTo(sessionEntity.attendees[0].personName)
+      assertThat(response.referrals[0].id).isEqualTo(sessionEntity.attendees[0].referral.id)
+      assertThat(response.referrals[0].cohort).isNotNull()
+      assertThat(response.referrals[0].crn).isEqualTo(sessionEntity.attendees[0].referral.crn)
+      assertThat(response.referrals[0].createdAt).isNotNull()
+      assertThat(response.referrals[0].status).isNotNull()
+      assertThat(response.isCatchup).isEqualTo(sessionEntity.isCatchup)
     }
 
-    nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+    @Test
+    fun `should return 404 when a session is not found on GET request`() {
+      // Given
+      val sessionId = UUID.randomUUID()
 
-    // Reschedule Session 1 (Tuesday) to Thursday (same day as Session 2)
-    val rescheduleRequest = RescheduleSessionRequest(
-      sessionStartDate = nextThursday,
-      sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
-      sessionEndTime = SessionTime(hour = 11, minutes = 0, amOrPm = AmOrPm.AM),
-      rescheduleOtherSessions = true,
-    )
+      // When
+      val exception = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.GET,
+        uri = "bff/session/$sessionId",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        body = {},
+      )
 
-    // When
-    performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.PUT,
-      uri = "/session/${session1.id}/reschedule",
-      body = rescheduleRequest,
-      returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
-      expectedResponseStatus = HttpStatus.OK.value(),
-    )
-
-    // Then
-    val updatedSession1 = sessionRepository.findById(session1.id!!).get()
-    assertThat(updatedSession1.startsAt).isEqualTo(nextThursday.atTime(10, 0))
-
-    val updatedSession2 = sessionRepository.findById(session2.id!!).get()
-    // If moved correctly, Session 2 (which was on Thursday) should move to the next available slot, which is following Tuesday
-    assertThat(updatedSession2.startsAt).isEqualTo(followingTuesday.atTime(10, 0))
-
-    val updatedSession3 = sessionRepository.findById(session3.id!!).get()
-    // Session 3 should move to following Thursday
-    assertThat(updatedSession3.startsAt).isEqualTo(followingTuesday.plusDays(2).atTime(10, 0))
-  }
-
-  @Test
-  fun `rescheduleSession with rescheduleOtherSessions true updates subsequent group sessions`() {
-    // Given
-    stubAuthTokenEndpoint()
-    val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
-    val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
-
-    val groupSessionTemplate1 = testDataGenerator.createModuleSessionTemplate(
-      ModuleSessionTemplateEntity(
-        module = module,
-        sessionNumber = 1,
-        sessionType = SessionType.GROUP,
-        pathway = Pathway.MODERATE_INTENSITY,
-        name = "Session 1",
-        durationMinutes = 60,
-      ),
-    )
-    val groupSessionTemplate2 = testDataGenerator.createModuleSessionTemplate(
-      ModuleSessionTemplateEntity(
-        module = module,
-        sessionNumber = 2,
-        sessionType = SessionType.GROUP,
-        pathway = Pathway.MODERATE_INTENSITY,
-        name = "Session 2",
-        durationMinutes = 60,
-      ),
-    )
-    val oneToOneSessionTemplate = testDataGenerator.createModuleSessionTemplate(
-      ModuleSessionTemplateEntity(
-        module = module,
-        sessionNumber = 3,
-        sessionType = SessionType.ONE_TO_ONE,
-        pathway = Pathway.MODERATE_INTENSITY,
-        name = "Session 3",
-        durationMinutes = 60,
-      ),
-    )
-    val catchUpSessionTemplate = testDataGenerator.createModuleSessionTemplate(
-      ModuleSessionTemplateEntity(
-        module = module,
-        sessionNumber = 4,
-        sessionType = SessionType.GROUP,
-        pathway = Pathway.MODERATE_INTENSITY,
-        name = "Session 4",
-        durationMinutes = 60,
-      ),
-    )
-    val oneToOneNonPlaceholder = testDataGenerator.createModuleSessionTemplate(
-      ModuleSessionTemplateEntity(
-        module = module,
-        sessionNumber = 5,
-        sessionType = SessionType.ONE_TO_ONE,
-        pathway = Pathway.MODERATE_INTENSITY,
-        name = "Session 5",
-        durationMinutes = 60,
-      ),
-    )
-    val treatmentManager = testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce())
-    val group = ProgrammeGroupFactory()
-      .withAccreditedProgrammeTemplate(programmeTemplate)
-      .withTreatmentManager(treatmentManager)
-      .produce()
-    group.programmeGroupSessionSlots = mutableSetOf(
-      ProgrammeGroupSessionSlotEntity(
-        programmeGroup = group,
-        dayOfWeek = DayOfWeek.MONDAY,
-        startTime = LocalTime.of(10, 0),
-      ),
-    )
-    testDataGenerator.createGroup(group)
-
-    val referral = testDataGenerator.createReferral("Jane Doe", "X123456")
-
-    val lastMonday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-    val session1Date = lastMonday.plusWeeks(1)
-    val session2Date = lastMonday.plusWeeks(2)
-    val session3Date = lastMonday.plusWeeks(3)
-    val session4Date = lastMonday.plusWeeks(4)
-    val session5Date = lastMonday.plusWeeks(5)
-    val pastSessionDate = lastMonday.minusWeeks(1)
-
-    // Session before the rescheduled session should not move
-    val pastSession = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(groupSessionTemplate1)
-        .withStartsAt(pastSessionDate.atTime(10, 0))
-        .withEndsAt(pastSessionDate.atTime(11, 0))
-        .produce(),
-    )
-    testDataGenerator.createNDeliusAppointment(pastSession, referral)
-
-    // Session 1: Monday week 1, 10:00 - 11:00 am
-    val session1 = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(groupSessionTemplate1)
-        .withStartsAt(session1Date.atTime(10, 0))
-        .withEndsAt(session1Date.atTime(11, 0))
-        .produce(),
-    )
-    val appointment1 = testDataGenerator.createNDeliusAppointment(session1, referral)
-
-    // Session 2: Monday week 2, 10:00 - 11:00 (Group) - subsequent group session should move
-    val session2 = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(groupSessionTemplate2)
-        .withStartsAt(session2Date.atTime(10, 0))
-        .withEndsAt(session2Date.atTime(11, 0))
-        .produce(),
-    )
-    val appointment2 = testDataGenerator.createNDeliusAppointment(session2, referral)
-
-    // Session 3: subsequent placeholder one-to-one session should move
-    val placeholderOneToOneSession = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(oneToOneSessionTemplate)
-        .withStartsAt(session3Date.atTime(10, 0))
-        .withEndsAt(session3Date.atTime(11, 0))
-        .withIsPlaceholder(true)
-        .produce(),
-    )
-    val placeholderOneToOneAppointment =
-      testDataGenerator.createNDeliusAppointment(placeholderOneToOneSession, referral)
-
-    // Session 4: subsequent catch-up session should not move
-    val catchUpSession = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(catchUpSessionTemplate)
-        .withStartsAt(session4Date.atTime(10, 0))
-        .withEndsAt(session4Date.atTime(11, 0))
-        .withIsCatchup(true)
-        .produce(),
-    )
-    testDataGenerator.createNDeliusAppointment(catchUpSession, referral)
-
-    // Session 5: subsequent one to one (non-placeholder) session should not move
-    val oneToOneNonPlaceholderSession = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(oneToOneNonPlaceholder)
-        .withStartsAt(session5Date.atTime(10, 0))
-        .withEndsAt(session5Date.atTime(11, 0))
-        .withIsPlaceholder(false)
-        .produce(),
-    )
-    testDataGenerator.createNDeliusAppointment(oneToOneNonPlaceholderSession, referral)
-
-    val regularFacilitator = testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce())
-    listOf(session1, session2, placeholderOneToOneSession).forEach {
-      testDataGenerator.createSessionFacilitator(it, regularFacilitator)
+      // Then
+      assertThat(exception.userMessage).isEqualTo("Not Found: Session with id $sessionId not found.")
     }
 
-    nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+    @Test
+    fun `should return 401 when unauthorised on GET session request`() {
+      // Given
+      val sessionId = UUID.randomUUID()
 
-    // Reschedule Session 1 to be 1 hour later: start time Monday week 1, 11:00 am
-    val rescheduleRequest = RescheduleSessionRequest(
-      sessionStartDate = session1Date,
-      sessionStartTime = SessionTime(hour = 11, minutes = 0, amOrPm = AmOrPm.AM),
-      sessionEndTime = SessionTime(hour = 12, minutes = 0, amOrPm = AmOrPm.PM),
-      rescheduleOtherSessions = true,
-    )
-
-    // When
-    val response = performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.PUT,
-      uri = "/session/${session1.id}/reschedule",
-      body = rescheduleRequest,
-      returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
-      expectedResponseStatus = HttpStatus.OK.value(),
-    )
-
-    // Then
-    assertThat(response.message).isEqualTo("The date and time and schedule have been updated.")
-
-    val updatedPastSession = sessionRepository.findById(pastSession.id!!).get()
-    assertThat(updatedPastSession.startsAt).isEqualTo(pastSessionDate.atTime(10, 0))
-    assertThat(updatedPastSession.endsAt).isEqualTo(pastSessionDate.atTime(11, 0))
-
-    val updatedSession1 = sessionRepository.findById(session1.id!!).get()
-    assertThat(updatedSession1.startsAt).isEqualTo(session1Date.atTime(11, 0))
-    assertThat(updatedSession1.endsAt).isEqualTo(session1Date.atTime(12, 0))
-
-    // Session 2 should be moved to next Monday (session2Date) at 10:00 (since it's a group session and slots are used)
-    val updatedSession2 = sessionRepository.findById(session2.id!!).get()
-    assertThat(updatedSession2.startsAt).isEqualTo(session2Date.atTime(10, 0))
-    assertThat(updatedSession2.endsAt).isEqualTo(session2Date.atTime(11, 0))
-
-    // Session 3 should be rescheduled to next Monday (session3Date) as it is a ONE_TO_ONE place holder session
-    val updatedPlaceholderOneToOneSession = sessionRepository.findById(placeholderOneToOneSession.id!!).get()
-    assertThat(updatedPlaceholderOneToOneSession.startsAt).isEqualTo(session3Date.atTime(10, 0))
-    assertThat(updatedPlaceholderOneToOneSession.endsAt).isEqualTo(session3Date.atTime(11, 0))
-
-    // Session 4 : Catch up sessions shouldn't be rescheduled
-    val updatedCatchUpSession = sessionRepository.findById(catchUpSession.id!!).get()
-    assertThat(updatedCatchUpSession.startsAt).isEqualTo(session4Date.atTime(10, 0))
-    assertThat(updatedCatchUpSession.endsAt).isEqualTo(session4Date.atTime(11, 0))
-
-    // Session 5 : One to one non placeholder shouldn't be rescheduled
-    val updatedOneToOneNonPlaceholderSession = sessionRepository.findById(oneToOneNonPlaceholderSession.id!!).get()
-    assertThat(updatedOneToOneNonPlaceholderSession.startsAt).isEqualTo(session5Date.atTime(10, 0))
-    assertThat(updatedOneToOneNonPlaceholderSession.endsAt).isEqualTo(session5Date.atTime(11, 0))
-
-    // Verify ndeliusAppointments update request (bundled)
-    val expectedBundleRequest = UpdateAppointmentsRequestFactory()
-      .withAppointments(
-        listOf(
-          UpdateAppointmentRequestFactory()
-            .withReference(appointment2.ndeliusAppointmentId)
-            .withDate(session2Date)
-            .withStartTime(LocalTime.of(10, 0))
-            .withEndTime(LocalTime.of(11, 0))
-            .withLocation(RequestCode(group.deliveryLocationCode))
-            .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
-            .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
-            .withNotes(null)
-            .produce(),
-          UpdateAppointmentRequestFactory()
-            .withReference(placeholderOneToOneAppointment.ndeliusAppointmentId)
-            .withDate(session3Date)
-            .withStartTime(LocalTime.of(10, 0))
-            .withEndTime(LocalTime.of(11, 0))
-            .withLocation(RequestCode(group.deliveryLocationCode))
-            .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
-            .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
-            .withNotes(null)
-            .produce(),
-          UpdateAppointmentRequestFactory()
-            .withReference(appointment1.ndeliusAppointmentId)
-            .withDate(session1Date)
-            .withStartTime(LocalTime.of(11, 0))
-            .withEndTime(LocalTime.of(12, 0))
-            .withLocation(RequestCode(group.deliveryLocationCode))
-            .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
-            .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
-            .withNotes(null)
-            .produce(),
-        ),
-      )
-      .produce()
-    nDeliusApiStubs.verifyPutAppointments(1, expectedBundleRequest)
-  }
-
-  @Test
-  fun `should reschedule individual session and update its nDelius appointment`() {
-    // Given
-    stubAuthTokenEndpoint()
-    val programmeTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
-    val sessionTemplate = moduleSessionTemplateRepository.findByName("Post-programme review")
-    val treatmentManager = testDataGenerator.createFacilitator(
-      FacilitatorEntityFactory()
-        .withId(null)
-        .produce(),
-    )
-    val group = testDataGenerator.createGroup(
-      ProgrammeGroupFactory()
-        .withAccreditedProgrammeTemplate(programmeTemplate)
-        .withTreatmentManager(treatmentManager)
-        .produce(),
-    )
-
-    val referral = testDataGenerator.createReferral("John Doe", "X123457")
-
-    val session = testDataGenerator.createSession(
-      SessionFactory()
-        .withProgrammeGroup(group)
-        .withModuleSessionTemplate(sessionTemplate!!)
-        .withStartsAt(LocalDateTime.now().plusDays(1).withHour(10).withMinute(0))
-        .withEndsAt(LocalDateTime.now().plusDays(1).withHour(11).withMinute(0))
-        .produce(),
-    )
-    val app = testDataGenerator.createNDeliusAppointment(session, referral)
-    val regularFacilitator = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withId(null).produce())
-    testDataGenerator.createSessionFacilitator(session, regularFacilitator)
-
-    nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
-
-    // Reschedule Session to be 1 hour later
-    val rescheduleRequest = RescheduleSessionRequest(
-      sessionStartDate = LocalDate.now().plusDays(1),
-      sessionStartTime = SessionTime(hour = 11, minutes = 0, amOrPm = AmOrPm.AM),
-      sessionEndTime = SessionTime(hour = 12, minutes = 0, amOrPm = AmOrPm.PM),
-      rescheduleOtherSessions = false,
-    )
-
-    // When
-    performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.PUT,
-      uri = "/session/${session.id}/reschedule",
-      body = rescheduleRequest,
-      returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
-      expectedResponseStatus = HttpStatus.OK.value(),
-    )
-
-    // Then
-    val expectedUpdateRequest = UpdateAppointmentsRequestFactory()
-      .withAppointments(
-        listOf(
-          UpdateAppointmentRequestFactory()
-            .withReference(app.ndeliusAppointmentId)
-            .withDate(LocalDate.now().plusDays(1))
-            .withStartTime(LocalTime.of(11, 0))
-            .withEndTime(LocalTime.of(12, 0))
-            .withLocation(RequestCode(group.deliveryLocationCode))
-            .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
-            .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
-            .withNotes(null)
-            .produce(),
-        ),
-      )
-      .produce()
-    nDeliusApiStubs.verifyPutAppointments(1, expectedUpdateRequest)
+      // When
+      webTestClient
+        .method(HttpMethod.GET)
+        .uri("bff/session/$sessionId")
+        .contentType(MediaType.APPLICATION_JSON)
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
   }
 
   @Nested
-  @DisplayName("Delete session")
+  @DisplayName("GET /bff/session/{sessionId}/edit-session-date-and-time")
+  inner class GetEditSessionDateAndTimeDetails {
+    @Test
+    fun `retrieveSessionDetailsToEdit returns 200 and session details`() {
+      // Given
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 2,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Test Session Template",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .withCode("GROUPCODE")
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withStartsAt(LocalDateTime.of(2026, 4, 23, 13, 30))
+          .withEndsAt(LocalDateTime.of(2026, 4, 23, 14, 30))
+          .produce(),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/session/${session.id}/edit-session-date-and-time",
+        object : ParameterizedTypeReference<EditSessionDetails>() {},
+      )
+
+      // Then
+      assertThat(response.sessionId).isEqualTo(session.id)
+      assertThat(response.groupCode).isEqualTo("GROUPCODE")
+      assertThat(response.sessionName).isEqualTo("Test Module 2")
+      assertThat(response.sessionDate).isEqualTo("23/4/2026")
+      assertThat(response.sessionStartTime.hour).isEqualTo(1)
+      assertThat(response.sessionStartTime.minutes).isEqualTo(30)
+      assertThat(response.sessionStartTime.amOrPm).isEqualTo(AmOrPm.PM)
+      assertThat(response.sessionEndTime.hour).isEqualTo(2)
+      assertThat(response.sessionEndTime.minutes).isEqualTo(30)
+      assertThat(response.sessionEndTime.amOrPm).isEqualTo(AmOrPm.PM)
+    }
+
+    @Test
+    fun `retrieveSessionDetailsToEdit returns 404 when session does not exist`() {
+      // Given
+      val nonExistentSessionId = UUID.randomUUID()
+      // When & Then
+      performRequestAndExpectStatusNoBody(
+        HttpMethod.GET,
+        "/bff/session/$nonExistentSessionId/edit-session-date-and-time",
+        HttpStatus.NOT_FOUND.value(),
+      )
+    }
+
+    @Test
+    fun `retrieveSessionDetailsToEdit returns 403 when unauthorized`() {
+      // Given
+      val sessionId = UUID.randomUUID()
+      // When & Then
+      performRequestAndExpectStatusNoBody(
+        HttpMethod.GET,
+        "/bff/session/$sessionId/edit-session-date-and-time",
+        HttpStatus.FORBIDDEN.value(),
+        roles = listOf("ROLE_OTHER"),
+      )
+    }
+  }
+
+  @Nested
+  @DisplayName("GET /bff/session/{sessionId}/edit-session-date-and-time/reschedule")
+  inner class GetRescheduleSessionDetails {
+    @Test
+    fun `getRescheduleSessionDetails returns 200 and reschedule details for group session`() {
+      // Given
+      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+      val sessionTemplate = moduleSessionTemplateRepository.findByName("Future me plan")
+
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate!!)
+          .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
+          .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
+          .produce(),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/session/${session.id}/edit-session-date-and-time/reschedule",
+        object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
+      )
+
+      // Then
+      assertThat(response.sessionId).isEqualTo(session.id)
+      assertThat(response.sessionName).isEqualTo("Bringing it all together 1")
+      assertThat(response.previousSessionDateAndTime).isEqualTo("Thursday 21 May 2026, 11am to 1:30pm")
+    }
+
+    @Test
+    fun `getRescheduleSessionDetails returns 200 and reschedule details for group catch-up session`() {
+      // Given
+      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+      val sessionTemplate = moduleSessionTemplateRepository.findByName("Module skills practice")
+
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate!!)
+          .withIsCatchup(true)
+          .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
+          .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
+          .produce(),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/session/${session.id}/edit-session-date-and-time/reschedule",
+        object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
+      )
+
+      // Then
+      assertThat(response.sessionName).isEqualTo("Managing people around me 6 catch-up")
+    }
+
+    @Test
+    fun `getRescheduleSessionDetails returns 200 and reschedule details for one-to-one session`() {
+      // Given
+      val programmeTemplate = accreditedProgrammeTemplateRepository.findFirstByName("Building Choices")!!
+      val sessionTemplate = moduleSessionTemplateRepository.findByName("Managing myself one-to-one")
+
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate!!)
+          .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
+          .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
+          .produce(),
+      )
+      val referral = testDataGenerator.createReferral(
+        personName = "John Doe",
+        crn = "X123456",
+      )
+      testDataGenerator.createAttendee(referral, session)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/session/${session.id}/edit-session-date-and-time/reschedule",
+        object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
+      )
+
+      // Then
+      assertThat(response.sessionName).isEqualTo("John Doe: Managing myself one-to-one")
+    }
+
+    @Test
+    fun `getRescheduleSessionDetails returns 200 and reschedule details for post-programme review`() {
+      // Given
+      val programmeTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+      val sessionTemplate = moduleSessionTemplateRepository.findByName("Post-programme review")
+
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .withCode("RESCHR")
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate!!)
+          .withStartsAt(LocalDateTime.of(2026, 5, 21, 11, 0))
+          .withEndsAt(LocalDateTime.of(2026, 5, 21, 13, 30))
+          .produce(),
+      )
+      val referral = testDataGenerator.createReferral(
+        personName = "Jane Smith",
+        crn = "Y654321",
+      )
+      testDataGenerator.createAttendee(referral, session)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/session/${session.id}/edit-session-date-and-time/reschedule",
+        object : ParameterizedTypeReference<RescheduleSessionDetails>() {},
+      )
+
+      // Then
+      assertThat(response.sessionName).isEqualTo("Jane Smith: Post-programme review")
+    }
+  }
+
+  @Nested
+  @DisplayName("PUT /session/{sessionId}/reschedule")
+  inner class RescheduleSession {
+    @Test
+    fun `should return HTTP 400 code when attempting to amend the duration of a session in the past `() {
+      // Given
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 2,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Test Session Template",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .withCode("RESCHED")
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withStartsAt(LocalDateTime.now().minusDays(2).withHour(13).withMinute(30))
+          .withEndsAt(LocalDateTime.now().minusDays(2).withHour(14).withMinute(30))
+          .produce(),
+      )
+
+      val rescheduleRequest = RescheduleSessionRequest(
+        sessionStartDate = LocalDate.now().plusDays(2),
+        sessionStartTime = SessionTime(hour = 9, minutes = 0, amOrPm = AmOrPm.AM),
+        sessionEndTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+        rescheduleOtherSessions = false,
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${session.id}/reschedule",
+        body = rescheduleRequest,
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+      )
+
+      // Then
+      assertThat(response.userMessage).isEqualTo("Bad request: The session duration cannot be longer than originally scheduled. Change the start or end time.")
+    }
+
+    @Test
+    fun `should return HTTP 400 when requested session end time is before start time`() {
+      // Given
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 2,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Test Session Template",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .withCode("RESCHED")
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withStartsAt(LocalDateTime.now().plusDays(1).withHour(13).withMinute(30).withSecond(0).withNano(0))
+          .withEndsAt(LocalDateTime.now().plusDays(1).withHour(14).withMinute(30).withSecond(0).withNano(0))
+          .produce(),
+      )
+
+      val rescheduleRequest = RescheduleSessionRequest(
+        sessionStartDate = LocalDate.now().plusDays(2),
+        sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        sessionEndTime = SessionTime(hour = 9, minutes = 0, amOrPm = AmOrPm.AM),
+        rescheduleOtherSessions = false,
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${session.id}/reschedule",
+        body = rescheduleRequest,
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+      )
+
+      // Then
+      assertThat(response.userMessage).isEqualTo("Bad request: The session end time must be after the session start time.")
+    }
+
+    @Test
+    fun `should allow the rescheduling of a session in the past, without modifying the duration of the session`() {
+      // Given
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 2,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Test Session Template",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .withCode("RESCHED")
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withStartsAt(LocalDateTime.now().minusDays(2).withHour(13).withMinute(30).withSecond(0).withNano(0))
+          .withEndsAt(LocalDateTime.now().minusDays(2).withHour(14).withMinute(30).withSecond(0).withNano(0))
+          .produce(),
+      )
+
+      val rescheduleRequest = RescheduleSessionRequest(
+        sessionStartDate = LocalDate.now().plusDays(2),
+        sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        null,
+        rescheduleOtherSessions = false,
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${session.id}/reschedule",
+        body = rescheduleRequest,
+        returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.message).isEqualTo("The date and time have been updated.")
+
+      // Verify the session was rescheduled and duration was preserved (original was 1hr: 13:30–14:30)
+      val updatedSession = sessionRepository.findById(session.id!!).get()
+      val expectedStart = LocalDateTime.of(LocalDate.now().plusDays(2), LocalTime.of(10, 0))
+      val expectedEnd = expectedStart.plusHours(1) // original duration preserved
+      assertThat(updatedSession.startsAt).isEqualTo(expectedStart)
+      assertThat(updatedSession.endsAt).isEqualTo(expectedEnd)
+    }
+
+    @Test
+    fun `should allow shortening the duration of a completed session`() {
+      // Given
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 2,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Test Session Template",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .withCode("RESCHED")
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withStartsAt(LocalDateTime.now().minusDays(2).withHour(15).withMinute(51).withSecond(0).withNano(0))
+          .withEndsAt(LocalDateTime.now().minusDays(2).withHour(15).withMinute(59).withSecond(0).withNano(0))
+          .produce(),
+      )
+
+      val targetDate = LocalDate.now().plusDays(2)
+      val rescheduleRequest = RescheduleSessionRequest(
+        sessionStartDate = targetDate,
+        sessionStartTime = SessionTime(hour = 3, minutes = 51, amOrPm = AmOrPm.PM),
+        sessionEndTime = SessionTime(hour = 3, minutes = 58, amOrPm = AmOrPm.PM),
+        rescheduleOtherSessions = false,
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${session.id}/reschedule",
+        body = rescheduleRequest,
+        returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.message).isEqualTo("The date and time have been updated.")
+      val updatedSession = sessionRepository.findById(session.id!!).get()
+      assertThat(updatedSession.startsAt).isEqualTo(LocalDateTime.of(targetDate, LocalTime.of(15, 51)))
+      assertThat(updatedSession.endsAt).isEqualTo(LocalDateTime.of(targetDate, LocalTime.of(15, 58)))
+    }
+
+    @Test
+    fun `should allow lengthening the duration of a session that has started but not yet ended`() {
+      // Given
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 2,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Test Session Template",
+          durationMinutes = 60,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .withCode("RESCHED")
+          .produce(),
+      )
+
+      val now = LocalDateTime.now().withSecond(0).withNano(0)
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withStartsAt(now.minusMinutes(30))
+          .withEndsAt(now.plusMinutes(30))
+          .produce(),
+      )
+
+      // Move to a future date and lengthen duration from 60 to 90 minutes.
+      val targetDate = LocalDate.now().plusDays(2)
+      val rescheduleRequest = RescheduleSessionRequest(
+        sessionStartDate = targetDate,
+        sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        sessionEndTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+        rescheduleOtherSessions = false,
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${session.id}/reschedule",
+        body = rescheduleRequest,
+        returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.message).isEqualTo("The date and time have been updated.")
+      val updatedSession = sessionRepository.findById(session.id!!).get()
+      assertThat(updatedSession.startsAt).isEqualTo(LocalDateTime.of(targetDate, LocalTime.of(10, 0)))
+      assertThat(updatedSession.endsAt).isEqualTo(LocalDateTime.of(targetDate, LocalTime.of(11, 30)))
+    }
+
+    @Test
+    fun `rescheduleSession returns 200 and updates session without rescheduling other sessions`() {
+      // Given
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 2,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Test Session Template",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .withCode("RESCHED")
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withStartsAt(LocalDateTime.now().plusDays(1).withHour(13).withMinute(30).withSecond(0).withNano(0))
+          .withEndsAt(LocalDateTime.now().plusDays(1).withHour(14).withMinute(30).withSecond(0).withNano(0))
+          .produce(),
+      )
+
+      val rescheduleRequest = RescheduleSessionRequest(
+        sessionStartDate = LocalDate.now().plusDays(2),
+        sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        null,
+        rescheduleOtherSessions = false,
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${session.id}/reschedule",
+        body = rescheduleRequest,
+        returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.message).isEqualTo("The date and time have been updated.")
+      val updatedSession = sessionRepository.findById(session.id!!).get()
+      assertThat(updatedSession.startsAt).isEqualTo(LocalDate.now().plusDays(2).atTime(10, 0))
+      assertThat(updatedSession.endsAt).isEqualTo(LocalDate.now().plusDays(2).atTime(11, 0))
+    }
+
+    @Test
+    fun `rescheduleSession should maintain cadence when moving a Tuesday session to Thursday`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Cadence Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Cadence Module", 1)
+
+      val sessionTemplate1 = testDataGenerator.createModuleSessionTemplate(module, "Session 1", 1)
+      val sessionTemplate2 = testDataGenerator.createModuleSessionTemplate(module, "Session 2", 2)
+      val sessionTemplate3 = testDataGenerator.createModuleSessionTemplate(module, "Session 3", 3)
+
+      val treatmentManager = testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce())
+      val group = ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(programmeTemplate)
+        .withTreatmentManager(treatmentManager)
+        .produce()
+      group.programmeGroupSessionSlots = mutableSetOf(
+        ProgrammeGroupSessionSlotEntity(
+          programmeGroup = group,
+          dayOfWeek = DayOfWeek.TUESDAY,
+          startTime = LocalTime.of(10, 0),
+        ),
+        ProgrammeGroupSessionSlotEntity(
+          programmeGroup = group,
+          dayOfWeek = DayOfWeek.THURSDAY,
+          startTime = LocalTime.of(10, 0),
+        ),
+      )
+      testDataGenerator.createGroup(group)
+
+      val referral = testDataGenerator.createReferral("John Doe", "X987654")
+
+      val nextTuesday = LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.TUESDAY))
+      val nextThursday = nextTuesday.plusDays(2)
+      val followingTuesday = nextTuesday.plusDays(7)
+
+      // Session 1: Next Tuesday
+      val session1 = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate1)
+          .withStartsAt(nextTuesday.atTime(10, 0))
+          .withEndsAt(nextTuesday.atTime(11, 0))
+          .produce(),
+      )
+      testDataGenerator.createNDeliusAppointment(session1, referral)
+
+      // Session 2: Next Thursday
+      val session2 = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate2)
+          .withStartsAt(nextThursday.atTime(10, 0))
+          .withEndsAt(nextThursday.atTime(11, 0))
+          .produce(),
+      )
+      testDataGenerator.createNDeliusAppointment(session2, referral)
+
+      // Session 3: Following Tuesday
+      val session3 = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate3)
+          .withStartsAt(followingTuesday.atTime(10, 0))
+          .withEndsAt(followingTuesday.atTime(11, 0))
+          .produce(),
+      )
+      testDataGenerator.createNDeliusAppointment(session3, referral)
+
+      val regularFacilitator = testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce())
+      listOf(session1, session2, session3).forEach {
+        testDataGenerator.createSessionFacilitator(it, regularFacilitator)
+      }
+
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+
+      // Reschedule Session 1 (Tuesday) to Thursday (same day as Session 2)
+      val rescheduleRequest = RescheduleSessionRequest(
+        sessionStartDate = nextThursday,
+        sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        sessionEndTime = SessionTime(hour = 11, minutes = 0, amOrPm = AmOrPm.AM),
+        rescheduleOtherSessions = true,
+      )
+
+      // When
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${session1.id}/reschedule",
+        body = rescheduleRequest,
+        returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      val updatedSession1 = sessionRepository.findById(session1.id!!).get()
+      assertThat(updatedSession1.startsAt).isEqualTo(nextThursday.atTime(10, 0))
+
+      val updatedSession2 = sessionRepository.findById(session2.id!!).get()
+      // If moved correctly, Session 2 (which was on Thursday) should move to the next available slot, which is following Tuesday
+      assertThat(updatedSession2.startsAt).isEqualTo(followingTuesday.atTime(10, 0))
+
+      val updatedSession3 = sessionRepository.findById(session3.id!!).get()
+      // Session 3 should move to following Thursday
+      assertThat(updatedSession3.startsAt).isEqualTo(followingTuesday.plusDays(2).atTime(10, 0))
+    }
+
+    @Test
+    fun `rescheduleSession with rescheduleOtherSessions true updates subsequent group sessions`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
+
+      val groupSessionTemplate1 = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 1,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Session 1",
+          durationMinutes = 60,
+        ),
+      )
+      val groupSessionTemplate2 = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 2,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Session 2",
+          durationMinutes = 60,
+        ),
+      )
+      val oneToOneSessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 3,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Session 3",
+          durationMinutes = 60,
+        ),
+      )
+      val catchUpSessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 4,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Session 4",
+          durationMinutes = 60,
+        ),
+      )
+      val oneToOneNonPlaceholder = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 5,
+          sessionType = SessionType.ONE_TO_ONE,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Session 5",
+          durationMinutes = 60,
+        ),
+      )
+      val treatmentManager = testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce())
+      val group = ProgrammeGroupFactory()
+        .withAccreditedProgrammeTemplate(programmeTemplate)
+        .withTreatmentManager(treatmentManager)
+        .produce()
+      group.programmeGroupSessionSlots = mutableSetOf(
+        ProgrammeGroupSessionSlotEntity(
+          programmeGroup = group,
+          dayOfWeek = DayOfWeek.MONDAY,
+          startTime = LocalTime.of(10, 0),
+        ),
+      )
+      testDataGenerator.createGroup(group)
+
+      val referral = testDataGenerator.createReferral("Jane Doe", "X123456")
+
+      val lastMonday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+      val session1Date = lastMonday.plusWeeks(1)
+      val session2Date = lastMonday.plusWeeks(2)
+      val session3Date = lastMonday.plusWeeks(3)
+      val session4Date = lastMonday.plusWeeks(4)
+      val session5Date = lastMonday.plusWeeks(5)
+      val pastSessionDate = lastMonday.minusWeeks(1)
+
+      // Session before the rescheduled session should not move
+      val pastSession = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(groupSessionTemplate1)
+          .withStartsAt(pastSessionDate.atTime(10, 0))
+          .withEndsAt(pastSessionDate.atTime(11, 0))
+          .produce(),
+      )
+      testDataGenerator.createNDeliusAppointment(pastSession, referral)
+
+      // Session 1: Monday week 1, 10:00 - 11:00 am
+      val session1 = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(groupSessionTemplate1)
+          .withStartsAt(session1Date.atTime(10, 0))
+          .withEndsAt(session1Date.atTime(11, 0))
+          .produce(),
+      )
+      val appointment1 = testDataGenerator.createNDeliusAppointment(session1, referral)
+
+      // Session 2: Monday week 2, 10:00 - 11:00 (Group) - subsequent group session should move
+      val session2 = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(groupSessionTemplate2)
+          .withStartsAt(session2Date.atTime(10, 0))
+          .withEndsAt(session2Date.atTime(11, 0))
+          .produce(),
+      )
+      val appointment2 = testDataGenerator.createNDeliusAppointment(session2, referral)
+
+      // Session 3: subsequent placeholder one-to-one session should move
+      val placeholderOneToOneSession = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(oneToOneSessionTemplate)
+          .withStartsAt(session3Date.atTime(10, 0))
+          .withEndsAt(session3Date.atTime(11, 0))
+          .withIsPlaceholder(true)
+          .produce(),
+      )
+      val placeholderOneToOneAppointment =
+        testDataGenerator.createNDeliusAppointment(placeholderOneToOneSession, referral)
+
+      // Session 4: subsequent catch-up session should not move
+      val catchUpSession = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(catchUpSessionTemplate)
+          .withStartsAt(session4Date.atTime(10, 0))
+          .withEndsAt(session4Date.atTime(11, 0))
+          .withIsCatchup(true)
+          .produce(),
+      )
+      testDataGenerator.createNDeliusAppointment(catchUpSession, referral)
+
+      // Session 5: subsequent one to one (non-placeholder) session should not move
+      val oneToOneNonPlaceholderSession = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(oneToOneNonPlaceholder)
+          .withStartsAt(session5Date.atTime(10, 0))
+          .withEndsAt(session5Date.atTime(11, 0))
+          .withIsPlaceholder(false)
+          .produce(),
+      )
+      testDataGenerator.createNDeliusAppointment(oneToOneNonPlaceholderSession, referral)
+
+      val regularFacilitator = testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce())
+      listOf(session1, session2, placeholderOneToOneSession).forEach {
+        testDataGenerator.createSessionFacilitator(it, regularFacilitator)
+      }
+
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+
+      // Reschedule Session 1 to be 1 hour later: start time Monday week 1, 11:00 am
+      val rescheduleRequest = RescheduleSessionRequest(
+        sessionStartDate = session1Date,
+        sessionStartTime = SessionTime(hour = 11, minutes = 0, amOrPm = AmOrPm.AM),
+        sessionEndTime = SessionTime(hour = 12, minutes = 0, amOrPm = AmOrPm.PM),
+        rescheduleOtherSessions = true,
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${session1.id}/reschedule",
+        body = rescheduleRequest,
+        returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response.message).isEqualTo("The date and time and schedule have been updated.")
+
+      val updatedPastSession = sessionRepository.findById(pastSession.id!!).get()
+      assertThat(updatedPastSession.startsAt).isEqualTo(pastSessionDate.atTime(10, 0))
+      assertThat(updatedPastSession.endsAt).isEqualTo(pastSessionDate.atTime(11, 0))
+
+      val updatedSession1 = sessionRepository.findById(session1.id!!).get()
+      assertThat(updatedSession1.startsAt).isEqualTo(session1Date.atTime(11, 0))
+      assertThat(updatedSession1.endsAt).isEqualTo(session1Date.atTime(12, 0))
+
+      // Session 2 should be moved to next Monday (session2Date) at 10:00 (since it's a group session and slots are used)
+      val updatedSession2 = sessionRepository.findById(session2.id!!).get()
+      assertThat(updatedSession2.startsAt).isEqualTo(session2Date.atTime(10, 0))
+      assertThat(updatedSession2.endsAt).isEqualTo(session2Date.atTime(11, 0))
+
+      // Session 3 should be rescheduled to next Monday (session3Date) as it is a ONE_TO_ONE place holder session
+      val updatedPlaceholderOneToOneSession = sessionRepository.findById(placeholderOneToOneSession.id!!).get()
+      assertThat(updatedPlaceholderOneToOneSession.startsAt).isEqualTo(session3Date.atTime(10, 0))
+      assertThat(updatedPlaceholderOneToOneSession.endsAt).isEqualTo(session3Date.atTime(11, 0))
+
+      // Session 4 : Catch up sessions shouldn't be rescheduled
+      val updatedCatchUpSession = sessionRepository.findById(catchUpSession.id!!).get()
+      assertThat(updatedCatchUpSession.startsAt).isEqualTo(session4Date.atTime(10, 0))
+      assertThat(updatedCatchUpSession.endsAt).isEqualTo(session4Date.atTime(11, 0))
+
+      // Session 5 : One to one non placeholder shouldn't be rescheduled
+      val updatedOneToOneNonPlaceholderSession = sessionRepository.findById(oneToOneNonPlaceholderSession.id!!).get()
+      assertThat(updatedOneToOneNonPlaceholderSession.startsAt).isEqualTo(session5Date.atTime(10, 0))
+      assertThat(updatedOneToOneNonPlaceholderSession.endsAt).isEqualTo(session5Date.atTime(11, 0))
+
+      // Verify ndeliusAppointments update request (bundled)
+      val expectedBundleRequest = UpdateAppointmentsRequestFactory()
+        .withAppointments(
+          listOf(
+            UpdateAppointmentRequestFactory()
+              .withReference(appointment2.ndeliusAppointmentId)
+              .withDate(session2Date)
+              .withStartTime(LocalTime.of(10, 0))
+              .withEndTime(LocalTime.of(11, 0))
+              .withLocation(RequestCode(group.deliveryLocationCode))
+              .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
+              .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
+              .withNotes(null)
+              .produce(),
+            UpdateAppointmentRequestFactory()
+              .withReference(placeholderOneToOneAppointment.ndeliusAppointmentId)
+              .withDate(session3Date)
+              .withStartTime(LocalTime.of(10, 0))
+              .withEndTime(LocalTime.of(11, 0))
+              .withLocation(RequestCode(group.deliveryLocationCode))
+              .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
+              .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
+              .withNotes(null)
+              .produce(),
+            UpdateAppointmentRequestFactory()
+              .withReference(appointment1.ndeliusAppointmentId)
+              .withDate(session1Date)
+              .withStartTime(LocalTime.of(11, 0))
+              .withEndTime(LocalTime.of(12, 0))
+              .withLocation(RequestCode(group.deliveryLocationCode))
+              .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
+              .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
+              .withNotes(null)
+              .produce(),
+          ),
+        )
+        .produce()
+      nDeliusApiStubs.verifyPutAppointments(1, expectedBundleRequest)
+    }
+
+    @Test
+    fun `should reschedule individual session and update its nDelius appointment`() {
+      // Given
+      stubAuthTokenEndpoint()
+      val programmeTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+      val sessionTemplate = moduleSessionTemplateRepository.findByName("Post-programme review")
+      val treatmentManager = testDataGenerator.createFacilitator(
+        FacilitatorEntityFactory()
+          .withId(null)
+          .produce(),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .withTreatmentManager(treatmentManager)
+          .produce(),
+      )
+
+      val referral = testDataGenerator.createReferral("John Doe", "X123457")
+
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate!!)
+          .withStartsAt(LocalDateTime.now().plusDays(1).withHour(10).withMinute(0))
+          .withEndsAt(LocalDateTime.now().plusDays(1).withHour(11).withMinute(0))
+          .produce(),
+      )
+      val app = testDataGenerator.createNDeliusAppointment(session, referral)
+      val regularFacilitator = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withId(null).produce())
+      testDataGenerator.createSessionFacilitator(session, regularFacilitator)
+
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+
+      // Reschedule Session to be 1 hour later
+      val rescheduleRequest = RescheduleSessionRequest(
+        sessionStartDate = LocalDate.now().plusDays(1),
+        sessionStartTime = SessionTime(hour = 11, minutes = 0, amOrPm = AmOrPm.AM),
+        sessionEndTime = SessionTime(hour = 12, minutes = 0, amOrPm = AmOrPm.PM),
+        rescheduleOtherSessions = false,
+      )
+
+      // When
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${session.id}/reschedule",
+        body = rescheduleRequest,
+        returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      val expectedUpdateRequest = UpdateAppointmentsRequestFactory()
+        .withAppointments(
+          listOf(
+            UpdateAppointmentRequestFactory()
+              .withReference(app.ndeliusAppointmentId)
+              .withDate(LocalDate.now().plusDays(1))
+              .withStartTime(LocalTime.of(11, 0))
+              .withEndTime(LocalTime.of(12, 0))
+              .withLocation(RequestCode(group.deliveryLocationCode))
+              .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
+              .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
+              .withNotes(null)
+              .produce(),
+          ),
+        )
+        .produce()
+      nDeliusApiStubs.verifyPutAppointments(1, expectedUpdateRequest)
+    }
+  }
+
+  @Nested
+  @DisplayName("DELETE /session/{sessionId}")
   inner class DeleteSession {
     @Test
     fun `return 200 when the session is deleted`() {
@@ -1225,86 +1318,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     }
   }
 
-  @Test
-  fun `should GET session details and return 200`() {
-    // Given
-    // Create group
-    val group = testGroupHelper.createGroup()
-    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
-    // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
-    val referral = testReferralHelper.createReferral()
-    programmeGroupMembershipService.allocateReferralToGroup(
-      referral.id!!,
-      group.id!!,
-      "SYSTEM",
-      "",
-    )
-    val sessionEntity =
-      sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }
-    nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
-    val sessionId = sessionEntity!!.id!!
-
-    // When
-    val response = performRequestAndExpectOk(
-      HttpMethod.GET,
-      "bff/session/$sessionId",
-      object : ParameterizedTypeReference<Session>() {},
-    )
-
-    // Then
-    assertThat(response.id).isEqualTo(sessionId)
-    assertThat(response.type).isEqualTo(sessionEntity.sessionType.value)
-    assertThat(response.name).isEqualTo(sessionEntity.moduleSessionTemplate.module.name)
-    assertThat(response.number).isEqualTo(sessionEntity.sessionNumber)
-    assertThat(response.referrals).isNotEmpty()
-    assertThat(response.referrals.size).isEqualTo(1)
-    assertThat(response.referrals[0].personName).isEqualTo(sessionEntity.attendees[0].personName)
-    assertThat(response.referrals[0].id).isEqualTo(sessionEntity.attendees[0].referral.id)
-    assertThat(response.referrals[0].cohort).isNotNull()
-    assertThat(response.referrals[0].crn).isEqualTo(sessionEntity.attendees[0].referral.crn)
-    assertThat(response.referrals[0].createdAt).isNotNull()
-    assertThat(response.referrals[0].status).isNotNull()
-    assertThat(response.isCatchup).isEqualTo(sessionEntity.isCatchup)
-  }
-
-  @Test
-  fun `should return 404 when a session is not found on GET request`() {
-    // Given
-    val sessionId = UUID.randomUUID()
-
-    // When
-    val exception = performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.GET,
-      uri = "bff/session/$sessionId",
-      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-      expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
-      body = {},
-    )
-
-    // Then
-    assertThat(exception.userMessage).isEqualTo("Not Found: Session with id $sessionId not found.")
-  }
-
-  @Test
-  fun `should return 401 when unauthorised on GET session request`() {
-    // Given
-    val sessionId = UUID.randomUUID()
-
-    // When
-    webTestClient
-      .method(HttpMethod.GET)
-      .uri("bff/session/$sessionId")
-      .contentType(MediaType.APPLICATION_JSON)
-      .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
-      .exchange()
-      .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
-      .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
-      .returnResult().responseBody!!
-  }
-
   @Nested
-  @DisplayName("Get session attendees /bff/session/{sessionId}/attendees")
-  inner class GetEditSessionAttendees {
+  @DisplayName("GET /bff/session/{sessionId}/attendees")
+  inner class GetSessionAttendees {
     private lateinit var session: SessionEntity
     private lateinit var referral1: ReferralEntity
     private lateinit var referral2: ReferralEntity
@@ -1402,7 +1418,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Nested
-  @DisplayName("Update session attendees")
+  @DisplayName("PUT /session/{sessionId}/attendees")
   inner class UpdateSessionAttendees {
     private lateinit var session: SessionEntity
     private lateinit var referral1: ReferralEntity
@@ -1550,7 +1566,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Nested
-  @DisplayName("Get session facilitators /bff/session/{sessionId}/session-facilitators")
+  @DisplayName("GET /bff/session/{sessionId}/session-facilitators")
   inner class GetSessionFacilitators {
     private lateinit var group: ProgrammeGroupEntity
 
@@ -1850,8 +1866,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Nested
-  @DisplayName("PUT session facilitators session/{sessionId}/session-facilitators")
-  inner class PutSessionFacilitators {
+  @DisplayName("PUT /session/{sessionId}/session-facilitators")
+  inner class UpdateSessionFacilitators {
 
     val facilitatorRequest = List(2) {
       EditSessionFacilitatorRequest(
@@ -1963,254 +1979,258 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     }
   }
 
-  @Test
-  fun `should POST session attendance request and return 201`() {
-    // Given
-    // Create group
-    val group = testGroupHelper.createGroup()
-    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
-    // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
-    val referral = testReferralHelper.createReferral()
-    programmeGroupMembershipService.allocateReferralToGroup(
-      referral.id!!,
-      group.id!!,
-      "SYSTEM",
-      "",
-    )
-    val sessionEntity =
-      sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }
-    nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
-    val sessionId = sessionEntity!!.id!!
+  @Nested
+  @DisplayName("POST /session/{sessionId}/attendance")
+  inner class PostSessionAttendance {
+    @Test
+    fun `should POST session attendance request and return 201`() {
+      // Given
+      // Create group
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+      val referral = testReferralHelper.createReferral()
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
+      val sessionEntity =
+        sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+      val sessionId = sessionEntity!!.id!!
 
-    val sessionAttendanceRequest = SessionAttendance(
-      attendees = listOf(
-        SessionAttendee(
-          referralId = sessionEntity.attendees.first().referralId,
-          outcomeCode = ATTC,
-          sessionNotes = "Test session notes",
-        ),
-      ),
-    )
-
-    // When
-    val response = performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.POST,
-      uri = "/session/$sessionId/attendance",
-      body = sessionAttendanceRequest,
-      returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
-      expectedResponseStatus = HttpStatus.CREATED.value(),
-    )
-
-    // Then
-    assertThat(response.responseMessage).isEqualTo("Attendance saved for session $sessionId")
-    val updatedSessionEntity = sessionRepository.findById(sessionId)
-    assertThat(updatedSessionEntity.isPresent).isTrue()
-    assertThat(updatedSessionEntity.get().attendances.size).isEqualTo(1)
-    val sessionAttendanceEntity = updatedSessionEntity.get().attendances.first()
-    assertThat(sessionAttendanceEntity.outcomeType.attendance).isTrue()
-    assertThat(sessionAttendanceEntity.recordedByFacilitator?.id)
-      .isEqualTo(sessionEntity.sessionFacilitators.find { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }?.facilitator?.id)
-    assertThat(sessionAttendanceEntity.recordedAt?.year).isEqualTo(LocalDate.now().year)
-    assertThat(sessionAttendanceEntity.recordedAt?.month?.value).isEqualTo(LocalDate.now().month.value)
-    assertThat(sessionAttendanceEntity.recordedAt?.dayOfMonth).isEqualTo(LocalDate.now().dayOfMonth)
-    assertThat(sessionAttendanceEntity.notesHistory.first().notes).isEqualTo("Test session notes")
-    assertThat(sessionAttendanceEntity.outcomeType.code).isEqualTo(ATTC)
-
-    val primaryFacilitator = sessionEntity.primaryFacilitator()
-    nDeliusApiStubs.verifyPutAppointments(
-      1,
-      UpdateAppointmentsRequest(
-        appointments = listOf(
-          UpdateAppointmentRequestFactory()
-            .withReference(sessionEntity.ndeliusAppointments.first().ndeliusAppointmentId)
-            .withDate(sessionEntity.startsAt.toLocalDate())
-            .withStartTime(sessionEntity.startsAt.toLocalTime())
-            .withEndTime(sessionEntity.endsAt.toLocalTime())
-            .withOutcome(RequestCode(ATTC.name))
-            .withLocation(RequestCode(group.deliveryLocationCode))
-            .withStaff(RequestCode(primaryFacilitator.ndeliusPersonCode))
-            .withTeam(RequestCode(primaryFacilitator.ndeliusTeamCode))
-            .withNotes("Test session notes")
-            .withSensitive(false)
-            .produce(),
-        ),
-      ),
-    )
-  }
-
-  @Test
-  fun `should return 400 when attempting to change a recorded attendance outcome`() {
-    // Given
-    val group = testGroupHelper.createGroup()
-    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
-    nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
-    val referral = testReferralHelper.createReferral()
-    programmeGroupMembershipService.allocateReferralToGroup(
-      referral.id!!,
-      group.id!!,
-      "SYSTEM",
-      "",
-    )
-    val sessionEntity =
-      sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
-    val sessionId = sessionEntity.id!!
-    val attendee = sessionEntity.attendees.first()
-
-    performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.POST,
-      uri = "/session/$sessionId/attendance",
-      body = SessionAttendance(
-        attendees = listOf(SessionAttendee(referralId = attendee.referralId, outcomeCode = ATTC)),
-      ),
-      returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
-      expectedResponseStatus = HttpStatus.CREATED.value(),
-    )
-
-    // When
-    val exception = performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.POST,
-      uri = "/session/$sessionId/attendance",
-      body = SessionAttendance(
+      val sessionAttendanceRequest = SessionAttendance(
         attendees = listOf(
-          SessionAttendee(referralId = attendee.referralId, outcomeCode = SessionAttendanceNDeliusCode.UAAB),
+          SessionAttendee(
+            referralId = sessionEntity.attendees.first().referralId,
+            outcomeCode = ATTC,
+            sessionNotes = "Test session notes",
+          ),
         ),
-      ),
-      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-      expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
-    )
+      )
 
-    // Then
-    assertThat(exception.userMessage)
-      .contains("Attendance outcome cannot be changed once it has been recorded")
-      .contains(attendee.referral.crn)
-    val attendances = sessionRepository.findById(sessionId).get().attendances
-    assertThat(attendances).hasSize(1)
-    assertThat(attendances.first().outcomeType.code).isEqualTo(ATTC)
-  }
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = sessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
 
-  @Test
-  fun `should not update nDelius when resubmitting an unchanged attendance`() {
-    // Given
-    val group = testGroupHelper.createGroup()
-    nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
-    nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
-    val referral = testReferralHelper.createReferral()
-    programmeGroupMembershipService.allocateReferralToGroup(
-      referral.id!!,
-      group.id!!,
-      "SYSTEM",
-      "",
-    )
-    val sessionEntity =
-      sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
-    val sessionId = sessionEntity.id!!
+      // Then
+      assertThat(response.responseMessage).isEqualTo("Attendance saved for session $sessionId")
+      val updatedSessionEntity = sessionRepository.findById(sessionId)
+      assertThat(updatedSessionEntity.isPresent).isTrue()
+      assertThat(updatedSessionEntity.get().attendances.size).isEqualTo(1)
+      val sessionAttendanceEntity = updatedSessionEntity.get().attendances.first()
+      assertThat(sessionAttendanceEntity.outcomeType.attendance).isTrue()
+      assertThat(sessionAttendanceEntity.recordedByFacilitator?.id)
+        .isEqualTo(sessionEntity.sessionFacilitators.find { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }?.facilitator?.id)
+      assertThat(sessionAttendanceEntity.recordedAt?.year).isEqualTo(LocalDate.now().year)
+      assertThat(sessionAttendanceEntity.recordedAt?.month?.value).isEqualTo(LocalDate.now().month.value)
+      assertThat(sessionAttendanceEntity.recordedAt?.dayOfMonth).isEqualTo(LocalDate.now().dayOfMonth)
+      assertThat(sessionAttendanceEntity.notesHistory.first().notes).isEqualTo("Test session notes")
+      assertThat(sessionAttendanceEntity.outcomeType.code).isEqualTo(ATTC)
 
-    val sessionAttendanceRequest = SessionAttendance(
-      attendees = listOf(
-        SessionAttendee(
-          referralId = sessionEntity.attendees.first().referralId,
-          outcomeCode = ATTC,
-          sessionNotes = "Test session notes",
+      val primaryFacilitator = sessionEntity.primaryFacilitator()
+      nDeliusApiStubs.verifyPutAppointments(
+        1,
+        UpdateAppointmentsRequest(
+          appointments = listOf(
+            UpdateAppointmentRequestFactory()
+              .withReference(sessionEntity.ndeliusAppointments.first().ndeliusAppointmentId)
+              .withDate(sessionEntity.startsAt.toLocalDate())
+              .withStartTime(sessionEntity.startsAt.toLocalTime())
+              .withEndTime(sessionEntity.endsAt.toLocalTime())
+              .withOutcome(RequestCode(ATTC.name))
+              .withLocation(RequestCode(group.deliveryLocationCode))
+              .withStaff(RequestCode(primaryFacilitator.ndeliusPersonCode))
+              .withTeam(RequestCode(primaryFacilitator.ndeliusTeamCode))
+              .withNotes("Test session notes")
+              .withSensitive(false)
+              .produce(),
+          ),
         ),
-      ),
-    )
+      )
+    }
 
-    performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.POST,
-      uri = "/session/$sessionId/attendance",
-      body = sessionAttendanceRequest,
-      returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
-      expectedResponseStatus = HttpStatus.CREATED.value(),
-    )
+    @Test
+    fun `should return 400 when attempting to change a recorded attendance outcome`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+      val referral = testReferralHelper.createReferral()
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
+      val sessionEntity =
+        sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
+      val sessionId = sessionEntity.id!!
+      val attendee = sessionEntity.attendees.first()
 
-    // When - resubmit the same outcome and notes
-    performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.POST,
-      uri = "/session/$sessionId/attendance",
-      body = sessionAttendanceRequest,
-      returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
-      expectedResponseStatus = HttpStatus.CREATED.value(),
-    )
-
-    // Then - no new attendance row is recorded and nDelius is only called once
-    assertThat(sessionRepository.findById(sessionId).get().attendances).hasSize(1)
-    val primaryFacilitator = sessionEntity.primaryFacilitator()
-    nDeliusApiStubs.verifyPutAppointments(
-      1,
-      UpdateAppointmentsRequest(
-        appointments = listOf(
-          UpdateAppointmentRequestFactory()
-            .withReference(sessionEntity.ndeliusAppointments.first().ndeliusAppointmentId)
-            .withDate(sessionEntity.startsAt.toLocalDate())
-            .withStartTime(sessionEntity.startsAt.toLocalTime())
-            .withEndTime(sessionEntity.endsAt.toLocalTime())
-            .withOutcome(RequestCode(ATTC.name))
-            .withLocation(RequestCode(group.deliveryLocationCode))
-            .withStaff(RequestCode(primaryFacilitator.ndeliusPersonCode))
-            .withTeam(RequestCode(primaryFacilitator.ndeliusTeamCode))
-            .withNotes("Test session notes")
-            .withSensitive(false)
-            .produce(),
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = SessionAttendance(
+          attendees = listOf(SessionAttendee(referralId = attendee.referralId, outcomeCode = ATTC)),
         ),
-      ),
-    )
-  }
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
 
-  @Test
-  fun `should return 404 when a session is not found on POST session attendance request`() {
-    // Given
-    val sessionId = UUID.randomUUID()
-    val sessionAttendanceRequest = SessionAttendance(
-      attendees = listOf(
-        SessionAttendee(
-          referralId = UUID.randomUUID(),
-          outcomeCode = ATTC,
+      // When
+      val exception = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = SessionAttendance(
+          attendees = listOf(
+            SessionAttendee(referralId = attendee.referralId, outcomeCode = SessionAttendanceNDeliusCode.UAAB),
+          ),
         ),
-      ),
-    )
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+      )
 
-    // When
-    val exception = performRequestAndExpectStatusWithBody(
-      httpMethod = HttpMethod.POST,
-      uri = "/session/$sessionId/attendance",
-      returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-      expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
-      body = sessionAttendanceRequest,
-    )
+      // Then
+      assertThat(exception.userMessage)
+        .contains("Attendance outcome cannot be changed once it has been recorded")
+        .contains(attendee.referral.crn)
+      val attendances = sessionRepository.findById(sessionId).get().attendances
+      assertThat(attendances).hasSize(1)
+      assertThat(attendances.first().outcomeType.code).isEqualTo(ATTC)
+    }
 
-    // Then
-    assertThat(exception.userMessage).isEqualTo("Not Found: Session not found with id: $sessionId")
-  }
+    @Test
+    fun `should not update nDelius when resubmitting an unchanged attendance`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+      val referral = testReferralHelper.createReferral()
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
+      val sessionEntity =
+        sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
+      val sessionId = sessionEntity.id!!
 
-  @Test
-  fun `should return 401 when unauthorised on POST session session attendance request`() {
-    // Given
-    val sessionId = UUID.randomUUID()
-    val sessionAttendanceRequest = SessionAttendance(
-      attendees = listOf(
-        SessionAttendee(
-          referralId = UUID.randomUUID(),
-          outcomeCode = ATTC,
+      val sessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = sessionEntity.attendees.first().referralId,
+            outcomeCode = ATTC,
+            sessionNotes = "Test session notes",
+          ),
         ),
-      ),
-    )
+      )
 
-    // When
-    webTestClient
-      .method(HttpMethod.POST)
-      .uri("/session/$sessionId/attendance")
-      .contentType(MediaType.APPLICATION_JSON)
-      .body(BodyInserters.fromValue(sessionAttendanceRequest))
-      .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
-      .exchange()
-      .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
-      .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
-      .returnResult().responseBody!!
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = sessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // When - resubmit the same outcome and notes
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = sessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Then - no new attendance row is recorded and nDelius is only called once
+      assertThat(sessionRepository.findById(sessionId).get().attendances).hasSize(1)
+      val primaryFacilitator = sessionEntity.primaryFacilitator()
+      nDeliusApiStubs.verifyPutAppointments(
+        1,
+        UpdateAppointmentsRequest(
+          appointments = listOf(
+            UpdateAppointmentRequestFactory()
+              .withReference(sessionEntity.ndeliusAppointments.first().ndeliusAppointmentId)
+              .withDate(sessionEntity.startsAt.toLocalDate())
+              .withStartTime(sessionEntity.startsAt.toLocalTime())
+              .withEndTime(sessionEntity.endsAt.toLocalTime())
+              .withOutcome(RequestCode(ATTC.name))
+              .withLocation(RequestCode(group.deliveryLocationCode))
+              .withStaff(RequestCode(primaryFacilitator.ndeliusPersonCode))
+              .withTeam(RequestCode(primaryFacilitator.ndeliusTeamCode))
+              .withNotes("Test session notes")
+              .withSensitive(false)
+              .produce(),
+          ),
+        ),
+      )
+    }
+
+    @Test
+    fun `should return 404 when a session is not found on POST session attendance request`() {
+      // Given
+      val sessionId = UUID.randomUUID()
+      val sessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = UUID.randomUUID(),
+            outcomeCode = ATTC,
+          ),
+        ),
+      )
+
+      // When
+      val exception = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+        body = sessionAttendanceRequest,
+      )
+
+      // Then
+      assertThat(exception.userMessage).isEqualTo("Not Found: Session not found with id: $sessionId")
+    }
+
+    @Test
+    fun `should return 401 when unauthorised on POST session session attendance request`() {
+      // Given
+      val sessionId = UUID.randomUUID()
+      val sessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = UUID.randomUUID(),
+            outcomeCode = ATTC,
+          ),
+        ),
+      )
+
+      // When
+      webTestClient
+        .method(HttpMethod.POST)
+        .uri("/session/$sessionId/attendance")
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(BodyInserters.fromValue(sessionAttendanceRequest))
+        .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
+        .exchange()
+        .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
+        .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
+        .returnResult().responseBody!!
+    }
   }
 
   @Nested
-  @DisplayName("Get record attendance")
-  inner class GetRecordAttendancePage {
+  @DisplayName("GET /bff/session/{sessionId}/record-attendance")
+  inner class GetRecordAttendance {
     @Test
     fun `should return 200 and most recent attendance data on GET record attendance by a session ID`() {
       // Given
@@ -2335,7 +2355,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Nested
-  @DisplayName("bff for session notes page")
+  @DisplayName("GET /bff/session/{sessionId}/referral/{referralId}/session-notes")
   inner class GetSessionNotes {
 
     @Test
