@@ -2,17 +2,16 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.eve
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.microsoft.applicationinsights.TelemetryClient
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.DomainEventsMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.util.UUID
 
 @Component
@@ -21,7 +20,7 @@ class ReferralImportedHandler(
   private val objectMapper: ObjectMapper,
   private val messageHistoryRepository: MessageHistoryRepository,
   private val referralService: ReferralService,
-  private val telemetryClient: TelemetryClient,
+  private val telemetryService: TelemetryService,
 ) {
 
   companion object {
@@ -41,9 +40,9 @@ class ReferralImportedHandler(
         ?: return log.warn("Referral ID is null for event with messageId: ${sqsMessage.messageId}")
       log.info("Received referral imported event for referral id: $referralId")
 
-      telemetryClient.logToAppInsights(
-        "Referral.imported-event-received.success",
-        mapOf(
+      telemetryService.logToAppInsights(
+        eventName = "Referral.imported-event-received.success",
+        properties = mapOf(
           "eventType" to message.eventType,
           "referralId" to referralId.toString(),
           "crn" to message.personReference.findCrn()!!,
@@ -56,9 +55,9 @@ class ReferralImportedHandler(
         referralService.refreshPersonalDetailsForReferral(referralId, false)
       }
       log.info("Ending handle for messageId: ${sqsMessage.messageId}")
-      telemetryClient.logToAppInsights(
-        "Referral.imported-event-processed.success",
-        mapOf(
+      telemetryService.logToAppInsights(
+        eventName = "Referral.imported-event-processed.success",
+        properties = mapOf(
           "eventType" to message.eventType,
           "referralId" to referralId.toString(),
           "crn" to message.personReference.findCrn()!!,
@@ -66,9 +65,9 @@ class ReferralImportedHandler(
       )
     } catch (e: Exception) {
       log.error("Error handling ReferralImportedEvent: ${e.message}", e)
-      telemetryClient.logToAppInsights(
-        "Referral.imported-event-processed.failure",
-        mapOf(
+      telemetryService.logToAppInsights(
+        eventName = "Referral.imported-event-processed.failure",
+        properties = mapOf(
           "errorMessage" to (e.message?.trim() ?: ""),
         ),
       )

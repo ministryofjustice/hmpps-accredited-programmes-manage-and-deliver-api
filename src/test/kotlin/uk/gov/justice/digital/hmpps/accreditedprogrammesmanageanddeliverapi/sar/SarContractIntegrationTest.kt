@@ -254,6 +254,13 @@ class SarContractIntegrationTest :
           ndeliusTeamCode = "TEAM001",
           teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER,
         ),
+        CreateGroupTeamMemberFactory().produceWithRandomValues(
+          personName = "Deterministic Regular Facilitator",
+          personCode = "FAC002",
+          ndeliusTeamName = "Deterministic Team",
+          ndeliusTeamCode = "TEAM001",
+          teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR,
+        ),
       ),
     )
 

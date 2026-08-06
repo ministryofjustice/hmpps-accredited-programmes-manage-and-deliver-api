@@ -19,7 +19,9 @@ servers:
 components:
   messages:
     accredited-programmes-community.referral.status-updated:
-      $ref: https://raw.githubusercontent.com/ministryofjustice/hmpps-domain-events/refs/heads/main/spec/schemas/accredited-programmes/community-referral-status-updated.yml
+      $ref: https://raw.githubusercontent.com/ministryofjustice/hmpps-domain-events/refs/heads/main/spec/schemas/accredited-programmes-community/referral.status-updated.yml
+    accredited-programmes-community.programme.complete:
+      $ref: https://raw.githubusercontent.com/ministryofjustice/hmpps-domain-events/refs/heads/main/spec/schemas/accredited-programmes-community/programme.complete.yml
 channels:
   hmpps-domain-events:
     description: HMPPS domain events SNS topic
@@ -29,6 +31,8 @@ channels:
     messages:
       accredited-programmes-community.referral.status-updated:
         $ref: '#/components/messages/accredited-programmes-community.referral.status-updated'
+      accredited-programmes-community.programme.complete:
+        $ref: '#/components/messages/accredited-programmes-community.programme.complete'
 operations:
   publish-event:
     action: send
@@ -36,3 +40,4 @@ operations:
       $ref: '#/channels/hmpps-domain-events'
     messages:
       - $ref: '#/channels/hmpps-domain-events/messages/accredited-programmes-community.referral.status-updated'
+      - $ref: '#/channels/hmpps-domain-events/messages/accredited-programmes-community.programme.complete'

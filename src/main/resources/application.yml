@@ -18,7 +18,7 @@ sentry:
 
 app:
   features:
-    lao-access-check-enabled: false
+    lao-access-check-enabled: ${LAO_ACCESS_CHECK_ENABLED:false}
 
   scheduling:
     referral-details-updated:
