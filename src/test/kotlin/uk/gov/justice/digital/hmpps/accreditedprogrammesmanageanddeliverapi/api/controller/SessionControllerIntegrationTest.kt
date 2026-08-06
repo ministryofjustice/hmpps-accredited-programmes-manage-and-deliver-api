@@ -1,5 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
+import com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -39,6 +41,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
@@ -1869,6 +1872,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
   @DisplayName("PUT /session/{sessionId}/session-facilitators")
   inner class UpdateSessionFacilitators {
 
+    @BeforeEach
+    fun beforeEach() {
+      wiremock.resetAll()
+    }
+
     val facilitatorRequest = List(2) {
       EditSessionFacilitatorRequest(
         facilitatorName = randomFullName().getNameAsString(),
@@ -1879,7 +1887,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should update the list of facilitators on the session`() {
+    fun `should update the list of facilitators on the session and not call delius when no associated nDelius Appointment`() {
       // Given
       val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
       val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
@@ -1909,6 +1917,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(session.sessionFacilitators).isEmpty()
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
       // When
       val response = performRequestAndExpectStatusWithBody(
@@ -1930,6 +1939,71 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
       val savedFacilitatorEntities = facilitatorRepository.findAll()
       assertThat(sessionFacilitatorCodes).containsAll(savedFacilitatorEntities.map { it.ndeliusPersonCode })
+
+      wiremock.verify(0, putRequestedFor(urlEqualTo("/appointments")))
+    }
+
+    @Test
+    fun `should update the list of facilitators on the session and call delius when session has associated nDelius Appointment`() {
+      // Given
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = 2,
+          sessionType = SessionType.GROUP,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = "Test Session Template",
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .withCode("GROUPCODE")
+          .produce(),
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withStartsAt(LocalDateTime.of(2026, 4, 23, 13, 30))
+          .withEndsAt(LocalDateTime.of(2026, 4, 23, 14, 30))
+          .produce(),
+      )
+      val referral = testDataGenerator.createReferral(
+        randomFullName().getNameAsString(),
+        crn = randomCrn(),
+      )
+      testDataGenerator.createNDeliusAppointment(session, referral)
+
+      assertThat(session.sessionFacilitators).isEmpty()
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+      stubAuthTokenEndpoint()
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        HttpMethod.PUT,
+        uri = "session/${session.id}/session-facilitators",
+        body = facilitatorRequest,
+        returnType = object : ParameterizedTypeReference<String>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response).isEqualTo("The people responsible for this session have been updated.")
+      val savedSession = sessionRepository.findByIdOrNull(session.id!!)!!
+      val sessionFacilitatorCodes = savedSession.sessionFacilitators.map { it.facilitatorCode }
+
+      assertThat(savedSession.sessionFacilitators).hasSize(2)
+      assertThat(sessionFacilitatorCodes).containsAll(facilitatorRequest.map { it.facilitatorCode })
+
+      val savedFacilitatorEntities = facilitatorRepository.findAll()
+      assertThat(sessionFacilitatorCodes).containsAll(savedFacilitatorEntities.map { it.ndeliusPersonCode })
+
+      wiremock.verify(1, putRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -1946,6 +2020,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response.userMessage).isEqualTo("Not Found: Session not found with id: $sessionId")
+      wiremock.verify(0, putRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -1962,6 +2037,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response.userMessage).isEqualTo("Bad request: 400 BAD_REQUEST \"Validation failure\"")
+      wiremock.verify(0, putRequestedFor(urlEqualTo("/appointments")))
     }
 
     @Test
@@ -1976,6 +2052,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
+
+      wiremock.verify(0, putRequestedFor(urlEqualTo("/appointments")))
     }
   }
 
