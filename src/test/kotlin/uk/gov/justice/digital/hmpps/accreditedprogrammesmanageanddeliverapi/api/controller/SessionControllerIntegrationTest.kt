@@ -122,7 +122,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "bff/session/$sessionId",
+        "/bff/session/$sessionId",
         object : ParameterizedTypeReference<Session>() {},
       )
 
@@ -150,7 +150,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       // When
       val exception = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.GET,
-        uri = "bff/session/$sessionId",
+        uri = "/bff/session/$sessionId",
         returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
         expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
         body = {},
@@ -161,14 +161,14 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should return 401 when unauthorised on GET session request`() {
+    fun `should return 403 when unauthorised on GET session request`() {
       // Given
       val sessionId = UUID.randomUUID()
 
       // When
       webTestClient
         .method(HttpMethod.GET)
-        .uri("bff/session/$sessionId")
+        .uri("/bff/session/$sessionId")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .exchange()
