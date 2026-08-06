@@ -49,7 +49,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
@@ -250,7 +249,13 @@ class SessionService(
   }
 
   fun updateNDeliusAppointmentsForSession(session: SessionEntity) {
-    if (session.ndeliusAppointments.isEmpty()) return
+    if (session.ndeliusAppointments.isEmpty()) {
+      log.debug(
+        "updateNDeliusAppointmentsForSession not called as no nDelius appointments found for session {}",
+        session.id,
+      )
+      return
+    }
 
     val updateRequests = session.ndeliusAppointments.map { it.toUpdateAppointmentRequest() }
 
@@ -351,9 +356,12 @@ class SessionService(
         facilitatorType = FacilitatorType.REGULAR_FACILITATOR,
       )
     }.toMutableSet()
+
     session.sessionFacilitators.clear()
     session.sessionFacilitators.addAll(sessionFacilitators)
+
     sessionRepository.save(session)
+    updateNDeliusAppointmentsForSession(session)
   }
 
   // Deletes session and returns the deleted entity and a properly formatted session name as a string
