@@ -170,7 +170,7 @@ class SarContractIntegrationTest :
     referralRepository.saveAndFlush(referral)
 
     referral.referralCohortHistories.forEach {
-      it.createdAt = if (it.createdBy == "SYSTEM") fixedNow else fixedNow.minusMinutes(1)
+      it.createdAt = if (it.createdBy == "SYSTEM" || it.createdBy == "Accredited Programmes automated update") fixedNow else fixedNow.minusMinutes(1)
     }
     referralRepository.saveAndFlush(referral)
 
