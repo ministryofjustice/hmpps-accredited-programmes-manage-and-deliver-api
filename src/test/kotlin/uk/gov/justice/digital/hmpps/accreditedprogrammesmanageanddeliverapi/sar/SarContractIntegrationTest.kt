@@ -170,7 +170,7 @@ class SarContractIntegrationTest :
     referralRepository.saveAndFlush(referral)
 
     referral.referralCohortHistories.forEach {
-      it.createdAt = if (it.createdBy == "SYSTEM") fixedNow else fixedNow.minusMinutes(1)
+      it.createdAt = if (it.createdBy == "SYSTEM" || it.createdBy == "Accredited Programmes automated update") fixedNow else fixedNow.minusMinutes(1)
     }
     referralRepository.saveAndFlush(referral)
 
@@ -253,6 +253,13 @@ class SarContractIntegrationTest :
           ndeliusTeamName = "Deterministic Team",
           ndeliusTeamCode = "TEAM001",
           teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER,
+        ),
+        CreateGroupTeamMemberFactory().produceWithRandomValues(
+          personName = "Deterministic Regular Facilitator",
+          personCode = "FAC002",
+          ndeliusTeamName = "Deterministic Team",
+          ndeliusTeamCode = "TEAM001",
+          teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR,
         ),
       ),
     )

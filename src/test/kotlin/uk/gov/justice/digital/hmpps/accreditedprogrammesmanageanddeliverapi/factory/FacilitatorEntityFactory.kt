@@ -1,14 +1,18 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
 
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 import java.util.UUID
 
 class FacilitatorEntityFactory {
   private var id: UUID? = null
-  private var personName: String = "John Smith"
-  private var ndeliusPersonCode: String = "123456"
-  private var ndeliusTeamCode: String = "12345"
-  private var ndeliusTeamName: String = "Team 1"
+  private var personName: String = randomFullName().getNameAsString()
+  private var ndeliusPersonCode: String = randomAlphanumericString()
+  private var ndeliusTeamCode: String = randomAlphanumericString()
+  private var ndeliusTeamName: String = randomWord(4..6).toString()
 
   fun withId(id: UUID?) = apply { this.id }
   fun withPersonName(personName: String) = apply { this.personName = personName }

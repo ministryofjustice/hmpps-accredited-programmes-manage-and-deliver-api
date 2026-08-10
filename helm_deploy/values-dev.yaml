@@ -20,6 +20,7 @@ generic-service:
     SERVICES_GOVUK-API_BASE-URL: "https://www.gov.uk"
     SERVICES_PROBATION-ACCESS-CONTROL-API_BASE-URL: "https://probation-access-control-dev.hmpps.service.justice.gov.uk"
     SENTRY_ENVIRONMENT: dev
+    LAO_ACCESS_CHECK_ENABLED: "true"
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
 # See https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html#creating-your-own-custom-alerts

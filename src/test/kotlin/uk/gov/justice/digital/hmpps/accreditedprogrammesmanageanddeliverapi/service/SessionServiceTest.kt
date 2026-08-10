@@ -391,6 +391,7 @@ class SessionServiceTest {
         referral = ReferralEntityFactory().produce(),
       )
     session.ndeliusAppointments.add(appointment)
+    session.sessionFacilitators.add(SessionFacilitatorEntity(facilitator, session, REGULAR_FACILITATOR))
 
     every { sessionRepository.findById(sessionId) } returns Optional.of(session)
     every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
@@ -478,6 +479,9 @@ class SessionServiceTest {
 
     group.sessions.add(session1)
     group.sessions.add(session2)
+
+    session1.sessionFacilitators.add(SessionFacilitatorEntity(facilitator, session1, REGULAR_FACILITATOR))
+    session2.sessionFacilitators.add(SessionFacilitatorEntity(facilitator, session2, REGULAR_FACILITATOR))
 
     val appointment1 =
       NDeliusAppointmentEntity(

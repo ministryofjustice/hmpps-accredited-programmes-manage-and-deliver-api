@@ -351,7 +351,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(getResult).hasSize(2)
 
       assertThat(getResult[0].referralStatusDescriptionName).isEqualTo("Awaiting assessment")
-      assertThat(getResult[0].updatedBy).isEqualTo("SYSTEM")
+      assertThat(getResult[0].updatedBy).isEqualTo("Accredited Programmes automated update")
       assertThat(getResult[0].additionalDetails).isEqualTo(null)
       assertThat(getResult[0].tagColour).isEqualTo("purple")
 

@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.PreferredDeliveryLocationProbationDeliveryUnitEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCohortHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
@@ -27,6 +28,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
@@ -246,6 +249,32 @@ class TestDataGenerator {
   fun createFacilitator(facilitator: FacilitatorEntity): FacilitatorEntity {
     entityManager.persist(facilitator)
     return facilitator
+  }
+
+  fun createSessionFacilitator(
+    session: SessionEntity,
+    facilitator: FacilitatorEntity,
+    facilitatorType: FacilitatorType = FacilitatorType.REGULAR_FACILITATOR,
+  ): SessionFacilitatorEntity {
+    val sessionFacilitator = SessionFacilitatorEntity(facilitator, session, facilitatorType)
+    session.sessionFacilitators.add(sessionFacilitator)
+    entityManager.persist(sessionFacilitator)
+    return sessionFacilitator
+  }
+
+  fun createGroupFacilitator(
+    group: ProgrammeGroupEntity,
+    facilitator: FacilitatorEntity,
+    facilitatorType: FacilitatorType = FacilitatorType.REGULAR_FACILITATOR,
+  ): ProgrammeGroupFacilitatorEntity {
+    val groupFacilitator = ProgrammeGroupFacilitatorEntity(
+      facilitator = facilitator,
+      programmeGroup = group,
+      facilitatorType = facilitatorType,
+    )
+    group.groupFacilitators.add(groupFacilitator)
+    entityManager.persist(groupFacilitator)
+    return groupFacilitator
   }
 
   fun createReferral(personName: String, crn: String): ReferralEntity {
