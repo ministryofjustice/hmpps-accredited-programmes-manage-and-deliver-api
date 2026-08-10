@@ -43,6 +43,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceNDeliusOutcomeEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendeeFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
@@ -52,7 +53,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.Clock
@@ -575,6 +575,7 @@ class SessionServiceTest {
     )
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+    val user = UserFactory().produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
@@ -595,6 +596,7 @@ class SessionServiceTest {
       )
     every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     val result = service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -625,6 +627,7 @@ class SessionServiceTest {
         appliedBy = null,
       )
     }
+    verify { userService.getUserByUsernameOrNull(any()) }
   }
 
   @Test
@@ -681,6 +684,7 @@ class SessionServiceTest {
     )
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+    val user = UserFactory().produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
@@ -701,6 +705,7 @@ class SessionServiceTest {
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
     every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -732,6 +737,7 @@ class SessionServiceTest {
         appliedBy = null,
       )
     }
+    verify { userService.getUserByUsernameOrNull(any()) }
   }
 
   @Test
@@ -777,6 +783,7 @@ class SessionServiceTest {
     )
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+    val user = UserFactory().produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
@@ -791,6 +798,7 @@ class SessionServiceTest {
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -813,6 +821,7 @@ class SessionServiceTest {
         appliedBy = null,
       )
     }
+    verify { userService.getUserByUsernameOrNull(any()) }
   }
 
   @Test
@@ -879,6 +888,7 @@ class SessionServiceTest {
     sessionEntity.sessionFacilitators.add(
       SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
     )
+    val user = UserFactory().produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
@@ -887,6 +897,7 @@ class SessionServiceTest {
         any(),
       )
     } returns null
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     val exception =
@@ -901,6 +912,7 @@ class SessionServiceTest {
     )
     verify { sessionRepository.findById(any()) }
     verify { programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any()) }
+    verify { userService.getUserByUsernameOrNull(any()) }
   }
 
   @Test
@@ -1267,6 +1279,7 @@ class SessionServiceTest {
     )
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+    val user = UserFactory().produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
@@ -1278,6 +1291,7 @@ class SessionServiceTest {
     every { referralStatusService.checkAndPublishCompletionEvent(any()) } returns true
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     val result = service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1294,6 +1308,7 @@ class SessionServiceTest {
         appliedBy = null,
       )
     }
+    verify { userService.getUserByUsernameOrNull(any()) }
   }
 
   @Test
@@ -1340,6 +1355,7 @@ class SessionServiceTest {
     )
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+    val user = UserFactory().produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
@@ -1350,6 +1366,7 @@ class SessionServiceTest {
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1365,6 +1382,7 @@ class SessionServiceTest {
         appliedBy = null,
       )
     }
+    verify { userService.getUserByUsernameOrNull(any()) }
   }
 
   @Test
@@ -1411,6 +1429,7 @@ class SessionServiceTest {
     )
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+    val user = UserFactory().produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
@@ -1421,6 +1440,7 @@ class SessionServiceTest {
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1443,6 +1463,7 @@ class SessionServiceTest {
         appliedBy = null,
       )
     }
+    verify { userService.getUserByUsernameOrNull(any()) }
   }
 
   @Test
@@ -1501,6 +1522,7 @@ class SessionServiceTest {
     )
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
+    val user = UserFactory().produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
@@ -1513,6 +1535,7 @@ class SessionServiceTest {
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity1
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1536,6 +1559,8 @@ class SessionServiceTest {
         appliedBy = null,
       )
     }
+
+    verify { userService.getUserByUsernameOrNull(any()) }
   }
 
   @Test
@@ -1632,6 +1657,7 @@ class SessionServiceTest {
         ).produce()
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()
+    val user = UserFactory().produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
@@ -1649,6 +1675,7 @@ class SessionServiceTest {
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
     every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1667,6 +1694,7 @@ class SessionServiceTest {
         },
       )
     }
+    verify { userService.getUserByUsernameOrNull(any()) }
   }
 
   @Test
@@ -1737,6 +1765,7 @@ class SessionServiceTest {
         ).produce()
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity2).produce()
+    val user = UserFactory().produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
@@ -1754,6 +1783,7 @@ class SessionServiceTest {
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
     every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1764,6 +1794,7 @@ class SessionServiceTest {
         match { it.appointments.single().reference == ndeliusAppointmentId2 },
       )
     }
+    verify { userService.getUserByUsernameOrNull(any()) }
   }
 
   @Test
@@ -1780,6 +1811,7 @@ class SessionServiceTest {
         .produce()
 
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()
+    val user = UserFactory().produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
@@ -1792,6 +1824,7 @@ class SessionServiceTest {
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(any()) } returns programmeGroupMembershipEntity
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     val result = service.saveSessionAttendance(sessionId, sessionAttendance)
@@ -1799,6 +1832,7 @@ class SessionServiceTest {
     // Then
     assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId) }
+    verify { userService.getUserByUsernameOrNull(any()) }
   }
 
   @Test

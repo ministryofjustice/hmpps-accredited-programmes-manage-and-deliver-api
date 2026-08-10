@@ -30,6 +30,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusDescriptionEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusTransitionEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_SENTENCE_REFERENCE
@@ -43,7 +44,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.util.UUID
 
@@ -477,6 +477,7 @@ class ReferralServiceTest {
     val referralEntity = ReferralEntityFactory().withId(referralId).produce()
     val createReferralStatusHistory = CreateReferralStatusHistoryFactory().produce()
     val createdBy = "test-user"
+    val user = UserFactory().produce()
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
@@ -495,6 +496,7 @@ class ReferralServiceTest {
       .withId(UUID.randomUUID())
       .produce(referralEntity, incomingStatusDescription)
     every { applicationEventPublisher.publishEvent(any<Any>()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     referralService.updateStatus(referralId, createReferralStatusHistory, createdBy)
@@ -510,6 +512,7 @@ class ReferralServiceTest {
         createdBy,
       )
     }
+    verify { userService.getUserByUsernameOrNull(createdBy) }
   }
 
   @Test
@@ -580,6 +583,7 @@ class ReferralServiceTest {
       .withIsContinuing(false)
       .produce()
     val membership = ProgrammeGroupMembershipFactory(referral = referral).produce()
+    val user = UserFactory().produce()
 
     every { referralStatusDescriptionRepository.findByIdOrNull(incomingStatus.id) } returns incomingStatus
     every { referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId) } returns currentHistory
@@ -602,6 +606,7 @@ class ReferralServiceTest {
       .produce(referral, incomingStatus)
     every { applicationEventPublisher.publishEvent(any<Any>()) } returns Unit
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     val response = referralService.updateStatus(referral, incomingStatus.id, createdBy = "test-user")
@@ -616,6 +621,7 @@ class ReferralServiceTest {
       )
     }
     verify { applicationEventPublisher.publishEvent(any<ReferralStatusUpdateEvent>()) }
+    verify { userService.getUserByUsernameOrNull(any()) }
   }
 
   @Test
@@ -632,6 +638,7 @@ class ReferralServiceTest {
       .withIsContinuing(true)
       .produce()
     val membership = ProgrammeGroupMembershipFactory(referral = referral).produce()
+    val user = UserFactory().produce()
 
     every { referralStatusDescriptionRepository.findByIdOrNull(incomingStatus.id) } returns incomingStatus
     every { referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId) } returns currentHistory
@@ -647,6 +654,7 @@ class ReferralServiceTest {
       .produce(referral, incomingStatus)
     every { applicationEventPublisher.publishEvent(any<Any>()) } returns Unit
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     referralService.updateStatus(referral, incomingStatus.id, createdBy = "test-user")
@@ -659,6 +667,7 @@ class ReferralServiceTest {
         any(),
       )
     }
+    verify { userService.getUserByUsernameOrNull(any()) }
   }
 
   @Test
@@ -676,6 +685,7 @@ class ReferralServiceTest {
       .produce()
     val additionalDetails = "Some details"
     val createdBy = "test-user"
+    val user = UserFactory().withUsername(createdBy).produce()
 
     every { referralStatusDescriptionRepository.findByIdOrNull(incomingStatus.id) } returns incomingStatus
     every { referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId) } returns currentHistory
@@ -692,6 +702,7 @@ class ReferralServiceTest {
     every { referralStatusHistoryRepository.save(any()) } returns savedHistory
     every { applicationEventPublisher.publishEvent(any<Any>()) } returns Unit
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     val response = referralService.updateStatus(referral, incomingStatus.id, additionalDetails, createdBy)
@@ -720,6 +731,7 @@ class ReferralServiceTest {
         appliedBy = null,
       )
     }
+    verify { userService.getUserByUsernameOrNull(createdBy) }
   }
 
   @Test
@@ -729,6 +741,7 @@ class ReferralServiceTest {
     val referralId = referral.id!!
     val currentStatus = ReferralStatusDescriptionEntityFactory().withDescription("Status A").produce()
     val currentHistory = ReferralStatusHistoryEntityFactory().produce(referral, currentStatus)
+    val user = UserFactory().produce()
 
     every { referralStatusDescriptionRepository.findByIdOrNull(currentStatus.id) } returns currentStatus
     every { referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId) } returns currentHistory
@@ -745,6 +758,7 @@ class ReferralServiceTest {
     every { referralStatusHistoryRepository.save(any()) } returns savedHistory
     every { applicationEventPublisher.publishEvent(any<Any>()) } returns Unit
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When & Then - should not throw
     referralService.updateStatus(referral, currentStatus.id, createdBy = "test-user")
@@ -764,6 +778,7 @@ class ReferralServiceTest {
       .withIsContinuing(false)
       .produce()
     val membership = ProgrammeGroupMembershipFactory(referral = referral).produce()
+    val user = UserFactory().produce()
 
     every { referralStatusDescriptionRepository.findByIdOrNull(incomingStatus.id) } returns incomingStatus
     every { referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId) } returns currentHistory
@@ -784,6 +799,7 @@ class ReferralServiceTest {
     every { applicationEventPublisher.publishEvent(any<Any>()) } returns Unit
     every { referralStatusService.checkAndPublishCompletionEvent(referralId) } returns true
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     val response = referralService.updateStatus(referral, incomingStatus.id, createdBy = "test-user")
@@ -805,6 +821,7 @@ class ReferralServiceTest {
       .withFromStatus(currentStatus)
       .withToStatus(incomingStatus)
       .produce()
+    val user = UserFactory().produce()
 
     every { referralStatusDescriptionRepository.findByIdOrNull(incomingStatus.id) } returns incomingStatus
     every { referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId) } returns currentHistory
@@ -821,12 +838,14 @@ class ReferralServiceTest {
     every { applicationEventPublisher.publishEvent(any<Any>()) } returns Unit
     every { referralStatusService.checkAndPublishCompletionEvent(referralId) } returns true
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
 
     // When
     referralService.updateStatus(referral, incomingStatus.id, createdBy = "test-user")
 
     // Then
     verify { referralStatusService.checkAndPublishCompletionEvent(referralId) }
+    verify { userService.getUserByUsernameOrNull(any()) }
   }
 
   @Test

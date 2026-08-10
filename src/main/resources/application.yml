@@ -147,6 +147,8 @@ services:
     base-url: http://localhost:9094
   ndelius-integration-api:
     base-url: http://localhost:9095
+  manage-users-api:
+    base-url: ${SERVICES_MANAGE-USERS-API_BASE-URL:http://localhost:9093}
   oasys-api:
     base-url: http://localhost:9096
   assess-risks-and-needs-api:

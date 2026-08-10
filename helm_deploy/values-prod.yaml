@@ -11,6 +11,7 @@ generic-service:
     SERVICES_MANAGE-AND-DELIVER-API_BASE-URL: "https://accredited-programmes-manage-and-deliver-api.hmpps.service.justice.gov.uk"
     SERVICES_FIND-AND-REFER-INTERVENTION-API_BASE-URL: "https://find-and-refer-intervention-api.hmpps.service.justice.gov.uk"
     SERVICES_NDELIUS-INTEGRATION-API_BASE-URL: "https://accredited-programmes-and-delius.hmpps.service.justice.gov.uk"
+    SERVICES_MANAGE-USERS-API_BASE-URL: "https://manage-users-api.hmpps.service.justice.gov.uk"
     SERVICES_OASYS-API_BASE-URL: "https://accredited-programmes-and-oasys.hmpps.service.justice.gov.uk"
     SERVICES_ASSESS-RISKS-AND-NEEDS-API_BASE-URL: "https://assess-risks-and-needs.hmpps.service.justice.gov.uk"
     SERVICES_GOVUK-API_BASE-URL: "https://www.gov.uk"

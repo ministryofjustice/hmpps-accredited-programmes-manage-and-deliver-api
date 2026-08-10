@@ -21,6 +21,20 @@ class CacheConfiguration {
         .build(),
     )
     cacheManager.registerCustomCache(
+      "user-details",
+      Caffeine.newBuilder()
+        .expireAfterWrite(24, TimeUnit.HOURS)
+        .maximumSize(1000)
+        .build(),
+    )
+    cacheManager.registerCustomCache(
+      "user-details-or-null",
+      Caffeine.newBuilder()
+        .expireAfterWrite(24, TimeUnit.HOURS)
+        .maximumSize(1000)
+        .build(),
+    )
+    cacheManager.registerCustomCache(
       "bank-holidays",
       Caffeine.newBuilder()
         .expireAfterWrite(24, TimeUnit.HOURS)

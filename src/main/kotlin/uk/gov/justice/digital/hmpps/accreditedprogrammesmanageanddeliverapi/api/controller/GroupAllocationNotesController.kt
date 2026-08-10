@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralMotivationBackgroundAndNonAssociations
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateOrUpdateReferralMotivationBackgroundAndNonAssociations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.GroupAllocationNotesService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
@@ -115,7 +116,7 @@ class GroupAllocationNotesController(
     val result = groupAllocationNotesService.createOrUpdateMotivationBackgroundAndNonAssociations(
       referral,
       createMotivationBackgroundAndNonAssociations,
-      createdOrUpdatedBy = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
+      createdOrUpdatedBy = SecurityContextHolder.getContext().authentication?.name ?: UNKNOWN_USER_USERNAME,
     )
     return ResponseEntity.ok(result)
   }

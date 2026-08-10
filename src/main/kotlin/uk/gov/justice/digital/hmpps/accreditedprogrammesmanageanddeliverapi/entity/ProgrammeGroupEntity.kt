@@ -21,6 +21,7 @@ import org.springframework.data.annotation.CreatedDate
 import org.springframework.security.core.context.SecurityContextHolder
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -59,7 +60,7 @@ class ProgrammeGroupEntity(
   @NotNull
   @Column(name = "created_by_username")
   @CreatedBy
-  var createdByUsername: String? = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
+  var createdByUsername: String? = SecurityContextHolder.getContext().authentication?.name ?: UNKNOWN_USER_USERNAME,
 
   @Column(name = "updated_at")
   var updatedAt: LocalDateTime? = null,

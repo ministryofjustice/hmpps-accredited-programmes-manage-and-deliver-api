@@ -5,12 +5,12 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ldc.UpdateLdc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.ACCREDITED_PROGRAMMES_AUTOMATED_UPDATE
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.AuditorContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.OVERRIDE_LDC
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.util.UUID
 
 @Service
@@ -24,7 +24,7 @@ class LdcService(
   fun updateLdcStatusForReferral(
     referralEntity: ReferralEntity,
     updateLdc: UpdateLdc,
-    createdBy: String = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
+    createdBy: String = SecurityContextHolder.getContext().authentication?.name ?: UNKNOWN_USER_USERNAME,
   ) {
     // Overwrite the username to be written when system is automatically updating this value
     AuditorContext.set(createdBy)

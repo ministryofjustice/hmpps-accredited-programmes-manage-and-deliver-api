@@ -57,7 +57,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
@@ -609,12 +608,15 @@ class ReferralService(
       }
     }
 
+    val user = userService.getUserByUsernameOrNull(createdBy)
+
     val historyEntry = referralStatusHistoryRepository.save(
       ReferralStatusHistoryEntity(
         referral = referral,
         referralStatusDescription = incomingReferralStatusDescription,
         additionalDetails = additionalDetails,
         createdBy = createdBy,
+        createdByFullName = user?.name,
       ),
     )
 

@@ -62,10 +62,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamWithMembersFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UpdateAppointmentRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UpdateAppointmentsRequestFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.BankHolidayRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
@@ -83,6 +85,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
   @BeforeEach
   fun setup() {
     testDataCleaner.cleanAllTables()
+    manageUsersApiStubs.clearAllStubs()
   }
 
   @Autowired
@@ -99,6 +102,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var facilitatorRepository: FacilitatorRepository
+
+  @Autowired
+  private lateinit var bankHolidayRepository: BankHolidayRepository
 
   @Nested
   @DisplayName("GET /bff/session/{sessionId}")
@@ -905,13 +911,20 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
       val referral = testDataGenerator.createReferral("Jane Doe", "X123456")
 
+      val bankHolidays = bankHolidayRepository.findAll().map { it.holidayDate }.toSet()
       val lastMonday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-      val session1Date = lastMonday.plusWeeks(1)
-      val session2Date = lastMonday.plusWeeks(2)
-      val session3Date = lastMonday.plusWeeks(3)
-      val session4Date = lastMonday.plusWeeks(4)
-      val session5Date = lastMonday.plusWeeks(5)
-      val pastSessionDate = lastMonday.minusWeeks(1)
+      val session1Date =
+        if (bankHolidays.contains(lastMonday.plusWeeks(1))) lastMonday.plusWeeks(2) else lastMonday.plusWeeks(1)
+      val session2Date =
+        if (bankHolidays.contains(session1Date.plusWeeks(1))) session1Date.plusWeeks(2) else session1Date.plusWeeks(1)
+      val session3Date =
+        if (bankHolidays.contains(session2Date.plusWeeks(1))) session2Date.plusWeeks(2) else session2Date.plusWeeks(1)
+      val session4Date =
+        if (bankHolidays.contains(session3Date.plusWeeks(1))) session3Date.plusWeeks(2) else session3Date.plusWeeks(1)
+      val session5Date =
+        if (bankHolidays.contains(session4Date.plusWeeks(1))) session4Date.plusWeeks(2) else session4Date.plusWeeks(1)
+      val pastSessionDate =
+        if (bankHolidays.contains(lastMonday.minusWeeks(1))) lastMonday.minusWeeks(2) else lastMonday.minusWeeks(1)
 
       // Session before the rescheduled session should not move
       val pastSession = testDataGenerator.createSession(
@@ -2063,6 +2076,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should POST session attendance request and return 201`() {
       // Given
+      val username = "AUTH_ADM"
       // Create group
       val group = testGroupHelper.createGroup()
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -2089,6 +2103,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         ),
       )
 
+      val createdByFullName = "John Smith"
+      manageUsersApiStubs.stubUserResponse(UserDtoFactory().withName(createdByFullName).produce())
+
       // When
       val response = performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
@@ -2111,6 +2128,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       assertThat(sessionAttendanceEntity.recordedAt?.month?.value).isEqualTo(LocalDate.now().month.value)
       assertThat(sessionAttendanceEntity.recordedAt?.dayOfMonth).isEqualTo(LocalDate.now().dayOfMonth)
       assertThat(sessionAttendanceEntity.notesHistory.first().notes).isEqualTo("Test session notes")
+      assertThat(sessionAttendanceEntity.notesHistory.first().createdByFullName).isEqualTo(createdByFullName)
       assertThat(sessionAttendanceEntity.outcomeType.code).isEqualTo(ATTC)
 
       val primaryFacilitator = sessionEntity.primaryFacilitator()
@@ -2133,6 +2151,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           ),
         ),
       )
+
+      manageUsersApiStubs.verifyGetUser(1, username)
     }
 
     @Test
@@ -2331,6 +2351,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       val sessionId = session!!.id!!
       val attendee = session.attendees.first()
 
+      val userFullName = "John Smith"
+      manageUsersApiStubs.stubUserResponse(UserDtoFactory().withName(userFullName).produce())
+
       val sessionAttendanceRequest1 = SessionAttendance(
         attendees = listOf(
           SessionAttendee(
@@ -2391,6 +2414,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         { assertThat(it.name).isEqualTo(attendee.personName) },
         { assertThat(it.crn).isEqualTo(attendee.referral.crn) },
         { assertThat(it.sessionNotes).isEqualTo("Latest test session notes") },
+        { assertThat(it.sessionNotesCreatedByFullName).isEqualTo(userFullName) },
       )
 
       assertThat(attendance).satisfies(
@@ -2472,6 +2496,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
 
+      val userFullName = "John Smith"
+      manageUsersApiStubs.stubUserResponse(UserDtoFactory().withName(userFullName).produce())
+
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
@@ -2488,6 +2515,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.sessionId).isEqualTo(session.id)
       assertThat(response.sessionAttendance).isEqualTo("Attended - Complied")
       assertThat(response.sessionNotes).isEqualTo("Participant engaged well with the material.")
+      assertThat(response.sessionNotesCreatedByFullName).isEqualTo(userFullName)
     }
 
     @Test

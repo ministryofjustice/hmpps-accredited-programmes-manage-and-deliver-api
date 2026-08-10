@@ -26,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.ArnsApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.GovUkApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.ManageUsersApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
@@ -51,7 +52,13 @@ import java.time.LocalDate
  */
 @TestComponent
 @ExtendWith(HmppsAuthApiExtension::class)
-@Import(OasysApiStubs::class, NDeliusApiStubs::class, ArnsApiStubs::class, GovUkApiStubs::class)
+@Import(
+  OasysApiStubs::class,
+  NDeliusApiStubs::class,
+  ArnsApiStubs::class,
+  GovUkApiStubs::class,
+  ManageUsersApiStubs::class,
+)
 class TestGroupHelper {
 
   @Autowired
@@ -68,6 +75,9 @@ class TestGroupHelper {
 
   @Autowired
   private lateinit var nDeliusApiStubs: NDeliusApiStubs
+
+  @Autowired
+  private lateinit var manageUsersApiStubs: ManageUsersApiStubs
 
   @Autowired
   private lateinit var scheduleService: ScheduleService

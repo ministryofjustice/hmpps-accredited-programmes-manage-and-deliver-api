@@ -47,6 +47,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralLdcHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
@@ -78,6 +79,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
 
     stubAuthTokenEndpoint()
     probationAccessControlApiStubs.stubOpenAccessForAnyCrn()
+    manageUsersApiStubs.clearAllStubs()
   }
 
   @Nested
@@ -1194,6 +1196,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       )
 
       assertThat(testDataGenerator.getReferralById(referralEntity.id!!).statusHistories).hasSize(1)
+      val userFullName = "John Smith"
+      manageUsersApiStubs.stubUserResponse(UserDtoFactory().withName(userFullName).produce())
 
       // When
       performRequestAndExpectStatus(
@@ -1206,11 +1210,12 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         expectedResponseStatus = HttpStatus.OK.value(),
       )
 
-      val referralById = testDataGenerator.getReferralById(referralEntity.id!!)
-      assertThat(referralById.statusHistories).hasSize(2)
+      val updatedReferralResult = testDataGenerator.getReferralById(referralEntity.id!!)
+      assertThat(updatedReferralResult.statusHistories).hasSize(2)
       assertThat(
-        referralById.statusHistories.first().additionalDetails,
+        updatedReferralResult.statusHistories.first().additionalDetails,
       ).isEqualTo("This is a test comment")
+      assertThat(updatedReferralResult.statusHistories.first().createdByFullName).isEqualTo(userFullName)
     }
   }
 
@@ -1222,8 +1227,10 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       // Given
       val referralEntity = ReferralEntityFactory().produce()
 
+      val userFullName = "John Smith"
       val statusHistory = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.of(2025, 9, 1, 12, 0))
+        .withCreatedByFullName(userFullName)
         .produce(
           referralEntity,
           referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
@@ -1238,6 +1245,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
 
       val secondStatusHistory = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.of(2025, 9, 15, 20, 30))
+        .withCreatedByFullName(userFullName)
         .produce(referralEntity, referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription())
 
       testDataGenerator.createReferralStatusHistory(secondStatusHistory)
@@ -1259,10 +1267,12 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       body.jsonPath("$[0].referralStatusDescriptionId")
         .isEqualTo(referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription().id)
       body.jsonPath("$[0].referralStatusDescriptionName").isEqualTo("Awaiting assessment")
+      body.jsonPath("$[0].updatedByFullName").isEqualTo(userFullName)
 
       body.jsonPath("$[1].referralStatusDescriptionId")
         .isEqualTo(referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription().id)
       body.jsonPath("$[1].referralStatusDescriptionName").isEqualTo("Awaiting allocation")
+      body.jsonPath("$[1].updatedByFullName").isEqualTo(userFullName)
     }
   }
 
@@ -1342,9 +1352,10 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         kotlin.concurrent.thread {
           try {
             startLatch.await()
-            val allocateRequest = uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest(
-              additionalDetails = "multi-endpoint-group-allocate",
-            )
+            val allocateRequest =
+              uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest(
+                additionalDetails = "multi-endpoint-group-allocate",
+              )
             performRequestAndExpectStatus(
               httpMethod = HttpMethod.POST,
               uri = "/group/${groupAllocateGroup.id}/allocate/${referral.id}",
@@ -1382,9 +1393,10 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         kotlin.concurrent.thread {
           try {
             startLatch.await()
-            val allocateRequest = uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest(
-              additionalDetails = "add-to-group-test",
-            )
+            val allocateRequest =
+              uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest(
+                additionalDetails = "add-to-group-test",
+              )
             performRequestAndExpectStatus(
               httpMethod = HttpMethod.POST,
               uri = "/group/${addToGroupGroup.id}/allocate/${referral.id}",
@@ -1399,7 +1411,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
 
       // Start all threads simultaneously
       startLatch.countDown()
-      val allThreads = statusUpdateThreads + cohortUpdateThreads + groupAllocateThreads + directStatusUpdateThreads + addToGroupThreads
+      val allThreads =
+        statusUpdateThreads + cohortUpdateThreads + groupAllocateThreads + directStatusUpdateThreads + addToGroupThreads
       allThreads.forEach { it.join() }
 
       // Then: Assert all operations completed successfully

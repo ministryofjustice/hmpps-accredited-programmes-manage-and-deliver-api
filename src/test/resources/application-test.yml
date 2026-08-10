@@ -66,7 +66,7 @@ hmpps:
       expected-render-result:
         path: /sar/sar-expected-render-result.html
       attachments-expected: false
-      expected-flyway-schema-version: 113
+      expected-flyway-schema-version: 114
       expected-jpa-entity-schema:
         path: /sar/entity-schema-snapshot.json
 
@@ -76,6 +76,8 @@ services:
   find-and-refer-intervention-api:
     base-url: http://localhost:8095
   ndelius-integration-api:
+    base-url: http://localhost:8095
+  manage-users-api:
     base-url: http://localhost:8095
   oasys-api:
     base-url: http://localhost:8095

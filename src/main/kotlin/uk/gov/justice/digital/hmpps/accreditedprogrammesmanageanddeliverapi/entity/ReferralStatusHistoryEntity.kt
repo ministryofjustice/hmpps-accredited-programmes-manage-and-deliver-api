@@ -42,4 +42,7 @@ class ReferralStatusHistoryEntity(
 
   @Column(name = "start_date")
   var startDate: LocalDateTime? = null,
+
+  @Column(name = "created_by_full_name")
+  var createdByFullName: String? = null,
 )
