@@ -88,7 +88,7 @@ class UserService(
 
   fun hasAccessToLimitedAccessOffender(username: String, identifier: String): Boolean = getAccessibleOffenders(username, listOf(identifier)).contains(identifier)
 
-  @Cacheable(value = ["user-details-or-null"], key = "#username", unless = "#result.isNull()")
+  @Cacheable(value = ["user-details-or-null"], key = "#username", unless = "#result == null")
   fun getUserByUsernameOrNull(username: String): User? {
     try {
       return if (username.isNotBlank() && username != UNKNOWN_USER_USERNAME) getUserByUsername(username) else null
