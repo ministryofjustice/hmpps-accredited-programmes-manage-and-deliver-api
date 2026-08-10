@@ -29,6 +29,10 @@ class ReferralCaseListItemViewEntity(
   @Column(name = "person_name")
   var personName: String,
 
+  @Nullable
+  @Column(name = "sex")
+  var sex: String? = null,
+
   @NotNull
   @Column(name = "status")
   var status: String,

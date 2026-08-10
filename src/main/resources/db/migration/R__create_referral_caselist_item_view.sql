@@ -4,6 +4,7 @@ CREATE VIEW referral_caselist_item_view AS
 SELECT r.id,
        r.crn,
        r.person_name,
+       r.sex,
        -- Default to GENERAL_OFFENCE if there are no entries in the referral_cohort_history_table
        COALESCE(rch.cohort, 'GENERAL_OFFENCE')                 as cohort,
        r.sentence_end_date,
