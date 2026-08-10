@@ -122,6 +122,7 @@ abstract class IntegrationTestBase {
     cacheManager.getCache("bank-holidays")?.clear()
     cacheManager.getCache("user-regions")?.clear()
     cacheManager.getCache("user-details")?.clear()
+    cacheManager.getCache("user-details-or-null")?.clear()
   }
 
   companion object {

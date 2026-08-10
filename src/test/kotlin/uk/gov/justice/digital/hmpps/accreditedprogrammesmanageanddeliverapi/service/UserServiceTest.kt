@@ -27,7 +27,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LIMITED_ACCESS_OFFENDER_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.UserRegionOverrideRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
 @ExtendWith(MockKExtension::class)
@@ -417,6 +416,34 @@ class UserServiceTest {
   }
 
   @Test
+  fun `should get user by username on call to getUserByUsernameOrNull`() {
+    // Given
+    val username = "jsmith"
+    val userDto = UserDtoFactory().produce()
+    every {
+      manageUsersApiClient.getUserDetails(username)
+    } returns ClientResult.Success(body = userDto, status = HttpStatusCode.valueOf(200))
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When
+    val result = service.getUserByUsernameOrNull(username)
+
+    // Then
+    assertThat(result).isNotNull()
+    assertThat(result!!.username).isEqualTo(userDto.username)
+    assertThat(result.name).isEqualTo(userDto.name)
+    assertThat(result.active).isEqualTo(userDto.active)
+    verify { manageUsersApiClient.getUserDetails(username) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "User.get-manageUsers.success",
+        integrationActionType = "GET_USER_MANAGE_USERS",
+        outcome = "success",
+      )
+    }
+  }
+
+  @Test
   fun `get user by username should throw exception when client call fails`() {
     // Given
     val username = "jsmith"
@@ -438,6 +465,36 @@ class UserServiceTest {
 
     // Then
     assertTrue(exception.message!!.contains("Unable to complete GET request"))
+    verify { manageUsersApiClient.getUserDetails(username) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "User.get-manageUsers.failure",
+        integrationActionType = "GET_USER_MANAGE_USERS",
+        outcome = "failure",
+      )
+    }
+  }
+
+  @Test
+  fun `get user by username should return null when client call fails`() {
+    // Given
+    val username = "jsmith"
+
+    every {
+      manageUsersApiClient.getUserDetails(username)
+    } returns ClientResult.Failure.StatusCode(
+      method = HttpMethod.GET,
+      path = "/users/$username",
+      status = HttpStatusCode.valueOf(500),
+      body = """{"error":"User get failed"}""",
+    )
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When
+    val result = service.getUserByUsernameOrNull(username)
+
+    // Then
+    assertThat(result).isNull()
     verify { manageUsersApiClient.getUserDetails(username) }
     verify {
       telemetryService.logToAppInsights(

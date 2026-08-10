@@ -46,7 +46,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.UPDATE_APPOINTMENT_N_DELIUS
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.User
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.RECORD_ATTENDANCE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -620,16 +619,6 @@ class SessionService(
     UAAB -> Option("No - did not attend", null, outcome.code.name)
   }
 
-  private fun getUserByUsername(username: String): User? {
-    try {
-      return if (username.isNotBlank() && username != UNKNOWN_USER_USERNAME) userService.getUserByUsername(username) else null
-    } catch (exception: Exception) {
-      log.error("Failed to get user by username: $username", exception)
-    }
-
-    return null
-  }
-
   private fun getSessionAttendanceFromAttendees(
     attendees: List<SessionAttendee>?,
     session: SessionEntity,
@@ -639,7 +628,7 @@ class SessionService(
     val recordedByFacilitator =
       session.sessionFacilitators.find { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }?.facilitator
         ?: throw BusinessException("Regular facilitator not found for session: ${session.id}")
-    val user = getUserByUsername(createdByUsername)
+    val user = userService.getUserByUsernameOrNull(createdByUsername)
 
     return attendees?.map { attendee ->
       val referralId = attendee.referralId
