@@ -67,6 +67,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.BankHolidayRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
@@ -101,6 +102,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var facilitatorRepository: FacilitatorRepository
+
+  @Autowired
+  private lateinit var bankHolidayRepository: BankHolidayRepository
 
   @Nested
   @DisplayName("GET /bff/session/{sessionId}")
@@ -907,13 +911,20 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
       val referral = testDataGenerator.createReferral("Jane Doe", "X123456")
 
+      val bankHolidays = bankHolidayRepository.findAll().map { it.holidayDate }.toSet()
       val lastMonday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-      val session1Date = lastMonday.plusWeeks(1)
-      val session2Date = lastMonday.plusWeeks(2)
-      val session3Date = lastMonday.plusWeeks(3)
-      val session4Date = lastMonday.plusWeeks(4)
-      val session5Date = lastMonday.plusWeeks(5)
-      val pastSessionDate = lastMonday.minusWeeks(1)
+      val session1Date =
+        if (bankHolidays.contains(lastMonday.plusWeeks(1))) lastMonday.plusWeeks(2) else lastMonday.plusWeeks(1)
+      val session2Date =
+        if (bankHolidays.contains(session1Date.plusWeeks(1))) session1Date.plusWeeks(2) else session1Date.plusWeeks(1)
+      val session3Date =
+        if (bankHolidays.contains(session2Date.plusWeeks(1))) session2Date.plusWeeks(2) else session2Date.plusWeeks(1)
+      val session4Date =
+        if (bankHolidays.contains(session3Date.plusWeeks(1))) session3Date.plusWeeks(2) else session3Date.plusWeeks(1)
+      val session5Date =
+        if (bankHolidays.contains(session4Date.plusWeeks(1))) session4Date.plusWeeks(2) else session4Date.plusWeeks(1)
+      val pastSessionDate =
+        if (bankHolidays.contains(lastMonday.minusWeeks(1))) lastMonday.minusWeeks(2) else lastMonday.minusWeeks(1)
 
       // Session before the rescheduled session should not move
       val pastSession = testDataGenerator.createSession(
