@@ -4,6 +4,7 @@ import io.mockk.every
 import io.mockk.junit5.MockKExtension
 import io.mockk.mockk
 import io.mockk.verify
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -23,6 +24,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LIMITED_ACCESS_OFFENDER_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.UserRegionOverrideRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
@@ -381,6 +383,66 @@ class UserServiceTest {
       telemetryService.logToAppInsights(
         eventName = "LimitedAccessOffender.get-nDelius.failure",
         integrationActionType = "GET_LIMITED_ACCESS_OFFENDER_N_DELIUS",
+        outcome = "failure",
+      )
+    }
+  }
+
+  @Test
+  fun `should get user by username`() {
+    // Given
+    val username = "jsmith"
+    val userDto = UserDtoFactory().produce()
+    every {
+      manageUsersApiClient.getUserDetails(username)
+    } returns ClientResult.Success(body = userDto, status = HttpStatusCode.valueOf(200))
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When
+    val result = service.getUserByUsername(username)
+
+    // Then
+    assertThat(result).isNotNull()
+    assertThat(result.username).isEqualTo(userDto.username)
+    assertThat(result.name).isEqualTo(userDto.name)
+    assertThat(result.active).isEqualTo(userDto.active)
+    verify { manageUsersApiClient.getUserDetails(username) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "User.get-manageUsers.success",
+        integrationActionType = "GET_USER_MANAGE_USERS",
+        outcome = "success",
+      )
+    }
+  }
+
+  @Test
+  fun `get user by username should throw exception when client call fails`() {
+    // Given
+    val username = "jsmith"
+
+    every {
+      manageUsersApiClient.getUserDetails(username)
+    } returns ClientResult.Failure.StatusCode(
+      method = HttpMethod.GET,
+      path = "/users/$username",
+      status = HttpStatusCode.valueOf(500),
+      body = """{"error":"User get failed"}""",
+    )
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When
+    val exception = assertThrows<RuntimeException> {
+      service.getUserByUsername(username)
+    }
+
+    // Then
+    assertTrue(exception.message!!.contains("Unable to complete GET request"))
+    verify { manageUsersApiClient.getUserDetails(username) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "User.get-manageUsers.failure",
+        integrationActionType = "GET_USER_MANAGE_USERS",
         outcome = "failure",
       )
     }
