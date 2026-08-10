@@ -61,6 +61,8 @@ services:
     base-url: ${FIND_AND_REFER_BASE_URL:http://localhost:9095}
   ndelius-integration-api:
     base-url: ${NDELIUS_BASE_URL:http://localhost:9095}
+  manage-users-api:
+    base-url: ${NDELIUS_BASE_URL:http://localhost:9095}
   oasys-api:
     base-url: ${OASYS_BASE_URL:http://localhost:9095}
   assess-risks-and-needs-api:

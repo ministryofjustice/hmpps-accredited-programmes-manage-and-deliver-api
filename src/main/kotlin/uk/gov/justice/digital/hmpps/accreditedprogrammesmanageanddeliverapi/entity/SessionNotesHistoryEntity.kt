@@ -14,6 +14,7 @@ import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import org.springframework.security.core.context.SecurityContextHolder
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -37,10 +38,13 @@ class SessionNotesHistoryEntity(
   @NotNull
   @Column(name = "created_by")
   @CreatedBy
-  var createdBy: String = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
+  var createdBy: String = SecurityContextHolder.getContext().authentication?.name ?: UNKNOWN_USER_USERNAME,
 
   @NotNull
   @CreatedDate
   @Column(name = "created_at")
   var createdAt: LocalDateTime = LocalDateTime.now(),
+
+  @Column(name = "created_by_full_name")
+  var createdByFullName: String? = null,
 )

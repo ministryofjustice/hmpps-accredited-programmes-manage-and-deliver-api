@@ -18,6 +18,7 @@ import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import org.springframework.security.core.context.SecurityContextHolder
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import java.time.LocalDateTime
 import java.util.UUID
@@ -65,7 +66,7 @@ class SessionEntity(
 
   @Column(name = "created_by_username")
   @CreatedBy
-  var createdByUsername: String? = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
+  var createdByUsername: String? = SecurityContextHolder.getContext().authentication?.name ?: UNKNOWN_USER_USERNAME,
 
   @OneToMany(
     fetch = FetchType.LAZY,

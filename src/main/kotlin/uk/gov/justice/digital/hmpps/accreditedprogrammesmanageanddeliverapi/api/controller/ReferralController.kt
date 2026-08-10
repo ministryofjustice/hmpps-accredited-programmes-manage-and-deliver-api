@@ -33,6 +33,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toModel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
@@ -319,7 +320,7 @@ class ReferralController(
       referral,
       updateReferralStatus.referralStatusDescriptionId,
       additionalDetails = updateReferralStatus.additionalDetails,
-      createdBy = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
+      createdBy = SecurityContextHolder.getContext().authentication?.name ?: UNKNOWN_USER_USERNAME,
     )
     return ResponseEntity.ok(result)
   }

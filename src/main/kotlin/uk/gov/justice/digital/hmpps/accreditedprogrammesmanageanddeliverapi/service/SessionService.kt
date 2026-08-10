@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
@@ -29,6 +30,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toUpdateAppointmentRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.AppointmentUpdateException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -44,6 +46,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.UAAB
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.UPDATE_APPOINTMENT_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.User
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.RECORD_ATTENDANCE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -466,7 +469,8 @@ class SessionService(
       return sessionAttendance
     }
 
-    val sessionAttendanceEntities = getSessionAttendanceFromAttendees(changedAttendees, session)
+    val createdByUsername = SecurityContextHolder.getContext().authentication?.name ?: UNKNOWN_USER_USERNAME
+    val sessionAttendanceEntities = getSessionAttendanceFromAttendees(changedAttendees, session, createdByUsername)
     session.attendances.addAll(sessionAttendanceEntities)
     sessionRepository.save(session)
 
@@ -561,9 +565,8 @@ class SessionService(
       isCatchup = session.isCatchup,
       people = filteredAttendees.map { attendee ->
         val latestAttendance = latestAttendanceByReferralId[attendee.referralId]
-        val latestNotes = latestAttendance?.notesHistory
+        val latestSessionNotesHistory = latestAttendance?.notesHistory
           ?.maxByOrNull { it.createdAt }
-          ?.notes
 
         SessionAttendancePerson(
           referralId = attendee.referralId,
@@ -571,7 +574,8 @@ class SessionService(
           crn = attendee.referral.crn,
           attendance = latestAttendance?.let(::getSessionAttendance),
           options = outcomeOptions,
-          sessionNotes = latestNotes,
+          sessionNotes = latestSessionNotesHistory?.notes,
+          sessionNotesCreatedByFullName = latestSessionNotesHistory?.createdByFullName,
         )
       },
     )
@@ -608,14 +612,26 @@ class SessionService(
     UAAB -> Option("No - did not attend", null, outcome.code.name)
   }
 
+  private fun getUserByUsername(username: String): User? {
+    try {
+      return if (username.isNotBlank() && username != UNKNOWN_USER_USERNAME) userService.getUserByUsername(username) else null
+    } catch (exception: Exception) {
+      log.error("Failed to get user by username: $username", exception)
+    }
+
+    return null
+  }
+
   private fun getSessionAttendanceFromAttendees(
     attendees: List<SessionAttendee>?,
     session: SessionEntity,
+    createdByUsername: String,
   ): List<SessionAttendanceEntity> {
     val programmeGroupId = session.programmeGroup.id!!
     val recordedByFacilitator =
       session.sessionFacilitators.find { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }?.facilitator
         ?: throw BusinessException("Regular facilitator not found for session: ${session.id}")
+    val user = getUserByUsername(createdByUsername)
 
     return attendees?.map { attendee ->
       val referralId = attendee.referralId
@@ -628,7 +644,7 @@ class SessionService(
       val outcomeType = sessionAttendanceOutcomeTypeRepository.findByCode(attendee.outcomeCode)
         ?: throw NotFoundException("Session attendance outcome type not found with code: ${attendee.outcomeCode}")
 
-      attendee.toEntity(session, groupMembershipEntity, recordedByFacilitator, outcomeType)
+      attendee.toEntity(session, groupMembershipEntity, recordedByFacilitator, outcomeType, user?.name)
     }?.toList() ?: listOf()
   }
 

@@ -18,6 +18,7 @@ import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import org.springframework.security.core.context.SecurityContextHolder
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.deliveryLocationPreferences.CreateDeliveryLocationPreferences
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -43,7 +44,7 @@ class DeliveryLocationPreferenceEntity(
   @NotNull
   @Column(name = "created_by")
   @CreatedBy
-  var createdBy: String? = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
+  var createdBy: String? = SecurityContextHolder.getContext().authentication?.name ?: UNKNOWN_USER_USERNAME,
 
   @NotNull
   @CreatedDate

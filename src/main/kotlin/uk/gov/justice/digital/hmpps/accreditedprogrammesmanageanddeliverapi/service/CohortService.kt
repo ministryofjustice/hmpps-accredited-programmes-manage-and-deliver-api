@@ -7,12 +7,12 @@ import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PniScore
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.RiskScoreLevel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.AuditorContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCohortHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.OVERRIDE_COHORT
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.util.UUID
 
 @Service
@@ -29,7 +29,7 @@ class CohortService(
   fun updateCohortForReferral(
     referralEntity: ReferralEntity,
     cohort: OffenceCohort,
-    createdBy: String = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
+    createdBy: String = SecurityContextHolder.getContext().authentication?.name ?: UNKNOWN_USER_USERNAME,
   ): ReferralEntity {
     // Overwrite the username to be written when system is automatically updating this value
     AuditorContext.set(createdBy)

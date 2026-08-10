@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.manageUsersApi.ManageUsersApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheck
@@ -34,8 +35,15 @@ class UserServiceTest {
   private val hmppsAuthenticationHolder: HmppsAuthenticationHolder = mockk()
   private val telemetryService: TelemetryService = mockk()
   private val userRegionOverrideRepository: UserRegionOverrideRepository = mockk()
+  private val manageUsersApiClient: ManageUsersApiClient = mockk()
   private val service =
-    UserService(nDeliusIntegrationApiClient, hmppsAuthenticationHolder, telemetryService, userRegionOverrideRepository)
+    UserService(
+      nDeliusIntegrationApiClient,
+      hmppsAuthenticationHolder,
+      telemetryService,
+      userRegionOverrideRepository,
+      manageUsersApiClient,
+    )
 
   @BeforeEach
   fun setUp() {

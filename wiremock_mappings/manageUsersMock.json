@@ -1,0 +1,21 @@
+{
+  "mappings": [
+    {
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/users/.*"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "username": "john.smith",
+          "name": "John Smith",
+          "active": true
+        }
+      }
+    }
+  ]
+}

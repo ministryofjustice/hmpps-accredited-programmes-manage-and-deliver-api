@@ -15,6 +15,7 @@ import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.security.core.context.SecurityContextHolder
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -44,7 +45,7 @@ class ProgrammeGroupMembershipEntity(
   @NotNull
   @Column(name = "created_by_username")
   @CreatedBy
-  var createdByUsername: String? = SecurityContextHolder.getContext().authentication?.name ?: "UNKNOWN_USER",
+  var createdByUsername: String? = SecurityContextHolder.getContext().authentication?.name ?: UNKNOWN_USER_USERNAME,
 
   @Column(name = "deleted_at")
   var deletedAt: LocalDateTime? = null,

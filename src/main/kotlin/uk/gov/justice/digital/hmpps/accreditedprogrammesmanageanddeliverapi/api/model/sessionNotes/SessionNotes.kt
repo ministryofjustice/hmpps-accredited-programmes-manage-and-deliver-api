@@ -86,6 +86,12 @@ data class SessionNotes(
     example = "Participant engaged well.",
   )
   val sessionNotes: String?,
+
+  @Schema(
+    description = "The full name of a person that recorded session notes for the session",
+    example = "John Smith",
+  )
+  val sessionNotesCreatedByFullName: String?,
 ) {
   companion object {
     fun from(
@@ -95,7 +101,9 @@ data class SessionNotes(
       sessionAttendance: String,
       pageTitle: String,
     ): SessionNotes {
-      val attendance = session.attendances.filter { it.groupMembership.referralId == referralId }.maxByOrNull { it.createdAt } ?: throw NotFoundException("No session attendance found for referralId: $referralId")
+      val attendance =
+        session.attendances.filter { it.groupMembership.referralId == referralId }.maxByOrNull { it.createdAt }
+          ?: throw NotFoundException("No session attendance found for referralId: $referralId")
       val latestSessionNotes = attendance.notesHistory.maxByOrNull { it.createdAt }
       return SessionNotes(
         pageTitle = pageTitle,
@@ -110,6 +118,7 @@ data class SessionNotes(
         sessionDate = session.startsAt.toLocalDate(),
         sessionAttendance = sessionAttendance,
         sessionNotes = latestSessionNotes?.notes,
+        sessionNotesCreatedByFullName = latestSessionNotes?.createdByFullName,
       )
     }
   }

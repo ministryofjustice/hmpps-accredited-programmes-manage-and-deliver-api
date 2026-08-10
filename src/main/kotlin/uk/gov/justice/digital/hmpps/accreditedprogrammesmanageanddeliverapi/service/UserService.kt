@@ -5,15 +5,17 @@ import org.springframework.cache.annotation.Cacheable
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.manageUsersApi.ManageUsersApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LIMITED_ACCESS_OFFENDER_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_PERSONAL_DETAILS_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_USER_MANAGE_USERS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_USER_TEAM_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.User
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.UserRegionOverrideRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
 @Service
@@ -22,22 +24,10 @@ class UserService(
   private val authenticationHolder: HmppsAuthenticationHolder,
   private val telemetryService: TelemetryService,
   private val userRegionOverrideRepository: UserRegionOverrideRepository,
+  private val manageUsersApiClient: ManageUsersApiClient,
 ) {
 
   val log = LoggerFactory.getLogger(this::class.java)
-
-  fun getFirstUserRegionDescription(username: String): String {
-    val distinctRegionDescriptions = this.getUserRegionNames(username)
-
-    if (distinctRegionDescriptions.isEmpty()) {
-      log.warn("No regions found for user: $username")
-      throw NotFoundException("Cannot find any regions (or teams) for user $username")
-    } else if (distinctRegionDescriptions.size > 1) {
-      log.warn("User $username has more than one region on their account, going to use '${distinctRegionDescriptions.first()}'")
-    }
-
-    return distinctRegionDescriptions.first()
-  }
 
   fun getUserRegionNames(username: String): List<String> {
     val nDeliusRegionNames = this.getUserRegions(username)
@@ -64,7 +54,7 @@ class UserService(
   }
 
   fun getPersonalDetailsByIdentifier(identifier: String): NDeliusPersonalDetails {
-    val userName = authenticationHolder.username ?: "UNKNOWN_USER"
+    val userName = authenticationHolder.username ?: UNKNOWN_USER_USERNAME
     if (!hasAccessToLimitedAccessOffender(userName, identifier)) {
       throw AccessDeniedException(
         "You are not authorized to view this person's details. Either contact your administrator or enter a different CRN or Prison Number",
@@ -97,6 +87,35 @@ class UserService(
   }
 
   fun hasAccessToLimitedAccessOffender(username: String, identifier: String): Boolean = getAccessibleOffenders(username, listOf(identifier)).contains(identifier)
+
+  @Cacheable(value = ["user-details"], key = "#username")
+  fun getUserByUsername(username: String): User = when (val result = manageUsersApiClient.getUserDetails(username)) {
+    is ClientResult.Success -> {
+      telemetryService.logToAppInsights(
+        eventName = "${GET_USER_MANAGE_USERS.eventName}.success",
+        integrationActionType = GET_USER_MANAGE_USERS.name,
+        outcome = "success",
+      )
+
+      val dto = result.body
+
+      return User(
+        username = dto.username,
+        name = dto.name,
+        active = dto.active,
+      )
+    }
+
+    is ClientResult.Failure -> {
+      telemetryService.logToAppInsights(
+        eventName = "${GET_USER_MANAGE_USERS.eventName}.failure",
+        integrationActionType = GET_USER_MANAGE_USERS.name,
+        outcome = "failure",
+      )
+
+      result.throwException()
+    }
+  }
 
   fun getAccessibleOffenders(username: String, identifiers: List<String>): Set<String> = when (val result = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, identifiers)) {
     is ClientResult.Success -> {

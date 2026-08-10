@@ -18,4 +18,5 @@ enum class IntegrationActivityType(val eventName: String) {
   CREATE_APPOINTMENT_N_DELIUS("Appointment.create-nDelius"),
   DELETE_APPOINTMENT_N_DELIUS("Appointment.delete-nDelius"),
   UPDATE_APPOINTMENT_N_DELIUS("Appointment.update-nDelius"),
+  GET_USER_MANAGE_USERS("User.get-manageUsers"),
 }

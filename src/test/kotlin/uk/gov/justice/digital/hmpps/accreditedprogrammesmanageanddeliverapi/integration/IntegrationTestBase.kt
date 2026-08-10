@@ -32,6 +32,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.ArnsApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.GovUkApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.ManageUsersApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.ProbationAccessControlApiStubs
@@ -73,6 +74,9 @@ abstract class IntegrationTestBase {
 
   @Autowired
   lateinit var nDeliusApiStubs: NDeliusApiStubs
+
+  @Autowired
+  lateinit var manageUsersApiStubs: ManageUsersApiStubs
 
   @Autowired
   lateinit var arnsApiStubs: ArnsApiStubs
@@ -117,6 +121,7 @@ abstract class IntegrationTestBase {
     domainEventsQueueConfig.purgeAllQueues()
     cacheManager.getCache("bank-holidays")?.clear()
     cacheManager.getCache("user-regions")?.clear()
+    cacheManager.getCache("user-details")?.clear()
   }
 
   companion object {

@@ -42,9 +42,9 @@ data class ReferralStatusHistory(
   val additionalDetails: String?,
 
   @Schema(
-    example = "John Doe",
+    example = "johnDoe",
     required = true,
-    description = "The name of the User who updated the status.  SYSTEM and UNKNOWN_USER are known non-human values.",
+    description = "The username of the User who updated the status.  SYSTEM and UNKNOWN_USER are known non-human values.",
   )
   @get:JsonProperty("updatedBy", required = false)
   val updatedBy: String,
@@ -61,6 +61,14 @@ data class ReferralStatusHistory(
   @field:Schema(description = "The display colour of the status tag")
   @get:JsonProperty("tagColour", required = true)
   val tagColour: String,
+
+  @Schema(
+    example = "John Doe",
+    required = false,
+    description = "The full name of the User who updated the status.",
+  )
+  @get:JsonProperty("updatedByFullName", required = false)
+  val updatedByFullName: String?,
 )
 
 fun ReferralStatusHistoryEntity.toApi(): ReferralStatusHistory = ReferralStatusHistory(
@@ -71,4 +79,5 @@ fun ReferralStatusHistoryEntity.toApi(): ReferralStatusHistory = ReferralStatusH
   updatedBy = createdBy,
   updatedAt = createdAt,
   tagColour = referralStatusDescription.labelColour,
+  updatedByFullName = createdByFullName,
 )

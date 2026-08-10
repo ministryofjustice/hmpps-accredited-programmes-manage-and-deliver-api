@@ -70,6 +70,12 @@ data class SessionAttendancePerson(
     description = "A list of options",
   )
   val options: List<Option>?,
+
+  @Schema(
+    description = "The full name of a person that recorded session notes",
+    example = "John Smith",
+  )
+  val sessionNotesCreatedByFullName: String?,
 )
 
 @Schema(description = "Details of an Option")
