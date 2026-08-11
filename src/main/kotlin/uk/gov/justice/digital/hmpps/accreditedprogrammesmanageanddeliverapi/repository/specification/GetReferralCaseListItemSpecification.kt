@@ -14,6 +14,7 @@ fun getReferralCaseListItemSpecification(
   offenceCohort: OffenceCohort? = null,
   hasLdc: Boolean? = null,
   status: String? = null,
+  sex: String? = null,
   pdus: List<String>? = null,
   reportingTeams: List<String>? = null,
 ): Specification<ReferralCaseListItemViewEntity> = Specification { root: Root<ReferralCaseListItemViewEntity>, query: CriteriaQuery<*>?, criteriaBuilder: CriteriaBuilder ->
@@ -63,6 +64,15 @@ fun getReferralCaseListItemSpecification(
       criteriaBuilder.equal(
         root.get<String>("status"),
         status,
+      ),
+    )
+  }
+
+  sex?.let {
+    predicates.add(
+      criteriaBuilder.equal(
+        criteriaBuilder.lower(root.get("sex")),
+        sex.lowercase(),
       ),
     )
   }

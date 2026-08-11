@@ -109,6 +109,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val referral1 = ReferralEntityFactory()
         .withPersonName("Joe Bloggs")
         .withCrn("X7182552")
+        .withSex("Male")
         .withInterventionName("Building Choices")
         .produce()
       val referralReportingLocation1 = ReferralReportingLocationFactory(referral1)
@@ -126,6 +127,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val referral2 = ReferralEntityFactory()
         .withPersonName("Alex River")
         .withCrn("CRN-999999")
+        .withSex("Female")
         .withInterventionName("Building Choices")
         .produce()
       val referralReportingLocation2 = ReferralReportingLocationFactory(referral2)
@@ -144,6 +146,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val referral3 = ReferralEntityFactory()
         .withPersonName("Jane Adams")
         .withCrn("CRN-888888")
+        .withSex("Female")
         .withInterventionName("Building Choices")
         .produce()
       val statusHistory3 = ReferralStatusHistoryEntityFactory()
@@ -161,6 +164,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val referral4 = ReferralEntityFactory()
         .withPersonName("Pete Grims")
         .withCrn("CRN-777777")
+        .withSex("Male")
         .withInterventionName("New Me")
         .produce()
       val statusHistory4 = ReferralStatusHistoryEntityFactory()
@@ -178,6 +182,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val referral5 = ReferralEntityFactory()
         .withPersonName("James Hayden")
         .withCrn("CRN-66666")
+        .withSex("Male")
         .withInterventionName("Building Choices")
         .produce()
       val statusHistory5 = ReferralStatusHistoryEntityFactory()
@@ -195,6 +200,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val referral6 = ReferralEntityFactory()
         .withPersonName("Andrew Crosforth")
         .withCrn("CRN-555555")
+        .withSex("Male")
         .withInterventionName("Building Choices")
         .produce()
       val statusHistory6 = ReferralStatusHistoryEntityFactory()
@@ -212,6 +218,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val referral7 = ReferralEntityFactory()
         .withPersonName("James Mars")
         .withCrn("CRN-111111")
+        .withSex("Male")
         .withInterventionName("Building Choices")
         .produce()
       val statusHistory7 = ReferralStatusHistoryEntityFactory()
@@ -229,6 +236,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val referral8 = ReferralEntityFactory()
         .withPersonName("Other Region Person")
         .withCrn("CRN-888888")
+        .withSex("Female")
         .withInterventionName("Building Choices")
         .produce()
       val referralReportingLocation8 = ReferralReportingLocationFactory(referral8)
@@ -683,6 +691,36 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).isNotNull
       assertThat(response.pagedReferrals.totalElements).isEqualTo(0)
       assertThat(response.pagedReferrals.content).isEmpty()
+      assertThat(response.otherTabTotal).isEqualTo(0)
+    }
+
+    @Test
+    fun `getCaseListItems returns matching referrals when sex is used as part of request`() {
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?sex=Male",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      assertThat(response).isNotNull
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(4)
+      assertThat(response.pagedReferrals.content.map { it.crn })
+        .containsExactlyInAnyOrder("X7182552", "CRN-777777", "CRN-66666", "CRN-555555")
+      assertThat(response.otherTabTotal).isEqualTo(1)
+    }
+
+    @Test
+    fun `getCaseListItems sex filter is case insensitive`() {
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?sex=female",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      assertThat(response).isNotNull
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(2)
+      assertThat(response.pagedReferrals.content.map { it.crn })
+        .containsExactlyInAnyOrder("CRN-999999", "CRN-888888")
       assertThat(response.otherTabTotal).isEqualTo(0)
     }
 

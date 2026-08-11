@@ -60,6 +60,10 @@ class CaseListController(
       value = "status",
       required = false,
     ) status: String?,
+    @Parameter(description = "Filter by the sex of the person on probation (Male/Female)") @RequestParam(
+      value = "sex",
+      required = false,
+    ) sex: String?,
     @RequestParam requestParams: MultiValueMap<String, String>,
   ): CaseListReferrals {
     val username = authenticationHolder.username
@@ -85,6 +89,7 @@ class CaseListController(
       crnOrPersonName = crnOrPersonName,
       cohort = cohort?.let { ProgrammeGroupCohort.fromString(it) },
       status = if (status.isNullOrEmpty()) null else URLDecoder.decode(status, "UTF-8"),
+      sex = if (sex.isNullOrEmpty()) null else URLDecoder.decode(sex, "UTF-8"),
       pdus = pdus,
       reportingTeams = reportingTeamsDecoded,
     )
