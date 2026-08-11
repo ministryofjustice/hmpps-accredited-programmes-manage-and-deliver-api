@@ -380,6 +380,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.pagedReferrals.totalElements).isEqualTo(6)
       assertThat(response.pagedReferrals.content.filter { it.isExcluded == true }).hasSize(1)
       assertThat(response.pagedReferrals.content.single { it.isExcluded == true }.crn).isEqualTo("CRN-999999")
+      // Verify that the last item in the list is the excluded one
+      assertThat(response.pagedReferrals.content.last().isExcluded).isTrue
     }
 
     @Test

@@ -74,9 +74,17 @@ class ReferralCaseListItemService(
         .distinct()
         .associateWith(::getCaseAccessByCrn)
     }
-    val referralsToReturn = referralsPage.map {
-      it.toApi(lao = isLao(it.crn, caseAccessByCrn), isExcluded = isExcludedByUsername(it.crn, username, caseAccessByCrn))
-    }
+    
+    val referralsToReturn = PageImpl(
+      referralsPage.content
+        .map { referral ->
+          val isExcluded = isExcludedByUsername(referral.crn, username, caseAccessByCrn)
+          referral.toApi(lao = isLao(referral.crn, caseAccessByCrn), isExcluded = isExcluded)
+        }
+        .sortedBy { it.isExcluded },
+      referralsPage.pageable,
+      referralsPage.totalElements,
+    )
 
     val otherTabCount = getReferralCaseList(
       pageable = pageable,
@@ -148,15 +156,6 @@ class ReferralCaseListItemService(
 
     if (caseListReferrals.totalElements < 50) log.warn("Only ${caseListReferrals.totalElements} out of ${pageable.pageSize} referrals returned due to Limited Access Offender check ")
     return PageImpl(caseListReferrals.content, pageable, totalAllowedCount)
-  }
-
-  private fun getLaoByCrn(crn: String): Boolean = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
-    is ClientResult.Success -> response.body.excludedFrom.isNotEmpty() || response.body.restrictedTo.isNotEmpty()
-    is ClientResult.Failure -> {
-      val exception = response.toException()
-      log.error("Failed to retrieve LAO case access for CRN $crn: ${response.getErrorMessage()}", exception)
-      throw response.toException()
-    }
   }
 
   private fun isLao(crn: String, caseAccessByCrn: Map<String, AllCaseAccess>?): Boolean = (caseAccessByCrn?.get(crn)?.excludedFrom?.isNotEmpty() ?: false) || (caseAccessByCrn?.get(crn)?.restrictedTo?.isNotEmpty()) ?: false
