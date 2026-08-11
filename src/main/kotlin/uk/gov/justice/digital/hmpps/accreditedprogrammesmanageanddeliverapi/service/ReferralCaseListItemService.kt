@@ -74,7 +74,7 @@ class ReferralCaseListItemService(
         .distinct()
         .associateWith(::getCaseAccessByCrn)
     }
-    
+
     val referralsToReturn = PageImpl(
       referralsPage.content
         .map { referral ->
