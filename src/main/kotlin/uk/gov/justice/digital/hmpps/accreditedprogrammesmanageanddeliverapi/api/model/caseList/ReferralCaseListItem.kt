@@ -21,9 +21,10 @@ data class ReferralCaseListItem(
   val sentenceEndDate: LocalDate?,
   val sentenceEndDateSource: ReferralEntitySourcedFrom?,
   val lao: Boolean? = false,
+  val isExcluded: Boolean? = false,
 )
 
-fun ReferralCaseListItemViewEntity.toApi(lao: Boolean? = false) = ReferralCaseListItem(
+fun ReferralCaseListItemViewEntity.toApi(lao: Boolean? = false, isExcluded: Boolean = false) = ReferralCaseListItem(
   referralId = referralId,
   crn = crn,
   personName = personName,
@@ -36,6 +37,7 @@ fun ReferralCaseListItemViewEntity.toApi(lao: Boolean? = false) = ReferralCaseLi
   sentenceEndDate = sentenceEndDate,
   sentenceEndDateSource = sentenceEndDateSource,
   lao = lao,
+  isExcluded = isExcluded,
 )
 
 data class CaseListReferrals(

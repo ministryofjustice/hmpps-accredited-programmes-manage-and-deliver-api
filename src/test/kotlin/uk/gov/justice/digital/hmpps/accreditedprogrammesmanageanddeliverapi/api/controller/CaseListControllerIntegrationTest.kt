@@ -341,13 +341,14 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder(pduWithComma, pduSecondary, "UNKNOWN_PDU_NAME")
       assertThat(response.filters.locationFilterValues.map { it.pduName }).doesNotContain("OTHER_REGION_PDU")
       assertThat(response.filters.cohort).containsAll(ProgrammeGroupCohort.entries.map { it.label })
+      assertThat(response.pagedReferrals.content).allMatch { it.isExcluded == false }
     }
 
     @Test
     fun `getCaseListItems for OPEN referrals marks referral as lao when PAC returns restrictions`() {
       probationAccessControlApiStubs.stubCaseAccessByCrn(
         crn = "CRN-999999",
-        restrictedTo = listOf(probationAccessControlApiStubs.usernameRange()),
+        restrictedTo = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange()),
       )
 
       val response = performRequestAndExpectOk(
@@ -358,6 +359,29 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
       assertThat(response.pagedReferrals.content.single().lao).isTrue
+    }
+
+    @Test
+    fun `getCaseListItems for OPEN referrals marks referral as excluded when username is in excluded list`() {
+      // Given
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = "CRN-999999",
+        excludedFrom = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange()),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      // Then
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(6)
+      assertThat(response.pagedReferrals.content.filter { it.isExcluded == true }).hasSize(1)
+      assertThat(response.pagedReferrals.content.single { it.isExcluded == true }.crn).isEqualTo("CRN-999999")
+      // Verify that the last item in the list is the excluded one
+      assertThat(response.pagedReferrals.content.last().isExcluded).isTrue
     }
 
     @Test

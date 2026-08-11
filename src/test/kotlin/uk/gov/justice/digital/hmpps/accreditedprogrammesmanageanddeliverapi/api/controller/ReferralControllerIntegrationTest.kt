@@ -621,7 +621,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       // Stub restricted access with excludedFrom list populated
       probationAccessControlApiStubs.stubCaseAccessByCrn(
         referralEntity.crn,
-        excludedFrom = listOf(probationAccessControlApiStubs.usernameRange("EXCLUDED_USER")),
+        excludedFrom = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange("EXCLUDED_USER")),
       )
 
       // When
@@ -669,7 +669,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       // Stub restricted access with restrictedTo list populated
       probationAccessControlApiStubs.stubCaseAccessByCrn(
         referralEntity.crn,
-        restrictedTo = listOf(probationAccessControlApiStubs.usernameRange("AUTHORIZED_USER")),
+        restrictedTo = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange("AUTHORIZED_USER")),
       )
 
       // When
