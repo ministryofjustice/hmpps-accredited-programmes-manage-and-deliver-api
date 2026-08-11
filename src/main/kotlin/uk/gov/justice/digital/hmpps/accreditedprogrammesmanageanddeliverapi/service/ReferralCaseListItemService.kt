@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.ProbationAccessControlApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.model.AllCaseAccess
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
@@ -65,14 +66,17 @@ class ReferralCaseListItemService(
       pdus = pdus,
       reportingTeams = reportingTeams,
     )
-    var laoByCrn: Map<String, Boolean>? = null
+    var caseAccessByCrn: Map<String, AllCaseAccess>? = null
+
     if (laoAccessCheckEnabled) {
-      laoByCrn = referralsPage.content
+      caseAccessByCrn = referralsPage.content
         .map { it.crn }
         .distinct()
-        .associateWith(::getLaoByCrn)
+        .associateWith(::getCaseAccessByCrn)
     }
-    val referralsToReturn = referralsPage.map { it.toApi(lao = laoByCrn?.get(it.crn) ?: false) }
+    val referralsToReturn = referralsPage.map {
+      it.toApi(lao = isLao(it.crn, caseAccessByCrn), isExcluded = isExcludedByUsername(it.crn, username, caseAccessByCrn))
+    }
 
     val otherTabCount = getReferralCaseList(
       pageable = pageable,
@@ -148,6 +152,19 @@ class ReferralCaseListItemService(
 
   private fun getLaoByCrn(crn: String): Boolean = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
     is ClientResult.Success -> response.body.excludedFrom.isNotEmpty() || response.body.restrictedTo.isNotEmpty()
+    is ClientResult.Failure -> {
+      val exception = response.toException()
+      log.error("Failed to retrieve LAO case access for CRN $crn: ${response.getErrorMessage()}", exception)
+      throw response.toException()
+    }
+  }
+
+  private fun isLao(crn: String, caseAccessByCrn: Map<String, AllCaseAccess>?): Boolean = (caseAccessByCrn?.get(crn)?.excludedFrom?.isNotEmpty() ?: false) || (caseAccessByCrn?.get(crn)?.restrictedTo?.isNotEmpty()) ?: false
+
+  private fun isExcludedByUsername(crn: String, username: String, caseAccessByCrn: Map<String, AllCaseAccess>?): Boolean = caseAccessByCrn?.get(crn)?.excludedFrom?.any { it.username == username } ?: false
+
+  private fun getCaseAccessByCrn(crn: String): AllCaseAccess = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
+    is ClientResult.Success -> response.body
     is ClientResult.Failure -> {
       val exception = response.toException()
       log.error("Failed to retrieve LAO case access for CRN $crn: ${response.getErrorMessage()}", exception)
