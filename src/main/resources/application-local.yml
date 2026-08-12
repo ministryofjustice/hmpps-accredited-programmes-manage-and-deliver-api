@@ -1,7 +1,6 @@
 app:
   features:
     lao-access-check-enabled: true
-    lao-badge-enabled: true
     lao-view-restriction-enabled: true
 
 spring:

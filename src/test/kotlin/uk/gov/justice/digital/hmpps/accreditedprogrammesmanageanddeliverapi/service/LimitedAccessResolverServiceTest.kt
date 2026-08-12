@@ -22,10 +22,10 @@ class LimitedAccessResolverServiceTest {
   private val laoAuthorisedCrn = "CRN-LAO-AUTHORISED"
   private val laoRestrictedCrn = "CRN-LAO-RESTRICTED"
 
-  private fun resolver(badgeEnabled: Boolean, restrictionEnabled: Boolean) = LimitedAccessResolverService(
+  private fun resolver(accessCheckEnabled: Boolean, restrictionEnabled: Boolean) = LimitedAccessResolverService(
     probationAccessControlApiClient = probationAccessControlApiClient,
     userService = userService,
-    badgeEnabled = badgeEnabled,
+    laoAccessCheckEnabled = accessCheckEnabled,
     restrictionEnabled = restrictionEnabled,
   )
 
@@ -48,7 +48,7 @@ class LimitedAccessResolverServiceTest {
 
   @Test
   fun `both feature flags off should not make any calls to getCaseAccessByCrn and no LAO's`() {
-    val result = resolver(badgeEnabled = false, restrictionEnabled = false)
+    val result = resolver(accessCheckEnabled = false, restrictionEnabled = false)
       .resolve(username, listOf(ordinaryCrn, laoRestrictedCrn))
 
     assertThat(result[ordinaryCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = false, isExcluded = false))
@@ -59,14 +59,14 @@ class LimitedAccessResolverServiceTest {
   }
 
   @Test
-  fun `badge only feature flag LAOs are flagged`() {
+  fun `access check enabled feature flag shows authorised LAO's`() {
     stubCaseAccess(ordinaryCrn)
     stubCaseAccess(laoAuthorisedCrn, restrictedTo = listOf(username))
     stubCaseAccess(laoRestrictedCrn, excludedFrom = listOf(username))
     // Only the ordinary and authorised-LAO CRNs are accessible to this user.
     every { userService.getAccessibleOffenders(username, any()) } returns setOf(ordinaryCrn, laoAuthorisedCrn)
 
-    val result = resolver(badgeEnabled = true, restrictionEnabled = false)
+    val result = resolver(accessCheckEnabled = true, restrictionEnabled = false)
       .resolve(username, listOf(ordinaryCrn, laoAuthorisedCrn, laoRestrictedCrn))
 
     assertThat(result[ordinaryCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = false, isExcluded = false))
@@ -80,7 +80,7 @@ class LimitedAccessResolverServiceTest {
   fun `restriction flag enabled unauthorised participants are excluded`() {
     every { userService.getAccessibleOffenders(username, any()) } returns setOf(ordinaryCrn, laoAuthorisedCrn)
 
-    val result = resolver(badgeEnabled = false, restrictionEnabled = true)
+    val result = resolver(accessCheckEnabled = false, restrictionEnabled = true)
       .resolve(username, listOf(ordinaryCrn, laoAuthorisedCrn, laoRestrictedCrn))
 
     assertThat(result[ordinaryCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = false, isExcluded = false))
@@ -92,13 +92,13 @@ class LimitedAccessResolverServiceTest {
   }
 
   @Test
-  fun `both feature flags enabled - LAOs are badged and unauthorised LAOs are excluded`() {
+  fun `both feature flags enabled - LAOs are access checked and unauthorised LAOs are excluded`() {
     stubCaseAccess(ordinaryCrn)
     stubCaseAccess(laoAuthorisedCrn, restrictedTo = listOf(username))
     stubCaseAccess(laoRestrictedCrn, excludedFrom = listOf(username))
     every { userService.getAccessibleOffenders(username, any()) } returns setOf(ordinaryCrn, laoAuthorisedCrn)
 
-    val result = resolver(badgeEnabled = true, restrictionEnabled = true)
+    val result = resolver(accessCheckEnabled = true, restrictionEnabled = true)
       .resolve(username, listOf(ordinaryCrn, laoAuthorisedCrn, laoRestrictedCrn))
 
     assertThat(result[ordinaryCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = false, isExcluded = false))
@@ -108,7 +108,7 @@ class LimitedAccessResolverServiceTest {
 
   @Test
   fun `empty crns - returns an empty map and makes no external calls`() {
-    val result = resolver(badgeEnabled = true, restrictionEnabled = true).resolve(username, emptyList())
+    val result = resolver(accessCheckEnabled = true, restrictionEnabled = true).resolve(username, emptyList())
 
     assertThat(result).isEmpty()
     verify(exactly = 0) { probationAccessControlApiClient.getCaseAccessByCrn(any()) }

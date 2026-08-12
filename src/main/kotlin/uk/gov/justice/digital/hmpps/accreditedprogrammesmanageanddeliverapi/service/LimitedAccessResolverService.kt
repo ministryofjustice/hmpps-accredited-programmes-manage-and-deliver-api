@@ -1,16 +1,16 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.stereotype.Component
+import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.ProbationAccessControlApiClient
 
-@Component
+@Service
 class LimitedAccessResolverService(
   private val probationAccessControlApiClient: ProbationAccessControlApiClient,
   private val userService: UserService,
-  @Value("\${app.features.lao-badge-enabled}")
-  private val badgeEnabled: Boolean,
+  @Value("\${app.features.lao-access-check-enabled:false}")
+  private val laoAccessCheckEnabled: Boolean,
   @Value("\${app.features.lao-view-restriction-enabled}")
   private val restrictionEnabled: Boolean,
 ) {
@@ -23,8 +23,8 @@ class LimitedAccessResolverService(
     val distinctCrns = crns.distinct()
     if (distinctCrns.isEmpty()) return emptyMap()
 
-    val laoByCrn = if (badgeEnabled) distinctCrns.associateWith(::isLao) else emptyMap()
-    val accessibleCrns = if (badgeEnabled || restrictionEnabled) {
+    val laoByCrn = if (laoAccessCheckEnabled) distinctCrns.associateWith(::isLao) else emptyMap()
+    val accessibleCrns = if (laoAccessCheckEnabled || restrictionEnabled) {
       userService.getAccessibleOffenders(username, distinctCrns)
     } else {
       distinctCrns.toSet()
