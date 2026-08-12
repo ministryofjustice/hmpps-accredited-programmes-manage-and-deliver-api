@@ -186,15 +186,6 @@ class ReferralCaseListItemService(
     return caseAccess.excludedFrom.any { it.username == username && (it.until == null || it.until > now) }
   }
 
-//   fun getCaseAccessByCrn(crn: String): AllCaseAccess = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
-//    is ClientResult.Success -> response.body
-//    is ClientResult.Failure -> {
-//      val exception = response.toException()
-//      log.error("Failed to retrieve LAO case access for CRN $crn: ${response.getErrorMessage()}", exception)
-//      throw response.toException()
-//    }
-//  }
-
   fun getCaseListFilterData(userRegionNames: List<String>): CaseListFilterValues {
     val allStatuses = referralStatusService.getAllStatuses()
 
