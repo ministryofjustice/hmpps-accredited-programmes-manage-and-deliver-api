@@ -16,7 +16,11 @@ data class GroupSessionResponse(
   @get:JsonProperty("code", required = true)
   val groupCode: String,
 
-  @Schema(description = "The title of the page", required = true, example = "Attendance and notes for Getting started session")
+  @Schema(
+    description = "The title of the page",
+    required = true,
+    example = "Attendance and notes for Getting started session",
+  )
   val pageTitle: String,
 
   @Schema(description = "The type of session", required = true, example = "one-to-one")
@@ -41,13 +45,21 @@ data class GroupSessionResponse(
   @Schema(description = "The time of the session", required = true, example = "11am")
   val time: String,
 
-  @Schema(description = "The time of the session with special times capitalised", required = true, example = "Midday to 1pm")
+  @Schema(
+    description = "The time of the session with special times capitalised",
+    required = true,
+    example = "Midday to 1pm",
+  )
   val timeWithCapitalisedMidday: String = "",
 
   @Schema(description = "The list of people scheduled to attend", required = true, example = "[John Smith, Jane Doe]")
   val scheduledToAttend: List<String>,
 
-  @Schema(description = "The names of the facilitators in the session", required = true, example = "[John Doe, Jane Smith]")
+  @Schema(
+    description = "The names of the facilitators in the session",
+    required = true,
+    example = "[John Doe, Jane Smith]",
+  )
   val facilitators: List<String>,
 
   @Schema(description = "The attendance and session notes for each attendee", required = true)
@@ -59,6 +71,11 @@ data class AttendanceAndSessionNotes(
   val referralId: UUID,
   val crn: String,
   val lao: Boolean,
+  @Schema(
+    description = "True when the current user is not authorised to view this Limited Access Offender.",
+    example = "false",
+  )
+  val isExcluded: Boolean = false,
   val attendance: String,
   val sessionNotes: String,
 )

@@ -88,6 +88,7 @@ class ProgrammeGroupService(
   private val sessionService: SessionService,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
   private val probationAccessControlApiClient: ProbationAccessControlApiClient,
+  private val limitedAccessResolverService: LimitedAccessResolverService,
   @Value("\${app.features.lao-access-check-enabled}")
   private val laoAccessCheckEnabled: Boolean,
 ) {
@@ -374,7 +375,16 @@ class ProgrammeGroupService(
       )
 
     val nonActiveSpecification =
-      getGroupWaitlistItemSpecification(otherTab, groupId, sex, cohort, nameOrCRN, pdus, reportingTeams, groupRegionName)
+      getGroupWaitlistItemSpecification(
+        otherTab,
+        groupId,
+        sex,
+        cohort,
+        nameOrCRN,
+        pdus,
+        reportingTeams,
+        groupRegionName,
+      )
 
     val pagedData = groupWaitlistItemViewRepository.findAll(activeSpecification, pageable)
 
@@ -731,14 +741,15 @@ class ProgrammeGroupService(
     )
   }
 
-  fun getGroupSessionPage(groupId: UUID, sessionId: UUID): GroupSessionResponse {
+  fun getGroupSessionPage(groupId: UUID, sessionId: UUID, username: String): GroupSessionResponse {
     val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
 
     val session = sessionRepository.findByIdOrNull(sessionId)
       ?: throw NotFoundException("Session with $sessionId not found")
 
-    val laoByCrn = session.attendees.map { it.referral.crn }.distinct().associateWith { getLaoByCrn(it) }
+    val distinctCrns = session.attendees.map { it.referral.crn }.distinct()
+    val accessByCrn = limitedAccessResolverService.resolve(username, distinctCrns)
 
     val attendanceAndSessionNotes = session.attendees.map { attendee ->
       val attendanceRecord = session.attendances
@@ -746,11 +757,13 @@ class ProgrammeGroupService(
         .sortedWith(compareByDescending<SessionAttendanceEntity> { it.createdAt }.thenByDescending { it.id })
         .firstOrNull()
 
+      val access = accessByCrn[attendee.referral.crn]
       AttendanceAndSessionNotes(
         name = attendee.personName,
         referralId = attendee.referralId,
         crn = attendee.referral.crn,
-        lao = laoByCrn[attendee.referral.crn] ?: false,
+        lao = access?.lao ?: false,
+        isExcluded = access?.isExcluded ?: false,
         attendance = getAttendanceTextFromOutcome(attendanceRecord?.outcomeType),
         sessionNotes = attendanceRecord?.notesHistory?.maxByOrNull { it.createdAt }?.notes ?: "Not added",
       )
@@ -763,7 +776,11 @@ class ProgrammeGroupService(
       isCatchup = session.isCatchup,
       date = session.startsAt.toLocalDate(),
       time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
-      timeWithCapitalisedMidday = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime(), capitaliseMidday = true),
+      timeWithCapitalisedMidday = formatTimeOfSession(
+        session.startsAt.toLocalTime(),
+        session.endsAt.toLocalTime(),
+        capitaliseMidday = true,
+      ),
       unformattedEndDate = session.endsAt,
       scheduledToAttend = session.attendees.map { it.personName },
       facilitators = session.sessionFacilitators.sortedBy { it.facilitator.personName }
