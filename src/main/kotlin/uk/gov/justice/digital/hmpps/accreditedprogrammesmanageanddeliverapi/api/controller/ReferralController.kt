@@ -136,7 +136,7 @@ class ReferralController(
 
     referralEventNumberResolverService.resolveIfEventNumberIsZero(referral)
 
-    return userService.getPersonalDetailsByIdentifier(referral.crn).let {
+    return userService.getPersonalDetailsWithoutAuthentication(referral.crn).let {
       ResponseEntity.ok(it.toModel(referral.setting))
     }
   }

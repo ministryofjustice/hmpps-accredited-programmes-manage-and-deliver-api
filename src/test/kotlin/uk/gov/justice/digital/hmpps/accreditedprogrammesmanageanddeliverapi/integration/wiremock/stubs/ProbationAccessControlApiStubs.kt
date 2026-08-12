@@ -71,9 +71,9 @@ class ProbationAccessControlApiStubs {
     crns.forEach { stubCaseAccessByCrn(it) }
   }
 
-  fun createAllCaseAccessUsernameRange(username: String = "AUTH_ADM"): AllCaseAccessUsernameRange = AllCaseAccessUsernameRange(
+  fun createAllCaseAccessUsernameRange(username: String = "AUTH_ADM", since: OffsetDateTime = OffsetDateTime.now().minusDays(1), until: OffsetDateTime? = null): AllCaseAccessUsernameRange = AllCaseAccessUsernameRange(
     username = username,
-    since = OffsetDateTime.now().minusDays(1),
-    until = null,
+    since = since,
+    until = until,
   )
 }
