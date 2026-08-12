@@ -14,8 +14,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.StatusFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.ProbationAccessControlApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.model.AllCaseAccess
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
@@ -31,7 +29,7 @@ class ReferralCaseListItemService(
   private val userService: UserService,
   private val referralStatusService: ReferralStatusService,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
-  private val probationAccessControlApiClient: ProbationAccessControlApiClient,
+  private val limitedAccessOffenderService: LimitedAccessOffenderService,
   @Value("\${app.features.lao-access-check-enabled}")
   private val laoAccessCheckEnabled: Boolean,
 ) {
@@ -74,14 +72,17 @@ class ReferralCaseListItemService(
       caseAccessByCrn = referralsPage.content
         .map { it.crn }
         .distinct()
-        .associateWith(::getCaseAccessByCrn)
+        .associateWith { limitedAccessOffenderService.getCaseAccessByCrn(it) }
     }
 
     val referralsToReturn = PageImpl(
       referralsPage.content
         .map { referral ->
-          val isExcluded = isExcludedByUsername(referral.crn, username, caseAccessByCrn)
-          referral.toApi(lao = isLao(referral.crn, caseAccessByCrn), isExcluded = isExcluded)
+          val isExcluded = limitedAccessOffenderService.isExcludedByUsername(referral.crn, username, caseAccessByCrn)
+          referral.toApi(
+            lao = limitedAccessOffenderService.isLimitedAccessOffender(referral.crn, caseAccessByCrn),
+            isExcluded = isExcluded,
+          )
         }
         .sortedBy { it.isExcluded },
       referralsPage.pageable,
@@ -163,19 +164,6 @@ class ReferralCaseListItemService(
     return PageImpl(caseListReferrals.content, pageable, totalAllowedCount)
   }
 
-  private fun isLao(crn: String, caseAccessByCrn: Map<String, AllCaseAccess>?): Boolean = (caseAccessByCrn?.get(crn)?.excludedFrom?.isNotEmpty() ?: false) || (caseAccessByCrn?.get(crn)?.restrictedTo?.isNotEmpty()) ?: false
-
-  private fun isExcludedByUsername(crn: String, username: String, caseAccessByCrn: Map<String, AllCaseAccess>?): Boolean = caseAccessByCrn?.get(crn)?.excludedFrom?.any { it.username == username } ?: false
-
-  private fun getCaseAccessByCrn(crn: String): AllCaseAccess = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
-    is ClientResult.Success -> response.body
-    is ClientResult.Failure -> {
-      val exception = response.toException()
-      log.error("Failed to retrieve LAO case access for CRN $crn: ${response.getErrorMessage()}", exception)
-      throw response.toException()
-    }
-  }
-
   fun getCaseListFilterData(userRegionNames: List<String>): CaseListFilterValues {
     val allStatuses = referralStatusService.getAllStatuses()
 
@@ -193,7 +181,8 @@ class ReferralCaseListItemService(
       .sortedBy { it.pduName }
 
     // For this instance of displaying the status' on the front end, the description of "Breach (non-attendance)" needs to be changed.
-    val openDescriptions = ReferralStatusUtils.sortStatuses(open.map { ReferralStatusUtils.formatStatus(it.description) })
+    val openDescriptions =
+      ReferralStatusUtils.sortStatuses(open.map { ReferralStatusUtils.formatStatus(it.description) })
 
     val statusFilterValues = StatusFilterValues(
       open = openDescriptions,
