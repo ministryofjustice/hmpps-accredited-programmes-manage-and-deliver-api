@@ -4200,7 +4200,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `return 200 and flag an authorised LAO as lao but not excluded so the restricted access badge is shown`() {
+    fun `return 200 and flag an authorised LAO as lao but not excluded so the restricted access is true`() {
       initialiseReferrals()
       val authorisedLaoReferral = referrals[0]
 

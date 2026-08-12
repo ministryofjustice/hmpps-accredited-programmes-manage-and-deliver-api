@@ -19,7 +19,6 @@ sentry:
 app:
   features:
     lao-access-check-enabled: ${LAO_ACCESS_CHECK_ENABLED:false}
-    lao-badge-enabled: ${LAO_BADGE_ENABLED:false}
     lao-view-restriction-enabled: ${LAO_VIEW_RESTRICTION_ENABLED:false}
 
   scheduling:
