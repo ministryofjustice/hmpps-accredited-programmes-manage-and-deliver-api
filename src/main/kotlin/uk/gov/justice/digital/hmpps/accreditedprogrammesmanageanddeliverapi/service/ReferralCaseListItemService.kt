@@ -176,14 +176,14 @@ class ReferralCaseListItemService(
     val now = OffsetDateTime.now()
     val caseAccess = caseAccessByCrn?.get(crn) ?: return false
 
-    return caseAccess.restrictedTo.any { it.until == null || it.until > now } ||
-      caseAccess.excludedFrom.any { it.until == null || it.until > now }
+    return caseAccess.restrictedTo.any { it.since <= now && (it.until == null || it.until > now) } ||
+      caseAccess.excludedFrom.any { it.since <= now && (it.until == null || it.until > now) }
   }
 
   private fun isExcludedByUsername(crn: String, username: String, caseAccessByCrn: Map<String, AllCaseAccess>?): Boolean {
     val now = OffsetDateTime.now()
     val caseAccess = caseAccessByCrn?.get(crn) ?: return false
-    return caseAccess.excludedFrom.any { it.username == username && (it.until == null || it.until > now) }
+    return caseAccess.excludedFrom.any { it.username == username && (it.since <= now && (it.until == null || it.until > now)) }
   }
 
   fun getCaseListFilterData(userRegionNames: List<String>): CaseListFilterValues {
