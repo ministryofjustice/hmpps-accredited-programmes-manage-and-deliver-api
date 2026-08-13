@@ -11,7 +11,7 @@ class LimitedAccessResolverService(
   private val userService: UserService,
   @Value("\${app.features.lao-access-check-enabled:false}")
   private val laoAccessCheckEnabled: Boolean,
-  @Value("\${app.features.lao-view-restriction-enabled}")
+  @Value("\${app.features.exclusion-access-check-enabled}")
   private val restrictionEnabled: Boolean,
 ) {
   data class Access(
