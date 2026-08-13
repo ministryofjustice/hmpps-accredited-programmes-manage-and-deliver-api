@@ -80,6 +80,33 @@ class NDeliusApiStubs {
     )
   }
 
+  fun stubAccessCheckMixed(
+    grantedCrns: List<String> = emptyList(),
+    excludedCrns: List<String> = emptyList(),
+    restrictedCrns: List<String> = emptyList(),
+  ) {
+    val response = LimitedAccessOffenderCheckResponse(
+      grantedCrns.map {
+        LimitedAccessOffenderCheck(crn = it, userExcluded = false, userRestricted = false, exclusionMessage = null, restrictionMessage = null)
+      } + excludedCrns.map {
+        LimitedAccessOffenderCheck(crn = it, userExcluded = true, userRestricted = false, exclusionMessage = "Excluded", restrictionMessage = null)
+      } + restrictedCrns.map {
+        LimitedAccessOffenderCheck(crn = it, userExcluded = false, userRestricted = true, exclusionMessage = null, restrictionMessage = "Restricted")
+      },
+    )
+
+    wiremock.stubFor(
+      post(urlPathTemplate("/user/{username}/access"))
+        .withRequestBody(matchingJsonPath("$"))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(objectMapper.writeValueAsString(response)),
+        ),
+    )
+  }
+
   fun stubPersonalDetailsResponse(
     nDeliusPersonalDetails: NDeliusPersonalDetails? = NDeliusPersonalDetailsFactory().produce(),
   ) {

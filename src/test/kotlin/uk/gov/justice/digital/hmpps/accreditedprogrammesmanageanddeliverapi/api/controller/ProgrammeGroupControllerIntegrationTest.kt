@@ -3927,6 +3927,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       session.attendances.add(attendance)
       sessionRepository.saveAndFlush(session)
 
+      nDeliusApiStubs.stubAccessCheck(true, groupMembership.crn)
+
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
@@ -4111,6 +4113,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       session.attendances.addAll(listOf(attendance1, attendance2, attendance3))
       sessionRepository.saveAndFlush(session)
 
+      nDeliusApiStubs.stubAccessCheck(true, referral1.crn, referral2.crn, referral3.crn)
+
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
@@ -4126,16 +4130,217 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(notes1.attendance).isEqualTo("Attended - Complied")
       assertThat(notes1.sessionNotes).isEqualTo("Notes for referral 1 - latest")
       assertThat(notes1.lao).isFalse
+      assertThat(notes1.isExcluded).isFalse
 
       val notes2 = response.attendanceAndSessionNotes.find { it.crn == referral2.crn }!!
       assertThat(notes2.attendance).isEqualTo("Did not attend")
       assertThat(notes2.sessionNotes).isEqualTo("Notes for referral 2 - latest")
       assertThat(notes2.lao).isFalse
+      assertThat(notes2.isExcluded).isFalse
 
       val notes3 = response.attendanceAndSessionNotes.find { it.crn == referral3.crn }!!
       assertThat(notes3.attendance).isEqualTo("To be confirmed")
       assertThat(notes3.sessionNotes).isEqualTo("Not added")
       assertThat(notes3.lao).isFalse
+      assertThat(notes3.isExcluded).isFalse
+    }
+
+    @Test
+    fun `return 200 and flag LAO attendees the user is not authorised to view as excluded`() {
+      initialiseReferrals()
+      val accessibleReferral = referrals[0]
+      val excludedReferral = referrals[1]
+      val restrictedReferral = referrals[2]
+
+      val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+      val body = CreateGroupRequestFactory().produce(
+        createGroupSessionSlot = setOf(slot1),
+        teamMembers = listOf(
+          CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR),
+          CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER),
+        ),
+      )
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val group = programmeGroupRepository.findByCode(body.groupCode)!!
+
+      listOf(accessibleReferral, excludedReferral, restrictedReferral).forEach { referral ->
+        performRequestAndExpectStatus(
+          httpMethod = HttpMethod.POST,
+          uri = "/group/${group.id}/allocate/${referral.id}",
+          body = AllocateToGroupRequest(additionalDetails = "Test allocation"),
+          expectedResponseStatus = HttpStatus.OK.value(),
+        )
+      }
+
+      val groupWithAllocation = programmeGroupRepository.findByCode(body.groupCode)!!
+      val session = groupWithAllocation.sessions.first { !it.isPlaceholder }
+
+      // The excluded/restricted referrals are LAOs; the accessible one is not.
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = excludedReferral.crn,
+        excludedFrom = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange(username = "AUTH_ADM")),
+      )
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = restrictedReferral.crn,
+        restrictedTo = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange(username = "SOMEONE_ELSE")),
+      )
+      probationAccessControlApiStubs.stubCaseAccessByCrn(crn = accessibleReferral.crn)
+
+      // nDelius authorises only the accessible referral.
+      nDeliusApiStubs.stubAccessCheckMixed(
+        grantedCrns = listOf(accessibleReferral.crn),
+        excludedCrns = listOf(excludedReferral.crn),
+        restrictedCrns = listOf(restrictedReferral.crn),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/session/${session.id}",
+        returnType = object : ParameterizedTypeReference<GroupSessionResponse>() {},
+      )
+
+      assertThat(response.attendanceAndSessionNotes).hasSize(3)
+
+      val accessible = response.attendanceAndSessionNotes.first { it.crn == accessibleReferral.crn }
+      assertThat(accessible.lao).isFalse
+      assertThat(accessible.isExcluded).isFalse
+
+      val excluded = response.attendanceAndSessionNotes.first { it.crn == excludedReferral.crn }
+      assertThat(excluded.lao).isTrue
+      assertThat(excluded.isExcluded).isTrue
+
+      val restricted = response.attendanceAndSessionNotes.first { it.crn == restrictedReferral.crn }
+      assertThat(restricted.lao).isTrue
+      assertThat(restricted.isExcluded).isTrue
+    }
+
+    @Test
+    fun `return 200 and flag an authorised LAO as lao but not excluded so the restricted access is true`() {
+      initialiseReferrals()
+      val authorisedLaoReferral = referrals[0]
+
+      val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+      val body = CreateGroupRequestFactory().produce(
+        createGroupSessionSlot = setOf(slot1),
+        teamMembers = listOf(
+          CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR),
+          CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER),
+        ),
+      )
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val group = programmeGroupRepository.findByCode(body.groupCode)!!
+
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/allocate/${authorisedLaoReferral.id}",
+        body = AllocateToGroupRequest(additionalDetails = "Test allocation"),
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      val groupWithAllocation = programmeGroupRepository.findByCode(body.groupCode)!!
+      val session = groupWithAllocation.sessions.first { !it.isPlaceholder }
+
+      // The case is restricted, but restricted TO the current user, so they remain authorised.
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = authorisedLaoReferral.crn,
+        restrictedTo = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange(username = "AUTH_ADM")),
+      )
+      nDeliusApiStubs.stubAccessCheckMixed(grantedCrns = listOf(authorisedLaoReferral.crn))
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/session/${session.id}",
+        returnType = object : ParameterizedTypeReference<GroupSessionResponse>() {},
+      )
+
+      // Then the attendee is flagged as an LAO but NOT excluded
+      val authorisedLao = response.attendanceAndSessionNotes.first { it.crn == authorisedLaoReferral.crn }
+      assertThat(authorisedLao.lao).isTrue
+      assertThat(authorisedLao.isExcluded).isFalse
+      assertThat(authorisedLao.name).isEqualTo(authorisedLaoReferral.personName)
+    }
+
+    @Test
+    fun `return 200 and mark all attendees excluded when the user is authorised to view none of them`() {
+      // Given a group catch-up where every LAO attendee is restricted for the current user.
+      initialiseReferrals()
+      val restrictedReferralOne = referrals[0]
+      val restrictedReferralTwo = referrals[1]
+
+      val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+      val body = CreateGroupRequestFactory().produce(
+        createGroupSessionSlot = setOf(slot1),
+        teamMembers = listOf(
+          CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR),
+          CreateGroupTeamMemberFactory().produceWithRandomValues(teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER),
+        ),
+      )
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.POST,
+        uri = "/group",
+        body = body,
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val group = programmeGroupRepository.findByCode(body.groupCode)!!
+
+      listOf(restrictedReferralOne, restrictedReferralTwo).forEach { referral ->
+        performRequestAndExpectStatus(
+          httpMethod = HttpMethod.POST,
+          uri = "/group/${group.id}/allocate/${referral.id}",
+          body = AllocateToGroupRequest(additionalDetails = "Test allocation"),
+          expectedResponseStatus = HttpStatus.OK.value(),
+        )
+      }
+
+      val groupWithAllocation = programmeGroupRepository.findByCode(body.groupCode)!!
+      val session = groupWithAllocation.sessions.first { !it.isPlaceholder }
+
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = restrictedReferralOne.crn,
+        excludedFrom = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange(username = "AUTH_ADM")),
+      )
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = restrictedReferralTwo.crn,
+        excludedFrom = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange(username = "AUTH_ADM")),
+      )
+      nDeliusApiStubs.stubAccessCheckMixed(
+        excludedCrns = listOf(restrictedReferralOne.crn, restrictedReferralTwo.crn),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/session/${session.id}",
+        returnType = object : ParameterizedTypeReference<GroupSessionResponse>() {},
+      )
+
+      assertThat(response.facilitators).isNotEmpty
+      assertThat(response.attendanceAndSessionNotes).hasSize(2)
+      assertThat(response.attendanceAndSessionNotes).allSatisfy {
+        assertThat(it.lao).isTrue
+        assertThat(it.isExcluded).isTrue
+      }
     }
   }
 

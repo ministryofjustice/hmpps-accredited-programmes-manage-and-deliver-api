@@ -820,7 +820,9 @@ class ProgrammeGroupController(
   fun getGroupSessionPage(
     @PathVariable groupId: UUID,
     @PathVariable sessionId: UUID,
-  ): ResponseEntity<GroupSessionResponse> = ResponseEntity.ok(programmeGroupService.getGroupSessionPage(groupId, sessionId))
+  ): ResponseEntity<GroupSessionResponse> = ResponseEntity.ok(
+    programmeGroupService.getGroupSessionPage(groupId, sessionId, authenticationUtils.getUsername()),
+  )
 
   @Operation(
     tags = ["Programme Group controller"],
