@@ -205,7 +205,7 @@ class UserService(
     is ClientResult.Failure -> {
       val exception = response.toException()
       log.error("Failed to retrieve LAO case access for CRN $crn: ${response.getErrorMessage()}", exception)
-      throw response.toException()
+      throw exception
     }
   }
 }
