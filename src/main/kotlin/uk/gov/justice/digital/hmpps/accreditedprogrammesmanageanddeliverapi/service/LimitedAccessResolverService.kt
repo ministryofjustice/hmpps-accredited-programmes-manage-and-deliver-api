@@ -23,7 +23,7 @@ class LimitedAccessResolverService(
     val distinctCrns = crns.distinct()
     if (distinctCrns.isEmpty()) return emptyMap()
 
-    val laoByCrn = if (laoAccessCheckEnabled) distinctCrns.associateWith(::isLao) else emptyMap()
+    val laoByCrn = if (laoAccessCheckEnabled) distinctCrns.associateWith(::isLimitedAccessOffender) else emptyMap()
     val accessibleCrns = if (laoAccessCheckEnabled || restrictionEnabled) {
       userService.getAccessibleOffenders(username, distinctCrns)
     } else {
@@ -38,7 +38,7 @@ class LimitedAccessResolverService(
     }
   }
 
-  private fun isLao(crn: String): Boolean = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
+  fun isLimitedAccessOffender(crn: String): Boolean = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
     is ClientResult.Success -> response.body.excludedFrom.isNotEmpty() || response.body.restrictedTo.isNotEmpty()
     is ClientResult.Failure -> false
   }

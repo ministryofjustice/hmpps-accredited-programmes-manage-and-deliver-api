@@ -89,8 +89,6 @@ class ProgrammeGroupService(
   private val sessionNameFormatter: SessionNameFormatter,
   private val sessionService: SessionService,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
-  private val limitedAccessOffenderService: LimitedAccessOffenderService,
-  private val probationAccessControlApiClient: ProbationAccessControlApiClient,
   private val limitedAccessResolverService: LimitedAccessResolverService,
   @Value("\${app.features.lao-access-check-enabled}")
   private val laoAccessCheckEnabled: Boolean,
@@ -270,29 +268,21 @@ class ProgrammeGroupService(
     val facilitators = regionService.getTeamMembersForPdu(userRegion.code)
     val memberships = programmeGroupMembershipService.getActiveGroupMemberships(groupId)
     val groupMembers = memberships.map { membership ->
-      // Fetch LAO status
-      var isLimitedAccessOffender = false
-      var isExcluded = false
-      if (laoAccessCheckEnabled) {
-        val crn = membership.referral.crn
-        val allCaseAccess = limitedAccessOffenderService.getCaseAccessByCrn(crn)
-        val allCaseAccessByCrn = mapOf(crn to allCaseAccess)
-        isLimitedAccessOffender =
-          limitedAccessOffenderService.isLimitedAccessOffender(crn = crn, caseAccessByCrn = allCaseAccessByCrn)
-        isExcluded = limitedAccessOffenderService.isExcludedByUsername(
-          crn = crn,
-          username = username,
-          caseAccessByCrn = allCaseAccessByCrn,
-        )
-      }
-
       GroupMember(
         name = membership.referral.personName,
         crn = membership.referral.crn,
         referralId = membership.referral.id!!,
-        isLimitedAccessOffender = isLimitedAccessOffender,
-        isExcluded = isExcluded,
       )
+    }
+
+    if (laoAccessCheckEnabled) {
+      val caseReferenceNumbers = groupMembers.map { groupMember -> groupMember.crn }.toList()
+      val usernameAccessMap = limitedAccessResolverService.resolve(username, caseReferenceNumbers)
+      groupMembers.forEach { groupMember ->
+        val access = usernameAccessMap[groupMember.crn]
+        groupMember.isLimitedAccessOffender = access?.lao
+        groupMember.isExcluded = access?.isExcluded
+      }
     }
 
     return ScheduleIndividualSessionDetailsResponse(
@@ -445,7 +435,7 @@ class ProgrammeGroupService(
     var laoByCrn: Map<String, Boolean>? = null
     if (laoAccessCheckEnabled) {
       laoByCrn = pagedData.content.map { it.crn }.distinct()
-        .associateWith { limitedAccessOffenderService.getLimitedAccessOffenderByCrn(it) }
+        .associateWith { limitedAccessResolverService.isLimitedAccessOffender(it) }
     }
 
     val groupListDataToReturn: Page<GroupItem> = pagedData.map { it.toApi(laoByCrn?.get(it.crn) ?: false) }

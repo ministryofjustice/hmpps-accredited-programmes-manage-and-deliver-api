@@ -25,7 +25,7 @@ data class ReferralCaseListItem(
   val isExcluded: Boolean? = false,
 )
 
-fun ReferralCaseListItemViewEntity.toApi(lao: Boolean? = false, isExcluded: Boolean = false) = ReferralCaseListItem(
+fun ReferralCaseListItemViewEntity.toApi(lao: Boolean? = false, isExcluded: Boolean? = false) = ReferralCaseListItem(
   referralId = referralId,
   crn = crn,
   personName = personName,

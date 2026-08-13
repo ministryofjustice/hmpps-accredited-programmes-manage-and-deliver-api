@@ -31,12 +31,10 @@ class ProgrammeGroupServiceTest {
   private val sessionNameFormatter = mockk<SessionNameFormatter>()
   private val sessionService = mockk<SessionService>()
   private val moduleSessionTemplateRepository = mockk<ModuleSessionTemplateRepository>()
-  private val limitedAccessOffenderService = mockk<LimitedAccessOffenderService>()
   private val moduleRepository = mockk<ModuleRepository>()
   private val authenticationUtils = mockk<AuthenticationUtils>()
   private val regionService = mockk<RegionService>()
   private val programmeGroupMembershipService = mockk<ProgrammeGroupMembershipService>()
-  private val probationAccessControlApiClient = mockk<ProbationAccessControlApiClient>()
   private val limitedAccessResolverService = mockk<LimitedAccessResolverService>()
   private lateinit var service: ProgrammeGroupService
 
@@ -54,9 +52,7 @@ class ProgrammeGroupServiceTest {
       sessionNameFormatter,
       sessionService,
       moduleSessionTemplateRepository,
-      probationAccessControlApiClient,
       limitedAccessResolverService,
-      limitedAccessOffenderService,
       true,
       moduleRepository,
       authenticationUtils,

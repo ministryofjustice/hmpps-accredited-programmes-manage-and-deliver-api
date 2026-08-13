@@ -18,8 +18,8 @@ data class GroupMember(
   val referralId: UUID,
 
   @get:Schema(description = "The boolean value of whether the group member has Limited Access Offender (LAO) status")
-  val isLimitedAccessOffender: Boolean? = false,
+  var isLimitedAccessOffender: Boolean? = false,
 
   @get:Schema(description = "The boolean value of whether the group member details are excluded from viewing by the logged-in username")
-  val isExcluded: Boolean? = false,
+  var isExcluded: Boolean? = false,
 )
