@@ -408,22 +408,81 @@ The final file should end immediately after `{{/referrals}}` with no trailing co
 
 ---
 
-### 5. SAR Contract Integration Test
+### 5. `SubjectAccessRequestServiceTest.kt` (unit test) — REQUIRED
+
+**Path:**
+```
+src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/service/SubjectAccessRequestServiceTest.kt
+```
+
+This unit test directly wires `SubjectAccessRequestService` with 6 mocked repositories (including the two we removed) and asserts on the removed DTOs/fields. **It will not compile without these edits.**
+
+**Changes required:**
+
+1. **Remove these imports** (lines 11, 13, 26, 28):
+   ```kotlin
+   import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.GroupWaitlistItemViewEntityFactory
+   import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCaseListItemViewEntityFactory
+   import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
+   import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
+   ```
+
+2. **Remove these `mockk` fields** (lines 40–41):
+   ```kotlin
+   private val groupWaitlistItemViewRepository = mockk<GroupWaitlistItemViewRepository>()
+   private val referralCaseListItemRepository = mockk<ReferralCaseListItemRepository>()
+   ```
+
+3. **Update the service constructor call** in `setup()` (lines 49–56). Currently:
+   ```kotlin
+   service = SubjectAccessRequestService(
+     referralRepository,
+     messageHistoryRepository,
+     attendeeRepository,
+     availabilityRepository,
+     groupWaitlistItemViewRepository,
+     referralCaseListItemRepository,
+   )
+   ```
+   Change to:
+   ```kotlin
+   service = SubjectAccessRequestService(
+     referralRepository,
+     messageHistoryRepository,
+     attendeeRepository,
+     availabilityRepository,
+   )
+   ```
+
+4. **In the `should get probation content for CRN` test**, remove:
+   - Lines 113–114 (factory calls for `groupWaitlistItemViewEntity`, `referralCaseListItemViewEntity`)
+   - Lines 120–121 (`every { groupWaitlistItemViewRepository... }` and `every { referralCaseListItemRepository... }` stubs)
+   - Lines 135–137 — assertions on `crn`, `dateOfBirth`, `personName`:
+     ```kotlin
+     assertThat(resultContent.referrals[0].crn).isEqualTo(referralEntity1.crn)
+     assertThat(resultContent.referrals[0].dateOfBirth).isEqualTo(referralEntity1.dateOfBirth)
+     assertThat(resultContent.referrals[0].personName).isEqualTo(referralEntity1.personName)
+     ```
+   - Lines 262–281 — the whole block asserting `resultContent.groupWaitlistItemViews[...]` and `resultContent.referralCaseListItemViews[...]`
+   - Lines 286–287 — the `verify` calls for the two repositories
+
+5. **In the `should get probation content for CRN that doesn't exist` test**, remove:
+   - Lines 298–299 (`every { groupWaitlistItemViewRepository... }` stubs)
+   - Lines 309–310 (`assertThat(resultContent.groupWaitlistItemViews)...`  and `.referralCaseListItemViews`)
+   - Lines 313–314 (`verify` calls for the two repositories)
+
+### 6. `SarContractIntegrationTest.kt`
 
 **Path:**
 ```
 src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/sar/SarContractIntegrationTest.kt
 ```
 
-The test currently imports and uses `GroupWaitlistItemViewRepository` and associated repositories. These imports and autowired fields need to be removed since the DTOs they relate to are being deleted.
+The integration test does NOT directly reference `GroupWaitlistItemViewRepository` or `ReferralCaseListItemRepository` (verified via grep). No changes needed to this file for Branch 1 — the test fixtures regenerate automatically via `SAR_GENERATE_ACTUAL`.
 
-**Search for and remove these import lines:**
-```kotlin
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
-```
+### 7. Factories left intact
 
-Also remove the `@Autowired` fields that reference these repositories (search for `GroupWaitlistItemViewRepository` and `ReferralCaseListItemRepository` in the test — if present — and remove them). Open the file and check whether these are used in `setupTestData()` or test assertions; they likely are not (the test creates referrals/groups, the views are auto-populated).
+Do NOT delete `GroupWaitlistItemViewEntityFactory` or `ReferralCaseListItemViewEntityFactory` — they are used by other tests (`GroupWaitlistViewRepositoryIntegrationTest`, `CaseListControllerIntegrationTest`) and by production services (`ProgrammeGroupService`, `ReferralCaseListItemService`) via the entity classes themselves. We are only deleting the SAR-specific DTO wrappers.
 
 ---
 
@@ -461,8 +520,11 @@ Finally, run without the flag to confirm tests pass:
 - [ ] `SubjectAccessRequestReferral.kt` — `crn`, `personName`, `dateOfBirth` removed from data class and `toApi()`
 - [ ] `SubjectAccessRequestContent.kt` — only `referrals` field remains
 - [ ] `SubjectAccessRequestService.kt` — `GroupWaitlistItemViewRepository` and `ReferralCaseListItemRepository` removed from constructor and all methods
+- [ ] `SubjectAccessRequestServiceTest.kt` — updated: removed factories/repos/mocks/assertions for waitlist + caselist; removed PII field assertions
 - [ ] `sar_template.mustache` — PII rows removed from referral table; entire waitlist + caselist sections removed
+- [ ] `./gradlew build` compiles cleanly
 - [ ] SAR contract integration test compiles without errors
+- [ ] `./gradlew test --tests "*.SubjectAccessRequestServiceTest"` passes
 - [ ] `./gradlew test --tests "*.SarContractIntegrationTest"` passes
 - [ ] Test fixtures updated to reflect new output
 

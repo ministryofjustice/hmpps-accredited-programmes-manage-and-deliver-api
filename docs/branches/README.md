@@ -167,3 +167,54 @@ All facts in these documents have been verified against the codebase directly (A
    These should be verified with a service-side stakeholder.
 
 2. **Branch 4 - session note `recordedBy` is null in the test fixture** because the integration test factory does not populate `createdByFullName`. In production this will be set. Confirm the team is happy for the test fixture to show `null` here.
+
+
+---
+
+## Project Conventions Confirmed
+
+- **Branch naming:** `APG-XXXX/short-hyphenated-description` (matches all recent branches in `git branch -r`)
+- **Commit messages:** `APG-XXXX Short description (#PR)` (matches recent `main` history)
+- **Kotlin style:** ktlint via `hmpps-gradle-spring-boot` plugin
+  - 2-space indent (`.editorconfig`)
+  - Trailing commas allowed on both call and declaration sites
+  - `intellij_idea` code style
+- **Pre-commit hook:** `.git/hooks/pre-commit` runs `./gradlew ktlintFormat` on staged Kotlin files automatically. No manual formatting needed before commit.
+- **Tests:** JUnit 5, mockk, AssertJ. Integration tests use Testcontainers + WireMock via `IntegrationTestBase`.
+- **DTO naming:** SAR DTOs live in `api/model/subjectAccessRequest/` and are named `SubjectAccessRequest<Entity>`. Each has a `toApi()` extension function on the entity.
+- **Enum display convention:** Existing enums use `.value` (`SessionType`) or `.displayName` (`SlotName`). Branch 3 standardises on `.displayName` for the newly-labelled enums.
+
+---
+
+## Downstream Impact Confirmed (No Breakage)
+
+Grepped the whole codebase for potential breakage before writing branch docs:
+
+- `enumValueOf<InterventionType>` / `InterventionType.valueOf(...)` — zero usages, safe to add constructor property
+- `enumValueOf<SettingType>` / `.valueOf(...)` — zero usages
+- `enumValueOf<Pathway>` — zero usages
+- `outcomeTypeCode` — only referenced in `sar_template.mustache`, the DTO itself, and the SAR JSON fixture. All handled.
+- `SubjectAccessRequestGroupWaitlistItemView` / `SubjectAccessRequestReferralCaseListItemView` — only referenced by `SubjectAccessRequestService`, `SubjectAccessRequestServiceTest`, `SubjectAccessRequestContent`, and the SAR fixtures. All handled.
+- `GroupWaitlistItemViewRepository` / `ReferralCaseListItemRepository` — still used by `ProgrammeGroupService` and `ReferralCaseListItemService` (non-SAR consumers). We only remove the SAR service's dependency — the repositories themselves stay.
+- `GroupWaitlistItemViewEntityFactory` / `ReferralCaseListItemViewEntityFactory` — still used by other integration tests. We only stop using them in the SAR unit test.
+
+---
+
+## Full Test Command Cheat Sheet
+
+Run all SAR-related tests:
+```bash
+./gradlew test --tests "*Sar*" --tests "*SubjectAccessRequest*"
+```
+
+Run a full build (compiles + tests + ktlint):
+```bash
+./gradlew build
+```
+
+Regenerate SAR fixtures then verify:
+```bash
+SAR_GENERATE_ACTUAL=true ./gradlew test --tests "*.SarContractIntegrationTest"
+# Copy log outputs, then:
+./gradlew test --tests "*.SarContractIntegrationTest"
+```

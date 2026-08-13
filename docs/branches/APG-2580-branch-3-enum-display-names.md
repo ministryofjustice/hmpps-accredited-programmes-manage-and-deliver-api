@@ -288,9 +288,46 @@ fun AvailabilitySlotEntity.toApi() = SubjectAccessRequestAvailabilitySlot(
 
 ---
 
-## Files NOT Modified
+### 8. `SubjectAccessRequestServiceTest.kt` — update assertions
 
-No template changes needed — the template already renders these fields via `{{ optionalValue ... }}`. The change is purely in the DTO mapping.
+**Path:**
+```
+src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/service/SubjectAccessRequestServiceTest.kt
+```
+
+This unit test currently asserts on `.name` for enums. Those assertions will fail after this branch because the mapper now emits `.displayName` / `.value`. Update:
+
+**Lines ~143–145** — Change:
+```kotlin
+assertThat(resultContent.referrals[0].interventionType).isEqualTo(referralEntity1.interventionType.name)
+assertThat(resultContent.referrals[0].setting).isEqualTo(referralEntity1.setting.name)
+assertThat(resultContent.referrals[0].sourcedFrom).isEqualTo(referralEntity1.sourcedFrom?.name)
+```
+To:
+```kotlin
+assertThat(resultContent.referrals[0].interventionType).isEqualTo(referralEntity1.interventionType.displayName)
+assertThat(resultContent.referrals[0].setting).isEqualTo(referralEntity1.setting.displayName)
+assertThat(resultContent.referrals[0].sourcedFrom).isEqualTo(referralEntity1.sourcedFrom?.displayName)
+```
+
+**Lines ~250–255** — Change:
+```kotlin
+assertThat(resultContent.referrals[0].attendees[0].session.moduleSessionTemplate.pathway)
+  .isEqualTo(attendeeEntity.session.moduleSessionTemplate.pathway.name)
+// ...
+assertThat(resultContent.referrals[0].attendees[0].session.moduleSessionTemplate.sessionType)
+  .isEqualTo(attendeeEntity.session.moduleSessionTemplate.sessionType.name)
+```
+To:
+```kotlin
+assertThat(resultContent.referrals[0].attendees[0].session.moduleSessionTemplate.pathway)
+  .isEqualTo(attendeeEntity.session.moduleSessionTemplate.pathway.displayName)
+// ...
+assertThat(resultContent.referrals[0].attendees[0].session.moduleSessionTemplate.sessionType)
+  .isEqualTo(attendeeEntity.session.moduleSessionTemplate.sessionType.value)
+```
+
+> Note: line numbers assume Branch 1 has been merged (which removes the `crn`/`personName`/`dateOfBirth` assertions and the waitlist/caselist block, shifting lines up). Search by content instead of line number.
 
 ---
 
@@ -354,7 +391,9 @@ After this branch:
 - [ ] `SubjectAccessRequestReferral.toApi()` uses `.displayName` for `interventionType`, `setting`, `sourcedFrom`
 - [ ] `SubjectAccessRequestSession.toApi()` uses `.displayName` for `pathway` and `.value` for `sessionType`
 - [ ] `SubjectAccessRequestAvailabilitySlot.toApi()` uses full day name + capitalised slot display name
+- [ ] `SubjectAccessRequestServiceTest.kt` — enum assertions updated to `.displayName` / `.value`
 - [ ] `./gradlew build` succeeds — no downstream compilation errors
+- [ ] `./gradlew test --tests "*.SubjectAccessRequestServiceTest"` passes
 - [ ] `./gradlew test --tests "*.SarContractIntegrationTest"` passes
 - [ ] JSON fixture shows human-readable strings for all 6 fields listed above
 
