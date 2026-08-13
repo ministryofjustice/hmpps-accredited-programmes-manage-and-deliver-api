@@ -33,6 +33,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
+import java.time.OffsetDateTime
 import java.util.UUID
 
 class CaseListControllerIntegrationTest : IntegrationTestBase() {
@@ -353,7 +354,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getCaseListItems for OPEN referrals marks referral as lao when PAC returns restrictions`() {
+    fun `getCaseListItems for OPEN referrals marks referral as LAO when PAC returns restrictions`() {
       probationAccessControlApiStubs.stubCaseAccessByCrn(
         crn = "CRN-999999",
         restrictedTo = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange()),
@@ -367,6 +368,27 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
       assertThat(response.pagedReferrals.content.single().lao).isTrue
+    }
+
+    @Test
+    fun `getCaseListItems for OPEN referrals should NOT mark referral as LAO when PAC returns out of date range restrictions`() {
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = "CRN-999999",
+        restrictedTo = listOf(
+          probationAccessControlApiStubs.createAllCaseAccessUsernameRange(
+            until = OffsetDateTime.now().minusDays(2),
+          ),
+        ),
+      )
+
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?crnOrPersonName=CRN-999999",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
+      assertThat(response.pagedReferrals.content.single().lao).isFalse
     }
 
     @Test
@@ -390,6 +412,30 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.pagedReferrals.content.single { it.isExcluded == true }.crn).isEqualTo("CRN-999999")
       // Verify that the last item in the list is the excluded one
       assertThat(response.pagedReferrals.content.last().isExcluded).isTrue
+    }
+
+    @Test
+    fun `getCaseListItems for OPEN referrals should NOT mark referral as excluded when username is in excluded list but not within date range`() {
+      // Given
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = "CRN-999999",
+        excludedFrom = listOf(
+          probationAccessControlApiStubs.createAllCaseAccessUsernameRange(
+            until = OffsetDateTime.now().minusDays(2),
+          ),
+        ),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      // Then
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(6)
+      assertThat(response.pagedReferrals.content.filter { it.isExcluded == true }).isEmpty()
     }
 
     @Test

@@ -22,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LimitedAccessOffenderCheckResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.ProbationAccessControlApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserDtoFactory
@@ -37,6 +38,7 @@ class UserServiceTest {
   private val telemetryService: TelemetryService = mockk()
   private val userRegionOverrideRepository: UserRegionOverrideRepository = mockk()
   private val manageUsersApiClient: ManageUsersApiClient = mockk()
+  private val probationAccessControlApiClient: ProbationAccessControlApiClient = mockk()
   private val service =
     UserService(
       nDeliusIntegrationApiClient,
@@ -44,6 +46,7 @@ class UserServiceTest {
       telemetryService,
       userRegionOverrideRepository,
       manageUsersApiClient,
+      probationAccessControlApiClient,
     )
 
   @BeforeEach

@@ -9,6 +9,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.ProbationAccessControlApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.model.AllCaseAccess
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LIMITED_ACCESS_OFFENDER_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_PERSONAL_DETAILS_N_DELIUS
@@ -25,6 +27,7 @@ class UserService(
   private val telemetryService: TelemetryService,
   private val userRegionOverrideRepository: UserRegionOverrideRepository,
   private val manageUsersApiClient: ManageUsersApiClient,
+  private val probationAccessControlApiClient: ProbationAccessControlApiClient,
 ) {
 
   val log = LoggerFactory.getLogger(this::class.java)
@@ -194,6 +197,15 @@ class UserService(
       )
 
       emptyList()
+    }
+  }
+
+  fun getCaseAccessByCrn(crn: String): AllCaseAccess = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
+    is ClientResult.Success -> response.body
+    is ClientResult.Failure -> {
+      val exception = response.toException()
+      log.error("Failed to retrieve LAO case access for CRN $crn: ${response.getErrorMessage()}", exception)
+      throw exception
     }
   }
 }

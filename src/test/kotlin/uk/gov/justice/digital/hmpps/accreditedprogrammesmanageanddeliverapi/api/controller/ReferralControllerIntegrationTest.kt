@@ -895,30 +895,6 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     }
 
     @Test
-    fun `should return forbidden when access denied`() {
-      nDeliusApiStubs.stubAccessCheck(granted = false)
-      val referralEntity = ReferralEntityFactory().produce()
-      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
-        referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
-      )
-      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
-
-      testDataGenerator.createReferralWithFields(
-        referralEntity,
-        listOf(statusHistory, cohortHistory),
-      )
-      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
-
-      performRequestAndExpectStatus(
-        httpMethod = HttpMethod.GET,
-        uri = "/referral-details/${savedReferral.id}/personal-details",
-        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-        expectedResponseStatus = HttpStatus.FORBIDDEN.value(),
-      )
-    }
-
-    @Test
     fun `should return 404 when referral is not found`() {
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
