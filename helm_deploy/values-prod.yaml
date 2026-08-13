@@ -22,7 +22,7 @@ generic-service:
     SPRINGDOC_SWAGGER_UI_ENABLED: "false"
     SPRINGDOC_API_DOCS_ENABLED: "false"
     REPORTING_ENABLED: "true"
-    LAO_ACCESS_CHECK_ENABLED: "false"
+    LAO_ACCESS_CHECK_ENABLED: "true"
     EXCLUSION_ACCESS_CHECK_ENABLED: "false"
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
