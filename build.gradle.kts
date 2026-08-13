@@ -60,7 +60,7 @@ dependencies {
   testImplementation("io.kotest:kotest-assertions-core:6.2.4")
   testImplementation("io.mockk:mockk:1.14.11")
   testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.8.0")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.4.3")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql:42.7.13")
