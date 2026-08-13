@@ -1,7 +1,7 @@
 app:
   features:
     lao-access-check-enabled: true
-    lao-view-restriction-enabled: true
+    exclusion-access-check-enabled: true
 
 spring:
   datasource:
