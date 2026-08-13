@@ -31,6 +31,7 @@ class ProgrammeGroupServiceTest {
   private val sessionService = mockk<SessionService>()
   private val moduleSessionTemplateRepository = mockk<ModuleSessionTemplateRepository>()
   private val probationAccessControlApiClient = mockk<ProbationAccessControlApiClient>()
+  private val limitedAccessResolverService = mockk<LimitedAccessResolverService>()
   private lateinit var service: ProgrammeGroupService
 
   @BeforeEach
@@ -48,6 +49,7 @@ class ProgrammeGroupServiceTest {
       sessionService,
       moduleSessionTemplateRepository,
       probationAccessControlApiClient,
+      limitedAccessResolverService,
       true,
     )
   }
