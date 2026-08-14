@@ -19,7 +19,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getReferralCaseListItemSpecification
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withAllowedCrns
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withCrns
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withRegionNames
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
 import java.time.OffsetDateTime
@@ -76,12 +76,12 @@ class ReferralCaseListItemService(
         .distinct()
         .associateWith(userService::getCaseAccessByCrn)
     }
+    val accessibleOffenders = userService.getAccessibleOffenders(username, referralsPage.content.map { it.crn })
 
     val referralCaseListItems = referralsPage.content
       .map { referral ->
         if (exclusionAccessCheckEnabled) {
-          val isExcluded = isExcludedByUsername(referral.crn, username, caseAccessByCrn)
-          referral.toApi(lao = isLao(referral.crn, caseAccessByCrn), isExcluded = isExcluded)
+          referral.toApi(lao = isLao(referral.crn, caseAccessByCrn), isExcluded = !accessibleOffenders.contains(referral.crn))
         } else {
           referral.toApi(lao = isLao(referral.crn, caseAccessByCrn))
         }
@@ -153,18 +153,7 @@ class ReferralCaseListItemService(
       return PageImpl(emptyList(), pageable, 0)
     }
 
-    // Batch LAO checks in chunks of 500 (hard API limit) across ALL CRNs
-    val allowedCRNsForUser = crns
-      .chunked(500)
-      .flatMap { userService.getAccessibleOffenders(username, it) }
-      .toSet()
-
-    if (allowedCRNsForUser.isEmpty()) {
-      log.warn("No CRNs are allowed for user: $username. Returning empty list for ReferralCaseList.")
-      return PageImpl(emptyList(), pageable, 0)
-    }
-
-    val restrictedSpec = withAllowedCrns(specWithRegions, allowedCRNsForUser)
+    val restrictedSpec = withCrns(specWithRegions, crns)
     val totalAllowedCount = referralCaseListItemRepository.count(restrictedSpec)
     val caseListReferrals = referralCaseListItemRepository.findAll(restrictedSpec, pageable)
 
@@ -178,12 +167,6 @@ class ReferralCaseListItemService(
 
     return caseAccess.restrictedTo.any { it.until == null || it.until > now } ||
       caseAccess.excludedFrom.any { it.until == null || it.until > now }
-  }
-
-  private fun isExcludedByUsername(crn: String, username: String, caseAccessByCrn: Map<String, AllCaseAccess>?): Boolean {
-    val now = OffsetDateTime.now()
-    val caseAccess = caseAccessByCrn?.get(crn) ?: return false
-    return caseAccess.excludedFrom.any { it.username == username && (it.until == null || it.until > now) }
   }
 
   fun getCaseListFilterData(userRegionNames: List<String>): CaseListFilterValues {

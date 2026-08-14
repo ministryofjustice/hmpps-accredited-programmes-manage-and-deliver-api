@@ -93,7 +93,7 @@ fun getReferralCaseListItemSpecification(
   criteriaBuilder.and(*predicates.toTypedArray())
 }
 
-fun withAllowedCrns(
+fun withCrns(
   baseSpec: Specification<ReferralCaseListItemViewEntity>,
   allowedCrns: Collection<String>,
 ): Specification<ReferralCaseListItemViewEntity> = Specification { root, query, builder ->
