@@ -6,7 +6,7 @@ import org.springframework.transaction.event.TransactionalEventListener
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralEventService
 
 /**
- * This listener ensures that we only publish our referral events AFTER we have commited a transaction
+ * This listener ensures that we only publish our referral events AFTER we have committed a transaction
  */
 @Component
 class ReferralEventListener(private val referralEventService: ReferralEventService) {

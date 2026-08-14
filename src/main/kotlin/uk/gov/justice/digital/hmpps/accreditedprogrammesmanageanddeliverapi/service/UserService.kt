@@ -131,6 +131,29 @@ class UserService(
     }
   }
 
+  fun getNonRestrictedOffenders(username: String, identifiers: List<String>): Set<String> = when (val result = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, identifiers)) {
+    is ClientResult.Success -> {
+      telemetryService.logToAppInsights(
+        eventName = "${GET_LIMITED_ACCESS_OFFENDER_N_DELIUS.eventName}.success",
+        integrationActionType = GET_LIMITED_ACCESS_OFFENDER_N_DELIUS.name,
+        outcome = "success",
+      )
+
+      result.body.access
+        .filter { !it.userRestricted }
+        .map { it.crn }
+        .toSet()
+    }
+    is ClientResult.Failure -> {
+      telemetryService.logToAppInsights(
+        eventName = "${GET_LIMITED_ACCESS_OFFENDER_N_DELIUS.eventName}.failure",
+        integrationActionType = GET_LIMITED_ACCESS_OFFENDER_N_DELIUS.name,
+        outcome = "failure",
+      )
+      result.throwException()
+    }
+  }
+
   fun getAccessibleOffenders(username: String, identifiers: List<String>): Set<String> = when (val result = nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(username, identifiers)) {
     is ClientResult.Success -> {
       telemetryService.logToAppInsights(
