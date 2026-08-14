@@ -154,10 +154,18 @@ class ReferralCaseListItemService(
     }
 
     // Batch LAO checks in chunks of 500 (hard API limit) across ALL CRNs
-    val allowedCRNsForUser = crns
-      .chunked(500)
-      .flatMap { userService.getAccessibleOffenders(username, it) }
-      .toSet()
+    var allowedCRNsForUser: Set<String> = emptySet()
+    if (exclusionAccessCheckEnabled) {
+      allowedCRNsForUser = crns
+        .chunked(500)
+        .flatMap { userService.getNonRestrictedOffenders(username, it) }
+        .toSet()
+    } else {
+      allowedCRNsForUser = crns
+        .chunked(500)
+        .flatMap { userService.getAccessibleOffenders(username, it) }
+        .toSet()
+    }
 
     if (allowedCRNsForUser.isEmpty()) {
       log.warn("No CRNs are allowed for user: $username. Returning empty list for ReferralCaseList.")
