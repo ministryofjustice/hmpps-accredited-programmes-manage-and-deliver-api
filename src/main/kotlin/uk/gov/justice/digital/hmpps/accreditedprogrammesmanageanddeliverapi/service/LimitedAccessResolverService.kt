@@ -30,12 +30,14 @@ class LimitedAccessResolverService(
       distinctCrns.toSet()
     }
 
-    return distinctCrns.associateWith { crn ->
-      Access(
-        lao = laoByCrn[crn] ?: false,
-        isExcluded = crn !in accessibleCrns,
-      )
-    }
+    return distinctCrns
+      .associateWith { crn ->
+        Access(
+          lao = laoByCrn[crn] ?: false,
+          isExcluded = crn !in accessibleCrns,
+        )
+      }
+      .let { accessByCrn -> if (restrictionEnabled) accessByCrn else accessByCrn.filterValues { !it.isExcluded } }
   }
 
   fun isLimitedAccessOffender(crn: String): Boolean = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {

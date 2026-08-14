@@ -71,7 +71,7 @@ class LimitedAccessResolverServiceTest {
 
     assertThat(result[ordinaryCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = false, isExcluded = false))
     assertThat(result[laoAuthorisedCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = true, isExcluded = false))
-    assertThat(result[laoRestrictedCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = true, isExcluded = true))
+    assertThat(result).doesNotContainKey(laoRestrictedCrn)
 
     verify(exactly = 1) { userService.getAccessibleOffenders(username, any()) }
   }
