@@ -80,6 +80,25 @@ class NDeliusApiStubs {
     )
   }
 
+  fun stubAccessCheckReturnsNoData(username: String = "AUTH_ADM") {
+    wiremock.stubFor(
+      post(urlPathTemplate("/user/$username/access"))
+        .withRequestBody(equalToJson("[]"))
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(
+              objectMapper.writeValueAsString(
+                LimitedAccessOffenderCheckResponse(
+                  access = emptyList(),
+                ),
+              ),
+            ),
+        ),
+    )
+  }
+
   fun stubAccessCheckMixed(
     grantedCrns: List<String> = emptyList(),
     excludedCrns: List<String> = emptyList(),
