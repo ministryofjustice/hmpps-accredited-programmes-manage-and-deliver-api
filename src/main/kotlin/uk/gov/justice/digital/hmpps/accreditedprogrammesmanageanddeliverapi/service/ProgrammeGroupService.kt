@@ -15,6 +15,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupDetailsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverview
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverviewSession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
@@ -26,6 +27,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponseGroupModule
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponseGroupSession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleIndividualSessionDetailsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.StartDateText
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupResponse
@@ -40,10 +42,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.ProgrammeGroupSexEnum
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.ProbationAccessControlApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
@@ -64,6 +65,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsByRegionTabSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeOfSession
@@ -87,10 +89,13 @@ class ProgrammeGroupService(
   private val sessionNameFormatter: SessionNameFormatter,
   private val sessionService: SessionService,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
-  private val probationAccessControlApiClient: ProbationAccessControlApiClient,
   private val limitedAccessResolverService: LimitedAccessResolverService,
   @Value("\${app.features.lao-access-check-enabled}")
   private val laoAccessCheckEnabled: Boolean,
+  private val moduleRepository: ModuleRepository,
+  private val authenticationUtils: AuthenticationUtils,
+  private val regionService: RegionService,
+  private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
 ) {
   val log = LoggerFactory.getLogger(this::class.java)
 
@@ -248,6 +253,45 @@ class ProgrammeGroupService(
     return UpdateGroupResponse(successMessage = successMessage)
   }
 
+  fun getScheduleIndividualSessionInfo(groupId: UUID, moduleId: UUID): ScheduleIndividualSessionDetailsResponse {
+    programmeGroupRepository.findByIdOrNull(groupId)
+      ?: throw NotFoundException("Group with id $groupId not found")
+
+    moduleRepository.findByIdOrNull(moduleId)
+      ?: throw NotFoundException("Module with id $moduleId not found")
+
+    val suggestedDate = scheduleService.getNextSlotDate(groupId, moduleId)
+
+    val username = authenticationUtils.getUsername()
+    val userRegion = userService.getUserRegions(username).firstOrNull()
+      ?: throw NotFoundException("Region for username $username not found")
+    val facilitators = regionService.getTeamMembersForPdu(userRegion.code)
+    val memberships = programmeGroupMembershipService.getActiveGroupMemberships(groupId)
+    val groupMembers = memberships.map { membership ->
+      GroupMember(
+        name = membership.referral.personName,
+        crn = membership.referral.crn,
+        referralId = membership.referral.id!!,
+      )
+    }
+
+    if (laoAccessCheckEnabled) {
+      val caseReferenceNumbers = groupMembers.map { groupMember -> groupMember.crn }.toList()
+      val usernameAccessMap = limitedAccessResolverService.resolve(username, caseReferenceNumbers)
+      groupMembers.forEach { groupMember ->
+        val access = usernameAccessMap[groupMember.crn]
+        groupMember.isLimitedAccessOffender = access?.lao
+        groupMember.isExcluded = access?.isExcluded
+      }
+    }
+
+    return ScheduleIndividualSessionDetailsResponse(
+      facilitators = facilitators,
+      groupMembers = groupMembers,
+      suggestedDate = suggestedDate,
+    )
+  }
+
   private fun updateFutureSessionFacilitatorsForGroup(programmeGroup: ProgrammeGroupEntity) {
     val futureSessions = sessionRepository.findByProgrammeGroupId(programmeGroup.id!!)
       .filter { it.startsAt.isAfter(LocalDateTime.now()) }
@@ -350,10 +394,9 @@ class ProgrammeGroupService(
     groupId: UUID,
     sex: String?,
     cohort: ProgrammeGroupCohort?,
-    nameOrCRN: String?,
+    nameOrCrn: String?,
     pdus: List<String>?,
     reportingTeams: List<String>?,
-    username: String,
   ): ProgrammeGroupAllocations {
     // Verify the group exists first
     val group = programmeGroupRepository.findByIdOrNull(groupId)
@@ -368,7 +411,7 @@ class ProgrammeGroupService(
         groupId,
         sex,
         cohort,
-        nameOrCRN,
+        nameOrCrn,
         pdus,
         reportingTeams,
         groupRegionName,
@@ -380,7 +423,7 @@ class ProgrammeGroupService(
         groupId,
         sex,
         cohort,
-        nameOrCRN,
+        nameOrCrn,
         pdus,
         reportingTeams,
         groupRegionName,
@@ -391,7 +434,8 @@ class ProgrammeGroupService(
     // Fetch LAO status for all distinct CRNs
     var laoByCrn: Map<String, Boolean>? = null
     if (laoAccessCheckEnabled) {
-      laoByCrn = pagedData.content.map { it.crn }.distinct().associateWith { getLaoByCrn(it) }
+      laoByCrn = pagedData.content.map { it.crn }.distinct()
+        .associateWith { limitedAccessResolverService.isLimitedAccessOffender(it) }
     }
 
     val groupListDataToReturn: Page<GroupItem> = pagedData.map { it.toApi(laoByCrn?.get(it.crn) ?: false) }
@@ -793,10 +837,5 @@ class ProgrammeGroupService(
     UAAB -> "Did not attend"
     null -> "To be confirmed"
     else -> attendanceOutcome.description!!
-  }
-
-  private fun getLaoByCrn(crn: String): Boolean = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
-    is ClientResult.Success -> response.body.excludedFrom.isNotEmpty() || response.body.restrictedTo.isNotEmpty()
-    is ClientResult.Failure -> false
   }
 }

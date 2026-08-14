@@ -9,9 +9,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -33,7 +33,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupDetailsResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverview
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
@@ -56,9 +55,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageByRegionTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RegionService
@@ -82,12 +78,11 @@ class ProgrammeGroupController(
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
   private val userService: UserService,
   private val regionService: RegionService,
-  private val moduleRepository: ModuleRepository,
-  private val programmeGroupRepository: ProgrammeGroupRepository,
   private val templateService: TemplateService,
   private val scheduleService: ScheduleService,
   private val authenticationUtils: AuthenticationUtils,
 ) {
+  private val log = LoggerFactory.getLogger(this::class.java)
 
   @Operation(
     tags = ["Programme Group controller"],
@@ -145,8 +140,6 @@ class ProgrammeGroupController(
     // for an explanation of the flow of data and expected behaviour.
     val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
 
-    val username = authenticationUtils.getUsername()
-
     // Handle non-alpha characters in the PDU or delivery location, such as ','
     val pdusDecoded = requestParams["pdu"]
       ?.takeIf { it.isNotEmpty() }
@@ -165,7 +158,6 @@ class ProgrammeGroupController(
       nameOrCRN,
       pdusDecoded,
       reportingTeamsDecoded,
-      username,
     )
 
     return ResponseEntity.ok(programmeDetails)
@@ -711,35 +703,11 @@ class ProgrammeGroupController(
     @PathVariable @Parameter(description = "The UUID of the Programme Group", required = true) groupId: UUID,
     @PathVariable @Parameter(description = "The UUID of the Module", required = true) moduleId: UUID,
   ): ResponseEntity<ScheduleIndividualSessionDetailsResponse> {
-    programmeGroupRepository.findByIdOrNull(groupId)
-      ?: throw NotFoundException("Group with id $groupId not found")
+    log.info("START Getting schedule individual session details for group: $groupId and module: $moduleId")
+    val response = programmeGroupService.getScheduleIndividualSessionInfo(groupId, moduleId)
+    log.info("END Getting schedule individual session details for group: $groupId and module: $moduleId")
 
-    moduleRepository.findByIdOrNull(moduleId)
-      ?: throw NotFoundException("Module with id $moduleId not found")
-
-    val suggestedDate = scheduleService.getNextSlotDate(groupId, moduleId)
-
-    val username = authenticationUtils.getUsername()
-    val userRegion = userService.getUserRegions(username).firstOrNull()
-      ?: throw NotFoundException("Region for username $username not found")
-    val facilitators = regionService.getTeamMembersForPdu(userRegion.code)
-
-    val memberships = programmeGroupMembershipService.getActiveGroupMemberships(groupId)
-    val groupMembers = memberships.map { membership ->
-      GroupMember(
-        name = membership.referral.personName,
-        crn = membership.referral.crn,
-        referralId = membership.referral.id!!,
-      )
-    }
-
-    return ResponseEntity.ok(
-      ScheduleIndividualSessionDetailsResponse(
-        facilitators = facilitators,
-        groupMembers = groupMembers,
-        suggestedDate = suggestedDate,
-      ),
-    )
+    return ResponseEntity.ok(response)
   }
 
   @Operation(

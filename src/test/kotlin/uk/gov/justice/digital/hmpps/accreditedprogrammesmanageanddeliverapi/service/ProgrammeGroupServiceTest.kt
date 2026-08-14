@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.ProbationAccessControlApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AccreditedProgrammeTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
@@ -16,6 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 
 class ProgrammeGroupServiceTest {
@@ -30,7 +31,10 @@ class ProgrammeGroupServiceTest {
   private val sessionNameFormatter = mockk<SessionNameFormatter>()
   private val sessionService = mockk<SessionService>()
   private val moduleSessionTemplateRepository = mockk<ModuleSessionTemplateRepository>()
-  private val probationAccessControlApiClient = mockk<ProbationAccessControlApiClient>()
+  private val moduleRepository = mockk<ModuleRepository>()
+  private val authenticationUtils = mockk<AuthenticationUtils>()
+  private val regionService = mockk<RegionService>()
+  private val programmeGroupMembershipService = mockk<ProgrammeGroupMembershipService>()
   private val limitedAccessResolverService = mockk<LimitedAccessResolverService>()
   private lateinit var service: ProgrammeGroupService
 
@@ -48,9 +52,12 @@ class ProgrammeGroupServiceTest {
       sessionNameFormatter,
       sessionService,
       moduleSessionTemplateRepository,
-      probationAccessControlApiClient,
       limitedAccessResolverService,
       true,
+      moduleRepository,
+      authenticationUtils,
+      regionService,
+      programmeGroupMembershipService,
     )
   }
 

@@ -83,6 +83,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceNDeliusOutcomeEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.NDeliusApiProbationDeliveryUnitWithOfficeLocationsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
@@ -171,6 +172,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         ),
       ),
     )
+    manageUsersApiStubs.stubUserResponse(UserDtoFactory().withName("John Smith").produce())
   }
 
   private fun initialiseReferrals() {
@@ -3462,6 +3464,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `returns 200 with facilitators and group members for valid group and module`() {
+      // Given
       initialiseReferrals()
       // Setup nDelius stubs for facilitators
       val members = listOf(
@@ -3506,14 +3509,25 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Get a module from the group's template
       val module = buildingChoicesTemplate.modules.first()
 
-      // Make the request
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = referral1.crn,
+        restrictedTo = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange()),
+        excludedFrom = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange()),
+      )
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = referral2.crn,
+        restrictedTo = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange()),
+        excludedFrom = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange()),
+      )
+
+      // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/bff/group/${group.id}/module/${module.id}/schedule-individual-session-details",
         returnType = object : ParameterizedTypeReference<ScheduleIndividualSessionDetailsResponse>() {},
       )
 
-      // Assertions
+      // Then
       assertThat(response.facilitators).hasSize(2)
       assertThat(response.facilitators.map { it.personCode }).containsExactlyInAnyOrder("CODE_1", "CODE_2")
 
@@ -3529,6 +3543,16 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.groupMembers.map { it.referralId }).containsExactlyInAnyOrder(
         referral1.id,
         referral2.id,
+      )
+
+      assertThat(response.groupMembers.map { it.isLimitedAccessOffender }).containsExactlyInAnyOrder(
+        true,
+        true,
+      )
+
+      assertThat(response.groupMembers.map { it.isExcluded }).containsExactlyInAnyOrder(
+        true,
+        true,
       )
     }
 
