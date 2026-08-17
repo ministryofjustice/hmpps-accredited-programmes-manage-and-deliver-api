@@ -69,10 +69,10 @@ data class EditSessionAttendeesResponse(
     val currentlyAttending: Boolean,
 
     @get:Schema(description = "The boolean value of whether the group member has Limited Access Offender (LAO) status")
-    var isLimitedAccessOffender: Boolean? = false,
+    var isLimitedAccessOffender: Boolean? = null,
 
     @get:Schema(description = "The boolean value of whether the group member details are excluded from viewing by the logged-in username")
-    var isExcluded: Boolean? = false,
+    var isExcluded: Boolean? = null,
   )
 }
 
