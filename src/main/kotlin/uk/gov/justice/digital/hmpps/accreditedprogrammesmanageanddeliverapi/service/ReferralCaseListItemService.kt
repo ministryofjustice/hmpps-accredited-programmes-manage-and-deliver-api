@@ -87,14 +87,22 @@ class ReferralCaseListItemService(
         }
       }
 
+    val referralsToReturnContent = if (exclusionAccessCheckEnabled) {
+      referralCaseListItems.sortedBy { it.isExcluded }
+    } else {
+      referralCaseListItems.filter { accessibleOffenders.contains(it.crn) }
+    }
+
+    val referralsToReturnTotal = if (exclusionAccessCheckEnabled) {
+      referralsPage.totalElements
+    } else {
+      referralsToReturnContent.size.toLong()
+    }
+
     val referralsToReturn = PageImpl(
-      if (exclusionAccessCheckEnabled) {
-        referralCaseListItems.sortedBy { it.isExcluded }
-      } else {
-        referralCaseListItems
-      },
+      referralsToReturnContent,
       referralsPage.pageable,
-      referralsPage.totalElements,
+      referralsToReturnTotal,
     )
 
     val otherTabCount = getReferralCaseList(
