@@ -392,11 +392,12 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getCaseListItems for OPEN referrals marks referral as excluded when username is in excluded list`() {
+    fun `getCaseListItems for OPEN referrals marks referral as excluded when user is in either in excluded or restricted list`() {
       // Given
-      probationAccessControlApiStubs.stubCaseAccessByCrn(
-        crn = "CRN-999999",
-        excludedFrom = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange()),
+      nDeliusApiStubs.stubAccessCheckMixed(
+        grantedCrns = listOf("CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555"),
+        restrictedCrns = listOf("CRN-999999"),
+        excludedCrns = listOf("X7182552"),
       )
 
       // When
@@ -408,10 +409,11 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response.pagedReferrals.totalElements).isEqualTo(6)
-      assertThat(response.pagedReferrals.content.filter { it.isExcluded == true }).hasSize(1)
-      assertThat(response.pagedReferrals.content.single { it.isExcluded == true }.crn).isEqualTo("CRN-999999")
-      // Verify that the last item in the list is the excluded one
-      assertThat(response.pagedReferrals.content.last().isExcluded).isTrue
+      assertThat(response.pagedReferrals.content.filter { it.isExcluded == true }).hasSize(2)
+      assertThat(response.pagedReferrals.content.filter { it.isExcluded == true }.map { it.crn }).containsExactlyInAnyOrder("CRN-999999", "X7182552")
+      // Verify that the last 2 items in the list are the excluded referrals
+      assertThat(response.pagedReferrals.content[4].isExcluded).isTrue
+      assertThat(response.pagedReferrals.content[5].isExcluded).isTrue
     }
 
     @Test
@@ -727,6 +729,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `getCaseListItems returns no results when cohort with LDC is used and no records exist`() {
       // Given and When
+      nDeliusApiStubs.stubAccessCheckReturnsNoData("AUTH_ADM")
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
         "/pages/caselist/open?cohort=General offence LDC",
@@ -1284,6 +1287,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       // the DB value "Breach (non-attendance)", so otherTabTotal was always 0.
       seedBreachReferral()
 
+      nDeliusApiStubs.stubAccessCheckReturnsNoData()
       // When: user is on the CLOSED tab filtering by Breach
       val response = performRequestAndExpectOk(
         HttpMethod.GET,

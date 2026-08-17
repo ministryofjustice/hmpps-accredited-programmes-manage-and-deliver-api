@@ -275,19 +275,17 @@ class ProgrammeGroupService(
       )
     }
 
-    if (laoAccessCheckEnabled) {
-      val caseReferenceNumbers = groupMembers.map { groupMember -> groupMember.crn }.toList()
-      val usernameAccessMap = limitedAccessResolverService.resolve(username, caseReferenceNumbers)
-      groupMembers.forEach { groupMember ->
-        val access = usernameAccessMap[groupMember.crn]
-        groupMember.isLimitedAccessOffender = access?.lao
-        groupMember.isExcluded = access?.isExcluded
-      }
+    val accessByCrn = limitedAccessResolverService.resolve(username, groupMembers.map { it.crn })
+    val accessGrantedMembers = groupMembers.filter { it.crn in accessByCrn }
+    accessGrantedMembers.forEach { groupMember ->
+      val access = accessByCrn[groupMember.crn]
+      groupMember.isLimitedAccessOffender = access?.lao
+      groupMember.isExcluded = access?.isExcluded
     }
 
     return ScheduleIndividualSessionDetailsResponse(
       facilitators = facilitators,
-      groupMembers = groupMembers,
+      groupMembers = accessGrantedMembers,
       suggestedDate = suggestedDate,
     )
   }
@@ -792,10 +790,10 @@ class ProgrammeGroupService(
     val session = sessionRepository.findByIdOrNull(sessionId)
       ?: throw NotFoundException("Session with $sessionId not found")
 
-    val distinctCrns = session.attendees.map { it.referral.crn }.distinct()
-    val accessByCrn = limitedAccessResolverService.resolve(username, distinctCrns)
+    val accessByCrn = limitedAccessResolverService.resolve(username, session.attendees.map { it.referral.crn })
+    val accessGrantedAttendees = session.attendees.filter { it.referral.crn in accessByCrn }
 
-    val attendanceAndSessionNotes = session.attendees.map { attendee ->
+    val attendanceAndSessionNotes = accessGrantedAttendees.map { attendee ->
       val attendanceRecord = session.attendances
         .filter { it.groupMembership.referral.id == attendee.referralId }
         .sortedWith(compareByDescending<SessionAttendanceEntity> { it.createdAt }.thenByDescending { it.id })
@@ -826,7 +824,7 @@ class ProgrammeGroupService(
         capitaliseMidday = true,
       ),
       unformattedEndDate = session.endsAt,
-      scheduledToAttend = session.attendees.map { it.personName },
+      scheduledToAttend = accessGrantedAttendees.map { it.personName },
       facilitators = session.sessionFacilitators.sortedBy { it.facilitator.personName }
         .map { it.facilitator.personName },
       attendanceAndSessionNotes = attendanceAndSessionNotes,
