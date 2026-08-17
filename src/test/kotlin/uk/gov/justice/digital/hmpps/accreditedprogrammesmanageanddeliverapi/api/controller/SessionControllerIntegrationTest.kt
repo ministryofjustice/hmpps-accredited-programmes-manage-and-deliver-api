@@ -127,6 +127,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }
       nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
       val sessionId = sessionEntity!!.id!!
+      nDeliusApiStubs.stubAccessCheck(true, referral.crn)
 
       // When
       val response = performRequestAndExpectOk(
@@ -148,6 +149,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.referrals[0].crn).isEqualTo(sessionEntity.attendees[0].referral.crn)
       assertThat(response.referrals[0].createdAt).isNotNull()
       assertThat(response.referrals[0].status).isNotNull()
+      assertThat(response.referrals[0].isExcluded).isFalse
+      assertThat(response.referrals[0].isLimitedAccessOffender).isFalse
       assertThat(response.isCatchup).isEqualTo(sessionEntity.isCatchup)
     }
 
@@ -1373,9 +1376,12 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return list of attendees for session`() {
       // Given
+      stubAuthTokenEndpoint()
       // Assign both referrals to a group but only add one attendee on the session
       testDataGenerator.allocateReferralsToGroup(listOf(referral1, referral2), group)
       testDataGenerator.createAttendee(referral1, session)
+      nDeliusApiStubs.stubAccessCheck(true, referral1.crn, referral2.crn)
+
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
@@ -1387,6 +1393,10 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).isNotNull
       assertThat(response.attendees).isNotEmpty
       assertThat(response.attendees).extracting<Boolean> { it.currentlyAttending }.containsOnlyOnce(true)
+      assertThat(response.attendees[0].isExcluded).isFalse
+      assertThat(response.attendees[0].isLimitedAccessOffender).isFalse
+      assertThat(response.attendees[1].isExcluded).isFalse
+      assertThat(response.attendees[1].isLimitedAccessOffender).isFalse
     }
 
     @Test
@@ -2683,7 +2693,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       val unrelatedReferralId = UUID.randomUUID()
 
       // When
-      val exception = performRequestAndExpectStatusWithBody(
+      performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.GET,
         uri = "/bff/session/${session.id}/referral/$unrelatedReferralId/session-notes",
         returnType = object : ParameterizedTypeReference<ErrorResponse>() {},

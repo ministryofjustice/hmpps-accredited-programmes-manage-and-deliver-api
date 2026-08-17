@@ -7,7 +7,7 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 data class Referral(
-  @Schema(
+  @get:Schema(
     example = "c98151f4-4081-4c65-9f98-54e63a328c8d",
     required = true,
     description = "The unique id of this referral.",
@@ -15,7 +15,7 @@ data class Referral(
   @get:JsonProperty("id", required = true)
   val id: UUID,
 
-  @Schema(
+  @get:Schema(
     example = "John Doe",
     required = true,
     description = "The name of the person associated with this referral.",
@@ -23,7 +23,7 @@ data class Referral(
   @get:JsonProperty("personName", required = true)
   val personName: String,
 
-  @Schema(
+  @get:Schema(
     example = "X12345",
     required = true,
     description = "The CRN identifier of the person associated with this referral.",
@@ -31,7 +31,7 @@ data class Referral(
   @get:JsonProperty("crn", required = true)
   val crn: String,
 
-  @Schema(
+  @get:Schema(
     example = "2025-07-09T10:15:30",
     required = true,
     description = "The date and time that this referral was created.",
@@ -39,7 +39,7 @@ data class Referral(
   @get:JsonProperty("createdAt", required = true)
   val createdAt: LocalDateTime,
 
-  @Schema(
+  @get:Schema(
     example = "Created",
     required = true,
     description = "The current referral status.",
@@ -47,20 +47,28 @@ data class Referral(
   @get:JsonProperty("status", required = true)
   val status: String,
 
-  @Schema(
+  @get:Schema(
     example = "Cohort",
     required = true,
     description = "The current cohort of a referral",
   )
   @get:JsonProperty("cohort", required = true)
   var cohort: OffenceCohort,
+
+  @get:Schema(description = "The boolean value of whether the group member has Limited Access Offender (LAO) status")
+  var isLimitedAccessOffender: Boolean? = false,
+
+  @get:Schema(description = "The boolean value of whether the group member details are excluded from viewing by the logged-in username")
+  var isExcluded: Boolean? = false,
 )
 
-fun ReferralEntity.toApi() = Referral(
+fun ReferralEntity.toApi(isLimitedAccessOffender: Boolean? = false, isExcluded: Boolean? = false) = Referral(
   id = id!!,
   personName = personName,
   crn = crn,
   createdAt = createdAt,
   status = statusHistories.maxByOrNull { it.createdAt }?.referralStatusDescription?.description ?: "Unknown",
   cohort = referralCohortHistories.maxByOrNull { it.createdAt }?.cohort ?: OffenceCohort.GENERAL_OFFENCE,
+  isLimitedAccessOffender = isLimitedAccessOffender,
+  isExcluded = isExcluded,
 )

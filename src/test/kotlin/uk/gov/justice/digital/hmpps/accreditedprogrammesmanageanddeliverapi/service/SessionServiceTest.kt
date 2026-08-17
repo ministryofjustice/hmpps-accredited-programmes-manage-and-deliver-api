@@ -75,6 +75,7 @@ class SessionServiceTest {
   private val referralStatusService = mockk<ReferralStatusService>()
   private val telemetryService = mockk<TelemetryService>()
   private val authenticationUtils = mockk<AuthenticationUtils>()
+  private val limitedAccessResolverService = mockk<LimitedAccessResolverService>()
   private val userService = mockk<UserService>()
   private val fixedClock = Clock.fixed(Instant.now(), ZoneId.systemDefault())
   private val regionService = mockk<RegionService>()
@@ -99,6 +100,8 @@ class SessionServiceTest {
         userService,
         regionService,
         fixedClock,
+        limitedAccessResolverService,
+        true,
       )
 
     sessionAttendanceTypeEntities =

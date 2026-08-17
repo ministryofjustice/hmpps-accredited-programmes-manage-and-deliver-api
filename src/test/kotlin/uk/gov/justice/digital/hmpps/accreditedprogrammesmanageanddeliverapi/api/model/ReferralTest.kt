@@ -39,7 +39,7 @@ internal class ReferralTest {
     referralEntity.referralCohortHistories.add(cohortHistoryEntry)
 
     // Act
-    val referral = referralEntity.toApi()
+    val referral = referralEntity.toApi(null, null)
 
     // Assert
     assertEquals(id, referral.id)
@@ -79,7 +79,7 @@ internal class ReferralTest {
     referralEntity.referralCohortHistories.add(cohortHistoryEntry)
 
     // Act
-    val referral = referralEntity.toApi()
+    val referral = referralEntity.toApi(null, null)
 
     // Assert
     assertEquals(id, referral.id)
