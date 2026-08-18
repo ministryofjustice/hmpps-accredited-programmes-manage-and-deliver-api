@@ -105,4 +105,10 @@ data class AttendanceHistorySession(
     example = "true",
   )
   val isCatchup: Boolean,
+
+  @Schema(
+    description = "Whether the session is for a limited access offender (LAO)",
+    example = "false",
+  )
+  val isLAO: Boolean,
 )

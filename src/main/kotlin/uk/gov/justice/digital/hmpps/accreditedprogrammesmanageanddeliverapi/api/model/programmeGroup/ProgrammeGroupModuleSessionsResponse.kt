@@ -70,6 +70,9 @@ data class ProgrammeGroupModuleSessionsResponseGroupSession(
   @Schema(description = "Whether the session is a catch-up session", required = true, example = "false")
   val isCatchup: Boolean,
 
+  @Schema(description = "Whether the session is for a limited access offender (LAO)", required = true, example = "false")
+  val isLAO: Boolean,
+
   @Schema(description = "The date of the session", required = true, example = "Thursday 12 January 2023")
   @JsonFormat(pattern = "EEEE d MMMM yyyy")
   val dateOfSession: LocalDate,

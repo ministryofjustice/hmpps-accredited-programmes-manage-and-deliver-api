@@ -47,6 +47,10 @@ class SessionEntity(
   @Column(name = "is_catchup")
   var isCatchup: Boolean = false,
 
+  @NotNull
+  @Column(name = "is_lao")
+  var isLAO: Boolean = false,
+
   @Column(name = "location_name")
   var locationName: String? = null,
 

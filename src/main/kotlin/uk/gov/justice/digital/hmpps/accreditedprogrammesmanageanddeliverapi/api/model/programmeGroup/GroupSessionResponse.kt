@@ -32,6 +32,12 @@ data class GroupSessionResponse(
   )
   val isCatchup: Boolean,
 
+  @Schema(
+    description = "Whether the session is for a limited access offender (LAO)",
+    example = "false",
+  )
+  val isLAO: Boolean,
+
   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
   @Schema(
     description = "The unformatted end date and time of the session for sorting",
