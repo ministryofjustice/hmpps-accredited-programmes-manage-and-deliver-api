@@ -87,22 +87,14 @@ class ReferralCaseListItemService(
         }
       }
 
-    val referralsToReturnContent = if (exclusionAccessCheckEnabled) {
-      referralCaseListItems.sortedBy { it.isExcluded }
-    } else {
-      referralCaseListItems.filter { accessibleOffenders.contains(it.crn) }
-    }
-
-    val referralsToReturnTotal = if (exclusionAccessCheckEnabled) {
-      referralsPage.totalElements
-    } else {
-      referralsToReturnContent.size.toLong()
-    }
-
     val referralsToReturn = PageImpl(
-      referralsToReturnContent,
+      if (exclusionAccessCheckEnabled) {
+        referralCaseListItems.sortedBy { it.isExcluded }
+      } else {
+        referralCaseListItems
+      },
       referralsPage.pageable,
-      referralsToReturnTotal,
+      referralsPage.totalElements,
     )
 
     val otherTabCount = getReferralCaseList(
@@ -156,12 +148,21 @@ class ReferralCaseListItemService(
     }
     val crns = referralCaseListItemRepository.findAllCrns(specWithRegions)
 
-    if (crns.isEmpty()) {
+    val allowedCRNsForUser = if (!exclusionAccessCheckEnabled) {
+      crns
+        .chunked(500)
+        .flatMap { userService.getAccessibleOffenders(username, it) }
+        .toSet()
+    } else {
+      crns.toSet()
+    }
+
+    if (allowedCRNsForUser.isEmpty()) {
       log.warn("No CRNs found for user: $username. Returning empty list for ReferralCaseList.")
       return PageImpl(emptyList(), pageable, 0)
     }
 
-    val restrictedSpec = withCrns(specWithRegions, crns)
+    val restrictedSpec = withCrns(specWithRegions, allowedCRNsForUser)
     val totalAllowedCount = referralCaseListItemRepository.count(restrictedSpec)
     val caseListReferrals = referralCaseListItemRepository.findAll(restrictedSpec, pageable)
 
