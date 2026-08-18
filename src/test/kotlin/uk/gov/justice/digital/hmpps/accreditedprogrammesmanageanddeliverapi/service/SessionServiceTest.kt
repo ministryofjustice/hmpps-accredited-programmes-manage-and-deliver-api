@@ -53,6 +53,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.LimitedAccessResolverService.Access
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.Clock
@@ -75,6 +76,7 @@ class SessionServiceTest {
   private val referralStatusService = mockk<ReferralStatusService>()
   private val telemetryService = mockk<TelemetryService>()
   private val authenticationUtils = mockk<AuthenticationUtils>()
+  private val limitedAccessResolverService = mockk<LimitedAccessResolverService>()
   private val userService = mockk<UserService>()
   private val fixedClock = Clock.fixed(Instant.now(), ZoneId.systemDefault())
   private val regionService = mockk<RegionService>()
@@ -99,6 +101,8 @@ class SessionServiceTest {
         userService,
         regionService,
         fixedClock,
+        limitedAccessResolverService,
+        true,
       )
 
     sessionAttendanceTypeEntities =
@@ -2019,6 +2023,186 @@ class SessionServiceTest {
     }
   }
 
+  @Test
+  fun `should get a session with limited access offender check enabled`() {
+    // Given
+    val username = "user1"
+    val personName = "John Smith"
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName(personName).produce()
+    val caseReferenceNumber = referralEntity.crn
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Getting started")
+    val accessMap = mapOf(caseReferenceNumber to Access(lao = true, isExcluded = true))
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every { authenticationUtils.getUsername() } returns username
+    every { limitedAccessResolverService.resolve(any(), any()) } returns accessMap
+
+    // When
+    val result = service.getSession(sessionEntity.id!!)
+
+    // Then
+    assertThat(result).isNotNull()
+    assertThat(result.id).isEqualTo(sessionEntity.id!!)
+    assertThat(result.type).isEqualToIgnoringCase(sessionEntity.sessionType.toString())
+    assertThat(result.name).isEqualTo(sessionEntity.sessionName)
+    assertThat(result.number).isEqualTo(sessionEntity.sessionNumber)
+    assertThat(result.isCatchup).isEqualTo(sessionEntity.isCatchup)
+    assertThat(result.pageTitle).isEqualTo("Delete Getting started 1")
+    assertThat(result.referrals).hasSize(1)
+    assertThat(result.referrals.first().personName).isEqualTo(personName)
+    assertThat(result.referrals.first().isExcluded).isTrue()
+    assertThat(result.referrals.first().isLimitedAccessOffender).isTrue()
+
+    verify(exactly = 1) { sessionRepository.findById(sessionEntity.id!!) }
+    verify(exactly = 1) { authenticationUtils.getUsername() }
+    verify(exactly = 1) { limitedAccessResolverService.resolve(username, listOf(caseReferenceNumber)) }
+  }
+
+  @Test
+  fun `should get a session with limited access offender check disabled`() {
+    // Given
+    service = SessionService(
+      sessionRepository,
+      scheduleService,
+      programmeGroupMembershipRepository,
+      facilitatorService,
+      referralRepository,
+      nDeliusIntegrationApiClient,
+      sessionAttendanceOutcomeTypeRepository,
+      sessionNameFormatter,
+      referralStatusService,
+      telemetryService,
+      authenticationUtils,
+      userService,
+      regionService,
+      fixedClock,
+      limitedAccessResolverService,
+      false,
+    )
+    val username = "user1"
+    val personName = "John Smith"
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName(personName).produce()
+    val caseReferenceNumber = referralEntity.crn
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Getting started")
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+
+    // When
+    val result = service.getSession(sessionEntity.id!!)
+
+    // Then
+    assertThat(result).isNotNull()
+    assertThat(result.id).isEqualTo(sessionEntity.id!!)
+    assertThat(result.type).isEqualToIgnoringCase(sessionEntity.sessionType.toString())
+    assertThat(result.name).isEqualTo(sessionEntity.sessionName)
+    assertThat(result.number).isEqualTo(sessionEntity.sessionNumber)
+    assertThat(result.isCatchup).isEqualTo(sessionEntity.isCatchup)
+    assertThat(result.pageTitle).isEqualTo("Delete Getting started 1")
+    assertThat(result.referrals).hasSize(1)
+    assertThat(result.referrals.first().personName).isEqualTo(personName)
+    assertThat(result.referrals.first().isExcluded).isNull()
+    assertThat(result.referrals.first().isLimitedAccessOffender).isNull()
+
+    verify(exactly = 1) { sessionRepository.findById(sessionEntity.id!!) }
+    verify(exactly = 0) { authenticationUtils.getUsername() }
+    verify(exactly = 0) { limitedAccessResolverService.resolve(username, listOf(caseReferenceNumber)) }
+  }
+
+  @Test
+  fun `should get a session attendees with limited access offender check enabled`() {
+    // Given
+    val username = "user1"
+    val personName = "John Smith"
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName(personName).produce()
+    val caseReferenceNumber = referralEntity.crn
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Getting started")
+    val accessMap = mapOf(caseReferenceNumber to Access(lao = true, isExcluded = true))
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every { programmeGroupMembershipRepository.findAllActiveByProgrammeGroupId(any()) } returns listOf(
+      programmeGroupMembershipEntity,
+    )
+    every { authenticationUtils.getUsername() } returns username
+    every { limitedAccessResolverService.resolve(any(), any()) } returns accessMap
+
+    // When
+    val result = service.getSessionAttendees(sessionEntity.id!!)
+
+    // Then
+    assertThat(result).isNotNull()
+    assertThat(result.sessionId).isEqualTo(sessionEntity.id!!)
+    assertThat(result.sessionType).isEqualTo(sessionEntity.sessionType)
+    assertThat(result.sessionName).isEqualTo("Getting started 1")
+    assertThat(result.isCatchup).isEqualTo(sessionEntity.isCatchup)
+    assertThat(result.attendees).hasSize(1)
+    assertThat(result.attendees.first().name).isEqualTo(personName)
+    assertThat(result.attendees.first().isExcluded).isTrue()
+    assertThat(result.attendees.first().isLimitedAccessOffender).isTrue()
+
+    verify(exactly = 1) { sessionRepository.findById(sessionEntity.id!!) }
+    verify(exactly = 1) { programmeGroupMembershipRepository.findAllActiveByProgrammeGroupId(sessionEntity.programmeGroup.id!!) }
+    verify(exactly = 1) { authenticationUtils.getUsername() }
+    verify(exactly = 1) { limitedAccessResolverService.resolve(username, listOf(caseReferenceNumber)) }
+  }
+
+  @Test
+  fun `should get a session attendees with limited access offender check disabled`() {
+    // Given
+    service = SessionService(
+      sessionRepository,
+      scheduleService,
+      programmeGroupMembershipRepository,
+      facilitatorService,
+      referralRepository,
+      nDeliusIntegrationApiClient,
+      sessionAttendanceOutcomeTypeRepository,
+      sessionNameFormatter,
+      referralStatusService,
+      telemetryService,
+      authenticationUtils,
+      userService,
+      regionService,
+      fixedClock,
+      limitedAccessResolverService,
+      false,
+    )
+    val username = "user1"
+    val personName = "John Smith"
+    val referralId = UUID.randomUUID()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName(personName).produce()
+    val caseReferenceNumber = referralEntity.crn
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Getting started")
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every { programmeGroupMembershipRepository.findAllActiveByProgrammeGroupId(any()) } returns listOf(
+      programmeGroupMembershipEntity,
+    )
+
+    // When
+    val result = service.getSessionAttendees(sessionEntity.id!!)
+
+    // Then
+    assertThat(result).isNotNull()
+    assertThat(result.sessionId).isEqualTo(sessionEntity.id!!)
+    assertThat(result.sessionType).isEqualTo(sessionEntity.sessionType)
+    assertThat(result.sessionName).isEqualTo("Getting started 1")
+    assertThat(result.isCatchup).isEqualTo(sessionEntity.isCatchup)
+    assertThat(result.attendees).hasSize(1)
+    assertThat(result.attendees.first().name).isEqualTo(personName)
+    assertThat(result.attendees.first().isExcluded).isNull()
+    assertThat(result.attendees.first().isLimitedAccessOffender).isNull()
+
+    verify(exactly = 1) { sessionRepository.findById(sessionEntity.id!!) }
+    verify(exactly = 1) { programmeGroupMembershipRepository.findAllActiveByProgrammeGroupId(sessionEntity.programmeGroup.id!!) }
+    verify(exactly = 0) { authenticationUtils.getUsername() }
+    verify(exactly = 0) { limitedAccessResolverService.resolve(username, listOf(caseReferenceNumber)) }
+  }
+
   private fun sessionWithAttendees(
     referralEntities: List<ReferralEntity>,
     moduleName: String = "Module 1",
@@ -2038,6 +2222,7 @@ class SessionServiceTest {
         .produce()
     val sessionEntity =
       SessionFactory()
+        .withId(UUID.randomUUID())
         .withAttendees(
           referralEntities
             .map { referral ->

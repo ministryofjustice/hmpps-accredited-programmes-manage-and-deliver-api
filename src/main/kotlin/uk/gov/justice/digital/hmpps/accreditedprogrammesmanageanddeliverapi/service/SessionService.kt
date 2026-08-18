@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
@@ -51,6 +52,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.LimitedAccessResolverService.Access
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
@@ -78,6 +80,9 @@ class SessionService(
   private val userService: UserService,
   private val regionService: RegionService,
   private val clock: Clock,
+  private val limitedAccessResolverService: LimitedAccessResolverService,
+  @param:Value($$"${app.features.lao-access-check-enabled}")
+  private val laoAccessCheckEnabled: Boolean,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
@@ -294,7 +299,14 @@ class SessionService(
       NotFoundException("Session with id $sessionId not found.")
     }
 
-    return entity.toApi(sessionNameFormatter)
+    var usernameAccessMap = mapOf<String, Access>()
+    if (laoAccessCheckEnabled) {
+      val username = authenticationUtils.getUsername()
+      val caseReferenceNumbers = entity.attendees.map { attendee -> attendee.referral.crn }.toList()
+      usernameAccessMap = limitedAccessResolverService.resolve(username, caseReferenceNumbers)
+    }
+
+    return entity.toApi(sessionNameFormatter, usernameAccessMap)
   }
 
   fun getSessionAttendees(sessionId: UUID): EditSessionAttendeesResponse {
@@ -302,9 +314,18 @@ class SessionService(
       NotFoundException("Session not found with id: $sessionId")
     }
     val groupMembers = programmeGroupMembershipRepository.findAllActiveByProgrammeGroupId(session.programmeGroup.id!!)
-
     val sessionAttendees =
       groupMembers.map { groupMember -> groupMember.toSessionAttendee(session.attendees.map(AttendeeEntity::referralId)) }
+    if (laoAccessCheckEnabled) {
+      val username = authenticationUtils.getUsername()
+      val caseReferenceNumbers = sessionAttendees.map { attendee -> attendee.crn }.toList()
+      val usernameAccessMap = limitedAccessResolverService.resolve(username, caseReferenceNumbers)
+      sessionAttendees.forEach { attendee ->
+        val access = usernameAccessMap[attendee.crn]
+        attendee.isLimitedAccessOffender = access?.lao
+        attendee.isExcluded = access?.isExcluded
+      }
+    }
 
     return EditSessionAttendeesResponse(
       sessionId = sessionId,
