@@ -520,6 +520,7 @@ class ProgrammeGroupService(
             ),
             type = if (sessionTemplate.sessionType == SessionType.ONE_TO_ONE) "Individual" else "Group",
             isCatchup = scheduledSession.isCatchup,
+            isLAO = scheduledSession.isLAO,
             dateOfSession = scheduledSession.startsAt.toLocalDate(),
             timeOfSession = formatTimeOfSession(
               scheduledSession.startsAt.toLocalTime(),
@@ -816,6 +817,7 @@ class ProgrammeGroupService(
       pageTitle = sessionNameFormatter.format(session, SessionNameContext.SessionDetails),
       sessionType = session.sessionType.value,
       isCatchup = session.isCatchup,
+      isLAO = session.isLAO,
       date = session.startsAt.toLocalDate(),
       time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
       timeWithCapitalisedMidday = formatTimeOfSession(

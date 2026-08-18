@@ -706,6 +706,7 @@ class ReferralService(
             attendanceStatus = programmeGroupService.getAttendanceTextFromOutcome(latestAttendance?.outcomeType),
             hasNotes = latestAttendance?.notesHistory?.isNotEmpty() == true,
             isCatchup = session.isCatchup,
+            isLAO = session.isLAO,
           )
         }
       }
