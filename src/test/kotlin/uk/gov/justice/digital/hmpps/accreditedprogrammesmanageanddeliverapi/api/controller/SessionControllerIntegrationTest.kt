@@ -2426,6 +2426,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         { assertThat(it.crn).isEqualTo(attendee.referral.crn) },
         { assertThat(it.sessionNotes).isEqualTo("Latest test session notes") },
         { assertThat(it.sessionNotesCreatedByFullName).isEqualTo(userFullName) },
+        { assertThat(it.isLao).isFalse },
+        { assertThat(it.isExcluded).isFalse },
       )
 
       assertThat(attendance).satisfies(
@@ -2485,6 +2487,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         "SYSTEM",
         "",
       )
+
+      // TODO mock out calls to userAccessService
 
       val session = sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
       val attendee = session.attendees.first()

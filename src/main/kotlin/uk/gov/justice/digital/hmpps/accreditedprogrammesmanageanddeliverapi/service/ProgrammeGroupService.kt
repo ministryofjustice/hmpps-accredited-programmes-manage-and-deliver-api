@@ -90,9 +90,9 @@ class ProgrammeGroupService(
   private val sessionNameFormatter: SessionNameFormatter,
   private val sessionService: SessionService,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
-  private val limitedAccessResolverService: LimitedAccessResolverService,
-  @param:Value($$"${app.features.lao-access-check-enabled}")
-  private val limitedAccessOffenderCheckEnabled: Boolean,
+  private val userAccessService: UserAccessService,
+  @Value("\${app.features.lao-access-check-enabled}")
+  private val laoAccessCheckEnabled: Boolean,
   private val moduleRepository: ModuleRepository,
   private val authenticationUtils: AuthenticationUtils,
   private val regionService: RegionService,
@@ -276,7 +276,7 @@ class ProgrammeGroupService(
       )
     }
 
-    val accessByCrn = limitedAccessResolverService.resolve(username, groupMembers.map { it.crn })
+    val accessByCrn = userAccessService.determineUserAccess(username, groupMembers.map { it.crn })
     val accessGrantedMembers = groupMembers.filter { it.crn in accessByCrn }
     accessGrantedMembers.forEach { groupMember ->
       val access = accessByCrn[groupMember.crn]
@@ -799,7 +799,7 @@ class ProgrammeGroupService(
     val session = sessionRepository.findByIdOrNull(sessionId)
       ?: throw NotFoundException("Session with $sessionId not found")
 
-    val accessByCrn = limitedAccessResolverService.resolve(username, session.attendees.map { it.referral.crn })
+    val accessByCrn = userAccessService.determineUserAccess(username, session.attendees.map { it.referral.crn })
     val accessGrantedAttendees = session.attendees.filter { it.referral.crn in accessByCrn }
 
     val attendanceAndSessionNotes = accessGrantedAttendees.map { attendee ->

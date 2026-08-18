@@ -79,6 +79,7 @@ class SessionServiceTest {
   private val userService = mockk<UserService>()
   private val fixedClock = Clock.fixed(Instant.now(), ZoneId.systemDefault())
   private val regionService = mockk<RegionService>()
+  private val userAccessService = mockk<UserAccessService>()
   private lateinit var service: SessionService
   private lateinit var sessionAttendanceTypeEntities: List<SessionAttendanceNDeliusOutcomeEntity>
 
@@ -120,6 +121,9 @@ class SessionServiceTest {
           .withCompliant(false)
           .produce(),
       )
+
+    every { authenticationUtils.getUsername() } returns "test-user"
+    every { userAccessService.determineUserAccess("test-user", any()) } returns emptyMap()
   }
 
   @Test

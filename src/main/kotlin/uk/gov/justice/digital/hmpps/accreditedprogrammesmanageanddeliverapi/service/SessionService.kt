@@ -550,6 +550,7 @@ class SessionService(
     return sessionAttendance
   }
 
+  // TODO modify this beeeyatch to user the UserAccessService
   fun getRecordAttendanceBySessionId(sessionId: UUID, referralIds: List<UUID>?): RecordSessionAttendance {
     val session = sessionRepository.findById(sessionId)
       .orElseThrow { NotFoundException("Session not found with id: $sessionId") }
@@ -571,6 +572,11 @@ class SessionService(
       referralIdFilter == null || attendee.referralId in referralIdFilter
     }
 
+    val userAccessMap = userAccessService.determineUserAccess(
+      authenticationUtils.getUsername(),
+      filteredAttendees.map { it.referral.crn },
+    )
+
     return RecordSessionAttendance(
       sessionTitle = session.sessionName,
       sessionModule = sessionNameFormatter.format(session, SessionNameContext.RecordSessionAttendance),
@@ -589,6 +595,8 @@ class SessionService(
           options = outcomeOptions,
           sessionNotes = latestSessionNotesHistory?.notes,
           sessionNotesCreatedByFullName = latestSessionNotesHistory?.createdByFullName,
+          isLao = userAccessMap[attendee.referral.crn]?.lao ?: false,
+          isExcluded = userAccessMap[attendee.referral.crn]?.isExcluded ?: false,
         )
       },
     )

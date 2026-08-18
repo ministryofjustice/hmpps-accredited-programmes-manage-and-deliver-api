@@ -50,7 +50,7 @@ data class SessionAttendancePerson(
 
   @Schema(
     description = "A string representing a CRN",
-    example = "Alice Brown",
+    example = "Y006572",
   )
   val crn: String,
 
@@ -76,6 +76,17 @@ data class SessionAttendancePerson(
     example = "John Smith",
   )
   val sessionNotesCreatedByFullName: String?,
+
+  @Schema(
+    description = "A flag denoting whether the person is a Limited Access Offender.",
+    example = "false",
+  )
+  val isLao: Boolean = false,
+  @Schema(
+    description = "A flag denoting whether the current user is authorised to view this Limited Access Offender.",
+    example = "false",
+  )
+  val isExcluded: Boolean = false,
 )
 
 @Schema(description = "Details of an Option")

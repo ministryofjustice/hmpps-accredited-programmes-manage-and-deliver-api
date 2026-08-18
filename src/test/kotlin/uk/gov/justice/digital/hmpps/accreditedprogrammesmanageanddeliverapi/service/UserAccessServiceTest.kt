@@ -12,7 +12,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.model.AllCaseAccessUsernameRange
 import java.time.OffsetDateTime
 
-class LimitedAccessResolverServiceTest {
+class UserAccessServiceTest {
 
   private val probationAccessControlApiClient: ProbationAccessControlApiClient = mockk()
   private val userService: UserService = mockk()
@@ -22,7 +22,7 @@ class LimitedAccessResolverServiceTest {
   private val laoAuthorisedCrn = "CRN-LAO-AUTHORISED"
   private val laoRestrictedCrn = "CRN-LAO-RESTRICTED"
 
-  private fun resolver(accessCheckEnabled: Boolean, restrictionEnabled: Boolean) = LimitedAccessResolverService(
+  private fun resolver(accessCheckEnabled: Boolean, restrictionEnabled: Boolean) = UserAccessService(
     probationAccessControlApiClient = probationAccessControlApiClient,
     userService = userService,
     laoAccessCheckEnabled = accessCheckEnabled,
@@ -49,10 +49,10 @@ class LimitedAccessResolverServiceTest {
   @Test
   fun `both feature flags off should not make any calls to getCaseAccessByCrn and no LAO's`() {
     val result = resolver(accessCheckEnabled = false, restrictionEnabled = false)
-      .resolve(username, listOf(ordinaryCrn, laoRestrictedCrn))
+      .determineUserAccess(username, listOf(ordinaryCrn, laoRestrictedCrn))
 
-    assertThat(result[ordinaryCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = false, isExcluded = false))
-    assertThat(result[laoRestrictedCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = false, isExcluded = false))
+    assertThat(result[ordinaryCrn]).isEqualTo(UserAccessService.Access(lao = false, isExcluded = false))
+    assertThat(result[laoRestrictedCrn]).isEqualTo(UserAccessService.Access(lao = false, isExcluded = false))
 
     verify(exactly = 0) { probationAccessControlApiClient.getCaseAccessByCrn(any()) }
     verify(exactly = 0) { userService.getAccessibleOffenders(any(), any()) }
@@ -67,10 +67,10 @@ class LimitedAccessResolverServiceTest {
     every { userService.getAccessibleOffenders(username, any()) } returns setOf(ordinaryCrn, laoAuthorisedCrn)
 
     val result = resolver(accessCheckEnabled = true, restrictionEnabled = false)
-      .resolve(username, listOf(ordinaryCrn, laoAuthorisedCrn, laoRestrictedCrn))
+      .determineUserAccess(username, listOf(ordinaryCrn, laoAuthorisedCrn, laoRestrictedCrn))
 
-    assertThat(result[ordinaryCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = false, isExcluded = false))
-    assertThat(result[laoAuthorisedCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = true, isExcluded = false))
+    assertThat(result[ordinaryCrn]).isEqualTo(UserAccessService.Access(lao = false, isExcluded = false))
+    assertThat(result[laoAuthorisedCrn]).isEqualTo(UserAccessService.Access(lao = true, isExcluded = false))
     assertThat(result).doesNotContainKey(laoRestrictedCrn)
 
     verify(exactly = 1) { userService.getAccessibleOffenders(username, any()) }
@@ -81,11 +81,11 @@ class LimitedAccessResolverServiceTest {
     every { userService.getAccessibleOffenders(username, any()) } returns setOf(ordinaryCrn, laoAuthorisedCrn)
 
     val result = resolver(accessCheckEnabled = false, restrictionEnabled = true)
-      .resolve(username, listOf(ordinaryCrn, laoAuthorisedCrn, laoRestrictedCrn))
+      .determineUserAccess(username, listOf(ordinaryCrn, laoAuthorisedCrn, laoRestrictedCrn))
 
-    assertThat(result[ordinaryCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = false, isExcluded = false))
-    assertThat(result[laoAuthorisedCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = false, isExcluded = false))
-    assertThat(result[laoRestrictedCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = false, isExcluded = true))
+    assertThat(result[ordinaryCrn]).isEqualTo(UserAccessService.Access(lao = false, isExcluded = false))
+    assertThat(result[laoAuthorisedCrn]).isEqualTo(UserAccessService.Access(lao = false, isExcluded = false))
+    assertThat(result[laoRestrictedCrn]).isEqualTo(UserAccessService.Access(lao = false, isExcluded = true))
 
     verify(exactly = 0) { probationAccessControlApiClient.getCaseAccessByCrn(any()) }
     verify(exactly = 1) { userService.getAccessibleOffenders(username, any()) }
@@ -99,16 +99,16 @@ class LimitedAccessResolverServiceTest {
     every { userService.getAccessibleOffenders(username, any()) } returns setOf(ordinaryCrn, laoAuthorisedCrn)
 
     val result = resolver(accessCheckEnabled = true, restrictionEnabled = true)
-      .resolve(username, listOf(ordinaryCrn, laoAuthorisedCrn, laoRestrictedCrn))
+      .determineUserAccess(username, listOf(ordinaryCrn, laoAuthorisedCrn, laoRestrictedCrn))
 
-    assertThat(result[ordinaryCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = false, isExcluded = false))
-    assertThat(result[laoAuthorisedCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = true, isExcluded = false))
-    assertThat(result[laoRestrictedCrn]).isEqualTo(LimitedAccessResolverService.Access(lao = true, isExcluded = true))
+    assertThat(result[ordinaryCrn]).isEqualTo(UserAccessService.Access(lao = false, isExcluded = false))
+    assertThat(result[laoAuthorisedCrn]).isEqualTo(UserAccessService.Access(lao = true, isExcluded = false))
+    assertThat(result[laoRestrictedCrn]).isEqualTo(UserAccessService.Access(lao = true, isExcluded = true))
   }
 
   @Test
   fun `empty crns - returns an empty map and makes no external calls`() {
-    val result = resolver(accessCheckEnabled = true, restrictionEnabled = true).resolve(username, emptyList())
+    val result = resolver(accessCheckEnabled = true, restrictionEnabled = true).determineUserAccess(username, emptyList())
 
     assertThat(result).isEmpty()
     verify(exactly = 0) { probationAccessControlApiClient.getCaseAccessByCrn(any()) }
