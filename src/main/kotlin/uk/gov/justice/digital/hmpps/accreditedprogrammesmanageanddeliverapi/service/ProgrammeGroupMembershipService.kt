@@ -282,7 +282,7 @@ class ProgrammeGroupMembershipService(
         // retrying or by changing the request body — the underlying data needs to be corrected.
         throw ConflictException(
           conflictErrorMessage ?: (
-            "Cannot allocate referral to group: the $sourceType linked to this referral with id: ${referral.id} and crn: ${referral.crn}" +
+            "Cannot allocate referral to group: the $sourceType linked to this referral with id: ${referral.id} and crn: ${referral.crn} " +
               "no longer exists in nDelius. The sentence data may be stale following a transfer or termination. " +
               "Please contact your admin to update the referral's sentence data."
             ),
