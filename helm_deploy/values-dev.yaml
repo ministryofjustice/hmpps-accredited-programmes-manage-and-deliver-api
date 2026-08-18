@@ -22,6 +22,7 @@ generic-service:
     SENTRY_ENVIRONMENT: dev
     LAO_ACCESS_CHECK_ENABLED: "true"
     EXCLUSION_ACCESS_CHECK_ENABLED: "false"
+    REFERRAL_DETAILS_UPDATED_CRON: "0 0 8 * * *"  # 8 AM every day
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
 # See https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html#creating-your-own-custom-alerts

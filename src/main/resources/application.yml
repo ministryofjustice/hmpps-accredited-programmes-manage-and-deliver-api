@@ -23,7 +23,7 @@ app:
 
   scheduling:
     referral-details-updated:
-      cron: "0 0 1 * * *"  # every day at 1 AM
+      cron: "${REFERRAL_DETAILS_UPDATED_CRON:0 0 1 * * *}"  # default every day at 1 AM
       chunk-size: 100  # process referral records in chunks
       cutoff: 432000 # before updatedAt in seconds
       shedlock:
