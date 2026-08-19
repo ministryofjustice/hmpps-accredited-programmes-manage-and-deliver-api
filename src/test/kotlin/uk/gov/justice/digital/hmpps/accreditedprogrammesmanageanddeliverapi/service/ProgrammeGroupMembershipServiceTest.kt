@@ -29,7 +29,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.time.Clock
 import java.util.UUID
 
@@ -346,7 +345,7 @@ class ProgrammeGroupMembershipServiceTest {
       service.validateReferralSentenceDataExistsInNDelius(referral)
     }
       .isInstanceOf(ConflictException::class.java)
-      .hasMessageContaining("requirement linked to this referral no longer exists")
+      .hasMessageContaining("requirement linked to this referral with id: ${referral.id} and crn: ${referral.crn} no longer exists")
 
     verify {
       telemetryService.logToAppInsights(
@@ -402,7 +401,7 @@ class ProgrammeGroupMembershipServiceTest {
       service.validateReferralSentenceDataExistsInNDelius(referral)
     }
       .isInstanceOf(ConflictException::class.java)
-      .hasMessageContaining("licence condition linked to this referral no longer exists")
+      .hasMessageContaining("licence condition linked to this referral with id: ${referral.id} and crn: ${referral.crn} no longer exists")
 
     verify {
       telemetryService.logToAppInsights(

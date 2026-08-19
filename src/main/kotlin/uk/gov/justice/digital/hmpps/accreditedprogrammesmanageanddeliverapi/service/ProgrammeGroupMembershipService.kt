@@ -26,11 +26,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.time.Clock
 import java.time.LocalDateTime
 import java.util.UUID
-import kotlin.String
 
 @Service
 @Transactional
@@ -230,7 +228,7 @@ class ProgrammeGroupMembershipService(
     if (eventId == null) {
       log.error("Cannot validate nDelius sentence data: eventId is null for referral ${referral.id}")
       throw BusinessException(
-        "Cannot allocate referral to group: the referral has no associated requirement or licence condition ID. " +
+        "Cannot allocate referral with id: ${referral.id} and crn: ${referral.crn} to group: the referral has no associated requirement or licence condition ID. " +
           "Please update the referral's sentence data before allocating to a group.",
       )
     }
@@ -239,7 +237,7 @@ class ProgrammeGroupMembershipService(
     if (sourcedFrom == null) {
       log.error("Cannot validate nDelius sentence data: sourcedFrom is null for referral ${referral.id}")
       throw BusinessException(
-        "Cannot allocate referral to group: the referral's sentence source type is not set. " +
+        "Cannot allocate referral with id: ${referral.id} and crn: ${referral.crn} to group: the referral's sentence source type is not set. " +
           "Please update the referral's sentence data before allocating to a group.",
       )
     }
@@ -284,7 +282,7 @@ class ProgrammeGroupMembershipService(
         // retrying or by changing the request body — the underlying data needs to be corrected.
         throw ConflictException(
           conflictErrorMessage ?: (
-            "Cannot allocate referral to group: the $sourceType linked to this referral " +
+            "Cannot allocate referral to group: the $sourceType linked to this referral with id: ${referral.id} and crn: ${referral.crn} " +
               "no longer exists in nDelius. The sentence data may be stale following a transfer or termination. " +
               "Please contact your admin to update the referral's sentence data."
             ),
@@ -309,7 +307,7 @@ class ProgrammeGroupMembershipService(
           ),
         )
         throw BusinessException(
-          "Cannot allocate referral to group: unable to reach nDelius to verify sentence data. " +
+          "Cannot allocate referral with id: ${referral.id} and crn: ${referral.crn} to group: unable to reach nDelius to verify sentence data. " +
             "Please try again later.",
         )
       }
