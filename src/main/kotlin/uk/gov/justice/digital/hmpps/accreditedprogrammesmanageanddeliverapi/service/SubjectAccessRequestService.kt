@@ -4,15 +4,11 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.subjectAccessRequest.SubjectAccessRequestContent
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.subjectAccessRequest.SubjectAccessRequestGroupWaitlistItemView
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.subjectAccessRequest.SubjectAccessRequestReferral
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.subjectAccessRequest.SubjectAccessRequestReferralCaseListItemView
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.subjectAccessRequest.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AttendeeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.GroupWaitlistItemViewRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.hmpps.kotlin.sar.HmppsProbationSubjectAccessRequestService
 import uk.gov.justice.hmpps.kotlin.sar.HmppsSubjectAccessRequestContent
@@ -25,8 +21,6 @@ class SubjectAccessRequestService(
   private val messageHistoryRepository: MessageHistoryRepository,
   private val attendeeRepository: AttendeeRepository,
   private val availabilityRepository: AvailabilityRepository,
-  private val groupWaitlistItemViewRepository: GroupWaitlistItemViewRepository,
-  private val referralCaseListItemRepository: ReferralCaseListItemRepository,
 ) : HmppsProbationSubjectAccessRequestService {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -39,27 +33,9 @@ class SubjectAccessRequestService(
     val referrals = getSubjectAccessRequestReferrals(crn, fromDate, toDate)
     log.info("Retrieved ${referrals.size} referrals")
     log.info("referrals: $referrals")
-    val groupWaitlistItemViews = getSubjectAccessRequestGroupWaitlistItemViews(crn)
-    val referralCaseListItemViews = getSubjectAccessRequestReferralCaseListItemViews(crn)
-    val content = SubjectAccessRequestContent(
-      referrals,
-      groupWaitlistItemViews,
-      referralCaseListItemViews,
-    )
+    val content = SubjectAccessRequestContent(referrals)
 
     return HmppsSubjectAccessRequestContent(content)
-  }
-
-  private fun getSubjectAccessRequestReferralCaseListItemViews(crn: String): List<SubjectAccessRequestReferralCaseListItemView> {
-    val referralCaseListItemViews = referralCaseListItemRepository.findByCrn(crn)
-
-    return referralCaseListItemViews.map { it.toApi() }.toList()
-  }
-
-  private fun getSubjectAccessRequestGroupWaitlistItemViews(crn: String): List<SubjectAccessRequestGroupWaitlistItemView> {
-    val groupWaitlistItemViews = groupWaitlistItemViewRepository.findByCrn(crn)
-
-    return groupWaitlistItemViews.map { it.toApi() }.toList()
   }
 
   private fun getSubjectAccessRequestReferrals(

@@ -1623,7 +1623,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         body = AllocateToGroupRequest("Empty additional details"),
       )
       assertThat(exception.userMessage).isEqualTo(
-        "Conflict: Cannot allocate referral to group: the requirement linked to this referral no longer exists in nDelius. " +
+        "Conflict: Cannot allocate referral to group: the requirement linked to this referral with id: ${referral.id} and crn: ${referral.crn} no longer exists in nDelius. " +
           "The sentence data may be stale following a transfer or termination. " +
           "Please contact your admin to update the referral's sentence data.",
       )
@@ -1650,7 +1650,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         body = AllocateToGroupRequest("Empty additional details"),
       )
       assertThat(exception.userMessage).isEqualTo(
-        "Conflict: Cannot allocate referral to group: the licence condition linked to this referral no longer exists in nDelius. " +
+        "Conflict: Cannot allocate referral to group: the licence condition linked to this referral with id: ${referral.id} and crn: ${referral.crn} no longer exists in nDelius. " +
           "The sentence data may be stale following a transfer or termination. " +
           "Please contact your admin to update the referral's sentence data.",
       )

@@ -10,6 +10,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.subjectAccessRequest.SubjectAccessRequestContent
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
@@ -302,7 +303,7 @@ class SarContractIntegrationTest :
   override fun `SAR API should return expected data`() {
     setupTestData()
 
-    val response = sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient)
+    val response = sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient, SubjectAccessRequestContent::class.java)
     val normalizedActual = normalizeDynamicValues(sarIntegrationTestHelper.toJson(response))
 
     if (generateActual) {
@@ -322,7 +323,7 @@ class SarContractIntegrationTest :
     sarIntegrationTestHelper.stubFindLocationNameByNomisIdWith("PROPERTY BOX 1")
     sarIntegrationTestHelper.stubFindLocationNameByDpsIdWith("PROPERTY BOX 2")
 
-    val dataResponse = sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient)
+    val dataResponse = sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient, SubjectAccessRequestContent::class.java)
     val templateResponse = sarIntegrationTestHelper.requestSarTemplate(webTestClient)
 
     val renderResult = sarIntegrationTestHelper.renderServiceReport(
