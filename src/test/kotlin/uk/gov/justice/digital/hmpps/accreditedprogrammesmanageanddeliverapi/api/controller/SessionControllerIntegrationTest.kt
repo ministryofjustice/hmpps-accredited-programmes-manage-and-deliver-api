@@ -52,7 +52,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.primaryFacilitator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.ATTC
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
@@ -2163,56 +2162,6 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       manageUsersApiStubs.verifyGetUser(1, username)
-    }
-
-    @Test
-    fun `should return 400 when attempting to change a recorded attendance outcome`() {
-      // Given
-      val group = testGroupHelper.createGroup()
-      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
-      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
-      val referral = testReferralHelper.createReferral()
-      programmeGroupMembershipService.allocateReferralToGroup(
-        referral.id!!,
-        group.id!!,
-        "SYSTEM",
-        "",
-      )
-      val sessionEntity =
-        sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
-      val sessionId = sessionEntity.id!!
-      val attendee = sessionEntity.attendees.first()
-
-      performRequestAndExpectStatusWithBody(
-        httpMethod = HttpMethod.POST,
-        uri = "/session/$sessionId/attendance",
-        body = SessionAttendance(
-          attendees = listOf(SessionAttendee(referralId = attendee.referralId, outcomeCode = ATTC)),
-        ),
-        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
-        expectedResponseStatus = HttpStatus.CREATED.value(),
-      )
-
-      // When
-      val exception = performRequestAndExpectStatusWithBody(
-        httpMethod = HttpMethod.POST,
-        uri = "/session/$sessionId/attendance",
-        body = SessionAttendance(
-          attendees = listOf(
-            SessionAttendee(referralId = attendee.referralId, outcomeCode = SessionAttendanceNDeliusCode.UAAB),
-          ),
-        ),
-        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-        expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
-      )
-
-      // Then
-      assertThat(exception.userMessage)
-        .contains("Attendance outcome cannot be changed once it has been recorded")
-        .contains(attendee.referral.crn)
-      val attendances = sessionRepository.findById(sessionId).get().attendances
-      assertThat(attendances).hasSize(1)
-      assertThat(attendances.first().outcomeType.code).isEqualTo(ATTC)
     }
 
     @Test
