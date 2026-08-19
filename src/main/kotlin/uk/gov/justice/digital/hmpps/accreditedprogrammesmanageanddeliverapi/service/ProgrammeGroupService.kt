@@ -65,6 +65,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsByRegionTabSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.LimitedAccessResolverService.Access
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
@@ -90,14 +91,14 @@ class ProgrammeGroupService(
   private val sessionService: SessionService,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
   private val limitedAccessResolverService: LimitedAccessResolverService,
-  @Value("\${app.features.lao-access-check-enabled}")
-  private val laoAccessCheckEnabled: Boolean,
+  @param:Value($$"${app.features.lao-access-check-enabled}")
+  private val limitedAccessOffenderCheckEnabled: Boolean,
   private val moduleRepository: ModuleRepository,
   private val authenticationUtils: AuthenticationUtils,
   private val regionService: RegionService,
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
 ) {
-  val log = LoggerFactory.getLogger(this::class.java)
+  val log = LoggerFactory.getLogger(this::class.java)!!
 
   fun createGroup(createGroupRequest: CreateGroupRequest, username: String): ProgrammeGroupEntity {
     val userRegion = userService.getUserRegions(username).firstOrNull()
@@ -429,14 +430,22 @@ class ProgrammeGroupService(
 
     val pagedData = groupWaitlistItemViewRepository.findAll(activeSpecification, pageable)
 
-    // Fetch LAO status for all distinct CRNs
-    var laoByCrn: Map<String, Boolean>? = null
-    if (laoAccessCheckEnabled) {
-      laoByCrn = pagedData.content.map { it.crn }.distinct()
-        .associateWith { limitedAccessResolverService.isLimitedAccessOffender(it) }
+    // Fetch Limited Access Offender (LAO) status for all distinct case reference numbers (CRNs)
+    var limitedAccessOffenderAccessMap: Map<String, Access>? = null
+    if (limitedAccessOffenderCheckEnabled) {
+      val username = authenticationUtils.getUsername()
+      val caseReferenceNumbers = pagedData.content.map { it.crn }.distinct()
+      limitedAccessOffenderAccessMap = limitedAccessResolverService.resolve(username, caseReferenceNumbers)
     }
 
-    val groupListDataToReturn: Page<GroupItem> = pagedData.map { it.toApi(laoByCrn?.get(it.crn) ?: false) }
+    val groupListDataToReturn: Page<GroupItem> =
+      pagedData.map { item ->
+        val access = limitedAccessOffenderAccessMap?.get(item.crn)
+        item.toApi(
+          isLimitedAccessOffender = access?.lao ?: false,
+          isExcluded = access?.isExcluded ?: false,
+        )
+      }
 
     val otherTabCount: Int = groupWaitlistItemViewRepository.count(nonActiveSpecification).toInt()
 
