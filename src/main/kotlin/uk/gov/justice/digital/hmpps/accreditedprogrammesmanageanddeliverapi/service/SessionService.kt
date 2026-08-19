@@ -467,24 +467,6 @@ class SessionService(
         )
       }
 
-    // nDelius does not allow a recorded outcome to be amended, so reject any updated outcome
-    val amendedOutcomeAttendees = sessionAttendance.attendees.filter { attendee ->
-      val previousOutcome = latestAttendanceByReferralId[attendee.referralId]?.outcomeType?.code
-      previousOutcome != null && previousOutcome != attendee.outcomeCode
-    }
-    if (amendedOutcomeAttendees.isNotEmpty()) {
-      val crns = amendedOutcomeAttendees.map { attendee ->
-        session.attendees.find { it.referralId == attendee.referralId }?.referral?.crn ?: attendee.referralId.toString()
-      }
-      throw BusinessException(
-        "Attendance outcome cannot be changed once it has been recorded. An outcome has already been recorded for: ${
-          crns.joinToString(
-            ", ",
-          )
-        }",
-      )
-    }
-
     // Only record attendees with something new either a first outcome or changed notes. Unchanged resubmissions
     // must not reach nDelius, which appends the notes on every update.
     val changedAttendees = sessionAttendance.attendees.filter { attendee ->

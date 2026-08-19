@@ -232,6 +232,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       stubAuthTokenEndpoint()
       val group = testGroupHelper.createGroup(groupCode = "TEST001")
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      val caseReferenceNumbers = referrals.map { it.crn }.toTypedArray()
+
+      nDeliusApiStubs.stubAccessCheck(true, *caseReferenceNumbers)
+
+      referrals.map { it.crn }.toList()
 
       // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
       val referral = referrals.first()
@@ -256,7 +261,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.otherTabTotal).isEqualTo(1)
       assertThat(response.pagedGroupData).isNotNull
       assertThat(response.pagedGroupData.content.map { it.statusColour }).isNotEmpty
-      assertThat(response.pagedGroupData.content).allMatch { !it.lao }
+      assertThat(response.pagedGroupData.content).allMatch { !it.isLimitedAccessOffender }
+      assertThat(response.pagedGroupData.content).allMatch { !it.isExcluded }
     }
 
     @Test

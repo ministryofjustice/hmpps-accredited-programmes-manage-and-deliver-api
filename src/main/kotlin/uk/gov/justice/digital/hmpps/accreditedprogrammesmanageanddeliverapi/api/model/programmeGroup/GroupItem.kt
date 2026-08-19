@@ -13,7 +13,7 @@ import java.util.UUID
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class GroupItem(
-  @Schema(
+  @get:Schema(
     example = "1ff57cea-352c-4a99-8f66-3e626aac3265",
     required = true,
     description = "The UUID of the referral.",
@@ -21,7 +21,7 @@ data class GroupItem(
   @get:JsonProperty("referralId", required = true)
   val referralId: UUID,
 
-  @Schema(
+  @get:Schema(
     example = "Order end date",
     required = true,
     description = "A human-readable string describing the entity (Licence Condition or Requirement) that caused the Referral to be created in our system",
@@ -29,7 +29,7 @@ data class GroupItem(
   @get:JsonProperty("sourcedFrom", required = true)
   val sourcedFrom: String? = null,
 
-  @Schema(
+  @get:Schema(
     example = "X933590",
     required = true,
     description = "The crn associated with this referral.",
@@ -37,15 +37,23 @@ data class GroupItem(
   @get:JsonProperty("crn", required = true)
   val crn: String,
 
-  @Schema(
+  @get:Schema(
     example = "false",
     required = true,
-    description = "Whether the person has Limited Access Offender (LAO) status.",
+    description = "Whether the referral is Limited Access Offender (LAO) status.",
   )
-  @get:JsonProperty("lao", required = true)
-  val lao: Boolean,
+  @get:JsonProperty("isLimitedAccessOffender", required = true)
+  val isLimitedAccessOffender: Boolean,
 
-  @Schema(
+  @get:Schema(
+    example = "false",
+    required = true,
+    description = "Whether the logged-in user is excludded from viewing Limited Access Offenders (LAO) data.",
+  )
+  @get:JsonProperty("isExcluded", required = true)
+  val isExcluded: Boolean,
+
+  @get:Schema(
     example = "John Doe",
     required = true,
     description = "The name of the person associated with this referral.",
@@ -53,16 +61,16 @@ data class GroupItem(
   @get:JsonProperty("personName", required = true)
   val personName: String,
 
-  @Schema(
+  @get:Schema(
     example = "1 January 2030",
     required = true,
     description = "The end date of the person's sentence.",
   )
   @get:JsonProperty("sentenceEndDate", required = false)
-  @JsonFormat(pattern = "d MMMM yyyy")
+  @get:JsonFormat(pattern = "d MMMM yyyy")
   val sentenceEndDate: LocalDate?,
 
-  @Schema(
+  @get:Schema(
     example = "SEXUAL_OFFENCE",
     required = true,
     description = "The offence cohort this referral is classified as.",
@@ -70,7 +78,7 @@ data class GroupItem(
   @get:JsonProperty("cohort", required = false)
   val cohort: OffenceCohort? = null,
 
-  @Schema(
+  @get:Schema(
     example = "True",
     required = true,
     description = "Does the person this referral is associated with have LDC needs.",
@@ -78,7 +86,7 @@ data class GroupItem(
   @get:JsonProperty("hasLdc", required = false)
   val hasLdc: Boolean? = null,
 
-  @Schema(
+  @get:Schema(
     example = "43",
     required = true,
     description = "The age of the person.",
@@ -86,7 +94,7 @@ data class GroupItem(
   @get:JsonProperty("age", required = false)
   val age: Int? = null,
 
-  @Schema(
+  @get:Schema(
     example = "Male",
     required = true,
     description = "The sex of the person.",
@@ -94,7 +102,7 @@ data class GroupItem(
   @get:JsonProperty("sex", required = false)
   val sex: String? = null,
 
-  @Schema(
+  @get:Schema(
     example = "Durham",
     required = true,
     description = "The PDU this referral is associated with.",
@@ -102,7 +110,7 @@ data class GroupItem(
   @get:JsonProperty("pdu", required = false)
   val pdu: String? = null,
 
-  @Schema(
+  @get:Schema(
     example = "Durham Team 1",
     required = true,
     description = "The reporting team this referral is associated with.",
@@ -110,7 +118,7 @@ data class GroupItem(
   @get:JsonProperty("reportingTeam", required = false)
   val reportingTeam: String? = null,
 
-  @Schema(
+  @get:Schema(
     example = "Awaiting assessment",
     required = true,
     description = "The display name of the Referral's current Status",
@@ -118,7 +126,7 @@ data class GroupItem(
   @get:JsonProperty("status", required = true)
   val status: String,
 
-  @Schema(
+  @get:Schema(
     example = "purple",
     required = true,
     description = "The colour label for the current Status",
@@ -126,7 +134,7 @@ data class GroupItem(
   @get:JsonProperty("statusColour", required = true)
   val statusColour: String,
 
-  @Schema(
+  @get:Schema(
     example = "56470228-3893-450f-b4bc-97b21e18b887",
     required = true,
     description = "The unique Id of the group that the referral is assigned to.",
@@ -135,11 +143,12 @@ data class GroupItem(
   val activeProgrammeGroupId: UUID? = null,
 )
 
-fun GroupWaitlistItemViewEntity.toApi(lao: Boolean = false) = GroupItem(
+fun GroupWaitlistItemViewEntity.toApi(isLimitedAccessOffender: Boolean = false, isExcluded: Boolean = false) = GroupItem(
   referralId = referralId,
   sourcedFrom = sourcedFrom?.toDisplayString(),
   crn = crn,
-  lao = lao,
+  isLimitedAccessOffender = isLimitedAccessOffender,
+  isExcluded = isExcluded,
   personName = personName,
   sentenceEndDate = sentenceEndDate,
   cohort = cohort.let { OffenceCohort.fromDisplayName(it) },
