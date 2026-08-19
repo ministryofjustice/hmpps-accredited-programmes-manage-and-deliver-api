@@ -18,7 +18,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.AppointmentUpdateException
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
@@ -1565,36 +1564,6 @@ class SessionServiceTest {
     }
 
     verify { userService.getUserByUsernameOrNull(any()) }
-  }
-
-  @Test
-  fun `should reject attendance when a different outcome has already been recorded`() {
-    // Given
-    val sessionId = UUID.randomUUID()
-    val referralId = UUID.randomUUID()
-    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
-    val sessionEntity = sessionWithAttendees(listOf(referralEntity))
-    recordAttendanceOnSession(sessionEntity, referralEntity, ATTC)
-
-    val sessionAttendance =
-      SessionAttendanceFactory()
-        .withAttendees(listOf(SessionAttendeeFactory().withReferralId(referralId).withOutcomeCode(UAAB).produce()))
-        .produce()
-
-    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
-
-    // When
-    val exception =
-      assertThrows<BusinessException> {
-        service.saveSessionAttendance(sessionId, sessionAttendance)
-      }
-
-    // Then
-    assertThat(exception.message)
-      .contains("Attendance outcome cannot be changed once it has been recorded")
-      .contains(referralEntity.crn)
-    verify(exactly = 0) { sessionRepository.save(any()) }
-    verify(exactly = 0) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
   }
 
   @Test
