@@ -10,9 +10,6 @@ import java.util.UUID
 
 data class SubjectAccessRequestReferral(
   val id: UUID?,
-  val crn: String,
-  val dateOfBirth: LocalDate?,
-  val personName: String,
   val sentenceEndDate: LocalDate?,
   val sex: String?,
   val createdAt: LocalDateTime,
@@ -38,9 +35,6 @@ fun ReferralEntity.toApi(
   availabilityEntity: AvailabilityEntity?,
 ) = SubjectAccessRequestReferral(
   id = id,
-  crn = crn,
-  dateOfBirth = dateOfBirth,
-  personName = personName,
   sentenceEndDate = sentenceEndDate,
   sex = sex,
   createdAt = createdAt,
