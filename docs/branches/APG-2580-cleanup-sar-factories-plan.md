@@ -24,7 +24,7 @@ Neither change affects production behaviour, SAR output, or the SAR fixture snap
 
 Before opening this branch's PR the implementer must confirm:
 
-- [ ] `origin/main` contains the Branch 1 merge (i.e. `git log --oneline main | grep "APG-2580: Remove PII"` returns a commit).
+- [ ] `origin/main` contains the Branch 1 merge (i.e. `git log --oneline origin/main | grep "APG-2580: Remove PII"` returns a commit).
 - [ ] `git fetch origin && git rebase origin/main` completes cleanly on this branch (only the plan doc lives here so far, so this should be a no-op fast-forward or trivial rebase).
 - [ ] `grep -rn "GroupWaitlistItemViewEntityFactory\|ReferralCaseListItemViewEntityFactory" src/ | grep -v "^src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/factory/"` returns **empty**. If any usage has appeared since this plan was written (e.g. Branch 2/3/4 reintroduced them), **stop and re-plan**.
 
@@ -216,8 +216,10 @@ git commit -m "APG-2580: Delete orphaned SAR test factories and fix cohort asser
 
 Both changes were surfaced by the 9-eyes review of PR #860."
 
-git push -u origin APG-2580/cleanup-orphaned-sar-factories
+git push --force-with-lease -u origin APG-2580/cleanup-orphaned-sar-factories
 ```
+
+(`--force-with-lease` because we rebased onto post-Branch-1 `main`; origin currently has only the plan-doc commit `62490060` and needs to be overwritten with the executed branch.)
 
 Open a PR against `main` titled:
 `APG-2580 Delete orphaned SAR test factories and fix cohort assertion`
@@ -231,7 +233,7 @@ Body: link to PR #860, note that this is a sweep-up of two review-observed items
 Report back to the planning agent in the same shape used for Branch 1:
 
 ```
-BRANCH: cleanup (sweep-up)
+BRANCH: 1.5 sweep-up
 BRANCH NAME: APG-2580/cleanup-orphaned-sar-factories
 PR URL: <url>
 
