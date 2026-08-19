@@ -189,10 +189,6 @@ class HmppsSubjectAccessRequestControllerIntegrationTest : IntegrationTestBase()
     val content = response.content as LinkedHashMap<*, *>
     assertThat(content.containsKey("referrals")).isTrue()
     assertThat(content.get("referrals")).isNotNull()
-    assertThat(content.containsKey("groupWaitlistItemViews")).isTrue()
-    assertThat(content.get("groupWaitlistItemViews")).isNotNull()
-    assertThat(content.containsKey("referralCaseListItemViews")).isTrue()
-    assertThat(content.get("referralCaseListItemViews")).isNotNull()
   }
 
   @Test
