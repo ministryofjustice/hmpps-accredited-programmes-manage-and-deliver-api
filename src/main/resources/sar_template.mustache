@@ -4,9 +4,6 @@
 <section class="referral">
   <h2>Referral Details</h2>
   <table class="summary-list">
-    <tr><td>Person Name</td><td>{{ optionalValue personName }}</td></tr>
-    <tr><td>CRN</td><td>{{ optionalValue crn }}</td></tr>
-    <tr><td>Date of Birth</td><td>{{ formatDate dateOfBirth }}</td></tr>
     <tr><td>Sex</td><td>{{ optionalValue sex }}</td></tr>
     <tr><td>Sentence End Date</td><td>{{ formatDate sentenceEndDate }}</td></tr>
     <tr><td>Intervention Name</td><td>{{ optionalValue interventionName }}</td></tr>
@@ -262,61 +259,3 @@
 </section>
 <hr/>
 {{/referrals}}
-
-<h2>Group Waitlist Items</h2>
-{{#groupWaitlistItemViews.0}}
-<section class="waitlist">
-  <table class="data-table">
-    <tr>
-      <td class="data-column-20">Person Name</td>
-      <td class="data-column-15">CRN</td>
-      <td class="data-column-15">Date of Birth</td>
-      <td class="data-column-10">Sex</td>
-      <td class="data-column-15">Sentence End Date</td>
-      <td class="data-column-10">Has LDC</td>
-      <td class="data-column-15">Status</td>
-    </tr>
-    {{#groupWaitlistItemViews}}
-    <tr>
-      <td>{{ optionalValue personName }}</td>
-      <td>{{ optionalValue crn }}</td>
-      <td>{{ formatDate dateOfBirth }}</td>
-      <td>{{ optionalValue sex }}</td>
-      <td>{{ formatDate sentenceEndDate }}</td>
-      <td>{{ convertBoolean hasLdc }}</td>
-      <td>{{ optionalValue status }}</td>
-    </tr>
-    {{/groupWaitlistItemViews}}
-  </table>
-</section>
-{{/groupWaitlistItemViews.0}}
-{{^groupWaitlistItemViews.0}}
-<p>No Data Held</p>
-{{/groupWaitlistItemViews.0}}
-
-<h2>Referral Case List Items</h2>
-{{#referralCaseListItemViews.0}}
-<section class="caselist">
-  <table class="data-table">
-    <tr>
-      <td class="data-column-25">Person Name</td>
-      <td class="data-column-20">CRN</td>
-      <td class="data-column-20">Sentence End Date</td>
-      <td class="data-column-15">Has LDC</td>
-      <td class="data-column-20">Status</td>
-    </tr>
-    {{#referralCaseListItemViews}}
-    <tr>
-      <td>{{ optionalValue personName }}</td>
-      <td>{{ optionalValue crn }}</td>
-      <td>{{ formatDate sentenceEndDate }}</td>
-      <td>{{ convertBoolean hasLdc }}</td>
-      <td>{{ optionalValue status }}</td>
-    </tr>
-    {{/referralCaseListItemViews}}
-  </table>
-</section>
-{{/referralCaseListItemViews.0}}
-{{^referralCaseListItemViews.0}}
-<p>No Data Held</p>
-{{/referralCaseListItemViews.0}}
