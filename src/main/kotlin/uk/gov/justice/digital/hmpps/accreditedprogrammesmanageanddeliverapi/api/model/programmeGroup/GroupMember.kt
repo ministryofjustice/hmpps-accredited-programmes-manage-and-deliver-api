@@ -17,9 +17,13 @@ data class GroupMember(
   @get:Schema(description = "The UUID of the referral for this group member")
   val referralId: UUID,
 
+  @get:JsonProperty("isLimitedAccessOffender")
+  @set:JsonProperty("isLimitedAccessOffender")
   @get:Schema(description = "The boolean value of whether the group member has Limited Access Offender (LAO) status")
   var isLimitedAccessOffender: Boolean? = false,
 
+  @get:JsonProperty("isExcluded")
+  @set:JsonProperty("isExcluded")
   @get:Schema(description = "The boolean value of whether the group member details are excluded from viewing by the logged-in username")
   var isExcluded: Boolean? = false,
 )
