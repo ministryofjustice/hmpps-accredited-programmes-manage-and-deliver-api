@@ -32,6 +32,7 @@ Nothing progresses to the next branch until the current branch is marked ✅ in 
 | [`APG-2580-branch-2-attendance-codes-to-descriptions.md`](./APG-2580-branch-2-attendance-codes-to-descriptions.md) | Branch 2 – exact code changes |
 | [`APG-2580-branch-3-enum-display-names.md`](./APG-2580-branch-3-enum-display-names.md) | Branch 3 – exact code changes |
 | [`APG-2580-branch-4-attendance-session-note-restructure.md`](./APG-2580-branch-4-attendance-session-note-restructure.md) | Branch 4 – exact code changes |
+| [`APG-2580-cleanup-sar-factories-plan.md`](./APG-2580-cleanup-sar-factories-plan.md) | Sweep-up (post-PR#860) – exact code changes to remove orphaned SAR test factories and fix cohort assertion |
 | [`../how-to/update-sar-tests.md`](../how-to/update-sar-tests.md) | SAR fixture regeneration workflow (used at the end of every branch) |
 | `scripts/local-scripts/regenerate-sar-snapshots.sh` | One-shot fixture regenerator; preferred over manual copy steps in the branch docs |
 
@@ -47,7 +48,7 @@ These override the corresponding paragraphs in the branch docs. The planning age
 4. **`SubjectAccessRequestServiceTest.kt` line numbers (Branch 1)** — Verified exact. File currently has 316 lines. All line numbers cited in Branch 1 doc match the checked-out file.
 5. **Downstream impact** — Confirmed via grep. No files outside those listed in Branch docs reference: `SubjectAccessRequestGroupWaitlistItemView`, `SubjectAccessRequestReferralCaseListItemView`, `outcomeTypeCode`. ~~Factories (`GroupWaitlistItemViewEntityFactory`, `ReferralCaseListItemViewEntityFactory`) stay in place — used by other non-SAR tests.~~ **[Superseded]** Re-verified after PR #860 — both factories have zero external call-sites and are fully orphaned. They are cleaned up in the follow-up sweep-up branch `APG-2580/cleanup-orphaned-sar-factories` (plan doc committed on that branch); execute after PR #860 merges to `main`. See correction #7.
 6. **`HmppsSubjectAccessRequestControllerIntegrationTest` (Branch 1 discovery)** — Branch 1 doc §6 claimed no changes were needed to this file, but the test `should return 200 on GET subject access request data` asserted `content.containsKey("groupWaitlistItemViews")` / `containsKey("referralCaseListItemViews")` and had to lose those 4 lines. Branches 2–4 do NOT change the top-level shape of `SubjectAccessRequestContent`, so this file is not expected to break again. But whenever any branch renames or removes a field on any SAR DTO, grep `HmppsSubjectAccessRequestControllerIntegrationTest.kt` for that field name to be safe. Added to every future implementer prompt as a mandatory pre-flight check.
-7. **Orphaned SAR test factories & pre-existing cohort assertion warning (9-eyes review discoveries)** — Post-Branch 1 grep confirmed `GroupWaitlistItemViewEntityFactory` and `ReferralCaseListItemViewEntityFactory` have zero call-sites (contradicting the original wording of clarification #5). Additionally, `SubjectAccessRequestServiceTest.kt` line 125 compares `List<String?>` (DTO `.cohort`) to `List<OffenceCohort>` (entity `.cohort`) — silently always-false for non-empty sets. Both fixed on branch `APG-2580/cleanup-orphaned-sar-factories`; plan doc committed on that branch. To be executed after PR #860 merges to `main`. Not blocking for Branches 2–4.
+7. **Orphaned SAR test factories & pre-existing cohort assertion warning (9-eyes review discoveries)** — Post-Branch 1 grep confirmed `GroupWaitlistItemViewEntityFactory` and `ReferralCaseListItemViewEntityFactory` have zero call-sites (contradicting the original wording of clarification #5). Additionally, `SubjectAccessRequestServiceTest.kt` line 125 compares `List<String?>` (DTO `.cohort`) to `List<OffenceCohort>` (entity `.cohort`) — silently always-false for non-empty sets. Both fixed on branch `APG-2580/cleanup-orphaned-sar-factories`; plan doc [`APG-2580-cleanup-sar-factories-plan.md`](./APG-2580-cleanup-sar-factories-plan.md) (also committed on the sweep-up branch). To be executed after PR #860 merges to `main` — see the [sweep-up implementer prompt](#implementer-prompt--sweep-up-post-pr-860-delete-orphaned-sar-factories--fix-cohort-assertion) below. Not blocking for Branches 2–4.
 
 ---
 
@@ -56,7 +57,8 @@ These override the corresponding paragraphs in the branch docs. The planning age
 | Branch | Doc | Status | PR | Merged | Notes |
 |--------|-----|--------|----|--------|-------|
 | 1. `APG-2580/remove-pii-and-duplicate-sections` | [Branch 1](./APG-2580-branch-1-remove-pii-and-duplicate-sections.md) | 🔎 Awaiting human review | [#860](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/860) | — | Commit `679c35bd`. 10 files changed, 2 additions, 247 deletions. All tests pass. 1 planned deviation (controller test — see clarification #6). |
-| 2. `APG-2580/attendance-codes-to-descriptions` | [Branch 2](./APG-2580-branch-2-attendance-codes-to-descriptions.md) | ⏳ Ready to start (prompt below) | — | — | Base branch: `APG-2580/remove-pii-and-duplicate-sections` (or `main` after #860 merges) |
+| 1.5 sweep-up `APG-2580/cleanup-orphaned-sar-factories` | [Sweep-up plan](./APG-2580-cleanup-sar-factories-plan.md) | 🛑 Blocked on PR #860 merging to `main` | — | — | Small tidy-up PR from the 9-eyes review of PR #860. Deletes 2 now-orphaned test factories and fixes 1 pre-existing `List<String?>` vs `List<OffenceCohort>` assertion in `SubjectAccessRequestServiceTest.kt`. Branch already exists on origin at commit `62490060` (plan doc only). Prompt below. Does NOT block Branch 2 — they can run in parallel. |
+| 2. `APG-2580/attendance-codes-to-descriptions` | [Branch 2](./APG-2580-branch-2-attendance-codes-to-descriptions.md) | ⏳ Ready to start (prompt below) | — | — | Base branch: `APG-2580/remove-pii-and-duplicate-sections` (or `main` after #860 merges). Independent of the 1.5 sweep-up. |
 | 3. `APG-2580/enum-display-names` | [Branch 3](./APG-2580-branch-3-enum-display-names.md) | 🛑 Blocked on Branch 2 | — | — | Awaiting product sign-off on `InterventionType` display names |
 | 4. `APG-2580/attendance-session-note-restructure` | [Branch 4](./APG-2580-branch-4-attendance-session-note-restructure.md) | 🛑 Blocked on Branch 3 | — | — | — |
 
@@ -170,6 +172,110 @@ QUESTIONS FOR PLANNING AGENT:
 ```
 
 Do NOT proceed to Branch 2. Stop after reporting.
+
+<<<<< END PROMPT
+
+## Implementer prompt – Sweep-up (post-PR #860): Delete orphaned SAR factories & fix cohort assertion
+
+**When to run this prompt:** Only after PR #860 (`APG-2580/remove-pii-and-duplicate-sections`) has been merged into `main`. Runs independently of Branch 2 and does not block it.
+
+**Copy everything from `>>>>> BEGIN PROMPT` down to `<<<<< END PROMPT` into a fresh agent session.**
+
+>>>>> BEGIN PROMPT
+
+You are an implementation agent delivering the sweep-up follow-up to **APG-2580 PR #860** in the repo `hmpps-accredited-programmes-manage-and-deliver-api`. Two small changes surfaced by the 9-eyes review of PR #860; they are fully planned already — your job is to execute the plan exactly, run the tests, and report back.
+
+**Repo:** `/Users/raby.whyte/code/hmpps-accredited-programmes-manage-and-deliver-api`
+
+### Prerequisites (verify before doing anything else)
+
+1. `origin/main` contains the PR #860 merge:
+   ```bash
+   git fetch origin
+   git log --oneline origin/main | grep "APG-2580: Remove PII"
+   ```
+   If empty, STOP — PR #860 has not merged yet.
+
+2. Both factories are still orphaned on `origin/main` after the merge:
+   ```bash
+   git grep -n "GroupWaitlistItemViewEntityFactory\|ReferralCaseListItemViewEntityFactory" origin/main -- src/ \
+     | grep -v "factory/GroupWaitlistItemViewEntityFactory.kt\|factory/ReferralCaseListItemViewEntityFactory.kt"
+   ```
+   Must be empty. If not, STOP and re-plan.
+
+### Setup
+
+```bash
+git fetch origin
+git checkout APG-2580/cleanup-orphaned-sar-factories
+git rebase origin/main
+```
+
+The branch already exists (commit `62490060`, plan doc only). Rebase brings in the Branch 1 code so the deletions and assertion fix apply cleanly.
+
+### Plan to execute
+
+Read the full plan here and follow it verbatim:
+
+`docs/branches/APG-2580-cleanup-sar-factories-plan.md`
+
+That doc lists both files to delete, the exact one-line assertion change, verification steps, and a self-delete instruction for the plan doc itself.
+
+### Acceptance criteria (all must be true before you report back)
+
+- [ ] Files deleted:
+  - `src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/factory/GroupWaitlistItemViewEntityFactory.kt`
+  - `src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/factory/ReferralCaseListItemViewEntityFactory.kt`
+  - `docs/branches/APG-2580-cleanup-sar-factories-plan.md` (this plan self-deletes on execution)
+- [ ] `SubjectAccessRequestServiceTest.kt` cohort assertion RHS changed from `.map { it.cohort }` to `.map { it.cohort.displayName }` (single-line diff, no import changes).
+- [ ] `grep -rn "GroupWaitlistItemViewEntityFactory\|ReferralCaseListItemViewEntityFactory" src/` returns empty (confirms no dangling imports).
+- [ ] `./gradlew ktlintCheck` passes.
+- [ ] `./gradlew test --tests "*SubjectAccessRequestServiceTest*"` passes.
+- [ ] `./gradlew build` (full build) passes.
+- [ ] No SAR fixture regeneration needed (nothing observable through SAR changes).
+
+### Push and open PR
+
+```bash
+git add -A
+git commit -m "APG-2580: Delete orphaned SAR test factories and fix cohort assertion"
+git push --force-with-lease -u origin APG-2580/cleanup-orphaned-sar-factories
+```
+
+(`--force-with-lease` because we rebased; the branch on origin currently has only the plan doc commit.)
+
+Open a PR against `main` titled: `APG-2580 Delete orphaned SAR test factories and fix cohort assertion (sweep-up)`
+
+Body: link to PR #860 as the parent; note this is a sweep-up of two review-observed items with no runtime impact.
+
+### Report back to the planning agent
+
+Reply in this exact structure:
+
+```
+BRANCH: 1.5 sweep-up
+BRANCH NAME: APG-2580/cleanup-orphaned-sar-factories
+PR URL: <url>
+
+FILES DELETED:
+  - <path>
+
+FILES MODIFIED (with 1-line summary each):
+  - <path>: <summary>
+
+TEST RESULTS:
+  - ktlintCheck: PASS / FAIL
+  - SubjectAccessRequestServiceTest: PASS / FAIL
+  - Full build (./gradlew build): PASS / FAIL
+
+DEVIATIONS FROM PLAN:
+  - <list any, or "none">
+
+QUESTIONS FOR PLANNING AGENT:
+  - <list any, or "none">
+```
+
+Do NOT proceed to Branch 2 (it is being run separately). Stop after reporting.
 
 <<<<< END PROMPT
 
@@ -304,3 +410,4 @@ Do NOT proceed to Branch 3. Stop after reporting.
 - **2026-08-19** – Branch 1 implemented (commit `679c35bd`, PR [#860](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/860)). All acceptance criteria met. 1 planned deviation: `HmppsSubjectAccessRequestControllerIntegrationTest.kt` lost 4 lines of key-presence assertions on the removed `groupWaitlistItemViews` / `referralCaseListItemViews` keys. Diff verified: 10 files changed, +2/−247. Clarification #6 added. Branch 2 implementer prompt released with new mandatory pre-flight grep step.
 
 - **2026-08-19** – 9-eyes review of PR #860 surfaced two follow-ups: (a) `GroupWaitlistItemViewEntityFactory` and `ReferralCaseListItemViewEntityFactory` now have zero call-sites (correction #5 wording was outdated); (b) `SubjectAccessRequestServiceTest.kt` line 125 has a pre-existing `List<String?>` vs `List<OffenceCohort>` type-mismatch assertion. Both scoped to a standalone sweep-up branch `APG-2580/cleanup-orphaned-sar-factories` with a validated plan doc committed there. Execution deferred until PR #860 merges to `main`. Branch 1 doc §6/§7 amended to point at sweep-up. Correction #7 added. No impact on Branches 2–4.
+- **2026-08-19** – Sweep-up formalised: plan doc `APG-2580-cleanup-sar-factories-plan.md` mirrored onto planning-docs for discoverability; tracker gains a status-board row (1.5) between Branches 1 and 2, an implementer prompt block in the same shape as Branches 1/2, and the reference-documents table now links to the plan doc. Correction #7 now anchors at the new prompt. Plan doc technical claims re-verified against Branch 1 head (`679c35bd`): factories orphaned, cohort assertion still at line 125, `OffenceCohort.displayName` still `enum(val displayName: String)`, DTO `.cohort: String?` mapped from `cohort.displayName`. No changes to Branches 2–4.
