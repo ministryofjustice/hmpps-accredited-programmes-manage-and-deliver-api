@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AvailabilityEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.MessageHistoryEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCohortHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -47,7 +48,10 @@ fun ReferralEntity.toApi(
   statusHistories = statusHistories.map { it.toApi() }.toMutableList(),
   messageHistories = messageHistoryEntities.map { it.toApi() }.toMutableList(),
   referralLdcHistories = referralLdcHistories.map { it.toApi() }.toMutableSet(),
-  referralCohortHistories = referralCohortHistories.map { it.toApi() }.toMutableSet(),
+  referralCohortHistories = referralCohortHistories
+    .sortedWith(compareByDescending<ReferralCohortHistoryEntity> { it.createdAt }.thenBy { it.id })
+    .map { it.toApi() }
+    .toMutableSet(),
   referralMotivationBackgroundAndNonAssociation = referralMotivationBackgroundAndNonAssociations?.toApi(),
   referralReportingLocation = referralReportingLocation?.toApi(),
   attendees = attendeeEntities.map { it.toApi() }.toMutableList(),
