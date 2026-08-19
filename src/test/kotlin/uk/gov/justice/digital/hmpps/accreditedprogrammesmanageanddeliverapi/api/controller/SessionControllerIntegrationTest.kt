@@ -59,6 +59,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusRegionWithMembersFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamMembersFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamWithMembersFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionNotesHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UpdateAppointmentRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UpdateAppointmentsRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserDtoFactory
@@ -70,6 +72,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
 import java.time.DayOfWeek
@@ -104,6 +107,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var bankHolidayRepository: BankHolidayRepository
+
+  @Autowired
+  private lateinit var sessionAttendanceOutcomeTypeRepository: SessionAttendanceOutcomeTypeRepository
 
   @Nested
   @DisplayName("GET /bff/session/{sessionId}")
@@ -1986,6 +1992,12 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           .withCode("GROUPCODE")
           .produce(),
       )
+      val referral = testDataGenerator.createReferral(
+        randomFullName().getNameAsString(),
+        crn = randomCrn(),
+      )
+      val programmeGroupMembershipList = testDataGenerator.allocateReferralsToGroup(listOf(referral), group)
+
       val session = testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(group)
@@ -1994,21 +2006,44 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           .withEndsAt(LocalDateTime.of(2026, 4, 23, 14, 30))
           .produce(),
       )
-      val referral = testDataGenerator.createReferral(
-        randomFullName().getNameAsString(),
-        crn = randomCrn(),
+      val regularFacilitator = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withId(null).produce())
+
+      val sessionAttendance = testDataGenerator.createSessionAttendance(
+        SessionAttendanceEntityFactory()
+          .withGroupMembership(programmeGroupMembershipList.first())
+          .withSession(session)
+          .withRecordedByFacilitator(regularFacilitator)
+          .withOutcomeType(sessionAttendanceOutcomeTypeRepository.findByCode(ATTC)!!)
+          .produce(),
       )
-      testDataGenerator.createNDeliusAppointment(session, referral)
+
+      testDataGenerator.createSessionNotesHistory(
+        SessionNotesHistoryEntityFactory()
+          .withAttendance(sessionAttendance)
+          .withNotes("Test notes that should not change")
+          .produce(),
+      )
+
+      val nDeliusAppointment = testDataGenerator.createNDeliusAppointment(session, referral)
 
       assertThat(session.sessionFacilitators).isEmpty()
       nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
       stubAuthTokenEndpoint()
 
+      val editSessionFacilitatorRequest = listOf(
+        EditSessionFacilitatorRequest(
+          facilitatorName = randomFullName().getNameAsString(),
+          facilitatorCode = randomAlphanumericString(),
+          teamName = randomAlphanumericString(),
+          teamCode = randomUppercaseString(),
+        ),
+      )
+
       // When
       val response = performRequestAndExpectStatusWithBody(
         HttpMethod.PUT,
         uri = "session/${session.id}/session-facilitators",
-        body = facilitatorRequest,
+        body = editSessionFacilitatorRequest,
         returnType = object : ParameterizedTypeReference<String>() {},
         expectedResponseStatus = HttpStatus.OK.value(),
       )
@@ -2017,14 +2052,31 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).isNotNull
       assertThat(response).isEqualTo("The people responsible for this session have been updated.")
       val savedSession = sessionRepository.findByIdOrNull(session.id!!)!!
+      assertThat(savedSession.attendances.first().outcomeType.code).isNotNull
+      assertThat(savedSession.attendances.first().outcomeType.code).isEqualTo(ATTC)
       val sessionFacilitatorCodes = savedSession.sessionFacilitators.map { it.facilitatorCode }
 
-      assertThat(savedSession.sessionFacilitators).hasSize(2)
-      assertThat(sessionFacilitatorCodes).containsAll(facilitatorRequest.map { it.facilitatorCode })
+      assertThat(savedSession.sessionFacilitators).hasSize(1)
+      assertThat(sessionFacilitatorCodes).containsAll(editSessionFacilitatorRequest.map { it.facilitatorCode })
 
-      val savedFacilitatorEntities = facilitatorRepository.findAll()
-      assertThat(sessionFacilitatorCodes).containsAll(savedFacilitatorEntities.map { it.ndeliusPersonCode })
-
+      val expectedUpdateRequest = UpdateAppointmentsRequestFactory()
+        .withAppointments(
+          listOf(
+            UpdateAppointmentRequestFactory()
+              .withReference(nDeliusAppointment.ndeliusAppointmentId)
+              .withDate(LocalDate.of(2026, 4, 23))
+              .withStartTime(LocalTime.of(13, 30))
+              .withEndTime(LocalTime.of(14, 30))
+              .withLocation(RequestCode(group.deliveryLocationCode))
+              .withStaff(RequestCode(editSessionFacilitatorRequest.first().facilitatorCode))
+              .withTeam(RequestCode(editSessionFacilitatorRequest.first().teamCode))
+              .withOutcome(RequestCode(ATTC.toString()))
+              .withNotes("Test notes that should not change")
+              .produce(),
+          ),
+        )
+        .produce()
+      nDeliusApiStubs.verifyPutAppointments(1, expectedUpdateRequest)
       wiremock.verify(1, putRequestedFor(urlEqualTo("/appointments")))
     }
 

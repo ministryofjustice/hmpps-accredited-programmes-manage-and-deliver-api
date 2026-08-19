@@ -29,6 +29,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionNotesHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -174,6 +175,11 @@ class TestDataGenerator {
   fun createSessionAttendanceOutcome(outcome: SessionAttendanceNDeliusOutcomeEntity): SessionAttendanceNDeliusOutcomeEntity {
     entityManager.persist(outcome)
     return outcome
+  }
+
+  fun createSessionNotesHistory(notesHistory: SessionNotesHistoryEntity): SessionNotesHistoryEntity {
+    entityManager.persist(notesHistory)
+    return notesHistory
   }
 
   fun createGroupMembership(

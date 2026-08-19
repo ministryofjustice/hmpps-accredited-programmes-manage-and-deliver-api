@@ -450,4 +450,42 @@ class EntityFactoriesTest {
     assertThat(requirement.eventNumber).isEqualTo("1")
     assertThat(requirement.createdAt).isNotNull()
   }
+
+  @Test
+  fun `SessionNotesHistoryEntityFactory should create entity with default values`() {
+    val sessionNotesHistory = SessionNotesHistoryEntityFactory().produce()
+
+    assertThat(sessionNotesHistory.id).isNull()
+    assertThat(sessionNotesHistory.attendance).isNotNull()
+    assertThat(sessionNotesHistory.notes).isEqualTo("Session notes")
+    assertThat(sessionNotesHistory.createdBy).isEqualTo("UNKNOWN_USER")
+    assertThat(sessionNotesHistory.createdAt).isNotNull()
+    assertThat(sessionNotesHistory.createdByFullName).isEqualTo("Unknown User")
+  }
+
+  @Test
+  fun `SessionNotesHistoryEntityFactory should create entity with custom values`() {
+    val id = UUID.randomUUID()
+    val attendance = SessionAttendanceEntityFactory().produce()
+    val notes = "Custom notes"
+    val createdBy = "custom_user"
+    val createdAt = LocalDateTime.of(2024, 1, 15, 10, 30)
+    val createdByFullName = "Custom User Full Name"
+
+    val sessionNotesHistory = SessionNotesHistoryEntityFactory()
+      .withId(id)
+      .withAttendance(attendance)
+      .withNotes(notes)
+      .withCreatedBy(createdBy)
+      .withCreatedAt(createdAt)
+      .withCreatedByFullName(createdByFullName)
+      .produce()
+
+    assertThat(sessionNotesHistory.id).isEqualTo(id)
+    assertThat(sessionNotesHistory.attendance).isEqualTo(attendance)
+    assertThat(sessionNotesHistory.notes).isEqualTo(notes)
+    assertThat(sessionNotesHistory.createdBy).isEqualTo(createdBy)
+    assertThat(sessionNotesHistory.createdAt).isEqualTo(createdAt)
+    assertThat(sessionNotesHistory.createdByFullName).isEqualTo(createdByFullName)
+  }
 }

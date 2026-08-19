@@ -17,8 +17,7 @@ class SessionFactory(
 ) {
   private var id: UUID? = null
   private var programmeGroup: ProgrammeGroupEntity? = programmeGroup ?: ProgrammeGroupFactory().produce()
-  private var moduleSessionTemplate: ModuleSessionTemplateEntity? =
-    moduleSessionTemplate ?: ModuleSessionTemplateEntityFactory().produce()
+  private var moduleSessionTemplate: ModuleSessionTemplateEntity? = moduleSessionTemplate ?: ModuleSessionTemplateEntityFactory().produce()
   private var isCatchup: Boolean = false
   private var isPlaceholder: Boolean = false
   private var locationName: String? = null

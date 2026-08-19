@@ -9,6 +9,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import org.jetbrains.annotations.NotNull
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
 import java.util.UUID
 
 @Entity
@@ -39,3 +40,11 @@ fun AttendeeEntity.toNdeliusAppointmentEntity(ndeliusAppointmentId: UUID) = NDel
   session = session,
   referral = referral,
 )
+
+fun NDeliusAppointmentEntity.currentAttendance() = session.attendances
+  .filter { it.groupMembership.referral.id == referral.id }
+  .maxByOrNull { it.recordedAt ?: it.createdAt }
+
+fun NDeliusAppointmentEntity.currentOutcomeCode(): SessionAttendanceNDeliusCode? = currentAttendance()?.outcomeType?.code
+
+fun NDeliusAppointmentEntity.currentSessionNotes(): String? = currentAttendance()?.notesHistory?.firstOrNull()?.notes

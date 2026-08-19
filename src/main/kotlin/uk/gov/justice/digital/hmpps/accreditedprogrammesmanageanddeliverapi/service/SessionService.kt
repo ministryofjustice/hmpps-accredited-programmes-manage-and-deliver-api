@@ -40,6 +40,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentOutcomeCode
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentSessionNotes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.AFTC
@@ -263,8 +265,9 @@ class SessionService(
       )
       return
     }
-
-    val updateRequests = session.ndeliusAppointments.map { it.toUpdateAppointmentRequest() }
+    val updateRequests = session.ndeliusAppointments.map {
+      it.toUpdateAppointmentRequest(it.currentSessionNotes(), it.currentOutcomeCode())
+    }
 
     when (
       val response = nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateRequests))
