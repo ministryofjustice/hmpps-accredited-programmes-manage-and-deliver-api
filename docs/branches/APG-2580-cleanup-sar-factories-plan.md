@@ -1,22 +1,37 @@
-# APG-2580 Sweep-up – Delete Orphaned SAR Factories & Fix Cohort Assertion
+# APG-2580 Sweep-up – Fix Cohort Assertion in SubjectAccessRequestServiceTest
 
-**Branch:** `APG-2580/cleanup-orphaned-sar-factories`
-**Base:** `main` (targets `main` after PR #860 / Branch 1 is merged)
+**Branch:** `APG-2580/cleanup-orphaned-sar-factories`  *(branch name retained for continuity; the scope was reduced after planning — see box below)*
+**Base:** `main` (targets `main` after PR #860 / Branch 1 is merged — now confirmed merged as `4adc4b08`)
 **Trigger:** Only execute this plan **after** PR #860 (`APG-2580/remove-pii-and-duplicate-sections`) is merged into `main`.
-**Author:** Copilot planning session, validated against workspace on 2026-08-19.
+**Author:** Copilot planning session, re-validated against workspace on 2026-08-20 after implementer preflight halt.
 
 > This document is the plan-of-record. When the user triggers execution, the implementer agent (this session or a fresh one) should follow this doc **verbatim**. **No guesswork** — every claim below has been validated against the checked-out codebase and is captured with exact file paths, line numbers, and code snippets.
 
 ---
 
-## Why this branch exists
+## ⚠️  Scope reduction (2026-08-20)
 
-Follow-ups surfaced in the 9-eyes code review of PR #860. Two independent, low-risk changes that are cleaner as a small standalone PR than as a footnote on Branch 1:
+The original plan for this branch included deleting two "orphaned" test factories:
 
-1. **Delete now-orphaned test factories.** After PR #860 removes the SAR waitlist / caselist DTOs, two entity factories that were only ever instantiated by `SubjectAccessRequestServiceTest` become dead code.
-2. **Fix a pre-existing type-mismatch assertion** in `SubjectAccessRequestServiceTest.kt` that IntelliJ / Kotlin compiler already flags as a warning: `List<String?>` vs `List<OffenceCohort>` — always false for non-empty cohort sets.
+- `GroupWaitlistItemViewEntityFactory.kt`
+- `ReferralCaseListItemViewEntityFactory.kt`
 
-Neither change affects production behaviour, SAR output, or the SAR fixture snapshots.
+**Both deletions have been removed from scope.** Reasons, captured at execution time by the implementer preflight check + planning re-validation on `origin/main`:
+
+1. **`GroupWaitlistItemViewEntityFactory` is no longer orphaned.** PR #865 (`APG-2602/add-lao-to-view-allocations-and-waitlist`) merged after the sweep-up was planned. It adds two call-sites in `src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/service/ProgrammeGroupServiceTest.kt` (import at line 20, factory instantiation at lines 131 and 222). Deletion would break that test.
+2. **`ReferralCaseListItemViewEntityFactory` is technically still orphaned**, but empirical evidence from its sibling shows that "orphan" status in this repo can flip inside 24 hours. Both factories were originally created by the same commit (PR #494, `Apg 1713/build sar endpoint`) as reusable test scaffolding. There is active team work in the caselist / LAO area (see PRs #813, #847, #862, #863, #865) that could plausibly reach for this factory next. The cost of keeping it = 49 lines of test-only code; the cost of hasty deletion = future churn if someone recreates it from scratch.
+
+**Lesson for future planning:** grep-based "orphan" checks are point-in-time snapshots. In an active codebase, orphan status can flip within a day. Do not scope deletion of test scaffolding on a snapshot — require either a real motivating problem (compile error, misleading test, security concern) or evidence of prolonged disuse. This lesson is captured in the delivery tracker's Corrections / clarifications section.
+
+**What remains in scope:** the single-line cohort-assertion fix in `SubjectAccessRequestServiceTest.kt`, which is a real bug fix and stands entirely on its own merit.
+
+---
+
+## Why this branch exists (revised)
+
+The 9-eyes review of PR #860 surfaced a pre-existing type-mismatch assertion in `SubjectAccessRequestServiceTest.kt`. It compares `List<String?>` (DTO `.cohort`) to `List<OffenceCohort>` (entity `.cohort`) — silently always-false for non-empty cohort sets. The test only passes today because the referral fixture happens to have an empty cohort set, so both sides collapse to `List<>` of size 0 and the assertion provides zero coverage.
+
+This branch fixes that assertion so the compared lists have the same element type. No production code changes, no SAR fixture regeneration, one-line diff.
 
 ---
 
@@ -24,59 +39,27 @@ Neither change affects production behaviour, SAR output, or the SAR fixture snap
 
 Before opening this branch's PR the implementer must confirm:
 
-- [ ] `origin/main` contains the Branch 1 merge (i.e. `git log --oneline origin/main | grep "APG-2580: Remove PII"` returns a commit).
-- [ ] `git fetch origin && git rebase origin/main` completes cleanly on this branch (only the plan doc lives here so far, so this should be a no-op fast-forward or trivial rebase).
-- [ ] `grep -rn "GroupWaitlistItemViewEntityFactory\|ReferralCaseListItemViewEntityFactory" src/ | grep -v "^src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/factory/"` returns **empty**. If any usage has appeared since this plan was written (e.g. Branch 2/3/4 reintroduced them), **stop and re-plan**.
+- [ ] `origin/main` contains the Branch 1 merge:
+  ```bash
+  git fetch origin
+  git log --oneline origin/main | grep "#860"
+  ```
+  Should return `4adc4b08 APG-2580 Remove PII and duplicate sections from SAR (community) (#860)`. If empty, STOP — PR #860 has not merged yet.
+
+  *(Note: earlier drafts of this doc used the pattern `"APG-2580: Remove PII"` with a colon — that was wrong. GitHub's default "Squash and merge" title has no colon. Use `"#860"` — it is uniquely identifying and immune to title reformatting.)*
+
+- [ ] `git fetch origin && git rebase origin/main` completes cleanly on this branch. The sweep-up branch only touches `docs/branches/APG-2580-cleanup-sar-factories-plan.md` (a new file), so rebase over post-Branch-1 `main` is trivial.
 
 ---
 
-## Codebase validation (captured on 2026-08-19 vs `APG-2580/remove-pii-and-duplicate-sections` HEAD `679c35bd`)
+## Codebase validation (captured on 2026-08-20 vs `origin/main`)
 
-### Validation 1 — `GroupWaitlistItemViewEntityFactory` is orphaned
+### Validation — cohort assertion is comparing incompatible types
 
-Command run:
-
-```bash
-grep -rn "GroupWaitlistItemViewEntityFactory" src/ \
-  | grep -v "factory/GroupWaitlistItemViewEntityFactory.kt"
-```
-
-Result on Branch 1 head: **empty** (0 call-sites).
-
-File to be deleted:
-
-```
-src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/factory/GroupWaitlistItemViewEntityFactory.kt
-```
-
-Size: 59 lines. Underlying `GroupWaitlistItemViewEntity` remains in place and continues to be exercised by `GroupWaitlistViewRepositoryIntegrationTest`, `ProgrammeGroupService`, and `ProgrammeGroupServiceTest` — none of which use this factory. Verified by grep.
-
-### Validation 2 — `ReferralCaseListItemViewEntityFactory` is orphaned
-
-Command run:
-
-```bash
-grep -rn "ReferralCaseListItemViewEntityFactory" src/ \
-  | grep -v "factory/ReferralCaseListItemViewEntityFactory.kt"
-```
-
-Result on Branch 1 head: **empty** (0 call-sites).
-
-File to be deleted:
-
-```
-src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/factory/ReferralCaseListItemViewEntityFactory.kt
-```
-
-Size: 49 lines. Underlying `ReferralCaseListItemViewEntity` / `ReferralCaseListItemRepository` remain and continue to be used by `ReferralCaseListItemService` (production) and `CaseListControllerIntegrationTest` (via the repository directly, not this factory).
-
-### Validation 3 — cohort assertion is comparing incompatible types
-
-**Current line (Branch 1 HEAD, `SubjectAccessRequestServiceTest.kt` line 125):**
+**Current line (`src/test/kotlin/.../service/SubjectAccessRequestServiceTest.kt` line 125 post-merge):**
 
 ```kotlin
-assertThat(resultContent.referrals[0].referralCohortHistories.map { it.cohort })
-  .isEqualTo(referralEntity1.referralCohortHistories.map { it.cohort })
+    assertThat(resultContent.referrals[0].referralCohortHistories.map { it.cohort }).isEqualTo(referralEntity1.referralCohortHistories.map { it.cohort })
 ```
 
 - LHS: `resultContent.referrals[0]` is a `SubjectAccessRequestReferral`, so `referralCohortHistories: MutableSet<SubjectAccessRequestReferralCohortHistory>`. Its `cohort` field is declared:
@@ -126,8 +109,7 @@ The fix mirrors how other enum→String comparisons are already done in the same
 **Target line (post-fix, line 125):**
 
 ```kotlin
-assertThat(resultContent.referrals[0].referralCohortHistories.map { it.cohort })
-  .isEqualTo(referralEntity1.referralCohortHistories.map { it.cohort.displayName })
+    assertThat(resultContent.referrals[0].referralCohortHistories.map { it.cohort }).isEqualTo(referralEntity1.referralCohortHistories.map { it.cohort.displayName })
 ```
 
 This aligns exactly with the mapper (`ReferralCohortHistoryEntity.toApi()` uses `cohort.displayName`) so the assertion now proves the mapper is doing the right thing.
@@ -136,23 +118,11 @@ This aligns exactly with the mapper (`ReferralCohortHistoryEntity.toApi()` uses 
 
 ## Exact changes to apply
 
-### Change 1 — delete `GroupWaitlistItemViewEntityFactory.kt`
-
-```bash
-git rm src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/factory/GroupWaitlistItemViewEntityFactory.kt
-```
-
-### Change 2 — delete `ReferralCaseListItemViewEntityFactory.kt`
-
-```bash
-git rm src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/factory/ReferralCaseListItemViewEntityFactory.kt
-```
-
-### Change 3 — fix cohort assertion
+### Change 1 — fix cohort assertion
 
 File: `src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/service/SubjectAccessRequestServiceTest.kt`
 
-Replace (line 125 as of Branch 1 HEAD; re-verify line number after any rebase):
+Replace (line 125 post-Branch-1-merge; re-verify line number after rebase):
 
 ```kotlin
     assertThat(resultContent.referrals[0].referralCohortHistories.map { it.cohort }).isEqualTo(referralEntity1.referralCohortHistories.map { it.cohort })
@@ -166,13 +136,13 @@ with:
 
 Diff-wise: only the RHS closure changes from `it.cohort` to `it.cohort.displayName`. No import changes required (`OffenceCohort` is not referenced directly; only its `displayName` property is used through `it.cohort.displayName`).
 
-### Change 4 — delete this plan doc
+### Change 2 — delete this plan doc
 
 ```bash
 git rm docs/branches/APG-2580-cleanup-sar-factories-plan.md
 ```
 
-Rationale: the doc's job is done once the PR is executed. Keep the git history clean of ephemeral plan docs. (The Branch 1 planning docs on `APG-2580/planning-docs` remain untouched.)
+Rationale: the doc's job is done once the PR is executed. Keep the git history clean of ephemeral plan docs. (The mirror on the `APG-2580/planning-docs` branch is the durable record and remains untouched.)
 
 ---
 
@@ -184,22 +154,20 @@ Run in this order from the repo root:
 # 1. Static analysis
 ./gradlew ktlintCheck
 
-# 2. Targeted unit test (the only test that exercised those factories / the fixed assertion)
+# 2. Targeted unit test (the one whose assertion we're fixing)
 ./gradlew test --tests "*SubjectAccessRequestServiceTest*"
 
-# 3. Full build (validates that nothing else transitively depended on the deleted factories)
+# 3. Full build (defensive; no reason to expect breakage from a one-line assertion fix)
 ./gradlew build
 ```
 
 Expected outcomes:
 
 - `ktlintCheck` — **PASS**.
-- `SubjectAccessRequestServiceTest` — both tests **PASS** (unchanged count).
-- `./gradlew build` — full 874-test PASS, 0 failed, 9 skipped (same profile as Branch 1 merge state).
+- `SubjectAccessRequestServiceTest` — both tests **PASS** (unchanged count; the assertion now actually asserts something meaningful, but with the current empty cohort-history set both sides are still `List<>` of size 0, so the test still passes).
+- `./gradlew build` — full test suite **PASS**.
 
-If step 3 surfaces a `Unresolved reference: GroupWaitlistItemViewEntityFactory` or `Unresolved reference: ReferralCaseListItemViewEntityFactory` in any file, **stop** — the prerequisite check missed a caller. Grep for the reference, restore the factory, and re-plan.
-
-No SAR fixture regeneration is required (Change 3 does not change SAR output; Changes 1, 2, 4 don't touch production code).
+No SAR fixture regeneration is required (this change is test-side only; nothing observable through the SAR endpoint changes).
 
 ---
 
@@ -207,24 +175,28 @@ No SAR fixture regeneration is required (Change 3 does not change SAR output; Ch
 
 ```bash
 git add -A
-git commit -m "APG-2580: Delete orphaned SAR test factories and fix cohort assertion
+git commit -m "APG-2580: Fix cohort assertion in SubjectAccessRequestServiceTest
 
-- Delete GroupWaitlistItemViewEntityFactory + ReferralCaseListItemViewEntityFactory
-  (orphaned after PR #860 removed the SAR waitlist / caselist DTOs).
-- Fix SubjectAccessRequestServiceTest cohort assertion so the compared lists have
-  the same element type (String vs String) instead of String vs OffenceCohort enum.
+The assertion compared List<String?> (DTO .cohort, mapped from
+OffenceCohort.displayName) with List<OffenceCohort> (entity .cohort). Always
+false for non-empty sets; only passed today because the test's referralEntity1
+has an empty cohort-history set. Fix aligns RHS with the mapper output so the
+assertion actually validates the mapping.
 
-Both changes were surfaced by the 9-eyes review of PR #860."
+Surfaced by the 9-eyes review of PR #860. Original sweep-up scope also intended
+to delete two orphaned SAR test factories; the GroupWaitlistItemViewEntityFactory
+was picked up by PR #865 (LAO waitlist work) within a day of being marked
+orphaned, so both factory deletions were dropped from scope to avoid churn."
 
 git push --force-with-lease -u origin APG-2580/cleanup-orphaned-sar-factories
 ```
 
-(`--force-with-lease` because we rebased onto post-Branch-1 `main`; origin currently has only the plan-doc commit `62490060` and needs to be overwritten with the executed branch.)
+(`--force-with-lease` because we rebased onto post-Branch-1 `main`; origin currently has only the plan-doc commit `98e49d7a` and needs to be overwritten with the executed branch.)
 
 Open a PR against `main` titled:
-`APG-2580 Delete orphaned SAR test factories and fix cohort assertion`
+`APG-2580 Fix cohort assertion in SubjectAccessRequestServiceTest (sweep-up)`
 
-Body: link to PR #860, note that this is a sweep-up of two review-observed items with no runtime impact.
+Body: link PR #860 as parent. Note this is the reduced-scope outcome of the 9-eyes review sweep-up — the factory deletions originally intended for this branch were dropped after `GroupWaitlistItemViewEntityFactory` was picked up by PR #865. Point at the delivery tracker (Corrections / clarifications #7 and change log).
 
 ---
 
@@ -238,8 +210,6 @@ BRANCH NAME: APG-2580/cleanup-orphaned-sar-factories
 PR URL: <url>
 
 FILES DELETED:
-  - src/test/kotlin/.../factory/GroupWaitlistItemViewEntityFactory.kt
-  - src/test/kotlin/.../factory/ReferralCaseListItemViewEntityFactory.kt
   - docs/branches/APG-2580-cleanup-sar-factories-plan.md
 
 FILES MODIFIED:
@@ -263,7 +233,6 @@ QUESTIONS FOR PLANNING AGENT:
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| A downstream branch (Branch 2/3/4) reintroduces a factory usage before this PR lands | Low | Test failure at build time | Prerequisite grep check documented above; run before committing. |
 | Cohort assertion fix reveals a real mapping bug | Very Low | Test failure | Would be a genuine catch — investigate rather than revert. The mapper (`cohort.displayName`) is already exercised by the SAR contract snapshot fixture which passes. |
-| Factory deletion removes coverage of `GroupWaitlistItemViewEntity` / `ReferralCaseListItemViewEntity` builders | None | – | Entities are still covered by their repository/service integration tests which construct them directly. Factories were unused syntactic sugar. |
-
+| Line 125 has shifted since planning | Low | Wrong-line edit / no match | Grep for the exact substring `referralCohortHistories.map { it.cohort }).isEqualTo` before editing; there is exactly one occurrence in the file. |
+| Rebase over post-Branch-1 `main` conflicts | Very Low | Rebase abort | Only file touched on this branch so far is the plan doc (new file). Any conflict would be surprising; abort and re-plan if it happens. |
