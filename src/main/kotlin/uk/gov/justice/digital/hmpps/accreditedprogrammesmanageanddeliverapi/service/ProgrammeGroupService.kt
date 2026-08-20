@@ -65,7 +65,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsByRegionTabSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.LimitedAccessResolverService.Access
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserAccessService.Access
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
@@ -92,7 +92,7 @@ class ProgrammeGroupService(
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
   private val userAccessService: UserAccessService,
   @Value("\${app.features.lao-access-check-enabled}")
-  private val laoAccessCheckEnabled: Boolean,
+  private val limitedAccessOffenderCheckEnabled: Boolean,
   private val moduleRepository: ModuleRepository,
   private val authenticationUtils: AuthenticationUtils,
   private val regionService: RegionService,
@@ -435,7 +435,7 @@ class ProgrammeGroupService(
     if (limitedAccessOffenderCheckEnabled) {
       val username = authenticationUtils.getUsername()
       val caseReferenceNumbers = pagedData.content.map { it.crn }.distinct()
-      limitedAccessOffenderAccessMap = limitedAccessResolverService.resolve(username, caseReferenceNumbers)
+      limitedAccessOffenderAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
     }
 
     val groupListDataToReturn: Page<GroupItem> =

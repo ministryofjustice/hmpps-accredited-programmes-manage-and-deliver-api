@@ -23,20 +23,20 @@ class UserAccessService(
     val uniqueCRNs = crnList.distinct()
     if (uniqueCRNs.isEmpty()) return emptyMap()
 
-    val laoByCRN = determineLimitedAccessByCRN(uniqueCRNs)
+    val limitedAccessOffenders = determineLimitedAccessOffendersByCRN(uniqueCRNs)
     val accessibleCRNs = determineAccessibleCRNs(username, uniqueCRNs)
 
     return uniqueCRNs
       .associateWith { crn ->
         Access(
-          lao = laoByCRN[crn] ?: false,
+          lao = limitedAccessOffenders[crn] ?: false,
           isExcluded = crn !in accessibleCRNs,
         )
       }
       .let(::filterAccessByRestrictionFeature)
   }
 
-  private fun determineLimitedAccessByCRN(crnList: List<String>): Map<String, Boolean> = if (laoAccessCheckEnabled) crnList.associateWith(::isLimitedAccessOffender) else emptyMap()
+  private fun determineLimitedAccessOffendersByCRN(crnList: List<String>): Map<String, Boolean> = if (laoAccessCheckEnabled) crnList.associateWith(::isLimitedAccessOffender) else emptyMap()
 
   private fun determineAccessibleCRNs(username: String, crnList: List<String>): Set<String> {
     val accessChecksEnabled = laoAccessCheckEnabled || restrictionEnabled

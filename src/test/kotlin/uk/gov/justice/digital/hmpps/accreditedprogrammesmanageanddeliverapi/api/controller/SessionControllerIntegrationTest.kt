@@ -2364,6 +2364,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
       val userFullName = "John Smith"
       manageUsersApiStubs.stubUserResponse(UserDtoFactory().withName(userFullName).produce())
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
       val sessionAttendanceRequest1 = SessionAttendance(
         attendees = listOf(
@@ -2466,6 +2467,46 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(exception.userMessage).isEqualTo("Not Found: Session not found with id: $sessionId")
+    }
+
+    @Test
+    fun `should return 200 with isLao and isExcluded set to true on GET record attendance by a session ID`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+      val referral = testReferralHelper.createReferral()
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
+      val session = sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
+      val sessionId = session.id!!
+      val attendee = session.attendees.first()
+
+      val userFullName = "John Smith"
+      manageUsersApiStubs.stubUserResponse(UserDtoFactory().withName(userFullName).produce())
+
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = referral.crn,
+        excludedFrom = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange(username = "AUTH_ADM")),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = false, referral.crn)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/session/$sessionId/record-attendance",
+        returnType = object : ParameterizedTypeReference<RecordSessionAttendance>() {},
+      )
+
+      // Then
+      assertThat(response.people).isNotEmpty()
+      val person = response.people.first { it.referralId == attendee.referralId }
+      assertThat(person.isLao).isTrue
+      assertThat(person.isExcluded).isTrue
     }
   }
 

@@ -26,7 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.LimitedAccessResolverService.Access
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserAccessService.Access
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.util.Optional
@@ -148,7 +148,7 @@ class ProgrammeGroupServiceTest {
       )
     } returns page
     every { authenticationUtils.getUsername() } returns username
-    every { limitedAccessResolverService.resolve(any(), any()) } returns accessMap
+    every { userAccessService.determineUserAccess(any(), any()) } returns accessMap
     every { groupWaitlistItemViewRepository.count(any<Specification<GroupWaitlistItemViewEntity>>()) } returns 1L
     every { referralReportingLocationRepository.getPdusAndReportingTeamsByRegions(any()) } returns listOf(
       probationDeliveryUnitReportingLocation,
@@ -181,7 +181,7 @@ class ProgrammeGroupServiceTest {
         any<Pageable>(),
       )
     }
-    verify(exactly = 1) { limitedAccessResolverService.resolve(username, listOf(caseReferenceNumber)) }
+    verify(exactly = 1) { userAccessService.determineUserAccess(username, listOf(caseReferenceNumber)) }
     verify(exactly = 1) { groupWaitlistItemViewRepository.count(any<Specification<GroupWaitlistItemViewEntity>>()) }
     verify(exactly = 1) { referralReportingLocationRepository.getPdusAndReportingTeamsByRegions(any()) }
   }
@@ -201,7 +201,7 @@ class ProgrammeGroupServiceTest {
       sessionNameFormatter,
       sessionService,
       moduleSessionTemplateRepository,
-      limitedAccessResolverService,
+      userAccessService = userAccessService,
       false,
       moduleRepository,
       authenticationUtils,
@@ -268,7 +268,7 @@ class ProgrammeGroupServiceTest {
         any<Pageable>(),
       )
     }
-    verify(exactly = 0) { limitedAccessResolverService.resolve(any(), any()) }
+    verify(exactly = 0) { userAccessService.determineUserAccess(any(), any()) }
     verify(exactly = 1) { groupWaitlistItemViewRepository.count(any<Specification<GroupWaitlistItemViewEntity>>()) }
     verify(exactly = 1) { referralReportingLocationRepository.getPdusAndReportingTeamsByRegions(any()) }
   }
