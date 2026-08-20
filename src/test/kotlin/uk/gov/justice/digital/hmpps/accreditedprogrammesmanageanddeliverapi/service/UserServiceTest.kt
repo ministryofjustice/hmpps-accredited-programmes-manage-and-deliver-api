@@ -229,6 +229,19 @@ class UserServiceTest {
   }
 
   @Test
+  fun `getAccessibleOffenders should return empty set without calling nDelius when no identifiers are provided`() {
+    // Given
+    val username = "jsmith"
+
+    // When
+    val result = service.getAccessibleOffenders(username, emptyList())
+
+    // Then
+    assertEquals(emptySet<String>(), result)
+    verify(exactly = 0) { nDeliusIntegrationApiClient.verifyLimitedAccessOffenderCheck(any(), any()) }
+  }
+
+  @Test
   fun `checkIfAuthenticatedDeliusUserHasAccessToServiceUser should return true when user has access`() {
     // Given
     val username = "jsmith"
