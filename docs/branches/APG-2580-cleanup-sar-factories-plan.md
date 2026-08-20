@@ -1,6 +1,6 @@
 # APG-2580 Sweep-up – Fix Cohort Assertion in SubjectAccessRequestServiceTest
 
-**Branch:** `APG-2580/cleanup-orphaned-sar-factories`  *(branch name retained for continuity; the scope was reduced after planning — see box below)*
+**Branch:** `APG-2580/fix-sar-cohort-assertion`  *(renamed 2026-08-20 from `APG-2580/cleanup-orphaned-sar-factories` to align the branch name with the reduced scope — see box below)*
 **Base:** `main` (targets `main` after PR #860 / Branch 1 is merged — now confirmed merged as `4adc4b08`)
 **Trigger:** Only execute this plan **after** PR #860 (`APG-2580/remove-pii-and-duplicate-sections`) is merged into `main`.
 **Author:** Copilot planning session, re-validated against workspace on 2026-08-20 after implementer preflight halt.
@@ -188,7 +188,7 @@ to delete two orphaned SAR test factories; the GroupWaitlistItemViewEntityFactor
 was picked up by PR #865 (LAO waitlist work) within a day of being marked
 orphaned, so both factory deletions were dropped from scope to avoid churn."
 
-git push --force-with-lease -u origin APG-2580/cleanup-orphaned-sar-factories
+git push --force-with-lease -u origin APG-2580/fix-sar-cohort-assertion
 ```
 
 (`--force-with-lease` because we rebased onto post-Branch-1 `main`; origin currently has only the plan-doc commit `98e49d7a` and needs to be overwritten with the executed branch.)
@@ -206,7 +206,7 @@ Report back to the planning agent in the same shape used for Branch 1:
 
 ```
 BRANCH: 1.5 sweep-up
-BRANCH NAME: APG-2580/cleanup-orphaned-sar-factories
+BRANCH NAME: APG-2580/fix-sar-cohort-assertion
 PR URL: <url>
 
 FILES DELETED:

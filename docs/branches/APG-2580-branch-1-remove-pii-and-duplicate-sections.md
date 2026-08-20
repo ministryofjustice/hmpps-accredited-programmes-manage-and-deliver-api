@@ -500,7 +500,7 @@ After Branch 1 drops those two fields from `SubjectAccessRequestContent`, the fo
 The original plan said:
 > Do NOT delete `GroupWaitlistItemViewEntityFactory` or `ReferralCaseListItemViewEntityFactory` — they are used by other tests (`GroupWaitlistViewRepositoryIntegrationTest`, `CaseListControllerIntegrationTest`) and by production services (`ProgrammeGroupService`, `ReferralCaseListItemService`) via the entity classes themselves.
 
-**This claim was outdated on `main` at planning time.** Post–PR #860 grep showed zero external call-sites for either factory — see Tracker correction #7 and the follow-up branch `APG-2580/cleanup-orphaned-sar-factories`, which deletes them once PR #860 has merged. If you’re implementing Branch 1 from this doc verbatim (which you should) still do NOT delete the factories here — the sweep-up PR owns that change.
+**This claim was outdated on `main` at planning time.** Post–PR #860 grep showed zero external call-sites for either factory — see Tracker correction #7 and the follow-up branch `APG-2580/fix-sar-cohort-assertion`, which deletes them once PR #860 has merged. If you’re implementing Branch 1 from this doc verbatim (which you should) still do NOT delete the factories here — the sweep-up PR owns that change.
 
 ---
 
