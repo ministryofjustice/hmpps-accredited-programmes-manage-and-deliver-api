@@ -347,7 +347,11 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.otherTabTotal).isEqualTo(1)
       assertThat(response.filters).isNotNull
       assertThat(response.filters.statusFilterValues.open).contains("Breach", "On programme")
-      assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder(pduWithComma, pduSecondary, "UNKNOWN_PDU_NAME")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder(
+        pduWithComma,
+        pduSecondary,
+        "UNKNOWN_PDU_NAME",
+      )
       assertThat(response.filters.locationFilterValues.map { it.pduName }).doesNotContain("OTHER_REGION_PDU")
       assertThat(response.filters.cohort).containsAll(ProgrammeGroupCohort.entries.map { it.label })
       assertThat(response.pagedReferrals.content).allMatch { it.isExcluded == false }
@@ -367,7 +371,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
-      assertThat(response.pagedReferrals.content.single().lao).isTrue
+      assertThat(response.pagedReferrals.content.single().isLimitedAccessOffender).isTrue
     }
 
     @Test
@@ -388,7 +392,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
-      assertThat(response.pagedReferrals.content.single().lao).isFalse
+      assertThat(response.pagedReferrals.content.single().isLimitedAccessOffender).isTrue
+      assertThat(response.pagedReferrals.content.single().isExcluded).isFalse
     }
 
     @Test
@@ -410,10 +415,44 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       // Then
       assertThat(response.pagedReferrals.totalElements).isEqualTo(6)
       assertThat(response.pagedReferrals.content.filter { it.isExcluded == true }).hasSize(2)
-      assertThat(response.pagedReferrals.content.filter { it.isExcluded == true }.map { it.crn }).containsExactlyInAnyOrder("CRN-999999", "X7182552")
+      assertThat(
+        response.pagedReferrals.content.filter { it.isExcluded == true }
+          .map { it.crn },
+      ).containsExactlyInAnyOrder("CRN-999999", "X7182552")
       // Verify that the last 2 items in the list are the excluded referrals
       assertThat(response.pagedReferrals.content[4].isExcluded).isTrue
       assertThat(response.pagedReferrals.content[5].isExcluded).isTrue
+    }
+
+    @Test
+    fun `getCaseListItems for OPEN referrals removes referral on filtering when user is in either in excluded or restricted list`() {
+      // Given
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = "CRN-999999",
+        restrictedTo = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange()),
+      )
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = "X7182552",
+        restrictedTo = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange()),
+      )
+
+      nDeliusApiStubs.stubAccessCheckMixed(
+        grantedCrns = listOf("CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555"),
+        restrictedCrns = listOf("CRN-999999"),
+        excludedCrns = listOf("X7182552"),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?sex=Male",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      // Then
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(3)
+      // Verify that 2 items that are excluded referrals are not in the list
+      assertThat(response.pagedReferrals.content.map { it.crn }).doesNotContain("CRN-999999", "X7182552")
     }
 
     @Test
@@ -489,7 +528,11 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response.pagedReferrals.totalElements).isEqualTo(6)
-      assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder(pduWithComma, pduSecondary, "UNKNOWN_PDU_NAME")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder(
+        pduWithComma,
+        pduSecondary,
+        "UNKNOWN_PDU_NAME",
+      )
       assertThat(response.filters.locationFilterValues.map { it.pduName }).doesNotContain("OTHER_REGION_PDU")
     }
 
@@ -524,7 +567,11 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.otherTabTotal).isEqualTo(1)
       assertThat(response.filters).isNotNull
       assertThat(response.filters.statusFilterValues.open).contains("Breach", "On programme")
-      assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder(pduWithComma, pduSecondary, "UNKNOWN_PDU_NAME")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactlyInAnyOrder(
+        pduWithComma,
+        pduSecondary,
+        "UNKNOWN_PDU_NAME",
+      )
       assertThat(response.filters.locationFilterValues.map { it.pduName }).doesNotContain("OTHER_REGION_PDU")
       assertThat(response.filters.cohort).containsAll(ProgrammeGroupCohort.entries.map { it.label })
     }
@@ -980,7 +1027,10 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       referralNoMatch.referralCohortHistories = mutableSetOf(cohortHistoryNoMatch)
 
       testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, reportingLocation))
-      testDataGenerator.createReferralWithFields(referralNoMatch, listOf(statusHistoryNoMatch, reportingLocationNoMatch))
+      testDataGenerator.createReferralWithFields(
+        referralNoMatch,
+        listOf(statusHistoryNoMatch, reportingLocationNoMatch),
+      )
 
       nDeliusApiStubs.stubAccessCheck(true, "CRN-COMMA-TEAM", "CRN-COMMA-TEAM-NO-MATCH")
       probationAccessControlApiStubs.stubOpenAccessByCrns("CRN-COMMA-TEAM", "CRN-COMMA-TEAM-NO-MATCH")
@@ -1066,14 +1116,25 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       testDataGenerator.createReferralWithFields(referral1, listOf(statusHistory1, reportingLocation1))
       testDataGenerator.createReferralWithFields(referral2, listOf(statusHistory2, reportingLocation2))
-      testDataGenerator.createReferralWithFields(referralNoMatch, listOf(statusHistoryNoMatch, reportingLocationNoMatch))
+      testDataGenerator.createReferralWithFields(
+        referralNoMatch,
+        listOf(statusHistoryNoMatch, reportingLocationNoMatch),
+      )
 
       nDeliusApiStubs.stubAccessCheck(true, "CRN-MULTI-TEAM-1", "CRN-MULTI-TEAM-2", "CRN-MULTI-TEAM-NO-MATCH")
-      probationAccessControlApiStubs.stubOpenAccessByCrns("CRN-MULTI-TEAM-1", "CRN-MULTI-TEAM-2", "CRN-MULTI-TEAM-NO-MATCH")
+      probationAccessControlApiStubs.stubOpenAccessByCrns(
+        "CRN-MULTI-TEAM-1",
+        "CRN-MULTI-TEAM-2",
+        "CRN-MULTI-TEAM-NO-MATCH",
+      )
 
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/open?reportingTeam=${encodeQueryParamValue(reportingTeamWithComma)}&reportingTeam=${encodeQueryParamValue(reportingTeamNormal)}",
+        "/pages/caselist/open?reportingTeam=${encodeQueryParamValue(reportingTeamWithComma)}&reportingTeam=${
+          encodeQueryParamValue(
+            reportingTeamNormal,
+          )
+        }",
         object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
 
@@ -1131,7 +1192,10 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       referralNoMatch.referralCohortHistories = mutableSetOf(cohortHistoryNoMatch)
 
       testDataGenerator.createReferralWithFields(referral, listOf(statusHistory, reportingLocation))
-      testDataGenerator.createReferralWithFields(referralNoMatch, listOf(statusHistoryNoMatch, reportingLocationNoMatch))
+      testDataGenerator.createReferralWithFields(
+        referralNoMatch,
+        listOf(statusHistoryNoMatch, reportingLocationNoMatch),
+      )
 
       nDeliusApiStubs.stubAccessCheck(true, "CRN-CLOSED-COMMA", "CRN-CLOSED-COMMA-NO-MATCH")
       probationAccessControlApiStubs.stubOpenAccessByCrns("CRN-CLOSED-COMMA", "CRN-CLOSED-COMMA-NO-MATCH")
@@ -1217,14 +1281,25 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       testDataGenerator.createReferralWithFields(referral1, listOf(statusHistory1, reportingLocation1))
       testDataGenerator.createReferralWithFields(referral2, listOf(statusHistory2, reportingLocation2))
-      testDataGenerator.createReferralWithFields(referralNoMatch, listOf(statusHistoryNoMatch, reportingLocationNoMatch))
+      testDataGenerator.createReferralWithFields(
+        referralNoMatch,
+        listOf(statusHistoryNoMatch, reportingLocationNoMatch),
+      )
 
       nDeliusApiStubs.stubAccessCheck(true, "CRN-CLOSED-MULTI-1", "CRN-CLOSED-MULTI-2", "CRN-CLOSED-MULTI-NO-MATCH")
-      probationAccessControlApiStubs.stubOpenAccessByCrns("CRN-CLOSED-MULTI-1", "CRN-CLOSED-MULTI-2", "CRN-CLOSED-MULTI-NO-MATCH")
+      probationAccessControlApiStubs.stubOpenAccessByCrns(
+        "CRN-CLOSED-MULTI-1",
+        "CRN-CLOSED-MULTI-2",
+        "CRN-CLOSED-MULTI-NO-MATCH",
+      )
 
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/pages/caselist/closed?reportingTeam=${encodeQueryParamValue(reportingTeamWithComma)}&reportingTeam=${encodeQueryParamValue(reportingTeamWithAmpersand)}",
+        "/pages/caselist/closed?reportingTeam=${encodeQueryParamValue(reportingTeamWithComma)}&reportingTeam=${
+          encodeQueryParamValue(
+            reportingTeamWithAmpersand,
+          )
+        }",
         object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
       )
 
@@ -1409,7 +1484,11 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response.filters.locationFilterValues.map { it.pduName }).containsExactly("OTHER_REGION_PDU")
-      assertThat(response.filters.locationFilterValues.map { it.pduName }).doesNotContain(pduWithComma, pduSecondary, "UNKNOWN_PDU_NAME")
+      assertThat(response.filters.locationFilterValues.map { it.pduName }).doesNotContain(
+        pduWithComma,
+        pduSecondary,
+        "UNKNOWN_PDU_NAME",
+      )
     }
 
     private fun encodeQueryParamValue(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8)
