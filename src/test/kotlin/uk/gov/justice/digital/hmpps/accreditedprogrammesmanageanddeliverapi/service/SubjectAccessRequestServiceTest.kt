@@ -122,7 +122,7 @@ class SubjectAccessRequestServiceTest {
     assertThat(resultContent.referrals[0].id).isEqualTo(referralEntity1.id)
     assertThat(resultContent.referrals[0].sentenceEndDate).isEqualTo(referralEntity1.sentenceEndDate)
     assertThat(resultContent.referrals[0].sex).isEqualTo(referralEntity1.sex)
-    assertThat(resultContent.referrals[0].referralCohortHistories.map { it.cohort }).isEqualTo(referralEntity1.referralCohortHistories.map { it.cohort })
+    assertThat(resultContent.referrals[0].referralCohortHistories.map { it.cohort }).isEqualTo(referralEntity1.referralCohortHistories.map { it.cohort.displayName })
     assertThat(resultContent.referrals[0].createdAt).isEqualTo(referralEntity1.createdAt)
     assertThat(resultContent.referrals[0].interventionName).isEqualTo(referralEntity1.interventionName)
     assertThat(resultContent.referrals[0].interventionType).isEqualTo(referralEntity1.interventionType.name)
