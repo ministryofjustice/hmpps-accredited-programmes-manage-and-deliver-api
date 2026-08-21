@@ -54,7 +54,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.LimitedAccessResolverService.Access
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserAccessService.Access
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
@@ -82,7 +82,7 @@ class SessionService(
   private val userService: UserService,
   private val regionService: RegionService,
   private val clock: Clock,
-  private val limitedAccessResolverService: LimitedAccessResolverService,
+  private val userAccessService: UserAccessService,
   @param:Value($$"${app.features.lao-access-check-enabled}")
   private val laoAccessCheckEnabled: Boolean,
 ) {
@@ -306,7 +306,7 @@ class SessionService(
     if (laoAccessCheckEnabled) {
       val username = authenticationUtils.getUsername()
       val caseReferenceNumbers = entity.attendees.map { attendee -> attendee.referral.crn }.toList()
-      usernameAccessMap = limitedAccessResolverService.resolve(username, caseReferenceNumbers)
+      usernameAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
     }
 
     return entity.toApi(sessionNameFormatter, usernameAccessMap)
@@ -322,7 +322,7 @@ class SessionService(
     if (laoAccessCheckEnabled) {
       val username = authenticationUtils.getUsername()
       val caseReferenceNumbers = sessionAttendees.map { attendee -> attendee.crn }.toList()
-      val usernameAccessMap = limitedAccessResolverService.resolve(username, caseReferenceNumbers)
+      val usernameAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
       sessionAttendees.forEach { attendee ->
         val access = usernameAccessMap[attendee.crn]
         attendee.isLimitedAccessOffender = access?.lao
@@ -571,6 +571,11 @@ class SessionService(
       referralIdFilter == null || attendee.referralId in referralIdFilter
     }
 
+    val userAccessMap = userAccessService.determineUserAccess(
+      authenticationUtils.getUsername(),
+      filteredAttendees.map { it.referral.crn },
+    )
+
     return RecordSessionAttendance(
       sessionTitle = session.sessionName,
       sessionModule = sessionNameFormatter.format(session, SessionNameContext.RecordSessionAttendance),
@@ -589,6 +594,8 @@ class SessionService(
           options = outcomeOptions,
           sessionNotes = latestSessionNotesHistory?.notes,
           sessionNotesCreatedByFullName = latestSessionNotesHistory?.createdByFullName,
+          isLao = userAccessMap[attendee.referral.crn]?.lao ?: false,
+          isExcluded = userAccessMap[attendee.referral.crn]?.isExcluded ?: false,
         )
       },
     )

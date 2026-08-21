@@ -52,7 +52,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.LimitedAccessResolverService.Access
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserAccessService.Access
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.Clock
@@ -75,10 +75,10 @@ class SessionServiceTest {
   private val referralStatusService = mockk<ReferralStatusService>()
   private val telemetryService = mockk<TelemetryService>()
   private val authenticationUtils = mockk<AuthenticationUtils>()
-  private val limitedAccessResolverService = mockk<LimitedAccessResolverService>()
   private val userService = mockk<UserService>()
   private val fixedClock = Clock.fixed(Instant.now(), ZoneId.systemDefault())
   private val regionService = mockk<RegionService>()
+  private val userAccessService = mockk<UserAccessService>()
   private lateinit var service: SessionService
   private lateinit var sessionAttendanceTypeEntities: List<SessionAttendanceNDeliusOutcomeEntity>
 
@@ -100,7 +100,7 @@ class SessionServiceTest {
         userService,
         regionService,
         fixedClock,
-        limitedAccessResolverService,
+        userAccessService = userAccessService,
         true,
       )
 
@@ -120,6 +120,9 @@ class SessionServiceTest {
           .withCompliant(false)
           .produce(),
       )
+
+    every { authenticationUtils.getUsername() } returns "test-user"
+    every { userAccessService.determineUserAccess("test-user", any()) } returns emptyMap()
   }
 
   @Test
@@ -2005,7 +2008,7 @@ class SessionServiceTest {
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every { authenticationUtils.getUsername() } returns username
-    every { limitedAccessResolverService.resolve(any(), any()) } returns accessMap
+    every { userAccessService.determineUserAccess(any(), any()) } returns accessMap
 
     // When
     val result = service.getSession(sessionEntity.id!!)
@@ -2025,7 +2028,7 @@ class SessionServiceTest {
 
     verify(exactly = 1) { sessionRepository.findById(sessionEntity.id!!) }
     verify(exactly = 1) { authenticationUtils.getUsername() }
-    verify(exactly = 1) { limitedAccessResolverService.resolve(username, listOf(caseReferenceNumber)) }
+    verify(exactly = 1) { userAccessService.determineUserAccess(username, listOf(caseReferenceNumber)) }
   }
 
   @Test
@@ -2046,7 +2049,7 @@ class SessionServiceTest {
       userService,
       regionService,
       fixedClock,
-      limitedAccessResolverService,
+      userAccessService = userAccessService,
       false,
     )
     val username = "user1"
@@ -2076,7 +2079,7 @@ class SessionServiceTest {
 
     verify(exactly = 1) { sessionRepository.findById(sessionEntity.id!!) }
     verify(exactly = 0) { authenticationUtils.getUsername() }
-    verify(exactly = 0) { limitedAccessResolverService.resolve(username, listOf(caseReferenceNumber)) }
+    verify(exactly = 0) { userAccessService.determineUserAccess(username, listOf(caseReferenceNumber)) }
   }
 
   @Test
@@ -2096,7 +2099,7 @@ class SessionServiceTest {
       programmeGroupMembershipEntity,
     )
     every { authenticationUtils.getUsername() } returns username
-    every { limitedAccessResolverService.resolve(any(), any()) } returns accessMap
+    every { userAccessService.determineUserAccess(any(), any()) } returns accessMap
 
     // When
     val result = service.getSessionAttendees(sessionEntity.id!!)
@@ -2115,7 +2118,7 @@ class SessionServiceTest {
     verify(exactly = 1) { sessionRepository.findById(sessionEntity.id!!) }
     verify(exactly = 1) { programmeGroupMembershipRepository.findAllActiveByProgrammeGroupId(sessionEntity.programmeGroup.id!!) }
     verify(exactly = 1) { authenticationUtils.getUsername() }
-    verify(exactly = 1) { limitedAccessResolverService.resolve(username, listOf(caseReferenceNumber)) }
+    verify(exactly = 1) { userAccessService.determineUserAccess(username, listOf(caseReferenceNumber)) }
   }
 
   @Test
@@ -2136,7 +2139,7 @@ class SessionServiceTest {
       userService,
       regionService,
       fixedClock,
-      limitedAccessResolverService,
+      userAccessService = userAccessService,
       false,
     )
     val username = "user1"
@@ -2169,7 +2172,7 @@ class SessionServiceTest {
     verify(exactly = 1) { sessionRepository.findById(sessionEntity.id!!) }
     verify(exactly = 1) { programmeGroupMembershipRepository.findAllActiveByProgrammeGroupId(sessionEntity.programmeGroup.id!!) }
     verify(exactly = 0) { authenticationUtils.getUsername() }
-    verify(exactly = 0) { limitedAccessResolverService.resolve(username, listOf(caseReferenceNumber)) }
+    verify(exactly = 0) { userAccessService.determineUserAccess(username, listOf(caseReferenceNumber)) }
   }
 
   private fun sessionWithAttendees(
