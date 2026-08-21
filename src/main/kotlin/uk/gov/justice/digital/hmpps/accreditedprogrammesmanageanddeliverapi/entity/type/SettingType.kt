@@ -4,5 +4,5 @@ enum class SettingType(val displayName: String) {
   COMMUNITY("Community"),
   CUSTODY("Custody"),
   REMAND("Remand"),
-  PRE_RELEASE("Pre Release"),
+  PRE_RELEASE("Pre-release"),
 }
