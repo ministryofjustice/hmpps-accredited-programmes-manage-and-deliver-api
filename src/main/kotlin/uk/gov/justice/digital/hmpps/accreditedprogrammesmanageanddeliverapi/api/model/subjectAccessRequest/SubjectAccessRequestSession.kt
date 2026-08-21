@@ -41,9 +41,9 @@ fun SessionEntity.toApi() = SubjectAccessRequestSession(
     durationMinutes = moduleSessionTemplate.durationMinutes,
     moduleId = moduleSessionTemplate.module.id,
     name = moduleSessionTemplate.name,
-    pathway = moduleSessionTemplate.pathway.name,
+    pathway = moduleSessionTemplate.pathway.displayName,
     sessionNumber = moduleSessionTemplate.sessionNumber,
-    sessionType = moduleSessionTemplate.sessionType.name,
+    sessionType = moduleSessionTemplate.sessionType.value,
   ),
   sessionFacilitators = sessionFacilitators.map { it.toApi() },
 )
