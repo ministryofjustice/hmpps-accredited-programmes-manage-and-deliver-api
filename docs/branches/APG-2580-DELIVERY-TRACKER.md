@@ -3,7 +3,7 @@
 **Ticket:** APG-2580 – TECH: Update SAR endpoint and report for Community following UAT
 **Planning branch:** `APG-2580/planning-docs`
 **Planning agent (this file's owner):** Copilot in this IDE session
-**Last updated:** 2026-08-19
+**Last updated:** 2026-08-21
 
 This document is the live single source of truth while APG-2580 is being delivered across four dependent implementation branches. The planning agent (Copilot in this workspace) owns and updates this file. Each implementation branch is worked by a fresh implementer agent (in a separate chat/session or by a human) which is given the branch-specific prompt copied from this document.
 
@@ -57,10 +57,10 @@ These override the corresponding paragraphs in the branch docs. The planning age
 
 | Branch | Doc | Status | PR | Merged | Notes |
 |--------|-----|--------|----|--------|-------|
-| 1. `APG-2580/remove-pii-and-duplicate-sections` | [Branch 1](./APG-2580-branch-1-remove-pii-and-duplicate-sections.md) | 🔎 Awaiting human review | [#860](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/860) | — | Commits `679c35bd` + main merge `80ea504a` + cohort-ordering fix `bab0cb03`. All tests pass locally after fix. Clarification #7 added. |
-| 1.5 sweep-up `APG-2580/fix-sar-cohort-assertion` | [Sweep-up plan](./APG-2580-cleanup-sar-factories-plan.md) | 🔎 Awaiting human review | [#868](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/868) | — | Reduced-scope tidy-up PR. Fixes 1 pre-existing `List<String?>` vs `List<OffenceCohort>` assertion in `SubjectAccessRequestServiceTest.kt` (RHS now `.map { it.cohort.displayName }`). **Factory deletions were dropped from scope** after implementer preflight (2026-08-20) — `GroupWaitlistItemViewEntityFactory` was picked up by PR #865 within a day of being marked orphaned; `ReferralCaseListItemViewEntityFactory` kept to avoid premature removal (see plan doc § Scope reduction and correction #7). Plan doc self-deleted on the sweep-up branch at execution — the link in this row still resolves because the plan doc remains on `APG-2580/planning-docs`. Full build (877 tests, 9 skipped, 0 failed) + `ktlintCheck` + targeted `SubjectAccessRequestServiceTest` (2/2) all PASS. |
-| 2. `APG-2580/attendance-codes-to-descriptions` | [Branch 2](./APG-2580-branch-2-attendance-codes-to-descriptions.md) | ⏳ Ready to start (prompt below) | — | — | Base branch: `APG-2580/remove-pii-and-duplicate-sections` (or `main` after #860 merges). Independent of the 1.5 sweep-up. |
-| 3. `APG-2580/enum-display-names` | [Branch 3](./APG-2580-branch-3-enum-display-names.md) | 🛑 Blocked on Branch 2 | — | — | Awaiting product sign-off on `InterventionType` display names |
+| 1. `APG-2580/remove-pii-and-duplicate-sections` | [Branch 1](./APG-2580-branch-1-remove-pii-and-duplicate-sections.md) | ✅ Merged | [#860](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/860) | 2026-08-19 | Commits `679c35bd` + main merge `80ea504a` + cohort-ordering fix `bab0cb03`. Merged to `main`. Clarification #7 added. |
+| 1.5 sweep-up `APG-2580/fix-sar-cohort-assertion` | [Sweep-up plan](./APG-2580-cleanup-sar-factories-plan.md) | ✅ Merged | [#868](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/868) | 2026-08-20 | Reduced-scope tidy-up PR. Fixed 1 pre-existing `List<String?>` vs `List<OffenceCohort>` assertion in `SubjectAccessRequestServiceTest.kt` (RHS now `.map { it.cohort.displayName }`). Factory deletions dropped (see plan doc). A separate flake fix commit `8f957711` was attempted then reverted — investigation showed the `SarContractIntegrationTest` cohort-ordering flake is a pre-existing async race between the test seed and `refreshPersonalDetailsForReferral` coroutine (adds SYSTEM cohort row with wall-clock `createdAt` in a separate transaction the test doesn't await). Test-only, no prod/SAR impact — raised as a standalone follow-up ticket. |
+| 2. `APG-2580/attendance-codes-to-descriptions` | [Branch 2](./APG-2580-branch-2-attendance-codes-to-descriptions.md) | 🔎 Awaiting human review | [#871](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/871) | — | Base: `main`. 3 files changed exactly per plan: DTO rename (`outcomeTypeCode: String` → `outcomeDescription: String?`), mustache template, regenerated fixture (`"ATTC"` → `"Attended - Complied"` — confirms correction #3). `ktlintCheck` + full build (877/9 skipped) PASS on rerun. First build hit the known cohort-ordering flake (per Branch 2 override #4); rerun clean. **Render-test coverage gap surfaced:** `sar-expected-render-result.html` unchanged because the render-test seed collapses Programme Group Memberships to "No Data Held" so the attendance `<td>` is never emitted. Mustache change verified by inspection; JSON fixture confirms the DTO change. See open questions for the follow-up seed proposal. |
+| 3. `APG-2580/enum-display-names` | [Branch 3](./APG-2580-branch-3-enum-display-names.md) | 🛑 Blocked on product sign-off | — | — | Branch 2 no longer blocking. Still awaiting product sign-off on `InterventionType` display names (see open questions). |
 | 4. `APG-2580/attendance-session-note-restructure` | [Branch 4](./APG-2580-branch-4-attendance-session-note-restructure.md) | 🛑 Blocked on Branch 3 | — | — | — |
 
 Legend: ⏳ Not started · 🟡 In progress · 🔎 Awaiting planning-agent review · ✅ Merged · 🛑 Blocked
@@ -75,6 +75,7 @@ Legend: ⏳ Not started · 🟡 In progress · 🔎 Awaiting planning-agent revi
   - `CRS` → `"Commissioned Rehabilitative Service"` ?
   - `TOOLKITS` → `"Toolkits"` ?
 - [ ] **[Branch 4]** Team happy for the test fixture to render note `recordedBy` as `null` / "No Data Held" because the integration test factory doesn't populate `createdByFullName`? (Production data will be set correctly.)
+- [ ] **[Follow-up, surfaced by Branch 2]** SAR render-test seed does not exercise the attendance-outcome `<td>` — the current `sar-expected-render-result.html` produces "No Data Held" for Programme Group Memberships, so the mustache line changed in Branch 2 (and any similar attendance-section changes in Branch 4) is not snapshot-covered. **Planning-agent recommendation:** file a small standalone follow-up ticket (NOT part of APG-2580) to enrich the render-test seed with at least one attendance row (session + group membership + `SessionAttendanceNDeliusOutcomeEntity`). Do NOT scope it into Branch 4 — Branch 4 restructures the attendance/note DTO shape, so the seed work would compound risk. Interim safeguard: keep Branch 4's implementer prompt explicit that the JSON-fixture diff is the primary contract, and the HTML-render diff is expected to be empty for attendance/note fields until the render-test seed is enriched.
 
 ---
 
@@ -169,7 +170,7 @@ DEVIATIONS FROM PLAN:
   - <list any place you did not follow the plan literally, or "none">
 
 QUESTIONS FOR PLANNING AGENT:
-  - <list any, or "none">
+  - <list any, or "none"
 ```
 
 Do NOT proceed to Branch 2. Stop after reporting.
@@ -265,7 +266,7 @@ DEVIATIONS FROM PLAN:
   - <list any, or "none">
 
 QUESTIONS FOR PLANNING AGENT:
-  - <list any, or "none">
+  - <list any, or "none"
 ```
 
 Do NOT proceed to Branch 2 (it is being run separately). Stop after reporting.
@@ -378,7 +379,7 @@ DEVIATIONS FROM PLAN:
   - <list any, or "none">
 
 QUESTIONS FOR PLANNING AGENT:
-  - <list any, or "none">
+  - <list any, or "none"
 ```
 
 Do NOT proceed to Branch 3. Stop after reporting.
@@ -408,4 +409,4 @@ Do NOT proceed to Branch 3. Stop after reporting.
 - **2026-08-20** – Sweep-up scope reduced after implementer preflight halt. `GroupWaitlistItemViewEntityFactory` was picked up by PR #865 (LAO waitlist work) between planning and execution, so its deletion is no longer safe. `ReferralCaseListItemViewEntityFactory` deletion also dropped: (a) empirical evidence its sibling got picked up in <24h makes hasty deletion imprudent; (b) both factories were originally created by PR #494 as reusable test scaffolding for SAR-adjacent entities that still see active team work. Cohort assertion fix remains as the sole change. Plan doc + tracker prompt rewritten and byte-mirrored across `APG-2580/planning-docs` and `APG-2580/fix-sar-cohort-assertion`. Grep pattern in prereq check also fixed (`"APG-2580: Remove PII"` → `"#860"` — the actual merged commit title has no colon). Correction #7 amended and ‘lesson learned’ recorded. No impact on Branches 2–4.
 - **2026-08-20 (later)** – Sweep-up branch renamed on origin from `APG-2580/cleanup-orphaned-sar-factories` → `APG-2580/fix-sar-cohort-assertion` to match the reduced scope (single-line assertion fix; no factory deletions). Old remote branch deleted; new remote created from the same commit graph. All doc references updated in place across the plan doc (byte-mirrored on both branches), the delivery tracker (status-board row 1.5, implementer prompt setup / push / report-back, correction #7, this change log), and the Branch 1 doc's forward pointer. No technical claims changed; the implementer prompt setup instructions now `git checkout APG-2580/fix-sar-cohort-assertion`. Retrospective mentions of the old branch name are kept in this line so the rename is discoverable via grep.
 - **2026-08-20 (later still)** – Sweep-up executed and PR opened as [#868](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/868). Single-line diff in `SubjectAccessRequestServiceTest.kt` (cohort assertion RHS now `.map { it.cohort.displayName }`); plan doc `APG-2580-cleanup-sar-factories-plan.md` self-deleted on the sweep-up branch as designed. Verification: `ktlintCheck` PASS, targeted `SubjectAccessRequestServiceTest` PASS (2/2), full `./gradlew build` PASS (877 tests, 9 skipped, 0 failed). No deviations from plan; no open questions from implementer. Status-board row 1.5 flipped to 🔎 Awaiting human review. Plan doc link in row 1.5 still resolves because the plan doc remains on `APG-2580/planning-docs` (only the sweep-up branch's copy was self-deleted). Does not affect Branches 2–4.
-
+- **2026-08-21** – Branches 1 and 1.5 sweep-up merged to `main` (marked ✅). Branch 2 implemented and PR opened as [#871](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/871). Diff verified: 3 files, exactly per plan — DTO field `outcomeTypeCode: String` → `outcomeDescription: String?` with mapper switched from `code.name` to `description`; mustache `<td>` retargeted; regenerated `sar-api-response.json` shows `"outcomeTypeCode":"ATTC"` → `"outcomeDescription":"Attended - Complied"` (confirms correction #3 was accurate: factory writes the hyphenated form). Verification: `ktlintCheck` PASS, `SarContractIntegrationTest` PASS (4/4), full `./gradlew build` PASS on rerun (877/9 skipped/0 failed). First build attempt hit the pre-existing `refreshPersonalDetailsForReferral` async race (per Branch 2 override #4 and the reverted commit `8f957711`'s investigation from sweep-up); rerun clean. Deviations: (a) local commit signing disabled with `--no-gpg-sign` due to a pinentry timeout — no code impact; (b) `sar-expected-render-result.html` was unchanged because the render-test seed collapses Programme Group Memberships to "No Data Held", so the attendance `<td>` is never emitted. The mustache change is real and correct but not snapshot-covered — logged as a follow-up open question (do NOT scope into Branch 4 alongside the DTO restructure). Branch 3 unblocked from a code perspective; remains blocked on product sign-off for `InterventionType` display names.
