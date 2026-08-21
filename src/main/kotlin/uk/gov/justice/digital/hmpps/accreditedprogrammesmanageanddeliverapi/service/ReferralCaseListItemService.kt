@@ -108,7 +108,7 @@ class ReferralCaseListItemService(
         referralCaseListItems
       },
       referralsPage.pageable,
-      referralsPage.totalElements,
+      referralsPage.totalElements - (referralsPage.content.size - referralCaseListItems.size).toLong(),
     )
 
     val otherTabCount = getReferralCaseList(
