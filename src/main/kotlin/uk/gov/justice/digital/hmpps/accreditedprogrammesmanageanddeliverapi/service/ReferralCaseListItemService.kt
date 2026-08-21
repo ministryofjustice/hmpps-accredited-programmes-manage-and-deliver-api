@@ -20,7 +20,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getReferralCaseListItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withCrns
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withRegionNames
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.LimitedAccessResolverService.Access
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserAccessService.Access
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
 
 @Service
@@ -33,7 +33,7 @@ class ReferralCaseListItemService(
   private val limitedAccessOffenderCheckEnabled: Boolean,
   @param:Value($$"${app.features.exclusion-access-check-enabled}")
   private val exclusionAccessCheckEnabled: Boolean,
-  private val limitedAccessResolverService: LimitedAccessResolverService,
+  private val userAccessService: UserAccessService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
   fun getReferralCaseListItemServiceByCriteria(
@@ -75,7 +75,7 @@ class ReferralCaseListItemService(
     var limitedAccessOffenderAccessMap: Map<String, Access>? = null
     if (limitedAccessOffenderCheckEnabled) {
       val caseReferenceNumbers = referralsPage.content.map { it.crn }.distinct()
-      limitedAccessOffenderAccessMap = limitedAccessResolverService.resolve(username, caseReferenceNumbers)
+      limitedAccessOffenderAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
     }
 
     val referralCaseListItems = referralsPage.content.filter { referral ->
