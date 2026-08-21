@@ -22,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralCaseListItemService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.net.URLDecoder
+import java.nio.charset.StandardCharsets.UTF_8
 
 @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR')")
 @RestController
@@ -33,6 +34,11 @@ class CaseListController(
   private val referralCaseListItemService: ReferralCaseListItemService,
   private val authenticationHolder: HmppsAuthenticationHolder,
 ) {
+  companion object {
+    private const val REQUEST_PARAM_NAME_PROBATION_DELIVERY_UNIT = "pdu"
+    private const val REQUEST_PARAM_NAME_REPORTING_TEAM = "reportingTeam"
+  }
+
   @Operation(
     tags = ["Caselist"],
     summary = "Get all referrals for the case list view",
@@ -51,7 +57,7 @@ class CaseListController(
     @PageableDefault(page = 0, size = 50, sort = ["personName"]) pageable: Pageable,
     @PathVariable(required = true) openOrClosed: OpenOrClosed,
     @Parameter(description = "CRN or persons name")
-    @RequestParam(name = "crnOrPersonName", required = false) crnOrPersonName: String?,
+    @RequestParam(name = "crnOrPersonName", required = false) caseReferenceNumberOrPersonName: String?,
     @Parameter(description = "Filter by the cohort of the referral using the human-readable label, e.g. 'General Offence', 'General Offence LDC', 'Sexual Offence', 'Sexual Offence LDC'") @RequestParam(
       value = "cohort",
       required = false,
@@ -74,23 +80,23 @@ class CaseListController(
 
     // Read raw repeated query params so comma-containing PDU names are treated as a single value.
     // Decode each value for exact DB matching (e.g. "%2C" -> ",").
-    val pdus = requestParams["pdu"]
+    val probationDeliveryUnits = requestParams[REQUEST_PARAM_NAME_PROBATION_DELIVERY_UNIT]
       ?.takeIf { it.isNotEmpty() }
-      ?.map { URLDecoder.decode(it, "UTF-8") }
+      ?.map { URLDecoder.decode(it, UTF_8.name()) }
 
-    val reportingTeamsDecoded = requestParams["reportingTeam"]
+    val reportingTeamsDecoded = requestParams[REQUEST_PARAM_NAME_REPORTING_TEAM]
       ?.takeIf { it.isNotEmpty() }
-      ?.map { URLDecoder.decode(it, "UTF-8") }
+      ?.map { URLDecoder.decode(it, UTF_8.name()) }
 
     return referralCaseListItemService.getReferralCaseListItemServiceByCriteria(
       pageable = pageable,
       openOrClosed = openOrClosed,
       username = username,
-      crnOrPersonName = crnOrPersonName,
+      caseReferenceNumberOrPersonName = caseReferenceNumberOrPersonName,
       cohort = cohort?.let { ProgrammeGroupCohort.fromString(it) },
-      status = if (status.isNullOrEmpty()) null else URLDecoder.decode(status, "UTF-8"),
-      sex = if (sex.isNullOrEmpty()) null else URLDecoder.decode(sex, "UTF-8"),
-      pdus = pdus,
+      status = if (status.isNullOrEmpty()) null else URLDecoder.decode(status, UTF_8.name()),
+      sex = if (sex.isNullOrEmpty()) null else URLDecoder.decode(sex, UTF_8.name()),
+      probationDeliveryUnits = probationDeliveryUnits,
       reportingTeams = reportingTeamsDecoded,
     )
   }

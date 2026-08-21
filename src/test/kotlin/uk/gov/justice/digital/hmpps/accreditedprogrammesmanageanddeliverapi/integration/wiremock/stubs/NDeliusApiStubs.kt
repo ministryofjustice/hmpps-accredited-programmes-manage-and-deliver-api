@@ -100,22 +100,41 @@ class NDeliusApiStubs {
   }
 
   fun stubAccessCheckMixed(
+    username: String = "AUTH_ADM",
     grantedCrns: List<String> = emptyList(),
     excludedCrns: List<String> = emptyList(),
     restrictedCrns: List<String> = emptyList(),
   ) {
     val response = LimitedAccessOffenderCheckResponse(
       grantedCrns.map {
-        LimitedAccessOffenderCheck(crn = it, userExcluded = false, userRestricted = false, exclusionMessage = null, restrictionMessage = null)
+        LimitedAccessOffenderCheck(
+          crn = it,
+          userExcluded = false,
+          userRestricted = false,
+          exclusionMessage = null,
+          restrictionMessage = null,
+        )
       } + excludedCrns.map {
-        LimitedAccessOffenderCheck(crn = it, userExcluded = true, userRestricted = false, exclusionMessage = "Excluded", restrictionMessage = null)
+        LimitedAccessOffenderCheck(
+          crn = it,
+          userExcluded = true,
+          userRestricted = false,
+          exclusionMessage = "Excluded",
+          restrictionMessage = null,
+        )
       } + restrictedCrns.map {
-        LimitedAccessOffenderCheck(crn = it, userExcluded = false, userRestricted = true, exclusionMessage = null, restrictionMessage = "Restricted")
+        LimitedAccessOffenderCheck(
+          crn = it,
+          userExcluded = false,
+          userRestricted = true,
+          exclusionMessage = null,
+          restrictionMessage = "Restricted",
+        )
       },
     )
 
     wiremock.stubFor(
-      post(urlPathTemplate("/user/{username}/access"))
+      post(urlPathTemplate("/user/$username/access"))
         .withRequestBody(matchingJsonPath("$"))
         .willReturn(
           aResponse()
