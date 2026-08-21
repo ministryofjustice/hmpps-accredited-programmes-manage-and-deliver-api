@@ -3,7 +3,7 @@
 **Ticket:** APG-2580 – TECH: Update SAR endpoint and report for Community following UAT
 **Planning branch:** `APG-2580/planning-docs`
 **Planning agent (this file's owner):** Copilot in this IDE session
-**Last updated:** 2026-08-21 (later)
+**Last updated:** 2026-08-21 (Branch 3 unblocked)
 
 This document is the live single source of truth while APG-2580 is being delivered across four dependent implementation branches. The planning agent (Copilot in this workspace) owns and updates this file. Each implementation branch is worked by a fresh implementer agent (in a separate chat/session or by a human) which is given the branch-specific prompt copied from this document.
 
@@ -60,7 +60,7 @@ These override the corresponding paragraphs in the branch docs. The planning age
 | 1. `APG-2580/remove-pii-and-duplicate-sections` | [Branch 1](./APG-2580-branch-1-remove-pii-and-duplicate-sections.md) | ✅ Merged | [#860](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/860) | 2026-08-19 | Commits `679c35bd` + main merge `80ea504a` + cohort-ordering fix `bab0cb03`. Merged to `main`. Clarification #7 added. |
 | 1.5 sweep-up `APG-2580/fix-sar-cohort-assertion` | [Sweep-up plan](./APG-2580-cleanup-sar-factories-plan.md) | ✅ Merged | [#868](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/868) | 2026-08-20 | Reduced-scope tidy-up PR. Fixed 1 pre-existing `List<String?>` vs `List<OffenceCohort>` assertion in `SubjectAccessRequestServiceTest.kt` (RHS now `.map { it.cohort.displayName }`). Factory deletions dropped (see plan doc). A separate flake fix commit `8f957711` was attempted then reverted — investigation showed the `SarContractIntegrationTest` cohort-ordering flake is a pre-existing async race between the test seed and `refreshPersonalDetailsForReferral` coroutine (adds SYSTEM cohort row with wall-clock `createdAt` in a separate transaction the test doesn't await). Test-only, no prod/SAR impact — raised as a standalone follow-up ticket. |
 | 2. `APG-2580/attendance-codes-to-descriptions` | [Branch 2](./APG-2580-branch-2-attendance-codes-to-descriptions.md) | 🔎 Awaiting human review | [#871](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/871) | — | Base: `main`. 3 files changed exactly per plan: DTO rename (`outcomeTypeCode: String` → `outcomeDescription: String?`), mustache template, regenerated fixture (`"ATTC"` → `"Attended - Complied"` — confirms correction #3). `ktlintCheck` + full build (877/9 skipped) PASS on rerun. First build hit the known cohort-ordering flake (per Branch 2 override #4); rerun clean. **Render-test coverage gap surfaced:** `sar-expected-render-result.html` unchanged because the render-test seed collapses Programme Group Memberships to "No Data Held" so the attendance `<td>` is never emitted. Mustache change verified by inspection; JSON fixture confirms the DTO change. See open questions for the follow-up seed proposal. |
-| 3. `APG-2580/enum-display-names` | [Branch 3](./APG-2580-branch-3-enum-display-names.md) | 🛑 Blocked on product sign-off | — | — | Branch 2 no longer blocking. Still awaiting product sign-off on `InterventionType` display names (see open questions). |
+| 3. `APG-2580/enum-display-names` | [Branch 3](./APG-2580-branch-3-enum-display-names.md) | ⏳ Ready to start | — | — | Product sign-off received 2026-08-21 for `InterventionType` display names (SI/ACP/CRS/TOOLKITS) and for the note `recordedBy` "No Data Held" fixture behaviour. Implementer prompt released below. |
 | 4. `APG-2580/attendance-session-note-restructure` | [Branch 4](./APG-2580-branch-4-attendance-session-note-restructure.md) | 🛑 Blocked on Branch 3 | — | — | — |
 | 5. `APG-2580/render-test-seed-attendance-row` (follow-up) | *Plan doc to be drafted after Branch 4 lands* | 🛑 Blocked on Branch 4 | — | — | Enrich SAR render-test seed with one attendance row (session + group membership + `SessionAttendanceNDeliusOutcomeEntity`) so `sar-expected-render-result.html` actually exercises the attendance-outcome `<td>` changed in Branch 2 (and the restructured attendance/note collections in Branch 4). Small tech-debt PR; runs *after* Branch 4 so the seed matches the final DTO shape and we regenerate the HTML fixture once, not twice. |
 
@@ -70,12 +70,12 @@ Legend: ⏳ Not started · 🟡 In progress · 🔎 Awaiting planning-agent revi
 
 ## Open questions to resolve before / during delivery
 
-- [ ] **[Branch 3]** Confirm `InterventionType` display names with the service owner:
-  - `SI` → `"Structured Intervention"` ?
-  - `ACP` → `"Accredited Programme"` ?
-  - `CRS` → `"Commissioned Rehabilitative Service"` ?
-  - `TOOLKITS` → `"Toolkits"` ?
-- [ ] **[Branch 4]** Team happy for the test fixture to render note `recordedBy` as `null` / "No Data Held" because the integration test factory doesn't populate `createdByFullName`? (Production data will be set correctly.)
+- [x] **[Branch 3]** ~~Confirm `InterventionType` display names with the service owner:~~ **Confirmed 2026-08-21:**
+  - `SI` → `"Structured Intervention"` ✅
+  - `ACP` → `"Accredited Programme"` ✅
+  - `CRS` → `"Commissioned Rehabilitative Service"` ✅
+  - `TOOLKITS` → `"Toolkits"` ✅
+- [x] **[Branch 4]** ~~Team happy for the test fixture to render note `recordedBy` as `null` / "No Data Held" because the integration test factory doesn't populate `createdByFullName`?~~ **Confirmed 2026-08-21:** happy for "No Data Held" in the test fixture — production data will be set correctly. No code change required in Branch 4 for this.
 - [ ] **[Follow-up, surfaced by Branch 2 — now scoped as Branch 5]** SAR render-test seed does not exercise the attendance-outcome `<td>` — the current `sar-expected-render-result.html` produces "No Data Held" for Programme Group Memberships, so the mustache line changed in Branch 2 (and any similar attendance-section changes in Branch 4) is not snapshot-covered. **Decision (2026-08-21):** kept inside APG-2580 as Branch 5 rather than a separate ticket. Executes *after* Branch 4 so the enriched seed lands against the final attendance/note DTO shape and the HTML fixture is regenerated exactly once. Minimal scope: add one attendance row (session + group membership + `SessionAttendanceNDeliusOutcomeEntity`) to the render-test seed and regenerate `sar-expected-render-result.html`. Interim safeguard for Branch 4: its implementer prompt will state that the JSON-fixture diff is the primary contract and the HTML-render diff is expected to be minimal for attendance/note fields until Branch 5 enriches the seed.
 
 ---
@@ -389,9 +389,131 @@ Do NOT proceed to Branch 3. Stop after reporting.
 
 ---
 
-## Implementer prompt – Branch 3
+## Implementer prompt – Branch 3: Enum display names for SAR
 
-*Will be generated by the planning agent after Branch 2 is confirmed ✅. Note: needs the answer to the `InterventionType` display-name question above before it can start.*
+**Copy everything from `>>>>> BEGIN PROMPT` down to `<<<<< END PROMPT` into a fresh agent session.**
+
+>>>>> BEGIN PROMPT
+
+You are an implementation agent delivering branch 3 of Jira ticket **APG-2580** in the repo `hmpps-accredited-programmes-manage-and-deliver-api`. The branch has been fully planned already — your job is to execute the plan exactly, run the tests, and report back.
+
+**Repo:** `/Users/raby.whyte/code/hmpps-accredited-programmes-manage-and-deliver-api`
+
+### Setup
+
+Branches 1, 1.5 sweep-up, and 2 have all merged to `main`. Base this branch on `main`:
+
+```bash
+git fetch origin
+git checkout main && git pull
+git checkout -b APG-2580/enum-display-names
+```
+
+*(If PR #871 has not yet merged to `main` when you start, check with the planning agent before rebasing / branching from PR #871's branch — the planning agent will tell you which base to use.)*
+
+### Plan to execute
+
+Read the full plan here and follow it verbatim:
+
+`docs/branches/APG-2580-branch-3-enum-display-names.md`
+
+That doc modifies exactly these files (7 code files + 1 test):
+
+1. `entity/type/InterventionType.kt` — add `displayName` constructor property.
+2. `entity/type/SettingType.kt` — add `displayName` constructor property.
+3. `entity/type/Pathway.kt` — add `displayName` constructor property.
+4. `entity/ReferralEntity.kt` — add `displayName` on inline `ReferralEntitySourcedFrom` enum at the bottom of the file.
+5. `api/model/subjectAccessRequest/SubjectAccessRequestReferral.kt` — 3 mapper lines switch from `.name` to `.displayName`.
+6. `api/model/subjectAccessRequest/SubjectAccessRequestSession.kt` — `pathway` → `.displayName`, `sessionType` → `.value` (SessionType already has `.value`).
+7. `api/model/subjectAccessRequest/SubjectAccessRequestAvailabilitySlot.kt` — `dayOfWeek` uses `getDisplayName(TextStyle.FULL, Locale.UK)`, `slotName` uses existing `SlotName.displayName` with `.replaceFirstChar { it.uppercase() }`.
+8. `test/.../service/SubjectAccessRequestServiceTest.kt` — assertions switched from `.name` to `.displayName` / `.value`.
+
+### Confirmed product decisions (do NOT re-ask)
+
+- `InterventionType`: `SI` = "Structured Intervention", `ACP` = "Accredited Programme", `CRS` = "Commissioned Rehabilitative Service", `TOOLKITS` = "Toolkits". Signed off 2026-08-21. Use these exact strings — do NOT use the acronym-in-parentheses fallback the plan doc suggests as a "if unsure" option.
+
+### Overrides vs. the plan
+
+1. **Fixture regeneration:** ignore the manual `SAR_GENERATE_ACTUAL=true ./gradlew …` + `cp` sequence in the plan. Run this instead:
+   ```bash
+   ./scripts/local-scripts/regenerate-sar-snapshots.sh
+   ```
+2. **`SlotName` location** — see Correction #2 in the tracker: the enum lives inline at the bottom of `src/main/kotlin/.../entity/AvailabilitySlotEntity.kt` (values `DAYTIME(10, "daytime")` and `EVENING(20, "evening")`). Do NOT create a new file for it. The `SubjectAccessRequestAvailabilitySlot` mapper uses `slotName.displayName.replaceFirstChar { it.uppercase() }` — the enum itself is unchanged.
+3. **Mandatory pre-flight greps** (added after Branch 1/2 discoveries) — before you commit, run:
+   ```bash
+   grep -rn "interventionType\.name\|setting\.name\|sourcedFrom?\.name\|sourcedFrom\.name\|pathway\.name\|sessionType\.name\|slotName\.name" src/
+   ```
+   Any hit outside the SAR mappers you're changing is a Branch-1/2-style downstream test that needs updating. Also grep `HmppsSubjectAccessRequestControllerIntegrationTest.kt` for any of the six affected field names (`interventionType`, `setting`, `sourcedFrom`, `pathway`, `sessionType`, `slotName`) — Branch 1 showed this file occasionally has key-presence / value assertions that need updating even though the DTO shape isn't changing.
+4. **Known CI flake tolerance** — the `SarContractIntegrationTest.SAR API should return expected data` test occasionally fails on the first `./gradlew build` with a `referralCohortHistories` ordering diff (`[AUTH_USER, SYSTEM, AUTH_USER]` vs `[AUTH_USER, AUTH_USER, SYSTEM]`). This is a pre-existing async race between the test seed and `refreshPersonalDetailsForReferral` — NOT introduced by your changes. If you see it, rerun `./gradlew build` once; do NOT try to fix it. Full context: tracker Correction #8 and the reverted commit `8f957711` on PR #868.
+5. **Correction #7 (test-factory orphan checks)** — do not delete any test factory as part of this branch, even if grep suggests they're orphaned. Orphan status flipped in <24h during the 1.5 sweep-up; this branch is code-changes only.
+
+### Acceptance criteria (all must be true before you report back)
+
+- [ ] Four enums (`InterventionType`, `SettingType`, `Pathway`, `ReferralEntitySourcedFrom`) each have a `displayName: String` constructor property with the exact values in the plan doc.
+- [ ] `SubjectAccessRequestReferral.toApi()` — 3 lines updated: `interventionType.displayName`, `setting.displayName`, `sourcedFrom?.displayName`.
+- [ ] `SubjectAccessRequestSession.toApi()` — 2 lines updated: `pathway = moduleSessionTemplate.pathway.displayName`, `sessionType = moduleSessionTemplate.sessionType.value`.
+- [ ] `SubjectAccessRequestAvailabilitySlot.toApi()` — `dayOfWeek.getDisplayName(TextStyle.FULL, Locale.UK)` + `slotName.displayName.replaceFirstChar { it.uppercase() }`; imports for `java.time.format.TextStyle` and `java.util.Locale` added.
+- [ ] `SubjectAccessRequestServiceTest.kt` — enum assertions updated to `.displayName` / `.value` (search by content, not line number).
+- [ ] Pre-flight greps clean (no downstream `.name` usages on SAR-mapped fields outside the changed mappers).
+- [ ] `./gradlew ktlintCheck` passes.
+- [ ] `./scripts/local-scripts/regenerate-sar-snapshots.sh` completes; both SAR fixtures change.
+- [ ] `sar-api-response.json` shows the six field transitions from the plan doc's "before/after" section (e.g. `"ACP"` → `"Accredited Programme"`, `"COMMUNITY"` → `"Community"`, `"LICENCE_CONDITION"` → `"Licence Condition"`, `"MODERATE_INTENSITY"` → `"Moderate Intensity"`, `"GROUP"` → `"Group"`, `"DAYTIME"` → `"Daytime"`, `"MONDAY"` → `"Monday"`).
+- [ ] `sar-expected-render-result.html` diff shows the corresponding human-readable strings rendered in the report body (expected to show at least `interventionType`, `setting`, `sourcedFrom`, `slotName`, `dayOfWeek` — session `pathway`/`sessionType` may or may not surface depending on the render-test seed; that's the same Branch 2 coverage gap, being handled separately as Branch 5).
+- [ ] `./gradlew test --tests "*SarContractIntegrationTest*"` passes without `SAR_GENERATE_ACTUAL` (rerun once if the known cohort-ordering flake hits — see override #4).
+- [ ] `./gradlew test --tests "*SubjectAccessRequestServiceTest*"` passes.
+- [ ] `./gradlew build` passes.
+
+### Push and open PR
+
+```bash
+git add -A
+git commit -m "APG-2580: Use display names for enum-valued SAR fields"
+git push -u origin APG-2580/enum-display-names
+```
+
+Open a PR against `main` titled: `APG-2580 Use display names for enum-valued SAR fields (community)`
+
+Include a note in the PR description that this stacks on PRs #860, #868, #871 (all merged) and that the `InterventionType` display strings were signed off by the service owner on 2026-08-21.
+
+### Report back to the planning agent
+
+Reply in this exact structure:
+
+```
+BRANCH: 3
+BRANCH NAME: APG-2580/enum-display-names
+BASE BRANCH: main
+PR URL: <url or "not yet opened">
+
+FILES MODIFIED (with 1-line summary each):
+  - <path>: <summary>
+
+PRE-FLIGHT GREP RESULTS:
+  - `.name` on SAR-mapped fields outside changed mappers: <list any or "none">
+  - `HmppsSubjectAccessRequestControllerIntegrationTest.kt` references to the six field names: <list any or "none">
+
+TEST RESULTS:
+  - ktlintCheck: PASS / FAIL
+  - SubjectAccessRequestServiceTest: PASS / FAIL
+  - SarContractIntegrationTest: PASS / FAIL (note if cohort-ordering flake hit + rerun result)
+  - Full build (./gradlew build): PASS / FAIL
+
+FIXTURE DIFF SUMMARY:
+  - sar-api-response.json: <one line per changed field: before → after value>
+  - sar-expected-render-result.html: <one line: which of the 6 human-readable strings now surface in the rendered report>
+
+DEVIATIONS FROM PLAN:
+  - <list any, or "none">
+
+QUESTIONS FOR PLANNING AGENT:
+  - <list any, or "none">
+```
+
+Do NOT proceed to Branch 4. Stop after reporting.
+
+<<<<< END PROMPT
+
+---
 
 ## Implementer prompt – Branch 4
 
@@ -416,3 +538,4 @@ Do NOT proceed to Branch 3. Stop after reporting.
 - **2026-08-20 (later still)** – Sweep-up executed and PR opened as [#868](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/868). Single-line diff in `SubjectAccessRequestServiceTest.kt` (cohort assertion RHS now `.map { it.cohort.displayName }`); plan doc `APG-2580-cleanup-sar-factories-plan.md` self-deleted on the sweep-up branch as designed. Verification: `ktlintCheck` PASS, targeted `SubjectAccessRequestServiceTest` PASS (2/2), full `./gradlew build` PASS (877 tests, 9 skipped, 0 failed). No deviations from plan; no open questions from implementer. Status-board row 1.5 flipped to 🔎 Awaiting human review. Plan doc link in row 1.5 still resolves because the plan doc remains on `APG-2580/planning-docs` (only the sweep-up branch's copy was self-deleted). Does not affect Branches 2–4.
 - **2026-08-21** – Branches 1 and 1.5 sweep-up merged to `main` (marked ✅). Branch 2 implemented and PR opened as [#871](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/871). Diff verified: 3 files, exactly per plan — DTO field `outcomeTypeCode: String` → `outcomeDescription: String?` with mapper switched from `code.name` to `description`; mustache `<td>` retargeted; regenerated `sar-api-response.json` shows `"outcomeTypeCode":"ATTC"` → `"outcomeDescription":"Attended - Complied"` (confirms correction #3 was accurate: factory writes the hyphenated form). Verification: `ktlintCheck` PASS, `SarContractIntegrationTest` PASS (4/4), full `./gradlew build` PASS on rerun (877/9 skipped/0 failed). First build attempt hit the pre-existing `refreshPersonalDetailsForReferral` async race (per Branch 2 override #4 and the reverted commit `8f957711`'s investigation from sweep-up); rerun clean. Deviations: (a) local commit signing disabled with `--no-gpg-sign` due to a pinentry timeout — no code impact; (b) `sar-expected-render-result.html` was unchanged because the render-test seed collapses Programme Group Memberships to "No Data Held", so the attendance `<td>` is never emitted. The mustache change is real and correct but not snapshot-covered — logged as a follow-up open question (do NOT scope into Branch 4 alongside the DTO restructure). Branch 3 unblocked from a code perspective; remains blocked on product sign-off for `InterventionType` display names.
 - **2026-08-21 (later)** – Render-test seed enhancement promoted from "separate standalone ticket" to **Branch 5 within APG-2580** at user's request ("small enough to fit a small tech-debt ticket ... lets do this as pr 5 in plan follow up? instead of separate ticket"). Rationale: keeps the attendance-outcome fix + its snapshot coverage in the same ticket's paper trail; sequencing it *after* Branch 4 means the enriched seed lands against the final attendance/note DTO shape and the HTML fixture is regenerated exactly once instead of twice. Status board gains row 5 (🛑 Blocked on Branch 4); open-question bullet rewritten to note the decision; Branch 5 implementer-prompt placeholder added; Branch 4 implementer prompt will call out the interim-safeguard wording when it is drafted. No code changes; no impact on Branches 1/1.5/2/3.
+- **2026-08-21 (Branch 3 unblocked)** – Service owner confirmed both outstanding SAR-wording questions: (a) `InterventionType` display strings signed off exactly as proposed — `SI` = "Structured Intervention", `ACP` = "Accredited Programme", `CRS` = "Commissioned Rehabilitative Service", `TOOLKITS` = "Toolkits" (no acronym-in-parentheses fallback needed); (b) note `recordedBy` rendering as "No Data Held" in the SAR test fixture is acceptable — production data will populate correctly, so Branch 4 has no extra code work on that side. Both open questions ticked; Branch 3 status flipped from 🛑 Blocked → ⏳ Ready to start; full Branch 3 implementer prompt released (mirrors the Branch 1/2 shape — setup + plan reference + confirmed decisions + overrides #1–5 including known cohort-ordering flake tolerance + acceptance criteria + report-back template). No code changes; no impact on merged branches.
