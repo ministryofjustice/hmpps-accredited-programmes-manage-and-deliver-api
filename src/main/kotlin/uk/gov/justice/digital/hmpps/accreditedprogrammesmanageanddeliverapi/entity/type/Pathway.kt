@@ -1,6 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type
 
-enum class Pathway {
-  MODERATE_INTENSITY,
-  HIGH_INTENSITY,
+enum class Pathway(val displayName: String) {
+  MODERATE_INTENSITY("Moderate Intensity"),
+  HIGH_INTENSITY("High Intensity"),
 }
