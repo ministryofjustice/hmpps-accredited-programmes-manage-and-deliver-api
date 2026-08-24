@@ -47,24 +47,41 @@ fun ReferralEntity.toApi(
   sourcedFrom = sourcedFrom?.displayName,
   deliveryLocationPreference = deliveryLocationPreferences?.toApi(),
   // ASC by createdAt: SAR template numbers "Group Allocation 1, 2, ..." via @index,
-  // so chronological order reads naturally in the report. `.thenBy { it.id }` gives a
-  // deterministic tie-break when two memberships share a createdAt (JPA Sets have no order).
+  // so chronological order reads naturally in the report. Natural-attribute tiebreak
+  // (programmeGroup.code is a non-null seed-stable String; createdByUsername is the
+  // remaining discriminator) keeps ordering deterministic across JVMs — the previous
+  // `.thenBy { it.id }` UUID tiebreak drifted between local and CI. See followup-1.
   programmeGroupMemberships = programmeGroupMemberships
-    .sortedWith(compareBy<ProgrammeGroupMembershipEntity> { it.createdAt }.thenBy { it.id })
+    .sortedWith(
+      compareBy<ProgrammeGroupMembershipEntity> { it.createdAt }
+        .thenBy { it.programmeGroup.code }
+        .thenBy { it.createdByUsername },
+    )
     .map { it.toApi() }
     .toMutableList(),
   statusHistories = statusHistories.map { it.toApi() }.toMutableList(),
   messageHistories = messageHistoryEntities.map { it.toApi() }.toMutableList(),
   // DESC by createdAt: history sections show most-recent-first, matching cohort history.
-  // `.thenBy { it.id }` is the deterministic tie-break (see tracker Correction #8).
+  // Natural-attribute tiebreak (hasLdc, then nullable createdBy — null-safe via
+  // Kotlin's compareValues) instead of UUID `.id`. See followup-1.
   referralLdcHistories = referralLdcHistories
-    .sortedWith(compareByDescending<ReferralLdcHistoryEntity> { it.createdAt }.thenBy { it.id })
+    .sortedWith(
+      compareByDescending<ReferralLdcHistoryEntity> { it.createdAt }
+        .thenBy { it.hasLdc }
+        .thenBy { it.createdBy },
+    )
     .map { it.toApi() }
     .toMutableList(),
-  // DESC by createdAt: most-recent cohort first. `.thenBy { it.id }` is the deterministic
-  // tie-break added on Branch 1 (commit bab0cb03) after a Hibernate-version-dependent flake.
+  // DESC by createdAt: most-recent cohort first. Natural-attribute tiebreak (createdBy,
+  // then cohort.name) replaces the UUID `.id` tiebreak from Branch 1's bab0cb03 — the
+  // UUID version passed CI once but drifted on subsequent regens (override #6). See
+  // followup-1 for the full analysis and Step 0 reproduction.
   referralCohortHistories = referralCohortHistories
-    .sortedWith(compareByDescending<ReferralCohortHistoryEntity> { it.createdAt }.thenBy { it.id })
+    .sortedWith(
+      compareByDescending<ReferralCohortHistoryEntity> { it.createdAt }
+        .thenBy { it.createdBy }
+        .thenBy { it.cohort.name },
+    )
     .map { it.toApi() }
     .toMutableList(),
   referralMotivationBackgroundAndNonAssociation = referralMotivationBackgroundAndNonAssociations?.toApi(),
