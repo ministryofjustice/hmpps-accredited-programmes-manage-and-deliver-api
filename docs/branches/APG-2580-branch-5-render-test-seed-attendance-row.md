@@ -1,155 +1,131 @@
-# Branch 5 (APG-2580): SAR – Render-test snapshot coverage for attendance section
+# Branch 5 (APG-2580): SAR – Fix Set-typed collections collapsing to "No Data Held"
 
-**Branch name:** `APG-2580/render-test-seed-attendance-row`
+**Branch name:** `APG-2580/render-test-seed-attendance-row` *(legacy name — kept for tracker/PR continuity; actual scope is a DTO type fix, not a seed enrichment — see § "Notes on the earlier scoping")*
 **Base branch:** `main` (after Branch 4 / PR #874 merges)
 **Ticket:** APG-2580 – TECH: Update SAR endpoint and report for Community following UAT
-**Estimated effort:** ½–1 day
-**This is a test-infrastructure follow-up to Branches 2 and 4.**
+**Estimated effort:** half a day
+**This is the final branch for the ticket.**
 
 ---
 
-## Why this branch exists
+## What this branch does
 
-Branches 2 and 4 changed the SAR mustache template's attendance section:
+Fixes a pre-existing bug in the SAR template rendering that causes three whole sections to always show `<p>No Data Held</p>` regardless of whether the subject actually has data.
 
-- **Branch 2** — the attendance outcome `<td>` now emits `outcomeType.outcomeDescription` ("Attended - Complied") instead of `outcomeType.outcomeTypeCode` ("ATTC").
-- **Branch 4** — the whole attendance table was replaced with per-attendance `<div class="attendance-record">` blocks containing a `summary-list` table plus a nested notes table; the notes table now shows `Recorded By` / `Recorded At` (mapped from `createdByFullName`) instead of `Created By` / `Created At`.
+**Confirmed by planning-agent investigation on 2026-08-24 (see Correction #9 in the delivery tracker):**
 
-Both changes are covered by the JSON fixture (`sar-api-response.json`). **Neither is covered by the HTML fixture** (`sar-expected-render-result.html`) — as of the Branch 4 head commit, that file shows:
+| Field | JSON serialises correctly? | HTML renders correctly? | Kotlin DTO field type |
+|-------|---------------------------|-------------------------|-----------------------|
+| `programmeGroupMemberships` | Yes | No — always "No Data Held" | `MutableSet` |
+| `referralCohortHistories` | Yes | No — always "No Data Held" | `MutableSet` |
+| `referralLdcHistories` | Yes | No — always "No Data Held" | `MutableSet` |
+| `statusHistories` | Yes | Yes | `MutableList` |
+| `attendees` | Yes | Yes | `MutableList` |
 
-```html
-<h3>Programme Group Memberships</h3>
+**Root cause:** the SAR mustache template uses `{{#field.0}}` (list-index access at position 0) as its "is-non-empty" guard for these collections. Kotlin `MutableSet` does not expose a `[0]` / `get(0)` accessor, so JMustache evaluates `field.0` on a Set as falsy → the `{{^field.0}}<p>No Data Held</p>{{/field.0}}` fallback always fires, even when the Set has entries.
 
+**Production impact:** Real Community SARs delivered to subjects have been showing "No Data Held" for these three sections since the SAR feature shipped (PR #644). The JSON endpoint response has always been correct; only the human-readable PDF/HTML report was affected.
 
-<p>No Data Held</p>
+The fix also serves the original Branch 5 goal: once `programmeGroupMemberships` renders correctly, the mustache changes from Branches 2 (`outcomeDescription`) and 4 (per-attendance `<div>`, `recordedBy` note field) become snapshot-covered by `sar-expected-render-result.html`.
+
+---
+
+## Files to MODIFY
+
+Only **one production file** and (via regen) two test fixtures.
+
+### 1. `SubjectAccessRequestReferral.kt`
+
+**Path:** `src/main/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/api/model/subjectAccessRequest/SubjectAccessRequestReferral.kt`
+
+**Required changes — three DTO field types + three mapper lines, plus sort safeguards on two of them:**
+
+- `programmeGroupMemberships`: type `MutableSet<...>` → `MutableList<...>`; mapper `.toMutableSet()` → `.toMutableList()`; add `.sortedWith(compareBy<ProgrammeGroupMembershipEntity> { it.createdAt }.thenBy { it.id })` before the `.map { it.toApi() }`.
+- `referralLdcHistories`: same three changes, with sort direction `compareByDescending<ReferralLdcHistoryEntity> { it.createdAt }.thenBy { it.id }`.
+- `referralCohortHistories`: type + `.toMutableSet()` → `.toMutableList()` only. **Do not touch the existing `.sortedWith(...)` — it already has the correct pattern from Branch 1.**
+- Leave `statusHistories`, `messageHistories`, `attendees`, and everything else untouched.
+- Add imports for `ProgrammeGroupMembershipEntity` and `ReferralLdcHistoryEntity` (or whatever the actual entity classes are called — verify against the file's existing imports).
+
+### Sort direction rationale (Correction #8 pattern)
+
+Once the field becomes a `List`, ordering matters — JPA loads Sets in arbitrary hash order, so converting to List without a sort makes order SQL/JVM-dependent (CI vs local can differ; same class of flake as `referralCohortHistories` on Branch 1).
+
+Suggested directions (match the entity's `@OrderBy` if it disagrees):
+
+| Field | Direction | Rationale |
+|-------|-----------|-----------|
+| `programmeGroupMemberships` | ASC by `createdAt` | Chronological allocation order reads naturally in the report |
+| `referralLdcHistories` | DESC by `createdAt` | Most-recent-first matches `referralCohortHistories` |
+| `referralCohortHistories` | DESC by `createdAt` | Already in place — do not change |
+
+All three should have `.thenBy { it.id }` as tiebreaker.
+
+---
+
+## Files that regenerate (do NOT hand-edit)
+
+- `src/test/resources/sar/sar-api-response.json` — will be regenerated. Expected changes: minimal. Sets and Lists both serialise as JSON arrays via Jackson, so shape is identical; only ordering may shift for `programmeGroupMemberships` and `referralLdcHistories` because the new `sortedWith` calls impose a stable order. `referralCohortHistories` was already sorted — no change expected there (still pinned to CI's order by Branch 3's `158cb481` commit).
+- `src/test/resources/sar/sar-expected-render-result.html` — will be regenerated. Expected changes: the three sections now show real data instead of "No Data Held".
+
+---
+
+## Files to CHECK but likely leave alone
+
+- `src/main/resources/sar_template.mustache` — no change. The `{{#field.0}}` idiom starts working correctly once the fields are `List`-typed.
+- Any consumer of the SAR JSON — no change. JSON output shape is identical.
+- `SubjectAccessRequestServiceTest.kt` — check assertions on the three affected fields (grep suggested below).
+
+---
+
+## Pre-flight greps (mandatory)
+
+Run these BEFORE committing. Any hit outside `SubjectAccessRequestReferral.kt` and the two SAR fixture files should be reviewed:
+
+```
+grep -rn "programmeGroupMemberships: MutableSet" src/main/
+grep -rn "referralLdcHistories: MutableSet" src/main/
+grep -rn "referralCohortHistories: MutableSet" src/main/
+grep -nE "programmeGroupMemberships|referralLdcHistories|referralCohortHistories" src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/service/SubjectAccessRequestServiceTest.kt
+grep -nE "programmeGroupMemberships|referralLdcHistories|referralCohortHistories" src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/sar/HmppsSubjectAccessRequestControllerIntegrationTest.kt
+grep -nE "programmeGroupMemberships\.0|referralLdcHistories\.0|referralCohortHistories\.0" src/main/resources/sar_template.mustache
 ```
 
-...i.e. the whole Programme Group Memberships section is collapsed, so the attendance mustache lines Branch 2 + 4 changed are never emitted by the render test, and the fixture predates both changes (it still shows the pre-Branch-2 `<td>ATTC</td>` layout on stale branches; on `main` it just shows "No Data Held").
-
-Branch 5 makes the HTML fixture actually exercise the attendance section, so future template changes are caught by snapshot rather than only by inspection.
-
----
-
-## Investigation required (do this first)
-
-**The JSON fixture and the HTML fixture disagree.** They should be produced from the same seed via the same `setupTestData()` call inside `SarContractIntegrationTest`, but:
-
-- `sar-api-response.json` contains a real `programmeGroupMemberships[0].attendances[0]` with `outcomeType`, `noteHistory[0]`, etc.
-- `sar-expected-render-result.html` collapses `programmeGroupMemberships` to `<p>No Data Held</p>`.
-
-**Root cause is unknown at plan-drafting time.** The implementer's first task is to determine why. Candidates in order of likelihood:
-
-1. **Hibernate LAZY fetch + transaction boundary.** The `SessionAttendanceEntity.notesHistory` and `SessionAttendanceEntity.session.attendances` collections are `@OneToMany(fetch = FetchType.LAZY)`. The JSON test serialises the SAR DTO through Jackson while the transaction is still open (the referral entity is loaded, `.toApi()` runs, JSON serialiser touches lazy collections which triggers a fetch). The render test additionally goes through `sarIntegrationTestHelper.renderServiceReport(data = dataResponse.content, template = templateResponse)` — if `dataResponse.content` is the **already-deserialised** SAR DTO (as it looks in the code) then lazy loading is a red herring here; but if `renderServiceReport` triggers a fresh round-trip somewhere, the collections could come back empty.
-2. **`assertHtmlEquals` leniency.** The helper is provided by the shared `hmpps-kotlin-spring-boot-starter` library, not in-repo. It may normalise HTML aggressively enough that even a completely-different rendered output matches the "No Data Held" fixture. If so, the render test has been silently passing for a while regardless of the fixture. This is more of a shared-library concern than an APG-2580 concern, but the implementer should confirm the leniency model.
-3. **Seed timing / transaction not committed.** `setupTestData()` calls `sessionRepository.saveAndFlush(session)` at the end after `session.attendances.add(attendance)`. If the enclosing transaction for the render test rolls back or is scoped differently to the JSON test, the attendance row may exist for the JSON test but not the render test.
-4. **Mustache `{{#programmeGroupMemberships.0}}` short-circuit.** If the DTO passed to the render pipeline is somehow missing `programmeGroupMemberships` (e.g. a different DTO shape/serialisation) then the outer section fails and the inner `{{#attendances.0}}` never runs.
-
-**Approach:** run the render test once with a temporary breakpoint / `println` at `renderServiceReport` (or at `dataResponse.content` right before rendering) and log the actual DTO passed to the template. If `programmeGroupMemberships` is empty there, the collapse is upstream of mustache; if non-empty, mustache/helper leniency is the culprit.
-
-## Scope (what Branch 5 changes)
-
-Once root cause is understood, apply the minimal fix. The three most likely shapes:
-
-### Shape A — Seed / eager-load fix (in test code)
-
-If the collapse is due to lazy loading / transaction boundary:
-- **File:** `src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/sar/SarContractIntegrationTest.kt` (around line 289–298 — the attendance-seed block).
-- **Change:** either (a) explicitly `session.attendances.add(...)` + `programmeGroupRepository.saveAndFlush(groupWithAllocation)` to make sure the group-membership → attendance link is committed, or (b) reload the entities after save so the `programmeGroupMemberships[0].attendances` collection is populated when the render test reads it.
-
-### Shape B — DTO / mapper fix (in production code)
-
-If the collapse is because `SubjectAccessRequestReferral.toApi()` returns an empty `programmeGroupMemberships` under render-test conditions:
-- **File:** `src/main/kotlin/.../api/model/subjectAccessRequest/SubjectAccessRequestReferral.kt` and/or the mappers it delegates to.
-- **Change:** add explicit eager fetch (e.g. `programmeGroup.programmeGroupMemberships.size` inside the mapper to force initialisation) OR change repository query to fetch join.
-- **Careful:** this touches production code — get product to re-confirm no perf regressions.
-
-### Shape C — Helper leniency documented, no code change
-
-If `assertHtmlEquals` is genuinely lenient enough that the current fixture passes despite the rendered output showing real attendance data:
-- **File:** none in this repo.
-- **Change:** update this doc + the tracker to record the leniency behaviour; regenerate `sar-expected-render-result.html` to reflect the rendered output; open a follow-up ticket against the shared library to tighten `assertHtmlEquals` (out of scope for APG-2580).
-
-**Prefer Shape A.** Shape B is riskier (touches prod code). Shape C is the tell-me-nothing outcome — record the finding, still regenerate the fixture so future regressions are catchable.
-
----
-
-## Files likely to be modified
-
-| File | Likely change |
-|------|---------------|
-| `src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/sar/SarContractIntegrationTest.kt` | Seed / eager-load nudge (Shape A). Optional: enrich seed with `createdByFullName` on the note so `recordedBy` renders as a real name instead of "No Data Held". |
-| `src/test/resources/sar/sar-expected-render-result.html` | Regenerated by `./scripts/local-scripts/regenerate-sar-snapshots.sh` |
-| (Rarely) any SAR mapper on the production side | Only under Shape B — requires reviewer sign-off |
-
-**No changes** to any DTO, entity, migration, or mustache template. Branch 5 is snapshot-coverage work.
-
----
-
-## Acceptance criteria
-
-- [ ] Investigation logged in PR description: which of Shape A / B / C applies and why.
-- [ ] Root cause fix applied per chosen shape.
-- [ ] `./scripts/local-scripts/regenerate-sar-snapshots.sh` completes.
-- [ ] `sar-expected-render-result.html` now contains **all six** of the following (verified by grep):
-  - `<div class="attendance-record">` — at least one occurrence
-  - `<td>Attended - Complied</td>` — Branch 2 output
-  - `<td>Outcome</td>` — Branch 4 summary-list header
-  - `<td>Legitimate Absence</td>` — Branch 4 summary-list header
-  - `<td>Recorded At</td>` — Branch 4 notes-table header (also new for the summary-list)
-  - Either `<td>Notes for referral</td>` (the seeded note text) OR the notes header row `<td class="data-column-60">Notes</td>`
-- [ ] `sar-expected-render-result.html` no longer contains `<p>No Data Held</p>` immediately below `<h3>Programme Group Memberships</h3>` (grep-verify with a 2-line context).
-- [ ] `./gradlew ktlintCheck` passes.
-- [ ] `./gradlew test --tests "*SarContractIntegrationTest*"` passes without `SAR_GENERATE_ACTUAL`.
-- [ ] `./gradlew build` passes.
-- [ ] Cohort-ordering flake tolerance: expect at most 1 rerun per Correction #8 / Branch 3 override #4.
-
----
-
-## What Branch 5 does NOT include
-
-- No fix for the `refreshPersonalDetailsForReferral` async race (separate follow-up ticket).
-- No changes to production seed / migrations.
-- No enrichment of other under-covered SAR sections (e.g. delivery-location extras). Narrow scope to Programme Group Memberships → Session Attendance only.
-- No CSS/styling work on the new `attendance-record` div (retracted 2026-08-24 — unstyled semantic classes are the project convention; there is no CSS anywhere in the repo).
-- No changes to the `SubjectAccessRequestServiceTest` unit test — that already asserts on the JSON side.
-
----
-
-## Ordering safety for notes (Branch 4 review finding)
-
-`SessionAttendanceEntity.notesHistory` is a `MutableList<SessionNotesHistoryEntity>` with `@OrderBy("createdAt DESC")` at the entity level. Because it's a `List` (not a `Set`), Hibernate preserves the SQL `ORDER BY` result — so today's single-note fixture is safe.
-
-**If your seed enrichment adds >1 note per attendance,** you MUST do one of the following to avoid the same class of flake as `referralCohortHistories` (Correction #8):
-
-- **Preferred:** stagger `createdAt` by at least 1 second between notes so ordering is unambiguous. Example:
-  ```kotlin
-  val note1 = SessionNotesHistoryEntity(attendance = this, notes = "First note",
-    createdAt = LocalDateTime.of(2026, 5, 1, 10, 0, 0))
-  val note2 = SessionNotesHistoryEntity(attendance = this, notes = "Second note",
-    createdAt = LocalDateTime.of(2026, 5, 2, 10, 0, 0))
-  ```
-- **Fallback:** apply a deterministic secondary sort in `SubjectAccessRequestSessionAttendance.toApi()`:
-  ```kotlin
-  noteHistory = notesHistory
-    .sortedWith(compareByDescending<SessionNotesHistoryEntity> { it.createdAt }.thenBy { it.id })
-    .map { it.toApi() }
-    .toMutableList()
-  ```
-  Follows the Branch 1 pattern in `SubjectAccessRequestReferral.toApi()`.
-
-If your seed adds only 1 note (recommended minimal scope — the current seed already does this), no action is needed. Keeping to 1 note per attendance means Branch 5 stays purely test-side.
+For test-side hits: `.containsExactlyInAnyOrder` works on any `Iterable`, so it should be safe. `.hasSize` also safe. `.first()` / `.last()` return different elements depending on the underlying type — inspect any hits.
 
 ---
 
 ## Verification checklist
 
-- [ ] Investigation write-up in PR description (Shape A/B/C + evidence).
-- [ ] Root cause fix applied.
-- [ ] All six grep markers present in the regenerated HTML fixture (see acceptance criteria).
-- [ ] `<p>No Data Held</p>` no longer directly follows `<h3>Programme Group Memberships</h3>`.
-- [ ] JSON fixture (`sar-api-response.json`) unchanged (no drift) — Branch 5 is HTML-only.
+- [ ] Three DTO field types changed from `MutableSet<...>` to `MutableList<...>`.
+- [ ] Three mapper `.toMutableSet()` calls changed to `.toMutableList()`.
+- [ ] `sortedWith(...)` added for `programmeGroupMemberships` and `referralLdcHistories` (already present on `referralCohortHistories`).
+- [ ] Imports for the two entity classes added if not already present.
+- [ ] Pre-flight greps clean.
 - [ ] `./gradlew ktlintCheck` passes.
-- [ ] `./gradlew test --tests "*SarContractIntegrationTest*"` passes without `SAR_GENERATE_ACTUAL`.
+- [ ] `./gradlew test --tests "*SubjectAccessRequestServiceTest*"` passes.
+- [ ] `./scripts/local-scripts/regenerate-sar-snapshots.sh` completes without errors.
+- [ ] `sar-expected-render-result.html` no longer has `<p>No Data Held</p>` immediately after `<h3>Programme Group Memberships</h3>`, `<h3>Cohort History</h3>`, or `<h3>LDC History</h3>`.
+- [ ] `sar-expected-render-result.html` now shows Branch 2 output (`Attended - Complied`) and Branch 4 layout (`<div class="attendance-record">`, `<td>Outcome</td>`, `<td>Legitimate Absence</td>`, `<td>Recorded At</td>`).
+- [ ] `sar-api-response.json` diff is minimal — expect only ordering shifts inside `programmeGroupMemberships` and `referralLdcHistories`.
+- [ ] `./gradlew test --tests "*SarContractIntegrationTest*"` passes (rerun once if the cohort-ordering flake fires — Correction #8).
 - [ ] `./gradlew build` passes.
-- [ ] `notesHistory` ordering safeguard applied only if >1 note per attendance was added; otherwise noted "N/A — single note".
+
+---
+
+## What Branch 5 does NOT include
+
+- No changes to the mustache template.
+- No changes to entity classes.
+- No CSS work.
+- No fix for the `refreshPersonalDetailsForReferral` async race.
+- No seed enrichment.
+- No changes to the SAR JSON endpoint output shape.
+
+---
+
+## Notes on the earlier "seed enrichment" scoping (now obsolete)
+
+Earlier planning framed Branch 5 as "add one attendance row to the render-test seed so the mustache changes from Branches 2 and 4 are exercised". Investigation on 2026-08-24 disproved this: the seed DOES produce attendance data (verified via `sar-api-response.json` on `main`), the JSON output confirms it, but the HTML output collapses it because of the Set-vs-List mustache-accessor bug documented above. **Seed enrichment is not required; a DTO type-change is.**
+
+The branch name `APG-2580/render-test-seed-attendance-row` is kept for tracker continuity. When the implementer opens the PR, the title should reflect the actual scope: `APG-2580 Fix SAR sections silently collapsing to "No Data Held" (community)`.
 
