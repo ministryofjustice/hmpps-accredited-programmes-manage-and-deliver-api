@@ -1,5 +1,24 @@
 # APG-2580 Follow-up 1 — Kill the `sar-api-response.json` cohort-ordering pin (HIGH PRIORITY)
 
+> ## ✅ STATUS: DELIVERED via PR #877 commit `45a4b03d` (2026-08-24)
+>
+> **Do not re-execute this plan.** The fix has been shipped on Branch 5's PR #877 after CI failed 4× — the failure was Override #6 drift proven live. The `TZ=UTC` regen experiment (Step 0 executed empirically) produced `[AUTH_USER,AUTH_USER,SYSTEM]` cohort order vs committed `[AUTH_USER,SYSTEM,AUTH_USER]` — same row count, only reordering → **H1 confirmed** per the doc's classification. Strategy A' was applied verbatim.
+>
+> **What shipped:**
+> - Mapper: `SubjectAccessRequestReferral.kt` — three sorts now use natural-attribute tiebreaks (`programmeGroup.code`, `hasLdc`+`createdBy`, `createdBy`+`cohort.name`) instead of `.thenBy { it.id }`.
+> - Seed: `SarContractIntegrationTest.kt` lines 173–186 — each cohort row given a distinct `createdAt` (SYSTEM/automated rows staggered by seconds, AUTH_USER rows staggered by minutes).
+> - Fixture: `sar-api-response.json` regenerated with the new deterministic order.
+> - Override #6 marked resolved in the delivery tracker.
+>
+> **Local verification (all clean):**
+> - `./gradlew ktlintCheck` — PASS
+> - `./gradlew test --tests "*SarContractIntegrationTest*"` — 4/4 PASS (× 3 BST reruns + × 1 UTC rerun = all deterministic)
+> - `./gradlew build` — 878/878 tests, 9 skipped, 0 failed
+>
+> **Doc kept as historical record** of the analysis, F0 entity nullability audit, Step 0 methodology, and Strategy A' rationale. If a similar issue surfaces in future, the doc's approach is reusable.
+
+---
+
 **Parent ticket:** APG-2580 – TECH: Update SAR endpoint and report for Community following UAT
 **Suggested branch name:** `APG-2580/repin-sar-json-fixture`
 **Base branch:** `main` (after PR #877 / Branch 5 merges)
