@@ -3,7 +3,7 @@
 **Ticket:** APG-2580 – TECH: Update SAR endpoint and report for Community following UAT
 **Planning branch:** `APG-2580/planning-docs`
 **Planning agent (this file's owner):** Copilot in this IDE session
-**Last updated:** 2026-08-24 (Branch 4 opened, 9-eyes review complete)
+**Last updated:** 2026-08-24 (Branch 4 review corrected, Branch 5 released)
 
 This document is the live single source of truth while APG-2580 is being delivered across four dependent implementation branches. The planning agent (Copilot in this workspace) owns and updates this file. Each implementation branch is worked by a fresh implementer agent (in a separate chat/session or by a human) which is given the branch-specific prompt copied from this document.
 
@@ -61,8 +61,8 @@ These override the corresponding paragraphs in the branch docs. The planning age
 | 1.5 sweep-up `APG-2580/fix-sar-cohort-assertion` | [Sweep-up plan](./APG-2580-cleanup-sar-factories-plan.md) | ✅ Merged | [#868](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/868) | 2026-08-20 | Reduced-scope tidy-up PR. Fixed 1 pre-existing `List<String?>` vs `List<OffenceCohort>` assertion in `SubjectAccessRequestServiceTest.kt` (RHS now `.map { it.cohort.displayName }`). Factory deletions dropped (see plan doc). A separate flake fix commit `8f957711` was attempted then reverted — investigation showed the `SarContractIntegrationTest` cohort-ordering flake is a pre-existing async race between the test seed and `refreshPersonalDetailsForReferral` coroutine (adds SYSTEM cohort row with wall-clock `createdAt` in a separate transaction the test doesn't await). Test-only, no prod/SAR impact — raised as a standalone follow-up ticket. |
 | 2. `APG-2580/attendance-codes-to-descriptions` | [Branch 2](./APG-2580-branch-2-attendance-codes-to-descriptions.md) | ✅ Merged | [#871](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/871) | 2026-08-21 | Merged at 11:18 UTC (merge commit `9b5fa0f9`). 3 files: DTO rename (`outcomeTypeCode: String` → `outcomeDescription: String?`), mustache retarget, fixture regen (`"ATTC"` → `"Attended - Complied"`). 9-eyes review clean. Render-test coverage gap for the attendance `<td>` is scoped as Branch 5. |
 | 3. `APG-2580/enum-display-names` | [Branch 3](./APG-2580-branch-3-enum-display-names.md) | ✅ Merged | [#872](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/872) | 2026-08-24 | Merged at 10:08 UTC (merge commit `d47ddad4`). 3 commits: original impl `bdfedcb9`, rebase + `Pre-release` fix `f650c30d`, cohort-fixture pin `158cb481` (after 5 CI reruns of the async-race flake — pinned to CI's stable output; underlying race remains as standalone follow-up ticket). Delivered all 6 confirmed display-name transitions (`Accredited Programme`, `Community`, `Licence Condition`, `Moderate Intensity`, `Group`, `Monday`, `Daytime`) plus `Pre-release` (hyphenated). |
-| 4. `APG-2580/attendance-session-note-restructure` | [Branch 4](./APG-2580-branch-4-attendance-session-note-restructure.md) | 🔎 Awaiting human review | [#874](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/874) | — | Single commit `ba455547`. Diff: 4 files, +30/−46. Planning-agent 9-eyes complete: (a) DTO diffs match plan verbatim (attendance drops `createdBy`/`createdAt`, note history swaps `createdBy: String` → `recordedBy: String?` mapped from `createdByFullName`); (b) mustache restructured per-attendance `<div class="attendance-record">` + nested notes table + fallback `{{^attendances.0}}` intact; (c) fixture verified programmatically — attendance object has zero `createdBy`/`createdAt` keys, `noteHistory[0].recordedBy = null` as expected per product decision; (d) HTML render fixture unchanged (expected — render-test seed gap → Branch 5); (e) both DTOs strictly SAR-scoped (only in-project reference is `SubjectAccessRequestProgrammeGroupMembership.attendances`); (f) zero test-side hits on the removed field names in `SubjectAccessRequestServiceTest.kt`. Two minor notes flagged for reviewer (not blockers): new CSS class `attendance-record` has no CSS declaration in the mustache (semantic marker only; consistent with other prior-art `.data-table` uses); `SessionAttendanceEntity.notesHistory` is `MutableList` with `@OrderBy("createdAt DESC")` — safe today (1 note in fixture) but Branch 5's seed enrichment should add a `.thenBy { it.id }` if it introduces >1 note with equal timestamps (Correction #8 pattern). |
-| 5. `APG-2580/render-test-seed-attendance-row` (follow-up) | *Plan doc to be drafted after Branch 4 lands* | 🛑 Blocked on Branch 4 | — | — | Enrich SAR render-test seed with one attendance row (session + group membership + `SessionAttendanceNDeliusOutcomeEntity`) so `sar-expected-render-result.html` actually exercises the attendance-outcome `<td>` changed in Branch 2 (and the restructured attendance/note collections in Branch 4). Small tech-debt PR; runs *after* Branch 4 so the seed matches the final DTO shape and we regenerate the HTML fixture once, not twice. |
+| 4. `APG-2580/attendance-session-note-restructure` | [Branch 4](./APG-2580-branch-4-attendance-session-note-restructure.md) | 🔎 Awaiting human review | [#874](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/874) | — | Single commit `ba455547`. Diff: 4 files, +30/−46. Planning-agent 9-eyes complete: (a) DTO diffs match plan verbatim (attendance drops `createdBy`/`createdAt`, note history swaps `createdBy: String` → `recordedBy: String?` mapped from `createdByFullName`); (b) mustache restructured per-attendance `<div class="attendance-record">` + nested notes table + fallback `{{^attendances.0}}` intact; (c) fixture verified programmatically — attendance object has zero `createdBy`/`createdAt` keys, `noteHistory[0].recordedBy = null` as expected per product decision; (d) HTML render fixture unchanged (expected — render-test seed gap → Branch 5); (e) both DTOs strictly SAR-scoped (only in-project reference is `SubjectAccessRequestProgrammeGroupMembership.attendances`); (f) zero test-side hits on the removed field names in `SubjectAccessRequestServiceTest.kt`. One minor safeguard for Branch 5: `SessionAttendanceEntity.notesHistory` is `MutableList` with `@OrderBy("createdAt DESC")` — safe today (1 note in fixture) but Branch 5's seed enrichment should either stagger `createdAt` per note or add `.thenBy { it.id }` if it introduces multiple notes with equal timestamps (Correction #8 pattern). ~~Second note (CSS class `attendance-record` unstyled)~~ **retracted 2026-08-24 after audit** — the mustache template uses 15 distinct CSS classes across 51 attribute uses with zero `<style>` blocks, zero `style=` attributes, and zero CSS files anywhere in the repo; unstyled semantic-marker classes ARE the project convention. No CSS work needed on Branch 4, Branch 5, or as a follow-up. |
+| 5. `APG-2580/render-test-seed-attendance-row` (follow-up) | [Branch 5](./APG-2580-branch-5-render-test-seed-attendance-row.md) | 🛑 Blocked on Branch 4 | — | — | Regenerate `sar-expected-render-result.html` so the SAR render-test snapshot actually covers the Branch 2 (`outcomeDescription`) and Branch 4 (per-attendance div + `recordedBy` note field) mustache changes. Investigation (2026-08-24) shows the fixture currently displays `<p>No Data Held</p>` under Programme Group Memberships even though the seed DOES create 1 attendance + 1 note; the JSON fixture correctly serialises the attendance but the render pipeline collapses it. Branch 5 investigates the collapse (likely a Hibernate LAZY-fetch / transaction-boundary difference between the JSON serialiser and the mustache renderer), fixes whichever end is wrong (seed vs fetch strategy vs render helper), then regenerates the HTML fixture. Runs *after* Branch 4 so the enriched fixture reflects the final DTO shape and we regenerate exactly once. |
 
 Legend: ⏳ Not started · 🟡 In progress · 🔎 Awaiting planning-agent review · ✅ Merged · 🛑 Blocked
 
@@ -638,9 +638,153 @@ Do NOT proceed to Branch 5 (it is a follow-up handled separately). Stop after re
 
 ---
 
-## Implementer prompt – Branch 5 (render-test seed follow-up)
+## Implementer prompt – Branch 5: SAR render-test snapshot coverage
 
-*Will be generated by the planning agent after Branch 4 is confirmed ✅. Small scope: add one attendance row (session + group membership + `SessionAttendanceNDeliusOutcomeEntity`) to the SAR render-test seed and regenerate `sar-expected-render-result.html` so the attendance-outcome `<td>` (Branch 2) and restructured attendance/note collections (Branch 4) are snapshot-covered.*
+**Copy everything from `>>>>> BEGIN PROMPT` down to `<<<<< END PROMPT` into a fresh agent session.**
+
+>>>>> BEGIN PROMPT
+
+You are an implementation agent delivering branch 5 of Jira ticket **APG-2580** in the repo `hmpps-accredited-programmes-manage-and-deliver-api`. This is a test-infrastructure follow-up to Branches 2 and 4 — its goal is to make the SAR render-test snapshot actually exercise the attendance section that Branches 2 and 4 restructured.
+
+**Repo:** `/Users/raby.whyte/code/hmpps-accredited-programmes-manage-and-deliver-api`
+
+### Setup
+
+Branches 1, 1.5 sweep-up, 2, 3, and 4 have all merged to `main`. Base this branch on `main`:
+
+```bash
+git fetch origin
+git checkout main && git pull
+git checkout -b APG-2580/render-test-seed-attendance-row
+```
+
+### Plan to execute
+
+Read the full plan here and follow it verbatim:
+
+`docs/branches/APG-2580-branch-5-render-test-seed-attendance-row.md`
+
+That plan has THREE possible shapes (A/B/C). Your first task is investigation to determine which applies. Do NOT skip that step — the wrong shape wastes effort and can introduce regressions.
+
+### Investigation phase (30–60 min)
+
+The SAR JSON fixture (`sar-api-response.json`) on `main` correctly contains one `programmeGroupMemberships[0].attendances[0]`. The HTML fixture (`sar-expected-render-result.html`) on the same `main` collapses Programme Group Memberships to `<p>No Data Held</p>`. Same seed, same test class (`SarContractIntegrationTest`), different outcome.
+
+**Determine why.** Options in the plan doc are:
+- **Shape A** — Hibernate LAZY fetch / transaction boundary difference between JSON test and render test.
+- **Shape B** — `SubjectAccessRequestReferral.toApi()` or downstream mappers return empty `programmeGroupMemberships` under render-test conditions.
+- **Shape C** — `sarIntegrationTestHelper.assertHtmlEquals` (from the shared library `hmpps-kotlin-spring-boot-starter`) is lenient enough that the existing "No Data Held" fixture matches a real rendered output.
+
+**Suggested investigation steps:**
+1. Add a temporary `println("SAR render DTO: ${dataResponse.content}")` at line ~326 of `SarContractIntegrationTest.kt` (immediately before `renderServiceReport(...)`).
+2. Run `./gradlew test --tests "*SarContractIntegrationTest*"` — capture stdout.
+3. If `programmeGroupMemberships` is empty in the printed DTO → collapse is upstream of mustache → Shape A or B.
+4. If `programmeGroupMemberships` is non-empty → the render pipeline itself, or `assertHtmlEquals`, is the culprit → also inspect the produced `renderResult` HTML directly (log it too) — see whether it contains `attendance-record` or `Attended - Complied` while the fixture claims match.
+5. Between Shape A and Shape B: check whether the JSON test's DTO shows real `programmeGroupMemberships` (it does — you can verify by reading `sar-api-response.json`). If BOTH tests use the same `requestSarDataForCrn` helper and the JSON test's DTO is populated but the render test's isn't, the delta must be transactional (Shape A) — because production mapper code is identical for both.
+
+**Do NOT touch production code** without evidence that the mapper is at fault. Shape B is the last-resort option — needs reviewer approval and probably product sign-off.
+
+### Overrides vs. the plan
+
+1. **Fixture regeneration:** always run `./scripts/local-scripts/regenerate-sar-snapshots.sh`. Do not run the manual `SAR_GENERATE_ACTUAL=true ./gradlew ...` + `cp` sequence.
+2. **JSON fixture is expected to stay unchanged.** Branch 5 is HTML-only. If your fix (whichever shape) also alters the JSON output, STOP and confirm with the planning agent — this signals a scope creep or a production-side change you weren't authorised to make.
+3. **notesHistory ordering safeguard (from Branch 4 review):** the current seed uses 1 note per attendance — safe. If your fix adds >1 note to the same attendance, EITHER stagger `createdAt` by ≥ 1 second between them OR apply `.sortedWith(compareByDescending<SessionNotesHistoryEntity> { it.createdAt }.thenBy { it.id })` in `SubjectAccessRequestSessionAttendance.toApi()` before `.toMutableList()`. Follows the Branch 1 pattern.
+4. **Known CI cohort flake:** `SarContractIntegrationTest` occasionally fails on `referralCohortHistories` ordering (Correction #8). If it fires, rerun `./gradlew build` once; do NOT edit the JSON fixture — Branch 3 (`158cb481`) already pinned that ordering to CI's stable output.
+5. **Do NOT enrich other SAR sections.** Scope is Programme Group Memberships → Session Attendance only. Do not touch availability, delivery-location, referral-status, message-history, etc.
+6. **Do NOT add CSS.** The mustache template uses 15 distinct CSS class names with zero `<style>` blocks and zero CSS files anywhere in the repo — unstyled semantic markers are project convention (Branch 4 review audit, 2026-08-24).
+7. **Do NOT change the mustache template.** Branches 2 and 4 already finalised the attendance section markup. Branch 5 only makes the seed / fetch strategy produce data that hits those mustache lines.
+
+### Acceptance criteria (all must be true before you report back)
+
+- [ ] PR description contains the investigation write-up: which shape (A/B/C) applies + evidence (short log excerpt or bullet points).
+- [ ] Root cause fix applied per the chosen shape. Diff kept as small as possible.
+- [ ] `sar-expected-render-result.html` regenerated via `./scripts/local-scripts/regenerate-sar-snapshots.sh`.
+- [ ] The regenerated HTML fixture contains all six of the following (verified by grep):
+  - `<div class="attendance-record">` — at least one occurrence
+  - `Attended - Complied` — Branch 2 output
+  - `<td>Outcome</td>` — Branch 4 summary-list header
+  - `<td>Legitimate Absence</td>` — Branch 4 summary-list header
+  - `<td>Recorded At</td>` — Branch 4 header (appears in both the summary-list and the nested notes header)
+  - Either the seeded note text `Notes for referral` OR the notes-table header cell `<td class="data-column-60">Notes</td>`
+- [ ] `sar-expected-render-result.html` no longer has `<p>No Data Held</p>` immediately under `<h3>Programme Group Memberships</h3>`. Confirm with:
+  ```bash
+  grep -A 3 "Programme Group Memberships" src/test/resources/sar/sar-expected-render-result.html | head -6
+  ```
+- [ ] `sar-api-response.json` is byte-identical to `main` (only the cohort-ordering pin should be present — no other changes). Confirm with:
+  ```bash
+  diff src/test/resources/sar/sar-api-response.json <(git show origin/main:src/test/resources/sar/sar-api-response.json)
+  ```
+- [ ] `./gradlew ktlintCheck` passes.
+- [ ] `./gradlew test --tests "*SarContractIntegrationTest*"` passes without `SAR_GENERATE_ACTUAL` (rerun once if the known cohort-ordering flake hits — see override #4).
+- [ ] `./gradlew test --tests "*SubjectAccessRequestServiceTest*"` passes.
+- [ ] `./gradlew build` passes (878+ tests, 0 failures on final run).
+- [ ] Any temporary debug `println` / `logger` calls REMOVED before commit. Grep to confirm:
+  ```bash
+  grep -n "println\|logger.info(\"SAR render" src/test/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/sar/SarContractIntegrationTest.kt
+  ```
+  Should return no hits.
+
+### Push and open PR
+
+```bash
+git add -A
+git commit --no-gpg-sign -m "APG-2580: SAR render-test snapshot coverage for attendance section"
+git push -u origin APG-2580/render-test-seed-attendance-row
+```
+
+Open a PR against `main` titled: `APG-2580 SAR render-test snapshot coverage for attendance section (community)`
+
+Include in the PR description:
+- Stacks on PRs #860, #868, #871, #872, #874 (all merged).
+- The investigation finding (Shape A / B / C).
+- Which specific mustache lines are now snapshot-covered that weren't before (Branch 2's `outcomeDescription`, Branch 4's per-attendance div, Branch 4's `recordedBy` note field).
+- Explicit note: **no production code changed** (Shape A/C) OR **one prod mapper touched, reviewer sign-off needed** (Shape B).
+
+### Report back to the planning agent
+
+Reply in this exact structure:
+
+```
+BRANCH: 5
+BRANCH NAME: APG-2580/render-test-seed-attendance-row
+BASE BRANCH: main
+PR URL: <url or "not yet opened">
+
+INVESTIGATION:
+  SHAPE: A / B / C
+  EVIDENCE: <1–3 lines: what you observed that pointed to this shape>
+  ROOT CAUSE (1 sentence): <e.g. "Hibernate lazy fetch inside a rolled-back transaction meant the render pipeline saw an empty programmeGroupMemberships">
+
+FILES MODIFIED (with 1-line summary each):
+  - <path>: <summary>
+
+GREP VERIFICATION OF REGENERATED HTML FIXTURE:
+  - "attendance-record" occurrences: <n>
+  - "Attended - Complied" present: yes/no
+  - "<td>Outcome</td>" present: yes/no
+  - "<td>Legitimate Absence</td>" present: yes/no
+  - "<td>Recorded At</td>" occurrences: <n> (expect ≥1)
+  - Notes cell / header: <what was found>
+  - "No Data Held" directly under Programme Group Memberships: no (or "still present — investigation needed")
+
+JSON FIXTURE UNCHANGED VS MAIN: yes/no
+
+TEST RESULTS:
+  - ktlintCheck: PASS / FAIL
+  - SubjectAccessRequestServiceTest: PASS / FAIL
+  - SarContractIntegrationTest: PASS / FAIL (note if cohort-ordering flake hit + rerun result)
+  - Full build (./gradlew build): PASS / FAIL
+
+DEVIATIONS FROM PLAN:
+  - <list any, or "none">
+
+QUESTIONS FOR PLANNING AGENT:
+  - <list any, or "none">
+```
+
+Branch 5 is the final branch in APG-2580 delivery. After you report back, the planning agent will verify the fixture diff and prep the ticket for closure.
+
+<<<<< END PROMPT
 
 ---
 
@@ -662,3 +806,4 @@ Do NOT proceed to Branch 5 (it is a follow-up handled separately). Stop after re
 - **2026-08-21 (Branch 3 rebased + out for re-review)** – User confirmed `Pre-release` (hyphenated) is the preferred wording — matches British English convention and other `pre-*` compounds. Implementer executed the rebase-and-regen block: rebased #872 on `origin/main` (post-#871), resolved the SAR fixture conflict via `--theirs` + regen, flipped `SettingType.PRE_RELEASE("Pre Release")` → `("Pre-release")`, re-ran `regenerate-sar-snapshots.sh`, force-pushed. Rebase commit `f650c30d` on top of original `bdfedcb9`. Planning-agent spot-check confirms: (a) hyphenated `Pre-release` present in source; (b) `"outcomeDescription":"Attended - Complied"` present in the regenerated JSON fixture; (c) zero `outcomeTypeCode` remaining anywhere; (d) all six Branch 3 display strings (`Accredited Programme`, `Community`, `Licence Condition`, `Moderate Intensity`, `Group`, `Monday`, `Daytime`) intact in both JSON and HTML render fixture. Branch 3 status flipped to 🔎 Awaiting human review (rebase concern resolved). Next: reviewer approves → merge #872 → Branch 4 unblocked → planning agent releases the Branch 4 implementer prompt.
 - **2026-08-24 (Branch 3 merged, Branch 4 released)** – PR #872 merged at 10:08 UTC (merge commit `d47ddad4`). Merge required a fixture-pin commit `158cb481` after 5 CI reruns of the pre-existing `refreshPersonalDetailsForReferral` async race — the local regen produced `[AUTH_USER, SYSTEM, AUTH_USER]` cohort ordering but CI consistently produced `[AUTH_USER, AUTH_USER, SYSTEM]`. Fixture pinned to CI's stable output via a 1-line JSON edit (no regen — regen on the dev's machine would have flipped it back). CI's date-based `OpenApiDocsTest` and `InfoTest` had also started failing during rerun cycles because the version stamp (2026-08-21) fell out of sync with the wall clock (2026-08-24); the new commit's fresh version stamp cleared both. Underlying async race remains as a standalone follow-up ticket — not merged into Branch 4. Status board: row 3 → ✅ Merged; row 4 → ⏳ Ready to start with full implementer prompt released (mirrors Branches 1–3 shape: setup + plan reference + confirmed product decision on note `recordedBy` "No Data Held" fixture + overrides #1–6 including render-test coverage gap warning + acceptance criteria + report-back template). Row 5 remains blocked on Branch 4. No code changes to prior branches; no impact on the fixture-pin commit which stays as-is on `main` until the async-race ticket lands.
 - **2026-08-24 (Branch 4 opened + 9-eyes review complete)** – Branch 4 implemented and PR [#874](https://github.com/ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-api/pull/874) opened at single commit `ba455547` (4 files, +30/−46). Planning-agent 9-eyes verification against `main`: (a) `SubjectAccessRequestSessionAttendance.kt` — 4 deletions (2 data-class fields + 2 mapper lines), retained `LocalDateTime`/`UUID` imports as specified; (b) `SubjectAccessRequestSessionNoteHistory.kt` — 2/2 diff swapping `createdBy: String` → `recordedBy: String?` with mapper reading `createdByFullName`; (c) `sar_template.mustache` — replaced flat outcome table with per-attendance `<div class="attendance-record">` blocks, nested notes table now inside the div, notes headers `Recorded By` / `Recorded At`, notes body uses `{{ optionalValue recordedBy }}` (falls back to "No Data Held" for the null test-fixture value), fallback `{{^attendances.0}}` still present; (d) fixture verified programmatically — attendance object has keys `[groupMembershipId, id, legitimateAbsence, noteHistory, outcomeType, recordedAt, recordedByFacilitator, sessionId]` (no `createdBy`, no `createdAt`), `noteHistory[0]` has keys `[createdAt, id, note, recordedBy]` with `recordedBy: null`, `referralCohortHistories` order matches the CI-pin from `158cb481`; (e) HTML render fixture unchanged (expected per override #6 — render-test seed gap being fixed in Branch 5); (f) DTOs strictly SAR-scoped — only in-project reference is `SubjectAccessRequestProgrammeGroupMembership.attendances`; (g) zero test-side hits on the removed field names in `SubjectAccessRequestServiceTest.kt`. **Two minor items surfaced (not blockers):** (i) new CSS class `attendance-record` has no declaration — semantic marker only; the sibling `summary-list` class used inside is already established (9 prior uses in same template); reviewer decision whether to add styling in this PR or defer; (ii) `SessionAttendanceEntity.notesHistory` is a `MutableList<SessionNotesHistoryEntity>` with `@OrderBy("createdAt DESC")` — safe today because the fixture seeds only one note, but Branch 5's seed enrichment will need to either restrict itself to one note per attendance OR follow Correction #8's pattern (add deterministic secondary sort by `id`) if it introduces multiple notes with equal timestamps; noted as a Branch 5 override. Implementer flagged an edit-persistence hiccup during the first mustache attempt (resolved on retry) — flagged in Branch 3 review too; noted as a tool-side deviation, no code impact. No open questions from implementer. Row 4 status flipped to 🔎 Awaiting human review. Row 5 remains blocked on Branch 4 merge.
+- **2026-08-24 (CSS convention audit — Note 1 from Branch 4 review retracted, Branch 5 plan doc + implementer prompt released)** – User challenged whether the `attendance-record` div being unstyled was actually against project convention. Audit of `src/main/resources/sar_template.mustache`: 51 total `class="..."` attributes across 15 distinct class names (`caselist`, `data-column-{10..60}`, `data-table`, `group-membership`, `referral`, `summary-list`, `title`, `waitlist`, and now `attendance-record`), **zero `<style>` blocks, zero `style=` attributes, zero CSS files anywhere in the repo**. Every class in the template is a semantic marker with no visual styling defined. `attendance-record` therefore IS the project convention — the earlier review flag was based on a false assumption. Row 4 note retracted with strikethrough + audit findings inline. **Separate discovery during Branch 5 planning:** running `grep`s over the render fixture on `main` shows `<h3>Programme Group Memberships</h3>` immediately followed by `<p>No Data Held</p>`, i.e. the whole Programme Group Memberships section is collapsed at render time even though the JSON fixture (same test class, same seed) correctly serialises one attendance. Root cause unknown at plan-drafting time — the mustache changes from Branches 2 and 4 are therefore ALSO not snapshot-covered on `main`. Branch 5 plan doc (`docs/branches/APG-2580-branch-5-render-test-seed-attendance-row.md`) written to require an investigation-first workflow: implementer determines whether Shape A (LAZY-fetch/transaction boundary), Shape B (mapper returns empty collection), or Shape C (`assertHtmlEquals` leniency) applies, then applies the minimal fix. Prefers Shape A; Shape B needs product sign-off; Shape C means no code change beyond fixture regen. Row 5 note in status board updated to reflect the broader-than-expected investigation scope. Row 5 remains blocked on Branch 4 merge. Full Branch 5 implementer prompt released in the tracker (mirrors Branches 1–4 shape: setup + plan reference + investigation phase + overrides #1–7 including notesHistory ordering safeguard + acceptance criteria with 6 mandatory grep markers on the regenerated HTML + report-back template with investigation findings). No code changes; no impact on merged branches or PR #874.
