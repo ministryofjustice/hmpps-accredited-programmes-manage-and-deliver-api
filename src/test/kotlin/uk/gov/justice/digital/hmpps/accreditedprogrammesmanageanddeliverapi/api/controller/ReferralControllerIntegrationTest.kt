@@ -1961,7 +1961,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
 
       // Then
       assertThat(response.attendanceHistory).hasSizeGreaterThan(2)
-      assertThat(response.attendanceHistory[0].unformattedDate).isBeforeOrEqualTo(response.attendanceHistory[1].unformattedDate)
+      assertThat(response.attendanceHistory.map { it.unformattedDate }).isSortedAccordingTo(compareBy { it })
     }
   }
 }

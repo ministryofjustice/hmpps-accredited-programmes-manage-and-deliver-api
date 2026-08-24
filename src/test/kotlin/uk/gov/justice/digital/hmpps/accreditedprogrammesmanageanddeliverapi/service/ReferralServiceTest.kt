@@ -31,7 +31,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusTransitionEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_SENTENCE_REFERENCE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_STATUS
@@ -1249,5 +1252,38 @@ class ReferralServiceTest {
         "success",
       )
     }
+  }
+
+  @Test
+  fun `getAttendanceHistory should return sessions with 'To be confirmed' when no attendance recorded`() {
+    // Given
+    val referralId = UUID.randomUUID()
+    val referral = ReferralEntityFactory().withId(referralId).produce()
+    val group = ProgrammeGroupFactory().withId(UUID.randomUUID()).produce()
+
+    val membership = ProgrammeGroupMembershipFactory()
+      .withReferral(referral)
+      .withProgrammeGroup(group)
+      .produce()
+    // ProgrammeGroupMembershipFactory has no withAttendances() — set field directly
+    membership.attendances = mutableSetOf()
+
+    val session = SessionFactory(programmeGroup = group).withId(UUID.randomUUID()).produce()
+    val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
+    session.attendees = mutableListOf(attendee)
+
+    every { referralRepository.findByIdOrNull(referralId) } returns referral
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns membership
+    every { programmeGroupMembershipRepository.findAllByReferralIdWithAttendances(referralId) } returns listOf(membership)
+    every { sessionRepository.findAllByProgrammeGroupIdIn(any()) } returns listOf(session)
+    every { programmeGroupService.getAttendanceTextFromOutcome(null) } returns "To be confirmed"
+    every { sessionNameFormatter.format(any(), any()) } returns "Session 1"
+
+    // When
+    val result = referralService.getAttendanceHistory(referralId)
+
+    // Then
+    assertThat(result.attendanceHistory).isNotEmpty()
+    assertThat(result.attendanceHistory).allMatch { it.attendanceStatus == "To be confirmed" }
   }
 }

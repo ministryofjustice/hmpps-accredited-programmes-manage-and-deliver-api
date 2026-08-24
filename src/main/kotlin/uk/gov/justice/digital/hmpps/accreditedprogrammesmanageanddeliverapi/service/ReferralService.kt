@@ -683,7 +683,7 @@ class ReferralService(
     val allMemberships = programmeGroupMembershipRepository.findAllByReferralIdWithAttendances(referralId)
     val sessionsByGroupId = sessionRepository.findAllByProgrammeGroupIdIn(
       allMemberships.map { it.programmeGroup.id!! },
-    ).groupBy { it.programmeGroup.id }
+    ).groupBy { it.programmeGroup.id!! }
 
     val sessions = allMemberships
       .flatMap { membership ->
@@ -716,7 +716,7 @@ class ReferralService(
             )
           }
       }
-      // Remove any duplicate sessions in the event that there are multiple attendance records for a session.
+      // Deduplicate sessions that appear across multiple group memberships (e.g. referral removed and re-added to the same group).
       .distinctBy { it.sessionId }
       .sortedBy { it.unformattedDate }
 
