@@ -46,16 +46,23 @@ fun ReferralEntity.toApi(
   setting = setting.displayName,
   sourcedFrom = sourcedFrom?.displayName,
   deliveryLocationPreference = deliveryLocationPreferences?.toApi(),
+  // ASC by createdAt: SAR template numbers "Group Allocation 1, 2, ..." via @index,
+  // so chronological order reads naturally in the report. `.thenBy { it.id }` gives a
+  // deterministic tie-break when two memberships share a createdAt (JPA Sets have no order).
   programmeGroupMemberships = programmeGroupMemberships
     .sortedWith(compareBy<ProgrammeGroupMembershipEntity> { it.createdAt }.thenBy { it.id })
     .map { it.toApi() }
     .toMutableList(),
   statusHistories = statusHistories.map { it.toApi() }.toMutableList(),
   messageHistories = messageHistoryEntities.map { it.toApi() }.toMutableList(),
+  // DESC by createdAt: history sections show most-recent-first, matching cohort history.
+  // `.thenBy { it.id }` is the deterministic tie-break (see tracker Correction #8).
   referralLdcHistories = referralLdcHistories
     .sortedWith(compareByDescending<ReferralLdcHistoryEntity> { it.createdAt }.thenBy { it.id })
     .map { it.toApi() }
     .toMutableList(),
+  // DESC by createdAt: most-recent cohort first. `.thenBy { it.id }` is the deterministic
+  // tie-break added on Branch 1 (commit bab0cb03) after a Hibernate-version-dependent flake.
   referralCohortHistories = referralCohortHistories
     .sortedWith(compareByDescending<ReferralCohortHistoryEntity> { it.createdAt }.thenBy { it.id })
     .map { it.toApi() }
