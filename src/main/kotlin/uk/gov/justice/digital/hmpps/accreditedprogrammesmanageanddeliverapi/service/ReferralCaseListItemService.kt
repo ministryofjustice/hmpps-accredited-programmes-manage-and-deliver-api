@@ -14,15 +14,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.StatusFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.model.AllCaseAccess
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getReferralCaseListItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withCrns
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.withRegionNames
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserAccessService.Access
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
-import java.time.OffsetDateTime
 
 @Service
 class ReferralCaseListItemService(
@@ -30,26 +29,29 @@ class ReferralCaseListItemService(
   private val userService: UserService,
   private val referralStatusService: ReferralStatusService,
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
-  @Value("\${app.features.lao-access-check-enabled}")
-  private val laoAccessCheckEnabled: Boolean,
-  @Value("\${app.features.exclusion-access-check-enabled}")
+  @param:Value($$"${app.features.lao-access-check-enabled}")
+  private val limitedAccessOffenderCheckEnabled: Boolean,
+  @param:Value($$"${app.features.exclusion-access-check-enabled}")
   private val exclusionAccessCheckEnabled: Boolean,
+  private val userAccessService: UserAccessService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
   fun getReferralCaseListItemServiceByCriteria(
     pageable: Pageable,
     openOrClosed: OpenOrClosed,
     username: String,
-    crnOrPersonName: String?,
+    caseReferenceNumberOrPersonName: String?,
     cohort: ProgrammeGroupCohort?,
     status: String?,
     sex: String?,
-    pdus: List<String>?,
+    probationDeliveryUnits: List<String>?,
     reportingTeams: List<String>?,
   ): CaseListReferrals {
     val (offenceType, hasLdc) = cohort?.let { ProgrammeGroupCohort.toOffenceTypeAndLdc(it) }
       ?: (null to null)
 
+    val isFilteredCaseList =
+      isFilterApplied(caseReferenceNumberOrPersonName, cohort, status, sex, probationDeliveryUnits, reportingTeams)
     val userRegionNames = userService.getUserRegionNames(username)
 
     // Normalise the status filter once so both the main query and the otherTabCount query
@@ -60,32 +62,44 @@ class ReferralCaseListItemService(
       pageable = pageable,
       openOrClosed = openOrClosed,
       username = username,
-      crnOrPersonName = crnOrPersonName,
+      caseReferenceNumberOrPersonName = caseReferenceNumberOrPersonName,
       offenceCohort = offenceType,
       hasLdc = hasLdc,
       status = normalisedStatus,
       sex = sex,
-      pdus = pdus,
+      probationDeliveryUnits = probationDeliveryUnits,
       reportingTeams = reportingTeams,
     )
-    var caseAccessByCrn: Map<String, AllCaseAccess>? = null
 
-    if (laoAccessCheckEnabled) {
-      caseAccessByCrn = referralsPage.content
-        .map { it.crn }
-        .distinct()
-        .associateWith(userService::getCaseAccessByCrn)
+    // Fetch Limited Access Offender (LAO) status for all distinct case reference numbers (CRNs)
+    var limitedAccessOffenderAccessMap: Map<String, Access>? = null
+    if (limitedAccessOffenderCheckEnabled) {
+      val caseReferenceNumbers = referralsPage.content.map { it.crn }.distinct()
+      limitedAccessOffenderAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
     }
-    val accessibleOffenders = userService.getAccessibleOffenders(username, referralsPage.content.map { it.crn })
 
-    val referralCaseListItems = referralsPage.content
-      .map { referral ->
-        if (exclusionAccessCheckEnabled) {
-          referral.toApi(lao = isLao(referral.crn, caseAccessByCrn), isExcluded = !accessibleOffenders.contains(referral.crn))
-        } else {
-          referral.toApi(lao = isLao(referral.crn, caseAccessByCrn))
+    val referralCaseListItems = referralsPage.content.filter { referral ->
+      if (exclusionAccessCheckEnabled && isFilteredCaseList) {
+        val access = limitedAccessOffenderAccessMap?.get(referral.crn)
+        val isLimitedAccessOffender = access?.lao ?: false
+        val isExcluded = access?.isExcluded ?: false
+        if (isLimitedAccessOffender) {
+          return@filter !isExcluded
         }
       }
+
+      return@filter true
+    }.map { referral ->
+      val access = limitedAccessOffenderAccessMap?.get(referral.crn)
+      if (exclusionAccessCheckEnabled) {
+        referral.toApi(
+          isLimitedAccessOffender = access?.lao ?: false,
+          isExcluded = access?.isExcluded ?: false,
+        )
+      } else {
+        referral.toApi(isLimitedAccessOffender = access?.lao ?: false)
+      }
+    }
 
     val referralsToReturn = PageImpl(
       if (exclusionAccessCheckEnabled) {
@@ -94,19 +108,19 @@ class ReferralCaseListItemService(
         referralCaseListItems
       },
       referralsPage.pageable,
-      referralsPage.totalElements,
+      referralsPage.totalElements - (referralsPage.content.size - referralCaseListItems.size).toLong(),
     )
 
     val otherTabCount = getReferralCaseList(
       pageable = pageable,
       openOrClosed = if (openOrClosed == OpenOrClosed.OPEN) OpenOrClosed.CLOSED else OpenOrClosed.OPEN,
       username = username,
-      crnOrPersonName = crnOrPersonName,
+      caseReferenceNumberOrPersonName = caseReferenceNumberOrPersonName,
       offenceCohort = offenceType,
       hasLdc = hasLdc,
       status = normalisedStatus,
       sex = sex,
-      pdus = pdus,
+      probationDeliveryUnits = probationDeliveryUnits,
       reportingTeams = reportingTeams,
     ).totalElements
 
@@ -117,12 +131,12 @@ class ReferralCaseListItemService(
     pageable: Pageable,
     openOrClosed: OpenOrClosed,
     username: String,
-    crnOrPersonName: String?,
+    caseReferenceNumberOrPersonName: String?,
     offenceCohort: OffenceCohort?,
     hasLdc: Boolean?,
     status: String?,
     sex: String?,
-    pdus: List<String>?,
+    probationDeliveryUnits: List<String>?,
     reportingTeams: List<String>?,
   ): Page<ReferralCaseListItemViewEntity> {
     val possibleStatuses = referralStatusService.getOpenOrClosedStatusesDescriptions(openOrClosed)
@@ -130,12 +144,12 @@ class ReferralCaseListItemService(
     val baseSpec =
       getReferralCaseListItemSpecification(
         possibleStatuses = possibleStatuses,
-        crnOrPersonName = crnOrPersonName,
+        crnOrPersonName = caseReferenceNumberOrPersonName,
         offenceCohort = offenceCohort,
         hasLdc = hasLdc,
         status = status,
         sex = sex,
-        pdus = pdus,
+        pdus = probationDeliveryUnits,
         reportingTeams = reportingTeams,
       )
 
@@ -170,13 +184,19 @@ class ReferralCaseListItemService(
     return PageImpl(caseListReferrals.content, pageable, totalAllowedCount)
   }
 
-  private fun isLao(crn: String, caseAccessByCrn: Map<String, AllCaseAccess>?): Boolean {
-    val now = OffsetDateTime.now()
-    val caseAccess = caseAccessByCrn?.get(crn) ?: return false
-
-    return caseAccess.restrictedTo.any { it.until == null || it.until > now } ||
-      caseAccess.excludedFrom.any { it.until == null || it.until > now }
-  }
+  private fun isFilterApplied(
+    caseReferenceNumberOrPersonName: String?,
+    cohort: ProgrammeGroupCohort?,
+    status: String?,
+    sex: String?,
+    probationDeliveryUnits: List<String>?,
+    reportingTeams: List<String>?,
+  ): Boolean = !caseReferenceNumberOrPersonName.isNullOrEmpty() ||
+    cohort != null ||
+    !status.isNullOrEmpty() ||
+    !sex.isNullOrEmpty() ||
+    probationDeliveryUnits != null ||
+    reportingTeams != null
 
   fun getCaseListFilterData(userRegionNames: List<String>): CaseListFilterValues {
     val allStatuses = referralStatusService.getAllStatuses()
@@ -195,7 +215,8 @@ class ReferralCaseListItemService(
       .sortedBy { it.pduName }
 
     // For this instance of displaying the status' on the front end, the description of "Breach (non-attendance)" needs to be changed.
-    val openDescriptions = ReferralStatusUtils.sortStatuses(open.map { ReferralStatusUtils.formatStatus(it.description) })
+    val openDescriptions =
+      ReferralStatusUtils.sortStatuses(open.map { ReferralStatusUtils.formatStatus(it.description) })
 
     val statusFilterValues = StatusFilterValues(
       open = openDescriptions,
