@@ -82,6 +82,7 @@ class ReferralServiceTest {
   private val sessionRepository: SessionRepository = mockk()
   private val authenticationHolder: HmppsAuthenticationHolder = mockk()
   private val userAccessService: UserAccessService = mockk()
+  private val sessionRepository: SessionRepository = mockk()
 
   private lateinit var referralService: ReferralService
 
@@ -116,6 +117,8 @@ class ReferralServiceTest {
       true,
       userAccessService,
       authenticationHolder,
+      sessionRepository = sessionRepository,
+      laoAccessCheckEnabled = true,
     )
   }
 
