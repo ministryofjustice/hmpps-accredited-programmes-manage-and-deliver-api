@@ -20,11 +20,13 @@ Branch 5 (PR #877) uncovered a bug that was masked for months because the SAR HT
 
 ### Verified facts (2026-08-24)
 
-- Regenerator script exists at `scripts/local-scripts/regenerate-sar-snapshots.sh`. Implementer must open and read it first — behaviour, flags, and exit codes are pre-existing and must not be changed by this ticket.
+- Regenerator script exists at `scripts/local-scripts/regenerate-sar-snapshots.sh`. Implementer must open and read it first — behaviour, flags, and exit codes are pre-existing and must not be changed by this ticket. **Verified read 2026-08-24:** the script sets `SAR_GENERATE_ACTUAL=true`, runs three specific `SarContractIntegrationTest` tests, and copies **three** log files (`entity-schema.json.log`, `sar-api-response.json.log`, `sar-generated-report.html.log`) into three snapshot files under `src/test/resources/sar/`.
 - Fixtures live at:
+  - `src/test/resources/sar/entity-schema-snapshot.json`
   - `src/test/resources/sar/sar-api-response.json`
   - `src/test/resources/sar/sar-expected-render-result.html`
-- There is currently **no CI gate** that runs the regenerator (verified — no such workflow in `.circleci/config.yml` or `.github/workflows/`; implementer must re-verify pre-flight).
+- **All three** fixtures should be under the drift gate — not just the two SAR-content ones. `entity-schema-snapshot.json` is a schema pin that would silently drift on entity changes without the gate.
+- There is currently **no CI gate** that runs the regenerator (verified — no such workflow in `.github/workflows/`; the repo does **not** use CircleCI — no `.circleci/` directory exists. Implementer must re-verify pre-flight).
 
 ### Suggested implementation (two options — pick one)
 
@@ -59,20 +61,26 @@ Then extend the script:
 
 #### Option 2: a dedicated CI job
 
-Add a CircleCI job (verify actual CI provider — this repo currently uses CircleCI per `.circleci/config.yml`; implementer to re-confirm):
+Add a GitHub Actions job (verified: this repo uses GitHub Actions in `.github/workflows/`, **not** CircleCI — no `.circleci/` directory exists):
 
 ```yaml
-- job:
-    name: verify-sar-fixtures
-    steps:
-      - checkout
-      - run: ./gradlew --no-daemon integrationTest -Dspring.profiles.active=integration-test
-      - run: ./scripts/local-scripts/regenerate-sar-snapshots.sh
-      - run: git diff --exit-code src/test/resources/sar/
+# In .github/workflows/pipeline.yml (or a new workflow file), add a job like:
+verify-sar-fixtures:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with: { java-version: '21', distribution: 'temurin' }
+    - name: Regenerate SAR fixtures
+      run: ./scripts/local-scripts/regenerate-sar-snapshots.sh
+    - name: Fail if fixtures drifted
+      run: git diff --exit-code src/test/resources/sar/
 ```
 
+Verify the exact JDK version and existing workflow structure by reading `.github/workflows/pipeline.yml` first — do not guess.
+
 **Pros:** doesn't slow local builds. Runs in parallel with the main test job.
-**Cons:** requires CI config knowledge; doesn't help locally.
+**Cons:** doesn't help locally (implementer might commit a fixture drift and only discover it after pushing).
 
 **Recommendation:** Option 1. Slower local builds are a fair price for eliminating a bug class that survived for months undetected.
 
@@ -84,16 +92,21 @@ Add a CircleCI job (verify actual CI provider — this repo currently uses Circl
 # 1. Confirm regen script location and current behaviour
 cat scripts/local-scripts/regenerate-sar-snapshots.sh
 
-# 2. Confirm the two fixture paths
-ls -la src/test/resources/sar/
+# 2. Confirm all three fixture paths exist
+ls -la src/test/resources/sar/entity-schema-snapshot.json \
+       src/test/resources/sar/sar-api-response.json \
+       src/test/resources/sar/sar-expected-render-result.html
 
 # 3. Confirm no existing gate — expect zero hits
-grep -rn "regenerate-sar-snapshots\|verifySarFixtures" .circleci/ .github/ build.gradle.kts 2>/dev/null
+grep -rn "regenerate-sar-snapshots\|verifySarFixtures" .github/ build.gradle.kts 2>/dev/null
 
-# 4. Confirm CI provider
-ls -la .circleci/config.yml .github/workflows/ 2>/dev/null
+# 4. Confirm CI provider (verified 2026-08-24: GitHub Actions, not CircleCI)
+ls -la .github/workflows/ 2>&1
 
-# 5. Time a regen to know the local-build cost
+# 5. Read the main pipeline workflow to know the shape of an existing job
+cat .github/workflows/pipeline.yml | head -50
+
+# 6. Time a regen to know the local-build cost
 time bash scripts/local-scripts/regenerate-sar-snapshots.sh
 # Restore any drift after timing:
 git checkout src/test/resources/sar/

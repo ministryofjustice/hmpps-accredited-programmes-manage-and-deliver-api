@@ -94,7 +94,7 @@ class SubjectAccessRequestDtoConventionsTest {
 
 **Pre-flight for Part A:**
 - `./gradlew dependencies --configuration testRuntimeClasspath 2>&1 | grep -iE "reflections|classgraph"` — pick whichever is already present. If neither is, use Spring's `ClassPathScanningCandidateComponentProvider` with a `RegexPatternTypeFilter` for `.*` — it's guaranteed to be on the classpath.
-- `grep -rn "package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.subjectAccessRequest" src/main/kotlin | wc -l` — confirms how many DTO classes the test will scan (~15–20 expected).
+- `grep -rn "package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.subjectAccessRequest" src/main/kotlin | wc -l` — confirms how many DTO classes the test will scan. **Verified 2026-08-24: 25 classes in the package.**
 - Run the new test **before** committing to confirm it passes on `main` (Branch 5 removed the last Set). If it fails, the rule caught a real violation — investigate.
 
 **Deliverables:**
@@ -102,55 +102,44 @@ class SubjectAccessRequestDtoConventionsTest {
 - Green build.
 - No production code changes.
 
-### Part B — template helper `{{#hasAny …}}` (optional, larger scope)
+### Part B — template helper `{{#hasAny …}}` (⚠️ COMPLEXITY WARNING — read before pursuing)
 
-Introduce a JMustache lambda / helper that expresses "collection has at least one element" without relying on the `.0` idiom, then sweep the template.
+**Verified 2026-08-24, MUST READ BEFORE STARTING:** template rendering is NOT done in this repo. The SAR service in this repo (`SubjectAccessRequestService.kt`) implements `HmppsProbationSubjectAccessRequestService` from the external library `uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:3.0.0` (see `build.gradle.kts:18`). The library owns:
 
-**Design sketch:**
+- The template compiler / engine (mustache-family, not directly declared in this repo's `build.gradle.kts`).
+- The rendering pipeline that produces the PDF/HTML output.
+- Any helper / lambda registration API.
 
-Register a `hasAny` helper in the JMustache compiler (find the current registration site with `grep -rn "Mustache.compiler\|Mustache.Compiler\|Template" src/main/kotlin | grep -i sar` — likely in `SubjectAccessRequestService.kt` or a template config class).
+The `sar_template.mustache` at `src/main/resources/sar_template.mustache` is loaded and rendered *by the library*, not by any code in this repo. **This makes Part B significantly harder than originally documented.**
 
-```kotlin
-private fun buildMustacheCompiler(): Mustache.Compiler =
-  Mustache.compiler()
-    .withLoader(...)
-    // Existing helpers: formatDate, convertBoolean, optionalValue, getUserLastName, getIndexPlusOne, eq
-    .withFormatter { obj ->
-      // ...existing formatter...
-    }
-    // NEW: hasAny — usage: {{#hasAny collection}}…render…{{/hasAny}}{{^hasAny collection}}<p>No Data Held</p>{{/hasAny}}
-    // Note: JMustache lambdas work via the object model, not compiler config — the actual
-    // implementation is a Callable<String> field on the context, or a Mustache.Lambda impl.
-    // Implementer must verify the JMustache version in build.gradle.kts and use the appropriate API.
-```
+#### Option B1: upstream a `hasAny` helper into hmpps-kotlin-spring-boot-starter
 
-Then sweep `src/main/resources/sar_template.mustache`:
+Fork/PR into [hmpps-kotlin-lib](https://github.com/ministryofjustice/hmpps-kotlin-lib) (verify the exact repo — do not guess). Add the helper to whichever class configures the template compiler. Ship a new library version, bump `build.gradle.kts` in this repo, sweep the template.
 
-```mustache
-{{! BEFORE }}
-{{#referralLdcHistories.0}}
-  …table…
-{{/referralLdcHistories.0}}
-{{^referralLdcHistories.0}}
-  <p>No Data Held</p>
-{{/referralLdcHistories.0}}
+**Pros:** benefits every SAR-emitting service across MoJ.
+**Cons:** cross-repo change, requires library maintainer sign-off, weeks not days.
 
-{{! AFTER }}
-{{#hasAny referralLdcHistories}}
-  …table…
-{{/hasAny}}
-{{^hasAny referralLdcHistories}}
-  <p>No Data Held</p>
-{{/hasAny}}
-```
+#### Option B2: local Spring bean override
 
-**Pre-flight for Part B:**
-- `grep -c "\.0}}" src/main/resources/sar_template.mustache` — counts existing occurrences of the idiom. Currently expected to be ~8–12 (Branch 5 didn't remove any — the template stayed the same, only the DTO types changed).
-- Verify the JMustache version and lambda API: `grep -A 2 "com.samskivert\|jmustache" build.gradle.kts`
+Override the library's template-rendering bean in this repo with a custom implementation that pre-processes the template or adds the helper. Requires knowing the exact bean name and interface (verify by reading the library source or `HmppsProbationSubjectAccessRequestService` docs).
+
+**Pros:** no cross-repo change.
+**Cons:** fragile — every library version bump can break the override.
+
+#### Option B3: do not do Part B
+
+Given the complexity, **the strong recommendation is now to NOT do Part B in this ticket**. Part A alone (the architecture test) delivers the safety benefit without any of the risk. Part B only becomes interesting if a future SAR DTO field cannot be a `List` for some domain reason — which is not currently the case for any planned work.
+
+If the user still wants Part B, ask them explicitly to choose B1 or B2 and confirm they understand the scope. **Do not start Part B without that explicit confirmation.**
+
+**Pre-flight for Part B (if B1 or B2 chosen):**
+- `grep -rn "hmpps-kotlin\|HmppsProbationSubjectAccessRequestService\|HmppsSubjectAccessRequestContent" src/main/kotlin build.gradle.kts` — confirms the library integration surface.
+- Identify the library's template-rendering bean name (read `hmpps-kotlin-lib` source or its docs).
+- `grep -c "\.0}}" src/main/resources/sar_template.mustache` — counts existing occurrences of the idiom to know the sweep size.
 - Fixture regen required after the sweep.
 
 **Trade-offs:**
-- Part B makes the template unambiguous and future-proof, but it's a big diff for a template that's currently working. Only pursue if Part A's guardrail is felt to be insufficient (e.g. someone bypasses the test by adding a raw property on a domain class rather than a SAR DTO).
+- Part B makes the template unambiguous and future-proof, but **is a much larger change than originally thought** — see the complexity warning at the top of the Part B section. The rendering engine lives in `hmpps-kotlin-spring-boot-starter`, not this repo. Strong recommendation is Part A only.
 
 ---
 
@@ -196,7 +185,7 @@ Then sweep `src/main/resources/sar_template.mustache`:
 > 2. `docs/branches/APG-2580-branch-5-render-test-seed-attendance-row.md` (the bug this prevents)
 > 3. `docs/branches/APG-2580-DELIVERY-TRACKER.md` correction #9 (root cause context)
 >
-> **Scope decision — do this first:** ask the user whether they want **Part A only** (default — fast, low risk) or **Part A + Part B** (larger, template refactor). Do not implement Part B without explicit user opt-in. The plan doc lists trade-offs.
+> **Scope decision — do this first:** ask the user whether they want **Part A only** (default — fast, low risk, self-contained in this repo) or **Part A + Part B** (Part B is significantly larger than initially thought — see the plan doc's "COMPLEXITY WARNING" at the top of Part B; the rendering engine lives in the external `hmpps-kotlin-spring-boot-starter` library, so Part B involves either a cross-repo change (B1) or a fragile Spring bean override (B2)). **Recommend Part A only.** Do not implement Part B without explicit user opt-in AND a chosen sub-option (B1 or B2).
 >
 > **Do the plan.** Every code decision must be backed by grep evidence — do not guess reflection library, JMustache version, or template helper API. Paste grep counts into the PR body.
 >
