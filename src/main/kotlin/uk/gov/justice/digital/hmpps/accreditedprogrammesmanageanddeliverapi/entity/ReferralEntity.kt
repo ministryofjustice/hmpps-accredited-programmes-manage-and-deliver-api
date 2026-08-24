@@ -167,7 +167,7 @@ class ReferralEntity(
   var updatedAt: LocalDateTime = LocalDateTime.now(),
 )
 
-enum class ReferralEntitySourcedFrom {
-  REQUIREMENT,
-  LICENCE_CONDITION,
+enum class ReferralEntitySourcedFrom(val displayName: String) {
+  REQUIREMENT("Requirement"),
+  LICENCE_CONDITION("Licence Condition"),
 }
