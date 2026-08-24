@@ -266,6 +266,23 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `getGroupAllocations defaults to a page size of 20 when none is provided`() {
+      // Given
+      val group = ProgrammeGroupFactory().withCode("TEST001").produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/group/${group.id}/WAITLIST",
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
+      )
+
+      // Then
+      assertThat(response.pagedGroupData.size).isEqualTo(20)
+    }
+
+    @Test
     fun `getGroupAllocations returns empty page when no waitlist data exists`() {
       // Given
       val group = ProgrammeGroupFactory().withCode("TEST001").produce()

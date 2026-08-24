@@ -122,7 +122,7 @@ class ProgrammeGroupController(
   fun getGroupAllocations(
     @PageableDefault(
       page = 0,
-      size = 10,
+      size = 20,
       sort = ["sentenceEndDate"],
       direction = Sort.Direction.ASC,
     ) pageable: Pageable,
