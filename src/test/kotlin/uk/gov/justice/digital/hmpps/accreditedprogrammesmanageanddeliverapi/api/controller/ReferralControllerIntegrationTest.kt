@@ -1837,17 +1837,18 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.popName).isEqualTo("Alex River")
       assertThat(response.currentlyAllocatedGroupCode).isEqualTo(group.code)
       assertThat(response.currentlyAllocatedGroupId).isEqualTo(group.id)
-      assertThat(response.attendanceHistory).hasSize(1)
-      assertThat(response.attendanceHistory).allMatch { it.attendanceStatus == "Attended - Complied" }
-      assertThat(response.attendanceHistory).allMatch { it.hasNotes }
-      assertThat(response.attendanceHistory).allMatch { it.groupId == group.id }
-      assertThat(response.attendanceHistory).allMatch { it.popName == "Alex River" }
-      assertThat(response.attendanceHistory).allMatch { it.sessionName == "Getting started 1" }
-      assertThat(response.attendanceHistory).allMatch { !it.isCatchup }
+      assertThat(response.attendanceHistory).hasSizeGreaterThan(1)
+      val attendedSession = response.attendanceHistory.single { it.sessionId == session.id }
+      assertThat(attendedSession.attendanceStatus).isEqualTo("Attended - Complied")
+      assertThat(attendedSession.hasNotes).isTrue()
+      assertThat(attendedSession.groupId).isEqualTo(group.id)
+      assertThat(attendedSession.popName).isEqualTo("Alex River")
+      assertThat(attendedSession.sessionName).isEqualTo("Getting started 1")
+      assertThat(attendedSession.isCatchup).isFalse()
     }
 
     @Test
-    fun `should return empty sessions when referral has no attendance recorded`() {
+    fun `should return sessions when referral has no attendance recorded`() {
       // Given
       val group = testGroupHelper.createGroup()
       val referral = testReferralHelper.createReferral(personName = "Alex River")
@@ -1864,7 +1865,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.popName).isEqualTo("Alex River")
       assertThat(response.currentlyAllocatedGroupCode).isEqualTo(group.code)
       assertThat(response.currentlyAllocatedGroupId).isEqualTo(group.id)
-      assertThat(response.attendanceHistory).isEmpty()
+      assertThat(response.attendanceHistory).isNotEmpty()
+      assertThat(response.attendanceHistory).allMatch { it.attendanceStatus == "To be confirmed" }
     }
 
     @Test
@@ -1958,7 +1960,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       )
 
       // Then
-      assertThat(response.attendanceHistory).hasSize(2)
+      assertThat(response.attendanceHistory).hasSizeGreaterThan(2)
       assertThat(response.attendanceHistory[0].unformattedDate).isBeforeOrEqualTo(response.attendanceHistory[1].unformattedDate)
     }
   }
