@@ -7,13 +7,13 @@ import java.util.UUID
 data class SubjectAccessRequestSessionNoteHistory(
   val id: UUID?,
   val note: String?,
-  val createdBy: String,
+  val recordedBy: String?,
   val createdAt: LocalDateTime,
 )
 
 fun SessionNotesHistoryEntity.toApi() = SubjectAccessRequestSessionNoteHistory(
   id = id,
   note = notes,
-  createdBy = createdBy,
+  recordedBy = createdByFullName,
   createdAt = createdAt,
 )

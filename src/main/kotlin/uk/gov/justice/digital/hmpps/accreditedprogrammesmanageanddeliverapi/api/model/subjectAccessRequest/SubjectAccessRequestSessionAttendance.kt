@@ -13,8 +13,6 @@ data class SubjectAccessRequestSessionAttendance(
   val noteHistory: MutableList<SubjectAccessRequestSessionNoteHistory>,
   val recordedByFacilitator: SubjectAccessRequestFacilitator?,
   val recordedAt: LocalDateTime?,
-  val createdBy: String,
-  val createdAt: LocalDateTime,
 )
 
 fun SessionAttendanceEntity.toApi() = SubjectAccessRequestSessionAttendance(
@@ -26,6 +24,4 @@ fun SessionAttendanceEntity.toApi() = SubjectAccessRequestSessionAttendance(
   noteHistory = notesHistory.map { it.toApi() }.toMutableList(),
   recordedByFacilitator = recordedByFacilitator?.toApi(),
   recordedAt = recordedAt,
-  createdBy = createdBy,
-  createdAt = createdAt,
 )
