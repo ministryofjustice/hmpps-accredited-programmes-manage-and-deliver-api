@@ -165,19 +165,11 @@
 
     <h4>Session Attendance</h4>
     {{#attendances.0}}
-    <table class="data-table">
-      <tr>
-        <td class="data-column-20">Outcome</td>
-        <td class="data-column-15">Legitimate Absence</td>
-        <td class="data-column-20">Recorded By</td>
-        <td class="data-column-20">Recorded At</td>
-        <td class="data-column-15">Created By</td>
-        <td class="data-column-10">Created At</td>
-      </tr>
-      {{#attendances}}
-      <tr>
-        <td>{{ optionalValue outcomeType.outcomeDescription }}</td>
-        <td>
+    {{#attendances}}
+    <div class="attendance-record">
+      <table class="summary-list">
+        <tr><td>Outcome</td><td>{{ optionalValue outcomeType.outcomeDescription }}</td></tr>
+        <tr><td>Legitimate Absence</td><td>
           {{#if (eq legitimateAbsence "null")}}
             No Data Held
           {{else}}
@@ -187,33 +179,29 @@
               {{ convertBoolean legitimateAbsence }}
             {{/if}}
           {{/if}}
-        </td>
-        <td>{{ optionalValue recordedByFacilitator.personName }}</td>
-        <td>{{ formatDate recordedAt }}</td>
-        <td>{{ getUserLastName createdBy }}</td>
-        <td>{{ formatDate createdAt }}</td>
-      </tr>
-      {{/attendances}}
-    </table>
+        </td></tr>
+        <tr><td>Recorded By</td><td>{{ optionalValue recordedByFacilitator.personName }}</td></tr>
+        <tr><td>Recorded At</td><td>{{ formatDate recordedAt }}</td></tr>
+      </table>
 
-    {{#attendances}}
-    {{#noteHistory.0}}
-    <h5>Session Notes</h5>
-    <table class="data-table">
-      <tr>
-        <td class="data-column-60">Notes</td>
-        <td class="data-column-20">Created By</td>
-        <td class="data-column-20">Created At</td>
-      </tr>
-      {{#noteHistory}}
-      <tr>
-        <td>{{ optionalValue note }}</td>
-        <td>{{ getUserLastName createdBy }}</td>
-        <td>{{ formatDate createdAt }}</td>
-      </tr>
-      {{/noteHistory}}
-    </table>
-    {{/noteHistory.0}}
+      {{#noteHistory.0}}
+      <h5>Session Notes</h5>
+      <table class="data-table">
+        <tr>
+          <td class="data-column-60">Notes</td>
+          <td class="data-column-20">Recorded By</td>
+          <td class="data-column-20">Recorded At</td>
+        </tr>
+        {{#noteHistory}}
+        <tr>
+          <td>{{ optionalValue note }}</td>
+          <td>{{ optionalValue recordedBy }}</td>
+          <td>{{ formatDate createdAt }}</td>
+        </tr>
+        {{/noteHistory}}
+      </table>
+      {{/noteHistory.0}}
+    </div>
     {{/attendances}}
     {{/attendances.0}}
     {{^attendances.0}}
