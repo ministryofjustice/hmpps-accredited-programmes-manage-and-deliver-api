@@ -149,6 +149,20 @@ Plus:
 
 ---
 
+## Verification checklist
+
+- [ ] Pre-flight greps run; counts recorded in PR body.
+- [ ] Every `MutableSet<X>` field on an `@Entity` catalogued in the report (none omitted).
+- [ ] Every catalogued field has a verdict (safe / at-risk / fixed on this branch).
+- [ ] Every "at-risk" verdict backed by grep evidence of an order-sensitive call-site (not opinion).
+- [ ] Report file `docs/APG-2580-entity-set-iteration-audit.md` created and committed.
+- [ ] Decision rule from "Findings-based decision tree" followed (0 findings → report only; 1–3 low-risk → fix here; 4+ or any high-risk → report + separate tickets).
+- [ ] `./gradlew ktlintCheck` PASS (if any code fixes were applied).
+- [ ] `./gradlew build` PASS.
+- [ ] No entity `MutableSet` changed to `List` (verified via `git diff` — the anti-pattern list forbids this).
+
+---
+
 ## Anti-patterns
 
 1. **Do not** change entity Set fields to List. JPA needs Set semantics for many-to-many and one-to-many bag safety.
