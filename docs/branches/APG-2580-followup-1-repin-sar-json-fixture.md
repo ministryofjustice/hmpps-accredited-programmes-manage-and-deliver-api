@@ -12,6 +12,33 @@
 
 The following are **grep-verified** against the current source, not assumed. Any implementer picking this up MUST re-verify these before touching code — the file line numbers may drift.
 
+### F0. Entity field types and nullability (VERIFIED 2026-08-24)
+
+The three DTO mapper sorts must be robust against null selectors. Kotlin's `Comparator` factory (`compareBy`, `thenBy`, `compareByDescending`) delegates to `compareValues` which treats `null < any non-null` and `null == null` — so nullable selectors do NOT throw NPE, but the implementer must acknowledge which fields are nullable to avoid surprises.
+
+| Entity | Field | Type | Notes |
+|---|---|---|---|
+| `ReferralCohortHistoryEntity` | `id` | `UUID?` (nullable, `@GeneratedValue`) | ⚠️ non-deterministic across environments — this is the current tiebreak and is exactly the source of drift |
+| `ReferralCohortHistoryEntity` | `cohort` | `OffenceCohort` (non-null enum) | ✅ safe for `.thenBy { it.cohort.name }` |
+| `ReferralCohortHistoryEntity` | `createdBy` | `String` (non-null) | ✅ safe for `.thenBy { it.createdBy }` |
+| `ReferralCohortHistoryEntity` | `createdAt` | `LocalDateTime` (non-null) | ✅ safe for `compareByDescending { it.createdAt }` |
+| `ReferralLdcHistoryEntity` | `id` | `UUID?` (nullable, generated) | Same drift concern |
+| `ReferralLdcHistoryEntity` | `hasLdc` | `Boolean` (non-null) | ✅ safe |
+| `ReferralLdcHistoryEntity` | `createdBy` | `String?` — **NULLABLE** | Null-safe via `compareValues`; sort still deterministic |
+| `ReferralLdcHistoryEntity` | `createdAt` | `LocalDateTime?` — **NULLABLE** | Null-safe via `compareValues` |
+| `ProgrammeGroupMembershipEntity` | `id` | `UUID?` (nullable, generated) | Same drift concern |
+| `ProgrammeGroupMembershipEntity` | `programmeGroup` | `ProgrammeGroupEntity` (non-null) | ✅ safe to dereference |
+| `ProgrammeGroupMembershipEntity` | `createdAt` | `LocalDateTime` (non-null) | ✅ safe |
+| `ProgrammeGroupMembershipEntity` | `createdByUsername` | `String?` — **NULLABLE** | Null-safe via `compareValues` |
+| `ProgrammeGroupEntity` | `id` | `UUID?` (nullable, `@GeneratedValue`) | ⚠️ **NOT seed-stable** — do not use as tiebreak |
+| `ProgrammeGroupEntity` | `code` | `String` (non-null, natural key) | ✅ **use `.programmeGroup.code` as membership tiebreak** |
+
+**Files verified:**
+- `src/main/kotlin/.../entity/ReferralCohortHistoryEntity.kt`
+- `src/main/kotlin/.../entity/ReferralLdcHistoryEntity.kt`
+- `src/main/kotlin/.../entity/ProgrammeGroupMembershipEntity.kt`
+- `src/main/kotlin/.../entity/ProgrammeGroupEntity.kt` (lines 32–39)
+
 ### F1. The pinned JSON currently contains three cohort entries
 
 File: `src/test/resources/sar/sar-api-response.json` (single-line JSON).
@@ -73,7 +100,59 @@ Tie-breaker is `.thenBy { it.id }` — where `id` is a **UUID assigned by the DB
 
 ---
 
-## Design: three viable fix strategies
+## Step 0 — reproduce the flake and identify the actual tied pair (MANDATORY, NO SKIPPING)
+
+**This is not optional. Two hypotheses exist and they need different fixes.** Do not proceed to a strategy until this section is complete.
+
+### The two hypotheses
+
+**H1 — Tied `createdAt` between the two AUTH_USER "General offence" rows** (this doc's default assumption, per PR #877 implementer report).
+The seed's `forEach` normaliser at `SarContractIntegrationTest.kt:173–175` collapses AUTH_USER rows to `fixedNow.minusMinutes(1)`, producing two identical timestamps if two AUTH_USER GENERAL_OFFENCE rows exist. Strategy A' (below) fixes this.
+
+**H2 — Async race with `refreshPersonalDetailsForReferral`** (tracker Correction #7 cites this as the root cause of a *different* flake in PR #868).
+`ReferralService.refreshPersonalDetailsForReferral()` (verified — `src/main/kotlin/.../service/ReferralService.kt` lines 102–180) launches coroutines that call `cohortService.updateCohortForReferral(referral, ..., "SYSTEM")`, inserting a `SYSTEM` cohort row with a wall-clock `createdAt` in a separate transaction. If SarContract's setup triggers this path directly or transitively, the third row lands with a non-deterministic timestamp that the seed's `forEach` may or may not catch depending on scheduler timing. Strategy A' does NOT fix H2; only awaiting the coroutine or removing the async call from the seed does.
+
+**Both may be true simultaneously** — H2 causes intermittent 3-row vs 4-row totals, and H1 causes the tied pair to shuffle when 3 rows land.
+
+### How to disambiguate (implementer MUST run all of these)
+
+1. **Check out `main` (or `main` + PR #877 if merged).** Do NOT branch yet.
+
+2. **Run the failing test 10 times in a row locally and record the outcome each time:**
+   ```bash
+   for i in {1..10}; do
+     echo "=== Run $i ==="
+     ./gradlew test --tests "*SarContractIntegrationTest.SAR API should return expected data*" --rerun-tasks 2>&1 | tail -20
+   done
+   ```
+   Record: pass/fail count, and for each failure, the exact JSON diff (Gradle report at `build/reports/tests/test/...`).
+
+3. **Classify the failure mode:**
+   - If failure diffs show **only reordering of the two AUTH_USER "General offence" rows** (positions [0] and [2] swap while positions [1] stays SYSTEM Sexual offence) → **H1 confirmed**. Proceed with Strategy A' below.
+   - If failure diffs show **extra or missing rows** (count changes between 3 and 4, or SYSTEM row appears/disappears) → **H2 confirmed**. STOP — this is out of scope for a "kill the cohort pin" ticket. Update this doc to reflect the finding and escalate to a Coroutine-race fix ticket. Do not attempt the strategy below.
+   - If failure diffs show **both** patterns across runs → **both hypotheses active**. Fix H2 first (separate ticket), then come back to H1.
+
+4. **Instrument the seed to prove which rows are tied.** Add a temporary log line at `SarContractIntegrationTest.kt` just before the assertion:
+   ```kotlin
+   referralRepository.findByIdOrNull(referral.id).referralCohortHistories.forEach {
+     println("[COHORT-DEBUG] id=${it.id} createdBy=${it.createdBy} cohort=${it.cohort} createdAt=${it.createdAt}")
+   }
+   ```
+   Run the test twice. Compare `[COHORT-DEBUG]` lines across runs. Any two rows with identical `createdAt` are the drift source. Any row with a `createdAt` outside `{fixedNow, fixedNow.minusMinutes(1)}` proves H2.
+
+5. **Record findings in the PR body** under "Step 0 — reproduction evidence". No PR is acceptable without this section filled in.
+
+### Fallback (H2 confirmed)
+
+If H2 is confirmed, this ticket must be re-scoped BEFORE any production code changes:
+- Rename the branch to `APG-2580/fix-sar-cohort-async-race` or similar.
+- Update the plan doc to reflect a coroutine-await fix (or a `@MockBean cohortService` for this test), not a mapper sort.
+- Get planner sign-off on the new scope before implementing.
+- The mapper `.thenBy { it.id }` UUID tiebreak stays until H1 is separately proven and fixed.
+
+---
+
+
 
 The implementer must pick **exactly one** of these — do not combine. Trade-offs are listed. Recommendation is **Strategy A**.
 
@@ -92,7 +171,7 @@ Change the mapper sort to use attributes that already exist on the entity and ar
 **Pros:**
 - Zero seed changes; zero fixture changes are *required* (though a regen is needed to confirm ordering matches the pin — see verification below).
 - Fully deterministic — no UUID, no clock, no environment coupling.
-- Same pattern is safe to apply to `referralLdcHistories` (tiebreak on `hasLdc`, `createdBy`) and `programmeGroupMemberships` (tiebreak on `programmeGroup.id` which is a stable seed-side value, or `createdByUsername`).
+- Same pattern is safe to apply to `referralLdcHistories` (tiebreak on `hasLdc`, `createdBy`) and `programmeGroupMemberships` (tiebreak on `programmeGroup.code`, the non-null natural key — verified F0. Do **not** use `programmeGroup.id`, it's a nullable `@GeneratedValue` UUID and would recreate the same drift).
 
 **Cons:**
 - Depends on the tuple `(createdAt, createdBy, cohort)` being unique across all realistic data. For the pinned seed, the two tied rows have `createdBy = "AUTH_USER"` and `cohort = "General offence"` — **still identical**. So Strategy A ALONE does not resolve the tie without also making one of these attributes distinct.
@@ -166,25 +245,29 @@ If the implementer discovers during pre-flight that the two tied rows have any o
 
 **Path:** `src/main/kotlin/uk/gov/justice/digital/hmpps/accreditedprogrammesmanageanddeliverapi/api/model/subjectAccessRequest/SubjectAccessRequestReferral.kt`
 
-Replace the three `.thenBy { it.id }` tiebreakers with natural-attribute tiebreakers:
+Replace the three `.thenBy { it.id }` tiebreakers with natural-attribute tiebreakers. **Verified against entity source (F0) — do not substitute `programmeGroup.id`, it's a generated nullable UUID and would reintroduce the drift.**
 
 ```kotlin
-// programmeGroupMemberships (ASC by createdAt) — tiebreak on programmeGroup.id (stable seed UUID)
-// then createdByUsername for absolute determinism.
+// programmeGroupMemberships (ASC by createdAt)
+// Tiebreak on programmeGroup.code (non-null String, seed-stable natural key — verified F0).
+// Do NOT use programmeGroup.id — it's a nullable @GeneratedValue UUID.
 .sortedWith(
   compareBy<ProgrammeGroupMembershipEntity> { it.createdAt }
-    .thenBy { it.programmeGroup.id }
-    .thenBy { it.createdByUsername },
+    .thenBy { it.programmeGroup.code }
+    .thenBy { it.createdByUsername },  // nullable, null-safe via compareValues
 )
 
-// referralLdcHistories (DESC by createdAt) — tiebreak on hasLdc then createdBy.
+// referralLdcHistories (DESC by createdAt)
+// Both createdAt and createdBy are nullable on this entity (verified F0); Kotlin's
+// compareValues treats null < non-null, so no NPE. Tiebreak stable across environments.
 .sortedWith(
   compareByDescending<ReferralLdcHistoryEntity> { it.createdAt }
     .thenBy { it.hasLdc }
     .thenBy { it.createdBy },
 )
 
-// referralCohortHistories (DESC by createdAt) — tiebreak on createdBy then cohort.name.
+// referralCohortHistories (DESC by createdAt)
+// All three fields non-null (verified F0). This is the field the pin is currently drifting on.
 .sortedWith(
   compareByDescending<ReferralCohortHistoryEntity> { it.createdAt }
     .thenBy { it.createdBy }
@@ -219,6 +302,8 @@ Regenerated by the same script. Expected diff: at most a re-ordering of Cohort H
 
 ## Pre-flight greps (MANDATORY — no guesswork)
 
+**Prerequisite:** Step 0 (root-cause reproduction) is complete and H1 is confirmed. If H2 is confirmed, do not run these greps — re-scope per Step 0's "Fallback (H2 confirmed)" section.
+
 Run all of these BEFORE writing code and record the counts in the PR body:
 
 ```bash
@@ -247,13 +332,14 @@ grep -A 3 "^6\.\|override #6" docs/branches/APG-2580-DELIVERY-TRACKER.md | head 
 
 **Stop and escalate** if:
 - Grep #2 returns fewer than 3 hits — the mapper has drifted; re-plan.
-- Grep #3 reveals nullable fields — the sort code above needs `nullsLast()`.
+- Grep #3 reveals **new** nullable fields not documented in F0 — verify null-safety of the proposed sort. Note: F0 already documents that `ReferralLdcHistoryEntity.createdBy` / `createdAt` and `ProgrammeGroupMembershipEntity.createdByUsername` and every `id` field are nullable; Kotlin's `compareValues` handles these safely, but any **additional** nullability discovered here requires review.
 - Grep #4 returns unexpected hits — another DTO uses the same pattern and may need the same fix.
 
 ---
 
 ## Verification checklist
 
+- [ ] **Step 0 complete: root cause reproduced 10× and classified as H1 (tied AUTH_USER createdAts). Evidence pasted into PR body.**
 - [ ] Pre-flight greps run and counts recorded in PR body.
 - [ ] Mapper sort changed for all three fields (grep expects 0 hits for `thenBy { it.id }` in this file after change).
 - [ ] Seed `forEach` replaced with distinct-createdAt loop.
@@ -311,10 +397,14 @@ If the fix causes unexpected downstream failures (e.g. `HmppsSubjectAccessReques
 >
 > **Read these docs first, in order, and confirm you have understood each:**
 > 1. `docs/branches/APG-2580-followup-1-repin-sar-json-fixture.md` (this doc — the plan)
-> 2. `docs/branches/APG-2580-DELIVERY-TRACKER.md` "Corrections" section, especially override #6 and correction #8 (the ordering flake history)
+> 2. `docs/branches/APG-2580-DELIVERY-TRACKER.md` "Corrections" section, especially override #6, correction #7 (async-race precedent), and correction #8 (the ordering flake history)
 > 3. `docs/how-to/update-sar-tests.md` (fixture regeneration workflow)
 >
-> **Do the plan.** Follow Strategy A' from the doc. Run every pre-flight grep before touching code and paste the counts into your PR body. If any grep returns unexpected counts, STOP and ask the user before proceeding — do not guess.
+> **Do Step 0 FIRST.** The doc contains a mandatory "Step 0 — reproduce the flake and identify the actual tied pair" section. Two hypotheses (H1 tied-createdAt / H2 async-race) require different fixes. Run the 10× reproduction loop and the seed instrumentation BEFORE creating a branch or writing a single line of production code. Paste your Step 0 findings into your PR body verbatim. **No PR is acceptable without Step 0 evidence.**
+>
+> **If Step 0 confirms H2 (async race), STOP** — re-scope per the doc's "Fallback (H2 confirmed)" section, get planner sign-off on the new scope, and only then implement.
+>
+> **If Step 0 confirms H1 (tied AUTH_USER createdAts):** proceed with Strategy A' from the doc. Every code decision must be backed by grep evidence — do not guess field names, entity properties, or line numbers. Paste grep counts into the PR body.
 >
 > **Verification is non-negotiable:**
 > - `./gradlew ktlintCheck` must PASS.
@@ -331,11 +421,12 @@ If the fix causes unexpected downstream failures (e.g. `HmppsSubjectAccessReques
 > - Do not change `ReferralEntity` — it stays `MutableSet` for JPA.
 >
 > **Report back to the planning agent with:**
-> 1. Grep counts from all 6 pre-flight greps.
-> 2. Chosen strategy (A' by default; note any deviation and why).
-> 3. Local test results — verbatim gradle output for the three test targets above.
-> 4. Fixture diff summary (line counts + which sections changed).
-> 5. PR URL.
-> 6. CI status on first push.
-> 7. Any deviations, questions, or blockers.
+> 1. **Step 0 reproduction evidence** (pass/fail count over 10 runs, JSON diff patterns, `[COHORT-DEBUG]` output, hypothesis conclusion). **Non-negotiable — the PR is dead-on-arrival without this.**
+> 2. Grep counts from all 6 pre-flight greps.
+> 3. Chosen strategy (A' if H1 confirmed; if H2 confirmed, this section describes the re-scope decision instead).
+> 4. Local test results — verbatim gradle output for the three test targets above.
+> 5. Fixture diff summary (line counts + which sections changed).
+> 6. PR URL.
+> 7. CI status on first push.
+> 8. Any deviations, questions, or blockers.
 
