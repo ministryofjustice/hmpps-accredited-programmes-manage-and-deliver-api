@@ -125,9 +125,9 @@ class SubjectAccessRequestServiceTest {
     assertThat(resultContent.referrals[0].referralCohortHistories.map { it.cohort }).isEqualTo(referralEntity1.referralCohortHistories.map { it.cohort.displayName })
     assertThat(resultContent.referrals[0].createdAt).isEqualTo(referralEntity1.createdAt)
     assertThat(resultContent.referrals[0].interventionName).isEqualTo(referralEntity1.interventionName)
-    assertThat(resultContent.referrals[0].interventionType).isEqualTo(referralEntity1.interventionType.name)
-    assertThat(resultContent.referrals[0].setting).isEqualTo(referralEntity1.setting.name)
-    assertThat(resultContent.referrals[0].sourcedFrom).isEqualTo(referralEntity1.sourcedFrom?.name)
+    assertThat(resultContent.referrals[0].interventionType).isEqualTo(referralEntity1.interventionType.displayName)
+    assertThat(resultContent.referrals[0].setting).isEqualTo(referralEntity1.setting.displayName)
+    assertThat(resultContent.referrals[0].sourcedFrom).isEqualTo(referralEntity1.sourcedFrom?.displayName)
 
     assertThat(resultContent.referrals[0].deliveryLocationPreference).isNotNull()
     assertThat(resultContent.referrals[0].deliveryLocationPreference?.createdBy)
@@ -233,11 +233,11 @@ class SubjectAccessRequestServiceTest {
     assertThat(resultContent.referrals[0].attendees[0].session.moduleSessionTemplate.name)
       .isEqualTo(attendeeEntity.session.moduleSessionTemplate.name)
     assertThat(resultContent.referrals[0].attendees[0].session.moduleSessionTemplate.pathway)
-      .isEqualTo(attendeeEntity.session.moduleSessionTemplate.pathway.name)
+      .isEqualTo(attendeeEntity.session.moduleSessionTemplate.pathway.displayName)
     assertThat(resultContent.referrals[0].attendees[0].session.moduleSessionTemplate.sessionNumber)
       .isEqualTo(attendeeEntity.session.moduleSessionTemplate.sessionNumber)
     assertThat(resultContent.referrals[0].attendees[0].session.moduleSessionTemplate.sessionType)
-      .isEqualTo(attendeeEntity.session.moduleSessionTemplate.sessionType.name)
+      .isEqualTo(attendeeEntity.session.moduleSessionTemplate.sessionType.value)
 
     // SessionFacilitators assertions
     assertThat(resultContent.referrals[0].attendees[0].session.sessionFacilitators).isNotNull()
