@@ -232,6 +232,14 @@ for a separate consolidation ticket rather than in-place batching.
 
 ## Follow-up work (recommended tickets)
 
+**Delivery plan (2026-08-25):** the follow-ups below are grouped into **two PRs**:
+
+- **F5 — [`APG-2580-followup-5-attendance-latest-consolidation.md`](./APG-2580-followup-5-attendance-latest-consolidation.md)** covers items 1 (all 5 attendance-latest sites, using the new sibling helper for `NDeliusAppointmentEntity.currentAttendance()`).
+- **F6 — [`APG-2580-followup-6-membership-and-status-history-tiebreaks.md`](./APG-2580-followup-6-membership-and-status-history-tiebreaks.md)** covers item 2 (`programmeGroupMemberships` `@OrderBy` + `ReferralStatusService` tiebreaks) plus item 4 (`TelemetryService.statusHistories` symmetry fix).
+- Item 3 (`programmeGroupSessionSlots` cosmetic `@OrderBy`) deliberately deferred — no consumer currently reads it in an order-sensitive way. Revisit if/when one does.
+
+The raw item list below is kept as the source of truth for what F5 / F6 must cover — implementer prompts in each doc trace back to these items.
+
 1. **Consolidate attendance-latest selection through `latestByCreatedAt()`** —
    route `ReferralService.kt:688`, `SessionService.kt:461`, `SessionService.kt:617`,
    `NDeliusAppointmentEntity.currentAttendance()`, and `SessionNotes.kt:105`
