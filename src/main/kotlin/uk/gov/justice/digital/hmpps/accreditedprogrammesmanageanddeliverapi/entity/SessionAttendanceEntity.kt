@@ -73,6 +73,27 @@ class SessionAttendanceEntity(
   var createdAt: LocalDateTime = LocalDateTime.now(),
 )
 
+/**
+ * Returns the "latest" attendance in an iterable of [SessionAttendanceEntity], ordered by
+ * `createdAt` DESC (most-recent-first), with a deterministic natural-attribute tiebreak.
+ *
+ * The tiebreak uses `createdBy` (non-null String) and then `outcomeType.code.name` (enum name,
+ * non-null String) — both seed-stable natural attributes. This deliberately replaces the
+ * anti-pattern `.thenBy { it.id }` on `@GeneratedValue` UUIDs, which produces different
+ * winners between local and CI runs when two rows share the same `createdAt` (a
+ * "UUID lottery"). See APG-2580 follow-up 4 audit report
+ * (`docs/APG-2580-entity-set-iteration-audit.md`) and the reference fix in PR #877 commit
+ * `2a971033` on `SubjectAccessRequestReferral.kt`.
+ *
+ * Consolidated helper so `SessionService.getRecordAttendanceBySessionId` and
+ * `ProgrammeGroupService.getGroupSessionPage` cannot drift apart on the tiebreak choice.
+ */
+fun Iterable<SessionAttendanceEntity>.latestByCreatedAt(): SessionAttendanceEntity? = maxWithOrNull(
+  compareBy<SessionAttendanceEntity> { it.createdAt }
+    .thenBy { it.createdBy }
+    .thenBy { it.outcomeType.code.name },
+)
+
 fun SessionAttendee.toEntity(
   session: SessionEntity,
   groupMembershipEntity: ProgrammeGroupMembershipEntity,

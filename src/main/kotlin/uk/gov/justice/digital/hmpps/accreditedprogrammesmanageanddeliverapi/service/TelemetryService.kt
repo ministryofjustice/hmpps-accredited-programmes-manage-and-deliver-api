@@ -4,6 +4,7 @@ import com.microsoft.applicationinsights.TelemetryClient
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config.logToAppInsights
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCohortHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import java.util.UUID
@@ -36,7 +37,24 @@ class TelemetryService(
           referralEntity?.statusHistories?.firstOrNull()?.referralStatusDescription?.description
             ?: ""
           ),
-        "cohort" to (referralEntity?.referralCohortHistories?.firstOrNull()?.cohort?.toString() ?: ""),
+        "cohort" to (
+          referralEntity?.referralCohortHistories
+            // The `@OrderBy("createdAt DESC")` on `referralCohortHistories` makes Hibernate
+            // return most-recent-first, so `firstOrNull()` picks the current cohort — the
+            // intent for telemetry. The explicit `sortedWith(...)` re-establishes the same
+            // ordering in-Kotlin with a deterministic natural-attribute tiebreak
+            // (`createdBy` then `cohort.name`) so that ties on `createdAt` do not resolve
+            // via Hibernate's undefined-order fallback (LinkedHashSet insertion order,
+            // which is Hibernate-version-dependent — see APG-2580 correction #8). Mirrors
+            // the SAR DTO fix in PR #877 commit `2a971033`.
+            ?.sortedWith(
+              compareByDescending<ReferralCohortHistoryEntity> { it.createdAt }
+                .thenBy { it.createdBy }
+                .thenBy { it.cohort.name },
+            )
+            ?.firstOrNull()
+            ?.cohort?.toString() ?: ""
+          ),
         "crn" to (referralEntity?.crn ?: ""),
         "fromStatus" to (
           referralEntity?.statusHistories?.firstOrNull()?.referralStatusDescription?.id?.toString()
