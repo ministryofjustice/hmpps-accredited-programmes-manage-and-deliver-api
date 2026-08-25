@@ -49,6 +49,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
+import java.time.LocalDateTime
 import java.util.UUID
 
 class ReferralServiceTest {
@@ -1268,14 +1269,26 @@ class ReferralServiceTest {
     // ProgrammeGroupMembershipFactory has no withAttendances() — set field directly
     membership.attendances = mutableSetOf()
 
-    val session = SessionFactory(programmeGroup = group).withId(UUID.randomUUID()).produce()
+    val session = SessionFactory(programmeGroup = group)
+      .withId(UUID.randomUUID())
+      .withStartsAt(LocalDateTime.now().minusHours(2))
+      .withEndsAt(LocalDateTime.now().minusHours(1))
+      .produce()
     val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
     session.attendees = mutableListOf(attendee)
+    val futureSession = SessionFactory(programmeGroup = group)
+      .withId(UUID.randomUUID())
+      .withStartsAt(LocalDateTime.now().plusHours(1))
+      .withEndsAt(LocalDateTime.now().plusHours(2))
+      .produce()
+    futureSession.attendees = mutableListOf(
+      AttendeeFactory().withReferral(referral).withSession(futureSession).produce(),
+    )
 
     every { referralRepository.findByIdOrNull(referralId) } returns referral
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns membership
     every { programmeGroupMembershipRepository.findAllByReferralIdWithAttendances(referralId) } returns listOf(membership)
-    every { sessionRepository.findAllByProgrammeGroupIdIn(any()) } returns listOf(session)
+    every { sessionRepository.findAllByProgrammeGroupIdIn(any()) } returns listOf(session, futureSession)
     every { programmeGroupService.getAttendanceTextFromOutcome(null) } returns "To be confirmed"
     every { sessionNameFormatter.format(any(), any()) } returns "Session 1"
 
@@ -1283,7 +1296,8 @@ class ReferralServiceTest {
     val result = referralService.getAttendanceHistory(referralId)
 
     // Then
-    assertThat(result.attendanceHistory).isNotEmpty()
-    assertThat(result.attendanceHistory).allMatch { it.attendanceStatus == "To be confirmed" }
+    assertThat(result.attendanceHistory).hasSize(1)
+    assertThat(result.attendanceHistory.single().sessionId).isEqualTo(session.id)
+    assertThat(result.attendanceHistory.single().attendanceStatus).isEqualTo("To be confirmed")
   }
 }

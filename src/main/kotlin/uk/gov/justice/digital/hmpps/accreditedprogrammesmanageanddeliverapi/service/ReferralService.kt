@@ -689,7 +689,10 @@ class ReferralService(
       .flatMap { membership ->
         sessionsByGroupId[membership.programmeGroup.id]
           .orEmpty()
-          .filter { session -> session.attendees.any { it.referral.id == referralId } }
+          .filter { session ->
+            session.endsAt.isBefore(LocalDateTime.now()) &&
+              session.attendees.any { it.referral.id == referralId }
+          }
           .map { session ->
             // Get the latest attendance result for each session as we currently add a new record rather than updating the existing one.
             val latestAttendance = membership.attendances

@@ -1850,7 +1850,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     @Test
     fun `should return sessions when referral has no attendance recorded`() {
       // Given
-      val group = testGroupHelper.createGroup()
+      val group = testGroupHelper.createGroup(earliestStartDate = LocalDate.now().minusWeeks(4))
       val referral = testReferralHelper.createReferral(personName = "Alex River")
       testGroupHelper.allocateToGroup(group, referral)
 
