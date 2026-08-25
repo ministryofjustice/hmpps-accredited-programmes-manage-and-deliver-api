@@ -250,7 +250,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?page=0&size=10",
+        "/bff/group/${group.id}/WAITLIST?page=0&size=20",
         object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
       // Then
@@ -263,6 +263,23 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.pagedGroupData.content.map { it.statusColour }).isNotEmpty
       assertThat(response.pagedGroupData.content).allMatch { !it.isLimitedAccessOffender }
       assertThat(response.pagedGroupData.content).allMatch { !it.isExcluded }
+    }
+
+    @Test
+    fun `getGroupAllocations defaults to a page size of 20 when none is provided`() {
+      // Given
+      val group = ProgrammeGroupFactory().withCode("TEST001").produce()
+      testDataGenerator.createGroup(group)
+
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/group/${group.id}/WAITLIST",
+        object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
+      )
+
+      // Then
+      assertThat(response.pagedGroupData.size).isEqualTo(20)
     }
 
     @Test
@@ -293,7 +310,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val body = performRequestAndExpectStatus(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?page=0&size=10",
+        "/bff/group/${group.id}/WAITLIST?page=0&size=20",
         object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
         HttpStatus.OK.value(),
       )
@@ -377,7 +394,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When & Then
       performRequestAndExpectStatus(
         HttpMethod.GET,
-        "/bff/group/$nonExistentGroupId/WAITLIST?page=0&size=10",
+        "/bff/group/$nonExistentGroupId/WAITLIST?page=0&size=20",
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.NOT_FOUND.value(),
       )
@@ -429,7 +446,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?sex=Male&cohort=Sexual offence&pdu=Test PDU 1&page=0&size=10",
+        "/bff/group/${group.id}/WAITLIST?sex=Male&cohort=Sexual offence&pdu=Test PDU 1&page=0&size=20",
         object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
@@ -663,7 +680,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.otherTabTotal).isEqualTo(0)
       assertThat(response.filters).isNotNull
       assertThat(response.filters.sex).containsExactly("Male", "Female")
-      assertThat(response.pagedGroupData.size).isEqualTo(10)
+      assertThat(response.pagedGroupData.size).isEqualTo(20)
       assertThat(response.pagedGroupData.number).isEqualTo(0)
       assertThat(response.pagedGroupData.content).isNotEmpty
       assertThat(response.pagedGroupData.content).hasSize(6)
@@ -679,7 +696,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When & Then
       webTestClient
         .method(HttpMethod.GET)
-        .uri("/bff/group/${group.id}/WAITLIST?page=0&size=10")
+        .uri("/bff/group/${group.id}/WAITLIST?page=0&size=20")
         .contentType(MediaType.APPLICATION_JSON)
         .headers(setAuthorisation(roles = listOf("ROLE_OTHER")))
         .accept(MediaType.APPLICATION_JSON)
@@ -742,7 +759,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?page=0&size=10",
+        "/bff/group/${group.id}/WAITLIST?page=0&size=20",
         object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
@@ -784,7 +801,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/group/${group.id}/WAITLIST?page=0&size=10",
+        "/bff/group/${group.id}/WAITLIST?page=0&size=20",
         object : ParameterizedTypeReference<PagedProgrammeDetails<GroupItem>>() {},
       )
 
@@ -924,7 +941,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10",
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=20",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
@@ -1010,7 +1027,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/COMPLETE?page=0&size=10",
+        "/bff/groups/COMPLETE?page=0&size=20",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
@@ -1107,7 +1124,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/COMPLETE?page=0&size=10",
+        "/bff/groups/COMPLETE?page=0&size=20",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
@@ -1187,7 +1204,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When - filter by Test PDU 1
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=Test%20PDU%201",
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=20&pdu=Test%20PDU%201",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
@@ -1225,7 +1242,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When - filter by Test PDU 1
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=Test%20PDU%201",
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=20&pdu=Test%20PDU%201",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
@@ -1289,7 +1306,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When - filter by PDUs with special characters (URL encoded)
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=North%20West%2C%20Manchester&pdu=South%20East%20%26%20London",
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=20&pdu=North%20West%2C%20Manchester&pdu=South%20East%20%26%20London",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
@@ -1332,7 +1349,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When - filter by PDU that doesn't exist
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=Non%20Existent%20PDU",
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=20&pdu=Non%20Existent%20PDU",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
@@ -1392,7 +1409,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When - filter by delivery locations with special characters (URL encoded)
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=Test%20PDU%201&deliveryLocations=St.%20Paul%27s%2C%20London&deliveryLocations=Devon%20%26%20Cornwall",
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=20&pdu=Test%20PDU%201&deliveryLocations=St.%20Paul%27s%2C%20London&deliveryLocations=Devon%20%26%20Cornwall",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
@@ -1454,7 +1471,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // When - filter by both PDU and delivery location with special characters
       val response = performRequestAndExpectOk(
         HttpMethod.GET,
-        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=10&pdu=North%20%26%20South%20PDU&deliveryLocations=St.%20John%27s%20Centre",
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=20&pdu=North%20%26%20South%20PDU&deliveryLocations=St.%20John%27s%20Centre",
         object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
       )
 
