@@ -30,6 +30,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusDescriptionEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusTransitionEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceNDeliusOutcomeEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
@@ -1266,8 +1268,6 @@ class ReferralServiceTest {
       .withReferral(referral)
       .withProgrammeGroup(group)
       .produce()
-    // ProgrammeGroupMembershipFactory has no withAttendances() — set field directly
-    membership.attendances = mutableSetOf()
 
     val session = SessionFactory(programmeGroup = group)
       .withId(UUID.randomUUID())
@@ -1299,5 +1299,53 @@ class ReferralServiceTest {
     assertThat(result.attendanceHistory).hasSize(1)
     assertThat(result.attendanceHistory.single().sessionId).isEqualTo(session.id)
     assertThat(result.attendanceHistory.single().attendanceStatus).isEqualTo("To be confirmed")
+  }
+
+  @Test
+  fun `getAttendanceHistory should not lose an attendance recorded against an older membership when the referral was re-added to the same group`() {
+    // Given
+    val referralId = UUID.randomUUID()
+    val referral = ReferralEntityFactory().withId(referralId).produce()
+    val group = ProgrammeGroupFactory().withId(UUID.randomUUID()).produce()
+
+    val session = SessionFactory(programmeGroup = group)
+      .withId(UUID.randomUUID())
+      .withStartsAt(LocalDateTime.now().minusHours(2))
+      .withEndsAt(LocalDateTime.now().minusHours(1))
+      .produce()
+    session.attendees = mutableListOf(AttendeeFactory().withReferral(referral).withSession(session).produce())
+
+    val oldMembership = ProgrammeGroupMembershipFactory()
+      .withReferral(referral)
+      .withProgrammeGroup(group)
+      .withCreatedAt(LocalDateTime.now().minusDays(2))
+      .produce()
+    val attendance = SessionAttendanceEntityFactory(session, oldMembership)
+      .withOutcomeType(SessionAttendanceNDeliusOutcomeEntityFactory().produce())
+      .withCreatedAt(LocalDateTime.now().minusHours(1))
+      .produce()
+    oldMembership.attendances = mutableSetOf(attendance)
+
+    // Referral removed and re-added to the same group after the session was attended, so this membership has no attendance recorded.
+    val newMembership = ProgrammeGroupMembershipFactory()
+      .withReferral(referral)
+      .withProgrammeGroup(group)
+      .withCreatedAt(LocalDateTime.now())
+      .produce()
+
+    every { referralRepository.findByIdOrNull(referralId) } returns referral
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns newMembership
+    // Ordered newest first, matching the repository's `ORDER BY pgm.createdAt DESC`.
+    every { programmeGroupMembershipRepository.findAllByReferralIdWithAttendances(referralId) } returns listOf(newMembership, oldMembership)
+    every { sessionRepository.findAllByProgrammeGroupIdIn(any()) } returns listOf(session)
+    every { programmeGroupService.getAttendanceTextFromOutcome(attendance.outcomeType) } returns "Attended"
+    every { sessionNameFormatter.format(any(), any()) } returns "Session 1"
+
+    // When
+    val result = referralService.getAttendanceHistory(referralId)
+
+    // Then
+    assertThat(result.attendanceHistory).hasSize(1)
+    assertThat(result.attendanceHistory.single().attendanceStatus).isEqualTo("Attended")
   }
 }

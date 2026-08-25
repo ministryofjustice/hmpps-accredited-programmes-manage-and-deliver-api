@@ -684,6 +684,10 @@ class ReferralService(
     val sessionsByGroupId = sessionRepository.findAllByProgrammeGroupIdIn(
       allMemberships.map { it.programmeGroup.id!! },
     ).groupBy { it.programmeGroup.id!! }
+    // Attendances are looked up across all memberships (not just the one a session came from) so that a session isn't
+    // wrongly shown as unattended if the attendance was recorded against a different membership row for the same
+    // referral/group (e.g. referral removed and re-added to the same group).
+    val allAttendances = allMemberships.flatMap { it.attendances }
 
     val sessions = allMemberships
       .flatMap { membership ->
@@ -695,7 +699,7 @@ class ReferralService(
           }
           .map { session ->
             // Get the latest attendance result for each session as we currently add a new record rather than updating the existing one.
-            val latestAttendance = membership.attendances
+            val latestAttendance = allAttendances
               .filter { it.session.id == session.id }
               .maxByOrNull { it.createdAt }
 
