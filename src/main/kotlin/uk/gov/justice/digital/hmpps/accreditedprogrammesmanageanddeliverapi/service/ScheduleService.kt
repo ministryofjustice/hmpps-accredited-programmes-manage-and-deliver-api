@@ -330,13 +330,17 @@ class ScheduleService(
         }
       }
     }
+    val existingSessionIds = group.sessions.mapNotNull { it.id }.toSet()
 
     // Save the group here so the parent entity is updated and updates the corresponding sessions,
     // otherwise JPA does not always update the inverse side of the relationship.
     group.sessions.addAll(generatedSessions)
-    programmeGroupRepository.save(group)
+    val savedGroup = programmeGroupRepository.save(group)
 
-    return group.sessions
+    // return only generated sessions to avoid duplicate appointment creation
+    return savedGroup.sessions
+      .filter { it.id !in existingSessionIds }
+      .toMutableSet()
   }
 
   private fun buildSlotQueue(

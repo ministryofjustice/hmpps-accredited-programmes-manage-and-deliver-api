@@ -542,6 +542,48 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
   }
 
   @Test
+  fun `Reschedule sessions should not create a duplicate appointment for a retained past session`() {
+    // Given
+    val slot = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+    val group = testGroupHelper.createGroup(
+      // The first group session will be in the future when the member is allocated.
+      earliestStartDate = LocalDate.now(clock).plusDays(7),
+      createGroupSessionSlots = setOf(slot),
+    )
+
+    val referral = testReferralHelper.createReferrals(
+      referralConfigs = listOf(TestReferralHelper.ReferralConfig()),
+    ).single()
+    programmeGroupMembershipService.allocateReferralToGroup(
+      referral.id!!,
+      group.id!!,
+      "SYSTEM",
+      "",
+    )
+
+    val groupBeforeReschedule = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+    val firstGroupSession = groupBeforeReschedule.sessions
+      .filter { it.sessionType == SessionType.GROUP }
+      .minBy { it.startsAt }
+    assertThat(firstGroupSession.ndeliusAppointments).hasSize(1)
+
+    // Move the clock on so the first group session is retained as a past session.
+    whenever(clock.instant()).thenReturn(Instant.parse("2025-12-23T12:00:00Z"))
+    groupBeforeReschedule.earliestPossibleStartDate = LocalDate.of(2027, 1, 1)
+    programmeGroupRepository.save(groupBeforeReschedule)
+
+    // When
+    scheduleService.rescheduleSessionsForGroup(group.id!!)
+
+    // Then
+    val groupAfterReschedule = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+    val retainedPastSession = groupAfterReschedule.sessions.single { it.id == firstGroupSession.id }
+
+    // Verify retained attendee only has a single nDelius appointment for this session/referral
+    assertThat(retainedPastSession.ndeliusAppointments).hasSize(1)
+  }
+
+  @Test
   fun `getNextSlotDate should return group start date for pre-group one-to-one sessions`() {
     val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
     val groupStartDate = LocalDate.of(2126, 5, 1)
