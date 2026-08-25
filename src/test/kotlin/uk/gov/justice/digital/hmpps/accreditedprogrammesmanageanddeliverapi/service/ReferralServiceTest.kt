@@ -45,6 +45,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
+import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.util.UUID
 
 class ReferralServiceTest {
@@ -71,6 +72,8 @@ class ReferralServiceTest {
   private val referralEventNumberResolverService: ReferralEventNumberResolverService = mockk()
   private val telemetryService: TelemetryService = mockk()
   private val probationAccessControlApiClient: ProbationAccessControlApiClient = mockk()
+  private val authenticationHolder: HmppsAuthenticationHolder = mockk()
+  private val userAccessService: UserAccessService = mockk()
 
   private lateinit var referralService: ReferralService
 
@@ -101,6 +104,8 @@ class ReferralServiceTest {
       applicationEventPublisher = applicationEventPublisher,
       probationAccessControlApiClient = probationAccessControlApiClient,
       true,
+      userAccessService,
+      authenticationHolder,
     )
   }
 
