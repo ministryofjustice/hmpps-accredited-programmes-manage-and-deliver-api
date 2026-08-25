@@ -1779,12 +1779,22 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
   @Nested
   @DisplayName("Get referral attendance history endpoint")
   inner class GetReferralAttendanceHistory {
+    private fun moveGroupSessionsIntoThePast(groupId: UUID) {
+      val sessions = sessionRepository.findByProgrammeGroupId(groupId)
+      sessions.forEach { session ->
+        session.startsAt = session.startsAt.minusWeeks(8)
+        session.endsAt = session.endsAt.minusWeeks(8)
+      }
+      sessionRepository.saveAll(sessions)
+    }
+
     @Test
     fun `should return attendance history with sessions when referral has attended sessions`() {
       // Given
       val group = testGroupHelper.createGroup()
       val referral = testReferralHelper.createReferral(personName = "Alex River")
       testGroupHelper.allocateToGroup(group, referral)
+      moveGroupSessionsIntoThePast(group.id!!)
 
       val session = sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
       val attendee = session.attendees.first()
@@ -1850,9 +1860,10 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     @Test
     fun `should return sessions when referral has no attendance recorded`() {
       // Given
-      val group = testGroupHelper.createGroup(earliestStartDate = LocalDate.now().minusWeeks(4))
+      val group = testGroupHelper.createGroup()
       val referral = testReferralHelper.createReferral(personName = "Alex River")
       testGroupHelper.allocateToGroup(group, referral)
+      moveGroupSessionsIntoThePast(group.id!!)
 
       // When
       val response = performRequestAndExpectOk(
@@ -1908,6 +1919,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val group = testGroupHelper.createGroup()
       val referral = testReferralHelper.createReferral(personName = "Alex River")
       testGroupHelper.allocateToGroup(group, referral)
+      moveGroupSessionsIntoThePast(group.id!!)
 
       val groupSessions = sessionRepository.findByProgrammeGroupId(group.id!!)
         .filter { it.sessionType == SessionType.GROUP }
