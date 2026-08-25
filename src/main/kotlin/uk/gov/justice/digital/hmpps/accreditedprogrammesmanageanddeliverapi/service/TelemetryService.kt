@@ -45,8 +45,7 @@ class TelemetryService(
             // ordering in-Kotlin with a deterministic natural-attribute tiebreak
             // (`createdBy` then `cohort.name`) so that ties on `createdAt` do not resolve
             // via Hibernate's undefined-order fallback (LinkedHashSet insertion order,
-            // which is Hibernate-version-dependent — see APG-2580 correction #8). Mirrors
-            // the SAR DTO fix in PR #877 commit `2a971033`.
+            // which is Hibernate-version-dependent).
             ?.sortedWith(
               compareByDescending<ReferralCohortHistoryEntity> { it.createdAt }
                 .thenBy { it.createdBy }

@@ -10,7 +10,7 @@ import java.time.LocalDateTime
 /**
  * Pure unit tests for the [latestByCreatedAt] extension helper.
  *
- * The helper's contract is safety-critical for APG-2580 follow-up 4: it replaces UUID-lottery
+ * The helper's contract is safety-critical: it replaces UUID-lottery
  * `.thenBy { it.id }` tiebreaks with deterministic natural-attribute tiebreaks. These tests
  * pin the tiebreak contract so a future edit that reverts to `it.id` — or changes the
  * tiebreak key order — will fail here rather than silently drifting on tied timestamps.

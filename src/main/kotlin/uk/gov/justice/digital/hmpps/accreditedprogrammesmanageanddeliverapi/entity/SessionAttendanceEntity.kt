@@ -83,13 +83,10 @@ class SessionAttendanceEntity(
  *  3. Any remaining tie resolved by alphabetically-highest `outcomeType.code.name`
  *     (enum name, non-null String).
  *
- * Both tiebreak keys are seed-stable natural attributes. This deliberately replaces the
+ * Both tiebreak keys are seed-stable natural attributes. This deliberately avoids the
  * anti-pattern `.thenBy { it.id }` on `@GeneratedValue` UUIDs, which produces different
  * winners between local and CI runs when two rows share the same `createdAt` (a
- * "UUID lottery"). See APG-2580 follow-up 4 audit report on the
- * `APG-2580/planning-docs` branch at
- * `docs/branches/APG-2580-followup-4-entity-set-iteration-audit-report.md`, and the
- * reference fix in PR #877 commit `2a971033` on `SubjectAccessRequestReferral.kt`.
+ * "UUID lottery").
  *
  * Consolidated helper so `SessionService.getRecordAttendanceBySessionId` and
  * `ProgrammeGroupService.getGroupSessionPage` cannot drift apart on the tiebreak choice.
