@@ -170,9 +170,25 @@ class SarContractIntegrationTest :
     )
     referralRepository.saveAndFlush(referral)
 
-    referral.referralCohortHistories.forEach {
-      it.createdAt = if (it.createdBy == "SYSTEM" || it.createdBy == "Accredited Programmes automated update") fixedNow else fixedNow.minusMinutes(1)
-    }
+    // Give every cohort row a distinct createdAt so the mapper's DESC sort is fully
+    // determined by createdAt alone (followup-1 Strategy A'). The previous two-value
+    // collapse (SYSTEM/automated → fixedNow, AUTH_USER → fixedNow-1min) allowed multiple
+    // rows to tie on createdAt, forcing the mapper into a natural-attribute tiebreak —
+    // fine in principle, but any historically-pinned JSON that assumed a specific tied
+    // order would drift on regen. Distinct timestamps here + natural-attribute mapper
+    // tiebreak = double-defence against override #6-style drift.
+    referral.referralCohortHistories
+      .filter { it.createdBy == "SYSTEM" || it.createdBy == "Accredited Programmes automated update" }
+      .sortedBy { it.cohort.name }
+      .forEachIndexed { index, entity ->
+        entity.createdAt = fixedNow.minusSeconds(index.toLong())
+      }
+    referral.referralCohortHistories
+      .filter { it.createdBy != "SYSTEM" && it.createdBy != "Accredited Programmes automated update" }
+      .sortedBy { it.cohort.name }
+      .forEachIndexed { index, entity ->
+        entity.createdAt = fixedNow.minusMinutes(1L + index.toLong())
+      }
     referralRepository.saveAndFlush(referral)
 
     val motivationBackgroundAndNonAssociation = ReferralMotivationBackgroundAndNonAssociationsFactory()
