@@ -33,6 +33,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.ProbationAccessControlApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.ACCREDITED_PROGRAMMES_AUTOMATED_UPDATE
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCohortHistoryEntity
@@ -62,6 +63,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.util
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeOfSession
+import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -96,6 +98,8 @@ class ReferralService(
   private val sessionRepository: SessionRepository,
   @Value("\${app.features.lao-access-check-enabled}")
   private val laoAccessCheckEnabled: Boolean,
+  private val userAccessService: UserAccessService,
+  private val authenticationHolder: HmppsAuthenticationHolder,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -115,12 +119,15 @@ class ReferralService(
     val personalDetailsDeferred = async(Dispatchers.IO) {
       try {
         if (authenticateUser) {
-          userService.getPersonalDetailsByIdentifier(referral.crn)
-        } else {
-          userService.getPersonalDetailsWithoutAuthentication(
-            referral.crn,
-          )
+          val userName = authenticationHolder.username ?: UNKNOWN_USER_USERNAME
+          val accessMap = userAccessService.determineUserAccess(userName, listOf(referral.crn))
+          accessMap[referral.crn]?.let {
+            if (it.isExcluded) {
+              throw AccessDeniedException("You are not authorized to view this person's details. Either contact your administrator or enter a different CRN or Prison Number")
+            }
+          }
         }
+        userService.getPersonalDetailsByIdentifier(referral.crn)
       } catch (ex: AccessDeniedException) {
         throw ex // Re-throw security exceptions — these must propagate as 403
       } catch (ex: Exception) {

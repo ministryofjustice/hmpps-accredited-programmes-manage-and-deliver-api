@@ -330,8 +330,13 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
 
     @Test
     fun `should return forbidden when access denied`() {
-      nDeliusApiStubs.stubAccessCheck(granted = false)
+      // Given
+      nDeliusApiStubs.stubAccessCheck(granted = true)
+
       val referralEntity = ReferralEntityFactory().produce()
+      nDeliusApiStubs.stubAccessCheckMixed(
+        excludedCrns = listOf(referralEntity.crn),
+      )
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
@@ -346,6 +351,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       oasysApiStubs.stubSuccessfulPniResponseWithLdc(referralEntity.crn)
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(referralEntity.crn, referralEntity.eventNumber)
 
+      // When & Then
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
         uri = "/referral-details/${savedReferral.id}",
