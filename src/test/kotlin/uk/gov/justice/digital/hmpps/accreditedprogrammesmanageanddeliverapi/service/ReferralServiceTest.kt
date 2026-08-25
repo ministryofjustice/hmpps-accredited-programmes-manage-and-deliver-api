@@ -51,7 +51,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
-import java.time.LocalDateTime
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.time.LocalDateTime
 import java.util.UUID
@@ -80,9 +79,6 @@ class ReferralServiceTest {
   private val referralEventNumberResolverService: ReferralEventNumberResolverService = mockk()
   private val telemetryService: TelemetryService = mockk()
   private val probationAccessControlApiClient: ProbationAccessControlApiClient = mockk()
-  private val sessionRepository: SessionRepository = mockk()
-  private val authenticationHolder: HmppsAuthenticationHolder = mockk()
-  private val userAccessService: UserAccessService = mockk()
   private val sessionRepository: SessionRepository = mockk()
   private val authenticationHolder: HmppsAuthenticationHolder = mockk()
   private val userAccessService: UserAccessService = mockk()
@@ -117,11 +113,8 @@ class ReferralServiceTest {
       probationAccessControlApiClient = probationAccessControlApiClient,
       sessionRepository = sessionRepository,
       laoAccessCheckEnabled = true,
-      true,
-      userAccessService,
-      authenticationHolder,
-      sessionRepository = sessionRepository,
-      laoAccessCheckEnabled = true,
+      userAccessService = userAccessService,
+      authenticationHolder = authenticationHolder,
     )
   }
 
