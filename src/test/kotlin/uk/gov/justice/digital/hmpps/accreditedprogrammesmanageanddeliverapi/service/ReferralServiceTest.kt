@@ -54,6 +54,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.util
 import java.time.LocalDateTime
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.time.LocalDateTime
+import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.util.UUID
 
 class ReferralServiceTest {
@@ -84,6 +85,8 @@ class ReferralServiceTest {
   private val authenticationHolder: HmppsAuthenticationHolder = mockk()
   private val userAccessService: UserAccessService = mockk()
   private val sessionRepository: SessionRepository = mockk()
+  private val authenticationHolder: HmppsAuthenticationHolder = mockk()
+  private val userAccessService: UserAccessService = mockk()
 
   private lateinit var referralService: ReferralService
 
