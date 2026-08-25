@@ -74,11 +74,16 @@ class SessionAttendanceEntity(
 )
 
 /**
- * Returns the "latest" attendance in an iterable of [SessionAttendanceEntity], ordered by
- * `createdAt` DESC (most-recent-first), with a deterministic natural-attribute tiebreak.
+ * Selects the latest attendance from an iterable of [SessionAttendanceEntity] by `createdAt`,
+ * with a deterministic natural-attribute tiebreak when two rows share the same `createdAt`.
  *
- * The tiebreak uses `createdBy` (non-null String) and then `outcomeType.code.name` (enum name,
- * non-null String) — both seed-stable natural attributes. This deliberately replaces the
+ * Implemented as `maxWithOrNull` over an ascending comparator (max of ASC == latest), so:
+ *  1. Row with the highest `createdAt` wins.
+ *  2. Ties resolved by alphabetically-highest `createdBy` (non-null String).
+ *  3. Any remaining tie resolved by alphabetically-highest `outcomeType.code.name`
+ *     (enum name, non-null String).
+ *
+ * Both tiebreak keys are seed-stable natural attributes. This deliberately replaces the
  * anti-pattern `.thenBy { it.id }` on `@GeneratedValue` UUIDs, which produces different
  * winners between local and CI runs when two rows share the same `createdAt` (a
  * "UUID lottery"). See APG-2580 follow-up 4 audit report
