@@ -244,4 +244,16 @@ for a separate consolidation ticket rather than in-place batching.
 3. (Optional, cosmetic) Add `@OrderBy("dayOfWeek ASC, startsAt ASC")` on
    `ProgrammeGroupEntity.programmeGroupSessionSlots` if any future consumer
    depends on a stable UI-visible order.
-
+4. **`TelemetryService.statusHistories` — `referralStatus` + `fromStatus`**
+   (surfaced by PR nine-eyes review, 2026-08-25) — both call sites use
+   `referralEntity?.statusHistories?.firstOrNull()?…` for telemetry properties.
+   `statusHistories` is a `MutableList` (not `MutableSet`) with
+   `@OrderBy("createdAt DESC")`, so strictly out of the Set-audit scope, but
+   shares the same tie-risk shape: if two status-history rows share the same
+   `createdAt`, `.firstOrNull()` resolves via the DB's un-tiebroken result
+   ordering. Recommend mirroring the `referralCohortHistories` fix in the
+   same file — add an in-Kotlin
+   `sortedWith(compareByDescending { createdAt }.thenBy { createdBy }.thenBy { referralStatusDescription.id })`
+   (or an equivalent natural-attribute tiebreak) before `.firstOrNull()`.
+   Cheap consistency fix; low functional risk today (status history rows are
+   rarely created in the same millisecond) but worth doing for symmetry.
