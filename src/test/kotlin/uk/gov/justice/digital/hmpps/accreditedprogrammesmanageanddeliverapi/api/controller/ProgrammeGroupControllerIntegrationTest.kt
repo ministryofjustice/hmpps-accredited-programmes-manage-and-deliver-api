@@ -1855,6 +1855,61 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val nDeliusAppointments = nDeliusAppointmentRepository.findAll()
       assertThat(nDeliusAppointments.size).isEqualTo(0)
     }
+
+    @Test
+    fun `allocateReferralToGroup will not add PoP to future catch up sessions`() {
+      // Given
+      val theCrnNumber = randomUppercaseString()
+      val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+      val group = testGroupHelper.createGroup()
+
+      val catchUpSession = sessionRepository.save(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(buildingChoicesTemplate.modules.first().sessionTemplates.first())
+          .withStartsAt(LocalDateTime.now().plusDays(5))
+          .withEndsAt(LocalDateTime.now().plusDays(5).plusHours(1))
+          .withIsCatchup(true)
+          .produce(),
+      )
+
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory().withName(
+          FullName(
+            forename = "John",
+            middleNames = null,
+            surname = "Doe",
+          ),
+        ).produce(),
+      )
+      oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "John Doe")
+      val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "The additional details for the test")
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/allocate/${referral.id}",
+        expectedResponseStatus = HttpStatus.OK.value(),
+        body = allocateToGroupRequest,
+        returnType = object : ParameterizedTypeReference<AllocateToGroupResponse>() {},
+      )
+
+      val foundReferral = referralRepository.findByIdOrNull(referral.id!!)!!
+
+      // Then
+      assertThat(response.message).isEqualTo("John Doe was added to this group. Their referral status is now Scheduled.")
+
+      val reloadedCatchUpSession = sessionRepository.findByIdOrNull(catchUpSession.id!!)!!
+      assertThat(reloadedCatchUpSession.attendees).isEmpty()
+
+      val currentGroupMembership = foundReferral.programmeGroupMemberships.first()
+      val coreGroupSessions = currentGroupMembership.programmeGroup.sessions.filter { !it.isCatchup && it.sessionType == SessionType.GROUP }
+      assertThat(coreGroupSessions.all { session -> session.attendees.any { it.referral.id == referral.id } }).isTrue()
+    }
   }
 
   @Nested
@@ -3532,6 +3587,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Get a module from the group's template
       val module = buildingChoicesTemplate.modules.first()
 
+      nDeliusApiStubs.stubAccessCheck(true, referral1.crn, referral2.crn)
+
       probationAccessControlApiStubs.stubCaseAccessByCrn(
         crn = referral1.crn,
         restrictedTo = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange()),
@@ -3574,8 +3631,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response.groupMembers.map { it.isExcluded }).containsExactlyInAnyOrder(
-        true,
-        true,
+        false,
+        false,
       )
     }
 

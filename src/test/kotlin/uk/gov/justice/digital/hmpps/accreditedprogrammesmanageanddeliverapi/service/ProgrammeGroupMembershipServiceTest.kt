@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -16,20 +17,25 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralStatusUpdateEvent
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ModuleSessionTemplateEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusDescriptionEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.RemoveFromGroupRequestFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.time.Clock
+import java.time.LocalDateTime
 import java.util.UUID
 
 class ProgrammeGroupMembershipServiceTest {
@@ -119,6 +125,77 @@ class ProgrammeGroupMembershipServiceTest {
         appliedBy = null,
       )
     }
+  }
+
+  @Test
+  fun `should not allocate referral to catch up sessions or past sessions or individual sessions`() {
+    // Given
+    val referralEntity = ReferralEntityFactory()
+      .withPersonName("John Smith")
+      .withId(UUID.randomUUID())
+      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
+      .produce()
+    val referralId = referralEntity.id!!
+    val groupId = UUID.randomUUID()
+    val facilitator = FacilitatorEntityFactory().produce()
+    val groupSessionTemplate = ModuleSessionTemplateEntityFactory().withSessionType(SessionType.GROUP).produce()
+    val individualSessionTemplate = ModuleSessionTemplateEntityFactory().withSessionType(SessionType.ONE_TO_ONE).produce()
+
+    val futureGroupSession = SessionFactory(moduleSessionTemplate = groupSessionTemplate)
+      .withStartsAt(LocalDateTime.now().plusDays(1))
+      .withIsCatchup(false)
+      .produce()
+    val futureCatchUpGroupSession = SessionFactory(moduleSessionTemplate = groupSessionTemplate)
+      .withStartsAt(LocalDateTime.now().plusDays(2))
+      .withIsCatchup(true)
+      .produce()
+    val pastGroupSession = SessionFactory(moduleSessionTemplate = groupSessionTemplate)
+      .withStartsAt(LocalDateTime.now().minusDays(1))
+      .withIsCatchup(false)
+      .produce()
+    val futureIndividualSession = SessionFactory(moduleSessionTemplate = individualSessionTemplate)
+      .withStartsAt(LocalDateTime.now().plusDays(3))
+      .withIsCatchup(false)
+      .produce()
+
+    val programmeGroupEntity = ProgrammeGroupFactory()
+      .withId(groupId)
+      .withTreatmentManager(facilitator)
+      .produce()
+    programmeGroupEntity.sessions.addAll(listOf(futureGroupSession, futureCatchUpGroupSession, pastGroupSession, futureIndividualSession))
+
+    val referralStatusDescriptionEntity = ReferralStatusDescriptionEntityFactory().produce()
+    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity).withProgrammeGroup(programmeGroupEntity).produce()
+
+    every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
+    every { programmeGroupRepository.findByIdOrNull(groupId) } returns programmeGroupEntity
+    every { referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId) } returns referralStatusDescriptionEntity
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns null andThen programmeGroupMembershipEntity
+    every { referralStatusDescriptionRepository.getScheduledStatusDescription() } returns referralStatusDescriptionEntity
+    every { telemetryService.logToAppInsights(any(), any()) } returns Unit
+    every { referralRepository.save(referralEntity) } returns referralEntity
+    every { nDeliusIntegrationApiClient.getRequirementManagerDetails(any(), any()) } returns ClientResult.Success(
+      HttpStatusCode.valueOf(200),
+      mockk<NDeliusCaseRequirementOrLicenceConditionResponse>(),
+    )
+    val appointmentsSlot = slot<List<AttendeeEntity>>()
+    every { scheduleService.createNdeliusAppointmentsForSessions(capture(appointmentsSlot)) } returns Unit
+    every { applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referralId)) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+
+    // When
+    val result = service.allocateReferralToGroup(referralId, groupId, "testAdmin", "test additional details")
+
+    // Then
+    assertThat(result).isNotNull()
+    assertThat(futureGroupSession.attendees).hasSize(1)
+    assertThat(futureGroupSession.attendees.first().referral).isEqualTo(referralEntity)
+    assertThat(futureCatchUpGroupSession.attendees).isEmpty()
+    assertThat(pastGroupSession.attendees).isEmpty()
+    assertThat(futureIndividualSession.attendees).isEmpty()
+
+    assertThat(appointmentsSlot.captured).hasSize(1)
+    assertThat(appointmentsSlot.captured.first().session).isEqualTo(futureGroupSession)
   }
 
   @Test
