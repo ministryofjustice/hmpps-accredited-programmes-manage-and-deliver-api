@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import java.time.LocalDateTime
 import java.util.UUID
@@ -18,6 +19,7 @@ class ProgrammeGroupMembershipFactory(
   private var createdByUsername: String = "APerson"
   private var deletedAt: LocalDateTime? = null
   private var deletedByUsername: String? = null
+  private var attendances: MutableSet<SessionAttendanceEntity> = mutableSetOf()
 
   fun withId(id: UUID) = apply { this.id = id }
   fun withReferral(referral: ReferralEntity) = apply { this.referral = referral }
@@ -26,6 +28,7 @@ class ProgrammeGroupMembershipFactory(
   fun withCreatedByUsername(createdByUsername: String) = apply { this.createdByUsername = createdByUsername }
   fun withDeletedAt(deletedAt: LocalDateTime) = apply { this.deletedAt = deletedAt }
   fun withDeletedByUsername(deletedByUsername: String) = apply { this.deletedByUsername = deletedByUsername }
+  fun withAttendances(attendances: MutableSet<SessionAttendanceEntity>) = apply { this.attendances = attendances }
 
   fun produce(): ProgrammeGroupMembershipEntity = ProgrammeGroupMembershipEntity(
     id = this.id,
@@ -35,6 +38,7 @@ class ProgrammeGroupMembershipFactory(
     createdByUsername = this.createdByUsername,
     deletedAt = this.deletedAt,
     deletedByUsername = this.deletedByUsername,
+    attendances = this.attendances,
   )
 
   fun produceSet(): MutableSet<ProgrammeGroupMembershipEntity> = mutableSetOf(produce())
