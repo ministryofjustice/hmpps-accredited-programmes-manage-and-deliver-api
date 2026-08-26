@@ -42,6 +42,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentOutcomeCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentSessionNotes
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.latestByCreatedAt
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.AFTC
@@ -560,12 +561,7 @@ class SessionService(
 
     val latestAttendanceByReferralId = session.attendances
       .groupBy { it.groupMembership.referral.id }
-      .mapValues { (_, attendances) ->
-        attendances.maxWithOrNull(
-          compareBy<SessionAttendanceEntity> { it.createdAt }
-            .thenBy { it.id },
-        )
-      }
+      .mapValues { (_, attendances) -> attendances.latestByCreatedAt() }
 
     val filteredAttendees = session.attendees.filter { attendee ->
       referralIdFilter == null || attendee.referralId in referralIdFilter
