@@ -2,7 +2,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.Cacheable
-import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.manageUsersApi.ManageUsersApiClient
@@ -56,18 +55,7 @@ class UserService(
     return mergedRegionNames
   }
 
-  fun getPersonalDetailsByIdentifier(identifier: String): NDeliusPersonalDetails {
-    val userName = authenticationHolder.username ?: UNKNOWN_USER_USERNAME
-    if (!hasAccessToLimitedAccessOffender(userName, identifier)) {
-      throw AccessDeniedException(
-        "You are not authorized to view this person's details. Either contact your administrator or enter a different CRN or Prison Number",
-      )
-    }
-
-    return getPersonalDetailsWithoutAuthentication(identifier)
-  }
-
-  fun getPersonalDetailsWithoutAuthentication(identifier: String): NDeliusPersonalDetails = when (val result = nDeliusIntegrationApiClient.getPersonalDetails(identifier)) {
+  fun getPersonalDetailsByIdentifier(identifier: String): NDeliusPersonalDetails = when (val result = nDeliusIntegrationApiClient.getPersonalDetails(identifier)) {
     is ClientResult.Success -> {
       telemetryService.logToAppInsights(
         eventName = "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.success",
