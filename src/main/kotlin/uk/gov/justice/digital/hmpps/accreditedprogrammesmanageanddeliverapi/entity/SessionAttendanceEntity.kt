@@ -73,6 +73,30 @@ class SessionAttendanceEntity(
   var createdAt: LocalDateTime = LocalDateTime.now(),
 )
 
+/**
+ * Selects the latest attendance from an iterable of [SessionAttendanceEntity] by `createdAt`,
+ * with a deterministic natural-attribute tiebreak when two rows share the same `createdAt`.
+ *
+ * Implemented as `maxWithOrNull` over an ascending comparator (max of ASC == latest), so:
+ *  1. Row with the highest `createdAt` wins.
+ *  2. Ties resolved by alphabetically-highest `createdBy` (non-null String).
+ *  3. Any remaining tie resolved by alphabetically-highest `outcomeType.code.name`
+ *     (enum name, non-null String).
+ *
+ * Both tiebreak keys are seed-stable natural attributes. This deliberately avoids the
+ * anti-pattern `.thenBy { it.id }` on `@GeneratedValue` UUIDs, which produces different
+ * winners between local and CI runs when two rows share the same `createdAt` (a
+ * "UUID lottery").
+ *
+ * Consolidated helper so `SessionService.getRecordAttendanceBySessionId` and
+ * `ProgrammeGroupService.getGroupSessionPage` cannot drift apart on the tiebreak choice.
+ */
+fun Iterable<SessionAttendanceEntity>.latestByCreatedAt(): SessionAttendanceEntity? = maxWithOrNull(
+  compareBy<SessionAttendanceEntity> { it.createdAt }
+    .thenBy { it.createdBy }
+    .thenBy { it.outcomeType.code.name },
+)
+
 fun SessionAttendee.toEntity(
   session: SessionEntity,
   groupMembershipEntity: ProgrammeGroupMembershipEntity,

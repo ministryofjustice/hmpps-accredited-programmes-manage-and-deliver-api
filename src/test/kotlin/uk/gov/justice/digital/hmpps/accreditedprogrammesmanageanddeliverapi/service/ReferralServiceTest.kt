@@ -30,8 +30,13 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusDescriptionEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusTransitionEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceNDeliusOutcomeEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_SENTENCE_REFERENCE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_STATUS
@@ -44,7 +49,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
+import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
+import java.time.LocalDateTime
 import java.util.UUID
 
 class ReferralServiceTest {
@@ -71,6 +79,9 @@ class ReferralServiceTest {
   private val referralEventNumberResolverService: ReferralEventNumberResolverService = mockk()
   private val telemetryService: TelemetryService = mockk()
   private val probationAccessControlApiClient: ProbationAccessControlApiClient = mockk()
+  private val sessionRepository: SessionRepository = mockk()
+  private val authenticationHolder: HmppsAuthenticationHolder = mockk()
+  private val userAccessService: UserAccessService = mockk()
 
   private lateinit var referralService: ReferralService
 
@@ -100,7 +111,10 @@ class ReferralServiceTest {
       referralEventNumberResolverService = referralEventNumberResolverService,
       applicationEventPublisher = applicationEventPublisher,
       probationAccessControlApiClient = probationAccessControlApiClient,
-      true,
+      sessionRepository = sessionRepository,
+      laoAccessCheckEnabled = true,
+      userAccessService = userAccessService,
+      authenticationHolder = authenticationHolder,
     )
   }
 
@@ -1246,5 +1260,97 @@ class ReferralServiceTest {
         "success",
       )
     }
+  }
+
+  @Test
+  fun `getAttendanceHistory should return sessions with 'To be confirmed' when no attendance recorded`() {
+    // Given
+    val referralId = UUID.randomUUID()
+    val referral = ReferralEntityFactory().withId(referralId).produce()
+    val group = ProgrammeGroupFactory().withId(UUID.randomUUID()).produce()
+
+    val membership = ProgrammeGroupMembershipFactory()
+      .withReferral(referral)
+      .withProgrammeGroup(group)
+      .produce()
+
+    val session = SessionFactory(programmeGroup = group)
+      .withId(UUID.randomUUID())
+      .withStartsAt(LocalDateTime.now().minusHours(2))
+      .withEndsAt(LocalDateTime.now().minusHours(1))
+      .produce()
+    val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
+    session.attendees = mutableListOf(attendee)
+    val futureSession = SessionFactory(programmeGroup = group)
+      .withId(UUID.randomUUID())
+      .withStartsAt(LocalDateTime.now().plusHours(1))
+      .withEndsAt(LocalDateTime.now().plusHours(2))
+      .produce()
+    futureSession.attendees = mutableListOf(
+      AttendeeFactory().withReferral(referral).withSession(futureSession).produce(),
+    )
+
+    every { referralRepository.findByIdOrNull(referralId) } returns referral
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns membership
+    every { programmeGroupMembershipRepository.findAllByReferralIdWithAttendances(referralId) } returns listOf(membership)
+    every { sessionRepository.findAllByProgrammeGroupIdIn(any()) } returns listOf(session, futureSession)
+    every { programmeGroupService.getAttendanceTextFromOutcome(null) } returns "To be confirmed"
+    every { sessionNameFormatter.format(any(), any()) } returns "Session 1"
+
+    // When
+    val result = referralService.getAttendanceHistory(referralId)
+
+    // Then
+    assertThat(result.attendanceHistory).hasSize(1)
+    assertThat(result.attendanceHistory.single().sessionId).isEqualTo(session.id)
+    assertThat(result.attendanceHistory.single().attendanceStatus).isEqualTo("To be confirmed")
+  }
+
+  @Test
+  fun `getAttendanceHistory should not lose an attendance recorded against an older membership when the referral was re-added to the same group`() {
+    // Given
+    val referralId = UUID.randomUUID()
+    val referral = ReferralEntityFactory().withId(referralId).produce()
+    val group = ProgrammeGroupFactory().withId(UUID.randomUUID()).produce()
+
+    val session = SessionFactory(programmeGroup = group)
+      .withId(UUID.randomUUID())
+      .withStartsAt(LocalDateTime.now().minusHours(2))
+      .withEndsAt(LocalDateTime.now().minusHours(1))
+      .produce()
+    session.attendees = mutableListOf(AttendeeFactory().withReferral(referral).withSession(session).produce())
+
+    val oldMembership = ProgrammeGroupMembershipFactory()
+      .withReferral(referral)
+      .withProgrammeGroup(group)
+      .withCreatedAt(LocalDateTime.now().minusDays(2))
+      .produce()
+    val attendance = SessionAttendanceEntityFactory(session, oldMembership)
+      .withOutcomeType(SessionAttendanceNDeliusOutcomeEntityFactory().produce())
+      .withCreatedAt(LocalDateTime.now().minusHours(1))
+      .produce()
+    oldMembership.attendances = mutableSetOf(attendance)
+
+    // Referral removed and re-added to the same group after the session was attended, so this membership has no attendance recorded.
+    val newMembership = ProgrammeGroupMembershipFactory()
+      .withReferral(referral)
+      .withProgrammeGroup(group)
+      .withCreatedAt(LocalDateTime.now())
+      .produce()
+
+    every { referralRepository.findByIdOrNull(referralId) } returns referral
+    every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns newMembership
+    // Ordered newest first, matching the repository's `ORDER BY pgm.createdAt DESC`.
+    every { programmeGroupMembershipRepository.findAllByReferralIdWithAttendances(referralId) } returns listOf(newMembership, oldMembership)
+    every { sessionRepository.findAllByProgrammeGroupIdIn(any()) } returns listOf(session)
+    every { programmeGroupService.getAttendanceTextFromOutcome(attendance.outcomeType) } returns "Attended"
+    every { sessionNameFormatter.format(any(), any()) } returns "Session 1"
+
+    // When
+    val result = referralService.getAttendanceHistory(referralId)
+
+    // Then
+    assertThat(result.attendanceHistory).hasSize(1)
+    assertThat(result.attendanceHistory.single().attendanceStatus).isEqualTo("Attended")
   }
 }

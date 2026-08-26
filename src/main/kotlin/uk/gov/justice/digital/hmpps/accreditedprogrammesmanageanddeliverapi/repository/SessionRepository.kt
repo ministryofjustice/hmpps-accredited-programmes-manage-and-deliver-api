@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository
 
+import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
@@ -15,6 +16,9 @@ interface SessionRepository : JpaRepository<SessionEntity, UUID> {
   ): List<SessionEntity>
 
   fun findByProgrammeGroupId(programmeGroupId: UUID): List<SessionEntity>
+
+  @EntityGraph(attributePaths = ["attendees", "attendees.referral"])
+  fun findAllByProgrammeGroupIdIn(programmeGroupIds: Collection<UUID>): List<SessionEntity>
 
   @Query(
     "SELECT DISTINCT s FROM SessionEntity s " +
