@@ -1842,7 +1842,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "The additional details for the test")
 
       // When
-      val response = performRequestAndExpectStatusWithBody(
+      performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.POST,
         uri = "/group/${group.id}/allocate/${referral.id}",
         expectedResponseStatus = HttpStatus.OK.value(),
@@ -1908,6 +1908,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val currentGroupMembership = foundReferral.programmeGroupMemberships.first()
       val coreGroupSessions = currentGroupMembership.programmeGroup.sessions.filter { !it.isCatchup && it.sessionType == SessionType.GROUP }
+      val catchupSessions = currentGroupMembership.programmeGroup.sessions.filter { it.isCatchup }
+      assertThat(catchupSessions.all { session -> session.attendees.none { it.referral.id == referral.id } }).isTrue()
       assertThat(coreGroupSessions.all { session -> session.attendees.any { it.referral.id == referral.id } }).isTrue()
     }
   }
