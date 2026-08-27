@@ -129,6 +129,7 @@ services:
       - AUDIT_SQS_QUEUE_URL=http://localhost:9999
       - AUDIT_SERVICE_NAME=queue
       - SENTRY_ENVIRONMENT=local
+      - ENABLE_EXCLUDED_REFERRALS=true
     depends_on:
       hmpps-auth:
         condition: service_healthy
