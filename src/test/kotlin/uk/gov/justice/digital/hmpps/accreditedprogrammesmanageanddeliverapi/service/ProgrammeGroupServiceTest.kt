@@ -137,7 +137,7 @@ class ProgrammeGroupServiceTest {
     )
     val username = "john.smith"
     val caseReferenceNumber = groupWaitlistItemViewEntity.crn
-    val accessMap = mapOf(caseReferenceNumber to Access(lao = true, isExcluded = true))
+    val accessMap = mapOf(caseReferenceNumber to Access(lao = true, isExcluded = false))
     val probationDeliveryUnitReportingLocation =
       PduReportingLocation(pduName = probationDeliveryUnit, reportingTeam = reportingTeam)
 
@@ -172,7 +172,7 @@ class ProgrammeGroupServiceTest {
     assertThat(result.pagedGroupData.content.size).isEqualTo(1)
     assertThat(result.pagedGroupData.content[0].crn).isEqualTo(caseReferenceNumber)
     assertThat(result.pagedGroupData.content[0].isLimitedAccessOffender).isTrue()
-    assertThat(result.pagedGroupData.content[0].isExcluded).isTrue()
+    assertThat(result.pagedGroupData.content[0].isExcluded).isFalse()
 
     verify(exactly = 1) { programmeGroupRepository.findById(groupId) }
     verify(exactly = 1) { authenticationUtils.getUsername() }
