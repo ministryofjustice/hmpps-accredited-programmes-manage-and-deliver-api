@@ -459,6 +459,15 @@ class SessionService(
       NotFoundException("Session not found with id: $sessionId")
     }
 
+    val sessionAttendeeReferralIds = session.attendees.map { it.referralId }.toSet()
+    val invalidReferralIds =
+      sessionAttendance.attendees.map { it.referralId }.filterNot { it in sessionAttendeeReferralIds }
+    if (invalidReferralIds.isNotEmpty()) {
+      throw BusinessException(
+        "Cannot record attendance for session $sessionId: referral ids ${invalidReferralIds.joinToString(", ")} are not attendees of this session",
+      )
+    }
+
     val latestAttendanceByReferralId = session.attendances
       .groupBy { it.groupMembership.referral.id }
       .mapValues { (_, attendances) ->
@@ -641,8 +650,9 @@ class SessionService(
 
     return attendees?.map { attendee ->
       val referralId = attendee.referralId
+      // Include soft-deleted memberships so we can submit previous session attendance
       val groupMembershipEntity =
-        programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referralId, programmeGroupId)
+        programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(referralId, programmeGroupId)
           ?: throw NotFoundException(
             "Programme group membership not found with referralId: $referralId and programmeGroupId: $programmeGroupId",
           )
