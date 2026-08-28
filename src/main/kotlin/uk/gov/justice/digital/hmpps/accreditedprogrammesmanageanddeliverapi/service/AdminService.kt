@@ -3,12 +3,15 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatus
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -16,6 +19,13 @@ data class RefreshPersonalDetailsResult(
   val successIds: List<UUID> = emptyList(),
   val notFoundIds: List<UUID> = emptyList(),
   val failureIds: List<UUID> = emptyList(),
+)
+
+data class ForceStatusFormData(
+  val referralId: UUID,
+  val crn: String,
+  val currentStatus: ReferralStatus?,
+  val availableStatuses: List<ReferralStatus>,
 )
 
 /**
@@ -34,8 +44,30 @@ class AdminService(
   private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
   private val transactionTemplate: TransactionTemplate,
   private val messageHistoryRepository: MessageHistoryRepository,
+  private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
+
+  /**
+   * Retrieves the data needed to render the admin "force-update status" form for a referral:
+   * the referral's identifying details, its current status, and every status it could be force-moved to.
+   *
+   * Unlike the ordinary status-update flow, this deliberately returns *all* status descriptions rather than
+   * just the statuses that are valid transitions from the current status, since force-update exists to
+   * correct a referral's status regardless of the normal transition rules.
+   */
+  fun getForceStatusFormData(referralId: UUID): ForceStatusFormData? {
+    val referral = referralRepository.findById(referralId).orElse(null) ?: return null
+    val currentStatus = referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId)
+    val availableStatuses = referralStatusDescriptionRepository.findAll()
+
+    return ForceStatusFormData(
+      referralId = referralId,
+      crn = referral.crn,
+      currentStatus = currentStatus?.toApi(transitionDescription = null),
+      availableStatuses = availableStatuses.map { it.toApi(transitionDescription = null) },
+    )
+  }
 
   /**
    * Refreshes personal details for the specified referrals.

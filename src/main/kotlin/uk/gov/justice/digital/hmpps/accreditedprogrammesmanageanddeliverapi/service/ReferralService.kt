@@ -532,6 +532,12 @@ class ReferralService(
     )
   }
 
+  /**
+   * Used exclusively by the admin "force-update status" endpoint. Unlike the ordinary
+   * [updateStatus] flow, this bypasses the referral-status-transition validity check, since
+   * force-update exists specifically to correct a referral's status when it is out of sync
+   * with nDelius and may not be reachable via a normal transition.
+   */
   fun updateStatus(
     referralId: UUID,
     createReferralStatusHistory: CreateReferralStatusHistory,
@@ -544,6 +550,7 @@ class ReferralService(
       createReferralStatusHistory.referralStatusDescriptionId,
       createReferralStatusHistory.additionalDetails,
       createdBy,
+      forceUpdate = true,
     )
     telemetryService.logToAppInsights(
       referralEntity,
@@ -561,6 +568,7 @@ class ReferralService(
     referralStatusDescriptionId: UUID,
     additionalDetails: String? = null,
     createdBy: String,
+    forceUpdate: Boolean = false,
   ): StatusUpdateResponse {
     val incomingReferralStatusDescription =
       referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId)
@@ -587,7 +595,9 @@ class ReferralService(
     // Guard against invalid transitions (e.g. Scheduled -> Programme complete) that the
     // frontend should never send. Without this check the requested status was being saved
     // verbatim, allowing referrals to jump into states they cannot reach via the UI.
-    if (transition == null && currentDescription.id != incomingReferralStatusDescription.id) {
+    // Skipped for admin force-updates, which exist precisely to move a referral to a status
+    // outside of its normal transition graph.
+    if (!forceUpdate && transition == null && currentDescription.id != incomingReferralStatusDescription.id) {
       throw BusinessException(
         "Invalid referral status transition: '${currentDescription.description}' -> '${incomingReferralStatusDescription.description}'",
       )

@@ -166,6 +166,7 @@ abstract class IntegrationTestBase {
     username: String? = "AUTH_ADM",
     roles: List<String> = listOf(
       "ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR",
+      "ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ADMIN_WR",
       "ACCREDITED_PROGRAMMES__MANAGE_AND_DELIVER__READ_ONLY",
     ),
     scopes: List<String> = listOf("read"),

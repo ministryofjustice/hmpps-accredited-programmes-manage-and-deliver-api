@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Profile
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
@@ -24,9 +25,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.PopulatePersonalDetailsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AdminService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ForceStatusFormData
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralEventNumberResolverService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
@@ -147,11 +150,46 @@ class AdminController(
 
   @Operation(
     tags = ["Admin"],
+    summary = "Retrieve force-update status form data",
+    operationId = "getForceStatusFormData",
+    description = """For the specified referral, return its identifying details, current status, and every
+      |status it could be force-moved to. Used to populate the admin "force-update status" form.""",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Force-update status form data retrieved successfully",
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Referral not found",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ADMIN_WR')")
+  @GetMapping("/admin/referral/{referralId}/force-status", produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getForceStatusFormData(
+    @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) referralId: UUID,
+  ): ResponseEntity<ForceStatusFormData> {
+    val formData = adminService.getForceStatusFormData(referralId)
+      ?: throw NotFoundException("Referral with id $referralId not found")
+
+    return ResponseEntity.ok(formData)
+  }
+
+  @Operation(
+    tags = ["Admin"],
     summary = "Force-update referral status",
     operationId = "updateReferralStatus",
     description = """For the specified referral force-update referral status.
       |
-      |This is useful if the referral status is out od sync with nDelius, and we wish to update it to match the 
+      |This is useful if the referral status is out od sync with nDelius, and we wish to update it to match the
       |nDelius status.""",
     responses = [
       ApiResponse(
@@ -171,6 +209,7 @@ class AdminController(
     ],
     security = [SecurityRequirement(name = "bearerAuth")],
   )
+  @PreAuthorize("hasAnyRole('ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ADMIN_WR')")
   @PostMapping("/admin/referral/{referralId}/force-status", consumes = [MediaType.APPLICATION_JSON_VALUE])
   fun updateReferralStatus(
     @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) referralId: UUID,

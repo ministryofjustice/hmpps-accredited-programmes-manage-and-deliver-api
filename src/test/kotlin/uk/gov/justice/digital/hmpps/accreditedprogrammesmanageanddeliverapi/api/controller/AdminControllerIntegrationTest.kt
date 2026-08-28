@@ -38,6 +38,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.PopulatePersonalDetailsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ForceStatusFormData
 import java.time.Duration.ofMillis
 import java.util.UUID
 
@@ -205,6 +206,38 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
       object : ParameterizedTypeReference<ErrorResponse>() {},
       body = body,
       expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+    )
+  }
+
+  @Test
+  fun `should return force-status form data for a referral`() {
+    // Given
+    val referralEntity = ReferralEntityFactory().produce()
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
+
+    // When
+    val response = performRequestAndExpectOk(
+      HttpMethod.GET,
+      "/admin/referral/${referralEntity.id}/force-status",
+      object : ParameterizedTypeReference<ForceStatusFormData>() {},
+    )
+
+    // Then
+    assertThat(response.referralId).isEqualTo(referralEntity.id)
+    assertThat(response.crn).isEqualTo(referralEntity.crn)
+    assertThat(response.currentStatus).isNotNull()
+    assertThat(response.availableStatuses).isNotEmpty()
+  }
+
+  @Test
+  fun `should return 404 when getting force-status form data for a non-existent referral`() {
+    val nonExistentReferralId = UUID.randomUUID()
+
+    performRequestAndExpectStatus(
+      HttpMethod.GET,
+      "/admin/referral/$nonExistentReferralId/force-status",
+      object : ParameterizedTypeReference<ErrorResponse>() {},
+      HttpStatus.NOT_FOUND.value(),
     )
   }
 
