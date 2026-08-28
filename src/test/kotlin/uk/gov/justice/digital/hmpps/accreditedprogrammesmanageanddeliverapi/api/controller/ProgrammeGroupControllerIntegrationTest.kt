@@ -4432,6 +4432,59 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     val createGroupTeamMemberFactory = CreateGroupTeamMemberFactory()
 
     @Test
+    fun `rescheduling group update does not create nDelius appointments for one-to-one sessions`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val referral = testReferralHelper.createReferralAndUpdateStatus(
+        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+      )
+
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+
+      testGroupHelper.allocateToGroup(group, referral)
+      wiremock.resetRequests()
+
+      val newSlots = setOf(
+        CreateGroupSessionSlot(DayOfWeek.THURSDAY, 3, 0, AmOrPm.PM),
+      )
+      val updateRequest = UpdateGroupRequest(
+        createGroupSessionSlot = newSlots,
+        automaticallyRescheduleOtherSessions = true,
+      )
+
+      // When
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${group.id}",
+        body = updateRequest,
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then
+      val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
+
+      val oneToOneSessions = updatedGroup.sessions.filter { it.sessionType == SessionType.ONE_TO_ONE }
+      assertThat(oneToOneSessions).isNotEmpty
+      oneToOneSessions.forEach { session ->
+        assertThat(nDeliusAppointmentRepository.findBySessionId(session.id!!)).isEmpty()
+      }
+
+      val expectedAppointmentCount = updatedGroup.sessions.count {
+        it.sessionType == SessionType.GROUP &&
+          !it.isCatchup &&
+          it.attendees.any { attendee -> attendee.referral.id == referral.id }
+      }
+      assertThat(expectedAppointmentCount).isEqualTo(updatedGroup.sessions.count() - oneToOneSessions.count())
+
+      val appointmentRequests = wiremock.findAll(postRequestedFor(urlEqualTo("/appointments")))
+      appointmentRequests.forEach { request ->
+        val createAppointmentRequest = objectMapper.readValue<CreateAppointmentRequest>(request.bodyAsString)
+        assertThat(createAppointmentRequest.appointments).isNotEmpty
+      }
+    }
+
+    @Test
     fun `should return 200 when updating group code`() {
       // Given
       val group = testGroupHelper.createGroup(groupCode = "ORIGINAL_CODE")
