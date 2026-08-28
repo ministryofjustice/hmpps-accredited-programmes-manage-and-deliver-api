@@ -14,10 +14,11 @@ class ReferralDetailsLimitedAccessOffenderAuthorisationStrategy(
   private val userAccessService: UserAccessService,
 ) : LimitedAccessOffenderAuthorisationStrategy {
   private val log = LoggerFactory.getLogger(this::class.java)
+  private val pathMatcher = AntPathMatcher()
 
   companion object {
     private const val REFERRAL_DETAILS_URI_PATTERN_REGEX =
-      "^^/referral-details/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?:/.*)?$"
+      "^/referral-details/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?:/.*)?$"
     private const val REFERRAL_DETAILS_URI_PATTERN_ANT = "/referral-details/{referralId}/**"
     private const val REFERRAL_ID_PATH_VARIABLE_NAME = "referralId"
   }
@@ -44,13 +45,12 @@ class ReferralDetailsLimitedAccessOffenderAuthorisationStrategy(
   }
 
   private fun getReferralId(httpRequestPath: String): UUID? {
-    val pathMatcher = AntPathMatcher()
     var referralId: UUID? = null
     try {
       val variables = pathMatcher.extractUriTemplateVariables(REFERRAL_DETAILS_URI_PATTERN_ANT, httpRequestPath)
       val uuidStr = variables[REFERRAL_ID_PATH_VARIABLE_NAME]
       referralId = UUID.fromString(uuidStr)
-    } catch (ex: Exception) {
+    } catch (ex: IllegalArgumentException) {
       log.error("Failed to parse referralId from path: $httpRequestPath", ex)
     }
 

@@ -89,7 +89,7 @@ class LimitedAccessOffenderAuthorisationInterceptorTest {
   }
 
   @Test
-  fun `preHandle should return false if user is authorised`() {
+  fun `preHandle should throw exception if user is authorised`() {
     // Given
     val username = "test-user"
     val requestMethod = "GET"
