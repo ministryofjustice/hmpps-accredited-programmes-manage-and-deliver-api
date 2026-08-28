@@ -1794,12 +1794,22 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
   @Nested
   @DisplayName("Get referral attendance history endpoint")
   inner class GetReferralAttendanceHistory {
+    private fun moveGroupSessionsIntoThePast(groupId: UUID) {
+      val sessions = sessionRepository.findByProgrammeGroupId(groupId)
+      sessions.forEach { session ->
+        session.startsAt = session.startsAt.minusWeeks(8)
+        session.endsAt = session.endsAt.minusWeeks(8)
+      }
+      sessionRepository.saveAll(sessions)
+    }
+
     @Test
     fun `should return attendance history with sessions when referral has attended sessions`() {
       // Given
       val group = testGroupHelper.createGroup()
       val referral = testReferralHelper.createReferral(personName = "Alex River")
       testGroupHelper.allocateToGroup(group, referral)
+      moveGroupSessionsIntoThePast(group.id!!)
 
       val session = sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
       val attendee = session.attendees.first()
@@ -1852,21 +1862,23 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.popName).isEqualTo("Alex River")
       assertThat(response.currentlyAllocatedGroupCode).isEqualTo(group.code)
       assertThat(response.currentlyAllocatedGroupId).isEqualTo(group.id)
-      assertThat(response.attendanceHistory).hasSize(1)
-      assertThat(response.attendanceHistory).allMatch { it.attendanceStatus == "Attended - Complied" }
-      assertThat(response.attendanceHistory).allMatch { it.hasNotes }
-      assertThat(response.attendanceHistory).allMatch { it.groupId == group.id }
-      assertThat(response.attendanceHistory).allMatch { it.popName == "Alex River" }
-      assertThat(response.attendanceHistory).allMatch { it.sessionName == "Getting started 1" }
-      assertThat(response.attendanceHistory).allMatch { !it.isCatchup }
+      assertThat(response.attendanceHistory).hasSizeGreaterThan(1)
+      val attendedSession = response.attendanceHistory.single { it.sessionId == session.id }
+      assertThat(attendedSession.attendanceStatus).isEqualTo("Attended - Complied")
+      assertThat(attendedSession.hasNotes).isTrue()
+      assertThat(attendedSession.groupId).isEqualTo(group.id)
+      assertThat(attendedSession.popName).isEqualTo("Alex River")
+      assertThat(attendedSession.sessionName).isEqualTo("Getting started 1")
+      assertThat(attendedSession.isCatchup).isFalse()
     }
 
     @Test
-    fun `should return empty sessions when referral has no attendance recorded`() {
+    fun `should return sessions when referral has no attendance recorded`() {
       // Given
-      val group = testGroupHelper.createGroup()
+      val group = testGroupHelper.createGroup(earliestStartDate = LocalDate.now().minusWeeks(4))
       val referral = testReferralHelper.createReferral(personName = "Alex River")
       testGroupHelper.allocateToGroup(group, referral)
+      moveGroupSessionsIntoThePast(group.id!!)
 
       // When
       val response = performRequestAndExpectOk(
@@ -1879,7 +1891,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.popName).isEqualTo("Alex River")
       assertThat(response.currentlyAllocatedGroupCode).isEqualTo(group.code)
       assertThat(response.currentlyAllocatedGroupId).isEqualTo(group.id)
-      assertThat(response.attendanceHistory).isEmpty()
+      assertThat(response.attendanceHistory).isNotEmpty()
+      assertThat(response.attendanceHistory).allMatch { it.attendanceStatus == "To be confirmed" }
     }
 
     @Test
@@ -1921,6 +1934,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val group = testGroupHelper.createGroup()
       val referral = testReferralHelper.createReferral(personName = "Alex River")
       testGroupHelper.allocateToGroup(group, referral)
+      moveGroupSessionsIntoThePast(group.id!!)
 
       val groupSessions = sessionRepository.findByProgrammeGroupId(group.id!!)
         .filter { it.sessionType == SessionType.GROUP }
@@ -1973,8 +1987,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       )
 
       // Then
-      assertThat(response.attendanceHistory).hasSize(2)
-      assertThat(response.attendanceHistory[0].unformattedDate).isBeforeOrEqualTo(response.attendanceHistory[1].unformattedDate)
+      assertThat(response.attendanceHistory).hasSizeGreaterThan(2)
+      assertThat(response.attendanceHistory.map { it.unformattedDate }).isSortedAccordingTo(compareBy { it })
     }
   }
 }

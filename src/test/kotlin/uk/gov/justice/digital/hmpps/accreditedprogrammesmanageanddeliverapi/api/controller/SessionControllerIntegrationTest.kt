@@ -24,6 +24,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.RecordSessionAttendance
@@ -72,6 +73,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
@@ -110,6 +112,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var sessionAttendanceOutcomeTypeRepository: SessionAttendanceOutcomeTypeRepository
+
+  @Autowired
+  private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
 
   @Nested
   @DisplayName("GET /bff/session/{sessionId}")
@@ -2214,6 +2219,103 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       manageUsersApiStubs.verifyGetUser(1, username)
+    }
+
+    @Test
+    fun `should POST session attendance for a past group session after the PoP was removed from the group`() {
+      // Given a PoP allocated to a group, with a group session that has since moved into the past
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!, "SYSTEM", "")
+
+      val sessionEntity =
+        sessionRepository.findByProgrammeGroupId(group.id!!).first { it.sessionType == SessionType.GROUP }
+      sessionEntity.startsAt = LocalDateTime.now().minusDays(1)
+      sessionEntity.endsAt = LocalDateTime.now().minusDays(1).plusHours(1)
+      sessionRepository.save(sessionEntity)
+      val sessionId = sessionEntity.id!!
+
+      // When the PoP is removed from the group (soft-deletes the membership, keeps the past-session attendee)
+      programmeGroupMembershipService.removeReferralFromGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        RemoveFromGroupRequest(
+          referralStatusDescriptionId = referralStatusDescriptionRepository.getReturnToCourtStatusDescription().id,
+          additionalDetails = "removed from group",
+        ),
+      )
+      assertThat(programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)).isNull()
+
+      manageUsersApiStubs.stubUserResponse(UserDtoFactory().withName("John Smith").produce())
+
+      val sessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = referral.id!!,
+            outcomeCode = ATTC,
+            sessionNotes = "Test session notes",
+          ),
+        ),
+      )
+
+      // Then attendance can still be recorded for the past session
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = sessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      assertThat(response.responseMessage).isEqualTo("Attendance saved for session $sessionId")
+      val updatedSessionEntity = sessionRepository.findById(sessionId)
+      assertThat(updatedSessionEntity.isPresent).isTrue()
+      assertThat(updatedSessionEntity.get().attendances).hasSize(1)
+      val sessionAttendanceEntity = updatedSessionEntity.get().attendances.first()
+      assertThat(sessionAttendanceEntity.outcomeType.code).isEqualTo(ATTC)
+      // The attendance is linked to the soft-deleted membership
+      assertThat(sessionAttendanceEntity.groupMembership.deletedAt).isNotNull
+      assertThat(sessionAttendanceEntity.groupMembership.referralId).isEqualTo(referral.id)
+    }
+
+    @Test
+    fun `should return 400 when submitting attendance for someone who is not an attendee of the session`() {
+      // Given a session with one allocated attendee
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      val referral = testReferralHelper.createReferral()
+      programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!, "SYSTEM", "")
+      val sessionEntity =
+        sessionRepository.findByProgrammeGroupId(group.id!!).first { it.sessionType == SessionType.GROUP }
+      val sessionId = sessionEntity.id!!
+
+      // When attendance is submitted for a referral who is not an attendee of the session
+      val nonAttendeeReferralId = UUID.randomUUID()
+      val sessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = nonAttendeeReferralId,
+            outcomeCode = ATTC,
+            sessionNotes = "Test session notes",
+          ),
+        ),
+      )
+
+      // Then the request is rejected and nothing is recorded
+      val error = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = sessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+      )
+
+      assertThat(error.userMessage).contains("$nonAttendeeReferralId are not attendees of this session")
+      assertThat(sessionRepository.findById(sessionId).get().attendances).isEmpty()
     }
 
     @Test

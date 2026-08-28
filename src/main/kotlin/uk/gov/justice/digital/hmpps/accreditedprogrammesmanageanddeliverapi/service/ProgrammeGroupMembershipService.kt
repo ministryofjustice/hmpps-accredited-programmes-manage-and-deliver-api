@@ -87,9 +87,9 @@ class ProgrammeGroupMembershipService(
       ?: throw NotFoundException("No group membership found for referral $referralId")
 
     val now = LocalDateTime.now(clock)
-    // Filter out individual sessions and those in the past
+    // Filter out individual sessions, catch-up sessions, and those in the past
     val coreGroupSessions =
-      group.sessions.filter { it.sessionType == SessionType.GROUP && it.startsAt > now }
+      group.sessions.filter { it.sessionType == SessionType.GROUP && !it.isCatchup && it.startsAt > now }
 
     val newAttendees = coreGroupSessions.map { session ->
       val attendeeEntity = AttendeeEntity(

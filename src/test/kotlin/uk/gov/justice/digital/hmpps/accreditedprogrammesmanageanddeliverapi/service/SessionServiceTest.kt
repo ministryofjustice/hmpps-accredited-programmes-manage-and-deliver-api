@@ -585,7 +585,7 @@ class SessionServiceTest {
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
-      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(
+      programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(
         any(),
         any(),
       )
@@ -610,7 +610,7 @@ class SessionServiceTest {
     // Then
     assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
     verify { sessionRepository.findById(any()) }
-    verify { programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any()) }
+    verify { programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(any(), any()) }
     verify { sessionRepository.save(any()) }
     verify {
       nDeliusIntegrationApiClient.updateAppointmentsInDelius(
@@ -694,7 +694,7 @@ class SessionServiceTest {
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
-      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(
+      programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(
         any(),
         any(),
       )
@@ -793,7 +793,7 @@ class SessionServiceTest {
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
-      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(
+      programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(
         any(),
         any(),
       )
@@ -898,7 +898,7 @@ class SessionServiceTest {
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
-      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(
+      programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(
         any(),
         any(),
       )
@@ -917,8 +917,135 @@ class SessionServiceTest {
         .contains("Programme group membership not found with referralId: $referralId and programmeGroupId: $programmeGroupId"),
     )
     verify { sessionRepository.findById(any()) }
-    verify { programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any()) }
+    verify { programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(any(), any()) }
     verify { userService.getUserByUsernameOrNull(any()) }
+  }
+
+  @Test
+  fun `should throw exception when submitting attendance for someone who is not an attendee of the session`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val attendeeReferralId = UUID.randomUUID()
+    val nonAttendeeReferralId = UUID.randomUUID()
+    val sessionAttendance =
+      SessionAttendanceFactory()
+        .withAttendees(listOf(SessionAttendeeFactory().withReferralId(nonAttendeeReferralId).produce()))
+        .produce()
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity =
+      ProgrammeGroupFactory()
+        .withId(UUID.randomUUID())
+        .withTreatmentManager(facilitator)
+        .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(GROUP)
+        .withModule(ModuleEntityFactory().withName("Module 1").produce())
+        .withName("Getting started")
+        .produce()
+    val attendeeReferralEntity =
+      ReferralEntityFactory().withId(attendeeReferralId).withPersonName("John Smith").produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          mutableListOf(
+            AttendeeFactory()
+              .withReferral(attendeeReferralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ),
+        ).withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+
+    // When
+    val exception =
+      assertThrows<uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException> {
+        service.saveSessionAttendance(sessionId, sessionAttendance)
+      }
+
+    // Then
+    assertTrue(exception.message!!.contains("$nonAttendeeReferralId are not attendees of this session"))
+    verify(exactly = 0) { sessionRepository.save(any()) }
+    verify(exactly = 0) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+  }
+
+  @Test
+  fun `should save attendance for a removed PoP using their soft-deleted group membership`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId = UUID.randomUUID()
+    val sessionAttendee = SessionAttendeeFactory().withReferralId(referralId).produce()
+    val sessionAttendance = SessionAttendanceFactory().withAttendees(listOf(sessionAttendee)).produce()
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroupEntity =
+      ProgrammeGroupFactory()
+        .withId(UUID.randomUUID())
+        .withTreatmentManager(facilitator)
+        .produce()
+    val moduleSessionTemplateEntity =
+      ModuleSessionTemplateEntityFactory()
+        .withSessionType(GROUP)
+        .withModule(ModuleEntityFactory().withName("Module 1").produce())
+        .withName("Getting started")
+        .produce()
+    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val sessionEntity =
+      SessionFactory()
+        .withAttendees(
+          mutableListOf(
+            AttendeeFactory()
+              .withReferral(referralEntity)
+              .withSession(
+                SessionFactory()
+                  .withProgrammeGroup(programmeGroupEntity)
+                  .withModuleSessionTemplate(moduleSessionTemplateEntity)
+                  .produce(),
+              ).produce(),
+          ),
+        ).withProgrammeGroup(programmeGroupEntity)
+        .withModuleSessionTemplate(moduleSessionTemplateEntity)
+        .produce()
+
+    sessionEntity.sessionFacilitators.add(
+      SessionFacilitatorEntity(facilitator, sessionEntity, REGULAR_FACILITATOR),
+    )
+
+    // The PoP has been removed from the group, so their only membership is soft-deleted.
+    val deletedMembership =
+      ProgrammeGroupMembershipFactory()
+        .withReferral(referralEntity)
+        .withProgrammeGroup(programmeGroupEntity)
+        .withDeletedAt(LocalDateTime.now())
+        .produce()
+    val user = UserFactory().produce()
+
+    every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every {
+      programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(any(), any())
+    } returns deletedMembership
+    every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
+      SessionAttendanceNDeliusOutcomeEntityFactory().produce()
+    every { sessionRepository.save(any()) } returns sessionEntity
+    every { referralRepository.findByIdOrNull(any()) } returns referralEntity
+    every { telemetryService.logToAppInsights(any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
+    every { userService.getUserByUsernameOrNull(any()) } returns user
+
+    // When
+    val result = service.saveSessionAttendance(sessionId, sessionAttendance)
+
+    // Then
+    assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
+    verify { programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(any(), any()) }
+    verify { sessionRepository.save(any()) }
   }
 
   @Test
@@ -1289,7 +1416,7 @@ class SessionServiceTest {
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
-      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any())
+      programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(any(), any())
     } returns programmeGroupMembershipEntity
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
@@ -1365,7 +1492,7 @@ class SessionServiceTest {
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
-      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any())
+      programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(any(), any())
     } returns programmeGroupMembershipEntity
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
@@ -1439,7 +1566,7 @@ class SessionServiceTest {
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
-      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any())
+      programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(any(), any())
     } returns programmeGroupMembershipEntity
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
@@ -1532,7 +1659,7 @@ class SessionServiceTest {
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
-      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any())
+      programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(any(), any())
     } returns programmeGroupMembershipEntity
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
@@ -1637,7 +1764,7 @@ class SessionServiceTest {
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
-      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any())
+      programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(any(), any())
     } returns programmeGroupMembershipEntity
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
@@ -1745,7 +1872,7 @@ class SessionServiceTest {
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
-      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any())
+      programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(any(), any())
     } returns programmeGroupMembershipEntity
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
       SessionAttendanceNDeliusOutcomeEntityFactory().withCode(UAAB).produce()
@@ -1791,7 +1918,7 @@ class SessionServiceTest {
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every {
-      programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(any(), any())
+      programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(any(), any())
     } returns programmeGroupMembershipEntity
     every { sessionAttendanceOutcomeTypeRepository.findByCode(any()) } returns
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()

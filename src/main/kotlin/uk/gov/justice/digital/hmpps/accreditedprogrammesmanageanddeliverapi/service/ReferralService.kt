@@ -58,6 +58,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
@@ -94,6 +95,7 @@ class ReferralService(
   private val referralEventNumberResolverService: ReferralEventNumberResolverService,
   private val applicationEventPublisher: ApplicationEventPublisher,
   private val probationAccessControlApiClient: ProbationAccessControlApiClient,
+  private val sessionRepository: SessionRepository,
   @Value("\${app.features.lao-access-check-enabled}")
   private val laoAccessCheckEnabled: Boolean,
   private val userAccessService: UserAccessService,
@@ -686,37 +688,49 @@ class ReferralService(
 
     val currentMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId)
     val allMemberships = programmeGroupMembershipRepository.findAllByReferralIdWithAttendances(referralId)
+    val sessionsByGroupId = sessionRepository.findAllByProgrammeGroupIdIn(
+      allMemberships.map { it.programmeGroup.id!! },
+    ).groupBy { it.programmeGroup.id!! }
+    // Attendances are looked up across all memberships (not just the one a session came from) so that a session isn't
+    // wrongly shown as unattended if the attendance was recorded against a different membership row for the same
+    // referral/group (e.g. referral removed and re-added to the same group).
+    val allAttendances = allMemberships.flatMap { it.attendances }
 
     val sessions = allMemberships
       .flatMap { membership ->
-        membership.attendances.map { attendance ->
-          val session = attendance.session
-          // Get the latest attendance result for each session as we currently add a new record rather than updating the existing one.
-          val latestAttendance = membership.attendances
-            .filter { it.session.id == session.id }
-            .maxByOrNull { it.createdAt }
+        sessionsByGroupId[membership.programmeGroup.id]
+          .orEmpty()
+          .filter { session ->
+            session.endsAt.isBefore(LocalDateTime.now()) &&
+              session.attendees.any { it.referral.id == referralId }
+          }
+          .map { session ->
+            // Get the latest attendance result for each session as we currently add a new record rather than updating the existing one.
+            val latestAttendance = allAttendances
+              .filter { it.session.id == session.id }
+              .maxByOrNull { it.createdAt }
 
-          AttendanceHistorySession(
-            sessionId = session.id!!,
-            sessionName = sessionNameFormatter.format(session, SessionNameContext.AttendanceHistory),
-            groupId = membership.programmeGroup.id,
-            groupCode = membership.programmeGroup.code,
-            popName = referral.personName,
-            date = session.startsAt.format(DateTimeFormatter.ofPattern("d MMMM yyyy")),
-            unformattedDate = session.startsAt,
-            time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
-            timeWithCapitalisedMidday = formatTimeOfSession(
-              session.startsAt.toLocalTime(),
-              session.endsAt.toLocalTime(),
-              capitaliseMidday = true,
-            ),
-            attendanceStatus = programmeGroupService.getAttendanceTextFromOutcome(latestAttendance?.outcomeType),
-            hasNotes = latestAttendance?.notesHistory?.isNotEmpty() == true,
-            isCatchup = session.isCatchup,
-          )
-        }
+            AttendanceHistorySession(
+              sessionId = session.id!!,
+              sessionName = sessionNameFormatter.format(session, SessionNameContext.AttendanceHistory),
+              groupId = membership.programmeGroup.id,
+              groupCode = membership.programmeGroup.code,
+              popName = referral.personName,
+              date = session.startsAt.format(DateTimeFormatter.ofPattern("d MMMM yyyy")),
+              unformattedDate = session.startsAt,
+              time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
+              timeWithCapitalisedMidday = formatTimeOfSession(
+                session.startsAt.toLocalTime(),
+                session.endsAt.toLocalTime(),
+                capitaliseMidday = true,
+              ),
+              attendanceStatus = programmeGroupService.getAttendanceTextFromOutcome(latestAttendance?.outcomeType),
+              hasNotes = latestAttendance?.notesHistory?.isNotEmpty() == true,
+              isCatchup = session.isCatchup,
+            )
+          }
       }
-      // Remove any duplicate sessions in the event that there are multiple attendance records for a session.
+      // Deduplicate sessions that appear across multiple group memberships (e.g. referral removed and re-added to the same group).
       .distinctBy { it.sessionId }
       .sortedBy { it.unformattedDate }
 
