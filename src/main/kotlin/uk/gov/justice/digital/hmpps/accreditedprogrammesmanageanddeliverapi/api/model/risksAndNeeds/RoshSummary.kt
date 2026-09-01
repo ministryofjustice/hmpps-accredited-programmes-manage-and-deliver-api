@@ -80,7 +80,7 @@ data class RoshSummary(
 
 fun OasysRoshSummary.toModel(): RoshSummary = RoshSummary(
   riskChildrenCustody = riskChildrenCustody?.type,
-  riskChildrenCommunity = riskChildrenCustody?.type,
+  riskChildrenCommunity = riskChildrenCommunity?.type,
   riskPrisonersCustody = riskPrisonersCustody?.type,
   riskPublicCustody = riskPublicCustody?.type,
   riskPublicCommunity = riskPublicCommunity?.type,
