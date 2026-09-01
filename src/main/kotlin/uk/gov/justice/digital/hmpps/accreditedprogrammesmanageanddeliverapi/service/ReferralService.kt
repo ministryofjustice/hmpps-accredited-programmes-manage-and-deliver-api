@@ -120,11 +120,8 @@ class ReferralService(
       try {
         if (authenticateUser) {
           val userName = authenticationHolder.username ?: UNKNOWN_USER_USERNAME
-          val accessMap = userAccessService.determineUserAccess(userName, listOf(referral.crn))
-          accessMap[referral.crn]?.let {
-            if (it.isExcluded) {
-              throw AccessDeniedException("You are not authorized to view this person's details. Either contact your administrator or enter a different CRN or Prison Number")
-            }
+          if (!userService.hasAccessToLimitedAccessOffender(userName, referral.crn)) {
+            throw AccessDeniedException("You are not authorized to view this person's details. Either contact your administrator or enter a different CRN or Prison Number")
           }
         }
         userService.getPersonalDetailsByIdentifier(referral.crn)

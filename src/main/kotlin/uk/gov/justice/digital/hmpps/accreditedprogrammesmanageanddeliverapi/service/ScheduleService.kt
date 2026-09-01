@@ -22,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toNdeliusAppointmentEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.CREATE_APPOINTMENT_N_DELIUS
@@ -417,7 +418,12 @@ class ScheduleService(
       // Empty groups may regenerate into the past (in-flight import); groups with members never may.
       preventPastScheduling = !isEmptyGroup,
     )
-    val attendees = sessions.flatMap { it.attendees }.toList()
+
+    val attendees = sessions
+      .filter { it.sessionType == SessionType.GROUP && !it.isCatchup }
+      .flatMap { it.attendees }
+      .toList()
+
     if (attendees.isNotEmpty()) {
       createNdeliusAppointmentsForSessions(attendees)
     }
