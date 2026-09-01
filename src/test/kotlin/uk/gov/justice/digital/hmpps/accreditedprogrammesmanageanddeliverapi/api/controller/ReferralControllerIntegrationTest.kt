@@ -951,6 +951,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         referralEntity.eventNumber.toString(),
         offences,
       )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
 
       // When
       val response = performRequestAndExpectOk(
@@ -1026,6 +1027,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
       nDeliusApiStubs.stubNotFoundOffencesResponse(savedReferral.crn, savedReferral.eventNumber.toString())
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
 
       // When & Then
       performRequestAndExpectStatus(
@@ -1048,6 +1050,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       )
       testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
 
       // When & Then
       performRequestAndExpectStatus(
@@ -1079,6 +1082,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         referralEntity.eventNumber,
         nDeliusSentenceResponse,
       )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
 
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
@@ -1111,6 +1115,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
       testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
 
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
@@ -1566,6 +1571,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
 
       testDataGenerator.createDeliveryLocationPreference(deliveryLocationPreference)
 
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
@@ -1595,6 +1602,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         deliusDescription = "Test PDU",
       )
       testDataGenerator.createPreferredDeliveryLocationProbationDeliveryUnit(probationDeliveryUnit)
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
 
       // When
       val response = performRequestAndExpectOk(
@@ -1634,6 +1642,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       )
       testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
 
       // When
       val result = performRequestAndExpectStatus(
