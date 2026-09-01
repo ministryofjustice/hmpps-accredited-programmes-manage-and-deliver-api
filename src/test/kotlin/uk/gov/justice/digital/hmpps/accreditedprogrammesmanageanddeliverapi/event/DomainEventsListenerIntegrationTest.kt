@@ -124,7 +124,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .produce()
     nDeliusApiStubs.stubPersonalDetailsResponse(personalDetails)
     val sentenceInformation =
-      NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2025-10-01")).produce()
+      NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2025-10-01")).withLicenceExpiryDate(LocalDate.parse("2026-03-20")).produce()
     nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(crn, eventNumber, sentenceInformation)
     probationAccessControlApiStubs.stubOpenAccessForAnyCrn()
   }
@@ -367,7 +367,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.referralReportingLocation!!.reportingTeam).isEqualTo("TEAM_1")
       assertThat(it.referralReportingLocation!!.pduName).isEqualTo("PDU_1")
       assertThat(it.referralReportingLocation!!.regionName).isEqualTo("REGION_1")
-      assertThat(it.sentenceEndDate).isEqualTo(LocalDate.parse("2025-10-01"))
+      assertThat(it.sentenceEndDate).isEqualTo(LocalDate.parse("2026-03-20"))
       true
     }
 
@@ -425,7 +425,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.referralLdcHistories.first().hasLdc).isTrue
       assertThat(it.referralReportingLocation!!.reportingTeam).isEqualTo("TEAM_1")
       assertThat(it.referralReportingLocation!!.pduName).isEqualTo("PDU_1")
-      assertThat(it.sentenceEndDate!!).isEqualTo(LocalDate.parse("2025-10-01"))
+      assertThat(it.sentenceEndDate!!).isEqualTo(LocalDate.parse("2026-03-20"))
       true
     }
 
@@ -484,7 +484,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.personName).isEqualTo("John Alex Doe")
       assertThat(it.referralReportingLocation!!.reportingTeam).isEqualTo("TEAM_1")
       assertThat(it.referralReportingLocation!!.pduName).isEqualTo("PDU_1")
-      assertThat(it.sentenceEndDate).isEqualTo(LocalDate.parse("2025-10-01"))
+      assertThat(it.sentenceEndDate).isEqualTo(LocalDate.parse("2026-03-20"))
       true
     }
 
@@ -540,7 +540,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.personName).isEqualTo("John Alex Doe")
       assertThat(it.referralReportingLocation!!.reportingTeam).isEqualTo("TEAM_1")
       assertThat(it.referralReportingLocation!!.pduName).isEqualTo("PDU_1")
-      assertThat(it.sentenceEndDate).isEqualTo(LocalDate.parse("2025-10-01"))
+      assertThat(it.sentenceEndDate).isEqualTo(LocalDate.parse("2026-03-20"))
       true
     }
     messageHistoryRepository.findAll().first().let {
