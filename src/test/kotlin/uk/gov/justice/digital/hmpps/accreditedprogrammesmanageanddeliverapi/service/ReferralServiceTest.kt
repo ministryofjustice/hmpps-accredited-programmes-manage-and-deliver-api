@@ -81,7 +81,6 @@ class ReferralServiceTest {
   private val probationAccessControlApiClient: ProbationAccessControlApiClient = mockk()
   private val sessionRepository: SessionRepository = mockk()
   private val authenticationHolder: HmppsAuthenticationHolder = mockk()
-  private val userAccessService: UserAccessService = mockk()
 
   private lateinit var referralService: ReferralService
 
@@ -113,7 +112,6 @@ class ReferralServiceTest {
       probationAccessControlApiClient = probationAccessControlApiClient,
       sessionRepository = sessionRepository,
       laoAccessCheckEnabled = true,
-      userAccessService = userAccessService,
       authenticationHolder = authenticationHolder,
     )
   }

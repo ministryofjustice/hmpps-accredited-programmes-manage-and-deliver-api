@@ -1103,6 +1103,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
 
       assertThat(response.sentenceType).isEqualTo(nDeliusSentenceResponse.description)
       assertThat(response.releaseType).isEqualTo(nDeliusSentenceResponse.releaseType)
+      assertThat(response.licenceEndDate).isEqualTo(nDeliusSentenceResponse.licenceExpiryDate)
       assertThat(response.postSentenceSupervisionStartDate)
         .isEqualTo(nDeliusSentenceResponse.licenceExpiryDate!!.plusDays(1))
     }
