@@ -299,6 +299,15 @@
     {
       "request": {
         "urlPattern": "/appointments",
+        "method": "PUT"
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "request": {
+        "urlPattern": "/appointments",
         "method": "DELETE"
       },
       "response": {
