@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -14,7 +15,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupDetailsResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverview
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverviewSession
@@ -91,8 +91,10 @@ class ProgrammeGroupService(
   private val sessionService: SessionService,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
   private val userAccessService: UserAccessService,
-  @Value("\${app.features.lao-access-check-enabled}")
+  @param:Value("\${app.features.lao-access-check-enabled}")
   private val limitedAccessOffenderCheckEnabled: Boolean,
+  @param:Value("\${app.features.exclusion-access-check-enabled}")
+  private val exclusionAccessCheckEnabled: Boolean,
   private val moduleRepository: ModuleRepository,
   private val authenticationUtils: AuthenticationUtils,
   private val regionService: RegionService,
@@ -404,6 +406,8 @@ class ProgrammeGroupService(
 
     val otherTab = if (selectedTab === GroupPageTab.WAITLIST) GroupPageTab.ALLOCATED else GroupPageTab.WAITLIST
 
+    val isFilteredCaseList = isFilterApplied(sex, cohort, nameOrCrn, pdus, reportingTeams)
+
     val activeSpecification =
       getGroupWaitlistItemSpecification(
         selectedTab,
@@ -438,14 +442,30 @@ class ProgrammeGroupService(
       limitedAccessOffenderAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
     }
 
-    val groupListDataToReturn: Page<GroupItem> =
-      pagedData.map { item ->
+    val groupItems = pagedData.content.filter { item ->
+      if (exclusionAccessCheckEnabled && isFilteredCaseList) {
         val access = limitedAccessOffenderAccessMap?.get(item.crn)
-        item.toApi(
-          isLimitedAccessOffender = access?.lao ?: false,
-          isExcluded = access?.isExcluded ?: false,
-        )
+        val isLimitedAccessOffender = access?.lao ?: false
+        val isExcluded = access?.isExcluded ?: false
+        if (isLimitedAccessOffender) {
+          return@filter !isExcluded
+        }
       }
+
+      return@filter true
+    }.map { item ->
+      val access = limitedAccessOffenderAccessMap?.get(item.crn)
+      item.toApi(
+        isLimitedAccessOffender = access?.lao ?: false,
+        isExcluded = access?.isExcluded ?: false,
+      )
+    }
+
+    val groupListDataToReturn = PageImpl(
+      groupItems,
+      pagedData.pageable,
+      pagedData.totalElements - (pagedData.content.size - groupItems.size).toLong(),
+    )
 
     val otherTabCount: Int = groupWaitlistItemViewRepository.count(nonActiveSpecification).toInt()
 
@@ -844,4 +864,16 @@ class ProgrammeGroupService(
     null -> "To be confirmed"
     else -> attendanceOutcome.description!!
   }
+
+  private fun isFilterApplied(
+    sex: String?,
+    cohort: ProgrammeGroupCohort?,
+    nameOrCrn: String?,
+    pdus: List<String>?,
+    reportingTeams: List<String>?,
+  ): Boolean = !sex.isNullOrEmpty() ||
+    cohort != null ||
+    !nameOrCrn.isNullOrEmpty() ||
+    pdus != null ||
+    reportingTeams != null
 }
