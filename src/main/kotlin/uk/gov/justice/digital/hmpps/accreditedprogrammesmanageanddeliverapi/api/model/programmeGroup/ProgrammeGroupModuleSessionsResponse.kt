@@ -98,10 +98,10 @@ data class StartDateText(
 data class Participant(
   @Schema(description = "The name of the participant", required = true, example = "John Doe")
   val name: String,
-  @Schema(description = "The CRN of the participant", required = true, example = "X12345")
+  @Schema(description = "The CRN of the participant", example = "X12345")
   val crn: String? = null,
-  @Schema(description = "A flag denoting whether the person is a limited access offender", required = true, example = "true")
-  val isLimitedAccessOffender: Boolean? = null,
-  @Schema(description = "A flag denoting whether the logged in user is excluded from viewing this person", required = true, example = "false")
-  val isExcluded: Boolean? = null,
+  @Schema(description = "A flag denoting whether the person is a limited access offender", example = "true")
+  val isLimitedAccessOffender: Boolean? = false,
+  @Schema(description = "A flag denoting whether the logged in user is excluded from viewing this person", example = "false")
+  val isExcluded: Boolean? = false,
 )
