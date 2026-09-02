@@ -13,7 +13,9 @@ class NDeliusSentenceResponseFactory(sourcedFrom: ReferralEntitySourcedFrom? = n
   private var startDate: LocalDate = LocalDate.now().minusYears(1)
   private var expectedEndDate: LocalDate? = LocalDate.now().plusYears(2)
 
-  // licenceExpiryDate is defaulted based on sourcedFrom
+  // licenceExpiryDate is still controlled by sourcedFrom because the SentenceInformation display model
+  // uses it to calculate postSentenceSupervisionStartDate (licenceExpiryDate + 1 day).
+  // It is NOT used for sentence end date — both REQUIREMENT and LICENCE_CONDITION use expectedEndDate.
   private var licenceExpiryDate: LocalDate? =
     if (sourcedFrom === ReferralEntitySourcedFrom.LICENCE_CONDITION) LocalDate.now().plusYears(2) else null
   private var postSentenceSupervisionEndDate: LocalDate? = LocalDate.now().plusYears(3)
