@@ -43,6 +43,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysOffenceAnalysisFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRelationshipsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRoshFullFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRoshSummaryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysThinkingAndBehaviourFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.hmppsaccreditedprogrammesapi.client.arnsApi.model.type.ScoreType
@@ -68,7 +69,13 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
       oasysApiStubs.stubSuccessfulOasysOffendingInfoResponse(assessmentId)
       oasysApiStubs.stubSuccessfulOasysRelationshipsResponse(assessmentId)
-      oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(assessmentId)
+      oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(
+        assessmentId,
+        OasysRoshSummaryFactory()
+          .withRiskChildrenCommunity(uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.ScoreLevel.HIGH)
+          .withRiskChildrenCustody(uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.ScoreLevel.MEDIUM)
+          .produce(),
+      )
       arnsApiStubs.stubSuccessfulLegacyRiskPredictorsResponse(assessmentId)
       nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn)
 
@@ -88,6 +95,8 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.sara?.imminentRiskOfViolenceTowardsPartner).isEqualTo(ScoreLevel.LOW.type)
       assertThat(response.riskOfSeriousRecidivism?.percentageScore).isEqualTo(BigDecimal.valueOf(3.45))
       assertThat(response.riskOfSeriousHarm?.riskPrisonersCustody).isEqualTo(ScoreLevel.MEDIUM.type)
+      assertThat(response.riskOfSeriousHarm?.riskChildrenCommunity).isEqualTo(ScoreLevel.HIGH.type)
+      assertThat(response.riskOfSeriousHarm?.riskChildrenCustody).isEqualTo(ScoreLevel.MEDIUM.type)
       assertThat(response.alerts).hasSize(2)
       assertThat(response).hasFieldOrProperty("dateRetrieved")
       assertThat(response).hasFieldOrProperty("lastUpdated")
