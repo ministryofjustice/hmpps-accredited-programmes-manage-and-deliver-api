@@ -98,6 +98,7 @@ class ReferralService(
   private val sessionRepository: SessionRepository,
   @Value("\${app.features.lao-access-check-enabled}")
   private val laoAccessCheckEnabled: Boolean,
+  private val userAccessService: UserAccessService,
   private val authenticationHolder: HmppsAuthenticationHolder,
 ) {
   companion object {
@@ -647,7 +648,7 @@ class ReferralService(
 
   fun getStatusHistory(referralId: UUID): List<ReferralStatusHistory> = referralStatusHistoryRepository.findAllByReferralId(referralId).sortedBy { it.createdAt }.map { it.toApi() }
 
-  private fun updateReferralDetails(
+  fun updateReferralDetails(
     referral: ReferralEntity,
     personalDetails: NDeliusPersonalDetails,
     sentenceEndDate: LocalDate?,
