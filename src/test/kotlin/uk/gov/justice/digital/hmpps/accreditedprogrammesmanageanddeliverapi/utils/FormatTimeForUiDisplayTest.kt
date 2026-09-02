@@ -34,7 +34,8 @@ class FormatTimeForUiDisplayTest {
   @Test
   fun `formatTimeOfSession can capitalise midday and midnight`() {
     assertThat(formatTimeOfSession(LocalTime.of(0, 0), LocalTime.of(1, 0), capitaliseMidday = true)).isEqualTo("Midnight to 1am")
-    assertThat(formatTimeOfSession(LocalTime.of(11, 0), LocalTime.of(12, 0), capitaliseMidday = true)).isEqualTo("11am to Midday")
+    assertThat(formatTimeOfSession(LocalTime.of(11, 0), LocalTime.of(12, 0), capitaliseMidday = true)).isEqualTo("11am to midday")
+    assertThat(formatTimeOfSession(LocalTime.of(12, 0), LocalTime.of(15, 0), capitaliseMidday = true)).isEqualTo("Midday to 3pm")
 
     // Other times should not be affected.
     assertThat(formatTimeOfSession(LocalTime.of(9, 30), LocalTime.of(11, 0), capitaliseMidday = true)).isEqualTo("9:30am to 11am")
