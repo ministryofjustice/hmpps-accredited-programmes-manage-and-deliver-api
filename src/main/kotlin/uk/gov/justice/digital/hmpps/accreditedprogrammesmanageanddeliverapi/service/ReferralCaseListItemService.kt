@@ -51,7 +51,7 @@ class ReferralCaseListItemService(
       ?: (null to null)
 
     val isFilteredCaseList =
-      isFilterApplied(caseReferenceNumberOrPersonName, cohort, status, sex, probationDeliveryUnits, reportingTeams)
+      isFilterApplied(caseReferenceNumberOrPersonName, cohort, sex, probationDeliveryUnits, reportingTeams)
     val userRegionNames = userService.getUserRegionNames(username)
 
     // Normalise the status filter once so both the main query and the otherTabCount query
@@ -187,13 +187,11 @@ class ReferralCaseListItemService(
   private fun isFilterApplied(
     caseReferenceNumberOrPersonName: String?,
     cohort: ProgrammeGroupCohort?,
-    status: String?,
     sex: String?,
     probationDeliveryUnits: List<String>?,
     reportingTeams: List<String>?,
   ): Boolean = !caseReferenceNumberOrPersonName.isNullOrEmpty() ||
     cohort != null ||
-    !status.isNullOrEmpty() ||
     !sex.isNullOrEmpty() ||
     probationDeliveryUnits != null ||
     reportingTeams != null
