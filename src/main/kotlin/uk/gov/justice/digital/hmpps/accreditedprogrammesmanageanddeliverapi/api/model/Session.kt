@@ -43,7 +43,7 @@ fun SessionEntity.toApi(formatter: SessionNameFormatter, usernameAccessMap: Map<
   referrals = attendees.map { attendee ->
     val access = usernameAccessMap[attendee.referral.crn]
     attendee.referral.toApi(
-      isLimitedAccessOffender = access?.lao,
+      isLimitedAccessOffender = access?.isLimitedAccessOffender,
       isExcluded = access?.isExcluded,
     )
   },

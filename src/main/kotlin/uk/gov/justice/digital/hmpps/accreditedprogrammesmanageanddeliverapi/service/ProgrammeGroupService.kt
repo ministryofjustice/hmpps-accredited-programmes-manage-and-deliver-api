@@ -284,7 +284,7 @@ class ProgrammeGroupService(
     val accessGrantedMembers = groupMembers.filter { it.crn in accessByCrn }
     accessGrantedMembers.forEach { groupMember ->
       val access = accessByCrn[groupMember.crn]
-      groupMember.isLimitedAccessOffender = access?.lao
+      groupMember.isLimitedAccessOffender = access?.isLimitedAccessOffender
       groupMember.isExcluded = access?.isExcluded
     }
 
@@ -447,7 +447,7 @@ class ProgrammeGroupService(
     val groupItems = pagedData.content.filter { item ->
       if (exclusionAccessCheckEnabled && isFilteredCaseList) {
         val access = limitedAccessOffenderAccessMap?.get(item.crn)
-        val isLimitedAccessOffender = access?.lao ?: false
+        val isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false
         val isExcluded = access?.isExcluded ?: false
         if (isLimitedAccessOffender) {
           return@filter !isExcluded
@@ -458,7 +458,7 @@ class ProgrammeGroupService(
     }.map { item ->
       val access = limitedAccessOffenderAccessMap?.get(item.crn)
       item.toApi(
-        isLimitedAccessOffender = access?.lao ?: false,
+        isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false,
         isExcluded = access?.isExcluded ?: false,
       )
     }
@@ -598,7 +598,7 @@ class ProgrammeGroupService(
         Participant(
           name = it.personName,
           crn = it.referral.crn,
-          isLimitedAccessOffender = userAccessMap[it.referral.crn]?.lao ?: false,
+          isLimitedAccessOffender = userAccessMap[it.referral.crn]?.isLimitedAccessOffender ?: false,
           isExcluded = userAccessMap[it.referral.crn]?.isExcluded ?: false,
         )
       }
@@ -850,7 +850,7 @@ class ProgrammeGroupService(
         name = attendee.personName,
         referralId = attendee.referralId,
         crn = attendee.referral.crn,
-        lao = access?.lao ?: false,
+        lao = access?.isLimitedAccessOffender ?: false,
         isExcluded = access?.isExcluded ?: false,
         attendance = getAttendanceTextFromOutcome(attendanceRecord?.outcomeType),
         sessionNotes = attendanceRecord?.notesHistory?.maxByOrNull { it.createdAt }?.notes ?: "Not added",

@@ -137,7 +137,7 @@ class ProgrammeGroupServiceTest {
     )
     val username = "john.smith"
     val caseReferenceNumber = groupWaitlistItemViewEntity.crn
-    val accessMap = mapOf(caseReferenceNumber to Access(lao = true, isExcluded = false))
+    val accessMap = mapOf(caseReferenceNumber to Access(isLimitedAccessOffender = true, isExcluded = false))
     val probationDeliveryUnitReportingLocation =
       PduReportingLocation(pduName = probationDeliveryUnit, reportingTeam = reportingTeam)
 
@@ -302,8 +302,8 @@ class ProgrammeGroupServiceTest {
     )
     val username = "john.smith"
     val accessMap = mapOf(
-      excludedItem.crn to Access(lao = true, isExcluded = true),
-      includedItem.crn to Access(lao = true, isExcluded = false),
+      excludedItem.crn to Access(isLimitedAccessOffender = true, isExcluded = true),
+      includedItem.crn to Access(isLimitedAccessOffender = true, isExcluded = false),
     )
     val probationDeliveryUnitReportingLocation =
       PduReportingLocation(pduName = probationDeliveryUnit, reportingTeam = reportingTeam)

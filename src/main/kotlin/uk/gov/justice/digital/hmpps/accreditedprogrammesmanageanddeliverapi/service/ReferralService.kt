@@ -120,7 +120,7 @@ class ReferralService(
       try {
         if (authenticateUser) {
           val userName = authenticationHolder.username ?: UNKNOWN_USER_USERNAME
-          if (!userService.hasAccessToLimitedAccessOffender(userName, referral.crn)) {
+          if (userAccessService.isUserExcluded(userName, referral.crn)) {
             throw AccessDeniedException("You are not authorized to view this person's details. Either contact your administrator or enter a different CRN or Prison Number")
           }
         }
