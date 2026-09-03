@@ -326,7 +326,7 @@ class SessionService(
       val usernameAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
       sessionAttendees.forEach { attendee ->
         val access = usernameAccessMap[attendee.crn]
-        attendee.isLimitedAccessOffender = access?.lao
+        attendee.isLimitedAccessOffender = access?.isLimitedAccessOffender
         attendee.isExcluded = access?.isExcluded
       }
     }
@@ -599,7 +599,7 @@ class SessionService(
           options = outcomeOptions,
           sessionNotes = latestSessionNotesHistory?.notes,
           sessionNotesCreatedByFullName = latestSessionNotesHistory?.createdByFullName,
-          isLao = userAccessMap[attendee.referral.crn]?.lao ?: false,
+          isLao = userAccessMap[attendee.referral.crn]?.isLimitedAccessOffender ?: false,
           isExcluded = userAccessMap[attendee.referral.crn]?.isExcluded ?: false,
         )
       },

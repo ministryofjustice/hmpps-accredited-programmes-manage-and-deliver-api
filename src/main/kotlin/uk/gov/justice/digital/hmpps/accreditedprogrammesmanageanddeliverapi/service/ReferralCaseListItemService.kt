@@ -81,7 +81,7 @@ class ReferralCaseListItemService(
     val referralCaseListItems = referralsPage.content.filter { referral ->
       if (exclusionAccessCheckEnabled && isFilteredCaseList) {
         val access = limitedAccessOffenderAccessMap?.get(referral.crn)
-        val isLimitedAccessOffender = access?.lao ?: false
+        val isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false
         val isExcluded = access?.isExcluded ?: false
         if (isLimitedAccessOffender) {
           return@filter !isExcluded
@@ -93,11 +93,11 @@ class ReferralCaseListItemService(
       val access = limitedAccessOffenderAccessMap?.get(referral.crn)
       if (exclusionAccessCheckEnabled) {
         referral.toApi(
-          isLimitedAccessOffender = access?.lao ?: false,
+          isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false,
           isExcluded = access?.isExcluded ?: false,
         )
       } else {
-        referral.toApi(isLimitedAccessOffender = access?.lao ?: false)
+        referral.toApi(isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false)
       }
     }
 
