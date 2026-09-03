@@ -20,6 +20,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverviewSession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Participant
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupAllocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponse
@@ -45,6 +46,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
@@ -559,11 +561,7 @@ class ProgrammeGroupService(
               scheduledSession.endsAt.toLocalTime(),
               capitaliseMidday = true,
             ),
-            participants = when {
-              sessionTemplate.sessionType == SessionType.GROUP && !scheduledSession.isCatchup -> listOf("All")
-              sessionTemplate.sessionType == SessionType.ONE_TO_ONE -> scheduledSession.attendees.map { it.personName }
-              else -> scheduledSession.attendees.map { it.personName }
-            },
+            participants = buildParticipantList(sessionTemplate, scheduledSession),
             facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }
               .map { it.facilitator.personName },
           )
@@ -585,6 +583,26 @@ class ProgrammeGroupService(
     }.orEmpty()
 
     return ProgrammeGroupModuleSessionsResponse(programmeGroupModuleSessionsResponseGroup, modules)
+  }
+
+  private fun buildParticipantList(
+    sessionTemplate: ModuleSessionTemplateEntity,
+    scheduledSession: SessionEntity,
+  ): List<Participant> {
+    val username = authenticationUtils.getUsername()
+    val userAccessMap = userAccessService.determineUserAccess(username, scheduledSession.attendees.map { it.referral.crn })
+    return if (sessionTemplate.sessionType == SessionType.GROUP && !scheduledSession.isCatchup) {
+      listOf(Participant(name = "All"))
+    } else {
+      scheduledSession.attendees.map {
+        Participant(
+          name = it.personName,
+          crn = it.referral.crn,
+          isLimitedAccessOffender = userAccessMap[it.referral.crn]?.lao ?: false,
+          isExcluded = userAccessMap[it.referral.crn]?.isExcluded ?: false,
+        )
+      }
+    }
   }
 
   fun getEditCohortForGroup(groupId: UUID): EditGroupCohort {
