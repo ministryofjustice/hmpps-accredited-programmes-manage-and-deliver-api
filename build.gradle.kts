@@ -2,11 +2,11 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.6"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.7"
   kotlin("plugin.spring") version "2.4.10"
   kotlin("plugin.jpa") version "2.4.10"
   kotlin("plugin.allopen") version "2.4.10"
-  id("io.sentry.jvm.gradle") version "6.19.0"
+  id("io.sentry.jvm.gradle") version "6.21.0"
 }
 
 configurations {
@@ -14,9 +14,9 @@ configurations {
 }
 
 dependencies {
-  val shedLockVersion = "7.9.0"
-  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:3.0.0")
-  implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:7.4.0")
+  val shedLockVersion = "7.10.0"
+  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:3.0.1")
+  implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:7.4.1")
   implementation("org.springframework.boot:spring-boot-starter-webclient")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -45,11 +45,11 @@ dependencies {
   implementation("com.nimbusds:oauth2-oidc-sdk")
   implementation("io.github.resilience4j:resilience4j-spring-boot2:2.3.0")
 
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:3.0.0")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:3.0.1")
   testImplementation("org.springframework.boot:spring-boot-starter-webclient-test")
   testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
   testImplementation("org.wiremock:wiremock-standalone:3.13.2")
-  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.47") {
+  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.48") {
     exclude(group = "io.swagger.core.v3")
   }
   testImplementation("org.testcontainers:testcontainers:2.0.5")
@@ -60,7 +60,7 @@ dependencies {
   testImplementation("io.kotest:kotest-assertions-core:6.2.4")
   testImplementation("io.mockk:mockk:1.14.11")
   testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.8.0")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.8.1")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql:42.7.13")
