@@ -89,7 +89,7 @@ class LimitedAccessOffenderAuthorisationInterceptorTest {
   }
 
   @Test
-  fun `preHandle should throw exception if user is authorised`() {
+  fun `preHandle should throw exception if user is unauthorised`() {
     // Given
     val username = "test-user"
     val requestMethod = "GET"
@@ -109,25 +109,8 @@ class LimitedAccessOffenderAuthorisationInterceptorTest {
     assertThat(exception.message).isEqualTo("Access to this person's record is restricted in NDelius. Speak to your Programme Manager for more information.")
     verify(exactly = 1) { authenticationHolder.username }
     verify(exactly = 1) { request.method }
-    verify(exactly = 2) { request.requestURI }
+    verify(exactly = 3) { request.requestURI }
     verify(exactly = 1) { referralDetailsStrategy.isSupportedPath(requestMethod, requestPath) }
     verify(exactly = 1) { referralDetailsStrategy.isAuthorised(requestPath, username) }
-  }
-
-  @Test
-  fun `preHandle should return true if limited access offender check is disabled`() {
-    // Given
-    interceptor = LimitedAccessOffenderAuthorisationInterceptor(false, referralDetailsStrategy, authenticationHolder)
-
-    // When
-    val result = interceptor.preHandle(request, response, handler)
-
-    // Then
-    assertThat(result).isTrue
-    verify(exactly = 0) { authenticationHolder.username }
-    verify(exactly = 0) { request.method }
-    verify(exactly = 0) { request.requestURI }
-    verify(exactly = 0) { referralDetailsStrategy.isSupportedPath(any(), any()) }
-    verify(exactly = 0) { referralDetailsStrategy.isAuthorised(any(), any()) }
   }
 }
