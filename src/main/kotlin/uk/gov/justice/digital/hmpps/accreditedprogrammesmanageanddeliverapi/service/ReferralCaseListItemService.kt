@@ -80,11 +80,18 @@ class ReferralCaseListItemService(
 
     val referralCaseListItems = referralsPage.content.filter { referral ->
       if (exclusionAccessCheckEnabled && isFilteredCaseList) {
-        val access = limitedAccessOffenderAccessMap?.get(referral.crn)
-        val isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false
-        val isExcluded = access?.isExcluded ?: false
-        if (isLimitedAccessOffender) {
-          return@filter !isExcluded
+        val crnMatchesSearch = !caseReferenceNumberOrPersonName.isNullOrEmpty() &&
+          referral.crn.contains(caseReferenceNumberOrPersonName, ignoreCase = true)
+        val hasOtherFilters = hasFiltersOtherThanSearch(cohort, sex, probationDeliveryUnits, reportingTeams)
+        val shouldSkipExclusionFilter = crnMatchesSearch && !hasOtherFilters
+
+        if (!shouldSkipExclusionFilter) {
+          val access = limitedAccessOffenderAccessMap?.get(referral.crn)
+          val isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false
+          val isExcluded = access?.isExcluded ?: false
+          if (isLimitedAccessOffender) {
+            return@filter !isExcluded
+          }
         }
       }
 
@@ -192,6 +199,16 @@ class ReferralCaseListItemService(
     reportingTeams: List<String>?,
   ): Boolean = !caseReferenceNumberOrPersonName.isNullOrEmpty() ||
     cohort != null ||
+    !sex.isNullOrEmpty() ||
+    probationDeliveryUnits != null ||
+    reportingTeams != null
+
+  private fun hasFiltersOtherThanSearch(
+    cohort: ProgrammeGroupCohort?,
+    sex: String?,
+    probationDeliveryUnits: List<String>?,
+    reportingTeams: List<String>?,
+  ): Boolean = cohort != null ||
     !sex.isNullOrEmpty() ||
     probationDeliveryUnits != null ||
     reportingTeams != null
