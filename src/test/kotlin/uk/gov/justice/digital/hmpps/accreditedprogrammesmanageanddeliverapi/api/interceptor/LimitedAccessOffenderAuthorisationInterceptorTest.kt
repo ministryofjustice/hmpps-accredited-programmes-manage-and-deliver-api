@@ -24,7 +24,7 @@ class LimitedAccessOffenderAuthorisationInterceptorTest {
 
   @BeforeEach
   fun setup() {
-    interceptor = LimitedAccessOffenderAuthorisationInterceptor(true, referralDetailsStrategy, authenticationHolder)
+    interceptor = LimitedAccessOffenderAuthorisationInterceptor(referralDetailsStrategy, authenticationHolder)
   }
 
   @Test
