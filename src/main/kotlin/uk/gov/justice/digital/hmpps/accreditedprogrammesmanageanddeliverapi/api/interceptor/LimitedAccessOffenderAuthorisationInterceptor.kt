@@ -3,7 +3,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException
 import org.springframework.stereotype.Component
@@ -15,8 +14,6 @@ import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
 @Component
 class LimitedAccessOffenderAuthorisationInterceptor(
-  @param:Value($$"${app.features.lao-access-check-enabled}")
-  private val limitedAccessOffenderCheckEnabled: Boolean,
   private val referralDetailsStrategy: ReferralDetailsLimitedAccessOffenderAuthorisationStrategy,
   private val authenticationHolder: HmppsAuthenticationHolder,
 ) : HandlerInterceptor {
@@ -24,23 +21,20 @@ class LimitedAccessOffenderAuthorisationInterceptor(
 
   override fun preHandle(request: HttpServletRequest, response: HttpServletResponse, handler: Any): Boolean {
     log.info("START Checking for limited access offender authorisation")
-    var isAuthorisedRequest = true
+    val username = authenticationHolder.username
 
-    if (limitedAccessOffenderCheckEnabled) {
-      val username = authenticationHolder.username
+    if (username.isNullOrBlank()) {
+      throw AuthenticationCredentialsNotFoundException("No authenticated user found")
+    }
 
-      if (username.isNullOrBlank()) {
-        throw AuthenticationCredentialsNotFoundException("No authenticated user found")
-      }
-
-      val requestType = getHttpRequestType(request)
-      isAuthorisedRequest = when (requestType) {
-        GET_PERSONAL_DETAILS -> referralDetailsStrategy.isAuthorised(request.requestURI, username)
-        else -> true
-      }
+    val requestType = getHttpRequestType(request)
+    val isAuthorisedRequest = when (requestType) {
+      GET_PERSONAL_DETAILS -> referralDetailsStrategy.isAuthorised(request.requestURI, username)
+      else -> true
     }
 
     if (!isAuthorisedRequest) {
+      log.warn("Unauthorised request encountered for: ${request.requestURI}")
       throw AccessDeniedException("Access to this person's record is restricted in NDelius. Speak to your Programme Manager for more information.")
     }
 
