@@ -31,6 +31,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverview
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Participant
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
@@ -3733,6 +3734,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   inner class GetGroupSessions {
     @Test
     fun `return 200 and bff data if successful`() {
+      // Given
       stubAuthTokenEndpoint()
       val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
       val body = CreateGroupRequestFactory().produce(
@@ -3774,12 +3776,16 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
 
+      nDeliusApiStubs.stubAccessCheck(true, *referrals.map { it.crn }.toTypedArray())
+
+      // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/bff/group/${group.id}/sessions",
         returnType = object : ParameterizedTypeReference<ProgrammeGroupModuleSessionsResponse>() {},
       )
 
+      // Then
       assertThat(response.group).isNotNull
       assertThat(response.modules).isNotNull
       assertThat(response.modules.size).isEqualTo(7)
@@ -3844,16 +3850,24 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         module.sessions.forEach { session ->
           when {
             session.type == "Group" && !session.isCatchup -> {
-              assertThat(session.participants).isEqualTo(listOf("All"))
+              assertThat(session.participants).isEqualTo(listOf(Participant(name = "All")))
             }
 
             session.type == "Group" && session.isCatchup -> {
               assertThat(session.participants).isNotEmpty()
-              assertThat(session.participants).doesNotContain("All")
+              assertThat(session.participants).doesNotContain(Participant(name = "All"))
             }
 
             session.type == "Individual" -> {
-              assertThat(session.participants).isNotEmpty()
+              assertThat(session.participants).isNotEmpty().hasSize(1)
+              assertThat(session.participants[0]).isEqualTo(
+                Participant(
+                  name = referral.personName,
+                  crn = referral.crn,
+                  isLimitedAccessOffender = false,
+                  isExcluded = false,
+                ),
+              )
             }
           }
         }

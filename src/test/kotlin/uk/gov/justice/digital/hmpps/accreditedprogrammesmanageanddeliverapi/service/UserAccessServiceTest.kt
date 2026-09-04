@@ -26,7 +26,7 @@ class UserAccessServiceTest {
     probationAccessControlApiClient = probationAccessControlApiClient,
     userService = userService,
     laoAccessCheckEnabled = accessCheckEnabled,
-    restrictionEnabled = restrictionEnabled,
+    exclusionAccessCheck = restrictionEnabled,
   )
 
   private fun stubCaseAccess(
@@ -51,8 +51,8 @@ class UserAccessServiceTest {
     val result = resolver(accessCheckEnabled = false, restrictionEnabled = false)
       .determineUserAccess(username, listOf(ordinaryCrn, laoRestrictedCrn))
 
-    assertThat(result[ordinaryCrn]).isEqualTo(UserAccessService.Access(lao = false, isExcluded = false))
-    assertThat(result[laoRestrictedCrn]).isEqualTo(UserAccessService.Access(lao = false, isExcluded = false))
+    assertThat(result[ordinaryCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = false, isExcluded = false))
+    assertThat(result[laoRestrictedCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = false, isExcluded = false))
 
     verify(exactly = 0) { probationAccessControlApiClient.getCaseAccessByCrn(any()) }
     verify(exactly = 0) { userService.getAccessibleOffenders(any(), any()) }
@@ -69,8 +69,8 @@ class UserAccessServiceTest {
     val result = resolver(accessCheckEnabled = true, restrictionEnabled = false)
       .determineUserAccess(username, listOf(ordinaryCrn, laoAuthorisedCrn, laoRestrictedCrn))
 
-    assertThat(result[ordinaryCrn]).isEqualTo(UserAccessService.Access(lao = false, isExcluded = false))
-    assertThat(result[laoAuthorisedCrn]).isEqualTo(UserAccessService.Access(lao = true, isExcluded = false))
+    assertThat(result[ordinaryCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = false, isExcluded = false))
+    assertThat(result[laoAuthorisedCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = true, isExcluded = false))
     assertThat(result).doesNotContainKey(laoRestrictedCrn)
 
     verify(exactly = 1) { userService.getAccessibleOffenders(username, any()) }
@@ -83,9 +83,9 @@ class UserAccessServiceTest {
     val result = resolver(accessCheckEnabled = false, restrictionEnabled = true)
       .determineUserAccess(username, listOf(ordinaryCrn, laoAuthorisedCrn, laoRestrictedCrn))
 
-    assertThat(result[ordinaryCrn]).isEqualTo(UserAccessService.Access(lao = false, isExcluded = false))
-    assertThat(result[laoAuthorisedCrn]).isEqualTo(UserAccessService.Access(lao = false, isExcluded = false))
-    assertThat(result[laoRestrictedCrn]).isEqualTo(UserAccessService.Access(lao = false, isExcluded = true))
+    assertThat(result[ordinaryCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = false, isExcluded = false))
+    assertThat(result[laoAuthorisedCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = false, isExcluded = false))
+    assertThat(result[laoRestrictedCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = false, isExcluded = true))
 
     verify(exactly = 0) { probationAccessControlApiClient.getCaseAccessByCrn(any()) }
     verify(exactly = 1) { userService.getAccessibleOffenders(username, any()) }
@@ -101,9 +101,9 @@ class UserAccessServiceTest {
     val result = resolver(accessCheckEnabled = true, restrictionEnabled = true)
       .determineUserAccess(username, listOf(ordinaryCrn, laoAuthorisedCrn, laoRestrictedCrn))
 
-    assertThat(result[ordinaryCrn]).isEqualTo(UserAccessService.Access(lao = false, isExcluded = false))
-    assertThat(result[laoAuthorisedCrn]).isEqualTo(UserAccessService.Access(lao = true, isExcluded = false))
-    assertThat(result[laoRestrictedCrn]).isEqualTo(UserAccessService.Access(lao = true, isExcluded = true))
+    assertThat(result[ordinaryCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = false, isExcluded = false))
+    assertThat(result[laoAuthorisedCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = true, isExcluded = false))
+    assertThat(result[laoRestrictedCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = true, isExcluded = true))
   }
 
   @Test
@@ -113,5 +113,26 @@ class UserAccessServiceTest {
     assertThat(result).isEmpty()
     verify(exactly = 0) { probationAccessControlApiClient.getCaseAccessByCrn(any()) }
     verify(exactly = 0) { userService.getAccessibleOffenders(any(), any()) }
+  }
+
+  @Test
+  fun `user is excluded when their username is present in excludedFrom`() {
+    stubCaseAccess(ordinaryCrn, excludedFrom = listOf(username))
+
+    assertThat(resolver(accessCheckEnabled = false, restrictionEnabled = true).isUserExcluded(username, ordinaryCrn)).isTrue()
+  }
+
+  @Test
+  fun `user is not excluded when excludedFrom contains another username`() {
+    stubCaseAccess(ordinaryCrn, excludedFrom = listOf("OTHER_USER"))
+
+    assertThat(resolver(accessCheckEnabled = false, restrictionEnabled = true).isUserExcluded(username, ordinaryCrn)).isFalse()
+  }
+
+  @Test
+  fun `user is not excluded when their username is only present in restrictedTo`() {
+    stubCaseAccess(ordinaryCrn, restrictedTo = listOf(username))
+
+    assertThat(resolver(accessCheckEnabled = false, restrictionEnabled = true).isUserExcluded(username, ordinaryCrn)).isFalse()
   }
 }
