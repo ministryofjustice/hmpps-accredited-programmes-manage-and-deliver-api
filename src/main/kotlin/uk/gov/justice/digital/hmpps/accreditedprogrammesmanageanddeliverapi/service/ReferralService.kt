@@ -354,6 +354,8 @@ class ReferralService(
           referral.eventId != null
         ) {
           deleteSourcedFromLicenceConditionReferral(referral)
+        } else {
+          log.warn("Referral with id ${referral.id} has an invalid sourcedFrom value: ${referral.sourcedFrom} and/or eventId value: ${referral.eventId}")
         }
       }
     }
@@ -852,7 +854,7 @@ class ReferralService(
       }
 
       else -> {
-        log.info("deleteReferralByNDeliusCaseRequirementOrLicenceConditionResponse: requirement manager details found referral's case reference number: $caseReferenceNumber and eventId: $eventId in NDelius — nothing to delete")
+        log.info("deleteReferralByNDeliusCaseRequirementOrLicenceConditionResponse: manager details found for referral case reference number: $caseReferenceNumber and eventId: $eventId in NDelius — nothing to delete")
         telemetryService.logToAppInsights(
           eventName = "${integrationActivityType.eventName}.success",
           integrationActionType = integrationActivityType.name,

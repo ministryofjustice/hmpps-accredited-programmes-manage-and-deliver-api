@@ -68,7 +68,7 @@ class ReferralSentenceDeletedHandler(
         ),
       )
     } catch (exception: Exception) {
-      log.error("Error handling ReferralUnmergedEvent: ${exception.message}", exception)
+      log.error("Error handling ReferralSentenceDeletedEvent: ${exception.message}", exception)
       telemetryService.logToAppInsights(
         eventName = APP_INSIGHTS_PROCESSED_FAILURE_EVENT_NAME_PROPERTY_VALUE,
         properties = mapOf(
