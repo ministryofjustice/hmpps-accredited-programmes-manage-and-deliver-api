@@ -260,10 +260,7 @@ class SessionService(
 
   fun updateNDeliusAppointmentsForSession(session: SessionEntity) {
     if (session.ndeliusAppointments.isEmpty()) {
-      log.debug(
-        "updateNDeliusAppointmentsForSession not called as no nDelius appointments found for session {}",
-        session.id,
-      )
+      log.debug("updateNDeliusAppointmentsForSession not called as no nDelius appointments found for session ${session.id}")
       return
     }
     val updateRequests = session.ndeliusAppointments.map {
@@ -415,6 +412,10 @@ class SessionService(
     val addedReferralIds = newReferralIdsSet - currentReferralIds
     val removedReferralIds = currentReferralIds - newReferralIdsSet
 
+    val nDeliusAppointmentsToRemove = session.ndeliusAppointments
+      .filter { it.referral.id in removedReferralIds }
+      .toList()
+
     val removedNames = session.attendees
       .filter { it.referralId in removedReferralIds }
       .map { it.personName }
@@ -439,6 +440,14 @@ class SessionService(
 
     session.attendees.addAll(newAttendees)
     sessionRepository.save(session)
+
+    if (nDeliusAppointmentsToRemove.isNotEmpty()) {
+      scheduleService.removeNDeliusAppointments(nDeliusAppointmentsToRemove, listOf(session))
+    }
+
+    if (newAttendees.isNotEmpty()) {
+      scheduleService.createNdeliusAppointmentsForSessions(newAttendees)
+    }
 
     val addedMessage = buildSessionAttendeesUpdateMessage(addedNames, "added to")
     val removedMessage = buildSessionAttendeesUpdateMessage(removedNames, "removed from")
