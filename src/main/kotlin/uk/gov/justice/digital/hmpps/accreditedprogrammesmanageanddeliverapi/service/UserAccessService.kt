@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
@@ -12,12 +13,14 @@ class UserAccessService(
   @Value("\${app.features.lao-access-check-enabled:false}")
   private val laoAccessCheckEnabled: Boolean,
   @Value("\${app.features.exclusion-access-check-enabled}")
-  private val restrictionEnabled: Boolean,
+  private val exclusionAccessCheck: Boolean,
 ) {
   data class Access(
-    val lao: Boolean,
+    val isLimitedAccessOffender: Boolean,
     val isExcluded: Boolean,
   )
+
+  private val log = LoggerFactory.getLogger(this::class.java)
 
   fun determineUserAccess(username: String, crnList: List<String>): Map<String, Access> {
     val uniqueCRNs = crnList.distinct()
@@ -29,7 +32,7 @@ class UserAccessService(
     return uniqueCRNs
       .associateWith { crn ->
         Access(
-          lao = limitedAccessOffenders[crn] ?: false,
+          isLimitedAccessOffender = limitedAccessOffenders[crn] ?: false,
           isExcluded = crn !in accessibleCRNs,
         )
       }
@@ -39,7 +42,7 @@ class UserAccessService(
   private fun determineLimitedAccessOffendersByCRN(crnList: List<String>): Map<String, Boolean> = if (laoAccessCheckEnabled) crnList.associateWith(::isLimitedAccessOffender) else emptyMap()
 
   private fun determineAccessibleCRNs(username: String, crnList: List<String>): Set<String> {
-    val accessChecksEnabled = laoAccessCheckEnabled || restrictionEnabled
+    val accessChecksEnabled = laoAccessCheckEnabled || exclusionAccessCheck
 
     return if (accessChecksEnabled) {
       userService.getAccessibleOffenders(username, crnList)
@@ -48,10 +51,18 @@ class UserAccessService(
     }
   }
 
-  private fun filterAccessByRestrictionFeature(accessMap: Map<String, Access>): Map<String, Access> = if (restrictionEnabled) accessMap else accessMap.filterValues { !it.isExcluded }
+  private fun filterAccessByRestrictionFeature(accessMap: Map<String, Access>): Map<String, Access> = if (exclusionAccessCheck) accessMap else accessMap.filterValues { !it.isExcluded }
 
   fun isLimitedAccessOffender(crn: String): Boolean = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
     is ClientResult.Success -> response.body.excludedFrom.isNotEmpty() || response.body.restrictedTo.isNotEmpty()
     is ClientResult.Failure -> false
+  }
+
+  fun isUserExcluded(username: String, crn: String): Boolean = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
+    is ClientResult.Success -> response.body.excludedFrom.any { it.username == username }
+    is ClientResult.Failure -> {
+      log.error("Failed to retrieve case access for CRN $crn", response.toException())
+      throw response.toException()
+    }
   }
 }

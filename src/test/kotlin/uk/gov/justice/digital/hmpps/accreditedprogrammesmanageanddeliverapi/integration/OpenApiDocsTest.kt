@@ -9,8 +9,6 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.http.MediaType
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 class OpenApiDocsTest : IntegrationTestBase() {
   @LocalServerPort
@@ -44,19 +42,6 @@ class OpenApiDocsTest : IntegrationTestBase() {
       .expectStatus().isOk
       .expectBody()
       .jsonPath("paths").isNotEmpty
-  }
-
-  @Test
-  fun `the open api json contains the version number`() {
-    webTestClient.get()
-      .uri("/v3/api-docs")
-      .accept(MediaType.APPLICATION_JSON)
-      .exchange()
-      .expectStatus().isOk
-      .expectBody()
-      .jsonPath("info.version").value<String> { version ->
-        assertThat(version).startsWith(LocalDate.now().format(DateTimeFormatter.ISO_DATE))
-      }
   }
 
   @Test

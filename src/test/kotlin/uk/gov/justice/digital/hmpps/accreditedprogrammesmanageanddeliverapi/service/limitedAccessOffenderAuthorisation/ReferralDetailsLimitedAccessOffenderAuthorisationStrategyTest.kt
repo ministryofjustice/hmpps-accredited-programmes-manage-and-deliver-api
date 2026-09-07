@@ -82,7 +82,7 @@ class ReferralDetailsLimitedAccessOffenderAuthorisationStrategyTest {
     val path = "/referral-details/$referralId"
     val referralEntity = ReferralEntityFactory().withId(referralId).produce()
     val caseReferenceNumber = referralEntity.crn
-    val access = Access(lao = true, isExcluded = false)
+    val access = Access(isLimitedAccessOffender = true, isExcluded = false)
     val accessMap = mapOf(caseReferenceNumber to access)
 
     every { referralService.getReferralById(any()) } returns referralEntity
@@ -105,7 +105,7 @@ class ReferralDetailsLimitedAccessOffenderAuthorisationStrategyTest {
     val path = "/referral-details/$referralId/personal-details"
     val referralEntity = ReferralEntityFactory().withId(referralId).produce()
     val caseReferenceNumber = referralEntity.crn
-    val access = Access(lao = true, isExcluded = false)
+    val access = Access(isLimitedAccessOffender = true, isExcluded = false)
     val accessMap = mapOf(caseReferenceNumber to access)
 
     every { referralService.getReferralById(any()) } returns referralEntity
@@ -128,7 +128,7 @@ class ReferralDetailsLimitedAccessOffenderAuthorisationStrategyTest {
     val path = "/referral-details/$referralId"
     val referralEntity = ReferralEntityFactory().withId(referralId).produce()
     val caseReferenceNumber = referralEntity.crn
-    val access = Access(lao = true, isExcluded = true)
+    val access = Access(isLimitedAccessOffender = true, isExcluded = true)
     val accessMap = mapOf(caseReferenceNumber to access)
 
     every { referralService.getReferralById(any()) } returns referralEntity

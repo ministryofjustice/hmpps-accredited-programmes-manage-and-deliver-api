@@ -51,7 +51,7 @@ class ReferralCaseListItemService(
       ?: (null to null)
 
     val isFilteredCaseList =
-      isFilterApplied(caseReferenceNumberOrPersonName, cohort, status, sex, probationDeliveryUnits, reportingTeams)
+      isFilterApplied(caseReferenceNumberOrPersonName, cohort, sex, probationDeliveryUnits, reportingTeams)
     val userRegionNames = userService.getUserRegionNames(username)
 
     // Normalise the status filter once so both the main query and the otherTabCount query
@@ -80,11 +80,18 @@ class ReferralCaseListItemService(
 
     val referralCaseListItems = referralsPage.content.filter { referral ->
       if (exclusionAccessCheckEnabled && isFilteredCaseList) {
-        val access = limitedAccessOffenderAccessMap?.get(referral.crn)
-        val isLimitedAccessOffender = access?.lao ?: false
-        val isExcluded = access?.isExcluded ?: false
-        if (isLimitedAccessOffender) {
-          return@filter !isExcluded
+        val crnMatchesSearch = !caseReferenceNumberOrPersonName.isNullOrEmpty() &&
+          referral.crn.contains(caseReferenceNumberOrPersonName, ignoreCase = true)
+        val hasOtherFilters = hasFiltersOtherThanSearch(cohort, sex, probationDeliveryUnits, reportingTeams)
+        val shouldSkipExclusionFilter = crnMatchesSearch && !hasOtherFilters
+
+        if (!shouldSkipExclusionFilter) {
+          val access = limitedAccessOffenderAccessMap?.get(referral.crn)
+          val isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false
+          val isExcluded = access?.isExcluded ?: false
+          if (isLimitedAccessOffender) {
+            return@filter !isExcluded
+          }
         }
       }
 
@@ -93,11 +100,11 @@ class ReferralCaseListItemService(
       val access = limitedAccessOffenderAccessMap?.get(referral.crn)
       if (exclusionAccessCheckEnabled) {
         referral.toApi(
-          isLimitedAccessOffender = access?.lao ?: false,
+          isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false,
           isExcluded = access?.isExcluded ?: false,
         )
       } else {
-        referral.toApi(isLimitedAccessOffender = access?.lao ?: false)
+        referral.toApi(isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false)
       }
     }
 
@@ -187,13 +194,21 @@ class ReferralCaseListItemService(
   private fun isFilterApplied(
     caseReferenceNumberOrPersonName: String?,
     cohort: ProgrammeGroupCohort?,
-    status: String?,
     sex: String?,
     probationDeliveryUnits: List<String>?,
     reportingTeams: List<String>?,
   ): Boolean = !caseReferenceNumberOrPersonName.isNullOrEmpty() ||
     cohort != null ||
-    !status.isNullOrEmpty() ||
+    !sex.isNullOrEmpty() ||
+    probationDeliveryUnits != null ||
+    reportingTeams != null
+
+  private fun hasFiltersOtherThanSearch(
+    cohort: ProgrammeGroupCohort?,
+    sex: String?,
+    probationDeliveryUnits: List<String>?,
+    reportingTeams: List<String>?,
+  ): Boolean = cohort != null ||
     !sex.isNullOrEmpty() ||
     probationDeliveryUnits != null ||
     reportingTeams != null

@@ -113,7 +113,7 @@ class SubjectAccessRequestServiceTest {
 
     // Then
     assertThat(result).isNotNull()
-    assertThat(result.content).isNotNull()
+    assertThat(result!!.content).isNotNull()
     val resultContent =
       result.content as SubjectAccessRequestContent
 
@@ -250,7 +250,7 @@ class SubjectAccessRequestServiceTest {
   }
 
   @Test
-  fun `should get probation content for CRN that doesn't exist`() {
+  fun `should return null when CRN has no referrals so the controller emits HTTP 204`() {
     // Given
     val crn = "X123456"
     val fromDate: LocalDate = LocalDate.now(UTC).minusDays(2)
@@ -261,11 +261,35 @@ class SubjectAccessRequestServiceTest {
     // When
     val result = service.getProbationContentFor(crn, fromDate, toDate)
 
+    // Then: null signals the HMPPS SAR starter controller to respond with HTTP 204
+    // (No Content), per the SAR component API spec. Previously we returned an empty
+    // `SubjectAccessRequestContent` which produced a 200 with an empty body and
+    // caused the SAR collator to render every template section instead of the
+    // single top-level "no data held" message.
+    assertThat(result).isNull()
+
+    verify { referralRepository.findByCrn(any()) }
+  }
+
+  @Test
+  fun `should return null when all referrals fall outside the fromDate to toDate window`() {
+    // Given: referrals exist for the CRN but every one is filtered out by the
+    // date window, so effectively no data is held for the requested period.
+    val crn = "X123456"
+    val fromDate: LocalDate = LocalDate.now(UTC).minusDays(2)
+    val toDate: LocalDate = LocalDate.now(UTC)
+
+    // referralEntity3 is dated `plusDays(1)` (after `toDate`) and
+    // referralEntity2 is dated `minusDays(3)` (before `fromDate`); referralEntity1
+    // is intentionally excluded from the stubbed lookup here so that every
+    // returned referral is out of window.
+    every { referralRepository.findByCrn(any()) } returns listOf(referralEntity2, referralEntity3)
+
+    // When
+    val result = service.getProbationContentFor(crn, fromDate, toDate)
+
     // Then
-    assertThat(result).isNotNull()
-    assertThat(result.content).isNotNull()
-    val resultContent = result.content as SubjectAccessRequestContent
-    assertThat(resultContent.referrals).isNotNull().hasSize(0)
+    assertThat(result).isNull()
 
     verify { referralRepository.findByCrn(any()) }
   }

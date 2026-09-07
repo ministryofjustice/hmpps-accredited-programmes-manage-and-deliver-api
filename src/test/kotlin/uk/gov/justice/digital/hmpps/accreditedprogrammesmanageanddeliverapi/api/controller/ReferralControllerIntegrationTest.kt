@@ -62,7 +62,10 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
-class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMembershipService: ProgrammeGroupMembershipService) : IntegrationTestBase() {
+class ReferralControllerIntegrationTest : IntegrationTestBase() {
+
+  @Autowired
+  private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
@@ -329,7 +332,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     }
 
     @Test
-    fun `should return forbidden when access denied`() {
+    fun `should return forbidden when nDelius access is denied`() {
       // Given
       nDeliusApiStubs.stubAccessCheck(granted = true)
 
@@ -350,6 +353,37 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
       oasysApiStubs.stubSuccessfulPniResponseWithLdc(referralEntity.crn)
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(referralEntity.crn, referralEntity.eventNumber)
+
+      // When & Then
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.FORBIDDEN.value(),
+      )
+    }
+
+    @Test
+    fun `should return forbidden when authenticated user is present in PAC excludedFrom`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        referralEntity.crn,
+        excludedFrom = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange("AUTH_ADM")),
+      )
 
       // When & Then
       performRequestAndExpectStatus(
@@ -596,7 +630,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     }
 
     @Test
-    fun `should return referral details with isLAO true when offender has excluded access`() {
+    fun `should return referral details when another user is excluded`() {
       // Given
       val createdAt = LocalDateTime.now()
       val referralEntity = ReferralEntityFactory()
@@ -624,7 +658,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(referralEntity.crn, referralEntity.eventNumber)
       oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
 
-      // Stub restricted access with excludedFrom list populated
+      // The authenticated test user is AUTH_ADM; another user is excluded.
       probationAccessControlApiStubs.stubCaseAccessByCrn(
         referralEntity.crn,
         excludedFrom = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange("EXCLUDED_USER")),
@@ -644,7 +678,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     }
 
     @Test
-    fun `should return referral details with isLAO true when offender has restricted access`() {
+    fun `should return referral details when authenticated user is only in restrictedTo`() {
       // Given
       val createdAt = LocalDateTime.now()
       val referralEntity = ReferralEntityFactory()
@@ -672,7 +706,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(referralEntity.crn, referralEntity.eventNumber)
       oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
 
-      // Stub restricted access with restrictedTo list populated
+      // restrictedTo alone must not trigger ReferralService's exclusion guard.
       probationAccessControlApiStubs.stubCaseAccessByCrn(
         referralEntity.crn,
         restrictedTo = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange("AUTHORIZED_USER")),

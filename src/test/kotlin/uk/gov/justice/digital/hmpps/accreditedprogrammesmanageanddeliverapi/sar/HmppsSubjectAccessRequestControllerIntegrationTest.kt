@@ -192,6 +192,23 @@ class HmppsSubjectAccessRequestControllerIntegrationTest : IntegrationTestBase()
   }
 
   @Test
+  fun `should return 204 on GET subject access request data when no data held for CRN`() {
+    // Given: no referrals seeded for this CRN.
+    val unknownCrn = "X999999"
+    // When / Then: per the HMPPS SAR component API spec, an "identifier
+    // recognised but no data held" response must be HTTP 204 (No Content), so
+    // the SAR collator renders a single top-level "no data held" section
+    // rather than our template's per-section headers.
+    webTestClient
+      .method(HttpMethod.GET)
+      .uri("/subject-access-request?crn=$unknownCrn")
+      .headers(setAuthorisation())
+      .exchange()
+      .expectStatus().isEqualTo(HttpStatus.NO_CONTENT)
+      .expectBody().isEmpty
+  }
+
+  @Test
   fun `should return 403 when unauthorised on GET subject access request data`() {
     // Given
     initialiseReferrals()

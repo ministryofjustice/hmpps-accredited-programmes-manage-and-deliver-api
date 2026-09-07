@@ -2131,7 +2131,7 @@ class SessionServiceTest {
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName(personName).produce()
     val caseReferenceNumber = referralEntity.crn
     val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Getting started")
-    val accessMap = mapOf(caseReferenceNumber to Access(lao = true, isExcluded = true))
+    val accessMap = mapOf(caseReferenceNumber to Access(isLimitedAccessOffender = true, isExcluded = true))
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every { authenticationUtils.getUsername() } returns username
@@ -2218,7 +2218,7 @@ class SessionServiceTest {
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName(personName).produce()
     val caseReferenceNumber = referralEntity.crn
     val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Getting started")
-    val accessMap = mapOf(caseReferenceNumber to Access(lao = true, isExcluded = true))
+    val accessMap = mapOf(caseReferenceNumber to Access(isLimitedAccessOffender = true, isExcluded = true))
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
