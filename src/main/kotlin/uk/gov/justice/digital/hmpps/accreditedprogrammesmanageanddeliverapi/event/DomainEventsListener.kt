@@ -8,6 +8,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.even
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.INTERVENTIONS_COMMUNITY_REFERRAL_CREATED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.INTERVENTIONS_COMMUNITY_REFERRAL_IMPORTED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.PROBATION_CASE_MERGE_COMPLETED
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.PROBATION_CASE_SENTENCE_DELETED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.PROBATION_CASE_UNMERGE_COMPLETED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 
@@ -19,6 +20,7 @@ class DomainEventsListener(
   val referralMergedHandler: ReferralMergedHandler,
   val referralUnmergedHandler: ReferralUnmergedHandler,
   val referralDetailsUpdatedHandler: ReferralDetailsUpdatedHandler,
+  val referralSentenceDeletedHandler: ReferralSentenceDeletedHandler,
 ) {
   private val logger = LoggerFactory.getLogger(this::class.java)
 
@@ -31,6 +33,7 @@ class DomainEventsListener(
       PROBATION_CASE_MERGE_COMPLETED.value -> referralMergedHandler.handle(sqsMessage)
       PROBATION_CASE_UNMERGE_COMPLETED.value -> referralUnmergedHandler.handle(sqsMessage)
       ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value -> referralDetailsUpdatedHandler.handle(sqsMessage)
+      PROBATION_CASE_SENTENCE_DELETED.value -> referralSentenceDeletedHandler.handle(sqsMessage)
       else -> logger.info("Unknown event type ${sqsMessage.eventType}")
     }
   }
