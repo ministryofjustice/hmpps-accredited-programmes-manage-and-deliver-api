@@ -100,6 +100,7 @@ class ReferralService(
   private val sessionRepository: SessionRepository,
   @param:Value($$"${app.features.lao-access-check-enabled}")
   private val laoAccessCheckEnabled: Boolean,
+  private val userAccessService: UserAccessService,
   private val authenticationHolder: HmppsAuthenticationHolder,
 ) {
   companion object {
