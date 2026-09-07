@@ -61,7 +61,7 @@ class ReferralMergedHandler(
       )
 
       messageHistoryRepository.save(message.toEntity(objectMapper.writeValueAsString(message)))
-      referralService.updateReferralCrn(sourceCrn, targetCrn)
+      referralService.updateReferralCaseReferenceNumber(sourceCrn, targetCrn)
 
       log.info("Ending handle for messageId: ${sqsMessage.messageId}")
       telemetryService.logToAppInsights(

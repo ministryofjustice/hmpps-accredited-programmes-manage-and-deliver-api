@@ -9,6 +9,7 @@ import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.http.HttpStatus
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -43,6 +44,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralStatusUpdateEvent
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_PERSONAL_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS
@@ -96,7 +98,7 @@ class ReferralService(
   private val applicationEventPublisher: ApplicationEventPublisher,
   private val probationAccessControlApiClient: ProbationAccessControlApiClient,
   private val sessionRepository: SessionRepository,
-  @Value("\${app.features.lao-access-check-enabled}")
+  @param:Value($$"${app.features.lao-access-check-enabled}")
   private val laoAccessCheckEnabled: Boolean,
   private val userAccessService: UserAccessService,
   private val authenticationHolder: HmppsAuthenticationHolder,
@@ -307,24 +309,56 @@ class ReferralService(
   }
 
   /**
-   * Updates the CRN of all referrals associated with the given current CRN to the new CRN.
+   * Updates the case reference number (CRN) of all referrals associated with the given current CRN to the new CRN.
    *
-   * @param currentCrn The current CRN associated with the referrals that need to be updated.
-   * @param newCrn The new CRN to replace the current CRN in the referrals.
+   * @param currentCaseReferenceNumber The current CRN associated with the referrals that need to be updated.
+   * @param newCaseReferenceNumber The new CRN to replace the current CRN in the referrals.
    */
-  fun updateReferralCrn(currentCrn: String, newCrn: String) {
-    val referrals = referralRepository.findByCrn(currentCrn)
+  fun updateReferralCaseReferenceNumber(currentCaseReferenceNumber: String, newCaseReferenceNumber: String) {
+    val referrals = referralRepository.findByCrn(currentCaseReferenceNumber)
 
     if (referrals.isEmpty()) {
-      log.info("updateReferralCrn: no referrals found for CRN $currentCrn — nothing to update")
+      log.info("updateReferralCaseReferenceNumber: no referrals found for case reference number: $currentCaseReferenceNumber — nothing to update")
       return
     }
 
     referrals.forEach { referral ->
-      referral.crn = newCrn
+      referral.crn = newCaseReferenceNumber
     }
 
     referralRepository.saveAll(referrals)
+  }
+
+  /**
+   * Deletes all referrals associated with the given case reference number that are missing in NDelius.
+   *
+   * @param caseReferenceNumber The unique case reference number used to find and delete the associated referrals.
+   */
+  fun deleteReferralByCaseReferenceNumber(caseReferenceNumber: String) {
+    val referrals = referralRepository.findByCrn(caseReferenceNumber)
+
+    if (referrals.isEmpty()) {
+      log.info("deleteReferralByCaseReferenceNumber: no referrals found for case reference number: $caseReferenceNumber — nothing to delete")
+      return
+    }
+
+    referrals.forEach { referral ->
+      if (referral.sourcedFrom != null &&
+        referral.sourcedFrom == ReferralEntitySourcedFrom.REQUIREMENT &&
+        !referral.eventId.isNullOrBlank()
+      ) {
+        deleteSourcedFromRequirementReferral(referral)
+      } else {
+        if (referral.sourcedFrom != null &&
+          referral.sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION &&
+          referral.eventId != null
+        ) {
+          deleteSourcedFromLicenceConditionReferral(referral)
+        } else {
+          log.warn("Referral with id ${referral.id} has an invalid sourcedFrom value: ${referral.sourcedFrom} and/or eventId value: ${referral.eventId}")
+        }
+      }
+    }
   }
 
   fun getReferralById(referralId: UUID): ReferralEntity {
@@ -765,5 +799,68 @@ class ReferralService(
   private fun getLaoByCrn(crn: String): Boolean = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
     is ClientResult.Success -> response.body.excludedFrom.isNotEmpty() || response.body.restrictedTo.isNotEmpty()
     is ClientResult.Failure -> throw response.toException()
+  }
+
+  private fun deleteSourcedFromLicenceConditionReferral(referral: ReferralEntity) {
+    val caseReferenceNumber = referral.crn
+    val licenceConditionId = referral.eventId
+    val response =
+      nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(caseReferenceNumber, licenceConditionId!!)
+    deleteReferralByNDeliusCaseRequirementOrLicenceConditionResponse(
+      referral,
+      response,
+      caseReferenceNumber,
+      licenceConditionId,
+      GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS,
+    )
+  }
+
+  private fun deleteSourcedFromRequirementReferral(referral: ReferralEntity) {
+    val caseReferenceNumber = referral.crn
+    val requirementEventId = referral.eventId
+    val response = nDeliusIntegrationApiClient.getRequirementManagerDetails(caseReferenceNumber, requirementEventId!!)
+    deleteReferralByNDeliusCaseRequirementOrLicenceConditionResponse(
+      referral,
+      response,
+      caseReferenceNumber,
+      requirementEventId,
+      GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS,
+    )
+  }
+
+  private fun deleteReferralByNDeliusCaseRequirementOrLicenceConditionResponse(
+    referral: ReferralEntity,
+    response: ClientResult<NDeliusCaseRequirementOrLicenceConditionResponse>,
+    caseReferenceNumber: String,
+    eventId: String,
+    integrationActivityType: IntegrationActivityType,
+  ) {
+    when (response) {
+      is ClientResult.Failure.StatusCode -> {
+        if (response.status.value() == HttpStatus.NOT_FOUND.value()) {
+          referralRepository.delete(referral)
+        } else {
+          log.warn("Failure to retrieve manager details for crn : $caseReferenceNumber and eventId: $eventId (generic failure)")
+          telemetryService.logToAppInsights(
+            eventName = "${integrationActivityType.eventName}.failure",
+            integrationActionType = integrationActivityType.name,
+            outcome = "failure",
+          )
+          throw BusinessException(
+            "Failed to retrieve manager details for caseReferenceNumber: $caseReferenceNumber and eventId: $eventId - ${response.getErrorMessage()} ",
+            response.toException(),
+          )
+        }
+      }
+
+      else -> {
+        log.info("deleteReferralByNDeliusCaseRequirementOrLicenceConditionResponse: manager details found for referral case reference number: $caseReferenceNumber and eventId: $eventId in NDelius — nothing to delete")
+        telemetryService.logToAppInsights(
+          eventName = "${integrationActivityType.eventName}.success",
+          integrationActionType = integrationActivityType.name,
+          outcome = "success",
+        )
+      }
+    }
   }
 }
