@@ -269,6 +269,37 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `should create message history on receipt of probation case sentence deleted message`() {
+    // Given
+    val eventType = "probation-case.sentence.deleted"
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", "X777878"))))
+      .withEventType(eventType)
+      .produce()
+
+    // When
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
+    await untilCallTo {
+      messageHistoryRepository.findAll().firstOrNull()
+    } matches { it != null }
+
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(eventType)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+      )
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
+  }
+
+  @Test
   fun `should create message history on receipt of ACP M&D referral details updated message`() {
     // Given
     val eventType = "accredited-programmes-manage-and-deliver.referral.details-updated"
@@ -948,5 +979,49 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     assertThat(result.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
     assertThat(result.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
     assertThat(result.sex).isEqualTo(nDeliusPersonalDetails.sex.description)
+  }
+
+  @Test
+  fun `should delete referral on receipt of probation case sentence deleted message`() {
+    // Given
+    val savedReferral = testReferralHelper.createReferral()
+    val eventType = "probation-case.sentence.deleted"
+    val caseReferenceNumber = savedReferral.crn
+    val eventId = savedReferral.eventId
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", caseReferenceNumber))))
+      .withEventType(eventType)
+      .produce()
+    nDeliusApiStubs.stubNotFoundLicenceConditionManagerResponse(
+      crn = caseReferenceNumber,
+      licenceConditionId = eventId!!,
+    )
+
+    // When
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
+    await untilCallTo {
+      messageHistoryRepository.findAll().firstOrNull()
+    } matches { it != null }
+
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(eventType)
+      assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+      )
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
+
+    val result = referralRepository.findByCrn(caseReferenceNumber)
+
+    // Then
+    assertThat(result).isEmpty()
   }
 }

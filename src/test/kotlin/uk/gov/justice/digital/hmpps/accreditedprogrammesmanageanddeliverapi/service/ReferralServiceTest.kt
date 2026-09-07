@@ -81,7 +81,6 @@ class ReferralServiceTest {
   private val probationAccessControlApiClient: ProbationAccessControlApiClient = mockk()
   private val sessionRepository: SessionRepository = mockk()
   private val authenticationHolder: HmppsAuthenticationHolder = mockk()
-  private val userAccessService: UserAccessService = mockk()
 
   private lateinit var referralService: ReferralService
 
@@ -113,7 +112,6 @@ class ReferralServiceTest {
       probationAccessControlApiClient = probationAccessControlApiClient,
       sessionRepository = sessionRepository,
       laoAccessCheckEnabled = true,
-      userAccessService = userAccessService,
       authenticationHolder = authenticationHolder,
     )
   }
@@ -181,6 +179,207 @@ class ReferralServiceTest {
 
     assertThrows<BusinessException> { referralService.getFindAndReferReferralDetails(referralId) }
     verify { findAndReferInterventionApiClient.getFindAndReferReferral(referralId) }
+  }
+
+  @Test
+  fun `deleteReferralByCaseReferenceNumber should delete referrals when they are not found in NDelius`() {
+    // Given
+    val crn = "X123456"
+    val requirementReferral = ReferralEntityFactory()
+      .withCrn(crn)
+      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
+      .withEventId("req-123")
+      .produce()
+
+    val licenceConditionReferral = ReferralEntityFactory()
+      .withCrn(crn)
+      .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
+      .withEventId("lc-456")
+      .produce()
+
+    every { referralRepository.findByCrn(crn) } returns listOf(requirementReferral, licenceConditionReferral)
+    every {
+      nDeliusIntegrationApiClient.getRequirementManagerDetails(
+        crn,
+        "req-123",
+      )
+    } returns ClientResult.Failure.StatusCode(
+      method = HttpMethod.GET,
+      path = "/some-path",
+      status = HttpStatusCode.valueOf(404),
+      body = null,
+      serviceName = "n-delius",
+    )
+    every {
+      nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(
+        crn,
+        "lc-456",
+      )
+    } returns ClientResult.Failure.StatusCode(
+      method = HttpMethod.GET,
+      path = "/some-path",
+      status = HttpStatusCode.valueOf(404),
+      body = null,
+      serviceName = "n-delius",
+    )
+    every { referralRepository.delete(any()) } returns Unit
+
+    // When
+    referralService.deleteReferralByCaseReferenceNumber(crn)
+
+    // Then
+    verify { referralRepository.delete(requirementReferral) }
+    verify { referralRepository.delete(licenceConditionReferral) }
+  }
+
+  @Test
+  fun `deleteReferralByCaseReferenceNumber should not delete referrals when they are found in NDelius`() {
+    // Given
+    val crn = "X123456"
+    val referral = ReferralEntityFactory()
+      .withCrn(crn)
+      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
+      .withEventId("req-123")
+      .produce()
+
+    val managerResponse = NDeliusCaseRequirementOrLicenceConditionResponseFactory().produce()
+
+    every { referralRepository.findByCrn(crn) } returns listOf(referral)
+    every { nDeliusIntegrationApiClient.getRequirementManagerDetails(crn, "req-123") } returns ClientResult.Success(
+      status = HttpStatusCode.valueOf(200),
+      body = managerResponse,
+    )
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When
+    referralService.deleteReferralByCaseReferenceNumber(crn)
+
+    // Then
+    verify(exactly = 0) { referralRepository.delete(any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "RequirementManagerDetails.get-nDelius.success",
+        integrationActionType = "GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS",
+        outcome = "success",
+      )
+    }
+  }
+
+  @Test
+  fun `deleteReferralByCaseReferenceNumber should return early if no referrals are found`() {
+    // Given
+    val crn = "X123456"
+    every { referralRepository.findByCrn(crn) } returns emptyList()
+
+    // When
+    referralService.deleteReferralByCaseReferenceNumber(crn)
+
+    // Then
+    verify(exactly = 0) { nDeliusIntegrationApiClient.getRequirementManagerDetails(any(), any()) }
+    verify(exactly = 0) { nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(any(), any()) }
+    verify(exactly = 0) { referralRepository.delete(any()) }
+  }
+
+  @Test
+  fun `deleteReferralByCaseReferenceNumber should throw BusinessException when NDelius call fails with 500`() {
+    // Given
+    val crn = "X123456"
+    val referral = ReferralEntityFactory()
+      .withCrn(crn)
+      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
+      .withEventId("req-123")
+      .produce()
+
+    every { referralRepository.findByCrn(crn) } returns listOf(referral)
+    every {
+      nDeliusIntegrationApiClient.getRequirementManagerDetails(
+        crn,
+        "req-123",
+      )
+    } returns ClientResult.Failure.StatusCode(
+      method = HttpMethod.GET,
+      path = "/some-path",
+      status = HttpStatusCode.valueOf(500),
+      body = "Bad Request",
+      serviceName = "n-delius",
+    )
+
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When & Then
+    assertThrows<BusinessException> {
+      referralService.deleteReferralByCaseReferenceNumber(crn)
+    }
+
+    verify(exactly = 0) { referralRepository.delete(any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "RequirementManagerDetails.get-nDelius.failure",
+        integrationActionType = "GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS",
+        outcome = "failure",
+      )
+    }
+  }
+
+  @Test
+  fun `deleteReferralByCaseReferenceNumber should skip referrals with no eventId or null sourcedFrom`() {
+    // Given
+    val crn = "X123456"
+    val referralNullSourcedFrom = ReferralEntityFactory()
+      .withCrn(crn)
+      .withSourcedFrom(null)
+      .withEventId("req-123")
+      .produce()
+
+    every { referralRepository.findByCrn(crn) } returns listOf(referralNullSourcedFrom)
+
+    // When
+    referralService.deleteReferralByCaseReferenceNumber(crn)
+
+    // Then
+    verify(exactly = 0) { nDeliusIntegrationApiClient.getRequirementManagerDetails(any(), any()) }
+    verify(exactly = 0) { referralRepository.delete(any()) }
+  }
+
+  @Test
+  fun `deleteReferralByCaseReferenceNumber should not throw exception when NDelius call fails with 400`() {
+    // Given
+    val crn = "X123456"
+    val referral = ReferralEntityFactory()
+      .withCrn(crn)
+      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
+      .withEventId("req-123")
+      .produce()
+
+    every { referralRepository.findByCrn(crn) } returns listOf(referral)
+    every {
+      nDeliusIntegrationApiClient.getRequirementManagerDetails(
+        crn,
+        "req-123",
+      )
+    } returns ClientResult.Failure.StatusCode(
+      method = HttpMethod.GET,
+      path = "/some-path",
+      status = HttpStatusCode.valueOf(400),
+      body = "Bad Request",
+      serviceName = "n-delius",
+    )
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When
+    assertThrows<BusinessException> {
+      referralService.deleteReferralByCaseReferenceNumber(crn)
+    }
+
+    // Then
+    verify(exactly = 0) { referralRepository.delete(any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "RequirementManagerDetails.get-nDelius.failure",
+        integrationActionType = "GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS",
+        outcome = "failure",
+      )
+    }
   }
 
   @Test
@@ -1292,7 +1491,9 @@ class ReferralServiceTest {
 
     every { referralRepository.findByIdOrNull(referralId) } returns referral
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns membership
-    every { programmeGroupMembershipRepository.findAllByReferralIdWithAttendances(referralId) } returns listOf(membership)
+    every { programmeGroupMembershipRepository.findAllByReferralIdWithAttendances(referralId) } returns listOf(
+      membership,
+    )
     every { sessionRepository.findAllByProgrammeGroupIdIn(any()) } returns listOf(session, futureSession)
     every { programmeGroupService.getAttendanceTextFromOutcome(null) } returns "To be confirmed"
     every { sessionNameFormatter.format(any(), any()) } returns "Session 1"
@@ -1341,7 +1542,10 @@ class ReferralServiceTest {
     every { referralRepository.findByIdOrNull(referralId) } returns referral
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns newMembership
     // Ordered newest first, matching the repository's `ORDER BY pgm.createdAt DESC`.
-    every { programmeGroupMembershipRepository.findAllByReferralIdWithAttendances(referralId) } returns listOf(newMembership, oldMembership)
+    every { programmeGroupMembershipRepository.findAllByReferralIdWithAttendances(referralId) } returns listOf(
+      newMembership,
+      oldMembership,
+    )
     every { sessionRepository.findAllByProgrammeGroupIdIn(any()) } returns listOf(session)
     every { programmeGroupService.getAttendanceTextFromOutcome(attendance.outcomeType) } returns "Attended"
     every { sessionNameFormatter.format(any(), any()) } returns "Session 1"
