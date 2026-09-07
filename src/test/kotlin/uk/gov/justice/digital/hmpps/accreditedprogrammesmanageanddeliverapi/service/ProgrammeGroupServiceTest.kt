@@ -353,4 +353,80 @@ class ProgrammeGroupServiceTest {
     verify(exactly = 1) { groupWaitlistItemViewRepository.count(any<Specification<GroupWaitlistItemViewEntity>>()) }
     verify(exactly = 1) { referralReportingLocationRepository.getPdusAndReportingTeamsByRegions(any()) }
   }
+
+  @Test
+  fun `should include excluded LAO referral when only crn filter is applied with no other filters`() {
+    // Given
+    val pageable: Pageable = Pageable.ofSize(10)
+    val selectedTab = WAITLIST
+    val groupId = UUID.randomUUID()
+    val sex = null
+    val cohort = null
+    val nameOrCrn = "EXCLUDED001"
+    val probationDeliveryUnits = null
+    val reportingTeams = null
+    val probationDeliveryUnit = "Test PDU"
+    val reportingTeam = "Team A"
+    val programmeGroupEntity = ProgrammeGroupFactory().withId(groupId).produce()
+
+    // Create an excluded LAO item
+    val excludedLaoItem = GroupWaitlistItemViewEntityFactory().withCrn("EXCLUDED001").produce()
+
+    val page = PageImpl(
+      listOf(
+        excludedLaoItem,
+      ),
+    )
+    val username = "john.smith"
+    val accessMap = mapOf(
+      excludedLaoItem.crn to Access(isLimitedAccessOffender = true, isExcluded = true),
+    )
+    val probationDeliveryUnitReportingLocation =
+      PduReportingLocation(pduName = probationDeliveryUnit, reportingTeam = reportingTeam)
+
+    every { programmeGroupRepository.findById(any()) } returns Optional.of(programmeGroupEntity)
+    every {
+      groupWaitlistItemViewRepository.findAll(
+        any<Specification<GroupWaitlistItemViewEntity>>(),
+        any<Pageable>(),
+      )
+    } returns page
+    every { authenticationUtils.getUsername() } returns username
+    every { userAccessService.determineUserAccess(any(), any()) } returns accessMap
+    every { groupWaitlistItemViewRepository.count(any<Specification<GroupWaitlistItemViewEntity>>()) } returns 1L
+    every { referralReportingLocationRepository.getPdusAndReportingTeamsByRegions(any()) } returns listOf(
+      probationDeliveryUnitReportingLocation,
+    )
+
+    // When
+    val result = service.getGroupWaitlistDataByCriteria(
+      pageable = pageable,
+      selectedTab = selectedTab,
+      groupId = groupId,
+      sex = sex,
+      cohort = cohort,
+      nameOrCrn = nameOrCrn,
+      pdus = probationDeliveryUnits,
+      reportingTeams = reportingTeams,
+    )
+
+    // Then - excluded LAO should still be in the result when only CRN filter is applied
+    assertThat(result).isNotNull()
+    assertThat(result.pagedGroupData.content.size).isEqualTo(1)
+    assertThat(result.pagedGroupData.content[0].crn).isEqualTo("EXCLUDED001")
+    assertThat(result.pagedGroupData.content[0].isLimitedAccessOffender).isTrue()
+    assertThat(result.pagedGroupData.content[0].isExcluded).isTrue()
+
+    verify(exactly = 1) { programmeGroupRepository.findById(groupId) }
+    verify(exactly = 1) { authenticationUtils.getUsername() }
+    verify(exactly = 1) {
+      groupWaitlistItemViewRepository.findAll(
+        any<Specification<GroupWaitlistItemViewEntity>>(),
+        any<Pageable>(),
+      )
+    }
+    verify(exactly = 1) { userAccessService.determineUserAccess(username, listOf(excludedLaoItem.crn)) }
+    verify(exactly = 1) { groupWaitlistItemViewRepository.count(any<Specification<GroupWaitlistItemViewEntity>>()) }
+    verify(exactly = 1) { referralReportingLocationRepository.getPdusAndReportingTeamsByRegions(any()) }
+  }
 }
