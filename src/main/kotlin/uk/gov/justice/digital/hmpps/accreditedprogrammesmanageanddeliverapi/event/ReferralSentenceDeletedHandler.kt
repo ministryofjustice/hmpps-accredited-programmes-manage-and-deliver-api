@@ -16,7 +16,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.serv
 
 @Component
 @Transactional
-class ReferralUnmergedHandler(
+class ReferralSentenceDeletedHandler(
   private val objectMapper: ObjectMapper,
   private val messageHistoryRepository: MessageHistoryRepository,
   private val referralService: ReferralService,
@@ -25,10 +25,9 @@ class ReferralUnmergedHandler(
 
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
-    private const val APP_INSIGHTS_UNMERGED_CRN_PROPERTY_KEY = "unmergedCrn"
-    private const val APP_INSIGHTS_REACTIVATED_CRN_PROPERTY_KEY = "reactivatedCrn"
+    private const val APP_INSIGHTS_SENTENCE_DELETED_CASE_REFERENCE_NUMBER_PROPERTY_KEY = "caseReferenceNumber"
     private const val APP_INSIGHTS_PROCESSED_FAILURE_EVENT_NAME_PROPERTY_VALUE =
-      "Referral.unmerged-event-processed.failure"
+      "Referral.sentence-deleted-event-processed.failure"
   }
 
   fun handle(sqsMessage: SQSMessage) {
@@ -36,51 +35,47 @@ class ReferralUnmergedHandler(
     log.info("Starting handle for messageId: $messageId")
     try {
       val message: DomainEventsMessage = objectMapper.readValue<DomainEventsMessage>(sqsMessage.message)
-      val unmergedCrn = message.unmergedCrn
-      val reactivatedCrn = message.reactivatedCrn
-      if (unmergedCrn.isNullOrEmpty() || reactivatedCrn.isNullOrEmpty()) {
+      val caseReferenceNumber = message.personReference.findCrn()
+      if (caseReferenceNumber.isNullOrEmpty()) {
         telemetryService.logToAppInsights(
           eventName = APP_INSIGHTS_PROCESSED_FAILURE_EVENT_NAME_PROPERTY_VALUE,
           properties = mapOf(
-            APP_INSIGHTS_ERROR_MESSAGE_PROPERTY_KEY to "unmergedCrn or reactivatedCrn is null",
-            APP_INSIGHTS_UNMERGED_CRN_PROPERTY_KEY to (unmergedCrn?.trim() ?: ""),
-            APP_INSIGHTS_REACTIVATED_CRN_PROPERTY_KEY to (reactivatedCrn?.trim() ?: ""),
+            APP_INSIGHTS_ERROR_MESSAGE_PROPERTY_KEY to "case reference number is null",
+            APP_INSIGHTS_SENTENCE_DELETED_CASE_REFERENCE_NUMBER_PROPERTY_KEY to (caseReferenceNumber?.trim() ?: ""),
           ),
         )
-        return log.warn("unmergedCrn or reactivatedCrn is null for referral unmerged event with messageId: $messageId")
+        return log.warn("case reference number is null for referral sentence deleted event with messageId: $messageId")
       }
 
-      log.info("Received referral unmerged event for unmergedCrn: $unmergedCrn and reactivatedCrn: $reactivatedCrn")
+      log.info("Received referral sentence deleted event for case reference number: $caseReferenceNumber")
       telemetryService.logToAppInsights(
-        eventName = "Referral.unmerged-event-received.success",
+        eventName = "Referral.sentence-deleted-event-received.success",
         properties = mapOf(
           APP_INSIGHTS_TARGET_EVENT_TYPE_PROPERTY_KEY to message.eventType,
-          APP_INSIGHTS_UNMERGED_CRN_PROPERTY_KEY to unmergedCrn,
-          APP_INSIGHTS_REACTIVATED_CRN_PROPERTY_KEY to reactivatedCrn,
+          APP_INSIGHTS_SENTENCE_DELETED_CASE_REFERENCE_NUMBER_PROPERTY_KEY to caseReferenceNumber,
         ),
       )
 
       messageHistoryRepository.save(message.toEntity(objectMapper.writeValueAsString(message)))
-      referralService.updateReferralCaseReferenceNumber(unmergedCrn, reactivatedCrn)
+      referralService.deleteReferralByCaseReferenceNumber(caseReferenceNumber)
 
       log.info("Ending handle for messageId: ${sqsMessage.messageId}")
       telemetryService.logToAppInsights(
-        eventName = "Referral.unmerged-event-processed.success",
+        eventName = "Referral.sentence-deleted-event-processed.success",
         properties = mapOf(
           APP_INSIGHTS_TARGET_EVENT_TYPE_PROPERTY_KEY to message.eventType,
-          APP_INSIGHTS_UNMERGED_CRN_PROPERTY_KEY to unmergedCrn,
-          APP_INSIGHTS_REACTIVATED_CRN_PROPERTY_KEY to reactivatedCrn,
+          APP_INSIGHTS_SENTENCE_DELETED_CASE_REFERENCE_NUMBER_PROPERTY_KEY to caseReferenceNumber,
         ),
       )
-    } catch (e: Exception) {
-      log.error("Error handling ReferralUnmergedEvent: ${e.message}", e)
+    } catch (exception: Exception) {
+      log.error("Error handling ReferralSentenceDeletedEvent: ${exception.message}", exception)
       telemetryService.logToAppInsights(
         eventName = APP_INSIGHTS_PROCESSED_FAILURE_EVENT_NAME_PROPERTY_VALUE,
         properties = mapOf(
-          APP_INSIGHTS_ERROR_MESSAGE_PROPERTY_KEY to (e.message?.trim() ?: ""),
+          APP_INSIGHTS_ERROR_MESSAGE_PROPERTY_KEY to (exception.message?.trim() ?: ""),
         ),
       )
-      throw e
+      throw exception
     }
   }
 }
