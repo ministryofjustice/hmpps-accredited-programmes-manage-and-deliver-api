@@ -431,7 +431,6 @@ class SessionService(
 
     // Only interested in future sessions for removal
     if (!session.startsAt.isBefore(LocalDateTime.now(clock))) {
-
       removedNames = session.attendees
         .filter { it.referralId in removedReferralIds }
         .map { it.personName }

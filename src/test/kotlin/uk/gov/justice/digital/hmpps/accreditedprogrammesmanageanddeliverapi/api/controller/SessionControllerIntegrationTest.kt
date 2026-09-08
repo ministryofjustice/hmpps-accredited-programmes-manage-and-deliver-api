@@ -1608,7 +1608,6 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       wiremock.verify(0, deleteRequestedFor(urlEqualTo("/appointments")))
     }
 
-
     @Test
     fun `should update session attendees successfully`() {
       // Given

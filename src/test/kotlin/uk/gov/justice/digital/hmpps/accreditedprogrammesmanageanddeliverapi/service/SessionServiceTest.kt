@@ -308,7 +308,6 @@ class SessionServiceTest {
     verify(exactly = 0) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
   }
 
-
   @Test
   fun `should update session attendees and return message for added attendees`() {
     // Given
