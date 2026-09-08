@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedCaseListReferrals
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.UserRegionOverrideEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
@@ -1430,6 +1431,104 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.pagedReferrals.totalElements).isEqualTo(0)
       // And the OPEN tab count (otherTabTotal) correctly reflects the seeded Breach referral
       assertThat(response.otherTabTotal).isEqualTo(1)
+    }
+
+    @Test
+    fun `getCaseListItems for OPEN referrals sorts referral status by workflow order`() {
+      seedReferralsWithVariedStatuses()
+
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?sort=referralStatus,asc",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      assertThat(
+        response.pagedReferrals.content
+          .filter { it.crn in setOf("CRN-ALLOC1", "CRN-SCHED1", "CRN-DEFER1") }
+          .map { it.referralStatus },
+      ).containsExactly("Awaiting allocation", "Scheduled", "Deferred")
+    }
+
+    @Test
+    fun `getCaseListItems for OPEN referrals sorts referral status by reverse workflow order when descending`() {
+      seedReferralsWithVariedStatuses()
+
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?sort=referralStatus,desc",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      assertThat(
+        response.pagedReferrals.content
+          .filter { it.crn in setOf("CRN-ALLOC1", "CRN-SCHED1", "CRN-DEFER1") }
+          .map { it.referralStatus },
+      ).containsExactly("Deferred", "Scheduled", "Awaiting allocation")
+    }
+
+    private fun seedReferralsWithVariedStatuses() {
+      val crns = arrayOf(
+        "X7182552",
+        "CRN-999999",
+        "CRN-888888",
+        "CRN-777777",
+        "CRN-66666",
+        "CRN-555555",
+        "CRN-111111",
+        "CRN-ALLOC1",
+        "CRN-SCHED1",
+        "CRN-DEFER1",
+      )
+      nDeliusApiStubs.stubAccessCheck(true, *crns)
+      probationAccessControlApiStubs.stubOpenAccessByCrns(*crns)
+
+      seedReferralWithStatus(
+        "CRN-ALLOC1",
+        "Allie Allocation",
+        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+      )
+      seedReferralWithStatus(
+        "CRN-SCHED1",
+        "Sam Scheduled",
+        referralStatusDescriptionRepository.getScheduledStatusDescription(),
+      )
+      seedReferralWithStatus(
+        "CRN-DEFER1",
+        "Dana Deferred",
+        referralStatusDescriptionRepository.getDeferredStatusDescription(),
+      )
+    }
+
+    private fun seedReferralWithStatus(
+      crn: String,
+      personName: String,
+      statusDescription: ReferralStatusDescriptionEntity,
+    ) {
+      val referral = ReferralEntityFactory()
+        .withPersonName(personName)
+        .withCrn(crn)
+        .withInterventionName("Building Choices")
+        .produce()
+      val reportingLocation = ReferralReportingLocationFactory(referral)
+        .withPduName(pduWithComma)
+        .withReportingTeam("reportingTeam1")
+        .withRegionName("WIREMOCKED REGION")
+        .produce()
+      val statusHistory = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .withCreatedBy("USER_ID_12345")
+        .withStartDate(LocalDateTime.now())
+        .produce(referral, statusDescription)
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referral).produce()
+
+      referral.referralReportingLocation = reportingLocation
+      referral.referralCohortHistories = mutableSetOf(cohortHistory)
+
+      testDataGenerator.createReferralWithFields(
+        referral,
+        listOf(statusHistory, cohortHistory, reportingLocation),
+      )
     }
 
     private fun seedBreachReferral() {
