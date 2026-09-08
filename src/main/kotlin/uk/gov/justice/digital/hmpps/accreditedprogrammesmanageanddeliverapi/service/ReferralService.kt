@@ -567,6 +567,7 @@ class ReferralService(
     referralId: UUID,
     createReferralStatusHistory: CreateReferralStatusHistory,
     createdBy: String,
+    forceUpdate: Boolean = false,
   ): StatusUpdateResponse {
     val referralEntity = getReferralById(referralId)
 
@@ -575,6 +576,7 @@ class ReferralService(
       createReferralStatusHistory.referralStatusDescriptionId,
       createReferralStatusHistory.additionalDetails,
       createdBy,
+      forceUpdate = forceUpdate,
     )
     telemetryService.logToAppInsights(
       referralEntity,
@@ -592,6 +594,7 @@ class ReferralService(
     referralStatusDescriptionId: UUID,
     additionalDetails: String? = null,
     createdBy: String,
+    forceUpdate: Boolean = false,
   ): StatusUpdateResponse {
     val incomingReferralStatusDescription =
       referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId)
@@ -618,7 +621,8 @@ class ReferralService(
     // Guard against invalid transitions (e.g. Scheduled -> Programme complete) that the
     // frontend should never send. Without this check the requested status was being saved
     // verbatim, allowing referrals to jump into states they cannot reach via the UI.
-    if (transition == null && currentDescription.id != incomingReferralStatusDescription.id) {
+    // Admin/support flows can set force = true to deliberately apply a normally-invalid transition.
+    if (!forceUpdate && transition == null && currentDescription.id != incomingReferralStatusDescription.id) {
       throw BusinessException(
         "Invalid referral status transition: '${currentDescription.description}' -> '${incomingReferralStatusDescription.description}'",
       )
