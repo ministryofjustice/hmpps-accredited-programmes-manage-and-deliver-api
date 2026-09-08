@@ -178,7 +178,7 @@ class AdminController(
   ): ResponseEntity<StatusUpdateResponse> {
     log.info("Received request to force-update referral status for referral ID: $referralId")
     val username = authenticationUtils.getUsername()
-    val response = referralService.updateStatus(referralId, request, username)
+    val response = adminService.forceUpdateStatus(referralId, request, username)
 
     return ResponseEntity.ok(response)
   }

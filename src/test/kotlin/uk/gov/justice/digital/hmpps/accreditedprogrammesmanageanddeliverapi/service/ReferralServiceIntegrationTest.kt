@@ -443,6 +443,44 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `updateStatus with force = true should apply an otherwise-invalid transition`() {
+      // Given - a referral that has just been allocated to a group (current status = Scheduled)
+      val theCrnNumber = randomUppercaseString()
+      oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(theCrnNumber, 1)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      // Programme complete is a non-continuing status, so the group membership is torn down
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+
+      val theGroup = testGroupHelper.createGroup()
+      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "Alex River")
+      membershipService.allocateReferralToGroup(referral.id!!, theGroup.id!!, "SYSTEM", "")
+
+      val programmeCompleteStatusDescriptionId =
+        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription().id
+      val referralWithGroup = referralRepository.findByCrn(theCrnNumber).first()
+      val historiesBefore = referralWithGroup.statusHistories.size
+
+      // When - Scheduled -> Programme complete is not a configured transition force transition
+      val result = referralService.updateStatus(
+        referralWithGroup,
+        programmeCompleteStatusDescriptionId,
+        createdBy = "SYSTEM",
+        forceUpdate = true,
+      )
+
+      // Then - the new status is recorded despite the invalid transition
+      assertThat(result.referralStatusHistory.referralStatusDescriptionId).isEqualTo(
+        programmeCompleteStatusDescriptionId,
+      )
+
+      val refreshed = referralRepository.findByCrn(theCrnNumber).first()
+      assertThat(refreshed.statusHistories).hasSize(historiesBefore + 1)
+      assertThat(refreshed.statusHistories.first().referralStatusDescription.id)
+        .isEqualTo(programmeCompleteStatusDescriptionId)
+    }
+
+    @Test
     fun `updateStatus should throw a NotFoundError if the ReferralStatusDescription does not exist`() {
       // Given
       val aRandomUuid = UUID.randomUUID()
