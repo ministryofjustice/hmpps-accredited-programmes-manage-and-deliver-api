@@ -265,6 +265,51 @@ class SessionServiceTest {
   }
 
   @Test
+  fun `should allow adding an attendee to a past session`() {
+    // Given
+    val sessionId = UUID.randomUUID()
+    val referralId = UUID.randomUUID()
+
+    val facilitator = FacilitatorEntityFactory().produce()
+    val programmeGroup = ProgrammeGroupFactory().withTreatmentManager(facilitator).produce()
+    val moduleSessionTemplate = ModuleSessionTemplateEntityFactory().withName("Template 1").produce()
+    val session = SessionFactory()
+      .withProgrammeGroup(programmeGroup)
+      .withModuleSessionTemplate(moduleSessionTemplate)
+      .withStartsAt(LocalDateTime.now(fixedClock).minusDays(1))
+      .withEndsAt(LocalDateTime.now(fixedClock).minusDays(1).plusHours(1))
+      .produce()
+    session.sessionFacilitators.add(SessionFacilitatorEntity(facilitator, session, REGULAR_FACILITATOR))
+
+    val referral = ReferralEntityFactory().withId(referralId).withPersonName("John Doe").produce()
+
+    every { sessionRepository.findById(sessionId) } returns Optional.of(session)
+    every { referralRepository.findById(referralId) } returns Optional.of(referral)
+    every { sessionRepository.save(session) } returns session
+    every { scheduleService.createNdeliusAppointmentsForSessions(any()) } returns Unit
+
+    // When
+    val result = service.updateSessionAttendees(sessionId, listOf(referralId))
+
+    // Then
+    assertThat(result).isEqualTo("John Doe has been added to this session.")
+    assertThat(session.attendees).hasSize(1)
+    assertThat(session.attendees.single().referral.id).isEqualTo(referralId)
+
+    verify { sessionRepository.findById(sessionId) }
+    verify { referralRepository.findById(referralId) }
+    verify { sessionRepository.save(session) }
+    verify {
+      scheduleService.createNdeliusAppointmentsForSessions(
+        match { attendees -> attendees.single().referral.id == referralId },
+      )
+    }
+    verify(exactly = 0) { scheduleService.removeNDeliusAppointments(any(), any()) }
+    verify(exactly = 0) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+  }
+
+
+  @Test
   fun `should update session attendees and return message for added attendees`() {
     // Given
     val sessionId = UUID.randomUUID()
@@ -319,6 +364,8 @@ class SessionServiceTest {
       SessionFactory()
         .withProgrammeGroup(programmeGroup)
         .withModuleSessionTemplate(moduleSessionTemplate)
+        .withStartsAt(LocalDateTime.now(fixedClock).plusDays(1))
+        .withEndsAt(LocalDateTime.now(fixedClock).plusDays(1).plusHours(1))
         .produce()
     val referral1 = ReferralEntityFactory().withId(referralId1).withPersonName("John Doe").produce()
     session.attendees.add(AttendeeEntity(referral = referral1, session = session))
@@ -369,6 +416,8 @@ class SessionServiceTest {
     val session = SessionFactory()
       .withProgrammeGroup(programmeGroup)
       .withModuleSessionTemplate(moduleSessionTemplate)
+      .withStartsAt(LocalDateTime.now(fixedClock).plusDays(1))
+      .withEndsAt(LocalDateTime.now(fixedClock).plusDays(1).plusHours(1))
       .produce()
     val referral1 = ReferralEntityFactory().withId(referralId1).withPersonName("John Doe").produce()
     val referral2 = ReferralEntityFactory().withId(referralId2).withPersonName("Jane Smith").produce()
@@ -448,7 +497,7 @@ class SessionServiceTest {
     val result = service.updateSessionAttendees(sessionId, referralIds)
 
     // Then
-    assertThat(result).isEmpty()
+    assertThat(result).isEqualTo("No changes were made")
     assertThat(session.attendees).hasSize(1)
     assertThat(session.attendees.single().referral.id).isEqualTo(referralId)
 
