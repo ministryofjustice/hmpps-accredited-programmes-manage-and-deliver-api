@@ -51,7 +51,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_SENTENCE_REFERENCE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_STATUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.VIEW_REFERRAL
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
@@ -561,32 +560,6 @@ class ReferralService(
     return ReferralSentenceReferenceResponse(
       message = message,
     )
-  }
-
-  fun updateStatus(
-    referralId: UUID,
-    createReferralStatusHistory: CreateReferralStatusHistory,
-    createdBy: String,
-    forceUpdate: Boolean = false,
-  ): StatusUpdateResponse {
-    val referralEntity = getReferralById(referralId)
-
-    val statusUpdateResponse = updateStatus(
-      referralEntity,
-      createReferralStatusHistory.referralStatusDescriptionId,
-      createReferralStatusHistory.additionalDetails,
-      createdBy,
-      forceUpdate = forceUpdate,
-    )
-    telemetryService.logToAppInsights(
-      referralEntity,
-      "Referral.admin-update-status.success",
-      UPDATE_REFERRAL_STATUS.name,
-      createReferralStatusHistory.referralStatusDescriptionId,
-      createdBy,
-    )
-
-    return statusUpdateResponse
   }
 
   fun updateStatus(
