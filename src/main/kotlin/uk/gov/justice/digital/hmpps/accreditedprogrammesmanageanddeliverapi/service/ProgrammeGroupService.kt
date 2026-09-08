@@ -446,11 +446,18 @@ class ProgrammeGroupService(
 
     val groupItems = pagedData.content.filter { item ->
       if (exclusionAccessCheckEnabled && isFilteredCaseList) {
-        val access = limitedAccessOffenderAccessMap?.get(item.crn)
-        val isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false
-        val isExcluded = access?.isExcluded ?: false
-        if (isLimitedAccessOffender) {
-          return@filter !isExcluded
+        val crnMatchesSearch = !nameOrCrn.isNullOrEmpty() &&
+          item.crn.contains(nameOrCrn, ignoreCase = true)
+        val hasOtherFilters = hasFiltersOtherThanSearch(sex, cohort, pdus, reportingTeams)
+        val shouldSkipExclusionFilter = crnMatchesSearch && !hasOtherFilters
+
+        if (!shouldSkipExclusionFilter) {
+          val access = limitedAccessOffenderAccessMap?.get(item.crn)
+          val isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false
+          val isExcluded = access?.isExcluded ?: false
+          if (isLimitedAccessOffender) {
+            return@filter !isExcluded
+          }
         }
       }
 
@@ -882,6 +889,16 @@ class ProgrammeGroupService(
     null -> "To be confirmed"
     else -> attendanceOutcome.description!!
   }
+
+  private fun hasFiltersOtherThanSearch(
+    sex: String?,
+    cohort: ProgrammeGroupCohort?,
+    pdus: List<String>?,
+    reportingTeams: List<String>?,
+  ): Boolean = !sex.isNullOrEmpty() ||
+    cohort != null ||
+    pdus != null ||
+    reportingTeams != null
 
   private fun isFilterApplied(
     sex: String?,
