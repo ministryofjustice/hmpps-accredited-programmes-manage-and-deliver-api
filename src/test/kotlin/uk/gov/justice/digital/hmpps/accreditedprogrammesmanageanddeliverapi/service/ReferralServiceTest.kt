@@ -21,7 +21,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralStatusUpdateEvent
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.CreateReferralStatusHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusCaseRequirementOrLicenceConditionResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
@@ -683,51 +682,6 @@ class ReferralServiceTest {
         "failure",
       )
     }
-  }
-
-  @Test
-  fun `updateStatus should update referral status and return response`() {
-    // Given
-    val referralId = UUID.randomUUID()
-    val referralEntity = ReferralEntityFactory().withId(referralId).produce()
-    val createReferralStatusHistory = CreateReferralStatusHistoryFactory().produce()
-    val createdBy = "test-user"
-    val user = UserFactory().produce()
-
-    every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
-
-    // Mock the overloaded updateStatus call
-    val incomingStatusDescription = ReferralStatusDescriptionEntityFactory().produce()
-    every { referralStatusDescriptionRepository.findByIdOrNull(any()) } returns incomingStatusDescription
-    val currentStatusHistory = ReferralStatusHistoryEntityFactory()
-      .withId(UUID.randomUUID())
-      .produce(referralEntity, ReferralStatusDescriptionEntityFactory().produce())
-    every { referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId) } returns currentStatusHistory
-    val transition = ReferralStatusTransitionEntityFactory().produce()
-    every { referralStatusTransitionRepository.findByFromStatusIdAndToStatusId(any(), any()) } returns transition
-    every { programmeGroupMembershipService.getCurrentlyAllocatedGroup(any()) } returns null
-    every { referralStatusHistoryRepository.save(any()) } returns ReferralStatusHistoryEntityFactory()
-      .withId(UUID.randomUUID())
-      .produce(referralEntity, incomingStatusDescription)
-    every { applicationEventPublisher.publishEvent(any<Any>()) } returns Unit
-    every { userService.getUserByUsernameOrNull(any()) } returns user
-
-    // When
-    referralService.updateStatus(referralId, createReferralStatusHistory, createdBy)
-
-    // Then
-    verify { referralRepository.findByIdOrNull(referralId) }
-    verify {
-      telemetryService.logToAppInsights(
-        referralEntity,
-        "Referral.admin-update-status.success",
-        UPDATE_REFERRAL_STATUS.name,
-        createReferralStatusHistory.referralStatusDescriptionId,
-        createdBy,
-      )
-    }
-    verify { userService.getUserByUsernameOrNull(createdBy) }
   }
 
   @Test

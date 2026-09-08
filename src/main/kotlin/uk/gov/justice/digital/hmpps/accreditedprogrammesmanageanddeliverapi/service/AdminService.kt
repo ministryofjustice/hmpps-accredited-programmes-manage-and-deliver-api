@@ -3,9 +3,12 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_STATUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -34,6 +37,7 @@ class AdminService(
   private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
   private val transactionTemplate: TransactionTemplate,
   private val messageHistoryRepository: MessageHistoryRepository,
+  private val telemetryService: TelemetryService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -156,6 +160,39 @@ class AdminService(
       summary[ProcessingResult.DELETED] ?: 0,
       summary[ProcessingResult.SKIPPED] ?: 0,
     )
+  }
+
+  /**
+   * Force-updates a referral's status, bypassing the transition validation enforced by the
+   * normal [ReferralService.updateStatus] path.
+   *
+   * Intended for admin/support use only - e.g. correcting a referral whose status is out of
+   * sync with nDelius - where a normally-invalid transition must be applied deliberately. All
+   * other side effects of a status update (group membership cleanup, events, history) still occur.
+   */
+  fun forceUpdateStatus(
+    referralId: UUID,
+    createReferralStatusHistory: CreateReferralStatusHistory,
+    createdBy: String,
+  ): StatusUpdateResponse {
+    val referralEntity = referralService.getReferralById(referralId)
+
+    val statusUpdateResponse = referralService.updateStatus(
+      referralEntity,
+      createReferralStatusHistory.referralStatusDescriptionId,
+      createReferralStatusHistory.additionalDetails,
+      createdBy,
+      forceUpdate = true,
+    )
+    telemetryService.logToAppInsights(
+      referralEntity,
+      "Referral.admin-update-status.success",
+      UPDATE_REFERRAL_STATUS.name,
+      createReferralStatusHistory.referralStatusDescriptionId,
+      createdBy,
+    )
+
+    return statusUpdateResponse
   }
 
   private fun deleteReferralAndDependents(referral: ReferralEntity) {
