@@ -1,5 +1,8 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.PageImpl
@@ -75,43 +78,57 @@ class ReferralCaseListItemService(
       reportingTeams = reportingTeams,
     )
 
-    // The full result set is sorted by the database, then excluded referrals are lifted out of that
-    // ordering and appended at the end, so that pagination is applied to the final ordering.
     val statusOrder = pageable.sort.find { it.property in STATUS_SORT_PROPERTIES }
-    val databaseSort = Sort.by(pageable.sort.filterNot { it.property in STATUS_SORT_PROPERTIES })
 
-    val queriedReferrals = caseListQuery.specification
-      ?.let { referralCaseListItemRepository.findAll(it, databaseSort) }
-      ?: emptyList()
+    // Workflow-order status sorting and excluded-referral reordering can't be expressed as a plain
+    // DB sort, so they require the full result set in memory. Otherwise, sorting and pagination are
+    // pushed down to the database to avoid loading the entire matching result set into memory.
+    val (pageContent, totalReferralsCount) = if (statusOrder != null || exclusionAccessCheckEnabled) {
+      val nonStatusOrders = pageable.sort.filterNot { it.property in STATUS_SORT_PROPERTIES }.toList()
+      val databaseSort = if (nonStatusOrders.isEmpty()) Sort.unsorted() else Sort.by(nonStatusOrders)
 
-    // Statuses are ordered by their position in the referral workflow rather than alphabetically
-    val sortedReferrals = statusOrder
-      ?.let { order ->
-        val byStatus = compareBy<ReferralCaseListItemViewEntity> { ReferralStatusUtils.statusSortIndex(it.status) }
-        queriedReferrals.sortedWith(if (order.isDescending) byStatus.reversed() else byStatus)
+      val queriedReferrals = caseListQuery.specification
+        ?.let { referralCaseListItemRepository.findAll(it, databaseSort) }
+        ?: emptyList()
+
+      // Statuses are ordered by their position in the referral workflow rather than alphabetically
+      val sortedReferrals = statusOrder
+        ?.let { order ->
+          val byStatus = compareBy<ReferralCaseListItemViewEntity> { ReferralStatusUtils.statusSortIndex(it.status) }
+          queriedReferrals.sortedWith(if (order.isDescending) byStatus.reversed() else byStatus)
+        }
+        ?: queriedReferrals
+
+      // The full result set is sorted by the database, then excluded referrals are lifted out of that
+      // ordering and appended at the end, so that pagination is applied to the final ordering.
+      val (excludedReferrals, includedReferrals) = if (exclusionAccessCheckEnabled) {
+        sortedReferrals.partition { it.crn in caseListQuery.excludedCrns }
+      } else {
+        emptyList<ReferralCaseListItemViewEntity>() to sortedReferrals
       }
-      ?: queriedReferrals
 
-    val (excludedReferrals, includedReferrals) = if (exclusionAccessCheckEnabled) {
-      sortedReferrals.partition { it.crn in caseListQuery.excludedCrns }
+      val orderedReferrals = includedReferrals + retainedExcludedReferrals(
+        excludedReferrals = excludedReferrals,
+        isFilteredCaseList = isFilteredCaseList,
+        caseReferenceNumberOrPersonName = caseReferenceNumberOrPersonName,
+        cohort = cohort,
+        sex = sex,
+        probationDeliveryUnits = probationDeliveryUnits,
+        reportingTeams = reportingTeams,
+      )
+
+      val content = if (pageable.isPaged) {
+        orderedReferrals.drop(pageable.offset.toInt()).take(pageable.pageSize)
+      } else {
+        orderedReferrals
+      }
+
+      content to orderedReferrals.size.toLong()
     } else {
-      emptyList<ReferralCaseListItemViewEntity>() to sortedReferrals
-    }
+      val page = caseListQuery.specification
+        ?.let { referralCaseListItemRepository.findAll(it, pageable) }
 
-    val orderedReferrals = includedReferrals + retainedExcludedReferrals(
-      excludedReferrals = excludedReferrals,
-      isFilteredCaseList = isFilteredCaseList,
-      caseReferenceNumberOrPersonName = caseReferenceNumberOrPersonName,
-      cohort = cohort,
-      sex = sex,
-      probationDeliveryUnits = probationDeliveryUnits,
-      reportingTeams = reportingTeams,
-    )
-
-    val pageContent = if (pageable.isPaged) {
-      orderedReferrals.drop(pageable.offset.toInt()).take(pageable.pageSize)
-    } else {
-      orderedReferrals
+      (page?.content ?: emptyList()) to (page?.totalElements ?: 0L)
     }
 
     // Fetch Limited Access Offender (LAO) status for all distinct case reference numbers (CRNs)
@@ -133,7 +150,7 @@ class ReferralCaseListItemService(
       }
     }
 
-    val referralsToReturn = PageImpl(referralCaseListItems, pageable, orderedReferrals.size.toLong())
+    val referralsToReturn = PageImpl(referralCaseListItems, pageable, totalReferralsCount)
 
     val otherTabCount = buildCaseListQuery(
       openOrClosed = if (openOrClosed == OpenOrClosed.OPEN) OpenOrClosed.CLOSED else OpenOrClosed.OPEN,
@@ -165,11 +182,18 @@ class ReferralCaseListItemService(
 
     val hasOtherFilters = hasFiltersOtherThanSearch(cohort, sex, probationDeliveryUnits, reportingTeams)
 
+    // Each LAO check is a separate PAC API call, so fetch them concurrently rather than one at a time.
+    val limitedAccessOffenderByCrn = runBlocking(Dispatchers.IO) {
+      excludedReferrals.map { it.crn }.distinct()
+        .associateWith { crn -> async { userAccessService.isLimitedAccessOffender(crn) } }
+        .mapValues { it.value.await() }
+    }
+
     return excludedReferrals.filterNot { referral ->
       val crnMatchesSearch = !caseReferenceNumberOrPersonName.isNullOrEmpty() &&
         referral.crn.contains(caseReferenceNumberOrPersonName, ignoreCase = true)
 
-      !(crnMatchesSearch && !hasOtherFilters) && userAccessService.isLimitedAccessOffender(referral.crn)
+      !(crnMatchesSearch && !hasOtherFilters) && (limitedAccessOffenderByCrn[referral.crn] ?: false)
     }
   }
 
