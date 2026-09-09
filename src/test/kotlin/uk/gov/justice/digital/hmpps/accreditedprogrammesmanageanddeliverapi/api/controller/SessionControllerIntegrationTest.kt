@@ -1,5 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
+import com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
@@ -72,6 +74,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.BankHolidayRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
@@ -115,6 +118,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
+
+  @Autowired
+  private lateinit var nDeliusAppointmentRepository: NDeliusAppointmentRepository
 
   @Nested
   @DisplayName("GET /bff/session/{sessionId}")
@@ -1477,6 +1483,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           .withModuleSessionTemplate(sessionTemplate!!)
           .produce(),
       )
+      val regularFacilitator = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withId(null).produce())
+      testDataGenerator.createSessionFacilitator(session, regularFacilitator)
+
       referral1 = testDataGenerator.createReferral(
         personName = "John Doe",
         crn = "X123456",
@@ -1488,8 +1497,122 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should allow adding an appointment to a past session`() {
+      // Given
+      stubAuthTokenEndpoint()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      session.startsAt = LocalDateTime.now().minusDays(1)
+      session.endsAt = LocalDateTime.now().minusDays(1).plusHours(1)
+      sessionRepository.save(session)
+
+      val request = UpdateSessionAttendeesRequest(referralIdList = listOf(referral1.id!!))
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        HttpMethod.PUT,
+        "/session/${session.id}/attendees",
+        object : ParameterizedTypeReference<String>() {},
+        request,
+        HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response).isEqualTo("John Doe has been added to this session.")
+
+      val updatedSession = sessionRepository.findById(session.id!!).get()
+      assertThat(updatedSession.attendees).hasSize(1)
+      assertThat(updatedSession.attendees.single().referral.id).isEqualTo(referral1.id)
+
+      wiremock.verify(1, postRequestedFor(urlEqualTo("/appointments")))
+      wiremock.verify(0, putRequestedFor(urlEqualTo("/appointments")))
+      wiremock.verify(0, deleteRequestedFor(urlEqualTo("/appointments")))
+
+      assertThat(nDeliusAppointmentRepository.findBySessionId(session.id!!))
+        .extracting<UUID> { it.referral.id }
+        .containsExactly(referral1.id)
+    }
+
+    @Test
+    fun `should leave appointments unchanged when attempting to remove an appointment from a past session`() {
+      // Given
+      stubAuthTokenEndpoint()
+      testDataGenerator.createAttendee(referral1, session)
+      val existingAppointment = testDataGenerator.createNDeliusAppointment(session, referral1)
+
+      session.startsAt = LocalDateTime.now().minusDays(1)
+      session.endsAt = LocalDateTime.now().minusDays(1).plusHours(1)
+      sessionRepository.save(session)
+
+      val request = UpdateSessionAttendeesRequest(referralIdList = listOf(referral1.id!!))
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        HttpMethod.PUT,
+        "/session/${session.id}/attendees",
+        object : ParameterizedTypeReference<String>() {},
+        request,
+        HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response).isEqualTo("No changes were made")
+
+      val updatedSession = sessionRepository.findById(session.id!!).get()
+      assertThat(updatedSession.attendees).hasSize(1)
+      assertThat(updatedSession.attendees.single().referral.id).isEqualTo(referral1.id)
+
+      assertThat(nDeliusAppointmentRepository.findBySessionId(session.id!!))
+        .extracting<UUID> { it.ndeliusAppointmentId }
+        .containsExactly(existingAppointment.ndeliusAppointmentId)
+
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
+      wiremock.verify(0, deleteRequestedFor(urlEqualTo("/appointments")))
+    }
+
+    @Test
+    fun `should reject adding and removing attendees when request removes an appointment from a past session`() {
+      // Given
+      stubAuthTokenEndpoint()
+      testDataGenerator.createAttendee(referral1, session)
+      val existingAppointment = testDataGenerator.createNDeliusAppointment(session, referral1)
+
+      session.startsAt = LocalDateTime.now().minusDays(1)
+      session.endsAt = LocalDateTime.now().minusDays(1).plusHours(1)
+      sessionRepository.save(session)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      val request = UpdateSessionAttendeesRequest(referralIdList = listOf(referral1.id!!, referral2.id!!))
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        HttpMethod.PUT,
+        "/session/${session.id}/attendees",
+        object : ParameterizedTypeReference<String>() {},
+        request,
+        HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response).isEqualTo("Alex River has been added to this session.")
+
+      val updatedSession = sessionRepository.findById(session.id!!).get()
+      assertThat(updatedSession.attendees).hasSize(2)
+      assertThat(updatedSession.attendees.map { it.referral.id }).isEqualTo(listOf(referral1.id, referral2.id))
+
+      assertThat(nDeliusAppointmentRepository.findBySessionId(session.id!!)).hasSize(2)
+        .extracting<UUID> { it.ndeliusAppointmentId }
+        .contains(existingAppointment.ndeliusAppointmentId)
+
+      wiremock.verify(1, postRequestedFor(urlEqualTo("/appointments")))
+      wiremock.verify(0, deleteRequestedFor(urlEqualTo("/appointments")))
+    }
+
+    @Test
     fun `should update session attendees successfully`() {
       // Given
+      stubAuthTokenEndpoint()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       val request = UpdateSessionAttendeesRequest(referralIdList = listOf(referral1.id!!, referral2.id!!))
 
       // When
@@ -1506,6 +1629,14 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       val updatedSession = sessionRepository.findById(session.id!!).get()
       assertThat(updatedSession.attendees).hasSize(2)
       assertThat(updatedSession.attendees.map { it.referral.id }).containsExactlyInAnyOrder(referral1.id, referral2.id)
+
+      wiremock.verify(1, postRequestedFor(urlEqualTo("/appointments")))
+      wiremock.verify(0, putRequestedFor(urlEqualTo("/appointments")))
+      wiremock.verify(0, deleteRequestedFor(urlEqualTo("/appointments")))
+
+      assertThat(nDeliusAppointmentRepository.findBySessionId(session.id!!))
+        .extracting<UUID> { it.referral.id }
+        .containsExactlyInAnyOrder(referral1.id, referral2.id)
     }
 
     @Test

@@ -36,6 +36,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
@@ -260,10 +261,7 @@ class SessionService(
 
   fun updateNDeliusAppointmentsForSession(session: SessionEntity) {
     if (session.ndeliusAppointments.isEmpty()) {
-      log.debug(
-        "updateNDeliusAppointmentsForSession not called as no nDelius appointments found for session {}",
-        session.id,
-      )
+      log.debug("updateNDeliusAppointmentsForSession not called as no nDelius appointments found for session ${session.id}")
       return
     }
     val updateRequests = session.ndeliusAppointments.map {
@@ -415,9 +413,9 @@ class SessionService(
     val addedReferralIds = newReferralIdsSet - currentReferralIds
     val removedReferralIds = currentReferralIds - newReferralIdsSet
 
-    val removedNames = session.attendees
-      .filter { it.referralId in removedReferralIds }
-      .map { it.personName }
+    if (removedReferralIds.isNotEmpty() && session.startsAt.isBefore(LocalDateTime.now(clock))) {
+      log.warn("Attempt to remove nDelius Appointment from a past session")
+    }
 
     val addedNames = referralIds
       .filter { it in addedReferralIds }
@@ -428,7 +426,21 @@ class SessionService(
         referral.personName
       }
 
-    session.attendees.removeIf { it.referralId in removedReferralIds }
+    var removedNames = emptyList<String>()
+    var nDeliusAppointmentsToRemove = emptyList<NDeliusAppointmentEntity>()
+
+    // Only interested in future sessions for removal
+    if (!session.startsAt.isBefore(LocalDateTime.now(clock))) {
+      removedNames = session.attendees
+        .filter { it.referralId in removedReferralIds }
+        .map { it.personName }
+
+      nDeliusAppointmentsToRemove = session.ndeliusAppointments
+        .filter { it.referral.id in removedReferralIds }
+        .toList()
+
+      session.attendees.removeIf { it.referralId in removedReferralIds }
+    }
 
     val newAttendees = addedReferralIds.map { referralId ->
       val referral = referralRepository.findById(referralId).orElseThrow {
@@ -440,10 +452,18 @@ class SessionService(
     session.attendees.addAll(newAttendees)
     sessionRepository.save(session)
 
+    if (newAttendees.isNotEmpty()) {
+      scheduleService.createNdeliusAppointmentsForSessions(newAttendees)
+    }
+
+    if (nDeliusAppointmentsToRemove.isNotEmpty()) {
+      scheduleService.removeNDeliusAppointments(nDeliusAppointmentsToRemove, listOf(session))
+    }
+
     val addedMessage = buildSessionAttendeesUpdateMessage(addedNames, "added to")
     val removedMessage = buildSessionAttendeesUpdateMessage(removedNames, "removed from")
 
-    return "$addedMessage$removedMessage".trim()
+    return if (addedMessage.isEmpty() && removedMessage.isEmpty()) "No changes were made" else "$addedMessage$removedMessage".trim()
   }
 
   fun buildSessionAttendeesUpdateMessage(names: List<String>, action: String): String {
