@@ -23,7 +23,7 @@ generic-service:
     SPRINGDOC_API_DOCS_ENABLED: "false"
     REPORTING_ENABLED: "true"
     LAO_ACCESS_CHECK_ENABLED: "true"
-    EXCLUSION_ACCESS_CHECK_ENABLED: "false"
+    EXCLUSION_ACCESS_CHECK_ENABLED: "true"
     REFERRAL_DETAILS_UPDATED_CRON: "0 0 1 * * *"  # 1 AM every day
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
