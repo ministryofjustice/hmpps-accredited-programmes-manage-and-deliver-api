@@ -78,13 +78,17 @@ class ReferralCaseListItemService(
       reportingTeams = reportingTeams,
     )
 
-    val statusOrder = pageable.sort.find { it.property in STATUS_SORT_PROPERTIES }
+    val sortOrders = pageable.sort.toList()
+    val hasStatusSort = sortOrders.any { it.property in STATUS_SORT_PROPERTIES }
+    // Only apply workflow-order status sorting when status is the primary sort key, so a secondary
+    // status sort (e.g. sort=personName,asc&sort=referralStatus,asc) doesn't override the requested order.
+    val statusOrder = sortOrders.firstOrNull()?.takeIf { it.property in STATUS_SORT_PROPERTIES }
 
     // Workflow-order status sorting and excluded-referral reordering can't be expressed as a plain
     // DB sort, so they require the full result set in memory. Otherwise, sorting and pagination are
     // pushed down to the database to avoid loading the entire matching result set into memory.
-    val (pageContent, totalReferralsCount) = if (statusOrder != null || exclusionAccessCheckEnabled) {
-      val nonStatusOrders = pageable.sort.filterNot { it.property in STATUS_SORT_PROPERTIES }.toList()
+    val (pageContent, totalReferralsCount) = if (hasStatusSort || exclusionAccessCheckEnabled) {
+      val nonStatusOrders = sortOrders.filterNot { it.property in STATUS_SORT_PROPERTIES }
 
       val databaseSort = Sort.by(nonStatusOrders + Sort.Order.asc("referralId"))
 
@@ -101,14 +105,14 @@ class ReferralCaseListItemService(
         ?: queriedReferrals
 
       // The full result set is sorted by the database, then excluded referrals are lifted out of that
-      // ordering and appended at the end, so that pagination is applied to the final ordering.
+      // ordering so any that should be hidden (per retainedExcludedReferrals) can be identified.
       val (excludedReferrals, includedReferrals) = if (exclusionAccessCheckEnabled) {
         sortedReferrals.partition { it.crn in caseListQuery.excludedCrns }
       } else {
         emptyList<ReferralCaseListItemViewEntity>() to sortedReferrals
       }
 
-      val orderedReferrals = includedReferrals + retainedExcludedReferrals(
+      val retainedExcluded = retainedExcludedReferrals(
         excludedReferrals = excludedReferrals,
         isFilteredCaseList = isFilteredCaseList,
         caseReferenceNumberOrPersonName = caseReferenceNumberOrPersonName,
@@ -117,6 +121,16 @@ class ReferralCaseListItemService(
         probationDeliveryUnits = probationDeliveryUnits,
         reportingTeams = reportingTeams,
       )
+
+      // When sorting by referral status, excluded referrals take part in the workflow-order sort
+      // inline rather than being pinned to the end; for every other sort they're appended at the end.
+      val orderedReferrals = if (statusOrder != null) {
+        val hiddenExcludedCrns = excludedReferrals.map { it.crn }.toSet() -
+          retainedExcluded.map { it.crn }.toSet()
+        sortedReferrals.filterNot { it.crn in hiddenExcludedCrns }
+      } else {
+        includedReferrals + retainedExcluded
+      }
 
       val content = if (pageable.isPaged) {
         orderedReferrals.drop(pageable.offset.toInt()).take(pageable.pageSize)
@@ -183,11 +197,16 @@ class ReferralCaseListItemService(
 
     val hasOtherFilters = hasFiltersOtherThanSearch(cohort, sex, probationDeliveryUnits, reportingTeams)
 
-    // Each LAO check is a separate PAC API call, so fetch them concurrently rather than one at a time.
+    // Each LAO check is a separate PAC API call; fetch them concurrently in bounded chunks so we
+    // don't overwhelm the PAC service or the app thread pool when many referrals are excluded.
     val limitedAccessOffenderByCrn = runBlocking(Dispatchers.IO) {
       excludedReferrals.map { it.crn }.distinct()
-        .associateWith { crn -> async { userAccessService.isLimitedAccessOffender(crn) } }
-        .mapValues { it.value.await() }
+        .chunked(20)
+        .flatMap { chunk ->
+          chunk.map { crn -> async { crn to userAccessService.isLimitedAccessOffender(crn) } }
+            .map { it.await() }
+        }
+        .toMap()
     }
 
     return excludedReferrals.filterNot { referral ->

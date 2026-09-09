@@ -1467,6 +1467,56 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       ).containsExactly("Deferred", "Scheduled", "Awaiting allocation")
     }
 
+    @Test
+    fun `getCaseListItems for OPEN referrals sorts excluded referrals inline by workflow order when sorting by referral status`() {
+      seedReferralsWithVariedStatuses()
+
+      // CRN-SCHED1 (Scheduled) is excluded; it should sort by its status rather than being pinned last
+      nDeliusApiStubs.stubAccessCheckMixed(
+        grantedCrns = listOf(
+          "X7182552", "CRN-999999", "CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555", "CRN-111111",
+          "CRN-ALLOC1", "CRN-DEFER1",
+        ),
+        excludedCrns = listOf("CRN-SCHED1"),
+      )
+
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?sort=referralStatus,asc",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      assertThat(
+        response.pagedReferrals.content
+          .filter { it.crn in setOf("CRN-ALLOC1", "CRN-SCHED1", "CRN-DEFER1") }
+          .map { it.referralStatus },
+      ).containsExactly("Awaiting allocation", "Scheduled", "Deferred")
+      assertThat(response.pagedReferrals.content.single { it.crn == "CRN-SCHED1" }.isExcluded).isTrue
+    }
+
+    @Test
+    fun `getCaseListItems for OPEN referrals still pins excluded referrals to the end when not sorting by referral status`() {
+      seedReferralsWithVariedStatuses()
+
+      // CRN-SCHED1 (Scheduled) is excluded; with a non-status sort it should still be pinned to the end
+      nDeliusApiStubs.stubAccessCheckMixed(
+        grantedCrns = listOf(
+          "X7182552", "CRN-999999", "CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555", "CRN-111111",
+          "CRN-ALLOC1", "CRN-DEFER1",
+        ),
+        excludedCrns = listOf("CRN-SCHED1"),
+      )
+
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?sort=personName,asc",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      assertThat(response.pagedReferrals.content.last().crn).isEqualTo("CRN-SCHED1")
+      assertThat(response.pagedReferrals.content.last().isExcluded).isTrue
+    }
+
     private fun seedReferralsWithVariedStatuses() {
       val crns = arrayOf(
         "X7182552",
