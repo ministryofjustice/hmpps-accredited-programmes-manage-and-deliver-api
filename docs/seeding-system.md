@@ -77,6 +77,17 @@ For each seeded referral, the system creates:
 
 2. **A Wiremock stub** in `wiremock_mappings/seeded/` that returns person details when the API calls nDelius
 
+### Limited access offenders
+
+Every fifth seeded person is given a CRN prefixed with `SX` instead of `S`. The committed wiremock
+mappings treat those CRNs as limited access offenders that the logged in user is excluded from:
+
+- `nDeliusMock.json` returns `userExcluded: true` for `SX` CRNs on `POST /user/{username}/access`
+- `probationAccessControlMock.json` returns a populated `excludedFrom` for `GET /case/SX.../access`
+
+On the caselist these referrals come back with `isLimitedAccessOffender` and `isExcluded` set to
+true, and are pushed to the end of the list.
+
 ## Security / Best Practices
 
 ### Never activate the seeding profile in (pre-) prod.
