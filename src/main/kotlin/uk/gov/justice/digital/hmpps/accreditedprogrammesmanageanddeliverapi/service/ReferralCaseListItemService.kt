@@ -85,7 +85,8 @@ class ReferralCaseListItemService(
     // pushed down to the database to avoid loading the entire matching result set into memory.
     val (pageContent, totalReferralsCount) = if (statusOrder != null || exclusionAccessCheckEnabled) {
       val nonStatusOrders = pageable.sort.filterNot { it.property in STATUS_SORT_PROPERTIES }.toList()
-      val databaseSort = if (nonStatusOrders.isEmpty()) Sort.unsorted() else Sort.by(nonStatusOrders)
+
+      val databaseSort = Sort.by(nonStatusOrders + Sort.Order.asc("referralId"))
 
       val queriedReferrals = caseListQuery.specification
         ?.let { referralCaseListItemRepository.findAll(it, databaseSort) }
