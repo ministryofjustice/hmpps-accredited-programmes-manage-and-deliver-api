@@ -2,9 +2,10 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
+import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller.OpenOrClosed
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.LocationFilterValues
@@ -35,6 +36,10 @@ class ReferralCaseListItemService(
   private val exclusionAccessCheckEnabled: Boolean,
   private val userAccessService: UserAccessService,
 ) {
+  private companion object {
+    val STATUS_SORT_PROPERTIES = setOf("status", "referralStatus")
+  }
+
   private val log = LoggerFactory.getLogger(this::class.java)
   fun getReferralCaseListItemServiceByCriteria(
     pageable: Pageable,
@@ -58,8 +63,7 @@ class ReferralCaseListItemService(
     // receive the same DB-compatible value (e.g. "Breach" -> "Breach (non-attendance)").
     val normalisedStatus = ReferralStatusUtils.unformatStatus(status)
 
-    val referralsPage = getReferralCaseList(
-      pageable = pageable,
+    val caseListQuery = buildCaseListQuery(
       openOrClosed = openOrClosed,
       username = username,
       caseReferenceNumberOrPersonName = caseReferenceNumberOrPersonName,
@@ -71,32 +75,79 @@ class ReferralCaseListItemService(
       reportingTeams = reportingTeams,
     )
 
-    // Fetch Limited Access Offender (LAO) status for all distinct case reference numbers (CRNs)
+    val sortOrders = pageable.sort.toList()
+    val hasStatusSort = sortOrders.any { it.property in STATUS_SORT_PROPERTIES }
+    val statusOrder = sortOrders.firstOrNull { it.property in STATUS_SORT_PROPERTIES }
+
+    val (pageContent, totalReferralsCount) = if (hasStatusSort || exclusionAccessCheckEnabled) {
+      val nonStatusOrders = sortOrders.filterNot { it.property in STATUS_SORT_PROPERTIES }
+
+      val databaseSort = Sort.by(nonStatusOrders + Sort.Order.asc("referralId"))
+
+      val queriedReferrals = caseListQuery.specification
+        ?.let { referralCaseListItemRepository.findAll(it, databaseSort) }
+        ?: emptyList()
+
+      val sortedReferrals = statusOrder
+        ?.let { order ->
+          if (order.isDescending) {
+            queriedReferrals.sortedByDescending { ReferralStatusUtils.statusSortIndex(it.status) }
+          } else {
+            queriedReferrals.sortedBy { ReferralStatusUtils.statusSortIndex(it.status) }
+          }
+        }
+        ?: queriedReferrals
+
+      // The full result set is sorted by the database, then excluded referrals are lifted out of that
+      // ordering so any that should be hidden (per retainedExcludedReferrals) can be identified.
+      val (excludedReferrals, includedReferrals) = if (exclusionAccessCheckEnabled) {
+        sortedReferrals.partition { it.crn in caseListQuery.excludedCrns }
+      } else {
+        emptyList<ReferralCaseListItemViewEntity>() to sortedReferrals
+      }
+
+      val retainedExcluded = retainedExcludedReferrals(
+        excludedReferrals = excludedReferrals,
+        isFilteredCaseList = isFilteredCaseList,
+        caseReferenceNumberOrPersonName = caseReferenceNumberOrPersonName,
+        cohort = cohort,
+        sex = sex,
+        probationDeliveryUnits = probationDeliveryUnits,
+        reportingTeams = reportingTeams,
+      )
+
+      // When sorting by referral status, excluded referrals take part in the workflow-order sort
+      // inline rather than being pinned to the end; for every other sort they're appended at the end.
+      val orderedReferrals = if (statusOrder != null) {
+        val hiddenExcludedCrns = excludedReferrals.map { it.crn }.toSet() -
+          retainedExcluded.map { it.crn }.toSet()
+        sortedReferrals.filterNot { it.crn in hiddenExcludedCrns }
+      } else {
+        includedReferrals + retainedExcluded
+      }
+
+      val content = if (pageable.isPaged) {
+        orderedReferrals.drop(pageable.offset.toInt()).take(pageable.pageSize)
+      } else {
+        orderedReferrals
+      }
+
+      content to orderedReferrals.size.toLong()
+    } else {
+      val page = caseListQuery.specification
+        ?.let { referralCaseListItemRepository.findAll(it, pageable) }
+
+      (page?.content ?: emptyList()) to (page?.totalElements ?: 0L)
+    }
+
+    // Fetch limited access offender status for all distinct case reference numbers (CRNs).
     var limitedAccessOffenderAccessMap: Map<String, Access>? = null
     if (limitedAccessOffenderCheckEnabled) {
-      val caseReferenceNumbers = referralsPage.content.map { it.crn }.distinct()
+      val caseReferenceNumbers = pageContent.map { it.crn }.distinct()
       limitedAccessOffenderAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
     }
 
-    val referralCaseListItems = referralsPage.content.filter { referral ->
-      if (exclusionAccessCheckEnabled && isFilteredCaseList) {
-        val crnMatchesSearch = !caseReferenceNumberOrPersonName.isNullOrEmpty() &&
-          referral.crn.contains(caseReferenceNumberOrPersonName, ignoreCase = true)
-        val hasOtherFilters = hasFiltersOtherThanSearch(cohort, sex, probationDeliveryUnits, reportingTeams)
-        val shouldSkipExclusionFilter = crnMatchesSearch && !hasOtherFilters
-
-        if (!shouldSkipExclusionFilter) {
-          val access = limitedAccessOffenderAccessMap?.get(referral.crn)
-          val isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false
-          val isExcluded = access?.isExcluded ?: false
-          if (isLimitedAccessOffender) {
-            return@filter !isExcluded
-          }
-        }
-      }
-
-      return@filter true
-    }.map { referral ->
+    val referralCaseListItems = pageContent.map { referral ->
       val access = limitedAccessOffenderAccessMap?.get(referral.crn)
       if (exclusionAccessCheckEnabled) {
         referral.toApi(
@@ -108,18 +159,9 @@ class ReferralCaseListItemService(
       }
     }
 
-    val referralsToReturn = PageImpl(
-      if (exclusionAccessCheckEnabled) {
-        referralCaseListItems.sortedBy { it.isExcluded }
-      } else {
-        referralCaseListItems
-      },
-      referralsPage.pageable,
-      referralsPage.totalElements - (referralsPage.content.size - referralCaseListItems.size).toLong(),
-    )
+    val referralsToReturn = PageImpl(referralCaseListItems, pageable, totalReferralsCount)
 
-    val otherTabCount = getReferralCaseList(
-      pageable = pageable,
+    val otherTabCount = buildCaseListQuery(
       openOrClosed = if (openOrClosed == OpenOrClosed.OPEN) OpenOrClosed.CLOSED else OpenOrClosed.OPEN,
       username = username,
       caseReferenceNumberOrPersonName = caseReferenceNumberOrPersonName,
@@ -129,13 +171,40 @@ class ReferralCaseListItemService(
       sex = sex,
       probationDeliveryUnits = probationDeliveryUnits,
       reportingTeams = reportingTeams,
-    ).totalElements
+    ).specification?.let { referralCaseListItemRepository.count(it) } ?: 0L
 
     return CaseListReferrals(referralsToReturn, otherTabCount.toInt(), this.getCaseListFilterData(userRegionNames))
   }
 
-  private fun getReferralCaseList(
-    pageable: Pageable,
+  // Excluded referrals for a limited access offender are hidden entirely once the user has applied a filter,
+  // unless the only filter is a search that matches their CRN.
+  private fun retainedExcludedReferrals(
+    excludedReferrals: List<ReferralCaseListItemViewEntity>,
+    isFilteredCaseList: Boolean,
+    caseReferenceNumberOrPersonName: String?,
+    cohort: ProgrammeGroupCohort?,
+    sex: String?,
+    probationDeliveryUnits: List<String>?,
+    reportingTeams: List<String>?,
+  ): List<ReferralCaseListItemViewEntity> {
+    if (!isFilteredCaseList || !limitedAccessOffenderCheckEnabled || excludedReferrals.isEmpty()) return excludedReferrals
+
+    val hasOtherFilters = hasFiltersOtherThanSearch(cohort, sex, probationDeliveryUnits, reportingTeams)
+
+    return excludedReferrals.filterNot { referral ->
+      val crnMatchesSearch = !caseReferenceNumberOrPersonName.isNullOrEmpty() &&
+        referral.crn.contains(caseReferenceNumberOrPersonName, ignoreCase = true)
+
+      !(crnMatchesSearch && !hasOtherFilters)
+    }
+  }
+
+  private data class CaseListQuery(
+    val specification: Specification<ReferralCaseListItemViewEntity>?,
+    val excludedCrns: Set<String>,
+  )
+
+  private fun buildCaseListQuery(
     openOrClosed: OpenOrClosed,
     username: String,
     caseReferenceNumberOrPersonName: String?,
@@ -145,7 +214,7 @@ class ReferralCaseListItemService(
     sex: String?,
     probationDeliveryUnits: List<String>?,
     reportingTeams: List<String>?,
-  ): Page<ReferralCaseListItemViewEntity> {
+  ): CaseListQuery {
     val possibleStatuses = referralStatusService.getOpenOrClosedStatusesDescriptions(openOrClosed)
 
     val baseSpec =
@@ -161,34 +230,29 @@ class ReferralCaseListItemService(
       )
 
     val userRegions = userService.getUserRegionNames(username)
-    val specWithRegions = if (userRegions.isEmpty()) {
+    if (userRegions.isEmpty()) {
       log.warn("No regions found for user: $username. Returning empty list for ReferralCaseList.")
-      return PageImpl(emptyList(), pageable, 0)
-    } else {
-      withRegionNames(baseSpec, userRegions)
+      return CaseListQuery(null, emptySet())
     }
-    val crns = referralCaseListItemRepository.findAllCrns(specWithRegions)
+    val specWithRegions = withRegionNames(baseSpec, userRegions)
+    val crns = referralCaseListItemRepository.findAllCrns(specWithRegions).distinct()
 
-    val allowedCRNsForUser = if (!exclusionAccessCheckEnabled) {
-      crns
-        .chunked(500)
-        .flatMap { userService.getAccessibleOffenders(username, it) }
-        .toSet()
-    } else {
-      crns.toSet()
-    }
+    val accessibleCRNsForUser = crns
+      .chunked(500)
+      .flatMap { userService.getAccessibleOffenders(username, it) }
+      .toSet()
+
+    // When the exclusion check is enabled, excluded referrals are kept in the result set and
+    // re-ordered later rather than being filtered out by the query.
+    val allowedCRNsForUser = if (exclusionAccessCheckEnabled) crns.toSet() else accessibleCRNsForUser
+    val excludedCrns = if (exclusionAccessCheckEnabled) crns.toSet() - accessibleCRNsForUser else emptySet()
 
     if (allowedCRNsForUser.isEmpty()) {
       log.warn("No CRNs found for user: $username. Returning empty list for ReferralCaseList.")
-      return PageImpl(emptyList(), pageable, 0)
+      return CaseListQuery(null, emptySet())
     }
 
-    val restrictedSpec = withCrns(specWithRegions, allowedCRNsForUser)
-    val totalAllowedCount = referralCaseListItemRepository.count(restrictedSpec)
-    val caseListReferrals = referralCaseListItemRepository.findAll(restrictedSpec, pageable)
-
-    if (caseListReferrals.totalElements < 50) log.warn("Only ${caseListReferrals.totalElements} out of ${pageable.pageSize} referrals returned due to Limited Access Offender check ")
-    return PageImpl(caseListReferrals.content, pageable, totalAllowedCount)
+    return CaseListQuery(withCrns(specWithRegions, allowedCRNsForUser), excludedCrns)
   }
 
   private fun isFilterApplied(
