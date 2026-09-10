@@ -1,8 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.PageImpl
@@ -80,13 +77,8 @@ class ReferralCaseListItemService(
 
     val sortOrders = pageable.sort.toList()
     val hasStatusSort = sortOrders.any { it.property in STATUS_SORT_PROPERTIES }
-    // Only apply workflow-order status sorting when status is the primary sort key, so a secondary
-    // status sort (e.g. sort=personName,asc&sort=referralStatus,asc) doesn't override the requested order.
-    val statusOrder = sortOrders.firstOrNull()?.takeIf { it.property in STATUS_SORT_PROPERTIES }
+    val statusOrder = sortOrders.firstOrNull { it.property in STATUS_SORT_PROPERTIES }
 
-    // Workflow-order status sorting and excluded-referral reordering can't be expressed as a plain
-    // DB sort, so they require the full result set in memory. Otherwise, sorting and pagination are
-    // pushed down to the database to avoid loading the entire matching result set into memory.
     val (pageContent, totalReferralsCount) = if (hasStatusSort || exclusionAccessCheckEnabled) {
       val nonStatusOrders = sortOrders.filterNot { it.property in STATUS_SORT_PROPERTIES }
 
@@ -96,11 +88,13 @@ class ReferralCaseListItemService(
         ?.let { referralCaseListItemRepository.findAll(it, databaseSort) }
         ?: emptyList()
 
-      // Statuses are ordered by their position in the referral workflow rather than alphabetically
       val sortedReferrals = statusOrder
         ?.let { order ->
-          val byStatus = compareBy<ReferralCaseListItemViewEntity> { ReferralStatusUtils.statusSortIndex(it.status) }
-          queriedReferrals.sortedWith(if (order.isDescending) byStatus.reversed() else byStatus)
+          if (order.isDescending) {
+            queriedReferrals.sortedByDescending { ReferralStatusUtils.statusSortIndex(it.status) }
+          } else {
+            queriedReferrals.sortedBy { ReferralStatusUtils.statusSortIndex(it.status) }
+          }
         }
         ?: queriedReferrals
 
@@ -146,7 +140,7 @@ class ReferralCaseListItemService(
       (page?.content ?: emptyList()) to (page?.totalElements ?: 0L)
     }
 
-    // Fetch Limited Access Offender (LAO) status for all distinct case reference numbers (CRNs)
+    // Fetch limited access offender status for all distinct case reference numbers (CRNs).
     var limitedAccessOffenderAccessMap: Map<String, Access>? = null
     if (limitedAccessOffenderCheckEnabled) {
       val caseReferenceNumbers = pageContent.map { it.crn }.distinct()
@@ -197,23 +191,11 @@ class ReferralCaseListItemService(
 
     val hasOtherFilters = hasFiltersOtherThanSearch(cohort, sex, probationDeliveryUnits, reportingTeams)
 
-    // Each LAO check is a separate PAC API call; fetch them concurrently in bounded chunks so we
-    // don't overwhelm the PAC service or the app thread pool when many referrals are excluded.
-    val limitedAccessOffenderByCrn = runBlocking(Dispatchers.IO) {
-      excludedReferrals.map { it.crn }.distinct()
-        .chunked(20)
-        .flatMap { chunk ->
-          chunk.map { crn -> async { crn to userAccessService.isLimitedAccessOffender(crn) } }
-            .map { it.await() }
-        }
-        .toMap()
-    }
-
     return excludedReferrals.filterNot { referral ->
       val crnMatchesSearch = !caseReferenceNumberOrPersonName.isNullOrEmpty() &&
         referral.crn.contains(caseReferenceNumberOrPersonName, ignoreCase = true)
 
-      !(crnMatchesSearch && !hasOtherFilters) && (limitedAccessOffenderByCrn[referral.crn] ?: false)
+      !(crnMatchesSearch && !hasOtherFilters)
     }
   }
 
