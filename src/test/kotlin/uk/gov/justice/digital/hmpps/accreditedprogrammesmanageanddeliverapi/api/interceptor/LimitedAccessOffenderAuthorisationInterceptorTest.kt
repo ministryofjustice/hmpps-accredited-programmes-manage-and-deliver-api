@@ -71,8 +71,8 @@ class LimitedAccessOffenderAuthorisationInterceptorTest {
     // Then
     assertThat(result).isTrue
     verify(exactly = 1) { authenticationHolder.username }
-    verify(exactly = 3) { request.method }
-    verify(exactly = 3) { request.requestURI }
+    verify(exactly = 1) { request.method }
+    verify(exactly = 1) { request.requestURI }
     verify(exactly = 1) { referralDetailsStrategy.isSupportedPath(requestMethod, requestPath) }
     verify(exactly = 1) { sessionNoteStrategy.isSupportedPath(requestMethod, requestPath) }
     verify(exactly = 1) { sessionStrategy.isSupportedPath(requestMethod, requestPath) }
@@ -97,7 +97,7 @@ class LimitedAccessOffenderAuthorisationInterceptorTest {
     assertThat(result).isTrue
     verify(exactly = 1) { authenticationHolder.username }
     verify(exactly = 1) { request.method }
-    verify(exactly = 2) { request.requestURI }
+    verify(exactly = 1) { request.requestURI }
     verify(exactly = 1) { referralDetailsStrategy.isSupportedPath(requestMethod, requestPath) }
     verify(exactly = 1) { referralDetailsStrategy.isAuthorised(requestPath, username) }
   }
@@ -123,8 +123,129 @@ class LimitedAccessOffenderAuthorisationInterceptorTest {
     assertThat(exception.message).isEqualTo("Access to this person's record is restricted in NDelius. Speak to your Programme Manager for more information.")
     verify(exactly = 1) { authenticationHolder.username }
     verify(exactly = 1) { request.method }
-    verify(exactly = 3) { request.requestURI }
+    verify(exactly = 1) { request.requestURI }
     verify(exactly = 1) { referralDetailsStrategy.isSupportedPath(requestMethod, requestPath) }
     verify(exactly = 1) { referralDetailsStrategy.isAuthorised(requestPath, username) }
+  }
+
+  @Test
+  fun `preHandle should return true if user is authorised to view session note`() {
+    // Given
+    val username = "test-user"
+    val requestMethod = "GET"
+    val requestPath =
+      "/bff/session/edf44a90-eb51-482f-b3f2-6961e439488b/referral/edf44a90-eb51-482f-b3f2-6961e439488b/session-notes"
+    every { authenticationHolder.username } returns username
+    every { request.method } returns requestMethod
+    every { request.requestURI } returns requestPath
+    every { referralDetailsStrategy.isSupportedPath(any(), any()) } returns false
+    every { sessionNoteStrategy.isSupportedPath(any(), any()) } returns true
+    every { sessionNoteStrategy.isAuthorised(any(), any()) } returns true
+
+    // When
+    val result = interceptor.preHandle(request, response, handler)
+
+    // Then
+    assertThat(result).isTrue
+    verify(exactly = 1) { authenticationHolder.username }
+    verify(exactly = 1) { request.method }
+    verify(exactly = 1) { request.requestURI }
+    verify(exactly = 1) { referralDetailsStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 0) { referralDetailsStrategy.isAuthorised(any(), any()) }
+    verify(exactly = 1) { sessionNoteStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 1) { sessionNoteStrategy.isAuthorised(requestPath, username) }
+  }
+
+  @Test
+  fun `preHandle should throw exception if user is unauthorised to view session note`() {
+    // Given
+    val username = "test-user"
+    val requestMethod = "GET"
+    val requestPath =
+      "/bff/session/edf44a90-eb51-482f-b3f2-6961e439488b/referral/edf44a90-eb51-482f-b3f2-6961e439488b/session-notes"
+    every { authenticationHolder.username } returns username
+    every { request.method } returns requestMethod
+    every { request.requestURI } returns requestPath
+    every { referralDetailsStrategy.isSupportedPath(any(), any()) } returns false
+    every { sessionNoteStrategy.isSupportedPath(any(), any()) } returns true
+    every { sessionNoteStrategy.isAuthorised(any(), any()) } returns false
+
+    // When
+    val exception = assertThrows<AccessDeniedException> {
+      interceptor.preHandle(request, response, handler)
+    }
+
+    // Then
+    assertThat(exception.message).isEqualTo("Access to this person's record is restricted in NDelius. Speak to your Programme Manager for more information.")
+    verify(exactly = 1) { authenticationHolder.username }
+    verify(exactly = 1) { request.method }
+    verify(exactly = 1) { request.requestURI }
+    verify(exactly = 1) { referralDetailsStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 0) { referralDetailsStrategy.isAuthorised(any(), any()) }
+    verify(exactly = 1) { sessionNoteStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 1) { sessionNoteStrategy.isAuthorised(requestPath, username) }
+  }
+
+  @Test
+  fun `preHandle should return true if user is authorised to view session`() {
+    // Given
+    val username = "test-user"
+    val requestMethod = "GET"
+    val requestPath = "/bff/session/edf44a90-eb51-482f-b3f2-6961e439488b"
+    every { authenticationHolder.username } returns username
+    every { request.method } returns requestMethod
+    every { request.requestURI } returns requestPath
+    every { referralDetailsStrategy.isSupportedPath(any(), any()) } returns false
+    every { sessionNoteStrategy.isSupportedPath(any(), any()) } returns false
+    every { sessionStrategy.isSupportedPath(any(), any()) } returns true
+    every { sessionStrategy.isAuthorised(any(), any()) } returns true
+
+    // When
+    val result = interceptor.preHandle(request, response, handler)
+
+    // Then
+    assertThat(result).isTrue
+    verify(exactly = 1) { authenticationHolder.username }
+    verify(exactly = 1) { request.method }
+    verify(exactly = 1) { request.requestURI }
+    verify(exactly = 1) { referralDetailsStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 0) { referralDetailsStrategy.isAuthorised(any(), any()) }
+    verify(exactly = 1) { sessionNoteStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 0) { sessionNoteStrategy.isAuthorised(any(), any()) }
+    verify(exactly = 1) { sessionStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 1) { sessionStrategy.isAuthorised(requestPath, username) }
+  }
+
+  @Test
+  fun `preHandle should throw exception if user is unauthorised to view session`() {
+    // Given
+    val username = "test-user"
+    val requestMethod = "GET"
+    val requestPath = "/bff/session/edf44a90-eb51-482f-b3f2-6961e439488b"
+    every { authenticationHolder.username } returns username
+    every { request.method } returns requestMethod
+    every { request.requestURI } returns requestPath
+    every { referralDetailsStrategy.isSupportedPath(any(), any()) } returns false
+    every { sessionNoteStrategy.isSupportedPath(any(), any()) } returns false
+    every { sessionNoteStrategy.isAuthorised(any(), any()) } returns false
+    every { sessionStrategy.isSupportedPath(any(), any()) } returns true
+    every { sessionStrategy.isAuthorised(any(), any()) } returns false
+
+    // When
+    val exception = assertThrows<AccessDeniedException> {
+      interceptor.preHandle(request, response, handler)
+    }
+
+    // Then
+    assertThat(exception.message).isEqualTo("Access to this person's record is restricted in NDelius. Speak to your Programme Manager for more information.")
+    verify(exactly = 1) { authenticationHolder.username }
+    verify(exactly = 1) { request.method }
+    verify(exactly = 1) { request.requestURI }
+    verify(exactly = 1) { referralDetailsStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 0) { referralDetailsStrategy.isAuthorised(any(), any()) }
+    verify(exactly = 1) { sessionNoteStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 0) { sessionNoteStrategy.isAuthorised(any(), any()) }
+    verify(exactly = 1) { sessionStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 1) { sessionStrategy.isAuthorised(requestPath, username) }
   }
 }

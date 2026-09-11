@@ -33,16 +33,18 @@ class LimitedAccessOffenderAuthorisationInterceptor(
       throw AuthenticationCredentialsNotFoundException("No authenticated user found")
     }
 
-    val requestType = getHttpRequestType(request)
+    val requestUri = request.requestURI
+    val requestMethod = request.method
+    val requestType = getHttpRequestType(requestMethod, requestUri)
     val isAuthorisedRequest = when (requestType) {
-      GET_PERSONAL_DETAILS -> referralDetailsStrategy.isAuthorised(request.requestURI, username)
-      GET_SESSION_NOTE -> sessionNoteStrategy.isAuthorised(request.requestURI, username)
-      GET_SESSION -> sessionStrategy.isAuthorised(request.requestURI, username)
+      GET_PERSONAL_DETAILS -> referralDetailsStrategy.isAuthorised(requestUri, username)
+      GET_SESSION_NOTE -> sessionNoteStrategy.isAuthorised(requestUri, username)
+      GET_SESSION -> sessionStrategy.isAuthorised(requestUri, username)
       else -> true
     }
 
     if (!isAuthorisedRequest) {
-      log.warn("Unauthorised request encountered for: ${request.requestURI}")
+      log.warn("Unauthorised request encountered for: $requestUri")
       throw AccessDeniedException("Access to this person's record is restricted in NDelius. Speak to your Programme Manager for more information.")
     }
 
@@ -50,10 +52,10 @@ class LimitedAccessOffenderAuthorisationInterceptor(
     return true
   }
 
-  private fun getHttpRequestType(request: HttpServletRequest): HttpRequestType? = when {
-    referralDetailsStrategy.isSupportedPath(request.method, request.requestURI) -> GET_PERSONAL_DETAILS
-    sessionNoteStrategy.isSupportedPath(request.method, request.requestURI) -> GET_SESSION_NOTE
-    sessionStrategy.isSupportedPath(request.method, request.requestURI) -> GET_SESSION
+  private fun getHttpRequestType(requestMethod: String, requestUri: String): HttpRequestType? = when {
+    referralDetailsStrategy.isSupportedPath(requestMethod, requestUri) -> GET_PERSONAL_DETAILS
+    sessionNoteStrategy.isSupportedPath(requestMethod, requestUri) -> GET_SESSION_NOTE
+    sessionStrategy.isSupportedPath(requestMethod, requestUri) -> GET_SESSION
     else -> null
   }
 }
