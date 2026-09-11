@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionTemplate
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceResponse
@@ -51,6 +52,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_SENTENCE_REFERENCE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_STATUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.VIEW_REFERRAL
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
@@ -101,6 +104,9 @@ class ReferralService(
   private val laoAccessCheckEnabled: Boolean,
   private val userAccessService: UserAccessService,
   private val authenticationHolder: HmppsAuthenticationHolder,
+  private val transactionTemplate: TransactionTemplate,
+  private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
+  private val messageHistoryRepository: MessageHistoryRepository,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -815,7 +821,12 @@ class ReferralService(
     when (response) {
       is ClientResult.Failure.StatusCode -> {
         if (response.status.value() == HttpStatus.NOT_FOUND.value()) {
-          referralRepository.delete(referral)
+          log.info("Deleting referral ${referral.id}...")
+          transactionTemplate.execute {
+            nDeliusAppointmentRepository.deleteByReferral(referral)
+            messageHistoryRepository.deleteByReferral(referral)
+            referralRepository.delete(referral)
+          }
         } else {
           log.warn("Failure to retrieve manager details for crn : $caseReferenceNumber and eventId: $eventId (generic failure)")
           telemetryService.logToAppInsights(
