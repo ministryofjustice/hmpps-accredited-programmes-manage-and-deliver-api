@@ -24,6 +24,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.PersonReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.DomainEventsMessageFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.MessageHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory
@@ -984,8 +985,13 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `should delete referral on receipt of probation case sentence deleted message`() {
     // Given
-    val savedReferral = testReferralHelper.createReferral()
     val eventType = "probation-case.sentence.deleted"
+    val savedReferral = testReferralHelper.createReferral()
+    val savedMessageHistoryEntity = messageHistoryRepository.save(
+      MessageHistoryEntityFactory().withEventType(eventType).withReferral(savedReferral).produce(),
+    )
+    assertThat(savedMessageHistoryEntity).isNotNull
+    assertThat(savedMessageHistoryEntity.id).isNotNull
     val caseReferenceNumber = savedReferral.crn
     val eventId = savedReferral.eventId
     val domainEventsMessage = DomainEventsMessageFactory()
@@ -1020,8 +1026,10 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     }
 
     val result = referralRepository.findByCrn(caseReferenceNumber)
+    val resultMessageHistoryList = messageHistoryRepository.findByReferral(savedReferral)
 
     // Then
     assertThat(result).isEmpty()
+    assertThat(resultMessageHistoryList).isEmpty()
   }
 }
