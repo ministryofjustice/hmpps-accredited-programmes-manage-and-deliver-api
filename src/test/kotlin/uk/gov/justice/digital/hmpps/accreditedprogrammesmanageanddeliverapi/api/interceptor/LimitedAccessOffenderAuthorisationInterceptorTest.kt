@@ -12,6 +12,8 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.limitedAccessOffenderAuthorisation.ReferralDetailsLimitedAccessOffenderAuthorisationStrategy
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.limitedAccessOffenderAuthorisation.SessionLimitedAccessOffenderAuthorisationStrategy
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.limitedAccessOffenderAuthorisation.SessionNoteLimitedAccessOffenderAuthorisationStrategy
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
 class LimitedAccessOffenderAuthorisationInterceptorTest {
@@ -19,12 +21,20 @@ class LimitedAccessOffenderAuthorisationInterceptorTest {
   private val response = mockk<HttpServletResponse>()
   private val handler = mockk<Any>()
   private val referralDetailsStrategy = mockk<ReferralDetailsLimitedAccessOffenderAuthorisationStrategy>()
+  private val sessionNoteStrategy = mockk<SessionNoteLimitedAccessOffenderAuthorisationStrategy>()
+  private val sessionStrategy = mockk<SessionLimitedAccessOffenderAuthorisationStrategy>()
   private val authenticationHolder = mockk<HmppsAuthenticationHolder>()
   private lateinit var interceptor: LimitedAccessOffenderAuthorisationInterceptor
 
   @BeforeEach
   fun setup() {
-    interceptor = LimitedAccessOffenderAuthorisationInterceptor(referralDetailsStrategy, authenticationHolder)
+    interceptor =
+      LimitedAccessOffenderAuthorisationInterceptor(
+        referralDetailsStrategy,
+        sessionNoteStrategy,
+        sessionStrategy,
+        authenticationHolder,
+      )
   }
 
   @Test
@@ -52,6 +62,8 @@ class LimitedAccessOffenderAuthorisationInterceptorTest {
     every { request.method } returns requestMethod
     every { request.requestURI } returns requestPath
     every { referralDetailsStrategy.isSupportedPath(any(), any()) } returns false
+    every { sessionNoteStrategy.isSupportedPath(any(), any()) } returns false
+    every { sessionStrategy.isSupportedPath(any(), any()) } returns false
 
     // When
     val result = interceptor.preHandle(request, response, handler)
@@ -59,9 +71,11 @@ class LimitedAccessOffenderAuthorisationInterceptorTest {
     // Then
     assertThat(result).isTrue
     verify(exactly = 1) { authenticationHolder.username }
-    verify(exactly = 1) { request.method }
-    verify(exactly = 1) { request.requestURI }
+    verify(exactly = 3) { request.method }
+    verify(exactly = 3) { request.requestURI }
     verify(exactly = 1) { referralDetailsStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 1) { sessionNoteStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 1) { sessionStrategy.isSupportedPath(requestMethod, requestPath) }
   }
 
   @Test

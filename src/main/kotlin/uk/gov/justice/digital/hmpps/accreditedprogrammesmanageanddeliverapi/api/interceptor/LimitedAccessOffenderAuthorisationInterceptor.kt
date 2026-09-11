@@ -9,12 +9,18 @@ import org.springframework.stereotype.Component
 import org.springframework.web.servlet.HandlerInterceptor
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.HttpRequestType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.HttpRequestType.GET_PERSONAL_DETAILS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.HttpRequestType.GET_SESSION
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.HttpRequestType.GET_SESSION_NOTE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.limitedAccessOffenderAuthorisation.ReferralDetailsLimitedAccessOffenderAuthorisationStrategy
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.limitedAccessOffenderAuthorisation.SessionLimitedAccessOffenderAuthorisationStrategy
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.limitedAccessOffenderAuthorisation.SessionNoteLimitedAccessOffenderAuthorisationStrategy
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 
 @Component
 class LimitedAccessOffenderAuthorisationInterceptor(
   private val referralDetailsStrategy: ReferralDetailsLimitedAccessOffenderAuthorisationStrategy,
+  private val sessionNoteStrategy: SessionNoteLimitedAccessOffenderAuthorisationStrategy,
+  private val sessionStrategy: SessionLimitedAccessOffenderAuthorisationStrategy,
   private val authenticationHolder: HmppsAuthenticationHolder,
 ) : HandlerInterceptor {
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -30,6 +36,8 @@ class LimitedAccessOffenderAuthorisationInterceptor(
     val requestType = getHttpRequestType(request)
     val isAuthorisedRequest = when (requestType) {
       GET_PERSONAL_DETAILS -> referralDetailsStrategy.isAuthorised(request.requestURI, username)
+      GET_SESSION_NOTE -> sessionNoteStrategy.isAuthorised(request.requestURI, username)
+      GET_SESSION -> sessionStrategy.isAuthorised(request.requestURI, username)
       else -> true
     }
 
@@ -44,6 +52,8 @@ class LimitedAccessOffenderAuthorisationInterceptor(
 
   private fun getHttpRequestType(request: HttpServletRequest): HttpRequestType? = when {
     referralDetailsStrategy.isSupportedPath(request.method, request.requestURI) -> GET_PERSONAL_DETAILS
+    sessionNoteStrategy.isSupportedPath(request.method, request.requestURI) -> GET_SESSION_NOTE
+    sessionStrategy.isSupportedPath(request.method, request.requestURI) -> GET_SESSION
     else -> null
   }
 }

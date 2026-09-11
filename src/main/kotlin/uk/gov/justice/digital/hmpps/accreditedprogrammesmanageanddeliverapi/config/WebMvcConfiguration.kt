@@ -15,5 +15,6 @@ class WebMvcConfiguration(
   override fun addInterceptors(registry: InterceptorRegistry) {
     registry.addInterceptor(limitedAccessOffenderAuthorisationInterceptor)
       .addPathPatterns("/referral-details/**") // Apply to all referral details API paths
+      .addPathPatterns("/bff/session/**") // Apply to all BFF session paths
   }
 }
