@@ -1070,6 +1070,7 @@ class ReferralServiceTest {
     every { referralCohortHistoryRepository.save(any()) } returns mockk(relaxed = true)
     every { referralLdcHistoryRepository.save(any()) } returns mockk(relaxed = true)
     every { referralReportingLocationRepository.save(any()) } returns mockk(relaxed = true)
+    every { applicationEventPublisher.publishEvent(any<ReferralStatusUpdateEvent>()) } returns Unit
 
     // When
     referralService.createReferral(referralDetails)
@@ -1083,11 +1084,13 @@ class ReferralServiceTest {
         "success",
       )
     }
+    verify { applicationEventPublisher.publishEvent(any<ReferralStatusUpdateEvent>()) }
   }
 
   @Test
   fun `getPersonalDetails should return null and log failure when call fails`() {
     // Given
+    val referralId = UUID.randomUUID()
     val crn = "X123456"
     val referralDetails = FindAndReferReferralDetailsFactory().withPersonReference(crn).produce()
 
@@ -1106,12 +1109,13 @@ class ReferralServiceTest {
     every { cohortService.determineOffenceCohort(any()) } returns mockk(relaxed = true)
     val awaitingAssessmentStatusDescription = ReferralStatusDescriptionEntityFactory().produce()
     every { referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription() } returns awaitingAssessmentStatusDescription
-    val savedReferral = ReferralEntityFactory().withId(UUID.randomUUID()).produce()
+    val savedReferral = ReferralEntityFactory().withId(referralId).produce()
     every { referralRepository.save(any()) } returns savedReferral
     every { referralStatusHistoryRepository.save(any()) } returns mockk(relaxed = true)
     every { referralCohortHistoryRepository.save(any()) } returns mockk(relaxed = true)
     every { referralLdcHistoryRepository.save(any()) } returns mockk(relaxed = true)
     every { referralReportingLocationRepository.save(any()) } returns mockk(relaxed = true)
+    every { applicationEventPublisher.publishEvent(any<ReferralStatusUpdateEvent>()) } returns Unit
 
     // When
     referralService.createReferral(referralDetails)
@@ -1125,6 +1129,7 @@ class ReferralServiceTest {
         "failure",
       )
     }
+    verify { applicationEventPublisher.publishEvent(any<ReferralStatusUpdateEvent>()) }
   }
 
   @Test

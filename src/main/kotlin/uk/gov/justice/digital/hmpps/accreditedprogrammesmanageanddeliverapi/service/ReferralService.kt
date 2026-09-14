@@ -310,7 +310,10 @@ class ReferralService(
     }
 
     log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort and Ldc status: '$hasLdc'")
-    return referralRepository.save(referralEntity)
+    val savedReferral = referralRepository.save(referralEntity)
+    applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(savedReferral.id!!))
+
+    return savedReferral
   }
 
   /**
@@ -769,6 +772,7 @@ class ReferralService(
     }
 
     else -> {
+      log.warn("Failure to retrieve personal details from nDelius for crn: $crn")
       telemetryService.logToAppInsights(
         "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.failure",
         GET_PERSONAL_DETAILS_N_DELIUS.name,
