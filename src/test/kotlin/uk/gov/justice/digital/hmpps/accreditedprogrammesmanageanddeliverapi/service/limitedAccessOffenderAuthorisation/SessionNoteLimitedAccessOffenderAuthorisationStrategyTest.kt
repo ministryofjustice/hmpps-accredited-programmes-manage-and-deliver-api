@@ -6,40 +6,29 @@ import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.data.repository.findByIdOrNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserAccessService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserAccessService.Access
 import java.util.UUID
 
-class ReferralDetailsLimitedAccessOffenderAuthorisationStrategyTest {
-  private val referralService = mockk<ReferralService>()
+class SessionNoteLimitedAccessOffenderAuthorisationStrategyTest {
+  private val referralRepository = mockk<ReferralRepository>()
   private val userAccessService = mockk<UserAccessService>()
-  private lateinit var strategy: ReferralDetailsLimitedAccessOffenderAuthorisationStrategy
+  private lateinit var strategy: SessionNoteLimitedAccessOffenderAuthorisationStrategy
 
   @BeforeEach
   fun setUp() {
-    strategy = ReferralDetailsLimitedAccessOffenderAuthorisationStrategy(referralService, userAccessService)
+    strategy = SessionNoteLimitedAccessOffenderAuthorisationStrategy(referralRepository, userAccessService)
   }
 
   @Test
-  fun `should support referral details path`() {
+  fun `should support session note path`() {
     // Given
     val method = "GET"
-    val path = "/referral-details/edf44a90-eb51-482f-b3f2-6961e439488b"
-
-    // When
-    val result = strategy.isSupportedPath(method, path)
-
-    // Then
-    assertThat(result).isTrue
-  }
-
-  @Test
-  fun `should support referral personal details path`() {
-    // Given
-    val method = "GET"
-    val path = "/referral-details/edf44a90-eb51-482f-b3f2-6961e439488b/personal-details"
+    val path =
+      "/bff/session/edf44a90-eb51-482f-b3f2-6961e439488b/referral/edf44a90-eb51-482f-b3f2-6961e439488b/session-notes"
 
     // When
     val result = strategy.isSupportedPath(method, path)
@@ -52,7 +41,7 @@ class ReferralDetailsLimitedAccessOffenderAuthorisationStrategyTest {
   fun `should not support path`() {
     // Given
     val method = "GET"
-    val path = "/referrals/edf44a90-eb51-482f-b3f2-6961e439488b"
+    val path = "/session/edf44a90-eb51-482f-b3f2-6961e439488b"
 
     // When
     val result = strategy.isSupportedPath(method, path)
@@ -62,10 +51,11 @@ class ReferralDetailsLimitedAccessOffenderAuthorisationStrategyTest {
   }
 
   @Test
-  fun `should not support referral personal details method call`() {
+  fun `should not support session note method call`() {
     // Given
     val method = "POST"
-    val path = "/referral-details/edf44a90-eb51-482f-b3f2-6961e439488b"
+    val path =
+      "/bff/session/edf44a90-eb51-482f-b3f2-6961e439488b/referral/edf44a90-eb51-482f-b3f2-6961e439488b/session-notes"
 
     // When
     val result = strategy.isSupportedPath(method, path)
@@ -75,17 +65,17 @@ class ReferralDetailsLimitedAccessOffenderAuthorisationStrategyTest {
   }
 
   @Test
-  fun `should authorise user to view referral details`() {
+  fun `should authorise user to view session note`() {
     // Given
     val username = "jsmith"
     val referralId = UUID.fromString("edf44a90-eb51-482f-b3f2-6961e439488b")
-    val path = "/referral-details/$referralId"
+    val path = "/bff/session/edf44a90-eb51-482f-b3f2-6961e439488b/referral/$referralId/session-notes"
     val referralEntity = ReferralEntityFactory().withId(referralId).produce()
     val caseReferenceNumber = referralEntity.crn
     val access = Access(isLimitedAccessOffender = true, isExcluded = false)
     val accessMap = mapOf(caseReferenceNumber to access)
 
-    every { referralService.getReferralById(any()) } returns referralEntity
+    every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
     every { userAccessService.determineUserAccess(any(), any()) } returns accessMap
 
     // When
@@ -93,45 +83,22 @@ class ReferralDetailsLimitedAccessOffenderAuthorisationStrategyTest {
 
     // Then
     assertThat(result).isTrue
-    verify(exactly = 1) { referralService.getReferralById(referralId) }
+    verify(exactly = 1) { referralRepository.findByIdOrNull(referralId) }
     verify(exactly = 1) { userAccessService.determineUserAccess(username, listOf(caseReferenceNumber)) }
   }
 
   @Test
-  fun `should authorise user to view referral personal details`() {
+  fun `should not authorise user to view session note`() {
     // Given
     val username = "jsmith"
     val referralId = UUID.fromString("edf44a90-eb51-482f-b3f2-6961e439488b")
-    val path = "/referral-details/$referralId/personal-details"
-    val referralEntity = ReferralEntityFactory().withId(referralId).produce()
-    val caseReferenceNumber = referralEntity.crn
-    val access = Access(isLimitedAccessOffender = true, isExcluded = false)
-    val accessMap = mapOf(caseReferenceNumber to access)
-
-    every { referralService.getReferralById(any()) } returns referralEntity
-    every { userAccessService.determineUserAccess(any(), any()) } returns accessMap
-
-    // When
-    val result = strategy.isAuthorised(path, username)
-
-    // Then
-    assertThat(result).isTrue
-    verify(exactly = 1) { referralService.getReferralById(referralId) }
-    verify(exactly = 1) { userAccessService.determineUserAccess(username, listOf(caseReferenceNumber)) }
-  }
-
-  @Test
-  fun `should not authorise user to view referral details`() {
-    // Given
-    val username = "jsmith"
-    val referralId = UUID.fromString("edf44a90-eb51-482f-b3f2-6961e439488b")
-    val path = "/referral-details/$referralId"
+    val path = "/bff/session/edf44a90-eb51-482f-b3f2-6961e439488b/referral/$referralId/session-notes"
     val referralEntity = ReferralEntityFactory().withId(referralId).produce()
     val caseReferenceNumber = referralEntity.crn
     val access = Access(isLimitedAccessOffender = true, isExcluded = true)
     val accessMap = mapOf(caseReferenceNumber to access)
 
-    every { referralService.getReferralById(any()) } returns referralEntity
+    every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
     every { userAccessService.determineUserAccess(any(), any()) } returns accessMap
 
     // When
@@ -139,22 +106,40 @@ class ReferralDetailsLimitedAccessOffenderAuthorisationStrategyTest {
 
     // Then
     assertThat(result).isFalse
-    verify(exactly = 1) { referralService.getReferralById(referralId) }
+    verify(exactly = 1) { referralRepository.findByIdOrNull(referralId) }
     verify(exactly = 1) { userAccessService.determineUserAccess(username, listOf(caseReferenceNumber)) }
   }
 
   @Test
-  fun `should authorise user to view referral details if invalid referral uuid`() {
+  fun `should authorise user to view session note if invalid referral uuid`() {
     // Given
     val username = "jsmith"
-    val path = "/referral-details/123"
+    val path = "/bff/session/edf44a90-eb51-482f-b3f2-6961e439488b/referral/123/session-notes"
 
     // When
     val result = strategy.isAuthorised(path, username)
 
     // Then
     assertThat(result).isTrue
-    verify(exactly = 0) { referralService.getReferralById(any()) }
+    verify(exactly = 0) { referralRepository.findByIdOrNull(any()) }
+    verify(exactly = 0) { userAccessService.determineUserAccess(any(), any()) }
+  }
+
+  @Test
+  fun `should authorise user to view session note if referral not found`() {
+    // Given
+    val username = "jsmith"
+    val referralId = UUID.fromString("edf44a90-eb51-482f-b3f2-6961e439488b")
+    val path = "/bff/session/edf44a90-eb51-482f-b3f2-6961e439488b/referral/$referralId/session-notes"
+
+    every { referralRepository.findByIdOrNull(referralId) } returns null
+
+    // When
+    val result = strategy.isAuthorised(path, username)
+
+    // Then
+    assertThat(result).isTrue
+    verify(exactly = 1) { referralRepository.findByIdOrNull(referralId) }
     verify(exactly = 0) { userAccessService.determineUserAccess(any(), any()) }
   }
 }
