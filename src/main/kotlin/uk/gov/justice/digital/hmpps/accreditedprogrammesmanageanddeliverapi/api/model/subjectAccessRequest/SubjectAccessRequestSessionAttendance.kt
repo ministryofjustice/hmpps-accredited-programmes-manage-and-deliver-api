@@ -22,6 +22,10 @@ fun SessionAttendanceEntity.toApi() = SubjectAccessRequestSessionAttendance(
   outcomeType = outcomeType.toApi(),
   legitimateAbsence = legitimateAbsence.toString(),
   noteHistory = notesHistory.map { it.toApi() }.toMutableList(),
-  recordedByFacilitator = recordedByFacilitator?.toApi(),
+  // APG-2580: use the surname-only projection here so the "Recorded by"
+  // section of the SAR output matches the data-dictionary rule. The plain
+  // `.toApi()` projection is retained on `FacilitatorEntity` for the
+  // Facilitators-roster section, which keeps full names.
+  recordedByFacilitator = recordedByFacilitator?.toSarRecordedByApi(),
   recordedAt = recordedAt,
 )

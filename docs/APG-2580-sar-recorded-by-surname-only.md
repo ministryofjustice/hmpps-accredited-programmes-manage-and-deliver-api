@@ -266,15 +266,15 @@ No design work needed on the follow-up; it's a mechanical repeat of §4.3.
 
 ## 10. Implementation checklist (once §9 is signed off)
 
-- [ ] Add `src/main/kotlin/.../utils/NameFormatting.kt` with `toSurname()` + KDoc (§4.1).
-- [ ] Add `FacilitatorEntity.toSarRecordedByApi()` extension inside `api/model/subjectAccessRequest/SubjectAccessRequestFacilitator.kt` (§4.3).
-- [ ] Update `SubjectAccessRequestSessionNoteHistory.toApi()` (§4.2).
-- [ ] Update `SubjectAccessRequestSessionAttendance.toApi()` (§4.3).
-- [ ] Add `src/test/kotlin/.../utils/NameFormattingTest.kt` covering §5.
-- [ ] Add SAR mapper tests + facilitators-list regression assertion (§6 items 2–3).
-- [ ] KDoc + OpenAPI description updates (§7).
-- [ ] Add `docs/schema-docs/2026-09-XX-sar-recorded-by-surname-only.md`.
-- [ ] `./gradlew check` locally, push, raise PR linking this doc.
+- [x] Add `src/main/kotlin/.../utils/NameFormatting.kt` with `toSurname()` + KDoc (§4.1).
+- [x] Add `FacilitatorEntity.toSarRecordedByApi()` extension inside `api/model/subjectAccessRequest/SubjectAccessRequestFacilitator.kt` (§4.3).
+- [x] Update `SubjectAccessRequestSessionNoteHistory.toApi()` (§4.2).
+- [x] Update `SubjectAccessRequestSessionAttendance.toApi()` (§4.3).
+- [x] Add `src/test/kotlin/.../utils/NameFormattingTest.kt` covering §5 (15 tests).
+- [x] Add SAR mapper tests + facilitators-list regression assertion (`SubjectAccessRequestSurnameMappingTest`, 6 tests).
+- [x] KDoc on both DTOs and the new projection updated (§7). No OpenAPI annotations existed on the SAR DTOs so nothing to update there — KDoc is the only surface.
+- [x] Added `docs/schema-docs/2026-09-15-sar-recorded-by-surname-only.md` describing the shape change for the SAR collator team.
+- [x] `./gradlew ktlintCheck` clean; `./gradlew test` 962/962 pass (9 unrelated skips). Ready to push and raise the PR.
 
 ## 11. Verification log (rev-3, 15 Sep 2026)
 
@@ -301,3 +301,4 @@ directly on branch `APG-2580/sar-recorded-by-surname-only` at HEAD `22c3e298`:
 - **rev-2** (14 Sep): after exhaustive audit — confirmed only two full-name fields; corrected the plan to surname at the call site (not the shared Facilitator mapper) so the Facilitators list is preserved; §2 audit table added; the rename split off into a companion doc.
 - **rev-3** (15 Sep): full inline code + repo-convention re-verification. Corrected helper package to `utils/` (not `service.util/`), moved `toSarRecordedByApi()` into the DTO file (repo convention), rewrote §6 to reflect the "zero existing SAR mapper tests" fact. Added §11 verification log and §12 change log.
 - **rev-4** (15 Sep): §9 signed off — Facilitators-list carve-out (Option A) and `SURNAME_PARTICLES` set (Option A, 21 entries) confirmed by product-owner call. Added §9.1 note that the Facilitators section may be surname'd in a future PR if the SAR team asks. Ready to proceed to §10 implementation.
+- **rev-5** (15 Sep): §10 implemented. Helper + two mapper edits landed, 21 new tests all passing, full test suite 962/962 pass, ktlint clean. Schema-doc entry added at `schema-docs/2026-09-15-sar-recorded-by-surname-only.md`. Ready for PR.
