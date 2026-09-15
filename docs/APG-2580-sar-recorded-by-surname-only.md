@@ -245,8 +245,24 @@ recordedByFacilitator = recordedByFacilitator?.toSarRecordedByApi(),
 - [x] Compound-surname behaviour = **preserve particles** (`van der Berg`).
 - [x] Rename `personName → surname` **deferred** — separate design doc created.
 - [x] Ticket / branch — stay on APG-2580 / this branch.
-- [ ] Reviewer confirms Facilitators-list carve-out (§2.1) — only the two "Recorded by" fields to change, Facilitators section left as full name.
-- [ ] Reviewer confirms `SURNAME_PARTICLES` set (§4.1) is acceptable, or supplies a preferred list.
+- [x] **Facilitators-list carve-out confirmed (§2.1)** — 15 Sep 2026, product call: leave `sessionFacilitators[].facilitator.personName` as full name in this PR. Only the two "Recorded by" fields are surname'd. See §9.1 for the future-PR note.
+- [x] **`SURNAME_PARTICLES` set (§4.1) accepted as proposed** — 15 Sep 2026: the 21-entry list (`van, von, der, den, de, del, della, di, da, dos, du, la, le, ten, ter, zu, af, bin, ibn, al, el`). Additions are a one-liner if a real-world case surfaces.
+
+### 9.1 Deliberate future-PR scope note (facilitators section)
+
+The Facilitators-roster carve-out (§2.1) is a **product-owner call** in this
+PR, not a technical constraint. A follow-up PR may extend the surname
+transformation to `sessionFacilitators[].facilitator.personName` if the SAR
+team later asks for it. The building blocks are already in place:
+
+- `toSurname()` is a reusable helper.
+- The pattern for a SAR-specific projection is established
+  (`FacilitatorEntity.toSarRecordedByApi()`).
+- A future PR would only need to add a second projection — e.g.
+  `toSarRosterApi()` — and swap the `.toApi()` call in
+  `SubjectAccessRequestSessionFacilitator.toApi()`.
+
+No design work needed on the follow-up; it's a mechanical repeat of §4.3.
 
 ## 10. Implementation checklist (once §9 is signed off)
 
@@ -284,3 +300,4 @@ directly on branch `APG-2580/sar-recorded-by-surname-only` at HEAD `22c3e298`:
 - **rev-1** (14 Sep): initial design; assumed `service/util/` package and `FacilitatorEntity.kt`-hosted extension; asked open questions about scope, particles, rename.
 - **rev-2** (14 Sep): after exhaustive audit — confirmed only two full-name fields; corrected the plan to surname at the call site (not the shared Facilitator mapper) so the Facilitators list is preserved; §2 audit table added; the rename split off into a companion doc.
 - **rev-3** (15 Sep): full inline code + repo-convention re-verification. Corrected helper package to `utils/` (not `service.util/`), moved `toSarRecordedByApi()` into the DTO file (repo convention), rewrote §6 to reflect the "zero existing SAR mapper tests" fact. Added §11 verification log and §12 change log.
+- **rev-4** (15 Sep): §9 signed off — Facilitators-list carve-out (Option A) and `SURNAME_PARTICLES` set (Option A, 21 entries) confirmed by product-owner call. Added §9.1 note that the Facilitators section may be surname'd in a future PR if the SAR team asks. Ready to proceed to §10 implementation.
