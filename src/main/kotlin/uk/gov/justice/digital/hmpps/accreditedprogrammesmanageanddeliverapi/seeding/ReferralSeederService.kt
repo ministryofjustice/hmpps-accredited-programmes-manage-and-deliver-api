@@ -42,8 +42,9 @@ class ReferralSeederService(
     val statusDescription = referralStatusDescriptionRepository
       .getAwaitingAssessmentStatusDescription()
 
-    repeat(count) { _ ->
-      val crn = fakePersonGenerator.generateCrn()
+    repeat(count) { index ->
+      // Every fifth seeded person is a limited access offender the logged in user is excluded from
+      val crn = fakePersonGenerator.generateCrn(limitedAccess = index % 5 == 0)
       val seed = crn.hashCode().toLong()
       val faker = Faker(Random(seed))
 

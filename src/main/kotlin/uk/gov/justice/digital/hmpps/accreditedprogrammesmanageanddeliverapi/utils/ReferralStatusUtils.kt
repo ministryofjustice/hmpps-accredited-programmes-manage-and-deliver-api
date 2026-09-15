@@ -25,6 +25,8 @@ object ReferralStatusUtils {
     STATUS_ORDER_INDEX[status] ?: Int.MAX_VALUE
   }
 
+  fun statusSortIndex(description: String): Int = STATUS_ORDER_INDEX[formatStatus(description)] ?: Int.MAX_VALUE
+
   fun formatStatus(description: String): String = if (description == "Breach (non-attendance)") "Breach" else description
 
   fun unformatStatus(description: String?): String? = if (description == "Breach") "Breach (non-attendance)" else description

@@ -109,9 +109,12 @@ class FakePersonGenerator {
     return cities[faker.number().numberBetween(0, cities.size)]
   }
 
-  fun generateCrn(): String {
-    // 'S' for "Seeded" - helps make it clear these are fake CRNs
-    return "S" + Faker().number().digits(6)
+  fun generateCrn(limitedAccess: Boolean = false): String {
+    // 'S' for "Seeded" - helps make it clear these are fake CRNs.
+    // 'SX' additionally tells the nDelius and probation access control wiremocks to treat the
+    // person as a limited access offender the logged in user is excluded from.
+    val prefix = if (limitedAccess) "SX" else "S"
+    return prefix + Faker().number().digits(6)
   }
 }
 
