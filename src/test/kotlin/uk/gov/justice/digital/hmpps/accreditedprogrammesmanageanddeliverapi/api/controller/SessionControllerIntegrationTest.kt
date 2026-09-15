@@ -392,6 +392,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `getRescheduleSessionDetails returns 200 and reschedule details for post-programme review`() {
       // Given
+      stubAuthTokenEndpoint()
       val programmeTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
       val sessionTemplate = moduleSessionTemplateRepository.findByName("Post-programme review")
 
@@ -414,6 +415,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         crn = "Y654321",
       )
       testDataGenerator.createAttendee(referral, session)
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
       // When
       val response = performRequestAndExpectOk(
@@ -2750,6 +2752,10 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return session notes for a referral`() {
       // Given
+      val userFullName = "John Smith"
+      manageUsersApiStubs.stubUserResponse(
+        userDto = UserDtoFactory().withName(userFullName).produce(),
+      )
       val group = testGroupHelper.createGroup()
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
@@ -2785,8 +2791,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
 
-      val userFullName = "John Smith"
-      manageUsersApiStubs.stubUserResponse(UserDtoFactory().withName(userFullName).produce())
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
       // When
       val response = performRequestAndExpectOk(
@@ -2842,6 +2847,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
       // When
       val response = performRequestAndExpectOk(
@@ -2908,6 +2914,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
       // When
       val response = performRequestAndExpectOk(
