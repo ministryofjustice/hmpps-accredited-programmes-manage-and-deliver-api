@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.util.AntPathMatcher
 import org.springframework.web.bind.annotation.RequestMethod
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
@@ -12,6 +13,7 @@ import java.util.UUID
 import kotlin.jvm.optionals.getOrNull
 
 @Component
+@Transactional
 class SessionLimitedAccessOffenderAuthorisationStrategy(
   private val userAccessService: UserAccessService,
   private val sessionRepository: SessionRepository,
