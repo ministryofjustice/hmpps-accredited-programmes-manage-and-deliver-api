@@ -91,9 +91,9 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
 
   @Test
   @Transactional
-  fun `getDeferredStatusDescription returns a Referral Status Description`() {
-    val result = repository.getDeferredStatusDescription()
-    assertThat(result.description).isEqualTo("Deferred")
+  fun `getOnHoldStatusDescription returns a Referral Status Description`() {
+    val result = repository.getOnHoldStatusDescription()
+    assertThat(result.description).isEqualTo("On hold")
   }
 
   @Test

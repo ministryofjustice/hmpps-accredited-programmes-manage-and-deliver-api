@@ -548,6 +548,9 @@ UPDATE referral_status_transition SET priority = 6
 WHERE id = 'd7ce40e3-c0f6-47d7-879d-bda1cb651277';
 
 -- On programme
+UPDATE referral_status_transition SET priority = 4
+WHERE id = 'b82065fa-7f80-4d1a-ae8a-2f2f69889647';
+
 UPDATE referral_status_transition SET priority = 5
 WHERE id = 'e42c3ce7-167c-4f94-ba4e-92b629b23d8e';
 
@@ -627,7 +630,7 @@ UPDATE referral_status_transition
 SET description = 'The person cannot complete the programme, for example the court removed the programme requirement or the order expired. The referral is closed.'
 WHERE to_status = (SELECT id FROM referral_status_description WHERE description_text = 'Withdrawn');
 
--- Update the 'Deferred' description name to now be 'On-hold'
+-- Update the 'Deferred' description name to now be 'On hold'
 Update referral_status_description
-Set description_text = 'On-hold'
+Set description_text = 'On hold'
 Where description_text = 'Deferred';
