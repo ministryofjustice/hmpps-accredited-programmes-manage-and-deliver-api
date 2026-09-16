@@ -634,3 +634,13 @@ WHERE to_status = (SELECT id FROM referral_status_description WHERE description_
 Update referral_status_description
 Set description_text = 'On hold'
 Where description_text = 'Deferred';
+
+-- Remove Deprioritised as a status.
+DELETE from referral_status_transition where id in (
+    '580041aa-141c-4dc6-8993-88b30b10cb85',
+    'f96fc179-8ce3-4871-a105-e87eee1b82b4',
+    '7cfd59d8-af26-464d-a07c-efdd4ea631e3'
+    );
+
+DELETE FROM referral_status_description
+WHERE description_text = 'Deprioritised';
