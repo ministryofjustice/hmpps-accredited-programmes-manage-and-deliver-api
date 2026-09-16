@@ -5,22 +5,24 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 
 @Schema(description = "Details of a referral status change event")
 data class ReferralStatusInfo(
-  @Schema(description = "The new status of the referral", required = true)
+  @field:Schema(description = "The new status of the referral", required = true)
   val newStatus: Status,
-  @Schema(description = "The type of entity from which this status change was sourced", required = true)
+  @field:Schema(description = "The type of entity from which this status change was sourced", required = true)
   val sourcedFromEntityType: ReferralEntitySourcedFrom,
-  @Schema(description = "The ID of the entity from which this status change was sourced", required = true)
+  @field:Schema(description = "The ID of the entity from which this status change was sourced", required = true)
   val sourcedFromEntityId: Long,
-  @Schema(description = "Optional notes associated with the status change")
+  @field:Schema(description = "Optional notes associated with the status change")
   val notes: String?,
-  @Schema(description = "A human-readable description of the status change", required = true)
+  @field:Schema(description = "A human-readable description of the status change", required = true)
   val description: String,
+  @field:Schema(description = "Username of the person who made the status update", required = true)
+  val username: String,
 ) {
   @Schema(description = "The status of a referral")
   enum class Status(
-    @Schema(description = "The human-readable display name of the status")
+    @field:Schema(description = "The human-readable display name of the status")
     val displayName: String,
-    @Schema(description = "A description of what the status means")
+    @field:Schema(description = "A description of what the status means")
     val description: String,
   ) {
     @Schema(description = "The person is ready to be allocated to a programme group.")
