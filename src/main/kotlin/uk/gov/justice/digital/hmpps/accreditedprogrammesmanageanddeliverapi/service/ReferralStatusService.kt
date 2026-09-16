@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -42,7 +41,6 @@ class ReferralStatusService(
   private val referralRepository: ReferralRepository,
   private val sessionAttendanceRepository: SessionAttendanceRepository,
   private val applicationEventPublisher: ApplicationEventPublisher,
-  @Value("\${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -101,6 +99,7 @@ class ReferralStatusService(
       sourcedFromEntityId = eventId.toLong(),
       notes = statusHistory.additionalDetails,
       description = statusInfo.description,
+      username = statusHistory.createdBy,
     )
   }
 
