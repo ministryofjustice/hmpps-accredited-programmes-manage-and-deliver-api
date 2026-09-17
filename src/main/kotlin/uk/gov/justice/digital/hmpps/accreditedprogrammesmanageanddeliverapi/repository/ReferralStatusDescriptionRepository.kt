@@ -36,8 +36,8 @@ interface ReferralStatusDescriptionRepository : JpaRepository<ReferralStatusDesc
   @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Breach (non-attendance)'")
   fun getBreachNonAttendanceStatusDescription(): ReferralStatusDescriptionEntity
 
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Deferred'")
-  fun getDeferredStatusDescription(): ReferralStatusDescriptionEntity
+  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'On hold'")
+  fun getOnHoldStatusDescription(): ReferralStatusDescriptionEntity
 
   @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Withdrawn'")
   fun getWithdrawnStatusDescription(): ReferralStatusDescriptionEntity

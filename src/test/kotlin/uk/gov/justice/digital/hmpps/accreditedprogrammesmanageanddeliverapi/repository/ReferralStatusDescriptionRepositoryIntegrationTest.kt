@@ -42,13 +42,6 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
 
   @Test
   @Transactional
-  fun `getDeprioritisedStatusDescription returns a Referral Status Description`() {
-    val result = repository.getDeprioritisedStatusDescription()
-    assertThat(result.description).isEqualTo("Deprioritised")
-  }
-
-  @Test
-  @Transactional
   fun `getRecallStatusDescription returns a Referral Status Description`() {
     val result = repository.getRecallStatusDescription()
     assertThat(result.description).isEqualTo("Recall")
@@ -91,9 +84,9 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
 
   @Test
   @Transactional
-  fun `getDeferredStatusDescription returns a Referral Status Description`() {
-    val result = repository.getDeferredStatusDescription()
-    assertThat(result.description).isEqualTo("Deferred")
+  fun `getOnHoldStatusDescription returns a Referral Status Description`() {
+    val result = repository.getOnHoldStatusDescription()
+    assertThat(result.description).isEqualTo("On hold")
   }
 
   @Test
@@ -112,7 +105,7 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
       listOf(
         repository.getAwaitingAssessmentStatusDescription(),
         repository.getSuitableButNotReadyStatusDescription(),
-        repository.getDeprioritisedStatusDescription(),
+        repository.getOnHoldStatusDescription(),
         repository.getRecallStatusDescription(),
         repository.getOnProgrammeStatusDescription(),
         repository.getProgrammeCompleteStatusDescription(),
