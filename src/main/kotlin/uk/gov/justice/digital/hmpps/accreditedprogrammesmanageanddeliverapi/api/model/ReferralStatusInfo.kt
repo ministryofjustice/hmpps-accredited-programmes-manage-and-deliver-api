@@ -40,12 +40,6 @@ data class ReferralStatusInfo(
       "The person has breached their conditions through non-attendance of the programme.",
     ),
 
-    @Schema(description = "The person is suitable but does not currently meet the prioritisation criteria. The referral will be paused.")
-    DEPRIORITISED(
-      "Deprioritised",
-      "The person is suitable but does not currently meet the prioritisation criteria. The referral will be paused.",
-    ),
-
     @Schema(description = "The referral is paused, for example during a transfer or after the court has extended an order.")
     ON_HOLD(
       "On hold",

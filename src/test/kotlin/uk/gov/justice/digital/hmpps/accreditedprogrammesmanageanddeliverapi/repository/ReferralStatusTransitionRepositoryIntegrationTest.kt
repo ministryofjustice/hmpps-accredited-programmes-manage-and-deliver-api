@@ -38,11 +38,6 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
     assertThat(suitableButNotReadyToAwaitingAssessment).isNotNull
     assertThat(suitableButNotReadyToAwaitingAssessment!!.isContinuing).isTrue()
 
-    // Deprioritised --> Awaiting assessment
-    val deprioritisedToAwaitingAssessment = getTransition("Deprioritised", "Awaiting assessment")
-    assertThat(deprioritisedToAwaitingAssessment).isNotNull
-    assertThat(deprioritisedToAwaitingAssessment!!.isContinuing).isTrue()
-
     // Breach (non-attendance) --> Awaiting assessment
     val breachToAwaitingAssessment = getTransition("Breach (non-attendance)", "Awaiting assessment")
     assertThat(breachToAwaitingAssessment).isNotNull
