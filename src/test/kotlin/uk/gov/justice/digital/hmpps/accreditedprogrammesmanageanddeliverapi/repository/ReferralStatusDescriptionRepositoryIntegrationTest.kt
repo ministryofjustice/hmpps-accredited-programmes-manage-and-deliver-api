@@ -77,9 +77,9 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
 
   @Test
   @Transactional
-  fun `getBreachNonAttendanceStatusDescription returns a Referral Status Description`() {
-    val result = repository.getBreachNonAttendanceStatusDescription()
-    assertThat(result.description).isEqualTo("Breach (non-attendance)")
+  fun `getBreachStatusDescription returns a Referral Status Description`() {
+    val result = repository.getBreachStatusDescription()
+    assertThat(result.description).isEqualTo("Breach")
   }
 
   @Test

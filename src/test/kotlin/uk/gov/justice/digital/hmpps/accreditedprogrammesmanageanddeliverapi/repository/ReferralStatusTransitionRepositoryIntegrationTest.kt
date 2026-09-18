@@ -39,7 +39,7 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
     assertThat(suitableButNotReadyToAwaitingAssessment!!.isContinuing).isTrue()
 
     // Breach (non-attendance) --> Awaiting assessment
-    val breachToAwaitingAssessment = getTransition("Breach (non-attendance)", "Awaiting assessment")
+    val breachToAwaitingAssessment = getTransition("Breach", "Awaiting assessment")
     assertThat(breachToAwaitingAssessment).isNotNull
     assertThat(breachToAwaitingAssessment!!.isContinuing).isTrue()
 
@@ -63,7 +63,7 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
     assertThat(awaitingAssessmentToSuitableButNotReady!!.isContinuing).isFalse()
 
     // On programme --> Breach (non-attendance)
-    val onProgrammeToBreach = getTransition("On programme", "Breach (non-attendance)")
+    val onProgrammeToBreach = getTransition("On programme", "Breach")
     assertThat(onProgrammeToBreach).isNotNull
     assertThat(onProgrammeToBreach!!.isContinuing).isFalse()
 
@@ -114,7 +114,7 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
       "Suitable but not ready",
       "On hold",
       "Withdrawn",
-      "Breach (non-attendance)",
+      "Breach",
     )
   }
 

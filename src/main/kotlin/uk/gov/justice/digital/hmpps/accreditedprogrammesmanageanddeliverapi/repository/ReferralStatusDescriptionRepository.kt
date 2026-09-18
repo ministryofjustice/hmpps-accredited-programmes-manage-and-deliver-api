@@ -33,8 +33,8 @@ interface ReferralStatusDescriptionRepository : JpaRepository<ReferralStatusDesc
   @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Programme complete'")
   fun getProgrammeCompleteStatusDescription(): ReferralStatusDescriptionEntity
 
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Breach (non-attendance)'")
-  fun getBreachNonAttendanceStatusDescription(): ReferralStatusDescriptionEntity
+  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Breach'")
+  fun getBreachStatusDescription(): ReferralStatusDescriptionEntity
 
   @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'On hold'")
   fun getOnHoldStatusDescription(): ReferralStatusDescriptionEntity

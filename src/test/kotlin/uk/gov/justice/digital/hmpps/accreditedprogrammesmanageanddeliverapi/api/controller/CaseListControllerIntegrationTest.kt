@@ -1433,7 +1433,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     }
 
     private fun seedBreachReferral() {
-      val breachStatusDescription = referralStatusDescriptionRepository.getBreachNonAttendanceStatusDescription()
+      val breachStatusDescription = referralStatusDescriptionRepository.getBreachStatusDescription()
 
       // Re-stub access check to include the additional CRN alongside the ones set up in @BeforeEach
       nDeliusApiStubs.stubAccessCheck(

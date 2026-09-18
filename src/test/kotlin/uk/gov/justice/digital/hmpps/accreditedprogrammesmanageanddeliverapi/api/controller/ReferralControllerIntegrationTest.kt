@@ -1809,7 +1809,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.availableStatuses).isNotEmpty
       assertThat(response.availableStatuses).hasSize(8)
       assertThat(response.availableStatuses.map { it.status }).containsOnly(
-        "Breach (non-attendance)",
+        "Breach",
         "Recall",
         "Return to court",
         "Awaiting assessment",
@@ -1823,7 +1823,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
         "Awaiting allocation",
         "Suitable but not ready",
         "Return to court",
-        "Breach (non-attendance)",
+        "Breach",
         "Recall",
         "On hold",
         "Withdrawn",
