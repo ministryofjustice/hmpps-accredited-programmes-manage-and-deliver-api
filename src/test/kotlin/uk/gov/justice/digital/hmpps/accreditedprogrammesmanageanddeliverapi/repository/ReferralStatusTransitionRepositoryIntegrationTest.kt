@@ -38,13 +38,8 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
     assertThat(suitableButNotReadyToAwaitingAssessment).isNotNull
     assertThat(suitableButNotReadyToAwaitingAssessment!!.isContinuing).isTrue()
 
-    // Deprioritised --> Awaiting assessment
-    val deprioritisedToAwaitingAssessment = getTransition("Deprioritised", "Awaiting assessment")
-    assertThat(deprioritisedToAwaitingAssessment).isNotNull
-    assertThat(deprioritisedToAwaitingAssessment!!.isContinuing).isTrue()
-
     // Breach (non-attendance) --> Awaiting assessment
-    val breachToAwaitingAssessment = getTransition("Breach (non-attendance)", "Awaiting assessment")
+    val breachToAwaitingAssessment = getTransition("Breach", "Awaiting assessment")
     assertThat(breachToAwaitingAssessment).isNotNull
     assertThat(breachToAwaitingAssessment!!.isContinuing).isTrue()
 
@@ -53,10 +48,10 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
     assertThat(recallToAwaitingAssessment).isNotNull
     assertThat(recallToAwaitingAssessment!!.isContinuing).isTrue()
 
-    // Deferred --> Awaiting assessment
-    val deferredToAwaitingAssessment = getTransition("Deferred", "Awaiting assessment")
-    assertThat(deferredToAwaitingAssessment).isNotNull
-    assertThat(deferredToAwaitingAssessment!!.isContinuing).isTrue()
+    // On hold --> Awaiting assessment
+    val onHoldToAwaitingAssessment = getTransition("On hold", "Awaiting assessment")
+    assertThat(onHoldToAwaitingAssessment).isNotNull
+    assertThat(onHoldToAwaitingAssessment!!.isContinuing).isTrue()
   }
 
   @Test
@@ -67,18 +62,8 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
     assertThat(awaitingAssessmentToSuitableButNotReady).isNotNull
     assertThat(awaitingAssessmentToSuitableButNotReady!!.isContinuing).isFalse()
 
-    // Awaiting assessment --> Deprioritised
-    val awaitingAssessmentToDeprioritised = getTransition("Awaiting assessment", "Deprioritised")
-    assertThat(awaitingAssessmentToDeprioritised).isNotNull
-    assertThat(awaitingAssessmentToDeprioritised!!.isContinuing).isFalse()
-
-    // Scheduled --> Deprioritised
-    val scheduledToDeprioritised = getTransition("Scheduled", "Deprioritised")
-    assertThat(scheduledToDeprioritised).isNotNull
-    assertThat(scheduledToDeprioritised!!.isContinuing).isFalse()
-
     // On programme --> Breach (non-attendance)
-    val onProgrammeToBreach = getTransition("On programme", "Breach (non-attendance)")
+    val onProgrammeToBreach = getTransition("On programme", "Breach")
     assertThat(onProgrammeToBreach).isNotNull
     assertThat(onProgrammeToBreach!!.isContinuing).isFalse()
 
@@ -121,11 +106,15 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
     val transitions = referralStatusTransitionRepository.findByFromStatusId(awaitingAllocation.id)
 
     // Then
-    assertThat(transitions).hasSize(3)
+    assertThat(transitions).hasSize(7)
     assertThat(transitions.map { it.toStatus.description }).containsExactlyInAnyOrder(
-      "Deprioritised",
       "Recall",
       "Return to court",
+      "Awaiting assessment",
+      "Suitable but not ready",
+      "On hold",
+      "Withdrawn",
+      "Breach",
     )
   }
 
@@ -144,22 +133,5 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
     assertThat(transitions).isNotEmpty
 
     assertThat(transitions).extracting("priority").isSorted
-  }
-
-  @Test
-  @Transactional
-  fun `ensure there is exactly one initial status and others are reachable`() {
-    // Given
-    referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
-    val allStatuses = referralStatusDescriptionRepository.findAll()
-
-    // When
-    val unreachable = allStatuses.filter {
-      referralStatusTransitionRepository.findByToStatus(it).isEmpty()
-    }
-
-    // Currently, the "Scheduled" status is unreachable, but this will change in the future
-    assertThat(unreachable).hasSize(1)
-    assertThat(unreachable.first().description).isEqualTo("Scheduled")
   }
 }
