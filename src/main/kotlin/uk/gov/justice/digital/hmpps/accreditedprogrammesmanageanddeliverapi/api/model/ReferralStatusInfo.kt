@@ -36,7 +36,7 @@ data class ReferralStatusInfo(
 
     @Schema(description = "The person has breached their conditions through non-attendance of the programme.")
     BREACH(
-      "Breach (non-attendance)",
+      "Breach",
       "The person has breached their conditions through non-attendance of the programme.",
     ),
 
