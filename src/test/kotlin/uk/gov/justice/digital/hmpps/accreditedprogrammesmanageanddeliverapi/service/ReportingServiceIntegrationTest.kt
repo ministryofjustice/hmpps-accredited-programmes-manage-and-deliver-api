@@ -666,6 +666,7 @@ class ReportingServiceIntegrationTest : IntegrationTestBase() {
       SessionFactory(firstGroup, introTemplate)
         .withStartsAt(LocalDateTime.parse("2026-05-11T10:00:00"))
         .withEndsAt(LocalDateTime.parse("2026-05-11T12:00:00"))
+        .withIsCatchup(true)
         .produce(),
     )
     val understandingSession = sessionRepository.save(
@@ -700,7 +701,7 @@ class ReportingServiceIntegrationTest : IntegrationTestBase() {
     assertThat(lines.first()).contains("M2 S1 Introduction to Building Choices")
     assertThat(lines.first()).contains("M2 S2 Understanding myself")
     assertThat(lines[1]).contains("LIC-123,CRN12345,2")
-    assertThat(lines[1]).contains("GROUP-A")
-    assertThat(lines[1]).contains("GROUP-B")
+    assertThat(lines[1]).contains("GROUP-A - 2026-05-11 - Catch Up")
+    assertThat(lines[1]).contains("GROUP-B - 2026-05-13 - Non-Catch Up")
   }
 }
