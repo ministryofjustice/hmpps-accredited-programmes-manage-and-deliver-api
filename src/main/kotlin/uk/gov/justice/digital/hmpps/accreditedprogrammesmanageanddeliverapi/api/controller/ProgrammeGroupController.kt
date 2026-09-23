@@ -554,7 +554,7 @@ class ProgrammeGroupController(
     val username = authenticationUtils.getUsername()
     val userRegion = userService.getUserRegions(username).firstOrNull()
       ?: return ResponseEntity.ok(emptyList())
-    val teamMembers = regionService.getTeamMembersForPdu(userRegion.code)
+    val teamMembers = regionService.getTeamMembersByRegionCode(userRegion.code)
 
     return ResponseEntity.ok(teamMembers)
   }
