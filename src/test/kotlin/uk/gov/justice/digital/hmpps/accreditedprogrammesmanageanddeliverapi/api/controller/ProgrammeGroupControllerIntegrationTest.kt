@@ -85,7 +85,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceNDeliusOutcomeEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserDtoFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.MemberDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.NDeliusApiProbationDeliveryUnitWithOfficeLocationsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.RegionDtoFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.TeamDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
@@ -1482,8 +1485,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(codes).containsExactly("GROUP-MATCH")
       assertThat(codes).doesNotContain("GROUP-WRONG-PDU", "GROUP-WRONG-LOC")
     }
-
-    private fun encodeQueryParamValue(value: String): String = java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8)
   }
 
   @Nested
@@ -1908,7 +1909,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(reloadedCatchUpSession.attendees).isEmpty()
 
       val currentGroupMembership = foundReferral.programmeGroupMemberships.first()
-      val coreGroupSessions = currentGroupMembership.programmeGroup.sessions.filter { !it.isCatchup && it.sessionType == SessionType.GROUP }
+      val coreGroupSessions =
+        currentGroupMembership.programmeGroup.sessions.filter { !it.isCatchup && it.sessionType == SessionType.GROUP }
       val catchupSessions = currentGroupMembership.programmeGroup.sessions.filter { it.isCatchup }
       assertThat(catchupSessions.all { session -> session.attendees.none { it.referral.id == referral.id } }).isTrue()
       assertThat(coreGroupSessions.all { session -> session.attendees.any { it.referral.id == referral.id } }).isTrue()
@@ -2870,23 +2872,24 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
   inner class GetTeamMembersInPdu {
     @Test
     fun `return 200 and list of pdus when exist in region`() {
-      val members = listOf(NDeliusUserTeamMembersFactory().produce(), NDeliusUserTeamMembersFactory().produce())
-      val teams = listOf(NDeliusUserTeamWithMembersFactory().produce(members = members))
-      val pdu = NDeliusPduWithTeamFactory().produce(team = teams)
+      // Given
+      val members = listOf(MemberDtoFactory().produce(), MemberDtoFactory().produce())
+      val team = TeamDtoFactory().produce(members = members)
 
-      val members2 = listOf(NDeliusUserTeamMembersFactory().produce(), NDeliusUserTeamMembersFactory().produce())
-      val teams2 = listOf(NDeliusUserTeamWithMembersFactory().produce(members = members2))
-      val pdu2 = NDeliusPduWithTeamFactory().produce(team = teams2)
-      val regionWithMembers =
-        NDeliusRegionWithMembersFactory().produce(pdus = listOf(pdu, pdu2), code = "WIREMOCKED REGION")
+      val members2 = listOf(MemberDtoFactory().produce(), MemberDtoFactory().produce())
+      val team2 = TeamDtoFactory().produce(members = members2)
 
-      nDeliusApiStubs.stubRegionWithMembersResponse("REGION001", regionWithMembers)
+      val region = RegionDtoFactory().produce(teams = listOf(team, team2))
+
+      // When
+      nDeliusApiStubs.stubRegionWithAccreditedProgrammesMembersResponse("REGION001", region)
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
         uri = "/bff/region/members",
         returnType = object : ParameterizedTypeReference<List<UserTeamMember>>() {},
       )
 
+      // Then
       assertThat(response).hasSize(members.size + members2.size)
       assertThat(response.first().personName).isEqualTo(members.first().name.getNameAsString())
       assertThat(response.first().personCode).isEqualTo(members.first().code)
@@ -3549,23 +3552,21 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       initialiseReferrals()
       // Setup nDelius stubs for facilitators
       val members = listOf(
-        NDeliusUserTeamMembersFactory().produce(code = "CODE_1", name = FullName("First", null, "Forename")),
-        NDeliusUserTeamMembersFactory().produce(code = "CODE_2", name = FullName("Second", null, "Forename")),
+        MemberDtoFactory().produce(code = "CODE_1", name = FullName("First", null, "Forename")),
+        MemberDtoFactory().produce(code = "CODE_2", name = FullName("Second", null, "Forename")),
       )
       // Create entry for user above to be in another team
       val otherTeamMember = listOf(
-        NDeliusUserTeamMembersFactory().produce(code = "CODE_1", name = FullName("First", null, "Forename")),
+        MemberDtoFactory().produce(code = "CODE_1", name = FullName("First", null, "Forename")),
       )
       val teams = listOf(
-        NDeliusUserTeamWithMembersFactory().produce(members = members),
-        NDeliusUserTeamWithMembersFactory().produce(members = otherTeamMember),
+        TeamDtoFactory().produce(members = members),
+        TeamDtoFactory().produce(members = otherTeamMember),
       )
-      val pdu = NDeliusPduWithTeamFactory().produce(team = teams)
-      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(
-        pdus = listOf(pdu),
-        code = "REGION001",
+      val region = RegionDtoFactory().produce(
+        teams = teams,
       )
-      nDeliusApiStubs.stubRegionWithMembersResponse("REGION001", regionWithMembers)
+      nDeliusApiStubs.stubRegionWithAccreditedProgrammesMembersResponse("REGION001", region)
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       // Create a programme group

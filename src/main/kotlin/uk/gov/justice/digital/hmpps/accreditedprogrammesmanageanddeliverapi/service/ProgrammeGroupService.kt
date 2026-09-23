@@ -270,7 +270,7 @@ class ProgrammeGroupService(
     val username = authenticationUtils.getUsername()
     val userRegion = userService.getUserRegions(username).firstOrNull()
       ?: throw NotFoundException("Region for username $username not found")
-    val facilitators = regionService.getTeamMembersForPdu(userRegion.code)
+    val facilitators = regionService.getTeamMembersByRegionCode(userRegion.code)
     val memberships = programmeGroupMembershipService.getActiveGroupMemberships(groupId)
     val groupMembers = memberships.map { membership ->
       GroupMember(
@@ -597,7 +597,8 @@ class ProgrammeGroupService(
     scheduledSession: SessionEntity,
   ): List<Participant> {
     val username = authenticationUtils.getUsername()
-    val userAccessMap = userAccessService.determineUserAccess(username, scheduledSession.attendees.map { it.referral.crn })
+    val userAccessMap =
+      userAccessService.determineUserAccess(username, scheduledSession.attendees.map { it.referral.crn })
     return if (sessionTemplate.sessionType == SessionType.GROUP && !scheduledSession.isCatchup) {
       listOf(Participant(name = "All"))
     } else {
