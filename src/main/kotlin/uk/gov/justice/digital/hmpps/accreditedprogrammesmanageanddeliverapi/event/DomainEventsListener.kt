@@ -26,15 +26,22 @@ class DomainEventsListener(
 
   @SqsListener("hmppsdomaineventsqueue", factory = "hmppsQueueContainerFactoryProxy")
   fun receive(sqsMessage: SQSMessage) {
-    logger.info("Received Event of type: ${sqsMessage.eventType}")
-    when (sqsMessage.eventType) {
-      INTERVENTIONS_COMMUNITY_REFERRAL_CREATED.value -> referralCreatedHandler.handle(sqsMessage)
-      INTERVENTIONS_COMMUNITY_REFERRAL_IMPORTED.value -> referralImportedHandler.handle(sqsMessage)
-      PROBATION_CASE_MERGE_COMPLETED.value -> referralMergedHandler.handle(sqsMessage)
-      PROBATION_CASE_UNMERGE_COMPLETED.value -> referralUnmergedHandler.handle(sqsMessage)
-      ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value -> referralDetailsUpdatedHandler.handle(sqsMessage)
-      PROBATION_CASE_SENTENCE_DELETED.value -> referralSentenceDeletedHandler.handle(sqsMessage)
-      else -> logger.info("Unknown event type ${sqsMessage.eventType}")
+    try {
+      logger.info("Received Event of type: ${sqsMessage.eventType}")
+      when (sqsMessage.eventType) {
+        INTERVENTIONS_COMMUNITY_REFERRAL_CREATED.value -> referralCreatedHandler.handle(sqsMessage)
+        INTERVENTIONS_COMMUNITY_REFERRAL_IMPORTED.value -> referralImportedHandler.handle(sqsMessage)
+        PROBATION_CASE_MERGE_COMPLETED.value -> referralMergedHandler.handle(sqsMessage)
+        PROBATION_CASE_UNMERGE_COMPLETED.value -> referralUnmergedHandler.handle(sqsMessage)
+        ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value -> referralDetailsUpdatedHandler.handle(sqsMessage)
+        PROBATION_CASE_SENTENCE_DELETED.value -> referralSentenceDeletedHandler.handle(sqsMessage)
+        else -> {
+          logger.debug("Ignoring unknown event type: ${sqsMessage.eventType}. This event is not handled by this service.")
+        }
+      }
+    } catch (e: Exception) {
+      logger.error("Error processing domain event of type ${sqsMessage.eventType}", e)
+      throw e
     }
   }
 }
