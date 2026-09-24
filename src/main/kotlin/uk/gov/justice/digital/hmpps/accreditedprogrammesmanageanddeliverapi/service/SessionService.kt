@@ -343,7 +343,12 @@ class SessionService(
     val userRegion = userService.getUserRegions(username).firstOrNull()
 
     val regionFacilitators: MutableList<UserTeamMember> =
-      if (userRegion == null) mutableListOf() else regionService.getTeamMembersForPdu(userRegion.code).toMutableList()
+      if (userRegion == null) {
+        mutableListOf()
+      } else {
+        regionService.getTeamMembersByRegionCode(userRegion.code)
+          .toMutableList()
+      }
 
     return getSessionFacilitators(sessionId, regionFacilitators)
   }

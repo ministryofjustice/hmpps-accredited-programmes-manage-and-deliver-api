@@ -1717,7 +1717,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.currentStatus.title).isEqualTo("Awaiting assessment")
       assertThat(response.availableStatuses).isNotEmpty
       assertThat(response.availableStatuses.first { it.status == "Awaiting allocation" }.transitionDescription)
-        .isEqualTo("The person has been assessed as suitable and can be allocated to a group.")
+        .isEqualTo("The person has been assessed as suitable and can be allocated to a group, either for the first time or if they have been bus-stopped.")
     }
 
     @Test
@@ -1807,20 +1807,26 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).isNotNull
       assertThat(response.currentStatus.title).isEqualTo("On programme")
       assertThat(response.availableStatuses).isNotEmpty
-      assertThat(response.availableStatuses).hasSize(5)
+      assertThat(response.availableStatuses).hasSize(8)
       assertThat(response.availableStatuses.map { it.status }).containsOnly(
-        "Breach (non-attendance)",
+        "Breach",
         "Recall",
         "Return to court",
         "Awaiting assessment",
         "Awaiting allocation",
+        "Suitable but not ready",
+        "On hold",
+        "Withdrawn",
       )
       assertThat(response.availableStatuses.map { it.status }).containsSequence(
         "Awaiting assessment",
         "Awaiting allocation",
-        "Breach (non-attendance)",
-        "Recall",
+        "Suitable but not ready",
         "Return to court",
+        "Breach",
+        "Recall",
+        "On hold",
+        "Withdrawn",
       )
     }
   }

@@ -14,6 +14,7 @@ enum class IntegrationActivityType(val eventName: String) {
   GET_REQUIREMENTS_N_DELIUS("Requirements.get-nDelius"),
   GET_USER_TEAM_N_DELIUS("UserTeam.get-nDelius"),
   GET_REGION_PDU_N_DELIUS("Pdu.get-for-region-nDelius"),
+  GET_REGION_ACCREDITED_PROGRAMMES_MEMBERS_N_DELIUS("Region.get-accredited-programmes-members-nDelius"),
   GET_PDU_OFFICE_LOCATION_N_DELIUS("OfficeLocation.get-for-PDU-nDelius"),
   CREATE_APPOINTMENT_N_DELIUS("Appointment.create-nDelius"),
   DELETE_APPOINTMENT_N_DELIUS("Appointment.delete-nDelius"),

@@ -39,6 +39,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegionWithMembers
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RegionDto
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequestCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
@@ -67,6 +68,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UpdateAppointmentRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UpdateAppointmentsRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserDtoFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.MemberDtoFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.RegionDtoFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.TeamDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
@@ -1765,27 +1769,25 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return list of facilitators for the session and set currentlyFacilitating to true for facilitators already part of the group`() {
       // Given
-      // Stub Ndelius Response with 2 facilitators already assigned to the group and one that is just pulled from the full list from Ndelius
-      val groupFacilitators: MutableList<NDeliusRegionWithMembers.NDeliusUserTeamMembers> =
+      // Stub NDelius response with 2 facilitators already assigned to the group and one that is just pulled from the full list from NDelius
+      val groupFacilitators: MutableList<RegionDto.MemberDto> =
         group.groupFacilitators.map {
-          NDeliusUserTeamMembersFactory().produce(
+          MemberDtoFactory().produce(
             code = it.facilitatorCode,
             name = it.facilitatorName.toFullName(),
           )
         }.toMutableList()
       groupFacilitators.add(
-        NDeliusUserTeamMembersFactory().produce(
+        MemberDtoFactory().produce(
           code = randomAlphanumericString(),
           name = randomFullName(),
         ),
       )
-      val teams = listOf(NDeliusUserTeamWithMembersFactory().produce(members = groupFacilitators))
-      val pdu = NDeliusPduWithTeamFactory().produce(team = teams)
-      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(
-        pdus = listOf(pdu),
-        code = "WIREMOCKED_REGION",
+      val teams = listOf(TeamDtoFactory().produce(members = groupFacilitators))
+      val regionWithMembers = RegionDtoFactory().produce(
+        teams = teams,
       )
-      nDeliusApiStubs.stubRegionWithMembersResponse("WIREMOCKED_REGION", regionWithMembers)
+      nDeliusApiStubs.stubRegionWithAccreditedProgrammesMembersResponse("WIREMOCKED_REGION", regionWithMembers)
       val sessionId = group.sessions.find { it.sessionType == SessionType.GROUP }!!.id!!
 
       // When

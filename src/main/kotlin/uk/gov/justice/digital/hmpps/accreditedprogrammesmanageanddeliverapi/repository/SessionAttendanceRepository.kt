@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Repository
@@ -22,7 +23,9 @@ interface SessionAttendanceRepository : JpaRepository<SessionAttendanceEntity, U
              mst.session_number AS sessionNumber,
              mst.name AS sessionName,
              pg.code AS groupCode,
-             s.id AS sessionId
+             s.id AS sessionId,
+             s.is_catchup AS sessionIsCatchup,
+             s.starts_at AS sessionStartAt
       FROM session_attendance sa
       JOIN programme_group_membership gm ON sa.group_membership_id = gm.id
       JOIN session s ON sa.session_id = s.id
@@ -53,4 +56,6 @@ interface DosageAttendanceProjection {
   val sessionName: String
   val groupCode: String
   val sessionId: UUID
+  val sessionIsCatchup: Boolean
+  val sessionStartAt: LocalDateTime
 }
