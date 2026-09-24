@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.ACP_M_AND_D_REFERRAL_DETAILS_UPDATED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.INTERVENTIONS_COMMUNITY_REFERRAL_CREATED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.INTERVENTIONS_COMMUNITY_REFERRAL_IMPORTED
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.INTERVENTIONS_SESSION_FEEDBACK_SUBMITTED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.PROBATION_CASE_MERGE_COMPLETED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.PROBATION_CASE_SENTENCE_DELETED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.PROBATION_CASE_UNMERGE_COMPLETED
@@ -21,6 +22,7 @@ class DomainEventsListener(
   val referralUnmergedHandler: ReferralUnmergedHandler,
   val referralDetailsUpdatedHandler: ReferralDetailsUpdatedHandler,
   val referralSentenceDeletedHandler: ReferralSentenceDeletedHandler,
+  val sessionFeedbackSubmittedHandler: SessionFeedbackSubmittedHandler,
 ) {
   private val logger = LoggerFactory.getLogger(this::class.java)
 
@@ -31,6 +33,7 @@ class DomainEventsListener(
       when (sqsMessage.eventType) {
         INTERVENTIONS_COMMUNITY_REFERRAL_CREATED.value -> referralCreatedHandler.handle(sqsMessage)
         INTERVENTIONS_COMMUNITY_REFERRAL_IMPORTED.value -> referralImportedHandler.handle(sqsMessage)
+        INTERVENTIONS_SESSION_FEEDBACK_SUBMITTED.value -> sessionFeedbackSubmittedHandler.handle(sqsMessage)
         PROBATION_CASE_MERGE_COMPLETED.value -> referralMergedHandler.handle(sqsMessage)
         PROBATION_CASE_UNMERGE_COMPLETED.value -> referralUnmergedHandler.handle(sqsMessage)
         ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value -> referralDetailsUpdatedHandler.handle(sqsMessage)
