@@ -2549,6 +2549,7 @@ class SessionServiceTest {
     every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
       ClientResult.Success(HttpStatus.NO_CONTENT, Unit)
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
     every { userService.getUserByUsernameOrNull(any()) } returns user
 
@@ -2598,6 +2599,7 @@ class SessionServiceTest {
     every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
       ClientResult.Success(HttpStatus.NO_CONTENT, Unit)
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
     every { userService.getUserByUsernameOrNull(any()) } returns user
 
@@ -2689,6 +2691,7 @@ class SessionServiceTest {
     every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
       ClientResult.Success(HttpStatus.NO_CONTENT, Unit)
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
     every { userService.getUserByUsernameOrNull(any()) } returns user
 
