@@ -34,7 +34,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.ProbationAccessControlApiClient
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.ACCREDITED_PROGRAMMES_AUTOMATED_UPDATE
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.DEFAULT_CREATED_BY_VALUE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -152,12 +152,18 @@ class ReferralService(
 
     val pniScore = pniDeferred?.await()
     if (pniScore != null) {
-      if (!ldcOverridden) ldcService.updateLdcStatusForReferral(referral, UpdateLdc(pniScore.hasLdc), "SYSTEM")
+      if (!ldcOverridden) {
+        ldcService.updateLdcStatusForReferral(
+          referral,
+          UpdateLdc(pniScore.hasLdc),
+          DEFAULT_CREATED_BY_VALUE,
+        )
+      }
       if (!cohortOverridden) {
         cohortService.updateCohortForReferral(
           referral,
           cohortService.determineOffenceCohort(pniScore),
-          "SYSTEM",
+          DEFAULT_CREATED_BY_VALUE,
         )
       }
     }
@@ -279,7 +285,7 @@ class ReferralService(
       referralStatusDescription = awaitingAssessmentStatusDescription,
       startDate = LocalDateTime.now(),
       additionalDetails = null,
-      createdBy = ACCREDITED_PROGRAMMES_AUTOMATED_UPDATE,
+      createdBy = DEFAULT_CREATED_BY_VALUE,
     )
     referralEntity.statusHistories = mutableListOf(statusHistoryEntity)
     log.info("Inserting the default ReferralStatusHistory row for newly created Referral with id ${referral.id!!}")
@@ -289,13 +295,19 @@ class ReferralService(
         ReferralCohortHistoryEntity(
           referral = referralEntity,
           cohort = cohort,
-          createdBy = "SYSTEM",
+          createdBy = DEFAULT_CREATED_BY_VALUE,
         ),
       )
     referralEntity.referralCohortHistories = referralCohortHistories
 
     val referralLdcHistories =
-      mutableSetOf(ReferralLdcHistoryEntity(hasLdc = hasLdc, referral = referralEntity, createdBy = "SYSTEM"))
+      mutableSetOf(
+        ReferralLdcHistoryEntity(
+          hasLdc = hasLdc,
+          referral = referralEntity,
+          createdBy = DEFAULT_CREATED_BY_VALUE,
+        ),
+      )
     referralEntity.referralLdcHistories = referralLdcHistories
 
     personalDetails?.let {
