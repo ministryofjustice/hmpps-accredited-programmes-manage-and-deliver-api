@@ -13,6 +13,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.even
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.PROBATION_CASE_UNMERGE_COMPLETED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 
+/**
+ * Listener for HMPPS domain events from SQS queue.
+ * Delegates event processing to appropriate handler based on event type.
+ * Ensures errors are logged and re-thrown to allow SQS to handle retry/DLQ logic.
+ */
 @Service
 class DomainEventsListener(
   val objectMapper: ObjectMapper,
@@ -24,12 +29,15 @@ class DomainEventsListener(
   val referralSentenceDeletedHandler: ReferralSentenceDeletedHandler,
   val sessionFeedbackSubmittedHandler: SessionFeedbackSubmittedHandler,
 ) {
-  private val logger = LoggerFactory.getLogger(this::class.java)
+
+  companion object {
+    private val log = LoggerFactory.getLogger(this::class.java)
+  }
 
   @SqsListener("hmppsdomaineventsqueue", factory = "hmppsQueueContainerFactoryProxy")
   fun receive(sqsMessage: SQSMessage) {
     try {
-      logger.info("Received Event of type: ${sqsMessage.eventType}")
+      log.info("Received Event of type: ${sqsMessage.eventType} with messageId: ${sqsMessage.messageId}")
       when (sqsMessage.eventType) {
         INTERVENTIONS_COMMUNITY_REFERRAL_CREATED.value -> referralCreatedHandler.handle(sqsMessage)
         INTERVENTIONS_COMMUNITY_REFERRAL_IMPORTED.value -> referralImportedHandler.handle(sqsMessage)
@@ -39,11 +47,11 @@ class DomainEventsListener(
         ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value -> referralDetailsUpdatedHandler.handle(sqsMessage)
         PROBATION_CASE_SENTENCE_DELETED.value -> referralSentenceDeletedHandler.handle(sqsMessage)
         else -> {
-          logger.debug("Ignoring unknown event type: ${sqsMessage.eventType}. This event is not handled by this service.")
+          log.debug("Ignoring unknown event type: ${sqsMessage.eventType} for messageId: ${sqsMessage.messageId}. This event is not handled by this service.")
         }
       }
     } catch (e: Exception) {
-      logger.error("Error processing domain event of type ${sqsMessage.eventType}", e)
+      log.error("Error processing domain event of type ${sqsMessage.eventType} with messageId: ${sqsMessage.messageId}: ${e.message}", e)
       throw e
     }
   }
