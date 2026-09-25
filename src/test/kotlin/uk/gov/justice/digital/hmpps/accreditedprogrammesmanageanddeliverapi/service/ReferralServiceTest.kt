@@ -192,6 +192,7 @@ class ReferralServiceTest {
     verify { findAndReferInterventionApiClient.getFindAndReferReferral(referralId) }
   }
 
+  @Suppress("UNCHECKED_CAST")
   @Test
   fun `deleteReferralByCaseReferenceNumber should delete referrals when they are not found in NDelius`() {
     // Given

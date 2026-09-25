@@ -354,7 +354,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response.sessionName).isEqualTo("Managing people around me 6 catch-up")
+      assertThat(response.sessionName).isEqualTo("People around me 6 catch-up")
     }
 
     @Test
