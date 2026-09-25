@@ -67,7 +67,7 @@ hmpps:
       expected-render-result:
         path: /sar/sar-expected-render-result.html
       attachments-expected: false
-      expected-flyway-schema-version: 118
+      expected-flyway-schema-version: 119
       expected-jpa-entity-schema:
         path: /sar/entity-schema-snapshot.json
 

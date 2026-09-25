@@ -3823,13 +3823,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
             "Managing life’s problems 4: Putting it into action",
           )
 
-          "Managing people around me" -> assertThat(module.sessions.map { it.name }).containsExactly(
-            "Managing people around me 1: Understanding the people and influences around me",
-            "Managing people around me 2: My role in relationships",
-            "Managing people around me 3: Relationship skills, part 1",
-            "Managing people around me 4: Relationship skills, part 2",
-            "Managing people around me 5: Practising our relationship skills",
-            "Managing people around me 6: Module skills practice",
+          "People around me" -> assertThat(module.sessions.map { it.name }).containsExactly(
+            "People around me 1: Understanding the people and influences around me",
+            "People around me 2: My role in relationships",
+            "People around me 3: Relationship skills, part 1",
+            "People around me 4: Relationship skills, part 2",
+            "People around me 5: Practising our relationship skills",
+            "People around me 6: Module skills practice",
           )
 
           "Bringing it all together" -> assertThat(module.sessions.map { it.name }).containsExactly(
