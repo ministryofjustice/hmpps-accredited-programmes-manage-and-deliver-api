@@ -785,7 +785,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(programmeGroup)
-          .withModuleSessionTemplate(regularModuleSessions.first())
+          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.GROUP })
           .withStartsAt(LocalDateTime.of(2026, 7, 20, 15, 30))
           .withEndsAt(LocalDateTime.of(2026, 7, 20, 17, 30))
           .withIsPlaceholder(false)
@@ -795,7 +795,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(programmeGroup)
-          .withModuleSessionTemplate(regularModuleSessions.first())
+          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.GROUP })
           .withStartsAt(LocalDateTime.of(2026, 7, 27, 15, 30))
           .withEndsAt(LocalDateTime.of(2026, 7, 27, 17, 30))
           .withIsPlaceholder(false)
@@ -805,7 +805,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(programmeGroup)
-          .withModuleSessionTemplate(gettingStartedModuleSessions.first())
+          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.ONE_TO_ONE })
           .withStartsAt(LocalDateTime.of(2026, 7, 27, 15, 30))
           .withEndsAt(LocalDateTime.of(2026, 7, 27, 17, 30))
           .withIsPlaceholder(false)
