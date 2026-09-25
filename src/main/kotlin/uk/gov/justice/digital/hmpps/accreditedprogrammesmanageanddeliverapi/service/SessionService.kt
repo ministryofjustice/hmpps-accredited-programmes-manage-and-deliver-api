@@ -506,9 +506,17 @@ class SessionService(
     // must not reach nDelius, which appends the notes on every update.
     val changedAttendees = sessionAttendance.attendees.filter { attendee ->
       val latestAttendance = latestAttendanceByReferralId[attendee.referralId] ?: return@filter true
+
+      // Check if outcome has changed
+      val outcomeChanged = attendee.outcomeCode != latestAttendance.outcomeType.code
+
+      // Check if notes have changed (if new notes are provided)
       val submittedNotes = attendee.sessionNotes?.trim()
       val latestNotes = latestAttendance.notesHistory.maxByOrNull { it.createdAt }?.notes?.trim()
-      !submittedNotes.isNullOrEmpty() && submittedNotes != latestNotes
+      val notesChanged = !submittedNotes.isNullOrEmpty() && submittedNotes != latestNotes
+
+      // Include if either outcome or notes have changed
+      outcomeChanged || notesChanged
     }
 
     if (changedAttendees.isEmpty()) {
