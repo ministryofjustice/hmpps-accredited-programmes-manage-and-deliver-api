@@ -538,8 +538,12 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(gettingStartedModule).isNotNull
       val gettingStartedModuleId = gettingStartedModule!!.id!!
 
-      // Find regular module
-      val regularModule = modules.find { it.moduleNumber == modules[3].moduleNumber }
+      // Find regular module - skip Pre-group, Getting Started, and Post-programme modules
+      val regularModule = modules.find {
+        !it.name.startsWith("Pre-group") &&
+          !it.name.startsWith("Getting started") &&
+          !it.name.startsWith("Post-programme")
+      }
       assertThat(regularModule).isNotNull
       val regularModuleId = regularModule!!.id!!
 
@@ -785,7 +789,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(programmeGroup)
-          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.GROUP })
+          .withModuleSessionTemplate(regularModuleSessions.first())
           .withStartsAt(LocalDateTime.of(2026, 7, 20, 15, 30))
           .withEndsAt(LocalDateTime.of(2026, 7, 20, 17, 30))
           .withIsPlaceholder(false)
@@ -795,7 +799,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(programmeGroup)
-          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.GROUP })
+          .withModuleSessionTemplate(regularModuleSessions.first())
           .withStartsAt(LocalDateTime.of(2026, 7, 27, 15, 30))
           .withEndsAt(LocalDateTime.of(2026, 7, 27, 17, 30))
           .withIsPlaceholder(false)
@@ -805,7 +809,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(programmeGroup)
-          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.ONE_TO_ONE })
+          .withModuleSessionTemplate(regularModuleSessions.last())
           .withStartsAt(LocalDateTime.of(2026, 7, 27, 15, 30))
           .withEndsAt(LocalDateTime.of(2026, 7, 27, 17, 30))
           .withIsPlaceholder(false)
