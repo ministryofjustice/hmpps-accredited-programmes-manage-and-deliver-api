@@ -119,11 +119,11 @@ class ReferralServiceTest {
       probationAccessControlApiClient = probationAccessControlApiClient,
       sessionRepository = sessionRepository,
       laoAccessCheckEnabled = true,
-      userAccessService = userAccessService,
       authenticationHolder = authenticationHolder,
       transactionTemplate = transactionTemplate,
       nDeliusAppointmentRepository = nDeliusAppointmentRepository,
       messageHistoryRepository = messageHistoryRepository,
+      userAccessService = userAccessService,
     )
   }
 

@@ -102,11 +102,11 @@ class ReferralService(
   private val sessionRepository: SessionRepository,
   @param:Value($$"${app.features.lao-access-check-enabled}")
   private val laoAccessCheckEnabled: Boolean,
-  private val userAccessService: UserAccessService,
   private val authenticationHolder: HmppsAuthenticationHolder,
   private val transactionTemplate: TransactionTemplate,
   private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
   private val messageHistoryRepository: MessageHistoryRepository,
+  private val userAccessService: UserAccessService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -680,7 +680,7 @@ class ReferralService(
 
   fun getStatusHistory(referralId: UUID): List<ReferralStatusHistory> = referralStatusHistoryRepository.findAllByReferralId(referralId).sortedBy { it.createdAt }.map { it.toApi() }
 
-  fun updateReferralDetails(
+  private fun updateReferralDetails(
     referral: ReferralEntity,
     personalDetails: NDeliusPersonalDetails,
     sentenceEndDate: LocalDate?,

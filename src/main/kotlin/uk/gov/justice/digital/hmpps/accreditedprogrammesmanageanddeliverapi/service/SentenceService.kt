@@ -8,7 +8,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_SENTENCE_DETAILS_N_DELIUS
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.time.LocalDate
 
 @Service
@@ -65,10 +64,8 @@ class SentenceService(
   fun getSentenceEndDate(crn: String, eventNumber: Int?, sentenceType: ReferralEntitySourcedFrom?): LocalDate? {
     val sentenceInfo = getSentenceInformationByIdentifier(crn, eventNumber)
     return when (sentenceType) {
-      ReferralEntitySourcedFrom.REQUIREMENT,
-      ReferralEntitySourcedFrom.LICENCE_CONDITION,
-      -> sentenceInfo?.expectedEndDate
-
+      ReferralEntitySourcedFrom.REQUIREMENT -> sentenceInfo?.expectedEndDate
+      ReferralEntitySourcedFrom.LICENCE_CONDITION -> sentenceInfo?.licenceExpiryDate
       else -> null
     }
   }

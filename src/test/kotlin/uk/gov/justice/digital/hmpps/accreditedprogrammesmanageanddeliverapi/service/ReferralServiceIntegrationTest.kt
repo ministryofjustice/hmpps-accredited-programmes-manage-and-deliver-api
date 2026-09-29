@@ -707,7 +707,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         "CRN-12345",
         1,
-        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).withLicenceExpiryDate(LocalDate.parse("2028-05-15")).produce(),
       )
 
       //    When
@@ -728,7 +728,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(referralFromRepo.statusHistories.firstOrNull()?.referralStatusDescription?.description).isEqualTo("Awaiting assessment")
       assertThat(referralFromRepo.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
       assertThat(referralFromRepo.sex).isEqualTo("Male")
-      assertThat(referralFromRepo.sentenceEndDate).isEqualTo(LocalDate.parse("2027-11-02"))
+      assertThat(referralFromRepo.sentenceEndDate).isEqualTo(LocalDate.parse("2028-05-15"))
 
       assertThat(reportingLocation).isNotNull()
       assertThat(reportingLocation!!.regionName).isEqualTo("THE REGION DESCRIPTION")
@@ -750,7 +750,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referralDetails.personReference,
         1,
-        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).withLicenceExpiryDate(LocalDate.parse("2028-05-15")).produce(),
       )
 
       // When
@@ -768,7 +768,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
       assertThat(savedReferral.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
       assertThat(savedReferral.sex).isEqualTo("Male")
-      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2027-11-02"))
+      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2028-05-15"))
     }
 
     @Test
@@ -785,7 +785,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referralDetails.personReference,
         1,
-        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).withLicenceExpiryDate(LocalDate.parse("2028-05-15")).produce(),
       )
 
       // When
@@ -803,7 +803,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
       assertThat(savedReferral.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
       assertThat(savedReferral.sex).isEqualTo("Male")
-      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2027-11-02"))
+      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2028-05-15"))
     }
 
     @Test
@@ -817,7 +817,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referralDetails.personReference,
         1,
-        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).withLicenceExpiryDate(LocalDate.parse("2028-05-15")).produce(),
       )
 
       // When
@@ -835,7 +835,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
       assertThat(savedReferral.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
       assertThat(savedReferral.sex).isEqualTo("Male")
-      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2027-11-02"))
+      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2028-05-15"))
     }
 
     @Test
@@ -846,7 +846,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referralDetails.personReference,
         1,
-        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).withLicenceExpiryDate(LocalDate.parse("2028-05-15")).produce(),
       )
 
       // When
@@ -872,7 +872,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referralDetails.personReference,
         1,
-        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).withLicenceExpiryDate(LocalDate.parse("2028-05-15")).produce(),
       )
 
       // When
@@ -893,7 +893,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.referralReportingLocation?.reportingTeam).isEqualTo(personalDetails.team.description)
       assertThat(savedReferral.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
       assertThat(savedReferral.sex).isEqualTo("Male")
-      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2027-11-02"))
+      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2028-05-15"))
     }
 
     @Test
@@ -950,7 +950,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referral.crn,
         referral.eventNumber,
-        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).withLicenceExpiryDate(LocalDate.parse("2028-05-15")).produce(),
       )
       nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
@@ -981,7 +981,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referral.crn,
         referral.eventNumber,
-        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).withLicenceExpiryDate(LocalDate.parse("2028-05-15")).produce(),
       )
       nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
@@ -1043,7 +1043,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referral.crn,
         referral.eventNumber,
-        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).withLicenceExpiryDate(LocalDate.parse("2028-05-15")).produce(),
       )
       nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
@@ -1066,7 +1066,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referral.crn,
         referral.eventNumber,
-        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).withLicenceExpiryDate(LocalDate.parse("2028-05-15")).produce(),
       )
       nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
@@ -1247,7 +1247,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
         referral.crn,
         referral.eventNumber,
-        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).produce(),
+        NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2027-11-02")).withLicenceExpiryDate(LocalDate.parse("2028-05-15")).produce(),
       )
       nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
