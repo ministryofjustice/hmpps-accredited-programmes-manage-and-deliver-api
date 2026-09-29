@@ -65,7 +65,11 @@ class SentenceService(
     val sentenceInfo = getSentenceInformationByIdentifier(crn, eventNumber)
     return when (sentenceType) {
       ReferralEntitySourcedFrom.REQUIREMENT -> sentenceInfo?.expectedEndDate
-      ReferralEntitySourcedFrom.LICENCE_CONDITION -> sentenceInfo?.licenceExpiryDate
+
+      // For licence conditions the sentence end date is the licence expiry date ( on the throughcare section on nDelius), falling
+      // back to the expected end date when the licence expiry date is not available.
+      ReferralEntitySourcedFrom.LICENCE_CONDITION -> sentenceInfo?.let { it.licenceExpiryDate ?: it.expectedEndDate }
+
       else -> null
     }
   }
