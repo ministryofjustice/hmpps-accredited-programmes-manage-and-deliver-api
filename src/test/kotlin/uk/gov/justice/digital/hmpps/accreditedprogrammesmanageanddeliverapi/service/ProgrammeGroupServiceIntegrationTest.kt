@@ -24,7 +24,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.UserRegionOverrideEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
@@ -410,6 +412,138 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(programmeGroups.pagedGroupData.map { it.code }).contains("PARTIALLY_COMPLETED_GROUP")
       assertThat(programmeGroups.pagedGroupData.map { it.code }).doesNotContain("COMPLETED_GROUP")
     }
+
+    @Test
+    fun `COMPLETE should include a group where every active member completed and a member was removed early without completing`() {
+      val group = createStartedGroup("COMPLETED_WITH_DROPOUT")
+
+      val completer = createReferralWithProgrammeCompleteStatus("Completer", "CRN_C")
+      val completerMembership =
+        testDataGenerator.allocateReferralsToGroup(listOf(completer), group, deletedAt = LocalDateTime.now()).first()
+      createAttendedPostProgrammeReview(group, completerMembership)
+
+      val dropout = testDataGenerator.createReferral("Dropout", "CRN_D")
+      testDataGenerator.allocateReferralsToGroup(listOf(dropout), group, deletedAt = LocalDateTime.now())
+
+      assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE)).contains("COMPLETED_WITH_DROPOUT")
+      assertThat(groupCodesForTab(GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS)).doesNotContain("COMPLETED_WITH_DROPOUT")
+    }
+
+    @Test
+    fun `a group where every member was removed early without completing is not complete`() {
+      val group = createStartedGroup("ALL_DROPOUTS")
+      val referralOne = testDataGenerator.createReferral("Dropout One", "CRN_D1")
+      val referralTwo = testDataGenerator.createReferral("Dropout Two", "CRN_D2")
+      testDataGenerator.allocateReferralsToGroup(listOf(referralOne, referralTwo), group, deletedAt = LocalDateTime.now())
+
+      assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE)).doesNotContain("ALL_DROPOUTS")
+      assertThat(groupCodesForTab(GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS)).contains("ALL_DROPOUTS")
+    }
+
+    @Test
+    fun `a group is not complete while a member is still active and working through the programme`() {
+      val group = createStartedGroup("PARTIALLY_ACTIVE")
+
+      val completer = createReferralWithProgrammeCompleteStatus("Completer", "CRN_PC")
+      val completerMembership =
+        testDataGenerator.allocateReferralsToGroup(listOf(completer), group, deletedAt = LocalDateTime.now()).first()
+      createAttendedPostProgrammeReview(group, completerMembership)
+
+      val inProgress = testDataGenerator.createReferral("In Progress", "CRN_IP")
+      testDataGenerator.allocateReferralsToGroup(listOf(inProgress), group)
+
+      assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE)).doesNotContain("PARTIALLY_ACTIVE")
+      assertThat(groupCodesForTab(GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS)).contains("PARTIALLY_ACTIVE")
+    }
+
+    @Test
+    fun `a group is not complete when a member's only post-programme review attendance belongs to a different group`() {
+      val group = createStartedGroup("GROUP_AWAITING_COMPLETION")
+      val otherGroup = createStartedGroup("GROUP_WITH_THE_REVIEW")
+
+      val referral = createReferralWithProgrammeCompleteStatus("Cross Group", "CRN_XG")
+      val membership = testDataGenerator.allocateReferralsToGroup(listOf(referral), group).first()
+
+      val template = testDataGenerator.createAccreditedProgrammeTemplate("Template GROUP_WITH_THE_REVIEW")
+      val module = testDataGenerator.createModule(template, "post-programme review", 1)
+      val moduleSessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        module = module,
+        name = "Post Programme Session",
+        sessionNumber = 1,
+      )
+      val otherGroupSession = testDataGenerator.createSession(
+        SessionFactory(programmeGroup = otherGroup, moduleSessionTemplate = moduleSessionTemplate).produce(),
+      )
+      testDataGenerator.createSessionAttendance(
+        SessionAttendanceEntity(
+          session = otherGroupSession,
+          groupMembership = membership,
+          outcomeType = attendedCompliedOutcome(),
+        ),
+      )
+
+      assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE)).doesNotContain("GROUP_AWAITING_COMPLETION")
+      assertThat(groupCodesForTab(GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS)).contains("GROUP_AWAITING_COMPLETION")
+    }
+
+    private fun createStartedGroup(code: String): ProgrammeGroupEntity = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withSex(ProgrammeGroupSexEnum.MALE)
+        .withCode(code)
+        .withRegionName("Region Description")
+        .withEarliestStartDate(LocalDate.now().minusDays(10))
+        .produce(),
+    )
+
+    private fun createReferralWithProgrammeCompleteStatus(personName: String, crn: String): ReferralEntity {
+      val referral = testDataGenerator.createReferral(personName, crn)
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(
+          referral = referral,
+          referralStatusDescription = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription(),
+        ),
+      )
+      return referral
+    }
+
+    private fun createAttendedPostProgrammeReview(
+      group: ProgrammeGroupEntity,
+      membership: ProgrammeGroupMembershipEntity,
+    ) {
+      val template = testDataGenerator.createAccreditedProgrammeTemplate("Template ${group.code}")
+      val module = testDataGenerator.createModule(template, "post-programme review", 1)
+      val moduleSessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        module = module,
+        name = "Post Programme Session",
+        sessionNumber = 1,
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory(programmeGroup = group, moduleSessionTemplate = moduleSessionTemplate).produce(),
+      )
+      testDataGenerator.createSessionAttendance(
+        SessionAttendanceEntity(
+          session = session,
+          groupMembership = membership,
+          outcomeType = attendedCompliedOutcome(),
+        ),
+      )
+    }
+
+    private fun attendedCompliedOutcome() = sessionAttendanceOutcomeTypeRepository.findByCode(SessionAttendanceNDeliusCode.ATTC)
+      ?: testDataGenerator.createSessionAttendanceOutcome(
+        SessionAttendanceNDeliusOutcomeEntityFactory().withCode(SessionAttendanceNDeliusCode.ATTC).produce(),
+      )
+
+    private fun groupCodesForTab(tab: GroupPageByRegionTab): List<String> = service.getProgrammeGroupsForRegion(
+      pageable = pageable,
+      groupCode = null,
+      pdus = null,
+      deliveryLocations = null,
+      cohort = null,
+      sex = "MALE",
+      selectedTab = tab,
+      username = "the_username",
+    ).pagedGroupData.content.map { it.code }
   }
 
   @Nested

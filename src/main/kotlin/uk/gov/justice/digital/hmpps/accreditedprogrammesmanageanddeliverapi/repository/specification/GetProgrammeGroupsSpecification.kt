@@ -25,20 +25,6 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlin.jvm.java
 
-fun hasAtLeastOneActiveMembership(
-  query: CriteriaQuery<*>,
-  cb: CriteriaBuilder,
-  root: Root<ProgrammeGroupEntity>,
-): Predicate {
-  val membershipExistsSubquery = query.subquery(Long::class.java)
-  val membershipRoot = membershipExistsSubquery.from(ProgrammeGroupMembershipEntity::class.java)
-  membershipExistsSubquery.select(cb.literal(1L))
-  membershipExistsSubquery.where(
-    cb.equal(membershipRoot.get<ProgrammeGroupEntity>("programmeGroup"), root),
-  )
-  return cb.exists(membershipExistsSubquery)
-}
-
 fun getProgrammeGroupsSpecification(
   groupCode: String?,
   pdus: List<String>?,
@@ -105,6 +91,10 @@ fun hasAttendedPostProgrammeReview(
   postProgrammeReviewAttendanceSubquery.select(cb.count(attendanceRoot))
   postProgrammeReviewAttendanceSubquery.where(
     cb.equal(attendanceRoot.get<ProgrammeGroupMembershipEntity>("groupMembership"), groupMembershipRoot),
+    cb.equal(
+      sessionJoin.get<ProgrammeGroupEntity>("programmeGroup"),
+      groupMembershipRoot.get<ProgrammeGroupEntity>("programmeGroup"),
+    ),
     cb.like(cb.lower(moduleJoin.get("name")), "post-programme%"),
     cb.isFalse(sessionJoin.get("isPlaceholder")),
     cb.isTrue(outcomeJoin.get("attendance")),
@@ -142,33 +132,64 @@ fun isLatestReferralStatusProgrammeComplete(
   return cb.exists(programmeCompleteStatusExistsSubquery)
 }
 
-fun incompleteMembershipCountSubquery(
+/**
+ * Counts memberships that are still "unresolved" for the group: a member who is still active
+ * (not removed from the group) and has not genuinely completed the programme (Programme complete
+ * status + attended post-programme review). Members who have been removed from the group are
+ * intentionally excluded here regardless of why they were removed
+ */
+fun unresolvedActiveMembershipCountSubquery(
   query: CriteriaQuery<*>,
   cb: CriteriaBuilder,
   root: Root<ProgrammeGroupEntity>,
 ): Subquery<Long> {
-  val incompleteMembershipCountSubquery = query.subquery(Long::class.java)
-  val groupMembershipRoot = incompleteMembershipCountSubquery.from(ProgrammeGroupMembershipEntity::class.java)
+  val unresolvedActiveMembershipCountSubquery = query.subquery(Long::class.java)
+  val groupMembershipRoot = unresolvedActiveMembershipCountSubquery.from(ProgrammeGroupMembershipEntity::class.java)
   val referralJoin = groupMembershipRoot.join<ProgrammeGroupMembershipEntity, ReferralEntity>("referral")
 
   val isMembershipComplete = cb.and(
     isLatestReferralStatusProgrammeComplete(query, cb, referralJoin),
-    hasAttendedPostProgrammeReview(incompleteMembershipCountSubquery, cb, groupMembershipRoot),
+    hasAttendedPostProgrammeReview(unresolvedActiveMembershipCountSubquery, cb, groupMembershipRoot),
   )
 
-  incompleteMembershipCountSubquery.select(cb.count(groupMembershipRoot))
-  incompleteMembershipCountSubquery.where(
+  unresolvedActiveMembershipCountSubquery.select(cb.count(groupMembershipRoot))
+  unresolvedActiveMembershipCountSubquery.where(
     cb.equal(groupMembershipRoot.get<ProgrammeGroupEntity>("programmeGroup"), root),
+    cb.isNull(groupMembershipRoot.get<LocalDateTime>("deletedAt")),
     cb.not(isMembershipComplete),
   )
-  return incompleteMembershipCountSubquery
+  return unresolvedActiveMembershipCountSubquery
+}
+
+/**
+ * Whether the group has at least one membership (active or removed) that genuinely completed the
+ * programme (Programme complete status + attended post-programme review for this group). This
+ * guarantees a group made up only of drop-outs is not treated as complete.
+ */
+fun hasAtLeastOneCompletedMembership(
+  query: CriteriaQuery<*>,
+  cb: CriteriaBuilder,
+  root: Root<ProgrammeGroupEntity>,
+): Predicate {
+  val membershipExistsSubquery = query.subquery(Long::class.java)
+  val membershipRoot = membershipExistsSubquery.from(ProgrammeGroupMembershipEntity::class.java)
+  val referralJoin = membershipRoot.join<ProgrammeGroupMembershipEntity, ReferralEntity>("referral")
+
+  membershipExistsSubquery.select(cb.literal(1L))
+  membershipExistsSubquery.where(
+    cb.equal(membershipRoot.get<ProgrammeGroupEntity>("programmeGroup"), root),
+    isLatestReferralStatusProgrammeComplete(query, cb, referralJoin),
+    hasAttendedPostProgrammeReview(membershipExistsSubquery, cb, membershipRoot),
+  )
+
+  return cb.exists(membershipExistsSubquery)
 }
 
 fun getProgrammeGroupsByRegionTabSpecification(
   selectedTab: GroupPageByRegionTab,
 ): Specification<ProgrammeGroupEntity> = Specification { root, query, cb ->
   val datePath = root.get<LocalDate>("earliestPossibleStartDate")
-  val incompleteMembershipCountSubquery = incompleteMembershipCountSubquery(query, cb, root)
+  val unresolvedActiveMembershipCount = unresolvedActiveMembershipCountSubquery(query, cb, root)
 
   when (selectedTab) {
     GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS -> {
@@ -179,34 +200,19 @@ fun getProgrammeGroupsByRegionTabSpecification(
 
       cb.or(
         notStartedOrInProgressDateSpec,
-        cb.greaterThan(incompleteMembershipCountSubquery, 0L),
-        cb.not(hasAtLeastOneActiveMembership(query, cb, root)),
+        cb.greaterThan(unresolvedActiveMembershipCount, 0L),
+        cb.not(hasAtLeastOneCompletedMembership(query, cb, root)),
       )
     }
 
+    // A group is complete once it has started, no active member is still mid-programme, and at
+    // least one member has attended post programme review
     GroupPageByRegionTab.COMPLETE -> {
       cb.and(
         cb.lessThanOrEqualTo(datePath, LocalDate.now()),
-        cb.equal(incompleteMembershipCountSubquery, 0L),
-        hasAtLeastOneMembershipIncludingDeleted(query, cb, root),
+        cb.equal(unresolvedActiveMembershipCount, 0L),
+        hasAtLeastOneCompletedMembership(query, cb, root),
       )
     }
   }
-}
-
-fun hasAtLeastOneMembershipIncludingDeleted(
-  query: CriteriaQuery<*>,
-  cb: CriteriaBuilder,
-  root: Root<ProgrammeGroupEntity>,
-): Predicate {
-  val membershipExistsSubquery = query.subquery(Long::class.java)
-  val membershipRoot = membershipExistsSubquery.from(ProgrammeGroupMembershipEntity::class.java)
-
-  membershipExistsSubquery.select(cb.literal(1L))
-  membershipExistsSubquery.where(
-    cb.equal(membershipRoot.get<ProgrammeGroupEntity>("programmeGroup"), root),
-    cb.isNotNull(membershipRoot.get<LocalDateTime>("deletedAt")),
-  )
-
-  return cb.exists(membershipExistsSubquery)
 }
