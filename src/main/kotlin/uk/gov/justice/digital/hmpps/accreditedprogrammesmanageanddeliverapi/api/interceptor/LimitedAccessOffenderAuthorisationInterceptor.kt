@@ -8,9 +8,11 @@ import org.springframework.security.authentication.AuthenticationCredentialsNotF
 import org.springframework.stereotype.Component
 import org.springframework.web.servlet.HandlerInterceptor
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.HttpRequestType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.HttpRequestType.GET_GROUP_SESSION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.HttpRequestType.GET_PERSONAL_DETAILS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.HttpRequestType.GET_SESSION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.HttpRequestType.GET_SESSION_NOTE
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.limitedAccessOffenderAuthorisation.GroupSessionLimitedAccessOffenderAuthorisationStrategy
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.limitedAccessOffenderAuthorisation.ReferralDetailsLimitedAccessOffenderAuthorisationStrategy
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.limitedAccessOffenderAuthorisation.SessionLimitedAccessOffenderAuthorisationStrategy
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.limitedAccessOffenderAuthorisation.SessionNoteLimitedAccessOffenderAuthorisationStrategy
@@ -21,6 +23,7 @@ class LimitedAccessOffenderAuthorisationInterceptor(
   private val referralDetailsStrategy: ReferralDetailsLimitedAccessOffenderAuthorisationStrategy,
   private val sessionNoteStrategy: SessionNoteLimitedAccessOffenderAuthorisationStrategy,
   private val sessionStrategy: SessionLimitedAccessOffenderAuthorisationStrategy,
+  private val groupSessionStrategy: GroupSessionLimitedAccessOffenderAuthorisationStrategy,
   private val authenticationHolder: HmppsAuthenticationHolder,
 ) : HandlerInterceptor {
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -40,6 +43,7 @@ class LimitedAccessOffenderAuthorisationInterceptor(
       GET_PERSONAL_DETAILS -> referralDetailsStrategy.isAuthorised(requestUri, username)
       GET_SESSION_NOTE -> sessionNoteStrategy.isAuthorised(requestUri, username)
       GET_SESSION -> sessionStrategy.isAuthorised(requestUri, username)
+      GET_GROUP_SESSION -> groupSessionStrategy.isAuthorised(requestUri, username)
       else -> true
     }
 
@@ -56,6 +60,7 @@ class LimitedAccessOffenderAuthorisationInterceptor(
     referralDetailsStrategy.isSupportedPath(requestMethod, requestUri) -> GET_PERSONAL_DETAILS
     sessionNoteStrategy.isSupportedPath(requestMethod, requestUri) -> GET_SESSION_NOTE
     sessionStrategy.isSupportedPath(requestMethod, requestUri) -> GET_SESSION
+    groupSessionStrategy.isSupportedPath(requestMethod, requestUri) -> GET_GROUP_SESSION
     else -> null
   }
 }
