@@ -32,13 +32,13 @@ class GroupSessionLimitedAccessOffenderAuthorisationStrategy(
   }
 
   override fun isAuthorised(httpRequestPath: String, username: String): Boolean {
-    log.info("START Checking group session limited access offender authorisation for httpRequestPath: $httpRequestPath and username: $username")
+    log.debug("START Checking group session limited access offender authorisation for httpRequestPath: $httpRequestPath and username: $username")
     val sessionId = getId(httpRequestPath, SESSION_ID_PATH_VARIABLE_NAME, GROUP_SESSION_URI_PATTERN_ANT) ?: return true
     val session = sessionRepository.findById(sessionId).getOrNull() ?: return true
     if (session.sessionType != SessionType.ONE_TO_ONE) return true
     val access = getUserAccess(username, session)
     val authorisation = !(access?.isExcluded ?: false)
-    log.info("END Checking group session limited access offender authorisation for httpRequestPath: $httpRequestPath and username: $username with authorisation: $authorisation")
+    log.debug("END Checking group session limited access offender authorisation for httpRequestPath: $httpRequestPath and username: $username with authorisation: $authorisation")
 
     return authorisation
   }

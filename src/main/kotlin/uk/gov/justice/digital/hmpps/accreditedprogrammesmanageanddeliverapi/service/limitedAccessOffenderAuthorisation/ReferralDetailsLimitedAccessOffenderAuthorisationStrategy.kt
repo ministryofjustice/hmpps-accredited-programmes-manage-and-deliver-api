@@ -28,12 +28,12 @@ class ReferralDetailsLimitedAccessOffenderAuthorisationStrategy(
   }
 
   override fun isAuthorised(httpRequestPath: String, username: String): Boolean {
-    log.info("START Checking referral details limited access offender authorisation for httpRequestPath: $httpRequestPath and username: $username")
+    log.debug("START Checking referral details limited access offender authorisation for httpRequestPath: $httpRequestPath and username: $username")
     val referralId =
       getId(httpRequestPath, REFERRAL_ID_PATH_VARIABLE_NAME, REFERRAL_DETAILS_URI_PATTERN_ANT) ?: return true
     val access = getUserAccess(username, referralId)
     val authorisation = !(access?.isExcluded ?: false)
-    log.info("END Checking referral details limited access offender authorisation for httpRequestPath: $httpRequestPath and username: $username with authorisation: $authorisation")
+    log.debug("END Checking referral details limited access offender authorisation for httpRequestPath: $httpRequestPath and username: $username with authorisation: $authorisation")
 
     return authorisation
   }

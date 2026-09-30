@@ -29,11 +29,11 @@ class SessionNoteLimitedAccessOffenderAuthorisationStrategy(
   }
 
   override fun isAuthorised(httpRequestPath: String, username: String): Boolean {
-    log.info("START Checking session note limited access offender authorisation for httpRequestPath: $httpRequestPath and username: $username")
+    log.debug("START Checking session note limited access offender authorisation for httpRequestPath: $httpRequestPath and username: $username")
     val referralId = getId(httpRequestPath, REFERRAL_ID_PATH_VARIABLE_NAME, SESSION_NOTE_URI_PATTERN_ANT) ?: return true
     val access = getUserAccess(username, referralId)
     val authorisation = !(access?.isExcluded ?: false)
-    log.info("END Checking session limited access offender authorisation for httpRequestPath: $httpRequestPath and username: $username with authorisation: $authorisation")
+    log.debug("END Checking session limited access offender authorisation for httpRequestPath: $httpRequestPath and username: $username with authorisation: $authorisation")
 
     return authorisation
   }
