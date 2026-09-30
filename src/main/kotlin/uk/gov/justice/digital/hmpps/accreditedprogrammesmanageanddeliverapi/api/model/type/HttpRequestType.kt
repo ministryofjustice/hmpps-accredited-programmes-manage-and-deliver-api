@@ -4,4 +4,5 @@ enum class HttpRequestType {
   GET_PERSONAL_DETAILS,
   GET_SESSION_NOTE,
   GET_SESSION,
+  GET_GROUP_SESSION,
 }

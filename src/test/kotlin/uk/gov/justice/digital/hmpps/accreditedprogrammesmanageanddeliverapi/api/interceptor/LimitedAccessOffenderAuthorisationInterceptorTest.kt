@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.limitedAccessOffenderAuthorisation.GroupSessionLimitedAccessOffenderAuthorisationStrategy
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.limitedAccessOffenderAuthorisation.ReferralDetailsLimitedAccessOffenderAuthorisationStrategy
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.limitedAccessOffenderAuthorisation.SessionLimitedAccessOffenderAuthorisationStrategy
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.limitedAccessOffenderAuthorisation.SessionNoteLimitedAccessOffenderAuthorisationStrategy
@@ -23,6 +24,7 @@ class LimitedAccessOffenderAuthorisationInterceptorTest {
   private val referralDetailsStrategy = mockk<ReferralDetailsLimitedAccessOffenderAuthorisationStrategy>()
   private val sessionNoteStrategy = mockk<SessionNoteLimitedAccessOffenderAuthorisationStrategy>()
   private val sessionStrategy = mockk<SessionLimitedAccessOffenderAuthorisationStrategy>()
+  private val groupSessionStrategy = mockk<GroupSessionLimitedAccessOffenderAuthorisationStrategy>()
   private val authenticationHolder = mockk<HmppsAuthenticationHolder>()
   private lateinit var interceptor: LimitedAccessOffenderAuthorisationInterceptor
 
@@ -33,6 +35,7 @@ class LimitedAccessOffenderAuthorisationInterceptorTest {
         referralDetailsStrategy,
         sessionNoteStrategy,
         sessionStrategy,
+        groupSessionStrategy,
         authenticationHolder,
       )
   }
@@ -64,6 +67,7 @@ class LimitedAccessOffenderAuthorisationInterceptorTest {
     every { referralDetailsStrategy.isSupportedPath(any(), any()) } returns false
     every { sessionNoteStrategy.isSupportedPath(any(), any()) } returns false
     every { sessionStrategy.isSupportedPath(any(), any()) } returns false
+    every { groupSessionStrategy.isSupportedPath(any(), any()) } returns false
 
     // When
     val result = interceptor.preHandle(request, response, handler)
@@ -76,6 +80,7 @@ class LimitedAccessOffenderAuthorisationInterceptorTest {
     verify(exactly = 1) { referralDetailsStrategy.isSupportedPath(requestMethod, requestPath) }
     verify(exactly = 1) { sessionNoteStrategy.isSupportedPath(requestMethod, requestPath) }
     verify(exactly = 1) { sessionStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 1) { groupSessionStrategy.isSupportedPath(requestMethod, requestPath) }
   }
 
   @Test
@@ -247,5 +252,74 @@ class LimitedAccessOffenderAuthorisationInterceptorTest {
     verify(exactly = 0) { sessionNoteStrategy.isAuthorised(any(), any()) }
     verify(exactly = 1) { sessionStrategy.isSupportedPath(requestMethod, requestPath) }
     verify(exactly = 1) { sessionStrategy.isAuthorised(requestPath, username) }
+  }
+
+  @Test
+  fun `preHandle should return true if user is authorised to view group session`() {
+    // Given
+    val username = "test-user"
+    val requestMethod = "GET"
+    val requestPath = "/bff/group/edf44a90-eb51-482f-b3f2-6961e439488b/session/edf44a90-eb51-482f-b3f2-6961e439488b"
+    every { authenticationHolder.username } returns username
+    every { request.method } returns requestMethod
+    every { request.requestURI } returns requestPath
+    every { referralDetailsStrategy.isSupportedPath(any(), any()) } returns false
+    every { sessionNoteStrategy.isSupportedPath(any(), any()) } returns false
+    every { sessionStrategy.isSupportedPath(any(), any()) } returns false
+    every { groupSessionStrategy.isSupportedPath(any(), any()) } returns true
+    every { groupSessionStrategy.isAuthorised(any(), any()) } returns true
+
+    // When
+    val result = interceptor.preHandle(request, response, handler)
+
+    // Then
+    assertThat(result).isTrue
+    verify(exactly = 1) { authenticationHolder.username }
+    verify(exactly = 1) { request.method }
+    verify(exactly = 1) { request.requestURI }
+    verify(exactly = 1) { referralDetailsStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 0) { referralDetailsStrategy.isAuthorised(any(), any()) }
+    verify(exactly = 1) { sessionNoteStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 0) { sessionNoteStrategy.isAuthorised(any(), any()) }
+    verify(exactly = 1) { sessionStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 0) { sessionStrategy.isAuthorised(requestPath, username) }
+    verify(exactly = 1) { groupSessionStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 1) { groupSessionStrategy.isAuthorised(requestPath, username) }
+  }
+
+  @Test
+  fun `preHandle should throw exception if user is unauthorised to view group session`() {
+    // Given
+    val username = "test-user"
+    val requestMethod = "GET"
+    val requestPath = "/bff/group/edf44a90-eb51-482f-b3f2-6961e439488b/session/edf44a90-eb51-482f-b3f2-6961e439488b"
+    every { authenticationHolder.username } returns username
+    every { request.method } returns requestMethod
+    every { request.requestURI } returns requestPath
+    every { referralDetailsStrategy.isSupportedPath(any(), any()) } returns false
+    every { sessionNoteStrategy.isSupportedPath(any(), any()) } returns false
+    every { sessionNoteStrategy.isAuthorised(any(), any()) } returns false
+    every { sessionStrategy.isSupportedPath(any(), any()) } returns false
+    every { groupSessionStrategy.isSupportedPath(any(), any()) } returns true
+    every { groupSessionStrategy.isAuthorised(any(), any()) } returns false
+
+    // When
+    val exception = assertThrows<AccessDeniedException> {
+      interceptor.preHandle(request, response, handler)
+    }
+
+    // Then
+    assertThat(exception.message).isEqualTo("Access to this person's record is restricted in NDelius. Speak to your Programme Manager for more information.")
+    verify(exactly = 1) { authenticationHolder.username }
+    verify(exactly = 1) { request.method }
+    verify(exactly = 1) { request.requestURI }
+    verify(exactly = 1) { referralDetailsStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 0) { referralDetailsStrategy.isAuthorised(any(), any()) }
+    verify(exactly = 1) { sessionNoteStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 0) { sessionNoteStrategy.isAuthorised(any(), any()) }
+    verify(exactly = 1) { sessionStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 0) { sessionStrategy.isAuthorised(requestPath, username) }
+    verify(exactly = 1) { groupSessionStrategy.isSupportedPath(requestMethod, requestPath) }
+    verify(exactly = 1) { groupSessionStrategy.isAuthorised(requestPath, username) }
   }
 }

@@ -13,32 +13,32 @@ import kotlin.jvm.optionals.getOrNull
 
 @Component
 @Transactional
-class SessionLimitedAccessOffenderAuthorisationStrategy(
+class GroupSessionLimitedAccessOffenderAuthorisationStrategy(
   private val userAccessService: UserAccessService,
   private val sessionRepository: SessionRepository,
 ) : LimitedAccessOffenderAuthorisationStrategy {
   private val log = LoggerFactory.getLogger(this::class.java)
 
   companion object {
-    private const val SESSION_URI_PATTERN_REGEX =
-      "^/bff/session/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?:/.*)?$"
-    private const val SESSION_URI_PATTERN_ANT = "/bff/session/{sessionId}/**"
+    private const val GROUP_SESSION_URI_PATTERN_REGEX =
+      "^/bff/group/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/session/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?:/.*)?$"
+    private const val GROUP_SESSION_URI_PATTERN_ANT = "/bff/group/{groupId}/session/{sessionId}/**"
   }
 
   override fun isSupportedPath(httpRequestMethod: String, httpRequestPath: String): Boolean {
-    val sessionUriPattern = Regex(SESSION_URI_PATTERN_REGEX)
+    val sessionUriPattern = Regex(GROUP_SESSION_URI_PATTERN_REGEX)
 
     return RequestMethod.GET.name == httpRequestMethod && sessionUriPattern.matches(httpRequestPath)
   }
 
   override fun isAuthorised(httpRequestPath: String, username: String): Boolean {
-    log.debug("START Checking session limited access offender authorisation for httpRequestPath: $httpRequestPath and username: $username")
-    val sessionId = getId(httpRequestPath, SESSION_ID_PATH_VARIABLE_NAME, SESSION_URI_PATTERN_ANT) ?: return true
+    log.debug("START Checking group session limited access offender authorisation for httpRequestPath: $httpRequestPath and username: $username")
+    val sessionId = getId(httpRequestPath, SESSION_ID_PATH_VARIABLE_NAME, GROUP_SESSION_URI_PATTERN_ANT) ?: return true
     val session = sessionRepository.findById(sessionId).getOrNull() ?: return true
     if (session.sessionType != SessionType.ONE_TO_ONE) return true
     val access = getUserAccess(username, session)
     val authorisation = !(access?.isExcluded ?: false)
-    log.debug("END Checking session limited access offender authorisation for httpRequestPath: $httpRequestPath and username: $username with authorisation: $authorisation")
+    log.debug("END Checking group session limited access offender authorisation for httpRequestPath: $httpRequestPath and username: $username with authorisation: $authorisation")
 
     return authorisation
   }
