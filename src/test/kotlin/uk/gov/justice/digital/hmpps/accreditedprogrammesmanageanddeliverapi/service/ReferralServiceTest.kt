@@ -76,7 +76,6 @@ class ReferralServiceTest {
   private val referralStatusService: ReferralStatusService = mockk()
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService = mockk()
   private val programmeGroupService: ProgrammeGroupService = mockk()
-  private val userAccessService: UserAccessService = mockk()
   private val applicationEventPublisher: ApplicationEventPublisher = mockk()
   private val sessionNameFormatter: SessionNameFormatter = mockk()
   private val referralCohortHistoryRepository: ReferralCohortHistoryRepository = mockk()
@@ -111,7 +110,6 @@ class ReferralServiceTest {
       sentenceService = sentenceService,
       programmeGroupMembershipService = programmeGroupMembershipService,
       programmeGroupService = programmeGroupService,
-      userAccessService = userAccessService,
       sessionNameFormatter = sessionNameFormatter,
       referralStatusService = referralStatusService,
       referralCohortHistoryRepository = referralCohortHistoryRepository,
