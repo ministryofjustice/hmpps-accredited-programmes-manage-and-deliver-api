@@ -769,13 +769,13 @@ class ProgrammeGroupController(
 
   @Operation(
     tags = ["Programme Group controller"],
-    summary = "bff endpoint to retrieve group sessions page data",
+    summary = "BFF endpoint to retrieve group session page data",
     operationId = "getGroupSessionPage",
-    description = "Retrieve group sessions",
+    description = "Retrieve group session",
     responses = [
       ApiResponse(
         responseCode = "200",
-        description = "Successfully retrieved group sessions",
+        description = "Successfully retrieved group session",
         content = [
           Content(
             mediaType = MediaType.APPLICATION_JSON_VALUE,
