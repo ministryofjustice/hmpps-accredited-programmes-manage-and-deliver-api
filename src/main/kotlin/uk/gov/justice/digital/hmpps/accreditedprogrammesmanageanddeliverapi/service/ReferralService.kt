@@ -92,6 +92,7 @@ class ReferralService(
   private val sentenceService: SentenceService,
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
   private val programmeGroupService: ProgrammeGroupService,
+  private val userAccessService: UserAccessService,
   private val sessionNameFormatter: SessionNameFormatter,
   private val referralStatusService: ReferralStatusService,
   private val referralCohortHistoryRepository: ReferralCohortHistoryRepository,
