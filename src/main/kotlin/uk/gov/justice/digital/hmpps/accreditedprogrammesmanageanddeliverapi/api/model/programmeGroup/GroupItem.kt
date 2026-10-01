@@ -71,6 +71,15 @@ data class GroupItem(
   val sentenceEndDate: LocalDate?,
 
   @get:Schema(
+    example = "1 January 2030",
+    required = false,
+    description = "The licence expiry date. Populated for licence cases and null for requirement cases.",
+  )
+  @get:JsonProperty("licenceExpiryDate", required = false)
+  @get:JsonFormat(pattern = "d MMMM yyyy")
+  var licenceExpiryDate: LocalDate? = null,
+
+  @get:Schema(
     example = "SEXUAL_OFFENCE",
     required = true,
     description = "The offence cohort this referral is classified as.",
@@ -151,6 +160,7 @@ fun GroupWaitlistItemViewEntity.toApi(isLimitedAccessOffender: Boolean = false, 
   isExcluded = isExcluded,
   personName = personName,
   sentenceEndDate = sentenceEndDate,
+  licenceExpiryDate = licenceExpiryDate,
   cohort = cohort.let { OffenceCohort.fromDisplayName(it) },
   hasLdc = hasLdc,
   age = dateOfBirth?.calculateAge(),

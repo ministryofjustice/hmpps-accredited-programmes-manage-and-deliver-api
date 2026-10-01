@@ -2,13 +2,13 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceEndDateDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_SENTENCE_DETAILS_N_DELIUS
-import java.time.LocalDate
 
 @Service
 class SentenceService(
@@ -61,16 +61,12 @@ class SentenceService(
     }
   }
 
-  fun getSentenceEndDate(crn: String, eventNumber: Int?, sentenceType: ReferralEntitySourcedFrom?): LocalDate? {
-    val sentenceInfo = getSentenceInformationByIdentifier(crn, eventNumber)
-    return when (sentenceType) {
-      ReferralEntitySourcedFrom.REQUIREMENT -> sentenceInfo?.expectedEndDate
-
-      // For licence conditions the sentence end date is the licence expiry date ( on the throughcare section on nDelius), falling
-      // back to the expected end date when the licence expiry date is not available.
-      ReferralEntitySourcedFrom.LICENCE_CONDITION -> sentenceInfo?.let { it.licenceExpiryDate ?: it.expectedEndDate }
-
+  fun getSentenceEndDateDetails(crn: String, eventNumber: Int?, sentenceType: ReferralEntitySourcedFrom?): SentenceEndDateDetails? {
+    val sentenceInformation = getSentenceInformationByIdentifier(crn, eventNumber)
+    val licenceExpiryDate = when (sentenceType) {
+      ReferralEntitySourcedFrom.LICENCE_CONDITION -> sentenceInformation?.licenceExpiryDate
       else -> null
     }
+    return SentenceEndDateDetails(sentenceInformation?.expectedEndDate, licenceExpiryDate)
   }
 }

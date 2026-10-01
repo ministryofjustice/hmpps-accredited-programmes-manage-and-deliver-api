@@ -17,6 +17,7 @@ class ReferralCaseListItemViewEntityFactory {
   private var reportingTeam: String = "TEAM_1"
   private var regionName: String = "REGION_1"
   private var sentenceEndDate: LocalDate = LocalDate.now(UTC).plusYears(1)
+  private var licenceExpiryDate: LocalDate? = null
   private var sentenceEndDateSource: ReferralEntitySourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION
   private var statusLabelColour: String = "blue"
 
@@ -30,6 +31,7 @@ class ReferralCaseListItemViewEntityFactory {
   fun withReportingTeam(reportingTeam: String) = apply { this.reportingTeam = reportingTeam }
   fun withRegionName(regionName: String) = apply { this.regionName = regionName }
   fun withSentenceEndDate(sentenceEndDate: LocalDate) = apply { this.sentenceEndDate = sentenceEndDate }
+  fun withLicenceExpiryDate(licenceExpiryDate: LocalDate?) = apply { this.licenceExpiryDate = licenceExpiryDate }
   fun withStatusLabelColour(statusLabelColour: String) = apply { this.statusLabelColour = statusLabelColour }
 
   fun produce() = ReferralCaseListItemViewEntity(
@@ -44,6 +46,7 @@ class ReferralCaseListItemViewEntityFactory {
     reportingTeam = this.reportingTeam,
     regionName = this.regionName,
     sentenceEndDate = this.sentenceEndDate,
+    licenceExpiryDate = this.licenceExpiryDate,
     sentenceEndDateSource = this.sentenceEndDateSource,
   )
 }

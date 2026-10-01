@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.model
 
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceEndDateDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCohortHistoryEntity
@@ -11,7 +12,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.toLocalDate
-import java.time.LocalDate
 import java.util.UUID
 
 @Schema(description = "Full details of the Referral")
@@ -51,7 +51,7 @@ fun FindAndReferReferralDetails.toReferralEntity(
   statusHistories: MutableList<ReferralStatusHistoryEntity>,
   cohortHistories: MutableSet<ReferralCohortHistoryEntity>,
   personalDetails: NDeliusPersonalDetails?,
-  sentenceEndDate: LocalDate?,
+  sentenceEndDateDetails: SentenceEndDateDetails?,
 ) = ReferralEntity(
   crn = if (personReferenceType == PersonReferenceType.CRN) personReference else "UNKNOWN",
   interventionType = interventionType,
@@ -65,5 +65,6 @@ fun FindAndReferReferralDetails.toReferralEntity(
   eventNumber = eventNumber,
   sex = personalDetails?.sex?.description,
   dateOfBirth = personalDetails?.dateOfBirth?.toLocalDate(),
-  sentenceEndDate = sentenceEndDate,
+  sentenceEndDate = sentenceEndDateDetails?.expectedEndDate,
+  licenceExpiryDate = sentenceEndDateDetails?.licenceExpiryDate,
 )

@@ -35,6 +35,7 @@ class ReferralEntityFactory {
   private var referralLdcHistories: MutableSet<ReferralLdcHistoryEntity> = mutableSetOf()
   private var referralCohortHistories: MutableSet<ReferralCohortHistoryEntity> = mutableSetOf()
   private var sentenceEndDate: LocalDate? = null
+  private var licenceExpiryDate: LocalDate? = null
   private var sex: String? = null
   private var dateOfBirth: LocalDate? = null
   private var motivationBackgroundAndNonAssociations: ReferralMotivationBackgroundAndNonAssociationsEntity? = null
@@ -62,6 +63,7 @@ class ReferralEntityFactory {
   fun withCohortHistories(cohortHistories: MutableSet<ReferralCohortHistoryEntity>) = apply { this.referralCohortHistories = cohortHistories }
 
   fun withSentenceEndDate(sentenceEndDate: LocalDate) = apply { this.sentenceEndDate = sentenceEndDate }
+  fun withLicenceExpiryDate(licenceExpiryDate: LocalDate?) = apply { this.licenceExpiryDate = licenceExpiryDate }
   fun withSex(sex: String) = apply { this.sex = sex }
   fun withDateOfBirth(dateOfBirth: LocalDate) = apply { this.dateOfBirth = dateOfBirth }
 
@@ -85,6 +87,7 @@ class ReferralEntityFactory {
     eventNumber = this.eventNumber,
     referralCohortHistories = referralCohortHistories,
     sentenceEndDate = this.sentenceEndDate,
+    licenceExpiryDate = this.licenceExpiryDate,
     sex = this.sex,
     dateOfBirth = this.dateOfBirth,
     referralLdcHistories = referralLdcHistories,

@@ -5,11 +5,12 @@ SELECT r.id                                           as referral_id,
        r.crn,
        r.person_name,
        r.sentence_end_date,
+       r.licence_expiry_date,
        r.sourced_from,
        -- Default to GENERAL_OFFENCE if there are no entries in the referral_cohort_history_table
        COALESCE(rch.cohort, 'GENERAL_OFFENCE')        as cohort,
        -- Default to false if there are no entries in the referral_ldc_history_table
-       COALESCE(rldch.has_ldc, false)                  as has_ldc,
+       COALESCE(rldch.has_ldc, false)                 as has_ldc,
        r.date_of_birth,
        r.sex,
        sd.status,
@@ -21,35 +22,36 @@ SELECT r.id                                           as referral_id,
        pgm.programme_group_id                         as active_programme_group_id
 
 FROM referral r
-JOIN LATERAL (
+         JOIN LATERAL (
     SELECT rsd.description_text as status, rsd.label_colour as status_colour
     FROM referral_status_history rsh
-    JOIN referral_status_description rsd ON rsh.referral_status_description_id = rsd.id
+             JOIN referral_status_description rsd ON rsh.referral_status_description_id = rsd.id
     WHERE rsh.referral_id = r.id
     ORDER BY rsh.created_at DESC
     LIMIT 1
-) sd ON TRUE
-LEFT JOIN LATERAL (
+    ) sd ON TRUE
+         LEFT JOIN LATERAL (
     SELECT has_ldc
     FROM referral_ldc_history
     WHERE referral_id = r.id
     ORDER BY created_at DESC
     LIMIT 1
-) rldch ON TRUE
-LEFT JOIN LATERAL (
+    ) rldch ON TRUE
+         LEFT JOIN LATERAL (
     SELECT cohort
     FROM referral_cohort_history
     WHERE referral_id = r.id
     ORDER BY created_at DESC
     LIMIT 1
-) rch ON TRUE
-LEFT JOIN referral_reporting_location rrl on r.id = rrl.referral_id
-LEFT JOIN LATERAL (
+    ) rch ON TRUE
+         LEFT JOIN referral_reporting_location rrl on r.id = rrl.referral_id
+         LEFT JOIN LATERAL (
     SELECT programme_group_id
     FROM programme_group_membership
-    WHERE referral_id = r.id AND deleted_at IS NULL
+    WHERE referral_id = r.id
+      AND deleted_at IS NULL
     ORDER BY created_at DESC
     LIMIT 1
-) pgm ON TRUE
+    ) pgm ON TRUE
 WHERE pgm.programme_group_id IS NOT NULL
    OR sd.status = 'Awaiting allocation';

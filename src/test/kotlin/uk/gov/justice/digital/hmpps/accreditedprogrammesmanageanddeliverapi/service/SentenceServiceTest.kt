@@ -30,7 +30,7 @@ class SentenceServiceTest {
   }
 
   @Test
-  fun `getSentenceEndDate returns licenceExpiryDate for a licence condition when it is present`() {
+  fun `getSentenceEndDateDetails returns both expectedEndDate and licenceExpiryDate for a licence condition`() {
     // Given
     val licenceExpiryDate = LocalDate.of(2030, 1, 1)
     val expectedEndDate = LocalDate.of(2029, 1, 1)
@@ -42,14 +42,15 @@ class SentenceServiceTest {
     )
 
     // When
-    val result = sentenceService.getSentenceEndDate(crn, eventNumber, ReferralEntitySourcedFrom.LICENCE_CONDITION)
+    val result = sentenceService.getSentenceEndDateDetails(crn, eventNumber, ReferralEntitySourcedFrom.LICENCE_CONDITION)
 
     // Then
-    assertThat(result).isEqualTo(licenceExpiryDate)
+    assertThat(result?.expectedEndDate).isEqualTo(expectedEndDate)
+    assertThat(result?.licenceExpiryDate).isEqualTo(licenceExpiryDate)
   }
 
   @Test
-  fun `getSentenceEndDate falls back to expectedEndDate for a licence condition when licenceExpiryDate is null`() {
+  fun `getSentenceEndDateDetails returns null licenceExpiryDate for a licence condition when licenceExpiryDate is null`() {
     // Given
     val expectedEndDate = LocalDate.of(2029, 1, 1)
     stubSentence(
@@ -60,14 +61,15 @@ class SentenceServiceTest {
     )
 
     // When
-    val result = sentenceService.getSentenceEndDate(crn, eventNumber, ReferralEntitySourcedFrom.LICENCE_CONDITION)
+    val result = sentenceService.getSentenceEndDateDetails(crn, eventNumber, ReferralEntitySourcedFrom.LICENCE_CONDITION)
 
     // Then
-    assertThat(result).isEqualTo(expectedEndDate)
+    assertThat(result?.expectedEndDate).isEqualTo(expectedEndDate)
+    assertThat(result?.licenceExpiryDate).isNull()
   }
 
   @Test
-  fun `getSentenceEndDate returns null for a licence condition when both licenceExpiryDate and expectedEndDate are null`() {
+  fun `getSentenceEndDateDetails returns null dates for a licence condition when both licenceExpiryDate and expectedEndDate are null`() {
     // Given
     stubSentence(
       NDeliusSentenceResponseFactory()
@@ -77,14 +79,15 @@ class SentenceServiceTest {
     )
 
     // When
-    val result = sentenceService.getSentenceEndDate(crn, eventNumber, ReferralEntitySourcedFrom.LICENCE_CONDITION)
+    val result = sentenceService.getSentenceEndDateDetails(crn, eventNumber, ReferralEntitySourcedFrom.LICENCE_CONDITION)
 
     // Then
-    assertThat(result).isNull()
+    assertThat(result?.expectedEndDate).isNull()
+    assertThat(result?.licenceExpiryDate).isNull()
   }
 
   @Test
-  fun `getSentenceEndDate returns expectedEndDate for a requirement and ignores licenceExpiryDate`() {
+  fun `getSentenceEndDateDetails returns expectedEndDate and nulls licenceExpiryDate for a requirement`() {
     // Given
     val licenceExpiryDate = LocalDate.of(2030, 1, 1)
     val expectedEndDate = LocalDate.of(2029, 1, 1)
@@ -96,14 +99,15 @@ class SentenceServiceTest {
     )
 
     // When
-    val result = sentenceService.getSentenceEndDate(crn, eventNumber, ReferralEntitySourcedFrom.REQUIREMENT)
+    val result = sentenceService.getSentenceEndDateDetails(crn, eventNumber, ReferralEntitySourcedFrom.REQUIREMENT)
 
     // Then
-    assertThat(result).isEqualTo(expectedEndDate)
+    assertThat(result?.expectedEndDate).isEqualTo(expectedEndDate)
+    assertThat(result?.licenceExpiryDate).isNull()
   }
 
   @Test
-  fun `getSentenceEndDate returns null for a requirement when expectedEndDate is null`() {
+  fun `getSentenceEndDateDetails returns null expectedEndDate for a requirement when expectedEndDate is null`() {
     // Given
     stubSentence(
       NDeliusSentenceResponseFactory()
@@ -112,26 +116,34 @@ class SentenceServiceTest {
     )
 
     // When
-    val result = sentenceService.getSentenceEndDate(crn, eventNumber, ReferralEntitySourcedFrom.REQUIREMENT)
+    val result = sentenceService.getSentenceEndDateDetails(crn, eventNumber, ReferralEntitySourcedFrom.REQUIREMENT)
 
     // Then
-    assertThat(result).isNull()
+    assertThat(result?.expectedEndDate).isNull()
+    assertThat(result?.licenceExpiryDate).isNull()
   }
 
   @Test
-  fun `getSentenceEndDate returns null when sentence type is null`() {
+  fun `getSentenceEndDateDetails nulls licenceExpiryDate when sentence type is null`() {
     // Given
-    stubSentence(NDeliusSentenceResponseFactory().produce())
+    val expectedEndDate = LocalDate.of(2029, 1, 1)
+    stubSentence(
+      NDeliusSentenceResponseFactory()
+        .withLicenceExpiryDate(LocalDate.of(2030, 1, 1))
+        .withExpectedEndDate(expectedEndDate)
+        .produce(),
+    )
 
     // When
-    val result = sentenceService.getSentenceEndDate(crn, eventNumber, null)
+    val result = sentenceService.getSentenceEndDateDetails(crn, eventNumber, null)
 
     // Then
-    assertThat(result).isNull()
+    assertThat(result?.expectedEndDate).isEqualTo(expectedEndDate)
+    assertThat(result?.licenceExpiryDate).isNull()
   }
 
   @Test
-  fun `getSentenceEndDate throws NotFoundException when no sentence information is found`() {
+  fun `getSentenceEndDateDetails throws NotFoundException when no sentence information is found`() {
     // Given
     every { nDeliusIntegrationApiClient.getSentenceInformation(crn, eventNumber) } returns ClientResult.Failure.StatusCode(
       HttpMethod.GET,
@@ -142,7 +154,7 @@ class SentenceServiceTest {
 
     // When / Then
     assertThatThrownBy {
-      sentenceService.getSentenceEndDate(crn, eventNumber, ReferralEntitySourcedFrom.LICENCE_CONDITION)
+      sentenceService.getSentenceEndDateDetails(crn, eventNumber, ReferralEntitySourcedFrom.LICENCE_CONDITION)
     }.isInstanceOf(NotFoundException::class.java)
   }
 }

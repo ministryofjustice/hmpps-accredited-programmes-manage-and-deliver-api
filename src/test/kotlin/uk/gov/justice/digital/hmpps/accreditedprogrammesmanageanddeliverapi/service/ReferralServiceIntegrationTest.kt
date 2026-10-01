@@ -728,7 +728,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(referralFromRepo.statusHistories.firstOrNull()?.referralStatusDescription?.description).isEqualTo("Awaiting assessment")
       assertThat(referralFromRepo.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
       assertThat(referralFromRepo.sex).isEqualTo("Male")
-      assertThat(referralFromRepo.sentenceEndDate).isEqualTo(LocalDate.parse("2028-05-15"))
+      assertThat(referralFromRepo.sentenceEndDate).isEqualTo(LocalDate.parse("2027-11-02"))
+      assertThat(referralFromRepo.licenceExpiryDate).isEqualTo(LocalDate.parse("2028-05-15"))
 
       assertThat(reportingLocation).isNotNull()
       assertThat(reportingLocation!!.regionName).isEqualTo("THE REGION DESCRIPTION")
@@ -768,7 +769,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
       assertThat(savedReferral.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
       assertThat(savedReferral.sex).isEqualTo("Male")
-      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2028-05-15"))
+      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2027-11-02"))
+      assertThat(savedReferral.licenceExpiryDate).isEqualTo(LocalDate.parse("2028-05-15"))
     }
 
     @Test
@@ -803,7 +805,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
       assertThat(savedReferral.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
       assertThat(savedReferral.sex).isEqualTo("Male")
-      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2028-05-15"))
+      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2027-11-02"))
+      assertThat(savedReferral.licenceExpiryDate).isEqualTo(LocalDate.parse("2028-05-15"))
     }
 
     @Test
@@ -835,7 +838,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
       assertThat(savedReferral.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
       assertThat(savedReferral.sex).isEqualTo("Male")
-      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2028-05-15"))
+      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2027-11-02"))
+      assertThat(savedReferral.licenceExpiryDate).isEqualTo(LocalDate.parse("2028-05-15"))
     }
 
     @Test
@@ -893,7 +897,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.referralReportingLocation?.reportingTeam).isEqualTo(personalDetails.team.description)
       assertThat(savedReferral.dateOfBirth).isEqualTo(LocalDate.parse("2010-10-01"))
       assertThat(savedReferral.sex).isEqualTo("Male")
-      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2028-05-15"))
+      assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2027-11-02"))
+      assertThat(savedReferral.licenceExpiryDate).isEqualTo(LocalDate.parse("2028-05-15"))
     }
 
     @Test

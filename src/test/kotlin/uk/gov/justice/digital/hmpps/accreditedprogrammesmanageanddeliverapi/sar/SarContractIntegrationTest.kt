@@ -117,6 +117,7 @@ class SarContractIntegrationTest :
   private val fixedNow = LocalDateTime.of(2026, 5, 13, 12, 0)
   private val fixedDob = LocalDate.of(1994, 4, 13)
   private val fixedSentenceEndDate = LocalDate.of(2028, 5, 12)
+  private val fixedLicenceExpiryDate = LocalDate.of(2028, 9, 29)
 
   override fun getSarHelper(): SarIntegrationTestHelper = sarIntegrationTestHelper
 
@@ -156,6 +157,7 @@ class SarContractIntegrationTest :
           personName = "Test Person SAR",
           dateOfBirth = fixedDob,
           sentenceEndDate = fixedSentenceEndDate,
+          licenceExpiryDate = fixedLicenceExpiryDate,
         ),
       ),
     )
