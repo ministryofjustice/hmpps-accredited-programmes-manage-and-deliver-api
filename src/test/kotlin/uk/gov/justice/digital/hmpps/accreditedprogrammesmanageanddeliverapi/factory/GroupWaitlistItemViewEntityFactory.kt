@@ -11,6 +11,7 @@ class GroupWaitlistItemViewEntityFactory {
   private var crn: String = "X123456"
   private var personName: String = "John Smith"
   private var sentenceEndDate: LocalDate = LocalDate.now(UTC).plusYears(1)
+  private var licenceExpiryDate: LocalDate? = null
   private var sourcedFrom: ReferralEntitySourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION
   private var cohort: String = "SEXUAL_OFFENCE"
   private var hasLdc: Boolean = true
@@ -27,6 +28,7 @@ class GroupWaitlistItemViewEntityFactory {
   fun withCrn(crn: String) = apply { this.crn = crn }
   fun withPersonName(personName: String) = apply { this.personName = personName }
   fun withSentenceEndDate(sentenceEndDate: LocalDate) = apply { this.sentenceEndDate = sentenceEndDate }
+  fun withLicenceExpiryDate(licenceExpiryDate: LocalDate?) = apply { this.licenceExpiryDate = licenceExpiryDate }
   fun withSourcedFrom(sourcedFrom: ReferralEntitySourcedFrom) = apply { this.sourcedFrom = sourcedFrom }
   fun withCohort(cohort: String) = apply { this.cohort = cohort }
   fun withHasLdc(hasLdc: Boolean) = apply { this.hasLdc = hasLdc }
@@ -44,6 +46,7 @@ class GroupWaitlistItemViewEntityFactory {
     crn = this.crn,
     personName = this.personName,
     sentenceEndDate = this.sentenceEndDate,
+    licenceExpiryDate = this.licenceExpiryDate,
     sourcedFrom = this.sourcedFrom,
     cohort = this.cohort,
     hasLdc = this.hasLdc,

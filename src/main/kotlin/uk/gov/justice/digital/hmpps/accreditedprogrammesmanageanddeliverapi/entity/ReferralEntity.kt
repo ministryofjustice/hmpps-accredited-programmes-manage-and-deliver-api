@@ -93,6 +93,10 @@ class ReferralEntity(
   var sentenceEndDate: LocalDate? = null,
 
   @Nullable
+  @Column("licence_expiry_date")
+  var licenceExpiryDate: LocalDate? = null,
+
+  @Nullable
   @Column("sex")
   var sex: String? = null,
 

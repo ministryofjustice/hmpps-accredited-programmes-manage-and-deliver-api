@@ -48,6 +48,7 @@ class GroupWaitlistViewRepositoryIntegrationTest : IntegrationTestBase() {
         .hasFieldOrProperty("crn")
         .hasFieldOrProperty("personName")
         .hasFieldOrProperty("sentenceEndDate")
+        .hasFieldOrProperty("licenceExpiryDate")
         .hasFieldOrProperty("sourcedFrom")
         .hasFieldOrProperty("cohort")
         .hasFieldOrProperty("hasLdc")

@@ -341,6 +341,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
         assertThat(item).hasFieldOrProperty("sentenceEndDate")
+        assertThat(item).hasFieldOrProperty("licenceExpiryDate")
         assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
         assertThat(item).hasFieldOrProperty("statusLabelColour")
       }
@@ -617,6 +618,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
         assertThat(item).hasFieldOrProperty("sentenceEndDate")
+        assertThat(item).hasFieldOrProperty("licenceExpiryDate")
         assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
         assertThat(item).hasFieldOrProperty("statusLabelColour")
       }
@@ -673,6 +675,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
         assertThat(item).hasFieldOrProperty("sentenceEndDate")
+        assertThat(item).hasFieldOrProperty("licenceExpiryDate")
         assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
         assertThat(item).hasFieldOrProperty("statusLabelColour")
       }
@@ -750,6 +753,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
         assertThat(item).hasFieldOrProperty("sentenceEndDate")
+        assertThat(item).hasFieldOrProperty("licenceExpiryDate")
         assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
         assertThat(item).hasFieldOrProperty("statusLabelColour")
       }
@@ -776,6 +780,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
         assertThat(item).hasFieldOrProperty("sentenceEndDate")
+        assertThat(item).hasFieldOrProperty("licenceExpiryDate")
         assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
         assertThat(item).hasFieldOrProperty("statusLabelColour")
       }

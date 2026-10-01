@@ -118,8 +118,8 @@ class AdminService(
         deleteReferralAndDependents(referral)
         return@mapIndexed ProcessingResult.DELETED
       }
-      val sentenceEndDate = try {
-        sentenceService.getSentenceEndDate(
+      val sentenceEndDateDetails = try {
+        sentenceService.getSentenceEndDateDetails(
           referral.crn,
           referral.eventNumber,
           referral.sourcedFrom,
@@ -131,7 +131,7 @@ class AdminService(
         null
       }
 
-      if (sentenceEndDate == null) {
+      if (sentenceEndDateDetails?.expectedEndDate == null) {
         log.info("Missing sentence end date for crn ${referral.crn}. Deleting referral ${referral.id}...")
         deleteReferralAndDependents(referral)
         return@mapIndexed ProcessingResult.DELETED

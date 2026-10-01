@@ -119,11 +119,11 @@ class ReferralServiceTest {
       probationAccessControlApiClient = probationAccessControlApiClient,
       sessionRepository = sessionRepository,
       laoAccessCheckEnabled = true,
-      userAccessService = userAccessService,
       authenticationHolder = authenticationHolder,
       transactionTemplate = transactionTemplate,
       nDeliusAppointmentRepository = nDeliusAppointmentRepository,
       messageHistoryRepository = messageHistoryRepository,
+      userAccessService = userAccessService,
     )
   }
 
@@ -1061,7 +1061,7 @@ class ReferralServiceTest {
     // Need to mock other things that createReferral calls
     every { referralRepository.findByCrnAndEventIdAndSourcedFrom(any(), any(), any()) } returns null
     every { pniService.getPniCalculation(crn) } returns mockk(relaxed = true)
-    every { sentenceService.getSentenceEndDate(any(), any(), any()) } returns null
+    every { sentenceService.getSentenceEndDateDetails(any(), any(), any()) } returns null
     every { cohortService.determineOffenceCohort(any()) } returns mockk(relaxed = true)
     val awaitingAssessmentStatusDescription = ReferralStatusDescriptionEntityFactory().produce()
     every { referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription() } returns awaitingAssessmentStatusDescription
@@ -1106,7 +1106,7 @@ class ReferralServiceTest {
     // Other mocks for createReferral
     every { referralRepository.findByCrnAndEventIdAndSourcedFrom(any(), any(), any()) } returns null
     every { pniService.getPniCalculation(crn) } returns mockk(relaxed = true)
-    every { sentenceService.getSentenceEndDate(any(), any(), any()) } returns null
+    every { sentenceService.getSentenceEndDateDetails(any(), any(), any()) } returns null
     every { cohortService.determineOffenceCohort(any()) } returns mockk(relaxed = true)
     val awaitingAssessmentStatusDescription = ReferralStatusDescriptionEntityFactory().produce()
     every { referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription() } returns awaitingAssessmentStatusDescription

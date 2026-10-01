@@ -120,6 +120,7 @@ class TestReferralHelper {
     cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE,
     dateOfBirth: LocalDate? = null,
     sentenceEndDate: LocalDate? = null,
+    licenceExpiryDate: LocalDate? = null,
     sourcedFromReference: String = randomNumberAsInt(11).toString(),
     eventNumber: Int = 1,
   ): ReferralEntity {
@@ -161,6 +162,9 @@ class TestReferralHelper {
       .apply {
         sentenceEndDate?.let {
           withExpectedEndDate(it)
+        }
+        licenceExpiryDate?.let {
+          withLicenceExpiryDate(it)
         }
       }
       .produce()
@@ -267,6 +271,7 @@ class TestReferralHelper {
         cohort = config.cohort,
         dateOfBirth = config.dateOfBirth,
         sentenceEndDate = config.sentenceEndDate,
+        licenceExpiryDate = config.licenceExpiryDate,
       )
     }
   }
@@ -349,6 +354,7 @@ class TestReferralHelper {
     val cohort: OffenceCohort = OffenceCohort.GENERAL_OFFENCE,
     val dateOfBirth: LocalDate? = null,
     val sentenceEndDate: LocalDate? = null,
+    val licenceExpiryDate: LocalDate? = null,
   )
 
   /**

@@ -18,6 +18,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceEndDateDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.AttendanceHistoryResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.AttendanceHistorySession
@@ -68,7 +69,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.util
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeOfSession
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
@@ -102,11 +102,11 @@ class ReferralService(
   private val sessionRepository: SessionRepository,
   @param:Value($$"${app.features.lao-access-check-enabled}")
   private val laoAccessCheckEnabled: Boolean,
-  private val userAccessService: UserAccessService,
   private val authenticationHolder: HmppsAuthenticationHolder,
   private val transactionTemplate: TransactionTemplate,
   private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
   private val messageHistoryRepository: MessageHistoryRepository,
+  private val userAccessService: UserAccessService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -173,7 +173,7 @@ class ReferralService(
 
     val sentenceEndDateDeferred = async(Dispatchers.IO) {
       try {
-        sentenceService.getSentenceEndDate(referral.crn, referral.eventNumber, referral.sourcedFrom)
+        sentenceService.getSentenceEndDateDetails(referral.crn, referral.eventNumber, referral.sourcedFrom)
       } catch (ex: Exception) {
         log.warn("Failed to fetch sentence end date from nDelius for CRN ${referral.crn}: ${ex.message}")
         null
@@ -181,14 +181,20 @@ class ReferralService(
     }
 
     val personalDetails = personalDetailsDeferred.await()
-    val sentenceEndDate = sentenceEndDateDeferred.await()
+    val sentenceEndDateDetails = sentenceEndDateDeferred.await()
 
     if (personalDetails != null) {
-      updateReferralDetails(referral, personalDetails, sentenceEndDate)
+      updateReferralDetails(referral, personalDetails, sentenceEndDateDetails)
     } else {
       // If we at least have a sentence end date but no personal details, update just the sentence
-      if (sentenceEndDate != null && sentenceEndDate != referral.sentenceEndDate) {
-        referral.sentenceEndDate = sentenceEndDate
+      if (sentenceEndDateDetails != null &&
+        (
+          sentenceEndDateDetails.expectedEndDate != referral.sentenceEndDate ||
+            sentenceEndDateDetails.licenceExpiryDate != referral.licenceExpiryDate
+          )
+      ) {
+        referral.sentenceEndDate = sentenceEndDateDetails.expectedEndDate
+        referral.licenceExpiryDate = sentenceEndDateDetails.licenceExpiryDate
         referralRepository.save(referral)
       }
     }
@@ -256,7 +262,7 @@ class ReferralService(
     }
 
     val pniScore = pniService.getPniCalculation(findAndReferReferralDetails.personReference)
-    val sentenceEndDate = sentenceService.getSentenceEndDate(
+    val sentenceEndDate = sentenceService.getSentenceEndDateDetails(
       findAndReferReferralDetails.personReference,
       findAndReferReferralDetails.eventNumber,
       findAndReferReferralDetails.sourcedFromReferenceType,
@@ -274,7 +280,7 @@ class ReferralService(
       statusHistories = mutableListOf(),
       cohortHistories = mutableSetOf(),
       personalDetails = personalDetails,
-      sentenceEndDate = sentenceEndDate,
+      sentenceEndDateDetails = sentenceEndDate,
     )
 
     log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort")
@@ -680,10 +686,10 @@ class ReferralService(
 
   fun getStatusHistory(referralId: UUID): List<ReferralStatusHistory> = referralStatusHistoryRepository.findAllByReferralId(referralId).sortedBy { it.createdAt }.map { it.toApi() }
 
-  fun updateReferralDetails(
+  private fun updateReferralDetails(
     referral: ReferralEntity,
     personalDetails: NDeliusPersonalDetails,
-    sentenceEndDate: LocalDate?,
+    sentenceEndDateDetails: SentenceEndDateDetails?,
   ) {
     // If there is already a row in the db then update it otherwise create a new one
     val referralReportingLocation = referralReportingLocationRepository.findByReferralId(referral.id)
@@ -705,7 +711,10 @@ class ReferralService(
     referral.personName = personalDetails.name.getNameAsString()
     referral.sex = personalDetails.sex.description
     referral.dateOfBirth = personalDetails.dateOfBirth.toLocalDate()
-    referral.sentenceEndDate = sentenceEndDate
+    sentenceEndDateDetails?.let {
+      referral.sentenceEndDate = it.expectedEndDate
+      referral.licenceExpiryDate = it.licenceExpiryDate
+    }
     referralRepository.save(referral)
   }
 
