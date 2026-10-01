@@ -22,12 +22,12 @@ data class GroupItem(
   val referralId: UUID,
 
   @get:Schema(
-    example = "Order end date",
+    example = "REQUIREMENT",
     required = true,
-    description = "A human-readable string describing the entity (Licence Condition or Requirement) that caused the Referral to be created in our system",
+    description = "The type of entity (Licence Condition or Requirement) that caused the Referral to be created in our system",
   )
   @get:JsonProperty("sourcedFrom", required = true)
-  val sourcedFrom: String? = null,
+  val sourcedFrom: ReferralEntitySourcedFrom? = null,
 
   @get:Schema(
     example = "X933590",
@@ -154,7 +154,7 @@ data class GroupItem(
 
 fun GroupWaitlistItemViewEntity.toApi(isLimitedAccessOffender: Boolean = false, isExcluded: Boolean = false) = GroupItem(
   referralId = referralId,
-  sourcedFrom = sourcedFrom?.toDisplayString(),
+  sourcedFrom = sourcedFrom,
   crn = crn,
   isLimitedAccessOffender = isLimitedAccessOffender,
   isExcluded = isExcluded,
@@ -171,10 +171,5 @@ fun GroupWaitlistItemViewEntity.toApi(isLimitedAccessOffender: Boolean = false, 
   statusColour = statusColour,
   activeProgrammeGroupId = activeProgrammeGroupId,
 )
-
-private fun ReferralEntitySourcedFrom.toDisplayString(): String = when (this) {
-  ReferralEntitySourcedFrom.REQUIREMENT -> "Order end date"
-  ReferralEntitySourcedFrom.LICENCE_CONDITION -> "Licence end date"
-}
 
 private fun LocalDate.calculateAge(): Int = Period.between(this, LocalDate.now()).years
