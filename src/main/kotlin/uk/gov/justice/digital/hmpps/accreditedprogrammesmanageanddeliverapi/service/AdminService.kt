@@ -131,7 +131,7 @@ class AdminService(
         null
       }
 
-      if (sentenceEndDateDetails == null) {
+      if (sentenceEndDateDetails?.expectedEndDate == null) {
         log.info("Missing sentence end date for crn ${referral.crn}. Deleting referral ${referral.id}...")
         deleteReferralAndDependents(referral)
         return@mapIndexed ProcessingResult.DELETED

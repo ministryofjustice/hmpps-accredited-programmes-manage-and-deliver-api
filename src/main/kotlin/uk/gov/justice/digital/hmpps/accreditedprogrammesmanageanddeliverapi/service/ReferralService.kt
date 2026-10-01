@@ -711,8 +711,10 @@ class ReferralService(
     referral.personName = personalDetails.name.getNameAsString()
     referral.sex = personalDetails.sex.description
     referral.dateOfBirth = personalDetails.dateOfBirth.toLocalDate()
-    referral.sentenceEndDate = sentenceEndDateDetails?.expectedEndDate
-    referral.licenceExpiryDate = sentenceEndDateDetails?.licenceExpiryDate
+    sentenceEndDateDetails?.let {
+      referral.sentenceEndDate = it.expectedEndDate
+      referral.licenceExpiryDate = it.licenceExpiryDate
+    }
     referralRepository.save(referral)
   }
 
