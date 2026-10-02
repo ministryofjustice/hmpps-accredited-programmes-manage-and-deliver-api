@@ -129,6 +129,9 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+      val forename = nDeliusPersonalDetails.name.forename
+      val surname = nDeliusPersonalDetails.name.surname
+      val middleNames = nDeliusPersonalDetails.name.middleNames
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
       nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
@@ -148,7 +151,10 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.crn).isEqualTo(savedReferral.crn)
       assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
       assertThat(response.currentStatusDescription).isEqualTo("Awaiting allocation")
-      assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      assertThat(response.personName).isEqualTo("$forename $middleNames $surname")
+      assertThat(response.personForename).isEqualTo(forename)
+      assertThat(response.personSurname).isEqualTo(surname)
+      assertThat(response.personMiddleNames).isEqualTo(middleNames)
       assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
       assertThat(response.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
@@ -183,6 +189,9 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+      val forename = nDeliusPersonalDetails.name.forename
+      val surname = nDeliusPersonalDetails.name.surname
+      val middleNames = nDeliusPersonalDetails.name.middleNames
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
       nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
@@ -201,7 +210,10 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.id).isEqualTo(savedReferral.id)
       assertThat(response.crn).isEqualTo(savedReferral.crn)
       assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
-      assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      assertThat(response.personName).isEqualTo("$forename $middleNames $surname")
+      assertThat(response.personForename).isEqualTo(forename)
+      assertThat(response.personSurname).isEqualTo(surname)
+      assertThat(response.personMiddleNames).isEqualTo(middleNames)
       assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
       assertThat(response.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
@@ -242,6 +254,9 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+      val forename = nDeliusPersonalDetails.name.forename
+      val surname = nDeliusPersonalDetails.name.surname
+      val middleNames = nDeliusPersonalDetails.name.middleNames
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
       nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
@@ -260,7 +275,10 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.id).isEqualTo(savedReferral.id)
       assertThat(response.crn).isEqualTo(savedReferral.crn)
       assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
-      assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      assertThat(response.personName).isEqualTo("$forename $middleNames $surname")
+      assertThat(response.personForename).isEqualTo(forename)
+      assertThat(response.personSurname).isEqualTo(surname)
+      assertThat(response.personMiddleNames).isEqualTo(middleNames)
       assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
       assertThat(response.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
@@ -299,6 +317,9 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       val fullName = randomFullName(middleName = null)
 
       val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().withName(fullName).produce()
+      val forename = nDeliusPersonalDetails.name.forename
+      val surname = nDeliusPersonalDetails.name.surname
+      val middleNames = nDeliusPersonalDetails.name.middleNames
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
       nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
@@ -316,7 +337,10 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.id).isEqualTo(savedReferral.id)
       assertThat(response.crn).isEqualTo(savedReferral.crn)
       assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
-      assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      assertThat(response.personName).isEqualTo("$forename $middleNames $surname")
+      assertThat(response.personForename).isEqualTo(forename)
+      assertThat(response.personSurname).isEqualTo(surname)
+      assertThat(response.personMiddleNames).isEqualTo(middleNames)
       assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
       assertThat(response.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
