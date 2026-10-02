@@ -22,8 +22,7 @@ data class PersonalDetails(
     required = true,
     description = "The full name of the person being referred.",
   )
-  @get:JsonProperty("_name", required = true)
-  @param:JsonProperty("_name")
+  @param:JsonProperty("name")
   private val _name: String,
 
   @field:Schema(
