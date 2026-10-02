@@ -34,8 +34,8 @@ data class ReferralDetails(
     required = true,
     description = "The name of the person associated with this referral.",
   )
-  @get:JsonProperty("personName", required = true)
-  @param:JsonProperty("personName")
+  @get:JsonProperty("_personName", required = true)
+  @param:JsonProperty("_personName")
   private val _personName: String,
 
   @field:Schema(
