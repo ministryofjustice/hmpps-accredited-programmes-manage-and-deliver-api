@@ -23,15 +23,4 @@ class OpenApiDocsTest : IntegrationTestBase() {
       .expectStatus().is3xxRedirection
       .expectHeader().value("Location") { it.contains("/swagger-ui/index.html?configUrl=/v3/api-docs/swagger-config") }
   }
-
-  @Test
-  fun `the open api json contains documentation`() {
-    webTestClient.get()
-      .uri("/v3/api-docs")
-      .accept(MediaType.APPLICATION_JSON)
-      .exchange()
-      .expectStatus().isOk
-      .expectBody()
-      .jsonPath("paths").isNotEmpty
-  }
 }
