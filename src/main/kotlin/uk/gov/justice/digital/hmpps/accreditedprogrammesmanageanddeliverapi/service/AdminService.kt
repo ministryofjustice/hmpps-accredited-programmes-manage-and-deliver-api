@@ -1,5 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
@@ -193,6 +195,29 @@ class AdminService(
     )
 
     return statusUpdateResponse
+  }
+
+  /**
+   * Refreshes personal details for a list of referrals where structured personal names are missing.
+   * If the provided list of referral IDs is empty, it retrieves all referral IDs that
+   * have null values for the person surname from the database.
+   *
+   * @param referralIds A list of referral IDs for which personal details need to be updated.
+   *                    If the list is empty, relevant IDs will be fetched from the repository.
+   * @return A [RefreshPersonalDetailsResult] containing the outcome of the refresh operation.
+   */
+  suspend fun refreshPersonalDetailsForReferralsWithMissingStructuredNames(referralIds: List<UUID>): RefreshPersonalDetailsResult {
+    log.debug("START refresh personal details for referrals with missing structured personal names: {}", referralIds)
+    val referralIdList = referralIds.ifEmpty {
+      withContext(Dispatchers.IO) {
+        referralRepository.findAllIdsWherePersonSurnameIsNull()
+      }
+    }
+
+    val refreshPersonalDetailsResult = refreshPersonalDetailsForReferrals(referralIdList)
+
+    log.debug("END refresh personal details for referrals with missing structured personal names: {}", referralIds)
+    return refreshPersonalDetailsResult
   }
 
   private fun deleteReferralAndDependents(referral: ReferralEntity) {
