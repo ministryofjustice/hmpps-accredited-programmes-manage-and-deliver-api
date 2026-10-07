@@ -11,10 +11,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 fun getReferralCaseListItemSpecification(
   possibleStatuses: List<String>,
   crnOrPersonName: String? = null,
-  offenceCohort: OffenceCohort? = null,
-  hasLdc: Boolean? = null,
-  status: String? = null,
-  sex: String? = null,
+  offenceCohortAndLdcPairs: List<Pair<OffenceCohort, Boolean>> = emptyList(),
+  statuses: List<String>? = null,
+  sexes: List<String>? = null,
   pdus: List<String>? = null,
   reportingTeams: List<String>? = null,
 ): Specification<ReferralCaseListItemViewEntity> = Specification { root: Root<ReferralCaseListItemViewEntity>, query: CriteriaQuery<*>?, criteriaBuilder: CriteriaBuilder ->
@@ -41,39 +40,25 @@ fun getReferralCaseListItemSpecification(
     )
   }
 
-  offenceCohort?.let {
+  if (offenceCohortAndLdcPairs.isNotEmpty()) {
+    val cohortPredicates = offenceCohortAndLdcPairs.map { (cohort, hasLdc) ->
+      criteriaBuilder.and(
+        criteriaBuilder.equal(root.get<String>("cohort"), cohort.name),
+        criteriaBuilder.equal(root.get<Boolean>("hasLdc"), hasLdc),
+      )
+    }
+    predicates.add(criteriaBuilder.or(*cohortPredicates.toTypedArray()))
+  }
+
+  statuses?.takeIf { it.isNotEmpty() }?.let {
     predicates.add(
-      criteriaBuilder.equal(
-        root.get<String>("cohort"),
-        offenceCohort.name,
-      ),
+      root.get<String>("status").`in`(it),
     )
   }
 
-  hasLdc?.let {
+  sexes?.takeIf { it.isNotEmpty() }?.let {
     predicates.add(
-      criteriaBuilder.equal(
-        root.get<Boolean>("hasLdc"),
-        hasLdc,
-      ),
-    )
-  }
-
-  status?.let {
-    predicates.add(
-      criteriaBuilder.equal(
-        root.get<String>("status"),
-        status,
-      ),
-    )
-  }
-
-  sex?.let {
-    predicates.add(
-      criteriaBuilder.equal(
-        criteriaBuilder.lower(root.get("sex")),
-        sex.lowercase(),
-      ),
+      root.get<String>("sex").`in`(it),
     )
   }
 
