@@ -375,7 +375,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       val theGroup = testGroupHelper.createGroup()
-      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "Alex River")
+      val referral =
+        testReferralHelper.createReferral(crn = theCrnNumber, personForename = "Alex", personSurname = "River")
 
       val referralFromAllocateToGroup =
         membershipService.allocateReferralToGroup(
@@ -419,7 +420,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       val theGroup = testGroupHelper.createGroup()
-      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "Alex River")
+      val referral =
+        testReferralHelper.createReferral(crn = theCrnNumber, personForename = "Alex", personSurname = "River")
       membershipService.allocateReferralToGroup(referral.id!!, theGroup.id!!, "SYSTEM", "")
 
       val programmeCompleteStatusDescriptionId =
@@ -453,7 +455,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
 
       val theGroup = testGroupHelper.createGroup()
-      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "Alex River")
+      val referral =
+        testReferralHelper.createReferral(crn = theCrnNumber, personForename = "Alex", personSurname = "River")
       membershipService.allocateReferralToGroup(referral.id!!, theGroup.id!!, "SYSTEM", "")
 
       val programmeCompleteStatusDescriptionId =
@@ -515,7 +518,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
       val recallStatusDescription = referralStatusDescriptionRepository.getRecallStatusDescription()
 
-      val theReferral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "Alex River")
+      val theReferral =
+        testReferralHelper.createReferral(crn = theCrnNumber, personForename = "Alex", personSurname = "River")
 
       membershipService.allocateReferralToGroup(theReferral.id!!, theGroup.id!!, "SYSTEM", "")
 
@@ -551,7 +555,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       val group = testGroupHelper.createGroup()
-      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "Alex River")
+      val referral =
+        testReferralHelper.createReferral(crn = theCrnNumber, personForename = "Alex", personSurname = "River")
 
       // Allocate to group
       val allocatedReferral = testGroupHelper.allocateToGroup(group, referral)
@@ -620,7 +625,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       val theGroup = testGroupHelper.createGroup()
-      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "Alex River")
+      val referral =
+        testReferralHelper.createReferral(crn = theCrnNumber, personForename = "Alex", personSurname = "River")
 
       // Allocate to group
       val allocatedReferral = testGroupHelper.allocateToGroup(theGroup, referral)
@@ -900,7 +906,9 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
-      assertThat(savedReferral.personName).isEqualTo(personalDetails.name.getNameAsString())
+      assertThat(savedReferral.personForename).isEqualTo(personalDetails.name.forename)
+      assertThat(savedReferral.personSurname).isEqualTo(personalDetails.name.surname)
+      assertThat(savedReferral.personMiddleNames).isEqualTo(personalDetails.name.middleNames)
       assertThat(savedReferral.personForename).isNotBlank().isEqualTo(personalDetails.name.forename)
       assertThat(savedReferral.personSurname).isNotBlank().isEqualTo(personalDetails.name.surname)
       assertThat(savedReferral.personMiddleNames).isNotBlank().isEqualTo(personalDetails.name.middleNames)
@@ -937,7 +945,9 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(savedReferral.referralLdcHistories.first().hasLdc).isFalse
       assertThat(savedReferral.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
-      assertThat(savedReferral.personName).isEqualTo(personalDetails.name.getNameAsString())
+      assertThat(savedReferral.personForename).isEqualTo(personalDetails.name.forename)
+      assertThat(savedReferral.personSurname).isEqualTo(personalDetails.name.surname)
+      assertThat(savedReferral.personMiddleNames).isEqualTo(personalDetails.name.middleNames)
       assertThat(savedReferral.personForename).isNotBlank().isEqualTo(personalDetails.name.forename)
       assertThat(savedReferral.personSurname).isNotBlank().isEqualTo(personalDetails.name.surname)
       assertThat(savedReferral.personMiddleNames).isNotBlank().isEqualTo(personalDetails.name.middleNames)

@@ -53,38 +53,4 @@ class ReferralDetailsTest {
     // Then
     assertThat(result).isEqualTo("John Smith")
   }
-
-  @Test
-  fun `personName returns original name when forename is null`() {
-    // Given
-    val referralDetails = ReferralDetailsFactory()
-      .withPersonName("Original Name")
-      .withPersonForename(null)
-      .withPersonSurname("Smith")
-      .withPersonMiddleNames("William")
-      .produce()
-
-    // When
-    val result = referralDetails.personName
-
-    // Then
-    assertThat(result).isEqualTo("Original Name")
-  }
-
-  @Test
-  fun `personName returns original name when surname is null`() {
-    // Given
-    val referralDetails = ReferralDetailsFactory()
-      .withPersonName("Original Name")
-      .withPersonForename("John")
-      .withPersonSurname(null)
-      .withPersonMiddleNames("William")
-      .produce()
-
-    // When
-    val result = referralDetails.personName
-
-    // Then
-    assertThat(result).isEqualTo("Original Name")
-  }
 }

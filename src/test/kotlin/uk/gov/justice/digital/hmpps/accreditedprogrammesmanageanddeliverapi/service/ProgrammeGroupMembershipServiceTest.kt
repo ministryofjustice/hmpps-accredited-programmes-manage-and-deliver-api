@@ -92,7 +92,8 @@ class ProgrammeGroupMembershipServiceTest {
   fun `should allocate referral to group`() {
     // Given
     val referralEntity = ReferralEntityFactory()
-      .withPersonName("John Smith")
+      .withPersonForename("John")
+      .withPersonSurname("Smith")
       .withId(UUID.randomUUID())
       .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
       .produce()
@@ -131,7 +132,8 @@ class ProgrammeGroupMembershipServiceTest {
   fun `should not allocate referral to catch up sessions or past sessions or individual sessions`() {
     // Given
     val referralEntity = ReferralEntityFactory()
-      .withPersonName("John Smith")
+      .withPersonForename("John")
+      .withPersonSurname("Smith")
       .withId(UUID.randomUUID())
       .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
       .produce()
@@ -139,7 +141,8 @@ class ProgrammeGroupMembershipServiceTest {
     val groupId = UUID.randomUUID()
     val facilitator = FacilitatorEntityFactory().produce()
     val groupSessionTemplate = ModuleSessionTemplateEntityFactory().withSessionType(SessionType.GROUP).produce()
-    val individualSessionTemplate = ModuleSessionTemplateEntityFactory().withSessionType(SessionType.ONE_TO_ONE).produce()
+    val individualSessionTemplate =
+      ModuleSessionTemplateEntityFactory().withSessionType(SessionType.ONE_TO_ONE).produce()
 
     val futureGroupSession = SessionFactory(moduleSessionTemplate = groupSessionTemplate)
       .withStartsAt(LocalDateTime.now().plusDays(1))
@@ -162,10 +165,18 @@ class ProgrammeGroupMembershipServiceTest {
       .withId(groupId)
       .withTreatmentManager(facilitator)
       .produce()
-    programmeGroupEntity.sessions.addAll(listOf(futureGroupSession, futureCatchUpGroupSession, pastGroupSession, futureIndividualSession))
+    programmeGroupEntity.sessions.addAll(
+      listOf(
+        futureGroupSession,
+        futureCatchUpGroupSession,
+        pastGroupSession,
+        futureIndividualSession,
+      ),
+    )
 
     val referralStatusDescriptionEntity = ReferralStatusDescriptionEntityFactory().produce()
-    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity).withProgrammeGroup(programmeGroupEntity).produce()
+    val programmeGroupMembershipEntity =
+      ProgrammeGroupMembershipFactory().withReferral(referralEntity).withProgrammeGroup(programmeGroupEntity).produce()
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
     every { programmeGroupRepository.findByIdOrNull(groupId) } returns programmeGroupEntity
@@ -202,7 +213,8 @@ class ProgrammeGroupMembershipServiceTest {
   fun `should throw ConflictException when referral licence condition does not exist in nDelius`() {
     // Given
     val referralEntity = ReferralEntityFactory()
-      .withPersonName("John Smith")
+      .withPersonForename("John")
+      .withPersonSurname("Smith")
       .withId(UUID.randomUUID())
       .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
       .withEventId("1503834986")
@@ -239,7 +251,8 @@ class ProgrammeGroupMembershipServiceTest {
   fun `should throw ConflictException when referral requirement does not exist in nDelius`() {
     // Given
     val referralEntity = ReferralEntityFactory()
-      .withPersonName("John Smith")
+      .withPersonForename("John")
+      .withPersonSurname("Smith")
       .withId(UUID.randomUUID())
       .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
       .withEventId("1503604735")
@@ -276,7 +289,8 @@ class ProgrammeGroupMembershipServiceTest {
   fun `should throw BusinessException when referral has null sourcedFrom`() {
     // Given
     val referralEntity = ReferralEntityFactory()
-      .withPersonName("John Smith")
+      .withPersonForename("John")
+      .withPersonSurname("Smith")
       .withId(UUID.randomUUID())
       .withSourcedFrom(null)
       .produce()
@@ -303,7 +317,8 @@ class ProgrammeGroupMembershipServiceTest {
     val removeFromGroupRequest = RemoveFromGroupRequestFactory().withId(referralStatusDescriptionId).produce()
     val facilitator = FacilitatorEntityFactory().produce()
     val programmeGroupEntity = ProgrammeGroupFactory().withId(groupId).withTreatmentManager(facilitator).produce()
-    val referralEntity = ReferralEntityFactory().withPersonName("John Smith").withId(referralId).produce()
+    val referralEntity =
+      ReferralEntityFactory().withPersonForename("John").withPersonSurname("Smith").withId(referralId).produce()
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().produce()
     val referralStatusDescriptionEntity = ReferralStatusDescriptionEntityFactory().produce()
 

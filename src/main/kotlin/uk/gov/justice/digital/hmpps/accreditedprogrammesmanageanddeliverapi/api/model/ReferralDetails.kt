@@ -30,28 +30,20 @@ data class ReferralDetails(
   val crn: String,
 
   @field:Schema(
-    example = "John Doe",
-    required = true,
-    description = "The name of the person associated with this referral.",
-  )
-  @param:JsonProperty("personName")
-  private val _personName: String,
-
-  @field:Schema(
     example = "John",
-    required = false,
+    required = true,
     description = "The forename of the person being referred.",
   )
-  @get:JsonProperty("personForename", required = false)
-  val personForename: String? = null,
+  @get:JsonProperty("personForename", required = true)
+  val personForename: String,
 
   @field:Schema(
     example = "Smith",
-    required = false,
+    required = true,
     description = "The surname of the person being referred.",
   )
-  @get:JsonProperty("personSurname", required = false)
-  val personSurname: String? = null,
+  @get:JsonProperty("personSurname", required = true)
+  val personSurname: String,
 
   @field:Schema(
     example = "William",
@@ -190,11 +182,7 @@ data class ReferralDetails(
   )
   @get:JsonProperty("personName", required = true)
   val personName: String
-    get() = if (personForename != null && personSurname != null) {
-      listOfNotNull(personForename, personMiddleNames, personSurname).filter { it.isNotBlank() }.joinToString(" ")
-    } else {
-      _personName
-    }
+    get() = listOfNotNull(personForename, personMiddleNames, personSurname).filter { it.isNotBlank() }.joinToString(" ")
 
   companion object {
     private const val DEFAULT_INTERVENTION_NAME_VALUE = "UNKNOWN_INTERVENTION"
@@ -212,7 +200,6 @@ data class ReferralDetails(
     ): ReferralDetails = ReferralDetails(
       id = referral.id!!,
       crn = referral.crn,
-      _personName = nDeliusPersonalDetails.name.getNameAsString(),
       personForename = nDeliusPersonalDetails.name.forename,
       personMiddleNames = nDeliusPersonalDetails.name.middleNames,
       personSurname = nDeliusPersonalDetails.name.surname,
@@ -247,9 +234,8 @@ data class ReferralDetails(
     ): ReferralDetails = ReferralDetails(
       id = referral.id!!,
       crn = referral.crn,
-      _personName = referral.personName,
-      personForename = referral.personForename,
-      personSurname = referral.personSurname,
+      personForename = referral.personForename!!,
+      personSurname = referral.personSurname!!,
       personMiddleNames = referral.personMiddleNames,
       interventionName = referral.interventionName ?: DEFAULT_INTERVENTION_NAME_VALUE,
       createdAt = referral.createdAt.toLocalDate(),

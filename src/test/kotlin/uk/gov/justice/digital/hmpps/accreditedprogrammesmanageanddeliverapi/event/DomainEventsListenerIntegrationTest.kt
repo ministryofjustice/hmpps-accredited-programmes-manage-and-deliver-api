@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomNumberAsInt
@@ -125,7 +124,8 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .produce()
     nDeliusApiStubs.stubPersonalDetailsResponse(personalDetails)
     val sentenceInformation =
-      NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2025-10-01")).withLicenceExpiryDate(LocalDate.parse("2026-03-20")).produce()
+      NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2025-10-01"))
+        .withLicenceExpiryDate(LocalDate.parse("2026-03-20")).produce()
     nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(crn, eventNumber, sentenceInformation)
     probationAccessControlApiStubs.stubOpenAccessForAnyCrn()
   }
@@ -393,7 +393,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.interventionType).isEqualTo(InterventionType.ACP)
       assertThat(it.sourcedFrom).isEqualTo(ReferralEntitySourcedFrom.LICENCE_CONDITION)
       assertThat(it.eventId).isEqualTo("LIC-12345")
-      assertThat(it.personName).isEqualTo("John Alex Doe")
+      assertThat(it.personForename).isEqualTo("John")
+      assertThat(it.personSurname).isEqualTo("Doe")
+      assertThat(it.personMiddleNames).isEqualTo("Alex")
       assertThat(it.sex).isEqualTo("Male")
       assertThat(it.dateOfBirth).isEqualTo(LocalDate.parse("2000-10-01"))
       assertThat(it.referralReportingLocation!!.reportingTeam).isEqualTo("TEAM_1")
@@ -452,7 +454,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
       assertThat(it.sourcedFrom).isEqualTo(ReferralEntitySourcedFrom.LICENCE_CONDITION)
       assertThat(it.eventId).isEqualTo("LIC-12345")
-      assertThat(it.personName).isEqualTo("John Alex Doe")
+      assertThat(it.personForename).isEqualTo("John")
+      assertThat(it.personSurname).isEqualTo("Doe")
+      assertThat(it.personMiddleNames).isEqualTo("Alex")
       assertThat(it.sex).isEqualTo("Male")
       assertThat(it.dateOfBirth).isEqualTo(LocalDate.parse("2000-10-01"))
       assertThat(it.referralLdcHistories.first().hasLdc).isTrue
@@ -515,7 +519,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.dateOfBirth).isEqualTo(LocalDate.parse("2000-10-01"))
       assertThat(it.referralLdcHistories.first().hasLdc).isFalse()
       assertThat(it.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
-      assertThat(it.personName).isEqualTo("John Alex Doe")
+      assertThat(it.personForename).isEqualTo("John")
+      assertThat(it.personSurname).isEqualTo("Doe")
+      assertThat(it.personMiddleNames).isEqualTo("Alex")
       assertThat(it.referralReportingLocation!!.reportingTeam).isEqualTo("TEAM_1")
       assertThat(it.referralReportingLocation!!.pduName).isEqualTo("PDU_1")
       assertThat(it.sentenceEndDate).isEqualTo(LocalDate.parse("2025-10-01"))
@@ -572,7 +578,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.dateOfBirth).isEqualTo(LocalDate.parse("2000-10-01"))
       assertThat(it.referralLdcHistories.first().hasLdc).isFalse()
       assertThat(it.referralLdcHistories.first().createdBy).isEqualTo("SYSTEM")
-      assertThat(it.personName).isEqualTo("John Alex Doe")
+      assertThat(it.personForename).isEqualTo("John")
+      assertThat(it.personSurname).isEqualTo("Doe")
+      assertThat(it.personMiddleNames).isEqualTo("Alex")
       assertThat(it.referralReportingLocation!!.reportingTeam).isEqualTo("TEAM_1")
       assertThat(it.referralReportingLocation!!.pduName).isEqualTo("PDU_1")
       assertThat(it.sentenceEndDate).isEqualTo(LocalDate.parse("2025-10-01"))
@@ -806,7 +814,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     assertThat(result.id).isEqualTo(savedReferral.id)
     assertThat(result.crn).isEqualTo(savedReferral.crn)
     assertThat(result.interventionName).isEqualTo(savedReferral.interventionName)
-    assertThat(result.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+    assertThat(result.personForename).isEqualTo(nDeliusPersonalDetails.name.forename)
+    assertThat(result.personSurname).isEqualTo(nDeliusPersonalDetails.name.surname)
+    assertThat(result.personMiddleNames).isEqualTo(nDeliusPersonalDetails.name.middleNames)
     assertThat(result.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
     assertThat(result.sex).isEqualTo(nDeliusPersonalDetails.sex.description)
   }
@@ -981,7 +991,9 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     assertThat(result.id).isEqualTo(savedReferral.id)
     assertThat(result.crn).isEqualTo(savedReferral.crn)
     assertThat(result.interventionName).isEqualTo(savedReferral.interventionName)
-    assertThat(result.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+    assertThat(result.personForename).isEqualTo(nDeliusPersonalDetails.name.forename)
+    assertThat(result.personSurname).isEqualTo(nDeliusPersonalDetails.name.surname)
+    assertThat(result.personMiddleNames).isEqualTo(nDeliusPersonalDetails.name.middleNames)
     assertThat(result.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
     assertThat(result.sex).isEqualTo(nDeliusPersonalDetails.sex.description)
   }

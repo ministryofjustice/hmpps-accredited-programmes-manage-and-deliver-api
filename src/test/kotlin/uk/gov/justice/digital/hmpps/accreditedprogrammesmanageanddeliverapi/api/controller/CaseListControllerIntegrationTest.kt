@@ -108,7 +108,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
 
       val referral1 = ReferralEntityFactory()
-        .withPersonName("Joe Bloggs")
+        .withPersonForename("Joe")
+        .withPersonSurname("Bloggs")
         .withCrn("X7182552")
         .withSex("Male")
         .withInterventionName("Building Choices")
@@ -126,7 +127,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val cohortHistory1 = ReferralCohortHistoryFactory().withReferral(referral1).produce()
 
       val referral2 = ReferralEntityFactory()
-        .withPersonName("Alex River")
+        .withPersonForename("Alex")
+        .withPersonSurname("River")
         .withCrn("CRN-999999")
         .withSex("Female")
         .withInterventionName("Building Choices")
@@ -145,7 +147,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         ReferralCohortHistoryFactory().withReferral(referral2).withCohort(OffenceCohort.SEXUAL_OFFENCE).produce()
 
       val referral3 = ReferralEntityFactory()
-        .withPersonName("Jane Adams")
+        .withPersonForename("Jane")
+        .withPersonSurname("Adams")
         .withCrn("CRN-888888")
         .withSex("Female")
         .withInterventionName("Building Choices")
@@ -163,7 +166,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val cohortHistory3 = ReferralCohortHistoryFactory().withReferral(referral3).produce()
 
       val referral4 = ReferralEntityFactory()
-        .withPersonName("Pete Grims")
+        .withPersonForename("Pete")
+        .withPersonSurname("Grims")
         .withCrn("CRN-777777")
         .withSex("Male")
         .withInterventionName("New Me")
@@ -181,7 +185,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val cohortHistory4 = ReferralCohortHistoryFactory().withReferral(referral4).produce()
 
       val referral5 = ReferralEntityFactory()
-        .withPersonName("James Hayden")
+        .withPersonForename("James")
+        .withPersonSurname("Hayden")
         .withCrn("CRN-66666")
         .withSex("Male")
         .withInterventionName("Building Choices")
@@ -199,7 +204,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val cohortHistory5 = ReferralCohortHistoryFactory().withReferral(referral5).produce()
 
       val referral6 = ReferralEntityFactory()
-        .withPersonName("Andrew Crosforth")
+        .withPersonForename("Andrew")
+        .withPersonSurname("Crosforth")
         .withCrn("CRN-555555")
         .withSex("Male")
         .withInterventionName("Building Choices")
@@ -217,7 +223,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val cohortHistory6 = ReferralCohortHistoryFactory().withReferral(referral6).produce()
 
       val referral7 = ReferralEntityFactory()
-        .withPersonName("James Mars")
+        .withPersonForename("James")
+        .withPersonSurname("Mars")
         .withCrn("CRN-111111")
         .withSex("Male")
         .withInterventionName("Building Choices")
@@ -235,7 +242,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val cohortHistory7 = ReferralCohortHistoryFactory().withReferral(referral7).produce()
 
       val referral8 = ReferralEntityFactory()
-        .withPersonName("Other Region Person")
+        .withPersonForename("Other")
+        .withPersonSurname("Region Person")
         .withCrn("CRN-888888")
         .withSex("Female")
         .withInterventionName("Building Choices")
@@ -1048,7 +1056,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       // Create a referral with a reportingTeam containing a comma
       val referral = ReferralEntityFactory()
-        .withPersonName("Test Person")
+        .withPersonForename("Test")
+        .withPersonSurname("Person")
         .withCrn("CRN-COMMA-TEAM")
         .withInterventionName("Building Choices")
         .produce()
@@ -1060,7 +1069,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       referral.referralReportingLocation = reportingLocation
 
       val referralNoMatch = ReferralEntityFactory()
-        .withPersonName("Test Person No Match")
+        .withPersonForename("Test")
+        .withPersonSurname("Person No Match")
         .withCrn("CRN-COMMA-TEAM-NO-MATCH")
         .withInterventionName("Building Choices")
         .produce()
@@ -1115,7 +1125,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       // Create first referral with comma-containing team
       val referral1 = ReferralEntityFactory()
-        .withPersonName("Person One")
+        .withPersonForename("Person")
+        .withPersonSurname("One")
         .withCrn("CRN-MULTI-TEAM-1")
         .withInterventionName("Building Choices")
         .produce()
@@ -1128,7 +1139,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       // Create second referral with normal team name
       val referral2 = ReferralEntityFactory()
-        .withPersonName("Person Two")
+        .withPersonForename("Person")
+        .withPersonSurname("Two")
         .withCrn("CRN-MULTI-TEAM-2")
         .withInterventionName("Building Choices")
         .produce()
@@ -1157,7 +1169,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       referral2.referralCohortHistories = mutableSetOf(cohortHistory2)
 
       val referralNoMatch = ReferralEntityFactory()
-        .withPersonName("Person Three")
+        .withPersonForename("Person")
+        .withPersonSurname("Three")
         .withCrn("CRN-MULTI-TEAM-NO-MATCH")
         .withInterventionName("Building Choices")
         .produce()
@@ -1213,7 +1226,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       // Create a closed referral with a reportingTeam containing a comma
       val referral = ReferralEntityFactory()
-        .withPersonName("Closed Person")
+        .withPersonForename("Closed")
+        .withPersonSurname("Person")
         .withCrn("CRN-CLOSED-COMMA")
         .withInterventionName("New Me")
         .produce()
@@ -1225,7 +1239,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       referral.referralReportingLocation = reportingLocation
 
       val referralNoMatch = ReferralEntityFactory()
-        .withPersonName("Closed Person No Match")
+        .withPersonForename("Closed")
+        .withPersonSurname("Person No Match")
         .withCrn("CRN-CLOSED-COMMA-NO-MATCH")
         .withInterventionName("New Me")
         .produce()
@@ -1280,7 +1295,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       // Create first closed referral with comma-containing team
       val referral1 = ReferralEntityFactory()
-        .withPersonName("Closed One")
+        .withPersonForename("Closed")
+        .withPersonSurname("One")
         .withCrn("CRN-CLOSED-MULTI-1")
         .withInterventionName("Building Choices")
         .produce()
@@ -1293,7 +1309,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
 
       // Create second closed referral with ampersand in team name
       val referral2 = ReferralEntityFactory()
-        .withPersonName("Closed Two")
+        .withPersonForename("Closed")
+        .withPersonSurname("Two")
         .withCrn("CRN-CLOSED-MULTI-2")
         .withInterventionName("Building Choices")
         .produce()
@@ -1322,7 +1339,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       referral2.referralCohortHistories = mutableSetOf(cohortHistory2)
 
       val referralNoMatch = ReferralEntityFactory()
-        .withPersonName("Closed Three")
+        .withPersonForename("Closed")
+        .withPersonSurname("Three")
         .withCrn("CRN-CLOSED-MULTI-NO-MATCH")
         .withInterventionName("Building Choices")
         .produce()
@@ -1464,7 +1482,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       )
 
       val breachReferral = ReferralEntityFactory()
-        .withPersonName("Barry Reach")
+        .withPersonForename("Barry")
+        .withPersonSurname("Reach")
         .withCrn("CRN-BREACH1")
         .withInterventionName("Building Choices")
         .produce()

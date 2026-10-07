@@ -21,7 +21,6 @@ import java.util.UUID
 
 class ReferralEntityFactory {
   private var id: UUID? = null
-  private var personName: String? = randomSentence(wordRange = 1..3)
   private var personForename: String? = randomSentence(wordRange = 1..3)
   private var personSurname: String? = randomSentence(wordRange = 1..3)
   private var personMiddleNames: String? = randomSentence(wordRange = 1..3)
@@ -46,7 +45,6 @@ class ReferralEntityFactory {
   private var referralReportingLocationEntity: ReferralReportingLocationEntity? = null
 
   fun withId(id: UUID?) = apply { this.id = id }
-  fun withPersonName(personName: String?) = apply { this.personName = personName }
   fun withPersonForename(personForename: String?) = apply { this.personForename = personForename }
   fun withPersonSurname(personSurname: String?) = apply { this.personSurname = personSurname }
   fun withPersonMiddleNames(personMiddleNames: String?) = apply { this.personMiddleNames = personMiddleNames }
@@ -81,7 +79,6 @@ class ReferralEntityFactory {
 
   fun produce() = ReferralEntity(
     id = this.id,
-    personName = this.personName!!,
     personForename = this.personForename,
     personSurname = this.personSurname,
     personMiddleNames = this.personMiddleNames,

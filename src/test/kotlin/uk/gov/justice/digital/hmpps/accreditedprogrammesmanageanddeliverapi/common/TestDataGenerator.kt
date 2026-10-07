@@ -283,8 +283,12 @@ class TestDataGenerator {
     return groupFacilitator
   }
 
-  fun createReferral(personName: String, crn: String): ReferralEntity {
-    val referral = ReferralEntityFactory().withPersonName(personName).withCrn(crn).produce()
+  fun createReferral(personForename: String, personSurname: String, crn: String): ReferralEntity {
+    val referral = ReferralEntityFactory()
+      .withPersonForename(personForename)
+      .withPersonSurname(personSurname)
+      .withCrn(crn)
+      .produce()
     return referralRepository.save(referral)
   }
 

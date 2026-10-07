@@ -8,9 +8,8 @@ import java.util.UUID
 class ReferralDetailsFactory {
   private var id: UUID = UUID.randomUUID()
   private var crn: String = "X123456"
-  private var personName: String = "John Doe"
-  private var personForename: String? = "John"
-  private var personSurname: String? = "Doe"
+  private var personForename: String = "John"
+  private var personSurname: String = "Doe"
   private var personMiddleNames: String? = null
   private var interventionName: String = "Building Choices"
   private var createdAt: LocalDate = LocalDate.now()
@@ -30,9 +29,8 @@ class ReferralDetailsFactory {
 
   fun withId(id: UUID) = apply { this.id = id }
   fun withCrn(crn: String) = apply { this.crn = crn }
-  fun withPersonName(personName: String) = apply { this.personName = personName }
-  fun withPersonForename(personForename: String?) = apply { this.personForename = personForename }
-  fun withPersonSurname(personSurname: String?) = apply { this.personSurname = personSurname }
+  fun withPersonForename(personForename: String) = apply { this.personForename = personForename }
+  fun withPersonSurname(personSurname: String) = apply { this.personSurname = personSurname }
   fun withPersonMiddleNames(personMiddleNames: String?) = apply { this.personMiddleNames = personMiddleNames }
   fun withInterventionName(interventionName: String) = apply { this.interventionName = interventionName }
   fun withCreatedAt(createdAt: LocalDate) = apply { this.createdAt = createdAt }
@@ -52,7 +50,6 @@ class ReferralDetailsFactory {
   fun produce() = ReferralDetails(
     id = id,
     crn = crn,
-    _personName = personName,
     personForename = personForename,
     personSurname = personSurname,
     personMiddleNames = personMiddleNames,

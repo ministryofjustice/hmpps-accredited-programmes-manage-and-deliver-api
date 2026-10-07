@@ -52,37 +52,4 @@ class PersonalDetailsTest {
 
     assertThat(result).isEqualTo("John Smith")
   }
-
-  @Test
-  fun `name returns original name when forename is null`() {
-    // Given
-    val personalDetails = PersonalDetailsFactory()
-      .withName("Original Name")
-      .withPersonForename(null)
-      .withPersonSurname("Smith")
-      .withPersonMiddleNames("William")
-      .produce()
-
-    // When
-    val result = personalDetails.name
-
-    // Then
-    assertThat(result).isEqualTo("Original Name")
-  }
-
-  @Test
-  fun `name returns original name when surname is null`() {
-    // Given
-    val personalDetails = PersonalDetailsFactory()
-      .withName("Original Name")
-      .withPersonForename("John")
-      .withPersonSurname(null)
-      .withPersonMiddleNames("William")
-      .produce()
-
-    // When
-    val result = personalDetails.name
-
-    assertThat(result).isEqualTo("Original Name")
-  }
 }

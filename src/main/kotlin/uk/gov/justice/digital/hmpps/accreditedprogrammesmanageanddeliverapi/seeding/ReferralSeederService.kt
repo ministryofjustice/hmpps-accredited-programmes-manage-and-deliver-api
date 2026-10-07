@@ -61,7 +61,6 @@ class ReferralSeederService(
           referralId = referral.id.toString(),
           crn = crn,
           requirementId = requirementId,
-          personName = "${person.firstName} ${person.lastName}",
         ),
       )
     }
@@ -96,7 +95,6 @@ class ReferralSeederService(
   ): ReferralEntity {
     val referral = ReferralEntity(
       crn = crn,
-      personName = "${person.firstName} ${person.lastName}",
       personForename = person.firstName,
       personSurname = person.lastName,
       interventionType = InterventionType.ACP,
@@ -168,7 +166,6 @@ data class ReferralSeedingResult(
 data class SeededReferralInfo(
   val referralId: String,
   val crn: String,
-  val personName: String,
   val requirementId: String,
 )
 
