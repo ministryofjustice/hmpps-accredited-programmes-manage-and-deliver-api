@@ -181,7 +181,25 @@ class UserService(
     }
 
     is ClientResult.Failure -> {
-      log.error("Failed to fetch teams for user $username: ${result.toException().message}")
+      // Log the real underlying exception (class + message) via the `cause`, not just the
+      // generic wrapper text from `toException().message` — the wrapper alone was found
+      // (2026-10-08 investigation) to be unrecoverable for diagnosing *why* a given NDelius
+      // teams-lookup failure happened (timeout vs connection reset vs 5xx), because
+      // `ClientResult.Failure.Other.toException()` puts the real exception in `cause`, not the
+      // message string.
+      //
+      // Note: getTeamsForUser() already retries transient failures (ClientResult.Failure.Other /
+      // ServiceUnavailableException) internally, so reaching here with a Failure.Other means
+      // retries were exhausted. A Failure.StatusCode (e.g. a genuine 4xx) is never retried, so
+      // reaching here with that means a single, real negative result — hence "retries" below is
+      // phrased conditionally rather than asserted unconditionally.
+      val exception = result.toException()
+      val retriedSuffix = if (result is ClientResult.Failure.Other) " after exhausting retries" else ""
+      log.error(
+        "Failed to fetch teams for user $username$retriedSuffix: ${exception.message} " +
+          "(cause: ${exception.cause?.let { "${it::class.simpleName}: ${it.message}" } ?: "none"})",
+        exception,
+      )
       telemetryService.logToAppInsights(
         eventName = "${GET_USER_TEAM_N_DELIUS.eventName}.failure",
         integrationActionType = GET_USER_TEAM_N_DELIUS.name,

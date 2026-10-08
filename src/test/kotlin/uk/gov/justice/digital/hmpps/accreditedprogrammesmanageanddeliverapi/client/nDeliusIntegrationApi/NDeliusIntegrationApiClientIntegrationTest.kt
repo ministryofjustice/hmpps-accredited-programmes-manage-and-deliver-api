@@ -4,8 +4,11 @@ import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.delete
 import com.github.tomakehurst.wiremock.client.WireMock.equalToJson
 import com.github.tomakehurst.wiremock.client.WireMock.get
+import com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
+import com.github.tomakehurst.wiremock.http.Fault
+import com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
@@ -23,6 +26,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusApiProbationDeliveryUnitWithOfficeLocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusPersonalDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
@@ -609,5 +614,103 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
       is ClientResult.Failure.StatusCode<*> -> assertThat(response.status).isEqualTo(HttpStatus.NOT_FOUND)
       else -> fail("Unexpected result: ${response::class.simpleName}")
     }
+  }
+
+  // --- getTeamsForUser retry behaviour (APG-2708) ---
+  //
+  // Added following a 2026-10-08 production investigation (see
+  // doc/planning/manage-and-deliver-region-404/agent-handover-fix-region-404.md in the sibling
+  // hmpps-accredited-programmes-api repo) which found GET /current-user/region hard-404ing for a
+  // recurring set of usernames because the underlying NDelius `/user/{username}/teams` call fails
+  // intermittently/transiently. Confirmed via live telemetry: the identical lookup, for the
+  // identical account (`PLV86T`), failed then succeeded again 11 seconds later with no
+  // intervention — proving the failure is retry-able, not a structural data gap.
+
+  @Test
+  fun `getTeamsForUser should retry and succeed when nDelius call fails transiently then succeeds`() {
+    stubAuthTokenEndpoint()
+    val username = "RETRYUSER"
+    val scenario = "ndelius-teams-retry-then-succeed"
+
+    wiremock.stubFor(
+      get(urlEqualTo("/user/$username/teams"))
+        .inScenario(scenario)
+        .whenScenarioStateIs(STARTED)
+        .willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER))
+        .willSetStateTo("second-attempt"),
+    )
+
+    val teams = NDeliusUserTeams(
+      teams = listOf(
+        NDeliusUserTeam(
+          code = "TEAM001",
+          description = "Test Team",
+          pdu = CodeDescription("PDU001", "Test PDU"),
+          region = CodeDescription("REGION001", "West Midlands"),
+        ),
+      ),
+    )
+
+    wiremock.stubFor(
+      get(urlEqualTo("/user/$username/teams"))
+        .inScenario(scenario)
+        .whenScenarioStateIs("second-attempt")
+        .willReturn(
+          aResponse()
+            .withStatus(200)
+            .withHeader("Content-Type", "application/json")
+            .withBody(objectMapper.writeValueAsString(teams)),
+        ),
+    )
+
+    when (val response = nDeliusIntegrationApiClient.getTeamsForUser(username)) {
+      is ClientResult.Success<*> -> {
+        val body = response.body as NDeliusUserTeams
+        assertThat(body.teams).hasSize(1)
+        assertThat(body.teams[0].region.description).isEqualTo("West Midlands")
+      }
+
+      else -> fail("Unexpected result: ${response::class.simpleName}")
+    }
+
+    wiremock.verify(2, getRequestedFor(urlEqualTo("/user/$username/teams")))
+  }
+
+  @Test
+  fun `getTeamsForUser should give up after exhausting retries when nDelius call keeps failing transiently`() {
+    stubAuthTokenEndpoint()
+    val username = "ALWAYSFAILS"
+
+    wiremock.stubFor(
+      get(urlEqualTo("/user/$username/teams"))
+        .willReturn(aResponse().withFault(Fault.CONNECTION_RESET_BY_PEER)),
+    )
+
+    when (val response = nDeliusIntegrationApiClient.getTeamsForUser(username)) {
+      is ClientResult.Failure.Other<*> -> assertThat(response.serviceName).isEqualTo("NDelius Integration API")
+      else -> fail("Unexpected result: ${response::class.simpleName}")
+    }
+
+    // 3 total attempts (1 initial + 2 retries) — confirms retries are bounded, not infinite
+    wiremock.verify(3, getRequestedFor(urlEqualTo("/user/$username/teams")))
+  }
+
+  @Test
+  fun `getTeamsForUser should NOT retry when nDelius returns a genuine 404 (not a transient failure)`() {
+    stubAuthTokenEndpoint()
+    val username = "NOTEAMS"
+
+    wiremock.stubFor(
+      get(urlEqualTo("/user/$username/teams"))
+        .willReturn(aResponse().withStatus(404)),
+    )
+
+    when (val response = nDeliusIntegrationApiClient.getTeamsForUser(username)) {
+      is ClientResult.Failure.StatusCode<*> -> assertThat(response.status).isEqualTo(HttpStatus.NOT_FOUND)
+      else -> fail("Unexpected result: ${response::class.simpleName}")
+    }
+
+    // Exactly 1 attempt — a genuine 4xx is a real result, not retried
+    wiremock.verify(1, getRequestedFor(urlEqualTo("/user/$username/teams")))
   }
 }
