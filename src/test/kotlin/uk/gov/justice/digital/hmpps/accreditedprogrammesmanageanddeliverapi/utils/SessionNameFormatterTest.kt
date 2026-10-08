@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.AttendeeFactory
@@ -1247,6 +1248,135 @@ class SessionNameFormatterTest : IntegrationTestBase() {
 
       assertThat(sessionNameFormatter.format(session, SessionNameContext.AttendanceHistory))
         .isEqualTo("Post-programme review catch-up")
+    }
+  }
+
+  @Nested
+  inner class NdeliusContactDescription {
+
+    @Test
+    fun `returns moduleName sessionNumber pattern for group session`() {
+      val session = createSession(moduleName = "Getting started", sessionType = SessionType.GROUP, sessionNumber = 1)
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.NdeliusContactDescription))
+        .isEqualTo("Getting started 1")
+    }
+
+    @Test
+    fun `returns moduleName sessionNumber catch-up pattern for group catchup session`() {
+      val session = createSession(
+        moduleName = "Getting started",
+        sessionType = SessionType.GROUP,
+        sessionNumber = 3,
+        isCatchup = true,
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.NdeliusContactDescription))
+        .isEqualTo("Getting started 3 catch-up")
+    }
+
+    @Test
+    fun `returns sessionName for one-to-one session`() {
+      val session = createSession(
+        moduleName = "Getting started",
+        sessionType = SessionType.ONE_TO_ONE,
+        sessionNumber = 2,
+        templateName = "Getting started one-to-one",
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.NdeliusContactDescription))
+        .isEqualTo("Getting started one-to-one")
+    }
+
+    @Test
+    fun `returns sessionName catch-up pattern for one-to-one catchup session`() {
+      val session = createSession(
+        moduleName = "Getting started",
+        sessionType = SessionType.ONE_TO_ONE,
+        sessionNumber = 2,
+        templateName = "Getting started one-to-one",
+        isCatchup = true,
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.NdeliusContactDescription))
+        .isEqualTo("Getting started one-to-one catch-up")
+    }
+
+    @Test
+    fun `does not include the person name for a one-to-one session with an attendee`() {
+      val session = createSession(
+        moduleName = "Getting started",
+        sessionType = SessionType.ONE_TO_ONE,
+        sessionNumber = 2,
+        templateName = "Getting started one-to-one",
+      )
+      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val attendee = AttendeeFactory().withReferral(referral).withSession(session).produce()
+      session.attendees.add(attendee)
+      sessionRepository.save(session)
+
+      // The Default context would render "Alex River: Getting started one-to-one"; nDelius must not receive the name
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.NdeliusContactDescription))
+        .isEqualTo("Getting started one-to-one")
+    }
+
+    @Test
+    fun `returns templateName for pre-group one-to-one session`() {
+      val session = createSession(
+        moduleName = "Pre-group one-to-ones",
+        sessionType = SessionType.ONE_TO_ONE,
+        sessionNumber = 1,
+        templateName = "Pre-group one-to-one",
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.NdeliusContactDescription))
+        .isEqualTo("Pre-group one-to-one")
+    }
+
+    @Test
+    fun `returns templateName for post-programme review session`() {
+      val session = createSession(
+        moduleName = "Post-programme reviews",
+        sessionType = SessionType.ONE_TO_ONE,
+        sessionNumber = 1,
+        templateName = "Post-programme review",
+      )
+
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.NdeliusContactDescription))
+        .isEqualTo("Post-programme review")
+    }
+
+    private fun createSession(
+      moduleName: String,
+      sessionType: SessionType,
+      sessionNumber: Int,
+      templateName: String = "Introduction to Building Choices",
+      isCatchup: Boolean = false,
+    ): SessionEntity {
+      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
+      val module = testDataGenerator.createModule(programmeTemplate, moduleName, 2)
+      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        ModuleSessionTemplateEntity(
+          module = module,
+          sessionNumber = sessionNumber,
+          sessionType = sessionType,
+          pathway = Pathway.MODERATE_INTENSITY,
+          name = templateName,
+          durationMinutes = 120,
+        ),
+      )
+      val group = testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withAccreditedProgrammeTemplate(programmeTemplate)
+          .produce(),
+      )
+      return testDataGenerator.createSession(
+        SessionFactory()
+          .withProgrammeGroup(group)
+          .withModuleSessionTemplate(sessionTemplate)
+          .withIsCatchup(isCatchup)
+          .produce(),
+      )
     }
   }
 }

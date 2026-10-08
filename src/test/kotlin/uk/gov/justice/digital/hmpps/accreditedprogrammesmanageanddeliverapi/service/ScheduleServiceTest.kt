@@ -78,7 +78,7 @@ class ScheduleServiceTest {
     // Function-reference form is refactor-safe (unlike the string "...Kt" form) - renaming
     // the enclosing file will fail at compile time, not silently at runtime.
     mockkStatic(AttendeeEntity::toAppointment, AttendeeEntity::toNdeliusAppointmentEntity)
-    every { any<AttendeeEntity>().toAppointment(any()) } returns mockk<CreateAppointmentRequest.NdeliusAppointment>(
+    every { any<AttendeeEntity>().toAppointment(any(), any()) } returns mockk<CreateAppointmentRequest.NdeliusAppointment>(
       relaxed = true,
     )
     every { any<AttendeeEntity>().toNdeliusAppointmentEntity(any()) } returns mockk<NDeliusAppointmentEntity>(relaxed = true)

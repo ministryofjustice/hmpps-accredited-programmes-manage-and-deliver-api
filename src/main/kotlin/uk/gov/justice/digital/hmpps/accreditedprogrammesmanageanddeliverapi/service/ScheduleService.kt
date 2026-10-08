@@ -438,7 +438,7 @@ class ScheduleService(
     val (nDeliusAppointments, nDeliusAppointmentEntities) = attendees.map { attendee ->
       // Generate an appointment ID to be used by NDelius
       val appointmentId = UUID.randomUUID()
-      val appointment = attendee.toAppointment(appointmentId)
+      val appointment = attendee.toAppointment(appointmentId, sessionNameFormatter)
       val appointmentEntity = attendee.toNdeliusAppointmentEntity(appointmentId)
       appointment to appointmentEntity
     }.unzip()
