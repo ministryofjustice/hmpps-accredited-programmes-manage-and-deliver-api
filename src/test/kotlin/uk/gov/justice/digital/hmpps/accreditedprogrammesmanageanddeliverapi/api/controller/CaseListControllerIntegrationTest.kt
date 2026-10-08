@@ -805,7 +805,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       val referralCaseListItems = response.pagedReferrals.content
 
       assertThat(response).isNotNull
-      assertThat(response.pagedReferrals.totalElements).isEqualTo(1)
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(1L)
 
       val referral = referralCaseListItems[0]
       assertThat(referral.personName).isEqualTo("Alex River")
@@ -814,6 +814,41 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(referral.referralStatus).isEqualTo("Awaiting assessment")
       assertThat(referral.statusLabelColour).isEqualTo("purple")
       assertThat(response.otherTabTotal).isEqualTo(0)
+    }
+
+    @Test
+    fun `getCaseListItems for OPEN and search by personName and cohort (LDC) returns matching referrals`() {
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?crnOrPersonName=Alex River&cohort=Sexual offence LDC",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(0L)
+    }
+
+    @Test
+    fun `getCaseListItems for OPEN and search by CRN and cohort returns matching referrals`() {
+      // When
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?crnOrPersonName=CRN-999999&cohort=Sexual offence",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      // Then
+      val referralCaseListItems = response.pagedReferrals.content
+
+      assertThat(response).isNotNull
+      assertThat(response.pagedReferrals.totalElements).isEqualTo(1L)
+
+      val referral = referralCaseListItems[0]
+      assertThat(referral.personName).isEqualTo("Alex River")
+      assertThat(referral.crn).isEqualTo("CRN-999999")
+      assertThat(referral.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
     }
 
     @Test

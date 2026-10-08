@@ -23,7 +23,7 @@ class ReferralEntityFactory {
   private var id: UUID? = null
   private var personForename: String? = randomSentence(wordRange = 1..3)
   private var personSurname: String? = randomSentence(wordRange = 1..3)
-  private var personMiddleNames: String? = randomSentence(wordRange = 1..3)
+  private var personMiddleNames: String? = null
   private var interventionName: String? = "Building Choices"
   private var interventionType: InterventionType = InterventionType.ACP
   private var crn: String? = randomCrn()

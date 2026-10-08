@@ -1098,7 +1098,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     @Test
     fun `retrieve referralDetails gracefully when nDelius personal details returns 503`() = runTest {
       // Given
-      val referral = ReferralEntityFactory().produce()
+      val referral = ReferralEntityFactory().withPersonMiddleNames("The-middle-name").produce()
       testDataGenerator.createReferralWithStatusHistory(referral)
       oasysApiStubs.stubServiceUnavailablePniResponse(referral.crn)
       nDeliusApiStubs.stubServiceUnavailablePersonalDetailsResponse(referral.crn)
