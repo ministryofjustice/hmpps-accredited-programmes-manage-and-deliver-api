@@ -101,7 +101,7 @@ class ReferralSeederService(
       interventionName = "Building Choices",
       setting = SettingType.COMMUNITY,
       createdAt = LocalDateTime.now(),
-      sex = person.sexCode,
+      sex = person.sexDescription,
       dateOfBirth = person.dateOfBirth,
       eventId = requirementId,
       eventNumber = 1,
