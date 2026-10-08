@@ -84,9 +84,11 @@ class ReferralStatusService(
     val referral = statusHistory.referral
     val sourcedFrom = referral.sourcedFrom
     val eventId = referral.eventId
+    val eventNumber = referral.eventNumber
 
     requireNotNull(sourcedFrom) { "SourcedFrom must not be null" }
     requireNotNull(eventId) { "EventId must not be null" }
+    requireNotNull(eventNumber) { "EventNumber must not be null" }
 
     // Map our M&D status description to a more readable string
     // e.g. Awaiting allocation -> The person is ready to be allocated to a programme group.
@@ -97,6 +99,7 @@ class ReferralStatusService(
       newStatus = statusInfo,
       sourcedFromEntityType = sourcedFrom,
       sourcedFromEntityId = eventId.toLong(),
+      eventNumber = eventNumber,
       notes = statusHistory.additionalDetails,
       description = statusInfo.description,
       username = statusHistory.createdBy,
