@@ -41,32 +41,32 @@ class ReferralCaseListItemService(
     openOrClosed: OpenOrClosed,
     username: String,
     caseReferenceNumberOrPersonName: String?,
-    cohort: ProgrammeGroupCohort?,
-    status: String?,
-    sex: String?,
+    cohorts: List<ProgrammeGroupCohort>?,
+    statuses: List<String>?,
+    sexes: List<String>?,
     probationDeliveryUnits: List<String>?,
     reportingTeams: List<String>?,
   ): CaseListReferrals {
-    val (offenceType, hasLdc) = cohort?.let { ProgrammeGroupCohort.toOffenceTypeAndLdc(it) }
-      ?: (null to null)
+    val offenceCohortAndLdcPairs = cohorts?.mapNotNull { cohort ->
+      ProgrammeGroupCohort.toOffenceTypeAndLdc(cohort)
+    } ?: emptyList()
 
     val isFilteredCaseList =
-      isFilterApplied(caseReferenceNumberOrPersonName, cohort, sex, probationDeliveryUnits, reportingTeams)
+      isFilterApplied(caseReferenceNumberOrPersonName, cohorts, sexes, probationDeliveryUnits, reportingTeams)
     val userRegionNames = userService.getUserRegionNames(username)
 
-    // Normalise the status filter once so both the main query and the otherTabCount query
-    // receive the same DB-compatible value (e.g. "Breach" -> "Breach (non-attendance)").
-    val normalisedStatus = ReferralStatusUtils.unformatStatus(status)
+    // Normalise the status filters once so both the main query and the otherTabCount query
+    // receive the same DB-compatible values (e.g. "Breach" -> "Breach (non-attendance)").
+    val normalisedStatuses = statuses?.mapNotNull { ReferralStatusUtils.unformatStatus(it) }
 
     val referralsPage = getReferralCaseList(
       pageable = pageable,
       openOrClosed = openOrClosed,
       username = username,
       caseReferenceNumberOrPersonName = caseReferenceNumberOrPersonName,
-      offenceCohort = offenceType,
-      hasLdc = hasLdc,
-      status = normalisedStatus,
-      sex = sex,
+      offenceCohortAndLdcPairs = offenceCohortAndLdcPairs,
+      statuses = normalisedStatuses,
+      sexes = sexes,
       probationDeliveryUnits = probationDeliveryUnits,
       reportingTeams = reportingTeams,
     )
@@ -82,7 +82,7 @@ class ReferralCaseListItemService(
       if (exclusionAccessCheckEnabled && isFilteredCaseList) {
         val crnMatchesSearch = !caseReferenceNumberOrPersonName.isNullOrEmpty() &&
           referral.crn.contains(caseReferenceNumberOrPersonName, ignoreCase = true)
-        val hasOtherFilters = hasFiltersOtherThanSearch(cohort, sex, probationDeliveryUnits, reportingTeams)
+        val hasOtherFilters = hasFiltersOtherThanSearch(cohorts, sexes, probationDeliveryUnits, reportingTeams)
         val shouldSkipExclusionFilter = crnMatchesSearch && !hasOtherFilters
 
         if (!shouldSkipExclusionFilter) {
@@ -123,10 +123,9 @@ class ReferralCaseListItemService(
       openOrClosed = if (openOrClosed == OpenOrClosed.OPEN) OpenOrClosed.CLOSED else OpenOrClosed.OPEN,
       username = username,
       caseReferenceNumberOrPersonName = caseReferenceNumberOrPersonName,
-      offenceCohort = offenceType,
-      hasLdc = hasLdc,
-      status = normalisedStatus,
-      sex = sex,
+      offenceCohortAndLdcPairs = offenceCohortAndLdcPairs,
+      statuses = normalisedStatuses,
+      sexes = sexes,
       probationDeliveryUnits = probationDeliveryUnits,
       reportingTeams = reportingTeams,
     ).totalElements
@@ -139,10 +138,9 @@ class ReferralCaseListItemService(
     openOrClosed: OpenOrClosed,
     username: String,
     caseReferenceNumberOrPersonName: String?,
-    offenceCohort: OffenceCohort?,
-    hasLdc: Boolean?,
-    status: String?,
-    sex: String?,
+    offenceCohortAndLdcPairs: List<Pair<OffenceCohort, Boolean>>,
+    statuses: List<String>?,
+    sexes: List<String>?,
     probationDeliveryUnits: List<String>?,
     reportingTeams: List<String>?,
   ): Page<ReferralCaseListItemViewEntity> {
@@ -152,10 +150,9 @@ class ReferralCaseListItemService(
       getReferralCaseListItemSpecification(
         possibleStatuses = possibleStatuses,
         crnOrPersonName = caseReferenceNumberOrPersonName,
-        offenceCohort = offenceCohort,
-        hasLdc = hasLdc,
-        status = status,
-        sex = sex,
+        offenceCohortAndLdcPairs = offenceCohortAndLdcPairs,
+        statuses = statuses,
+        sexes = sexes,
         pdus = probationDeliveryUnits,
         reportingTeams = reportingTeams,
       )
@@ -193,23 +190,23 @@ class ReferralCaseListItemService(
 
   private fun isFilterApplied(
     caseReferenceNumberOrPersonName: String?,
-    cohort: ProgrammeGroupCohort?,
-    sex: String?,
+    cohorts: List<ProgrammeGroupCohort>?,
+    sexes: List<String>?,
     probationDeliveryUnits: List<String>?,
     reportingTeams: List<String>?,
   ): Boolean = !caseReferenceNumberOrPersonName.isNullOrEmpty() ||
-    cohort != null ||
-    !sex.isNullOrEmpty() ||
+    !cohorts.isNullOrEmpty() ||
+    !sexes.isNullOrEmpty() ||
     probationDeliveryUnits != null ||
     reportingTeams != null
 
   private fun hasFiltersOtherThanSearch(
-    cohort: ProgrammeGroupCohort?,
-    sex: String?,
+    cohorts: List<ProgrammeGroupCohort>?,
+    sexes: List<String>?,
     probationDeliveryUnits: List<String>?,
     reportingTeams: List<String>?,
-  ): Boolean = cohort != null ||
-    !sex.isNullOrEmpty() ||
+  ): Boolean = !cohorts.isNullOrEmpty() ||
+    !sexes.isNullOrEmpty() ||
     probationDeliveryUnits != null ||
     reportingTeams != null
 
