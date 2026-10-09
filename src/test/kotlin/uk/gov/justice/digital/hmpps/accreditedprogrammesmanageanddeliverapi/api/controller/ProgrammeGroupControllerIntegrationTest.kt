@@ -2986,7 +2986,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
       assertThat(retrievedSession.sessionFacilitators.first().facilitator.personName)
-        .isEqualTo("Default facilitator name")
+        .isEqualTo("Default facilitator forename Default facilitator surname")
       assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
       assertThat(retrievedSession.attendees).hasSize(1)
       assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
@@ -3029,7 +3029,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
       assertThat(retrievedSession.sessionFacilitators.first().facilitator.personName)
-        .isEqualTo("Default facilitator name")
+        .isEqualTo("Default facilitator forename Default facilitator surname")
       assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
       assertThat(retrievedSession.attendees).hasSize(1)
       assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
@@ -3306,6 +3306,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val nonExistentFacilitator = CreateGroupTeamMemberFactory()
         .withFacilitator("Non existent Facilitator")
+        .withFacilitatorForename("Non existent")
+        .withFacilitatorSurname("Facilitator")
         .withFacilitatorCode("Non existent code")
         .produce()
 
@@ -3345,7 +3347,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         referralIds = listOf(UUID.randomUUID()),
         facilitators = listOf(
           CreateGroupTeamMember(
-            facilitator = "Test Facilitator",
+            _facilitator = "Test Facilitator",
+            facilitatorForename = "Test",
+            facilitatorSurname = "Facilitator",
             facilitatorCode = "FAC001",
             teamName = "Test Team",
             teamCode = "TEAM001",
@@ -5445,21 +5449,27 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val teamMembers = listOf(
         CreateGroupTeamMember(
-          facilitator = "Archibald Queenie",
+          _facilitator = "Archibald Queenie",
+          facilitatorForename = "Archibald",
+          facilitatorSurname = "Queenie",
           facilitatorCode = "TM001",
           teamName = "Management Team",
           teamCode = "TEAM001",
           teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER,
         ),
         CreateGroupTeamMember(
-          facilitator = "Chloe Ransom",
+          _facilitator = "Chloe Ransom",
+          facilitatorForename = "Chloe",
+          facilitatorSurname = "Ransom",
           facilitatorCode = "RF001",
           teamName = "Facilitator Team",
           teamCode = "TEAM002",
           teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR,
         ),
         CreateGroupTeamMember(
-          facilitator = "James Samhim",
+          _facilitator = "James Samhim",
+          facilitatorForename = "James",
+          facilitatorSurname = "Samhim",
           facilitatorCode = "CF001",
           teamName = "Cover Team",
           teamCode = "TEAM003",
