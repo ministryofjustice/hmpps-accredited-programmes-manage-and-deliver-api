@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup
 
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse.EditSessionAttendee
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
@@ -44,11 +45,8 @@ data class EditSessionAttendeesResponse(
   @Schema(description = "Details about an attendee for a session")
   data class EditSessionAttendee(
 
-    @get:Schema(
-      description = "Full name of the attendee",
-      example = "John Smith",
-    )
-    val name: String,
+    @get:Schema(description = "Full name of the attendee")
+    val name: PersonName,
 
     @get:Schema(
       description = "Referral identifier associated with the attendee",
@@ -79,7 +77,7 @@ data class EditSessionAttendeesResponse(
 fun ProgrammeGroupMembershipEntity.toSessionAttendee(
   sessionAttendees: List<UUID>,
 ) = EditSessionAttendee(
-  name = personName,
+  name = PersonName(forename = personForename!!, middleNames = personMiddleNames, surname = personSurname!!),
   referralId = referralId,
   crn = crn,
   currentlyAttending = sessionAttendees.contains(referralId),

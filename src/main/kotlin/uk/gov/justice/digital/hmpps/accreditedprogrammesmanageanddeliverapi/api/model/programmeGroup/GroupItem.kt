@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.GroupWaitlistItemViewEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import java.time.LocalDate
@@ -54,12 +55,11 @@ data class GroupItem(
   val isExcluded: Boolean,
 
   @get:Schema(
-    example = "John Doe",
     required = true,
     description = "The name of the person associated with this referral.",
   )
   @get:JsonProperty("personName", required = true)
-  val personName: String,
+  val personName: PersonName,
 
   @get:Schema(
     example = "1 January 2030",
@@ -158,7 +158,7 @@ fun GroupWaitlistItemViewEntity.toApi(isLimitedAccessOffender: Boolean = false, 
   crn = crn,
   isLimitedAccessOffender = isLimitedAccessOffender,
   isExcluded = isExcluded,
-  personName = personName,
+  personName = PersonName(forename = personForename!!, middleNames = personMiddleNames, surname = personSurname!!),
   sentenceEndDate = sentenceEndDate,
   licenceExpiryDate = licenceExpiryDate,
   cohort = cohort.let { OffenceCohort.fromDisplayName(it) },

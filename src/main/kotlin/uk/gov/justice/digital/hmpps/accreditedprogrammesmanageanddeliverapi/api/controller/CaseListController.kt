@@ -57,7 +57,7 @@ class CaseListController(
   )
   @GetMapping("/pages/caselist/{openOrClosed}", produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getCaseListReferrals(
-    @PageableDefault(page = 0, size = 50, sort = ["personName"]) pageable: Pageable,
+    @PageableDefault(page = 0, size = 50, sort = ["personSurname", "personForename"]) pageable: Pageable,
     @PathVariable(required = true) openOrClosed: OpenOrClosed,
     @Parameter(description = "CRN or persons name")
     @RequestParam(name = "crnOrPersonName", required = false) caseReferenceNumberOrPersonName: String?,

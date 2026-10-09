@@ -3,7 +3,9 @@ DROP VIEW IF EXISTS group_waitlist_item_view;
 CREATE VIEW group_waitlist_item_view AS
 SELECT r.id                                           as referral_id,
        r.crn,
-       TRIM(CONCAT_WS(' ', r.person_forename, r.person_middle_names, r.person_surname)) AS person_name,
+       r.person_forename,
+       r.person_middle_names,
+       r.person_surname,
        r.sentence_end_date,
        r.licence_expiry_date,
        r.sourced_from,

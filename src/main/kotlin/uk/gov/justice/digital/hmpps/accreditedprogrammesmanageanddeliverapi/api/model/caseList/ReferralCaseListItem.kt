@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import org.springframework.data.domain.Page
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
@@ -11,7 +12,7 @@ import java.util.UUID
 data class ReferralCaseListItem(
   val referralId: UUID,
   val crn: String,
-  val personName: String,
+  val personName: PersonName,
   val sex: String?,
   val referralStatus: String,
   val statusLabelColour: String,
@@ -29,7 +30,7 @@ data class ReferralCaseListItem(
 fun ReferralCaseListItemViewEntity.toApi(isLimitedAccessOffender: Boolean? = false, isExcluded: Boolean = false) = ReferralCaseListItem(
   referralId = referralId,
   crn = crn,
-  personName = personName,
+  personName = PersonName(forename = personForename!!, middleNames = personMiddleNames, surname = personSurname!!),
   sex = sex,
   referralStatus = ReferralStatusUtils.formatStatus(status),
   statusLabelColour = statusLabelColour,

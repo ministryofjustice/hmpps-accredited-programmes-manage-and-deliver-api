@@ -30,28 +30,11 @@ data class ReferralDetails(
   val crn: String,
 
   @field:Schema(
-    example = "John",
     required = true,
-    description = "The forename of the person being referred.",
+    description = "The name of the person associated with this referral.",
   )
-  @get:JsonProperty("personForename", required = true)
-  val personForename: String,
-
-  @field:Schema(
-    example = "Smith",
-    required = true,
-    description = "The surname of the person being referred.",
-  )
-  @get:JsonProperty("personSurname", required = true)
-  val personSurname: String,
-
-  @field:Schema(
-    example = "William",
-    required = false,
-    description = "The middle names of the person being referred.",
-  )
-  @get:JsonProperty("personMiddleNames", required = false)
-  val personMiddleNames: String? = null,
+  @get:JsonProperty("personName", required = true)
+  val personName: PersonName,
 
   @field:Schema(
     example = "Building Choices",
@@ -175,15 +158,6 @@ data class ReferralDetails(
   @get:JsonProperty("isLAO", required = true)
   val isLAO: Boolean,
 ) {
-  @get:Schema(
-    example = "John Doe",
-    required = true,
-    description = "The name of the person associated with this referral.",
-  )
-  @get:JsonProperty("personName", required = true)
-  val personName: String
-    get() = listOfNotNull(personForename, personMiddleNames, personSurname).filter { it.isNotBlank() }.joinToString(" ")
-
   companion object {
     private const val DEFAULT_INTERVENTION_NAME_VALUE = "UNKNOWN_INTERVENTION"
     private const val DEFAULT_STATUS_DESCRIPTION_VALUE = "UNKNOWN_STATUS_DESCRIPTION"
@@ -200,9 +174,11 @@ data class ReferralDetails(
     ): ReferralDetails = ReferralDetails(
       id = referral.id!!,
       crn = referral.crn,
-      personForename = nDeliusPersonalDetails.name.forename,
-      personMiddleNames = nDeliusPersonalDetails.name.middleNames,
-      personSurname = nDeliusPersonalDetails.name.surname,
+      personName = PersonName(
+        forename = nDeliusPersonalDetails.name.forename,
+        middleNames = nDeliusPersonalDetails.name.middleNames,
+        surname = nDeliusPersonalDetails.name.surname,
+      ),
       interventionName = referral.interventionName ?: DEFAULT_INTERVENTION_NAME_VALUE,
       createdAt = referral.createdAt.toLocalDate(),
       dateOfBirth = LocalDate.parse(nDeliusPersonalDetails.dateOfBirth),
@@ -234,9 +210,11 @@ data class ReferralDetails(
     ): ReferralDetails = ReferralDetails(
       id = referral.id!!,
       crn = referral.crn,
-      personForename = referral.personForename!!,
-      personSurname = referral.personSurname!!,
-      personMiddleNames = referral.personMiddleNames,
+      personName = PersonName(
+        forename = referral.personForename!!,
+        middleNames = referral.personMiddleNames,
+        surname = referral.personSurname!!,
+      ),
       interventionName = referral.interventionName ?: DEFAULT_INTERVENTION_NAME_VALUE,
       createdAt = referral.createdAt.toLocalDate(),
       dateOfBirth = referral.dateOfBirth ?: LocalDate.EPOCH,

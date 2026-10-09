@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotNull
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UserTeamMember
 
 @Schema(
@@ -22,10 +23,10 @@ data class EditSessionFacilitatorsResponse(
   val facilitators: List<EditSessionFacilitator>,
 ) {
   data class EditSessionFacilitator(
-    @NotNull(message = "facilitatorName must not be null")
+    @field:NotNull(message = "facilitatorName must not be null")
     @get:JsonProperty("facilitatorName", required = true)
-    @Schema(description = "The full name of the facilitator for the group")
-    var facilitatorName: String,
+    @field:Schema(description = "The full name of the facilitator for the group")
+    var facilitatorName: PersonName,
 
     @NotNull(message = "facilitatorCode must not be null")
     @get:JsonProperty("facilitatorCode", required = true)

@@ -17,20 +17,11 @@ data class PersonalDetails(
   val crn: String,
 
   @field:Schema(
-    example = "John",
     required = true,
-    description = "The forename of the person being referred.",
+    description = "The name of the person associated with this referral.",
   )
-  @get:JsonProperty("personForename", required = true)
-  val personForename: String,
-
-  @field:Schema(
-    example = "Smith",
-    required = true,
-    description = "The surname of the person being referred.",
-  )
-  @get:JsonProperty("personSurname", required = true)
-  val personSurname: String,
+  @get:JsonProperty("personName", required = true)
+  val personName: PersonName,
 
   @field:Schema(
     example = "William",
@@ -97,22 +88,11 @@ data class PersonalDetails(
   @get:JsonProperty("dateRetrieved", required = true)
   @get:JsonFormat(pattern = "d MMMM yyyy")
   val dateRetrieved: LocalDate,
-) {
-  @get:Schema(
-    example = "John Smith",
-    required = true,
-    description = "The full name of the person being referred.",
-  )
-  @get:JsonProperty("name", required = true)
-  val name: String
-    get() = listOfNotNull(personForename, personMiddleNames, personSurname).filter { it.isNotBlank() }.joinToString(" ")
-}
+)
 
 fun NDeliusPersonalDetails.toModel(setting: SettingType) = PersonalDetails(
   crn = crn,
-  personForename = name.forename,
-  personSurname = name.surname,
-  personMiddleNames = name.middleNames,
+  personName = PersonName(forename = name.forename, middleNames = name.middleNames, surname = name.surname),
   dateOfBirth = LocalDate.parse(dateOfBirth),
   ethnicity = ethnicity?.description,
   age = age,

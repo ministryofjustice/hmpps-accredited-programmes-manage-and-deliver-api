@@ -25,9 +25,17 @@ class GroupWaitlistItemViewEntity(
   @Column(name = "crn")
   var crn: String,
 
-  @NotNull
-  @Column(name = "person_name")
-  var personName: String,
+  @param:Nullable
+  @Column(name = "person_forename")
+  var personForename: String? = null,
+
+  @param:Nullable
+  @Column(name = "person_middle_names")
+  var personMiddleNames: String? = null,
+
+  @param:Nullable
+  @Column(name = "person_surname")
+  var personSurname: String? = null,
 
   @Nullable
   @Column(name = "sentence_end_date")

@@ -3,7 +3,9 @@ DROP VIEW IF EXISTS referral_caselist_item_view;
 CREATE VIEW referral_caselist_item_view AS
 SELECT r.id,
        r.crn,
-       TRIM(CONCAT_WS(' ', r.person_forename, r.person_middle_names, r.person_surname)) AS person_name,
+       r.person_forename,
+       r.person_middle_names,
+       r.person_surname,
        r.sex,
        -- Default to GENERAL_OFFENCE if there are no entries in the referral_cohort_history_table
        COALESCE(rch.cohort, 'GENERAL_OFFENCE')                as cohort,

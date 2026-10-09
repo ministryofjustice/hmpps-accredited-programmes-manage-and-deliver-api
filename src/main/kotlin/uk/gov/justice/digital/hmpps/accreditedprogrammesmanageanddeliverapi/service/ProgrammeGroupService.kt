@@ -9,6 +9,7 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.LocationFilterValues
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AttendanceAndSessionNotes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupRequest
@@ -274,7 +275,11 @@ class ProgrammeGroupService(
     val memberships = programmeGroupMembershipService.getActiveGroupMemberships(groupId)
     val groupMembers = memberships.map { membership ->
       GroupMember(
-        name = membership.referral.personName,
+        name = PersonName(
+          forename = membership.referral.personForename!!,
+          middleNames = membership.referral.personMiddleNames,
+          surname = membership.referral.personSurname!!,
+        ),
         crn = membership.referral.crn,
         referralId = membership.referral.id!!,
       )
@@ -600,11 +605,15 @@ class ProgrammeGroupService(
     val userAccessMap =
       userAccessService.determineUserAccess(username, scheduledSession.attendees.map { it.referral.crn })
     return if (sessionTemplate.sessionType == SessionType.GROUP && !scheduledSession.isCatchup) {
-      listOf(Participant(name = "All"))
+      listOf(Participant(name = PersonName(forename = "All", surname = "All")))
     } else {
       scheduledSession.attendees.map {
         Participant(
-          name = it.personName,
+          name = PersonName(
+            forename = it.personForename!!,
+            middleNames = it.personMiddleNames,
+            surname = it.personSurname!!,
+          ),
           crn = it.referral.crn,
           isLimitedAccessOffender = userAccessMap[it.referral.crn]?.isLimitedAccessOffender ?: false,
           isExcluded = userAccessMap[it.referral.crn]?.isExcluded ?: false,
@@ -855,7 +864,11 @@ class ProgrammeGroupService(
 
       val access = accessByCrn[attendee.referral.crn]
       AttendanceAndSessionNotes(
-        name = attendee.personName,
+        name = PersonName(
+          forename = attendee.personForename!!,
+          middleNames = attendee.personMiddleNames,
+          surname = attendee.personSurname!!,
+        ),
         referralId = attendee.referralId,
         crn = attendee.referral.crn,
         lao = access?.isLimitedAccessOffender ?: false,
@@ -878,7 +891,13 @@ class ProgrammeGroupService(
         capitaliseMidday = true,
       ),
       unformattedEndDate = session.endsAt,
-      scheduledToAttend = accessGrantedAttendees.map { it.personName },
+      scheduledToAttend = accessGrantedAttendees.map {
+        PersonName(
+          forename = it.personForename!!,
+          middleNames = it.personMiddleNames,
+          surname = it.personSurname!!,
+        )
+      },
       facilitators = session.sessionFacilitators.sortedBy { it.facilitator.personName }
         .map { it.facilitator.personName },
       attendanceAndSessionNotes = attendanceAndSessionNotes,
