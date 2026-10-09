@@ -78,76 +78,77 @@ jobs:
       environment: 'dev'
       app_version: '${{ needs.build.outputs.app_version }}'
 
-  e2e-tests:
-    name: Run E2E tests against dev
-    needs:
-      - deploy_dev
-    timeout-minutes: 60
-    runs-on: [ self-hosted, Linux, X64, hmpps-github-actions-runner ]
-    env:
-      MANAGE_AND_DELIVER_URL: https://accredited-programmes-manage-and-deliver-dev.hmpps.service.justice.gov.uk
-      HMPPS_COMMUNITY_AUTH_USERNAME: ${{ secrets.HMPPS_COMMUNITY_AUTH_USERNAME }}
-      HMPPS_COMMUNITY_AUTH_PASSWORD: ${{ secrets.HMPPS_COMMUNITY_AUTH_PASSWORD }}
-    steps:
-      - name: Checkout main repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - name: Checkout e2e tests repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with:
-          repository: ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-e2e-tests
-          path: hmpps-accredited-programmes-manage-and-deliver-e2e-tests
-          ref: main
-
-      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
-        with:
-          node-version: lts/*
-
-      - name: SLSA Supply Chain Security
-        uses: ministryofjustice/devsecops-actions/sca/slsa@7dc13c20e2bf541b8a77fa1320a04983b18846f6 # v1.6.0
-
-      - name: Install dependencies
-        working-directory: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests
-        run: npm ci
-
-      - name: Install Playwright Browsers
-        working-directory: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests
-        run: npx playwright install
-
-      - name: Run Playwright tests
-        id: playwright-tests
-        working-directory: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests
-        run: npx playwright test
-
-      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
-        if: ${{ !cancelled() }}
-        with:
-          name: playwright-report-${{ github.run_id }}
-          path: hmpps-accredited-programmes-manage-and-deliver-e2e-tests/playwright-report/
-          retention-days: 30
-
-      - name: Send a failure slack message
-        if: failure()
-        uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95
-        with:
-          method: chat.postMessage
-          token: ${{ secrets.HMPPS_SRE_SLACK_BOT_TOKEN }}
-          payload: |
-            channel: hmpps_accredited_programmes_manage_and_deliver_alerts
-            text: "E2E Tests Failed"
-            blocks:
-              - type: "section"
-                text:
-                  type: "mrkdwn"
-                  text: ":x: *E2E Tests Failed*\n\n*Repository:* ${{ github.repository }}\n*Workflow:* ${{ github.workflow }}\n\n:page_facing_up: Playwright report available in workflow artifacts"
-              - type: "divider"
-              - type: "actions"
-                elements:
-                  - type: "button"
-                    text:
-                      type: "plain_text"
-                      text: "View Workflow"
-                    url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+# We are disabling these for now as they are not bringing value as we can not currently test any referral journeys
+#  e2e-tests:
+#    name: Run E2E tests against dev
+#    needs:
+#      - deploy_dev
+#    timeout-minutes: 60
+#    runs-on: [ self-hosted, Linux, X64, hmpps-github-actions-runner ]
+#    env:
+#      MANAGE_AND_DELIVER_URL: https://accredited-programmes-manage-and-deliver-dev.hmpps.service.justice.gov.uk
+#      HMPPS_COMMUNITY_AUTH_USERNAME: ${{ secrets.HMPPS_COMMUNITY_AUTH_USERNAME }}
+#      HMPPS_COMMUNITY_AUTH_PASSWORD: ${{ secrets.HMPPS_COMMUNITY_AUTH_PASSWORD }}
+#    steps:
+#      - name: Checkout main repo
+#        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+#
+#      - name: Checkout e2e tests repo
+#        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+#        with:
+#          repository: ministryofjustice/hmpps-accredited-programmes-manage-and-deliver-e2e-tests
+#          path: hmpps-accredited-programmes-manage-and-deliver-e2e-tests
+#          ref: main
+#
+#      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+#        with:
+#          node-version: lts/*
+#
+#      - name: SLSA Supply Chain Security
+#        uses: ministryofjustice/devsecops-actions/sca/slsa@7dc13c20e2bf541b8a77fa1320a04983b18846f6 # v1.6.0
+#
+#      - name: Install dependencies
+#        working-directory: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests
+#        run: npm ci
+#
+#      - name: Install Playwright Browsers
+#        working-directory: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests
+#        run: npx playwright install
+#
+#      - name: Run Playwright tests
+#        id: playwright-tests
+#        working-directory: ./hmpps-accredited-programmes-manage-and-deliver-e2e-tests
+#        run: npx playwright test
+#
+#      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+#        if: ${{ !cancelled() }}
+#        with:
+#          name: playwright-report-${{ github.run_id }}
+#          path: hmpps-accredited-programmes-manage-and-deliver-e2e-tests/playwright-report/
+#          retention-days: 30
+#
+#      - name: Send a failure slack message
+#        if: failure()
+#        uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95
+#        with:
+#          method: chat.postMessage
+#          token: ${{ secrets.HMPPS_SRE_SLACK_BOT_TOKEN }}
+#          payload: |
+#            channel: hmpps_accredited_programmes_manage_and_deliver_alerts
+#            text: "E2E Tests Failed"
+#            blocks:
+#              - type: "section"
+#                text:
+#                  type: "mrkdwn"
+#                  text: ":x: *E2E Tests Failed*\n\n*Repository:* ${{ github.repository }}\n*Workflow:* ${{ github.workflow }}\n\n:page_facing_up: Playwright report available in workflow artifacts"
+#              - type: "divider"
+#              - type: "actions"
+#                elements:
+#                  - type: "button"
+#                    text:
+#                      type: "plain_text"
+#                      text: "View Workflow"
+#                    url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   deploy_preprod:
     name: Deploy to pre-production environment
