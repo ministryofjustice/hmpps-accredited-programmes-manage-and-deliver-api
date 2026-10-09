@@ -229,7 +229,9 @@ class SessionService(
   fun updateNDeliusAppointmentsForMultipleSessions(sessions: List<SessionEntity>) {
     val sessionsWithAppointment = sessions.filter { it.ndeliusAppointments.isNotEmpty() }.ifEmpty { return }
     val updateRequests =
-      sessionsWithAppointment.flatMap { session -> session.ndeliusAppointments.map { it.toUpdateAppointmentRequest() } }
+      sessionsWithAppointment.flatMap { session ->
+        session.ndeliusAppointments.map { it.toUpdateAppointmentRequest(sessionNameFormatter = sessionNameFormatter) }
+      }
 
     when (
       val response = nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateRequests))
@@ -265,7 +267,7 @@ class SessionService(
       return
     }
     val updateRequests = session.ndeliusAppointments.map {
-      it.toUpdateAppointmentRequest(it.currentSessionNotes(), it.currentOutcomeCode())
+      it.toUpdateAppointmentRequest(it.currentSessionNotes(), it.currentOutcomeCode(), sessionNameFormatter)
     }
 
     when (
@@ -534,7 +536,7 @@ class SessionService(
     val updateAppointmentRequests = changedAttendees.mapNotNull { attendee ->
       val referralId = attendee.referralId
       val nDeliusAppointment = session.ndeliusAppointments.find { it.referral.id == referralId }
-      nDeliusAppointment?.toUpdateAppointmentRequest(attendee.sessionNotes, attendee.outcomeCode)
+      nDeliusAppointment?.toUpdateAppointmentRequest(attendee.sessionNotes, attendee.outcomeCode, sessionNameFormatter)
     }
 
     log.info("Updating ${updateAppointmentRequests.size} appointments in nDelius for session with id: $sessionId")
