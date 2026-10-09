@@ -50,6 +50,18 @@ class ProgrammeGroupFacilitatorEntity(
     get() = facilitator.personName
 
   @get:Transient
+  val facilitatorSurname: String?
+    get() = facilitator.personSurname
+
+  @get:Transient
+  val facilitatorForename: String?
+    get() = facilitator.personForename
+
+  @get:Transient
+  val facilitatorMiddleNames: String?
+    get() = facilitator.personMiddleNames
+
+  @get:Transient
   val facilitatorCode: String
     get() = facilitator.ndeliusPersonCode
 
