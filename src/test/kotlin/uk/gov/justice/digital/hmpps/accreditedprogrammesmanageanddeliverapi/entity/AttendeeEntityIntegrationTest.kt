@@ -25,7 +25,7 @@ class AttendeeEntityIntegrationTest : IntegrationTestBase() {
   @Transactional
   fun `should save and retrieve attendee`() {
     // Given
-    val referral = testReferralHelper.createReferral(personName = "Attendee Name")
+    val referral = testReferralHelper.createReferral(personForename = "Attendee", personSurname = "Name")
 
     val template = AccreditedProgrammeTemplateEntityFactory().produce()
     val module = ModuleEntity(

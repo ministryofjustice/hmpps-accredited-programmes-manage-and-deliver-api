@@ -1872,7 +1872,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
     fun `should return attendance history with sessions when referral has attended sessions`() {
       // Given
       val group = testGroupHelper.createGroup()
-      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      val referral = testReferralHelper.createReferral(personForename = "Alex", personSurname = "River")
       testGroupHelper.allocateToGroup(group, referral)
       moveGroupSessionsIntoThePast(group.id!!)
 
@@ -1941,7 +1941,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
     fun `should return sessions when referral has no attendance recorded`() {
       // Given
       val group = testGroupHelper.createGroup(earliestStartDate = LocalDate.now().minusWeeks(4))
-      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      val referral = testReferralHelper.createReferral(personForename = "Alex", personSurname = "River")
       testGroupHelper.allocateToGroup(group, referral)
       moveGroupSessionsIntoThePast(group.id!!)
 
@@ -1963,7 +1963,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return attendance history with null group when referral is not allocated`() {
       // Given
-      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      val referral = testReferralHelper.createReferral(personForename = "Alex", personSurname = "River")
 
       // When
       val response = performRequestAndExpectOk(
@@ -1997,7 +1997,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
     fun `should return attendance history in session date order`() {
       // Given
       val group = testGroupHelper.createGroup()
-      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      val referral = testReferralHelper.createReferral(personForename = "Alex", personSurname = "River")
       testGroupHelper.allocateToGroup(group, referral)
       moveGroupSessionsIntoThePast(group.id!!)
 

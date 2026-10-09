@@ -44,7 +44,13 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
   /** Allocates a single (non-deleted) membership so the group is no longer considered "empty". */
   private fun allocateMember(group: ProgrammeGroupEntity) {
     testDataGenerator.allocateReferralsToGroup(
-      listOf(testDataGenerator.createReferral("Member", java.util.UUID.randomUUID().toString().take(7))),
+      listOf(
+        testDataGenerator.createReferral(
+          personForename = "Member",
+          personSurname = "Surname",
+          crn = java.util.UUID.randomUUID().toString().take(7),
+        ),
+      ),
       group,
     )
   }

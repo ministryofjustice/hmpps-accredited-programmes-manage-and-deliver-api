@@ -377,7 +377,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           .produce(),
       )
       val referral = testDataGenerator.createReferral(
-        personName = "John Doe",
+        personForename = "John",
+        personSurname = "Doe",
         crn = "X123456",
       )
       testDataGenerator.createAttendee(referral, session)
@@ -415,7 +416,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           .produce(),
       )
       val referral = testDataGenerator.createReferral(
-        personName = "Jane Smith",
+        personForename = "Jane",
+        personSurname = "Smith",
         crn = "Y654321",
       )
       testDataGenerator.createAttendee(referral, session)
@@ -787,7 +789,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
       testDataGenerator.createGroup(group)
 
-      val referral = testDataGenerator.createReferral("John Doe", "X987654")
+      val referral = testDataGenerator.createReferral(
+        personForename = "John",
+        personSurname = "Doe",
+        crn = "X987654",
+      )
 
       val nextTuesday = LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.TUESDAY))
       val nextThursday = nextTuesday.plusDays(2)
@@ -934,7 +940,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
       testDataGenerator.createGroup(group)
 
-      val referral = testDataGenerator.createReferral("Jane Doe", "X123456")
+      val referral = testDataGenerator.createReferral(
+        personForename = "Jane",
+        personSurname = "Doe",
+        crn = "X123456",
+      )
 
       val bankHolidays = bankHolidayRepository.findAll().map { it.holidayDate }.toSet()
       val lastMonday = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
@@ -1134,7 +1144,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           .produce(),
       )
 
-      val referral = testDataGenerator.createReferral("John Doe", "X123457")
+      val referral = testDataGenerator.createReferral(
+        personForename = "John",
+        personSurname = "Doe",
+        crn = "X123457",
+      )
 
       val session = testDataGenerator.createSession(
         SessionFactory()
@@ -1232,7 +1246,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
-      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      val referral = testReferralHelper.createReferral(personForename = "Alex", personSurname = "River")
       programmeGroupMembershipService.allocateReferralToGroup(
         referral.id!!,
         group.id!!,
@@ -1266,7 +1280,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
-      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      val referral = testReferralHelper.createReferral(personForename = "Alex", personSurname = "River")
       programmeGroupMembershipService.allocateReferralToGroup(
         referral.id!!,
         group.id!!,
@@ -1301,7 +1315,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
       // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
-      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      val referral = testReferralHelper.createReferral(personForename = "Alex", personSurname = "River")
       programmeGroupMembershipService.allocateReferralToGroup(
         referral.id!!,
         group.id!!,
@@ -1386,11 +1400,13 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           .produce(),
       )
       referral1 = testDataGenerator.createReferral(
-        personName = "John Doe",
+        personForename = "John",
+        personSurname = "Doe",
         crn = "X123456",
       )
       referral2 = testDataGenerator.createReferral(
-        personName = "Alex River",
+        personForename = "Alex",
+        personSurname = "River",
         crn = "X654321",
       )
     }
@@ -1493,11 +1509,13 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createSessionFacilitator(session, regularFacilitator)
 
       referral1 = testDataGenerator.createReferral(
-        personName = "John Doe",
+        personForename = "John",
+        personSurname = "Doe",
         crn = "X123456",
       )
       referral2 = testDataGenerator.createReferral(
-        personName = "Alex River",
+        personForename = "Alex",
+        personSurname = "River",
         crn = "X654321",
       )
     }
@@ -1884,7 +1902,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           .withModuleSessionTemplate(sessionTemplate!!)
           .produce(),
       )
-      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val referral = testDataGenerator.createReferral(
+        personForename = "Alex",
+        personSurname = "River",
+        crn = "X123456",
+      )
       val attendee = testDataGenerator.createAttendee(referral, session)
 
       // When
@@ -1938,7 +1960,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           .withModuleSessionTemplate(sessionTemplate!!)
           .produce(),
       )
-      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val referral = testDataGenerator.createReferral(
+        personForename = "Alex",
+        personSurname = "River",
+        crn = "X123456",
+      )
       val attendee = testDataGenerator.createAttendee(referral, session)
 
       // When
@@ -1992,7 +2018,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           .withModuleSessionTemplate(sessionTemplate!!)
           .produce(),
       )
-      val referral = testDataGenerator.createReferral("Alex River", "X123456")
+      val referral = testDataGenerator.createReferral(
+        personForename = "Alex",
+        personSurname = "River",
+        crn = "X123456",
+      )
       val attendee = testDataGenerator.createAttendee(referral, session)
 
       // When
@@ -2133,7 +2163,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           .produce(),
       )
       val referral = testDataGenerator.createReferral(
-        randomFullName().getNameAsString(),
+        personForename = randomFullName().forename,
+        personSurname = randomFullName().surname,
         crn = randomCrn(),
       )
       val programmeGroupMembershipList = testDataGenerator.allocateReferralsToGroup(listOf(referral), group)
@@ -2363,7 +2394,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
       nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
-      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      val referral = testReferralHelper.createReferral(personForename = "Alex", personSurname = "River")
       programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!, "SYSTEM", "")
 
       val sessionEntity =
@@ -2762,7 +2793,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
-      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      val referral = testReferralHelper.createReferral(personForename = "Alex", personSurname = "River")
       programmeGroupMembershipService.allocateReferralToGroup(
         referral.id!!,
         group.id!!,
@@ -2821,7 +2852,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
-      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      val referral = testReferralHelper.createReferral(personForename = "Alex", personSurname = "River")
       programmeGroupMembershipService.allocateReferralToGroup(
         referral.id!!,
         group.id!!,
@@ -2870,7 +2901,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
-      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      val referral = testReferralHelper.createReferral(personForename = "Alex", personSurname = "River")
       programmeGroupMembershipService.allocateReferralToGroup(
         referral.id!!,
         group.id!!,
@@ -2969,7 +3000,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       val group = testGroupHelper.createGroup()
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
-      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      val referral = testReferralHelper.createReferral(personForename = "Alex", personSurname = "River")
       programmeGroupMembershipService.allocateReferralToGroup(
         referral.id!!,
         group.id!!,

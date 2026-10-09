@@ -68,7 +68,8 @@ class EntityFactoriesTest {
     val referral = ReferralEntityFactory().produce()
 
     assertThat(referral.id).isNull()
-    assertThat(referral.personName).isNotNull()
+    assertThat(referral.personForename).isNotNull()
+    assertThat(referral.personSurname).isNotNull()
     assertThat(referral.crn).isNotNull()
     assertThat(referral.createdAt).isNotNull()
     assertThat(referral.statusHistories).isEmpty()
@@ -77,20 +78,23 @@ class EntityFactoriesTest {
   @Test
   fun `ReferralEntityFactory should create entity with custom values`() {
     val id = UUID.randomUUID()
-    val personName = "Custom Person"
+    val personForename = "Custom"
+    val personSurname = "Person"
     val crn = "CUSTOM123"
     val createdAt = LocalDateTime.of(2023, 1, 1, 12, 0)
 
     val referral = ReferralEntityFactory()
       .withId(id)
-      .withPersonName(personName)
+      .withPersonForename(personForename)
+      .withPersonSurname(personSurname)
       .withCrn(crn)
       .withCreatedAt(createdAt)
       .withStatusHistories(mutableListOf())
       .produce()
 
     assertThat(referral.id).isEqualTo(id)
-    assertThat(referral.personName).isEqualTo(personName)
+    assertThat(referral.personForename).isEqualTo(personForename)
+    assertThat(referral.personSurname).isEqualTo(personSurname)
     assertThat(referral.crn).isEqualTo(crn)
     assertThat(referral.createdAt).isEqualTo(createdAt)
     assertThat(referral.statusHistories).hasSize(0)

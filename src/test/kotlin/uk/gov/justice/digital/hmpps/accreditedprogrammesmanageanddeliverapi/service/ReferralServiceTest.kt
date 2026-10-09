@@ -765,7 +765,8 @@ class ReferralServiceTest {
   fun `updateStatus should remove from group when transition is not continuing`() {
     // Given
     val referralId = UUID.randomUUID()
-    val referral = ReferralEntityFactory().withId(referralId).withPersonName("John Doe").produce()
+    val referral =
+      ReferralEntityFactory().withId(referralId).withPersonForename("John").withPersonSurname("Doe").produce()
     val currentStatus = ReferralStatusDescriptionEntityFactory().withDescription("Status A").produce()
     val currentHistory = ReferralStatusHistoryEntityFactory().produce(referral, currentStatus)
     val incomingStatus = ReferralStatusDescriptionEntityFactory().withDescription("Withdrawn").produce()
@@ -960,7 +961,8 @@ class ReferralServiceTest {
   fun `updateStatus should NOT include removed from group in message when status is Programme complete`() {
     // Given
     val referralId = UUID.randomUUID()
-    val referral = ReferralEntityFactory().withId(referralId).withPersonName("John Doe").produce()
+    val referral =
+      ReferralEntityFactory().withId(referralId).withPersonForename("John").withPersonSurname("Doe").produce()
     val currentStatus = ReferralStatusDescriptionEntityFactory().withDescription("Status A").produce()
     val currentHistory = ReferralStatusHistoryEntityFactory().produce(referral, currentStatus)
     val incomingStatus = ReferralStatusDescriptionEntityFactory().withDescription("Programme complete").produce()

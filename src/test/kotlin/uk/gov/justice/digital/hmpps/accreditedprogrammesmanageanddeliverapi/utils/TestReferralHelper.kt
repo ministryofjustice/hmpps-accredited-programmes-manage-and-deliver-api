@@ -8,8 +8,7 @@ import org.springframework.context.annotation.Import
 import org.springframework.data.repository.findByIdOrNull
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toFullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Osp
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.RiskScoreLevel
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
@@ -99,7 +98,8 @@ class TestReferralHelper {
    * 4. Returns the created referral entity
    *
    * @param crn The Case Reference Number. If null, a random CRN is generated.
-   * @param personName The full name of the person being referred. Defaults to a random full name.
+   * @param personForename The forename of the person being referred. Defaults to a random forename.
+   * @param personSurname The surname of the person being referred. Defaults to a random surname.
    * @param referralId The referral UUID. If null, a random UUID is generated.
    * @param sourcedFrom The source of the referral. Defaults to LICENCE_CONDITION.
    * @param reportingPdu The reporting Probation Delivery Unit name. Defaults to "PDU 1".
@@ -110,7 +110,8 @@ class TestReferralHelper {
    */
   fun createReferral(
     crn: String = randomCrn(),
-    personName: String = randomFullName().getNameAsString(),
+    personForename: String = randomFullName().forename,
+    personSurname: String = randomFullName().surname,
     referralId: UUID = UUID.randomUUID(),
     sourcedFrom: ReferralEntitySourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION,
     reportingPdu: String = "PDU 1",
@@ -181,7 +182,7 @@ class TestReferralHelper {
       NDeliusPersonalDetailsFactory()
         .withCrn(crn)
         .withSex(CodeDescription(randomUppercaseString(), sex))
-        .withName(personName.toFullName())
+        .withName(FullName(forename = personForename, surname = personSurname))
         .withProbationDeliveryUnit(CodeDescription(randomUppercaseString(), reportingPdu))
         .withTeam(CodeDescription(randomUppercaseString(), reportingTeam))
         .apply { dateOfBirth?.let { withDateOfBirth(it) } }
@@ -199,6 +200,7 @@ class TestReferralHelper {
         licenceConditionId = findAndReferReferralDetails.sourcedFromReference,
         licenceConditionResponse = validationResponse,
       )
+
       ReferralEntitySourcedFrom.REQUIREMENT -> nDeliusApiStubs.stubSuccessfulRequirementManagerResponse(
         crn = crn,
         requirementId = findAndReferReferralDetails.sourcedFromReference,
@@ -248,7 +250,8 @@ class TestReferralHelper {
     val configs = referralConfigs ?: List(count) {
       ReferralConfig(
         crn = randomCrn(),
-        personName = randomFullName().getNameAsString(),
+        personForename = randomFullName().forename,
+        personSurname = randomFullName().surname,
         referralId = UUID.randomUUID(),
         sourcedFrom = configTemplate.sourcedFrom,
         reportingPdu = configTemplate.reportingPdu,
@@ -261,7 +264,8 @@ class TestReferralHelper {
     return configs.map { config ->
       createReferral(
         crn = config.crn,
-        personName = config.personName,
+        personForename = config.personForename,
+        personSurname = config.personSurname,
         referralId = config.referralId,
         sourcedFrom = config.sourcedFrom,
         reportingPdu = config.reportingPdu,
@@ -289,10 +293,18 @@ class TestReferralHelper {
    */
   fun createReferralAndUpdateStatus(
     statusEntity: ReferralStatusDescriptionEntity? = null,
-    personName: String? = null,
+    personForename: String? = null,
+    personSurname: String? = null,
   ): ReferralEntity {
     val status = statusEntity ?: referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
-    val referral = if (personName != null) createReferral(personName = personName) else createReferral()
+    val referral = if (personForename != null && personSurname != null) {
+      createReferral(
+        personForename = personForename,
+        personSurname = personSurname,
+      )
+    } else {
+      createReferral()
+    }
     // Persist the status history directly so test fixtures can place a referral in any
     // state without being constrained by configured transitions (the production
     // updateStatus path validates transitions).
@@ -334,7 +346,8 @@ class TestReferralHelper {
    * Configuration for creating a referral.
    *
    * @property crn The Case Reference Number. Defaults to a random CRN.
-   * @property personName The full name of the person being referred. Defaults to a random full name.
+   * @property personForename The forename of the person being referred. Defaults to a random forename.
+   * @property personSurname The surname of the person being referred. Defaults to a random surname.
    * @property referralId The referral UUID. Defaults to a random UUID.
    * @property sourcedFrom The source of the referral. Defaults to LICENCE_CONDITION.
    * @property reportingPdu The reporting Probation Delivery Unit name. Defaults to "PDU 1".
@@ -344,7 +357,8 @@ class TestReferralHelper {
    */
   data class ReferralConfig(
     val crn: String = randomCrn(),
-    val personName: String = randomFullName().getNameAsString(),
+    val personForename: String = randomFullName().forename,
+    val personSurname: String = randomFullName().surname,
     val referralId: UUID = UUID.randomUUID(),
     val sourcedFrom: ReferralEntitySourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION,
     val reportingPdu: String = "PDU 1",

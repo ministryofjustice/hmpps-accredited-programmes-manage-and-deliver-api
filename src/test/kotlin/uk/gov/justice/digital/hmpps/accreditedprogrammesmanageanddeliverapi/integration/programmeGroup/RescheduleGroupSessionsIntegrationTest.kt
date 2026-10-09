@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionDateAndTimeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
@@ -645,7 +646,10 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
       ProgrammeGroupSessionSlotEntity(programmeGroup = group, dayOfWeek = day, startTime = time)
     }.toMutableSet()
     testDataGenerator.createGroup(group)
-    testDataGenerator.createGroupFacilitator(group, testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce()))
+    testDataGenerator.createGroupFacilitator(
+      group,
+      testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce()),
+    )
 
     // A normal (non-empty) group protects past sessions during a reschedule. Empty groups
     // (hasMembership = false) may cascade-reschedule past sessions.
@@ -690,7 +694,10 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
       ProgrammeGroupSessionSlotEntity(programmeGroup = group, dayOfWeek = slotDay, startTime = slotTime),
     )
     testDataGenerator.createGroup(group)
-    testDataGenerator.createGroupFacilitator(group, testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce()))
+    testDataGenerator.createGroupFacilitator(
+      group,
+      testDataGenerator.createFacilitator(FacilitatorEntityFactory().produce()),
+    )
     if (hasMembership) {
       addMembership(group)
     }
@@ -700,7 +707,13 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
 
   private fun addMembership(group: ProgrammeGroupEntity) {
     testDataGenerator.allocateReferralsToGroup(
-      listOf(testDataGenerator.createReferral("Member ${randomAlphanumericString()}", randomAlphanumericString())),
+      listOf(
+        testDataGenerator.createReferral(
+          personForename = "Member",
+          personSurname = randomAlphanumericString(),
+          crn = randomCrn(),
+        ),
+      ),
       group,
     )
   }

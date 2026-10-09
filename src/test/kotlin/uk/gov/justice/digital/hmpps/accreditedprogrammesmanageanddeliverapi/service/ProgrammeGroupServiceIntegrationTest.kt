@@ -342,7 +342,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           .withDeletedAt(LocalDateTime.now())
           .produce(),
       )
-      val referral1 = testDataGenerator.createReferral("Person 1", "CRN1")
+      val referral1 = testDataGenerator.createReferral(personForename = "Person", personSurname = "1", crn = "CRN1")
       val statusComplete = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory()
@@ -385,7 +385,8 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           .withEarliestStartDate(LocalDate.now().minusDays(10))
           .produce(),
       )
-      val referral2 = testDataGenerator.createReferral("Person 2", "CRN2") // Completed
+      val referral2 =
+        testDataGenerator.createReferral(personForename = "Person", personSurname = "2", crn = "CRN2") // Completed
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory()
           .produce(
@@ -393,7 +394,8 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
             referralStatusDescription = statusComplete,
           ),
       )
-      val referral3 = testDataGenerator.createReferral("Person 3", "CRN3") // Not completed
+      val referral3 =
+        testDataGenerator.createReferral(personForename = "Person", personSurname = "3", crn = "CRN3") // Not completed
       testDataGenerator.allocateReferralsToGroup(listOf(referral2, referral3), partiallyCompletedGroup)
 
       // When
@@ -417,12 +419,13 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     fun `COMPLETE should include a group where every active member completed and a member was removed early without completing`() {
       val group = createStartedGroup("COMPLETED_WITH_DROPOUT")
 
-      val completer = createReferralWithProgrammeCompleteStatus("Completer", "CRN_C")
+      val completer =
+        createReferralWithProgrammeCompleteStatus(personForename = "Completer", personSurname = "", crn = "CRN_C")
       val completerMembership =
         testDataGenerator.allocateReferralsToGroup(listOf(completer), group, deletedAt = LocalDateTime.now()).first()
       createAttendedPostProgrammeReview(group, completerMembership)
 
-      val dropout = testDataGenerator.createReferral("Dropout", "CRN_D")
+      val dropout = testDataGenerator.createReferral(personForename = "Dropout", personSurname = "One", crn = "CRN_D")
       testDataGenerator.allocateReferralsToGroup(listOf(dropout), group, deletedAt = LocalDateTime.now())
 
       assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE)).contains("COMPLETED_WITH_DROPOUT")
@@ -432,9 +435,15 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     @Test
     fun `a group where every member was removed early without completing is not complete`() {
       val group = createStartedGroup("ALL_DROPOUTS")
-      val referralOne = testDataGenerator.createReferral("Dropout One", "CRN_D1")
-      val referralTwo = testDataGenerator.createReferral("Dropout Two", "CRN_D2")
-      testDataGenerator.allocateReferralsToGroup(listOf(referralOne, referralTwo), group, deletedAt = LocalDateTime.now())
+      val referralOne =
+        testDataGenerator.createReferral(personForename = "Dropout", personSurname = "One", crn = "CRN_D1")
+      val referralTwo =
+        testDataGenerator.createReferral(personForename = "Dropout", personSurname = "Two", crn = "CRN_D2")
+      testDataGenerator.allocateReferralsToGroup(
+        listOf(referralOne, referralTwo),
+        group,
+        deletedAt = LocalDateTime.now(),
+      )
 
       assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE)).doesNotContain("ALL_DROPOUTS")
       assertThat(groupCodesForTab(GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS)).contains("ALL_DROPOUTS")
@@ -444,12 +453,14 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     fun `a group is not complete while a member is still active and working through the programme`() {
       val group = createStartedGroup("PARTIALLY_ACTIVE")
 
-      val completer = createReferralWithProgrammeCompleteStatus("Completer", "CRN_PC")
+      val completer =
+        createReferralWithProgrammeCompleteStatus(personForename = "Completer", personSurname = "", crn = "CRN_PC")
       val completerMembership =
         testDataGenerator.allocateReferralsToGroup(listOf(completer), group, deletedAt = LocalDateTime.now()).first()
       createAttendedPostProgrammeReview(group, completerMembership)
 
-      val inProgress = testDataGenerator.createReferral("In Progress", "CRN_IP")
+      val inProgress =
+        testDataGenerator.createReferral(personForename = "In", personSurname = "Progress", crn = "CRN_IP")
       testDataGenerator.allocateReferralsToGroup(listOf(inProgress), group)
 
       assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE)).doesNotContain("PARTIALLY_ACTIVE")
@@ -461,7 +472,8 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       val group = createStartedGroup("GROUP_AWAITING_COMPLETION")
       val otherGroup = createStartedGroup("GROUP_WITH_THE_REVIEW")
 
-      val referral = createReferralWithProgrammeCompleteStatus("Cross Group", "CRN_XG")
+      val referral =
+        createReferralWithProgrammeCompleteStatus(personForename = "Cross", personSurname = "Group", crn = "CRN_XG")
       val membership = testDataGenerator.allocateReferralsToGroup(listOf(referral), group).first()
 
       val template = testDataGenerator.createAccreditedProgrammeTemplate("Template GROUP_WITH_THE_REVIEW")
@@ -495,8 +507,13 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         .produce(),
     )
 
-    private fun createReferralWithProgrammeCompleteStatus(personName: String, crn: String): ReferralEntity {
-      val referral = testDataGenerator.createReferral(personName, crn)
+    private fun createReferralWithProgrammeCompleteStatus(
+      personForename: String,
+      personSurname: String,
+      crn: String,
+    ): ReferralEntity {
+      val referral =
+        testDataGenerator.createReferral(personForename = personForename, personSurname = personSurname, crn = crn)
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral = referral,
@@ -1178,9 +1195,9 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       group.groupFacilitators.add(programmeGroupCoverFacilitator)
 
       programmeGroupRepository.saveAndFlush(group)
-      val referral1 = testDataGenerator.createReferral("Person 1", "CRN1")
-      val referral2 = testDataGenerator.createReferral("Person 2", "CRN2")
-      val referral3 = testDataGenerator.createReferral("Person 3", "CRN3")
+      val referral1 = testDataGenerator.createReferral(personForename = "Person", personSurname = "1", crn = "CRN1")
+      val referral2 = testDataGenerator.createReferral(personForename = "Person", personSurname = "2", crn = "CRN2")
+      val referral3 = testDataGenerator.createReferral(personForename = "Person", personSurname = "3", crn = "CRN3")
 
       testDataGenerator.allocateReferralsToGroup(listOf(referral1, referral2), group)
       testDataGenerator.addUnallocatedReferralsToGroup(listOf(referral3), group)
