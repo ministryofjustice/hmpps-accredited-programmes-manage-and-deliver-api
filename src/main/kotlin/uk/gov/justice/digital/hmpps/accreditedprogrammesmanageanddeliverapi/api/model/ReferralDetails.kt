@@ -13,7 +13,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 data class ReferralDetails(
-  @Schema(
+  @field:Schema(
     example = "c98151f4-4081-4c65-9f98-54e63a328c8d",
     required = true,
     description = "The unique id of this referral.",
@@ -21,7 +21,7 @@ data class ReferralDetails(
   @get:JsonProperty("id", required = true)
   val id: UUID,
 
-  @Schema(
+  @field:Schema(
     example = "X933590",
     required = true,
     description = "The crn associated with this referral.",
@@ -29,15 +29,39 @@ data class ReferralDetails(
   @get:JsonProperty("crn", required = true)
   val crn: String,
 
-  @Schema(
+  @field:Schema(
     example = "John Doe",
     required = true,
     description = "The name of the person associated with this referral.",
   )
-  @get:JsonProperty("personName", required = true)
-  val personName: String,
+  @get:JsonProperty("_personName", required = true)
+  val _personName: String,
 
-  @Schema(
+  @field:Schema(
+    example = "John",
+    required = false,
+    description = "The forename of the person being referred.",
+  )
+  @get:JsonProperty("personForename", required = false)
+  val personForename: String? = null,
+
+  @field:Schema(
+    example = "Smith",
+    required = false,
+    description = "The surname of the person being referred.",
+  )
+  @get:JsonProperty("personSurname", required = false)
+  val personSurname: String? = null,
+
+  @field:Schema(
+    example = "William",
+    required = false,
+    description = "The middle names of the person being referred.",
+  )
+  @get:JsonProperty("personMiddleNames", required = false)
+  val personMiddleNames: String? = null,
+
+  @field:Schema(
     example = "Building Choices",
     required = true,
     description = "The name of the Intervention for this referral.",
@@ -45,25 +69,25 @@ data class ReferralDetails(
   @get:JsonProperty("interventionName", required = true)
   val interventionName: String,
 
-  @Schema(
+  @field:Schema(
     example = "11 June 2023",
     required = true,
     description = "Timestamp of when this referral was created.",
   )
-  @JsonFormat(pattern = "d MMMM yyyy")
+  @get:JsonFormat(pattern = "d MMMM yyyy")
   @get:JsonProperty("createdAt", required = true)
   val createdAt: LocalDate,
 
-  @Schema(
+  @field:Schema(
     example = "15 March 1985",
     required = true,
     description = "The date of birth of the person being referred.",
   )
   @get:JsonProperty("dateOfBirth", required = true)
-  @JsonFormat(pattern = "d MMMM yyyy")
+  @get:JsonFormat(pattern = "d MMMM yyyy")
   val dateOfBirth: LocalDate,
 
-  @Schema(
+  @field:Schema(
     example = "Tom Saunders",
     required = true,
     description = "The name of the probation practitioner associated with this referral.",
@@ -71,7 +95,7 @@ data class ReferralDetails(
   @get:JsonProperty("probationPractitionerName", required = true)
   val probationPractitionerName: String?,
 
-  @Schema(
+  @field:Schema(
     example = "tom.saunders@justice.gov.uk",
     required = true,
     description = "The email of the probation practitioner associated with this referral.",
@@ -79,7 +103,7 @@ data class ReferralDetails(
   @get:JsonProperty("probationPractitionerEmail", required = false)
   val probationPractitionerEmail: String? = null,
 
-  @Schema(
+  @field:Schema(
     example = "SEXUAL_OFFENCE",
     required = true,
     description = "The offence cohort this referral is classified as.",
@@ -87,7 +111,7 @@ data class ReferralDetails(
   @get:JsonProperty("cohort", required = true)
   val cohort: OffenceCohort,
 
-  @Schema(
+  @field:Schema(
     example = "True",
     required = true,
     description = "Does the person this referral is associated with have LDC needs",
@@ -95,7 +119,7 @@ data class ReferralDetails(
   @get:JsonProperty("hasLdc", required = true)
   val hasLdc: Boolean = LdcStatus.NO_LDC.value,
 
-  @Schema(
+  @field:Schema(
     example = "May need an LDC-adapted programme (Building Choices Plus)",
     required = true,
     description = "The text to display in the UI for the LDC status of this referral",
@@ -103,7 +127,7 @@ data class ReferralDetails(
   @get:JsonProperty("hasLdcDisplayText", required = true)
   val hasLdcDisplayText: String = LdcStatus.NO_LDC.displayText,
 
-  @Schema(
+  @field:Schema(
     example = "may need an LDC-adapted programme (Building Choices Plus).",
     required = true,
     description = "The text to display in the UI success banner after updating the LDC status of this referral",
@@ -111,7 +135,7 @@ data class ReferralDetails(
   @get:JsonProperty("hasLdcSuccessMessageText", required = true)
   val hasLdcSuccessMessageText: String = LdcStatus.NO_LDC.successMessageText,
 
-  @Schema(
+  @field:Schema(
     example = "Awaiting assessment",
     required = true,
     description = "The display name of the Referral's current Status",
@@ -119,7 +143,7 @@ data class ReferralDetails(
   @get:JsonProperty("currentStatusDescription", required = true)
   val currentStatusDescription: String,
 
-  @Schema(
+  @field:Schema(
     example = "ABC111",
     required = false,
     description = "The code of the currently allocated group",
@@ -127,7 +151,7 @@ data class ReferralDetails(
   @get:JsonProperty("currentlyAllocatedGroupCode", required = false)
   val currentlyAllocatedGroupCode: String?,
 
-  @Schema(
+  @field:Schema(
     example = "c98151f4-4081-4c65-9f98-54e63a328c8d",
     required = false,
     description = "The unique code of the currently allocated group",
@@ -135,7 +159,7 @@ data class ReferralDetails(
   @get:JsonProperty("currentlyAllocatedGroupId", required = false)
   val currentlyAllocatedGroupId: UUID?,
 
-  @Schema(
+  @field:Schema(
     example = "North London PDU",
     required = false,
     description = "The probation delivery unit responsible for this referral.",
@@ -143,7 +167,7 @@ data class ReferralDetails(
   @get:JsonProperty("pdu", required = true)
   val pdu: String,
 
-  @Schema(
+  @field:Schema(
     example = "Team A",
     required = false,
     description = "The reporting team responsible for this referral.",
@@ -151,7 +175,7 @@ data class ReferralDetails(
   @get:JsonProperty("reportingTeam", required = true)
   val reportingTeam: String,
 
-  @Schema(
+  @field:Schema(
     example = "false",
     required = true,
     description = "Whether the person associated with this referral is a Limited Access Offender (LAO).",
@@ -159,6 +183,19 @@ data class ReferralDetails(
   @get:JsonProperty("isLAO", required = true)
   val isLAO: Boolean,
 ) {
+  @get:Schema(
+    example = "John Doe",
+    required = true,
+    description = "The name of the person associated with this referral.",
+  )
+  @get:JsonProperty("personName", required = true)
+  val personName: String
+    get() = if (personForename != null && personSurname != null) {
+      listOfNotNull(personForename, personMiddleNames, personSurname).filter { it.isNotBlank() }.joinToString(" ")
+    } else {
+      _personName
+    }
+
   companion object {
     private const val DEFAULT_INTERVENTION_NAME_VALUE = "UNKNOWN_INTERVENTION"
     private const val DEFAULT_STATUS_DESCRIPTION_VALUE = "UNKNOWN_STATUS_DESCRIPTION"
@@ -175,7 +212,10 @@ data class ReferralDetails(
     ): ReferralDetails = ReferralDetails(
       id = referral.id!!,
       crn = referral.crn,
-      personName = nDeliusPersonalDetails.name.getNameAsString(),
+      _personName = nDeliusPersonalDetails.name.getNameAsString(),
+      personForename = nDeliusPersonalDetails.name.forename,
+      personMiddleNames = nDeliusPersonalDetails.name.middleNames,
+      personSurname = nDeliusPersonalDetails.name.surname,
       interventionName = referral.interventionName ?: DEFAULT_INTERVENTION_NAME_VALUE,
       createdAt = referral.createdAt.toLocalDate(),
       dateOfBirth = LocalDate.parse(nDeliusPersonalDetails.dateOfBirth),
@@ -207,7 +247,10 @@ data class ReferralDetails(
     ): ReferralDetails = ReferralDetails(
       id = referral.id!!,
       crn = referral.crn,
-      personName = referral.personName,
+      _personName = referral.personName,
+      personForename = referral.personForename,
+      personSurname = referral.personSurname,
+      personMiddleNames = referral.personMiddleNames,
       interventionName = referral.interventionName ?: DEFAULT_INTERVENTION_NAME_VALUE,
       createdAt = referral.createdAt.toLocalDate(),
       dateOfBirth = referral.dateOfBirth ?: LocalDate.EPOCH,
