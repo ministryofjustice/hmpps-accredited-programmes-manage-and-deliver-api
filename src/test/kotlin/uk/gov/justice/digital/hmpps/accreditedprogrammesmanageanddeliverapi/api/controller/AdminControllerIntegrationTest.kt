@@ -20,6 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.UpdateReferralPersonNamesRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LicenceConditions
@@ -31,6 +32,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.CreateReferralStatusHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.LicenceConditionFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralSentenceReferenceRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.RequirementFactory
@@ -38,6 +40,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.PopulatePersonalDetailsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RefreshPersonalDetailsResult
 import java.time.Duration.ofMillis
 import java.util.UUID
 
@@ -538,5 +541,96 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
     val unresolvedReferral = referralRepository.findByIdOrNull(referralToResolve.id!!)
     assertThat(unresolvedReferral?.eventNumber).isEqualTo(0)
     assertThat(unresolvedReferral?.eventId).isNotEqualTo(duplicateEventId)
+  }
+
+  @Test
+  fun `updateReferralStructuredNames should refresh personal details for specific referral IDs`() {
+    // Given
+    val referral1 = ReferralEntityFactory().withPersonSurname(null).produce()
+    val referral2 = ReferralEntityFactory().withPersonSurname(null).produce()
+    testDataGenerator.createReferralWithStatusHistory(referral1)
+    testDataGenerator.createReferralWithStatusHistory(referral2)
+
+    val personalDetails1 = NDeliusPersonalDetailsFactory()
+      .withCrn(referral1.crn)
+      .withName(FullName(forename = "John", surname = "Doe"))
+      .produce()
+    val personalDetails2 = NDeliusPersonalDetailsFactory()
+      .withCrn(referral2.crn)
+      .withName(FullName(forename = "Jane", surname = "Smith"))
+      .produce()
+
+    nDeliusApiStubs.stubPersonalDetailsResponseForCrn(referral1.crn, personalDetails1)
+    nDeliusApiStubs.stubPersonalDetailsResponseForCrn(referral2.crn, personalDetails2)
+    probationAccessControlApiStubs.stubOpenAccessByCrns(referral1.crn, referral2.crn)
+    oasysApiStubs.stubSuccessfulPniResponse(referral1.crn)
+    oasysApiStubs.stubSuccessfulPniResponse(referral2.crn)
+
+    val body = UpdateReferralPersonNamesRequest(referralIds = listOf(referral1.id!!, referral2.id!!))
+
+    // When
+    val response = performRequestAndExpectStatusWithBody(
+      HttpMethod.PUT,
+      "/admin/referrals/person-names",
+      object : ParameterizedTypeReference<RefreshPersonalDetailsResult>() {},
+      body = body,
+      expectedResponseStatus = HttpStatus.OK.value(),
+    )
+
+    // Then
+    assertThat(response.successIds).containsExactlyInAnyOrder(referral1.id!!, referral2.id!!)
+
+    await withPollDelay ofMillis(100) withPollInterval ofMillis(100) untilCallTo {
+      referralRepository.findAllById(listOf(referral1.id!!, referral2.id!!)).all { it.personSurname != null }
+    } matches { it == true }
+
+    val updatedReferral1 = referralRepository.findByIdOrNull(referral1.id!!)
+    assertThat(updatedReferral1?.personForename).isEqualTo("John")
+    assertThat(updatedReferral1?.personSurname).isEqualTo("Doe")
+
+    val updatedReferral2 = referralRepository.findByIdOrNull(referral2.id!!)
+    assertThat(updatedReferral2?.personForename).isEqualTo("Jane")
+    assertThat(updatedReferral2?.personSurname).isEqualTo("Smith")
+  }
+
+  @Test
+  fun `updateReferralStructuredNames should refresh personal details for all referrals with missing surnames when list is empty`() {
+    // Given
+    val referralWithNullSurname = ReferralEntityFactory().withPersonSurname(null).produce()
+    val referralWithSurname = ReferralEntityFactory().withPersonSurname("Existing").produce()
+    testDataGenerator.createReferralWithStatusHistory(referralWithNullSurname)
+    testDataGenerator.createReferralWithStatusHistory(referralWithSurname)
+
+    val personalDetails = NDeliusPersonalDetailsFactory()
+      .withCrn(referralWithNullSurname.crn)
+      .withName(FullName(forename = "New", surname = "Surname"))
+      .produce()
+
+    nDeliusApiStubs.stubPersonalDetailsResponseForCrn(referralWithNullSurname.crn, personalDetails)
+    probationAccessControlApiStubs.stubOpenAccessByCrns(referralWithNullSurname.crn)
+    oasysApiStubs.stubSuccessfulPniResponse(referralWithNullSurname.crn)
+
+    val body = UpdateReferralPersonNamesRequest(referralIds = emptyList())
+
+    // When
+    performRequestAndExpectStatusWithBody(
+      HttpMethod.PUT,
+      "/admin/referrals/person-names",
+      object : ParameterizedTypeReference<RefreshPersonalDetailsResult>() {},
+      body = body,
+      expectedResponseStatus = HttpStatus.OK.value(),
+    )
+
+    // Then
+    await withPollDelay ofMillis(100) withPollInterval ofMillis(100) untilCallTo {
+      referralRepository.findByIdOrNull(referralWithNullSurname.id!!)?.personSurname
+    } matches { it == "Surname" }
+
+    val updatedReferral = referralRepository.findByIdOrNull(referralWithNullSurname.id!!)
+    assertThat(updatedReferral?.personForename).isEqualTo("New")
+    assertThat(updatedReferral?.personSurname).isEqualTo("Surname")
+
+    val unchangedReferral = referralRepository.findByIdOrNull(referralWithSurname.id!!)
+    assertThat(unchangedReferral?.personSurname).isEqualTo("Existing")
   }
 }
