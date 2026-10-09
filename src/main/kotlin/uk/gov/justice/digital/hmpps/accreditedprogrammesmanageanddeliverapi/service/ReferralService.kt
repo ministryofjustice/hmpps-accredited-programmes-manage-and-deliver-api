@@ -709,6 +709,9 @@ class ReferralService(
     // Update our referral entity with details fetched from nDelius
     referral.referralReportingLocation = savedEntity
     referral.personName = personalDetails.name.getNameAsString()
+    referral.personForename = personalDetails.name.forename
+    referral.personSurname = personalDetails.name.surname
+    referral.personMiddleNames = personalDetails.name.middleNames
     referral.sex = personalDetails.sex.description
     referral.dateOfBirth = personalDetails.dateOfBirth.toLocalDate()
     sentenceEndDateDetails?.let {
