@@ -7,11 +7,17 @@ import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.ACP_M_AND_D_REFERRAL_DETAILS_UPDATED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.INTERVENTIONS_COMMUNITY_REFERRAL_CREATED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.INTERVENTIONS_COMMUNITY_REFERRAL_IMPORTED
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.INTERVENTIONS_SESSION_FEEDBACK_SUBMITTED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.PROBATION_CASE_MERGE_COMPLETED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.PROBATION_CASE_SENTENCE_DELETED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.PROBATION_CASE_UNMERGE_COMPLETED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 
+/**
+ * Listener for HMPPS domain events from SQS queue.
+ * Delegates event processing to appropriate handler based on event type.
+ * Ensures errors are logged and re-thrown to allow SQS to handle retry/DLQ logic.
+ */
 @Service
 class DomainEventsListener(
   val objectMapper: ObjectMapper,
@@ -21,20 +27,32 @@ class DomainEventsListener(
   val referralUnmergedHandler: ReferralUnmergedHandler,
   val referralDetailsUpdatedHandler: ReferralDetailsUpdatedHandler,
   val referralSentenceDeletedHandler: ReferralSentenceDeletedHandler,
+  val sessionFeedbackSubmittedHandler: SessionFeedbackSubmittedHandler,
 ) {
-  private val logger = LoggerFactory.getLogger(this::class.java)
+
+  companion object {
+    private val log = LoggerFactory.getLogger(this::class.java)
+  }
 
   @SqsListener("hmppsdomaineventsqueue", factory = "hmppsQueueContainerFactoryProxy")
   fun receive(sqsMessage: SQSMessage) {
-    logger.info("Received Event of type: ${sqsMessage.eventType}")
-    when (sqsMessage.eventType) {
-      INTERVENTIONS_COMMUNITY_REFERRAL_CREATED.value -> referralCreatedHandler.handle(sqsMessage)
-      INTERVENTIONS_COMMUNITY_REFERRAL_IMPORTED.value -> referralImportedHandler.handle(sqsMessage)
-      PROBATION_CASE_MERGE_COMPLETED.value -> referralMergedHandler.handle(sqsMessage)
-      PROBATION_CASE_UNMERGE_COMPLETED.value -> referralUnmergedHandler.handle(sqsMessage)
-      ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value -> referralDetailsUpdatedHandler.handle(sqsMessage)
-      PROBATION_CASE_SENTENCE_DELETED.value -> referralSentenceDeletedHandler.handle(sqsMessage)
-      else -> logger.info("Unknown event type ${sqsMessage.eventType}")
+    try {
+      log.info("Received Event of type: ${sqsMessage.eventType} with messageId: ${sqsMessage.messageId}")
+      when (sqsMessage.eventType) {
+        INTERVENTIONS_COMMUNITY_REFERRAL_CREATED.value -> referralCreatedHandler.handle(sqsMessage)
+        INTERVENTIONS_COMMUNITY_REFERRAL_IMPORTED.value -> referralImportedHandler.handle(sqsMessage)
+        INTERVENTIONS_SESSION_FEEDBACK_SUBMITTED.value -> sessionFeedbackSubmittedHandler.handle(sqsMessage)
+        PROBATION_CASE_MERGE_COMPLETED.value -> referralMergedHandler.handle(sqsMessage)
+        PROBATION_CASE_UNMERGE_COMPLETED.value -> referralUnmergedHandler.handle(sqsMessage)
+        ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value -> referralDetailsUpdatedHandler.handle(sqsMessage)
+        PROBATION_CASE_SENTENCE_DELETED.value -> referralSentenceDeletedHandler.handle(sqsMessage)
+        else -> {
+          log.debug("Ignoring unknown event type: ${sqsMessage.eventType} for messageId: ${sqsMessage.messageId}. This event is not handled by this service.")
+        }
+      }
+    } catch (e: Exception) {
+      log.error("Error processing domain event of type ${sqsMessage.eventType} with messageId: ${sqsMessage.messageId}: ${e.message}", e)
+      throw e
     }
   }
 }
