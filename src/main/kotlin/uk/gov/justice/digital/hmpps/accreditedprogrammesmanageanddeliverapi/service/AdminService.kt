@@ -213,10 +213,9 @@ class AdminService(
         referralRepository.findAllIdsWherePersonSurnameIsNull()
       }
     }
-
     val refreshPersonalDetailsResult = refreshPersonalDetailsForReferrals(referralIdList)
-
     log.debug("END refresh personal details for referrals with missing structured personal names: {}", referralIds)
+
     return refreshPersonalDetailsResult
   }
 

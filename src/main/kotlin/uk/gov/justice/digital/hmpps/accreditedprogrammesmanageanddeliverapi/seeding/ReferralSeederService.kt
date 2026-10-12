@@ -60,6 +60,8 @@ class ReferralSeederService(
         SeededReferralInfo(
           referralId = referral.id.toString(),
           crn = crn,
+          personForename = person.firstName,
+          personSurname = person.lastName,
           requirementId = requirementId,
         ),
       )
@@ -166,6 +168,8 @@ data class ReferralSeedingResult(
 data class SeededReferralInfo(
   val referralId: String,
   val crn: String,
+  val personForename: String,
+  val personSurname: String,
   val requirementId: String,
 )
 

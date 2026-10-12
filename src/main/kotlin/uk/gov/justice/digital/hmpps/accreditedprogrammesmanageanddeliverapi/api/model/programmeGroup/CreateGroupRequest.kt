@@ -13,94 +13,132 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import java.time.LocalDate
 
 data class CreateGroupRequest(
-  @NotBlank(message = "groupCode must not be null")
+  @field:NotBlank(message = "groupCode must not be null")
   @get:JsonProperty("groupCode", required = true)
-  @Schema(description = "The code for the group")
+  @field:Schema(description = "The code for the group")
   var groupCode: String,
 
-  @NotNull(message = "cohort must not be null")
+  @field:NotNull(message = "cohort must not be null")
   @get:JsonProperty("cohort", required = true)
-  @Schema(
+  @field:Schema(
     enumAsRef = true,
     description = "Cohort for the Programme Group.",
     implementation = ProgrammeGroupCohort::class,
   )
   var cohort: ProgrammeGroupCohort,
 
-  @NotNull(message = "sex must not be null")
+  @field:NotNull(message = "sex must not be null")
   @get:JsonProperty("sex", required = true)
-  @Schema(
+  @field:Schema(
     enumAsRef = true,
     description = "Sex that the group is being run for",
     implementation = ProgrammeGroupSexEnum::class,
   )
   var sex: ProgrammeGroupSexEnum,
 
-  @NotNull(message = "earliestStartDate must not be null")
+  @field:NotNull(message = "earliestStartDate must not be null")
   @get:JsonProperty("earliestStartDate", required = true)
-  @Schema(description = "The earliest date the group can start")
-  @JsonFormat(pattern = "d/M/yyyy")
+  @field:Schema(description = "The earliest date the group can start")
+  @get:JsonFormat(pattern = "d/M/yyyy")
   var earliestStartDate: LocalDate,
 
-  @NotNull(message = "createGroupSessionSlot must not be null")
+  @field:NotNull(message = "createGroupSessionSlot must not be null")
   @get:JsonProperty("createGroupSessionSlot", required = true)
-  @Schema(description = "A list of session slots for the group")
+  @field:Schema(description = "A list of session slots for the group")
   var createGroupSessionSlot: Set<CreateGroupSessionSlot>,
 
-  @NotBlank(message = "pduName must not be null")
+  @field:NotBlank(message = "pduName must not be null")
   @get:JsonProperty("pduName", required = true)
-  @Schema(description = "The name of the PDU that the group will take place in")
+  @field:Schema(description = "The name of the PDU that the group will take place in")
   var pduName: String,
 
-  @NotBlank(message = "pduCode must not be null")
+  @field:NotBlank(message = "pduCode must not be null")
   @get:JsonProperty("pduCode", required = true)
-  @Schema(description = "The code of the PDU that the group will take place in")
+  @field:Schema(description = "The code of the PDU that the group will take place in")
   var pduCode: String,
 
-  @NotBlank(message = "deliveryLocationName must not be null")
+  @field:NotBlank(message = "deliveryLocationName must not be null")
   @get:JsonProperty("deliveryLocationName", required = true)
-  @Schema(description = "The name of the location that the group will be delivered at")
+  @field:Schema(description = "The name of the location that the group will be delivered at")
   var deliveryLocationName: String,
 
-  @NotBlank(message = "deliveryLocationCode must not be null")
+  @field:NotBlank(message = "deliveryLocationCode must not be null")
   @get:JsonProperty("deliveryLocationCode", required = true)
-  @Schema(description = "The code of the location that the group will be delivered at")
+  @field:Schema(description = "The code of the location that the group will be delivered at")
   var deliveryLocationCode: String,
 
-  @Valid
-  @NotNull(message = "teamMembers must not be null")
-  @NotEmpty(message = "teamMembers must not be empty")
+  @field:Valid
+  @field:NotNull(message = "teamMembers must not be null")
+  @field:NotEmpty(message = "teamMembers must not be empty")
   @get:JsonProperty("teamMembers", required = true)
-  @Schema(description = "The person code and name and type of the teamMembers of the group")
+  @field:Schema(description = "The person code and name and type of the teamMembers of the group")
   var teamMembers: List<CreateGroupTeamMember>,
 )
 
 data class CreateGroupTeamMember(
-  @NotNull(message = "facilitator must not be null")
-  @get:JsonProperty("facilitator", required = true)
-  @Schema(description = "The full name of the facilitator for the group")
-  var facilitator: String,
+  @field:NotNull(message = "facilitator must not be null")
+  @get:JsonProperty("_facilitator")
+  @field:Schema(description = "The full name of the facilitator for the group")
+  var _facilitator: String,
 
-  @NotNull(message = "facilitatorCode must not be null")
+  @field:Schema(
+    example = "John",
+    required = false,
+    description = "The forename of the facilitator for the group.",
+  )
+  @get:JsonProperty("facilitatorForename", required = false)
+  val facilitatorForename: String? = null,
+
+  @field:Schema(
+    example = "Smith",
+    required = false,
+    description = "The surname of the facilitator for the group.",
+  )
+  @get:JsonProperty("facilitatorSurname", required = false)
+  val facilitatorSurname: String? = null,
+
+  @field:Schema(
+    example = "William",
+    required = false,
+    description = "The middle names of the facilitator for the group.",
+  )
+  @get:JsonProperty("facilitatorMiddleNames", required = false)
+  val facilitatorMiddleNames: String? = null,
+
+  @field:NotNull(message = "facilitatorCode must not be null")
   @get:JsonProperty("facilitatorCode", required = true)
-  @Schema(description = "The code of the facilitator for the group")
+  @field:Schema(description = "The code of the facilitator for the group")
   var facilitatorCode: String,
 
-  @NotNull
+  @field:NotNull
   @get:JsonProperty("teamName", required = true)
-  @Schema(description = "The name of the team that the member belongs to")
+  @field:Schema(description = "The name of the team that the member belongs to")
   var teamName: String,
 
-  @NotNull
+  @field:NotNull
   @get:JsonProperty("teamCode", required = true)
-  @Schema(description = "The code of the team that the member belongs to")
+  @field:Schema(description = "The code of the team that the member belongs to")
   var teamCode: String,
 
-  @NotNull(message = "teamMemberType must not be null")
+  @field:NotNull(message = "teamMemberType must not be null")
   @get:JsonProperty("teamMemberType", required = true)
-  @Schema(description = "The type of the facilitator for the group")
+  @field:Schema(description = "The type of the facilitator for the group")
   var teamMemberType: CreateGroupTeamMemberType,
-)
+) {
+  @get:Schema(
+    example = "John Smith",
+    required = true,
+    description = "The full name of the facilitator.",
+  )
+  @get:JsonProperty("facilitator", required = true)
+  val facilitator: String
+    get() = if (facilitatorForename != null && facilitatorSurname != null) {
+      listOfNotNull(facilitatorForename, facilitatorMiddleNames, facilitatorSurname).filter { it.isNotBlank() }
+        .joinToString(" ")
+    } else {
+      _facilitator
+    }
+}
 
 fun CreateGroupRequest.toEntity(
   region: String,
