@@ -20,7 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.UpdateReferralPersonNamesRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.UpdatePersonNameRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LicenceConditions
@@ -566,7 +566,7 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
     oasysApiStubs.stubSuccessfulPniResponse(referral1.crn)
     oasysApiStubs.stubSuccessfulPniResponse(referral2.crn)
 
-    val body = UpdateReferralPersonNamesRequest(referralIds = listOf(referral1.id!!, referral2.id!!))
+    val body = UpdatePersonNameRequest(ids = listOf(referral1.id!!, referral2.id!!))
 
     // When
     val response = performRequestAndExpectStatusWithBody(
@@ -610,7 +610,7 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
     probationAccessControlApiStubs.stubOpenAccessByCrns(referralWithNullSurname.crn)
     oasysApiStubs.stubSuccessfulPniResponse(referralWithNullSurname.crn)
 
-    val body = UpdateReferralPersonNamesRequest(referralIds = emptyList())
+    val body = UpdatePersonNameRequest(ids = emptyList())
 
     // When
     performRequestAndExpectStatusWithBody(
