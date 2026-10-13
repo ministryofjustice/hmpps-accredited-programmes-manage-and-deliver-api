@@ -66,8 +66,6 @@ class ProgrammeGroupServiceTest {
       sessionService,
       moduleSessionTemplateRepository,
       userAccessService,
-      true,
-      true,
       moduleRepository,
       authenticationUtils,
       regionService,
@@ -188,7 +186,7 @@ class ProgrammeGroupServiceTest {
   }
 
   @Test
-  fun `should get group waitlist data by criteria with limited access offender check disabled`() {
+  fun `should always include access information in group waitlist data`() {
     // Given
     service = ProgrammeGroupService(
       programmeGroupRepository,
@@ -203,8 +201,6 @@ class ProgrammeGroupServiceTest {
       sessionService,
       moduleSessionTemplateRepository,
       userAccessService = userAccessService,
-      false,
-      false,
       moduleRepository,
       authenticationUtils,
       regionService,
@@ -228,6 +224,8 @@ class ProgrammeGroupServiceTest {
       ),
     )
     val caseReferenceNumber = groupWaitlistItemViewEntity.crn
+    val username = "user1"
+    val accessMap = mapOf(caseReferenceNumber to Access(isLimitedAccessOffender = false, isExcluded = false))
     val probationDeliveryUnitReportingLocation =
       PduReportingLocation(pduName = probationDeliveryUnit, reportingTeam = reportingTeam)
 
@@ -239,6 +237,8 @@ class ProgrammeGroupServiceTest {
       )
     } returns page
     every { groupWaitlistItemViewRepository.count(any<Specification<GroupWaitlistItemViewEntity>>()) } returns 1L
+    every { authenticationUtils.getUsername() } returns username
+    every { userAccessService.determineUserAccess(username, listOf(caseReferenceNumber)) } returns accessMap
     every { referralReportingLocationRepository.getPdusAndReportingTeamsByRegions(any()) } returns listOf(
       probationDeliveryUnitReportingLocation,
     )
@@ -263,14 +263,14 @@ class ProgrammeGroupServiceTest {
     assertThat(result.pagedGroupData.content[0].isExcluded).isFalse()
 
     verify(exactly = 1) { programmeGroupRepository.findById(groupId) }
-    verify(exactly = 0) { authenticationUtils.getUsername() }
+    verify(exactly = 1) { authenticationUtils.getUsername() }
     verify(exactly = 1) {
       groupWaitlistItemViewRepository.findAll(
         any<Specification<GroupWaitlistItemViewEntity>>(),
         any<Pageable>(),
       )
     }
-    verify(exactly = 0) { userAccessService.determineUserAccess(any(), any()) }
+    verify(exactly = 1) { userAccessService.determineUserAccess(username, listOf(caseReferenceNumber)) }
     verify(exactly = 1) { groupWaitlistItemViewRepository.count(any<Specification<GroupWaitlistItemViewEntity>>()) }
     verify(exactly = 1) { referralReportingLocationRepository.getPdusAndReportingTeamsByRegions(any()) }
   }

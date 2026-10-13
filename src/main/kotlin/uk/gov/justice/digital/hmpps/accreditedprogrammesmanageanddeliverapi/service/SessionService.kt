@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
@@ -85,8 +84,6 @@ class SessionService(
   private val regionService: RegionService,
   private val clock: Clock,
   private val userAccessService: UserAccessService,
-  @param:Value($$"${app.features.lao-access-check-enabled}")
-  private val laoAccessCheckEnabled: Boolean,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
@@ -301,12 +298,9 @@ class SessionService(
       NotFoundException("Session with id $sessionId not found.")
     }
 
-    var usernameAccessMap = mapOf<String, Access>()
-    if (laoAccessCheckEnabled) {
-      val username = authenticationUtils.getUsername()
-      val caseReferenceNumbers = entity.attendees.map { attendee -> attendee.referral.crn }.toList()
-      usernameAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
-    }
+    val username = authenticationUtils.getUsername()
+    val caseReferenceNumbers = entity.attendees.map { attendee -> attendee.referral.crn }.toList()
+    val usernameAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
 
     return entity.toApi(sessionNameFormatter, usernameAccessMap)
   }
@@ -318,15 +312,13 @@ class SessionService(
     val groupMembers = programmeGroupMembershipRepository.findAllActiveByProgrammeGroupId(session.programmeGroup.id!!)
     val sessionAttendees =
       groupMembers.map { groupMember -> groupMember.toSessionAttendee(session.attendees.map(AttendeeEntity::referralId)) }
-    if (laoAccessCheckEnabled) {
-      val username = authenticationUtils.getUsername()
-      val caseReferenceNumbers = sessionAttendees.map { attendee -> attendee.crn }.toList()
-      val usernameAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
-      sessionAttendees.forEach { attendee ->
-        val access = usernameAccessMap[attendee.crn]
-        attendee.isLimitedAccessOffender = access?.isLimitedAccessOffender
-        attendee.isExcluded = access?.isExcluded
-      }
+    val username = authenticationUtils.getUsername()
+    val caseReferenceNumbers = sessionAttendees.map { attendee -> attendee.crn }.toList()
+    val usernameAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
+    sessionAttendees.forEach { attendee ->
+      val access = usernameAccessMap[attendee.crn]
+      attendee.isLimitedAccessOffender = access?.isLimitedAccessOffender
+      attendee.isExcluded = access?.isExcluded
     }
 
     return EditSessionAttendeesResponse(

@@ -17,10 +17,6 @@ sentry:
   send-default-pii: false
 
 app:
-  features:
-    lao-access-check-enabled: ${LAO_ACCESS_CHECK_ENABLED:false}
-    exclusion-access-check-enabled: ${EXCLUSION_ACCESS_CHECK_ENABLED:false}
-
   scheduling:
     referral-details-updated:
       cron: "${REFERRAL_DETAILS_UPDATED_CRON:0 0 1 * * *}"  # default every day at 1 AM
