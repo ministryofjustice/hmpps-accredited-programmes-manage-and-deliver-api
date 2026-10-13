@@ -9,6 +9,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ModuleEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ModuleSessionTemplateEntityFactory
@@ -179,12 +180,80 @@ class CreateAppointmentRequestTest {
     assertThat(appointment.notes).doesNotContain("Additional Facilitators:")
   }
 
+  @Test
+  fun `toAppointment should set description to module name and session number for a group session`() {
+    val session = buildSession(moduleName = "Getting started", sessionType = SessionType.GROUP, sessionNumber = 4)
+    val attendee = attendeeFor(session)
+
+    val appointment = attendee.toAppointment(UUID.randomUUID())
+
+    assertThat(appointment.description).isEqualTo("Getting started 4")
+  }
+
+  @Test
+  fun `toAppointment should append catch-up to the description for a group catch-up session`() {
+    val session = buildSession(
+      moduleName = "Getting started",
+      sessionType = SessionType.GROUP,
+      sessionNumber = 4,
+      isCatch = true,
+    )
+    val attendee = attendeeFor(session)
+
+    val appointment = attendee.toAppointment(UUID.randomUUID())
+
+    assertThat(appointment.description).isEqualTo("Getting started 4 catch-up")
+  }
+
+  @Test
+  fun `toAppointment should set description to the session name for a one-to-one session`() {
+    val session = buildSession(moduleName = "Getting started", sessionType = SessionType.ONE_TO_ONE)
+    val attendee = attendeeFor(session)
+
+    val appointment = attendee.toAppointment(UUID.randomUUID())
+
+    assertThat(appointment.description).isEqualTo("Module Session Template 1")
+  }
+
+  @Test
+  fun `toAppointment should append catch-up to the description for a one-to-one catch-up session`() {
+    val session = buildSession(
+      moduleName = "Getting started",
+      sessionType = SessionType.ONE_TO_ONE,
+      isCatch = true,
+    )
+    val attendee = attendeeFor(session)
+
+    val appointment = attendee.toAppointment(UUID.randomUUID())
+
+    assertThat(appointment.description).isEqualTo("Module Session Template 1 catch-up")
+  }
+
+  @Test
+  fun `toAppointment should not include the person name in a one-to-one description`() {
+    val session = buildSession(moduleName = "Getting started", sessionType = SessionType.ONE_TO_ONE)
+    val attendee = AttendeeFactory()
+      .withReferral(
+        ReferralEntityFactory().withSourcedFrom(REQUIREMENT).withPersonName("Alex River").produce(),
+      )
+      .withSession(session)
+      .produce()
+    session.attendees.add(attendee)
+
+    val appointment = attendee.toAppointment(UUID.randomUUID())
+
+    assertThat(appointment.description).isEqualTo("Module Session Template 1")
+    assertThat(appointment.description).doesNotContain("Alex River")
+  }
+
   private fun buildSession(
     moduleName: String = "Module",
     facilitators: List<FacilitatorEntity> = listOf(FacilitatorEntityFactory().produce()),
     coverFacilitators: List<FacilitatorEntity> = emptyList(),
     treatmentManager: FacilitatorEntity? = FacilitatorEntityFactory().produce(),
     isCatch: Boolean = false,
+    sessionType: SessionType = SessionType.GROUP,
+    sessionNumber: Int = 1,
   ): SessionEntity {
     val accreditedProgrammeTemplate = AccreditedProgrammeTemplateEntityFactory().produce()
     val groupFactory = ProgrammeGroupFactory().withAccreditedProgrammeTemplate(accreditedProgrammeTemplate)
@@ -203,6 +272,8 @@ class CreateAppointmentRequestTest {
               .withModuleNumber(1)
               .produce(),
           )
+          .withSessionType(sessionType)
+          .withSessionNumber(sessionNumber)
           .produce(),
       )
       .produce()

@@ -6,6 +6,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.primaryFacilitator
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
@@ -28,10 +30,14 @@ data class CreateAppointmentRequest(
     val notes: String?,
     val sensitive: Boolean,
     val type: AppointmentType,
+    val description: String?,
   )
 }
 
-fun AttendeeEntity.toAppointment(ndeliusAppointmentId: UUID): CreateAppointmentRequest.NdeliusAppointment {
+fun AttendeeEntity.toAppointment(
+  ndeliusAppointmentId: UUID,
+  sessionNameFormatter: SessionNameFormatter = SessionNameFormatter(),
+): CreateAppointmentRequest.NdeliusAppointment {
   val primaryFacilitator = session.primaryFacilitator()
   val additionalFacilitators = session.sessionFacilitators
     .filter { it.facilitatorCode != primaryFacilitator.ndeliusPersonCode }
@@ -51,6 +57,7 @@ fun AttendeeEntity.toAppointment(ndeliusAppointmentId: UUID): CreateAppointmentR
     notes = buildSessionNotes(session.programmeGroup.treatmentManager, additionalFacilitators, session),
     sensitive = false,
     type = getAppointmentTypeFromModuleName(session.moduleSessionTemplate.module.name),
+    description = sessionNameFormatter.format(session, SessionNameContext.NdeliusContactDescription),
   )
 }
 
