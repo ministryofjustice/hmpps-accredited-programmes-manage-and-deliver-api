@@ -101,7 +101,6 @@ class SessionServiceTest {
         regionService,
         fixedClock,
         userAccessService = userAccessService,
-        true,
       )
 
     sessionAttendanceTypeEntities =
@@ -2297,7 +2296,7 @@ class SessionServiceTest {
   }
 
   @Test
-  fun `should get a session with limited access offender check disabled`() {
+  fun `should always include access information when getting a session`() {
     // Given
     service = SessionService(
       sessionRepository,
@@ -2315,7 +2314,6 @@ class SessionServiceTest {
       regionService,
       fixedClock,
       userAccessService = userAccessService,
-      false,
     )
     val username = "user1"
     val personName = "John Smith"
@@ -2323,8 +2321,11 @@ class SessionServiceTest {
     val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName(personName).produce()
     val caseReferenceNumber = referralEntity.crn
     val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Getting started")
+    val accessMap = mapOf(caseReferenceNumber to Access(isLimitedAccessOffender = false, isExcluded = false))
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
+    every { authenticationUtils.getUsername() } returns username
+    every { userAccessService.determineUserAccess(any(), any()) } returns accessMap
 
     // When
     val result = service.getSession(sessionEntity.id!!)
@@ -2339,12 +2340,12 @@ class SessionServiceTest {
     assertThat(result.pageTitle).isEqualTo("Delete Getting started 1")
     assertThat(result.referrals).hasSize(1)
     assertThat(result.referrals.first().personName).isEqualTo(personName)
-    assertThat(result.referrals.first().isExcluded).isNull()
-    assertThat(result.referrals.first().isLimitedAccessOffender).isNull()
+    assertThat(result.referrals.first().isExcluded).isFalse()
+    assertThat(result.referrals.first().isLimitedAccessOffender).isFalse()
 
     verify(exactly = 1) { sessionRepository.findById(sessionEntity.id!!) }
-    verify(exactly = 0) { authenticationUtils.getUsername() }
-    verify(exactly = 0) { userAccessService.determineUserAccess(username, listOf(caseReferenceNumber)) }
+    verify(exactly = 1) { authenticationUtils.getUsername() }
+    verify(exactly = 1) { userAccessService.determineUserAccess(username, listOf(caseReferenceNumber)) }
   }
 
   @Test
@@ -2387,7 +2388,7 @@ class SessionServiceTest {
   }
 
   @Test
-  fun `should get a session attendees with limited access offender check disabled`() {
+  fun `should always include access information for session attendees`() {
     // Given
     service = SessionService(
       sessionRepository,
@@ -2405,7 +2406,6 @@ class SessionServiceTest {
       regionService,
       fixedClock,
       userAccessService = userAccessService,
-      false,
     )
     val username = "user1"
     val personName = "John Smith"
@@ -2414,11 +2414,14 @@ class SessionServiceTest {
     val caseReferenceNumber = referralEntity.crn
     val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Getting started")
     val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity).produce()
+    val accessMap = mapOf(caseReferenceNumber to Access(isLimitedAccessOffender = false, isExcluded = false))
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
     every { programmeGroupMembershipRepository.findAllActiveByProgrammeGroupId(any()) } returns listOf(
       programmeGroupMembershipEntity,
     )
+    every { authenticationUtils.getUsername() } returns username
+    every { userAccessService.determineUserAccess(any(), any()) } returns accessMap
 
     // When
     val result = service.getSessionAttendees(sessionEntity.id!!)
@@ -2431,13 +2434,13 @@ class SessionServiceTest {
     assertThat(result.isCatchup).isEqualTo(sessionEntity.isCatchup)
     assertThat(result.attendees).hasSize(1)
     assertThat(result.attendees.first().name).isEqualTo(personName)
-    assertThat(result.attendees.first().isExcluded).isNull()
-    assertThat(result.attendees.first().isLimitedAccessOffender).isNull()
+    assertThat(result.attendees.first().isExcluded).isFalse()
+    assertThat(result.attendees.first().isLimitedAccessOffender).isFalse()
 
     verify(exactly = 1) { sessionRepository.findById(sessionEntity.id!!) }
     verify(exactly = 1) { programmeGroupMembershipRepository.findAllActiveByProgrammeGroupId(sessionEntity.programmeGroup.id!!) }
-    verify(exactly = 0) { authenticationUtils.getUsername() }
-    verify(exactly = 0) { userAccessService.determineUserAccess(username, listOf(caseReferenceNumber)) }
+    verify(exactly = 1) { authenticationUtils.getUsername() }
+    verify(exactly = 1) { userAccessService.determineUserAccess(username, listOf(caseReferenceNumber)) }
   }
 
   private fun sessionWithAttendees(
