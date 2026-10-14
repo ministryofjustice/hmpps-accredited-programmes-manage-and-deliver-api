@@ -211,9 +211,9 @@ data class ReferralDetails(
       id = referral.id!!,
       crn = referral.crn,
       personName = PersonName(
-        forename = referral.personForename!!,
+        forename = referral.personForename,
         middleNames = referral.personMiddleNames,
-        surname = referral.personSurname!!,
+        surname = referral.personSurname,
       ),
       interventionName = referral.interventionName ?: DEFAULT_INTERVENTION_NAME_VALUE,
       createdAt = referral.createdAt.toLocalDate(),

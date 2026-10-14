@@ -59,9 +59,8 @@ data class GroupSessionResponse(
   @field:Schema(
     description = "The names of the facilitators in the session",
     required = true,
-    example = "[John Doe, Jane Smith]",
   )
-  val facilitators: List<String>,
+  val facilitators: List<PersonName>,
 
   @field:Schema(description = "The attendance and session notes for each attendee", required = true)
   val attendanceAndSessionNotes: List<AttendanceAndSessionNotes>,

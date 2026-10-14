@@ -888,7 +888,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response).hasFieldOrProperty("crn")
-      assertThat(response).hasFieldOrProperty("name")
+      assertThat(response).hasFieldOrProperty("personName")
       assertThat(response).hasFieldOrProperty("dateOfBirth")
       assertThat(response).hasFieldOrProperty("ethnicity")
       assertThat(response).hasFieldOrProperty("age")
@@ -936,7 +936,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(response).hasFieldOrProperty("crn")
-      assertThat(response).hasFieldOrProperty("name")
+      assertThat(response).hasFieldOrProperty("personName")
       assertThat(response).hasFieldOrProperty("dateOfBirth")
       assertThat(response).hasFieldOrProperty("ethnicity")
       assertThat(response).hasFieldOrProperty("age")
@@ -1922,7 +1922,8 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response.popName).isEqualTo("Alex River")
+      assertThat(response.popName.forename).isEqualTo("Alex")
+      assertThat(response.popName.surname).isEqualTo("River")
       assertThat(response.currentlyAllocatedGroupCode).isEqualTo(group.code)
       assertThat(response.currentlyAllocatedGroupId).isEqualTo(group.id)
       assertThat(response.attendanceHistory).hasSizeGreaterThan(1)
@@ -1930,7 +1931,8 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       assertThat(attendedSession.attendanceStatus).isEqualTo("Attended - Complied")
       assertThat(attendedSession.hasNotes).isTrue()
       assertThat(attendedSession.groupId).isEqualTo(group.id)
-      assertThat(attendedSession.popName).isEqualTo("Alex River")
+      assertThat(attendedSession.popName.forename).isEqualTo("Alex")
+      assertThat(attendedSession.popName.surname).isEqualTo("River")
       assertThat(attendedSession.sessionName).isEqualTo("Getting started 1")
       assertThat(attendedSession.isCatchup).isFalse()
     }
@@ -1951,7 +1953,8 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response.popName).isEqualTo("Alex River")
+      assertThat(response.popName.forename).isEqualTo("Alex")
+      assertThat(response.popName.surname).isEqualTo("River")
       assertThat(response.currentlyAllocatedGroupCode).isEqualTo(group.code)
       assertThat(response.currentlyAllocatedGroupId).isEqualTo(group.id)
       assertThat(response.attendanceHistory).isNotEmpty()
@@ -1971,7 +1974,8 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response.popName).isEqualTo("Alex River")
+      assertThat(response.popName.forename).isEqualTo("Alex")
+      assertThat(response.popName.surname).isEqualTo("River")
       assertThat(response.currentlyAllocatedGroupCode).isNull()
       assertThat(response.currentlyAllocatedGroupId).isNull()
       assertThat(response.attendanceHistory).isEmpty()

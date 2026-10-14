@@ -72,7 +72,8 @@ class AttendeeEntityIntegrationTest : IntegrationTestBase() {
 
     // Then
     assertThat(retrievedAttendee).isNotNull
-    assertThat(retrievedAttendee.personName).isEqualTo("Attendee Name")
+    assertThat(retrievedAttendee.personForename).isEqualTo("Attendee")
+    assertThat(retrievedAttendee.personSurname).isEqualTo("Name")
     assertThat(retrievedAttendee.referral.id).isEqualTo(referral.id)
     assertThat(retrievedAttendee.session.id).isEqualTo(session.id)
 

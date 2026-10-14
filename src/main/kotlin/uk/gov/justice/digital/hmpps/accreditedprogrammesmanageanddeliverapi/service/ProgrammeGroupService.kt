@@ -276,9 +276,9 @@ class ProgrammeGroupService(
     val groupMembers = memberships.map { membership ->
       GroupMember(
         name = PersonName(
-          forename = membership.referral.personForename!!,
+          forename = membership.referral.personForename,
           middleNames = membership.referral.personMiddleNames,
-          surname = membership.referral.personSurname!!,
+          surname = membership.referral.personSurname,
         ),
         crn = membership.referral.crn,
         referralId = membership.referral.id!!,
@@ -610,9 +610,9 @@ class ProgrammeGroupService(
       scheduledSession.attendees.map {
         Participant(
           name = PersonName(
-            forename = it.personForename!!,
+            forename = it.personForename,
             middleNames = it.personMiddleNames,
-            surname = it.personSurname!!,
+            surname = it.personSurname,
           ),
           crn = it.referral.crn,
           isLimitedAccessOffender = userAccessMap[it.referral.crn]?.isLimitedAccessOffender ?: false,
@@ -865,9 +865,9 @@ class ProgrammeGroupService(
       val access = accessByCrn[attendee.referral.crn]
       AttendanceAndSessionNotes(
         name = PersonName(
-          forename = attendee.personForename!!,
+          forename = attendee.personForename,
           middleNames = attendee.personMiddleNames,
-          surname = attendee.personSurname!!,
+          surname = attendee.personSurname,
         ),
         referralId = attendee.referralId,
         crn = attendee.referral.crn,
@@ -893,16 +893,22 @@ class ProgrammeGroupService(
       unformattedEndDate = session.endsAt,
       scheduledToAttend = accessGrantedAttendees.map {
         PersonName(
-          forename = it.personForename!!,
+          forename = it.personForename,
           middleNames = it.personMiddleNames,
-          surname = it.personSurname!!,
+          surname = it.personSurname,
         )
       },
       facilitators = session.sessionFacilitators.sortedBy {
         it.facilitator.personSurname
         it.facilitator.personForename
       }
-        .map { it.facilitator.personName },
+        .map {
+          PersonName(
+            forename = it.facilitator.personForename,
+            surname = it.facilitator.personSurname,
+            middleNames = it.facilitator.personMiddleNames,
+          )
+        },
       attendanceAndSessionNotes = attendanceAndSessionNotes,
     )
   }

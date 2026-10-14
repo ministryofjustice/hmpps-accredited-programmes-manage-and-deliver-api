@@ -57,7 +57,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegionWithMembers
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.GroupsByRegionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.PagedProgrammeDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
@@ -1554,7 +1553,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(foundReferral.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
       // Check that we have added the PoP to the session attendees list
       val attendeeList =
-        foundReferral.programmeGroupMemberships.first().programmeGroup.sessions.flatMap { sessionEntity -> sessionEntity.attendees.map { it.personName } }
+        foundReferral.programmeGroupMemberships.first().programmeGroup.sessions.flatMap { sessionEntity -> sessionEntity.attendees.map { "${it.personForename} ${it.personSurname}" } }
       assertThat(attendeeList).allMatch { attendeeList.contains(it) }
       verifyReferralStatusUpdateEventSent()
     }
@@ -1739,8 +1738,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(currentGroupMembership.programmeGroup.id).isEqualTo(group.id)
       val nonPlaceHolderIndividualSessions =
         currentGroupMembership.programmeGroup.sessions.filter { !it.isPlaceholder && it.sessionType == SessionType.ONE_TO_ONE }
-      assertThat(nonPlaceHolderIndividualSessions.map { sessionEntity -> sessionEntity.attendees.map { it.personName } }).isNotIn(
-        foundReferral.personName,
+      assertThat(nonPlaceHolderIndividualSessions.map { sessionEntity -> sessionEntity.attendees.map { it.personSurname } }).isNotIn(
+        foundReferral.personSurname,
       )
 
       wiremock.verify(3, postRequestedFor(urlEqualTo("/appointments")))
@@ -1753,7 +1752,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(foundReferral.programmeGroupMemberships.first().programmeGroup.id).isEqualTo(group.id)
       // Check that we have added the PoP to the session attendees list
       val attendeeList =
-        foundReferral.programmeGroupMemberships.first().programmeGroup.sessions.flatMap { sessionEntity -> sessionEntity.attendees.map { it.personName } }
+        foundReferral.programmeGroupMemberships.first().programmeGroup.sessions.flatMap { sessionEntity -> sessionEntity.attendees.map { "${it.personForename} ${it.personSurname}" } }
       assertThat(attendeeList).allMatch { attendeeList.contains(it) }
     }
 
@@ -2012,9 +2011,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Check that all future sessions associated with group and person are removed
       val remainingAttendeeNames = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
-        .flatMap { session -> session.attendees.map { it.personName } }
+        .flatMap { session -> session.attendees.map { it.personSurname } }
 
-      assertThat(remainingAttendeeNames).doesNotContain(foundReferral.personName)
+      assertThat(remainingAttendeeNames).doesNotContain(foundReferral.personSurname)
       val foundSession = sessionRepository.findByIdOrNull(session.id!!)
       assertThat(foundSession).isNull()
       // Validate that associated ndelius appointments have been removed from the DB
@@ -2110,9 +2109,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // validate that past session attendances are left intact for this referral
       val remainingAttendeeNames = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
-        .flatMap { session -> session.attendees.map { it.personName } }
+        .flatMap { session -> session.attendees.map { it.personSurname } }
 
-      assertThat(remainingAttendeeNames).contains(foundReferral.personName)
+      assertThat(remainingAttendeeNames).contains(foundReferral.personSurname)
     }
 
     @Test
@@ -2169,9 +2168,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       // Check that all future sessions associated with group and person are removed
       val remainingAttendeeNames = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
-        .flatMap { session -> session.attendees.map { it.personName } }
+        .flatMap { session -> session.attendees.map { it.personSurname } }
 
-      assertThat(remainingAttendeeNames).doesNotContain(foundReferral.personName)
+      assertThat(remainingAttendeeNames).doesNotContain(foundReferral.personSurname)
       // Validate our future individual non placeholder session has been removed
       val foundSession = sessionRepository.findByIdOrNull(session.id!!)
       assertThat(foundSession).isNull()
@@ -2239,9 +2238,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       // Check that all future sessions associated with group and person are removed
       val remainingAttendeeNames = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
-        .flatMap { session -> session.attendees.map { it.personName } }
+        .flatMap { session -> session.attendees.map { it.personSurname } }
 
-      assertThat(remainingAttendeeNames).doesNotContain(foundReferral.personName)
+      assertThat(remainingAttendeeNames).doesNotContain(foundReferral.personSurname)
       // Validate our future group catchup session has been removed
       val foundSession = sessionRepository.findByIdOrNull(session.id!!)
       assertThat(foundSession).isNull()
@@ -2320,13 +2319,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       // Check that all future sessions associated with group and person are removed
       val remainingAttendeeNames = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
-        .flatMap { session -> session.attendees.map { it.personName } }
+        .flatMap { session -> session.attendees.map { it.personSurname } }
 
-      assertThat(remainingAttendeeNames).doesNotContain(foundReferral.personName)
+      assertThat(remainingAttendeeNames).doesNotContain(foundReferral.personSurname)
       // Validate our future group catchup session has not been removed
       val foundSession = sessionRepository.findByIdOrNull(session.id!!)
       assertThat(foundSession).isNotNull
-      assertThat(foundSession!!.attendees.map { it.personName }).doesNotContain(referralToRemove.personName)
+      assertThat(foundSession!!.attendees.map { it.personSurname }).doesNotContain(referralToRemove.personSurname)
       // Validate that associated ndelius appointments have been removed from the DB
       val foundNdeliusAppointment = nDeliusAppointmentRepository.findBySessionId(session.id!!)
       assertThat(foundNdeliusAppointment).isEmpty()
@@ -2413,13 +2412,13 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Then
       // Check that all future sessions associated with group don't contain removed attendee
       val remainingAttendeeNames = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
-        .flatMap { session -> session.attendees.map { it.personName } }
+        .flatMap { session -> session.attendees.map { it.personSurname } }
 
-      assertThat(remainingAttendeeNames).doesNotContain(foundReferral.personName)
+      assertThat(remainingAttendeeNames).doesNotContain(foundReferral.personSurname)
       assertThat(sessionRepository.findByIdOrNull(sessionToRemove.id!!)).isNull()
       val retrieveSessionToKeep = sessionRepository.findByIdOrNull(sessionToKeep.id!!)
       assertThat(retrieveSessionToKeep).isNotNull
-      assertThat(retrieveSessionToKeep!!.attendees.map { it.personName }).doesNotContain(referralToRemove.personName)
+      assertThat(retrieveSessionToKeep!!.attendees.map { it.personSurname }).doesNotContain(referralToRemove.personSurname)
       // Validate that associated ndelius appointments have been removed from the DB
       val foundNdeliusAppointment = nDeliusAppointmentRepository.findBySessionId(sessionToRemove.id!!)
       assertThat(foundNdeliusAppointment).isEmpty()
@@ -2912,7 +2911,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response).hasSize(members.size + members2.size)
-      assertThat(response.first().personName).isEqualTo(members.first().name.getNameAsString())
+      assertThat(response.first().personName.forename).isEqualTo(members.first().name.forename)
+      assertThat(response.first().personName.surname).isEqualTo(members.first().name.surname)
       assertThat(response.first().personCode).isEqualTo(members.first().code)
     }
 
@@ -3002,7 +3002,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response).isNotNull
-      assertThat(response).isEqualTo("${sessionTemplate.name} for ${referral.personName} has been added.")
+      assertThat(response).isEqualTo("${sessionTemplate.name} for ${referral.personForename} ${referral.personSurname} has been added.")
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
@@ -3012,7 +3012,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .isEqualTo("Default facilitator surname")
       assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
       assertThat(retrievedSession.attendees).hasSize(1)
-      assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
+      assertThat(retrievedSession.attendees[0].personSurname).isEqualTo(referral.personSurname)
       wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
       assertThat(nDeliusAppointmentRepository.findBySessionId(retrievedSession.id!!)).isNotNull
     }
@@ -3047,7 +3047,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response).isNotNull
-      assertThat(response).isEqualTo("${sessionTemplate.name} catch-up for ${referral.personName} has been added.")
+      assertThat(response).isEqualTo("${sessionTemplate.name} catch-up for ${referral.personForename} ${referral.personSurname} has been added.")
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
@@ -3057,7 +3057,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .isEqualTo("Default facilitator surname")
       assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
       assertThat(retrievedSession.attendees).hasSize(1)
-      assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
+      assertThat(retrievedSession.attendees[0].personForename).isEqualTo(referral.personForename)
+      assertThat(retrievedSession.attendees[0].personSurname).isEqualTo(referral.personSurname)
       assertThat(retrievedSession.isCatchup).isTrue
       wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
       assertThat(nDeliusAppointmentRepository.findBySessionId(retrievedSession.id!!)).isNotNull
@@ -3874,7 +3875,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(catchupSessions).hasSize(1)
       assertThat(nonCatchupSessions).hasSize(21)
       assertThat(catchupSessions.single().name)
-        .isEqualTo("${referral.personName} (${referral.crn}): ${sessionTemplate.name} catch-up")
+        .isEqualTo("${referral.personForename} ${referral.personSurname} (${referral.crn}): ${sessionTemplate.name} catch-up")
 
       response.modules.forEach { module ->
         module.sessions.forEach { session ->
@@ -3909,8 +3910,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
               assertThat(session.participants[0]).isEqualTo(
                 Participant(
                   name = PersonName(
-                    forename = referral.personForename!!,
-                    surname = referral.personSurname!!,
+                    forename = referral.personForename,
+                    surname = referral.personSurname,
                     middleNames = referral.personMiddleNames,
                   ),
                   crn = referral.crn,
@@ -4090,9 +4091,17 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.date).isEqualTo(LocalDate.of(2126, 6, 3))
       assertThat(response.time).isEqualTo("9:30am to midday")
       assertThat(response.unformattedEndDate).isEqualTo(LocalDateTime.of(2126, 6, 3, 12, 0))
-      assertThat(response.scheduledToAttend).isEqualTo(groupWithAllocation.sessions.first().attendees.map { it.personName })
+      assertThat(response.scheduledToAttend).isEqualTo(
+        groupWithAllocation.sessions.first().attendees.map {
+          PersonName(
+            forename = it.personForename,
+            surname = it.personSurname,
+            middleNames = it.personMiddleNames,
+          )
+        },
+      )
       assertThat(response.facilitators).hasSize(1)
-      assertThat(response.facilitators.first()).isEqualTo("${group.groupFacilitators.first().facilitator.personForename} ${group.groupFacilitators.first().facilitator.personSurname}")
+      assertThat(response.facilitators.first().surname).isEqualTo(group.groupFacilitators.first().facilitator.personSurname)
       assertThat(response.attendanceAndSessionNotes).hasSize(1)
       assertThat(response.attendanceAndSessionNotes)
         .filteredOn { it.crn == groupWithAllocation.programmeGroupMemberships.first().crn }
@@ -4422,7 +4431,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val authorisedLao = response.attendanceAndSessionNotes.first { it.crn == authorisedLaoReferral.crn }
       assertThat(authorisedLao.lao).isTrue
       assertThat(authorisedLao.isExcluded).isFalse
-      assertThat(authorisedLao.name).isEqualTo(authorisedLaoReferral.personName)
+      assertThat(authorisedLao.name).isNotNull()
+      assertThat(authorisedLao.name.forename).isEqualTo(authorisedLaoReferral.personForename)
+      assertThat(authorisedLao.name.surname).isEqualTo(authorisedLaoReferral.personSurname)
+      assertThat(authorisedLao.name.middleNames).isEqualTo(authorisedLaoReferral.personMiddleNames)
     }
 
     @Test

@@ -41,7 +41,7 @@ class FacilitatorService(
     )
     val facilitatorIdList = facilitatorIds.ifEmpty {
       withContext(Dispatchers.IO) {
-        // facilitatorRepository.findAllIdsWherePersonSurnameIsNull()
+        // facilitatorRepository.findAllIdsWherePersonSurnameOrForenameIsUnknown()
       }
     }
     // val refreshPersonalDetailsResult = TODO call nDelius api and refresh facilitator names

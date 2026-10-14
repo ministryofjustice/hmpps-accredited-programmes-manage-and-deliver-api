@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 import com.fasterxml.jackson.annotation.JsonFormat
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import java.time.LocalDate
@@ -18,9 +19,8 @@ data class SessionNotes(
 
   @Schema(
     description = "The person on probation's name",
-    example = "Alex River",
   )
-  val personName: String,
+  val personName: PersonName,
 
   @Schema(
     description = "The name of the module the session belongs to",
@@ -97,7 +97,7 @@ data class SessionNotes(
     fun from(
       session: SessionEntity,
       referralId: UUID,
-      personName: String,
+      personName: PersonName,
       sessionAttendance: String,
       pageTitle: String,
     ): SessionNotes {

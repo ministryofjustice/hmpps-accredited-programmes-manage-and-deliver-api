@@ -14,6 +14,7 @@ import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceResponse
@@ -627,7 +628,7 @@ class ReferralService(
       )
     }
 
-    var message = "${referral.personName}'s referral status is now ${
+    var message = "${referral.personForename} ${referral.personSurname}'s referral status is now ${
       ReferralStatusUtils.formatStatus(incomingReferralStatusDescription.description)
     }."
     val activeGroupMembership = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
@@ -643,7 +644,7 @@ class ReferralService(
       )
       if (incomingReferralStatusDescription.description != "Programme complete") {
         message =
-          "${referral.personName}'s referral status is now ${
+          "${referral.personForename} ${referral.personSurname}'s referral status is now ${
             ReferralStatusUtils.formatStatus(
               incomingReferralStatusDescription.description,
             )
@@ -754,7 +755,11 @@ class ReferralService(
               sessionName = sessionNameFormatter.format(session, SessionNameContext.AttendanceHistory),
               groupId = membership.programmeGroup.id,
               groupCode = membership.programmeGroup.code,
-              popName = referral.personName,
+              popName = PersonName(
+                forename = referral.personForename,
+                surname = referral.personSurname,
+                middleNames = referral.personMiddleNames,
+              ),
               date = session.startsAt.format(DateTimeFormatter.ofPattern("d MMMM yyyy")),
               unformattedDate = session.startsAt,
               time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
@@ -774,7 +779,11 @@ class ReferralService(
       .sortedBy { it.unformattedDate }
 
     return AttendanceHistoryResponse(
-      popName = referral.personName,
+      popName = PersonName(
+        forename = referral.personForename,
+        surname = referral.personSurname,
+        middleNames = referral.personMiddleNames,
+      ),
       currentlyAllocatedGroupCode = currentMembership?.programmeGroup?.code,
       currentlyAllocatedGroupId = currentMembership?.programmeGroup?.id,
       referralCreatedBy = referral.createdBy,

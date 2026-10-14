@@ -902,7 +902,7 @@ class ReferralServiceTest {
 
     // Then
     assertThat(response.referralStatusHistory).isEqualTo(savedHistory.toApi())
-    assertThat(response.message).isEqualTo("${referral.personName}'s referral status is now Status B.")
+    assertThat(response.message).isEqualTo("${referral.personForename} ${referral.personSurname}'s referral status is now Status B.")
 
     verify {
       referralStatusHistoryRepository.save(

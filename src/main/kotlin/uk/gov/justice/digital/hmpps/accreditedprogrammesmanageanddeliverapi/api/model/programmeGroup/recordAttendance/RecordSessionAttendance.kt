@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance
 
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonName
 import java.util.UUID
 
 @Schema(description = "Details of a Record Attendance")
@@ -46,7 +47,7 @@ data class SessionAttendancePerson(
     description = "A string representing a full name of an attendee",
     example = "Alice Brown",
   )
-  val name: String,
+  val name: PersonName,
 
   @Schema(
     description = "A string representing a CRN",

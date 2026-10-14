@@ -18,6 +18,7 @@ import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.BodyInserters
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.UpdateSessionAttendeesRequest
@@ -43,7 +44,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RegionDto
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequestCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentsRequest
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
@@ -163,7 +163,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.number).isEqualTo(sessionEntity.sessionNumber)
       assertThat(response.referrals).isNotEmpty()
       assertThat(response.referrals.size).isEqualTo(1)
-      assertThat(response.referrals[0].personName).isEqualTo(sessionEntity.attendees[0].personName)
+      assertThat(response.referrals[0].personName.forename).isEqualTo(sessionEntity.attendees[0].personForename)
+      assertThat(response.referrals[0].personName.surname).isEqualTo(sessionEntity.attendees[0].personSurname)
       assertThat(response.referrals[0].id).isEqualTo(sessionEntity.attendees[0].referral.id)
       assertThat(response.referrals[0].cohort).isNotNull()
       assertThat(response.referrals[0].crn).isEqualTo(sessionEntity.attendees[0].referral.crn)
@@ -1793,8 +1794,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           MemberDtoFactory().produce(
             code = it.facilitatorCode,
             name = FullName(
-              forename = it.facilitatorForename!!,
-              surname = it.facilitatorSurname!!,
+              forename = it.facilitatorForename,
+              surname = it.facilitatorSurname,
               middleNames = it.facilitatorSurname,
             ),
           )
@@ -1838,8 +1839,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           NDeliusUserTeamMembersFactory().produce(
             code = it.facilitatorCode,
             name = FullName(
-              forename = it.facilitatorForename!!,
-              surname = it.facilitatorSurname!!,
+              forename = it.facilitatorForename,
+              surname = it.facilitatorSurname,
               middleNames = it.facilitatorSurname,
             ),
           )
@@ -1880,8 +1881,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           NDeliusUserTeamMembersFactory().produce(
             code = it.facilitatorCode,
             name = FullName(
-              forename = it.facilitatorForename!!,
-              surname = it.facilitatorSurname!!,
+              forename = it.facilitatorForename,
+              surname = it.facilitatorSurname,
               middleNames = it.facilitatorSurname,
             ),
           )
@@ -1930,7 +1931,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response).isNotNull
-      assertThat(response.pageTitle).isEqualTo("Edit ${attendee.personName}: Pre-group one-to-one")
+      assertThat(response.pageTitle).isEqualTo("Edit ${attendee.personForename} ${attendee.personSurname}: Pre-group one-to-one")
     }
 
     @Test
@@ -1942,8 +1943,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           NDeliusUserTeamMembersFactory().produce(
             code = it.facilitatorCode,
             name = FullName(
-              forename = it.facilitatorForename!!,
-              surname = it.facilitatorSurname!!,
+              forename = it.facilitatorForename,
+              surname = it.facilitatorSurname,
               middleNames = it.facilitatorSurname,
             ),
           )
@@ -1992,7 +1993,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response).isNotNull
-      assertThat(response.pageTitle).isEqualTo("Edit ${attendee.personName}: Post-programme review")
+      assertThat(response.pageTitle).isEqualTo("Edit ${attendee.personForename} ${attendee.personSurname}: Post-programme review")
     }
 
     @Test
@@ -2004,8 +2005,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           NDeliusUserTeamMembersFactory().produce(
             code = it.facilitatorCode,
             name = FullName(
-              forename = it.facilitatorForename!!,
-              surname = it.facilitatorSurname!!,
+              forename = it.facilitatorForename,
+              surname = it.facilitatorSurname,
               middleNames = it.facilitatorSurname,
             ),
           )
@@ -2054,7 +2055,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response).isNotNull
-      assertThat(response.pageTitle).isEqualTo("Edit ${attendee.personName}: Getting started one-to-one")
+      assertThat(response.pageTitle).isEqualTo("Edit ${attendee.personForename} ${attendee.personSurname}: Getting started one-to-one")
     }
 
     @Test
@@ -2097,7 +2098,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
     val facilitatorRequest = List(2) {
       EditSessionFacilitatorRequest(
-        facilitatorName = randomFullName().getNameAsString(),
+        facilitatorName = PersonName(
+          forename = randomFullName().forename,
+          surname = randomFullName().surname,
+          middleNames = randomFullName().middleNames,
+        ),
         facilitatorCode = randomAlphanumericString(),
         teamName = randomAlphanumericString(),
         teamCode = randomUppercaseString(),
@@ -2223,7 +2228,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
       val editSessionFacilitatorRequest = listOf(
         EditSessionFacilitatorRequest(
-          facilitatorName = randomFullName().getNameAsString(),
+          facilitatorName = PersonName(
+            forename = randomFullName().forename,
+            surname = randomFullName().surname,
+            middleNames = randomFullName().middleNames,
+          ),
           facilitatorCode = randomAlphanumericString(),
           teamName = randomAlphanumericString(),
           teamCode = randomUppercaseString(),
@@ -2711,7 +2720,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
       assertThat(person).satisfies(
         { assertThat(it.referralId).isEqualTo(attendee.referralId) },
-        { assertThat(it.name).isEqualTo(attendee.personName) },
+        { assertThat(it.name.forename).isEqualTo(attendee.personForename) },
+        { assertThat(it.name.surname).isEqualTo(attendee.personSurname) },
         { assertThat(it.crn).isEqualTo(attendee.referral.crn) },
         { assertThat(it.sessionNotes).isEqualTo("Latest test session notes") },
         { assertThat(it.sessionNotesCreatedByFullName).isEqualTo(userFullName) },
@@ -2854,7 +2864,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response.personName).isEqualTo(referral.personName)
+      assertThat(response.personName.forename).isEqualTo(referral.personForename)
+      assertThat(response.personName.surname).isEqualTo(referral.personSurname)
       assertThat(response.moduleName).isEqualTo(session.moduleName)
       assertThat(response.sessionName).isEqualTo(session.sessionName)
       assertThat(response.sessionNumber).isEqualTo(session.sessionNumber)
@@ -2910,7 +2921,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response.personName).isEqualTo(referral.personName)
+      assertThat(response.personName.forename).isEqualTo(referral.personForename)
+      assertThat(response.personName.surname).isEqualTo(referral.personSurname)
       assertThat(response.sessionNotes).isNull()
     }
 
@@ -2977,7 +2989,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response.personName).isEqualTo(referral.personName)
+      assertThat(response.personName.forename).isEqualTo(referral.personForename)
+      assertThat(response.personName.surname).isEqualTo(referral.personSurname)
       assertThat(response.sessionNotes).isEqualTo("Latest updated notes")
     }
 

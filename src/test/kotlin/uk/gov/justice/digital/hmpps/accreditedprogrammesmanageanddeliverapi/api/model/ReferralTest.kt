@@ -45,7 +45,8 @@ internal class ReferralTest {
 
     // Assert
     assertEquals(id, referral.id)
-    assertEquals("$personForename $personSurname", referral.personName)
+    assertEquals(personForename, referral.personName.forename)
+    assertEquals(personSurname, referral.personName.surname)
     assertEquals(crn, referral.crn)
     assertEquals(createdAt, referral.createdAt)
     assertEquals(cohortHistoryEntry.cohort, OffenceCohort.SEXUAL_OFFENCE)
@@ -87,7 +88,8 @@ internal class ReferralTest {
 
     // Assert
     assertEquals(id, referral.id)
-    assertEquals("$personForename $personSurname", referral.personName)
+    assertEquals(personForename, referral.personName.forename)
+    assertEquals(personSurname, referral.personName.surname)
     assertEquals(crn, referral.crn)
     assertEquals(createdAt, referral.createdAt)
     assertEquals("Unknown", referral.status)

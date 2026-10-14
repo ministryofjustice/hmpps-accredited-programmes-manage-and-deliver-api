@@ -21,8 +21,8 @@ import java.util.UUID
 
 class ReferralEntityFactory {
   private var id: UUID? = null
-  private var personForename: String? = randomSentence(wordRange = 1..3)
-  private var personSurname: String? = randomSentence(wordRange = 1..3)
+  private var personForename: String = randomSentence(wordRange = 1..3)
+  private var personSurname: String = randomSentence(wordRange = 1..3)
   private var personMiddleNames: String? = null
   private var interventionName: String? = "Building Choices"
   private var interventionType: InterventionType = InterventionType.ACP
@@ -45,8 +45,8 @@ class ReferralEntityFactory {
   private var referralReportingLocationEntity: ReferralReportingLocationEntity? = null
 
   fun withId(id: UUID?) = apply { this.id = id }
-  fun withPersonForename(personForename: String?) = apply { this.personForename = personForename }
-  fun withPersonSurname(personSurname: String?) = apply { this.personSurname = personSurname }
+  fun withPersonForename(personForename: String) = apply { this.personForename = personForename }
+  fun withPersonSurname(personSurname: String) = apply { this.personSurname = personSurname }
   fun withPersonMiddleNames(personMiddleNames: String?) = apply { this.personMiddleNames = personMiddleNames }
   fun withCrn(crn: String?) = apply { this.crn = crn }
   fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }

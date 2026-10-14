@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import com.fasterxml.jackson.annotation.JsonFormat
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonName
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -9,9 +10,8 @@ import java.util.UUID
 data class AttendanceHistoryResponse(
   @Schema(
     description = "The full name of the person",
-    example = "Alex River",
   )
-  val popName: String,
+  val popName: PersonName,
 
   @Schema(
     description = "The group code of the group the person is currently allocated to ",
@@ -54,9 +54,8 @@ data class AttendanceHistorySession(
 
   @Schema(
     description = "The name of the person",
-    example = "Alex River",
   )
-  val popName: String,
+  val popName: PersonName,
 
   @Schema(
     description = "The group id for the session",

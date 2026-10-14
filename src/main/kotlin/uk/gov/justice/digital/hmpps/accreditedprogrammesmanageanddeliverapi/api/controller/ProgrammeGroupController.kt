@@ -288,7 +288,7 @@ class ProgrammeGroupController(
     )
 
     val response = AllocateToGroupResponse(
-      message = "${referral.personName} was added to this group. Their referral status is now Scheduled.",
+      message = "${referral.personForename} ${referral.personSurname} was added to this group. Their referral status is now Scheduled.",
     )
 
     return ResponseEntity.status(HttpStatus.OK).body(response)

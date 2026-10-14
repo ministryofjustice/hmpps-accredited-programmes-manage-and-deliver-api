@@ -18,17 +18,17 @@ class FacilitatorEntity(
   @Column(name = "id")
   var id: UUID? = null,
 
-  @param:Nullable
-  @Column(name = "person_forename")
-  var personForename: String? = null,
+  @param:NotNull
+  @Column(name = "person_forename", nullable = false)
+  var personForename: String,
 
   @param:Nullable
   @Column(name = "person_middle_names")
   var personMiddleNames: String? = null,
 
-  @param:Nullable
-  @Column(name = "person_surname")
-  var personSurname: String? = null,
+  @param:NotNull
+  @Column(name = "person_surname", nullable = false)
+  var personSurname: String,
 
   @NotNull
   @Column(name = "ndelius_person_code")

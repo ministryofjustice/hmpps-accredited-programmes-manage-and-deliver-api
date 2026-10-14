@@ -81,16 +81,16 @@ data class CreateGroupTeamMember(
     required = false,
     description = "The forename of the facilitator for the group.",
   )
-  @get:JsonProperty("facilitatorForename", required = false)
-  val facilitatorForename: String? = null,
+  @get:JsonProperty("facilitatorForename", required = true)
+  val facilitatorForename: String,
 
   @field:Schema(
     example = "Smith",
     required = false,
     description = "The surname of the facilitator for the group.",
   )
-  @get:JsonProperty("facilitatorSurname", required = false)
-  val facilitatorSurname: String? = null,
+  @get:JsonProperty("facilitatorSurname", required = true)
+  val facilitatorSurname: String,
 
   @field:Schema(
     example = "William",

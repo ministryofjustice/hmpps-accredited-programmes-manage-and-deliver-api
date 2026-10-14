@@ -41,8 +41,8 @@ interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
 
   fun findAllByUpdatedAtBefore(updatedAtBefore: LocalDateTime, pageable: Pageable): Page<ReferralEntity>
 
-  @Query("SELECT r.id FROM ReferralEntity r WHERE r.personSurname IS NULL")
-  fun findAllIdsWherePersonSurnameIsNull(): List<UUID>
+  @Query("SELECT r.id FROM ReferralEntity r WHERE r.personSurname = 'UNKNOWN' OR r.personForename = 'UNKNOWN'")
+  fun findAllIdsWherePersonSurnameOrForenameIsUnknown(): List<UUID>
 
   @Query(
     value = """

@@ -37,7 +37,7 @@ class AttendeeEntity(
   var updatedAt: LocalDateTime = LocalDateTime.now(),
 ) {
   @get:Transient
-  val personForename: String?
+  val personForename: String
     get() = referral.personForename
 
   @get:Transient
@@ -45,13 +45,10 @@ class AttendeeEntity(
     get() = referral.personMiddleNames
 
   @get:Transient
-  val personSurname: String?
+  val personSurname: String
     get() = referral.personSurname
 
   @get:Transient
   val referralId: UUID
     get() = referral.id!!
-
-  val personName: String
-    get() = referral.personName
 }

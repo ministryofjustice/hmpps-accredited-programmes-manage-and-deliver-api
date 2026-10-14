@@ -210,7 +210,7 @@ class AdminService(
     log.debug("START refresh personal details for referrals with missing structured personal names: {}", referralIds)
     val referralIdList = referralIds.ifEmpty {
       withContext(Dispatchers.IO) {
-        referralRepository.findAllIdsWherePersonSurnameIsNull()
+        referralRepository.findAllIdsWherePersonSurnameOrForenameIsUnknown()
       }
     }
     val refreshPersonalDetailsResult = refreshPersonalDetailsForReferrals(referralIdList)

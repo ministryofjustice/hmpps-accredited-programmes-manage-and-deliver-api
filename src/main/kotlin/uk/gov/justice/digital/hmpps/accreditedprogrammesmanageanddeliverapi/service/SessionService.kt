@@ -7,6 +7,7 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.EditSessionDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.RescheduleSessionDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.Session
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendance
@@ -428,7 +429,7 @@ class SessionService(
         val referral = referralRepository.findById(referralId).orElseThrow {
           NotFoundException("Referral not found with id: $referralId")
         }
-        referral.personName
+        "${referral.personForename} ${referral.personSurname}"
       }
 
     var removedNames = emptyList<String>()
@@ -438,7 +439,7 @@ class SessionService(
     if (!session.startsAt.isBefore(LocalDateTime.now(clock))) {
       removedNames = session.attendees
         .filter { it.referralId in removedReferralIds }
-        .map { it.personName }
+        .map { "${it.personForename} ${it.personSurname}" }
 
       nDeliusAppointmentsToRemove = session.ndeliusAppointments
         .filter { it.referral.id in removedReferralIds }
@@ -626,7 +627,11 @@ class SessionService(
 
         SessionAttendancePerson(
           referralId = attendee.referralId,
-          name = attendee.personName,
+          name = PersonName(
+            forename = attendee.personForename,
+            surname = attendee.personSurname,
+            middleNames = attendee.personMiddleNames,
+          ),
           crn = attendee.referral.crn,
           attendance = latestAttendance?.let(::getSessionAttendance),
           options = outcomeOptions,
@@ -648,14 +653,19 @@ class SessionService(
       NotFoundException("Referral with id $referralId not found.")
     }
 
-    val popName = referral.personName
+    val personName = PersonName(
+      forename = referral.personForename,
+      surname = referral.personSurname,
+      middleNames = referral.personMiddleNames,
+    )
+    val popName = "${referral.personForename} ${referral.personSurname}"
     val pageTitle = sessionNameFormatter.format(session, SessionNameContext.SessionNotes(popName))
     val outcomeText =
       getAttendanceTextFromOutcome(
         session.attendances.filter { it.groupMembership.referralId == referralId }
           .maxByOrNull { it.createdAt }?.outcomeType,
       )
-    return SessionNotes.from(session, referralId, popName, outcomeText, pageTitle)
+    return SessionNotes.from(session, referralId, personName, outcomeText, pageTitle)
   }
 
   private fun getOptionFromOutcome(outcome: SessionAttendanceNDeliusOutcomeEntity): Option = when (outcome.code) {

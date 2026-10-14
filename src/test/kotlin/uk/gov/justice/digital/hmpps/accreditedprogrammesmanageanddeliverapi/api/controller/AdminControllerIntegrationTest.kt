@@ -546,8 +546,8 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `updateReferralStructuredNames should refresh personal details for specific referral IDs`() {
     // Given
-    val referral1 = ReferralEntityFactory().withPersonSurname(null).produce()
-    val referral2 = ReferralEntityFactory().withPersonSurname(null).produce()
+    val referral1 = ReferralEntityFactory().withPersonSurname("UNKNOWN").produce()
+    val referral2 = ReferralEntityFactory().withPersonSurname("UNKNOWN").produce()
     testDataGenerator.createReferralWithStatusHistory(referral1)
     testDataGenerator.createReferralWithStatusHistory(referral2)
 
@@ -581,7 +581,7 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
     assertThat(response.successIds).containsExactlyInAnyOrder(referral1.id!!, referral2.id!!)
 
     await withPollDelay ofMillis(100) withPollInterval ofMillis(100) untilCallTo {
-      referralRepository.findAllById(listOf(referral1.id!!, referral2.id!!)).all { it.personSurname != null }
+      referralRepository.findAllById(listOf(referral1.id!!, referral2.id!!)).all { it.personSurname != "UNKNOWN" }
     } matches { it == true }
 
     val updatedReferral1 = referralRepository.findByIdOrNull(referral1.id!!)
@@ -596,7 +596,7 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `updateReferralStructuredNames should refresh personal details for all referrals with missing surnames when list is empty`() {
     // Given
-    val referralWithNullSurname = ReferralEntityFactory().withPersonSurname(null).produce()
+    val referralWithNullSurname = ReferralEntityFactory().withPersonSurname("UNKNOWN").produce()
     val referralWithSurname = ReferralEntityFactory().withPersonSurname("Existing").produce()
     testDataGenerator.createReferralWithStatusHistory(referralWithNullSurname)
     testDataGenerator.createReferralWithStatusHistory(referralWithSurname)

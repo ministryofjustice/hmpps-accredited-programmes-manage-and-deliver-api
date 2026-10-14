@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
 
 @Schema(
@@ -11,10 +12,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 )
 data class EditSessionFacilitatorRequest(
   @NotNull(message = "facilitatorName must not be null")
-  @NotBlank(message = "facilitatorName must not be blank")
   @get:JsonProperty("facilitatorName", required = true)
   @Schema(description = "The full name of the facilitator for the group")
-  var facilitatorName: String,
+  var facilitatorName: PersonName,
 
   @NotNull(message = "facilitatorCode must not be null")
   @NotBlank(message = "facilitatorCode must not be blank")
@@ -36,8 +36,8 @@ data class EditSessionFacilitatorRequest(
 )
 
 fun EditSessionFacilitatorRequest.toFacilitatorEntity(): FacilitatorEntity = FacilitatorEntity(
-  personForename = facilitatorName.split(" ").first(),
-  personSurname = facilitatorName.split(" ").last(),
+  personForename = facilitatorName.forename,
+  personSurname = facilitatorName.surname,
   ndeliusPersonCode = facilitatorCode,
   ndeliusTeamCode = teamCode,
   ndeliusTeamName = teamName,

@@ -40,11 +40,13 @@ class RegionServiceTest {
     // Then
     assertThat(result).hasSize(2)
     assertThat(result[0].personCode).isEqualTo("M1")
-    assertThat(result[0].personName).isEqualTo("John Doe")
+    assertThat(result[0].personName.forename).isEqualTo("John")
+    assertThat(result[0].personName.surname).isEqualTo("Doe")
     assertThat(result[0].teamCode).isEqualTo("T1")
     assertThat(result[0].teamName).isEqualTo("Team 1")
     assertThat(result[1].personCode).isEqualTo("M2")
-    assertThat(result[1].personName).isEqualTo("Jane Smith")
+    assertThat(result[1].personName.forename).isEqualTo("Jane")
+    assertThat(result[1].personName.surname).isEqualTo("Smith")
     assertThat(result[1].teamCode).isEqualTo("T2")
     assertThat(result[1].teamName).isEqualTo("Team 2")
 
@@ -77,7 +79,8 @@ class RegionServiceTest {
     // Then
     assertThat(result).hasSize(1)
     assertThat(result[0].personCode).isEqualTo("M1")
-    assertThat(result[0].personName).isEqualTo("John Doe")
+    assertThat(result[0].personName.forename).isEqualTo("John")
+    assertThat(result[0].personName.surname).isEqualTo("Doe")
 
     verify {
       telemetryService.logToAppInsights(

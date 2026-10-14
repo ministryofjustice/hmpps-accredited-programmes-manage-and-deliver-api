@@ -20,30 +20,36 @@ class ReferralRepositoryIntegrationTest : IntegrationTestBase() {
 
   @Test
   @Transactional
-  fun `findAllIdsWherePersonSurnameIsNull should return only IDs of referrals with null surname`() {
+  fun `findAllIdsWherePersonSurnameOrForenameIsUnknown should return matching referrals`() {
     // Given
-    val referralWithNullSurname = ReferralEntityFactory()
-      .withPersonSurname(null)
+    val referralWithUnknownSurname = ReferralEntityFactory()
+      .withPersonForename("John")
+      .withPersonSurname("UNKNOWN")
       .produce()
-
-    val referralWithSurname = ReferralEntityFactory()
+    val referralWithUnknownForename = ReferralEntityFactory()
+      .withPersonForename("UNKNOWN")
       .withPersonSurname("Smith")
       .produce()
+    val referralWithKnownNames = ReferralEntityFactory()
+      .withPersonForename("Jane")
+      .withPersonSurname("Doe")
+      .produce()
 
-    referralRepository.save(referralWithNullSurname)
-    referralRepository.save(referralWithSurname)
+    referralRepository.save(referralWithUnknownSurname)
+    referralRepository.save(referralWithUnknownForename)
+    referralRepository.save(referralWithKnownNames)
 
     // When
-    val result = referralRepository.findAllIdsWherePersonSurnameIsNull()
+    val result = referralRepository.findAllIdsWherePersonSurnameOrForenameIsUnknown()
 
     // Then
-    assertThat(result).hasSize(1)
-    assertThat(result).containsExactly(referralWithNullSurname.id)
+    assertThat(result).hasSize(2)
+    assertThat(result).containsExactlyInAnyOrder(referralWithUnknownSurname.id, referralWithUnknownForename.id)
   }
 
   @Test
   @Transactional
-  fun `findAllIdsWherePersonSurnameIsNull should return empty list when no referrals have null surname`() {
+  fun `findAllIdsWherePersonSurnameOrForenameIsUnknown should return empty list when no referrals have UNKNOWN names`() {
     // Given
     val referralWithSurname1 = ReferralEntityFactory()
       .withPersonSurname("Smith")
@@ -56,31 +62,9 @@ class ReferralRepositoryIntegrationTest : IntegrationTestBase() {
     referralRepository.save(referralWithSurname2)
 
     // When
-    val result = referralRepository.findAllIdsWherePersonSurnameIsNull()
+    val result = referralRepository.findAllIdsWherePersonSurnameOrForenameIsUnknown()
 
     // Then
     assertThat(result).isEmpty()
-  }
-
-  @Test
-  @Transactional
-  fun `findAllIdsWherePersonSurnameIsNull should return all IDs when all referrals have null surname`() {
-    // Given
-    val referralWithNullSurname1 = ReferralEntityFactory()
-      .withPersonSurname(null)
-      .produce()
-    val referralWithNullSurname2 = ReferralEntityFactory()
-      .withPersonSurname(null)
-      .produce()
-
-    referralRepository.save(referralWithNullSurname1)
-    referralRepository.save(referralWithNullSurname2)
-
-    // When
-    val result = referralRepository.findAllIdsWherePersonSurnameIsNull()
-
-    // Then
-    assertThat(result).hasSize(2)
-    assertThat(result).containsExactlyInAnyOrder(referralWithNullSurname1.id, referralWithNullSurname2.id)
   }
 }

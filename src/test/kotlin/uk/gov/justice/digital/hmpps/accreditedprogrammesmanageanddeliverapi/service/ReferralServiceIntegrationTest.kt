@@ -22,7 +22,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusCaseRequirementOrLicenceConditionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementStaff
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -988,7 +987,6 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
       assertThat(referralDetails.id).isEqualTo(referral.id!!)
       assertThat(referralDetails.crn).isEqualTo(referral.crn)
-      assertThat(referralDetails.personName).isEqualTo(name.getNameAsString())
       assertThat(referralDetails.personName.forename).isNotBlank().isEqualTo(name.forename)
       assertThat(referralDetails.personName.surname).isNotBlank().isEqualTo(name.surname)
       assertThat(referralDetails.personName.middleNames).isNotBlank().isEqualTo(name.middleNames)
@@ -1086,7 +1084,6 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
       assertThat(referralDetails.id).isEqualTo(referral.id!!)
       assertThat(referralDetails.crn).isEqualTo(referral.crn)
-      assertThat(referralDetails.personName).isEqualTo(name.getNameAsString())
       assertThat(referralDetails.personName.forename).isNotBlank().isEqualTo(name.forename)
       assertThat(referralDetails.personName.surname).isNotBlank().isEqualTo(name.surname)
       assertThat(referralDetails.personName.middleNames).isNotBlank().isEqualTo(name.middleNames)

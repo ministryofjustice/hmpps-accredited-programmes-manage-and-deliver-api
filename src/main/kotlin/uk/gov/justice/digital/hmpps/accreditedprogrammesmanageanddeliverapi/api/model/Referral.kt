@@ -16,12 +16,11 @@ data class Referral(
   val id: UUID,
 
   @get:Schema(
-    example = "John Doe",
     required = true,
     description = "The name of the person associated with this referral.",
   )
   @get:JsonProperty("personName", required = true)
-  val personName: String,
+  val personName: PersonName,
 
   @get:Schema(
     example = "X12345",
@@ -64,7 +63,7 @@ data class Referral(
 
 fun ReferralEntity.toApi(isLimitedAccessOffender: Boolean? = false, isExcluded: Boolean? = false) = Referral(
   id = id!!,
-  personName = personName,
+  personName = PersonName(forename = personForename, middleNames = personMiddleNames, surname = personSurname),
   crn = crn,
   createdAt = createdAt,
   status = statusHistories.maxByOrNull { it.createdAt }?.referralStatusDescription?.description ?: "Unknown",

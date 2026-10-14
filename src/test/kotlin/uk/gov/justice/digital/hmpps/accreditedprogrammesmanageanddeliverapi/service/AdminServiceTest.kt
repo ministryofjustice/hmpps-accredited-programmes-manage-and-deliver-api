@@ -67,7 +67,7 @@ class AdminServiceTest {
 
     coVerify(exactly = 1) { referralService.refreshPersonalDetailsForReferral(referralId1) }
     coVerify(exactly = 1) { referralService.refreshPersonalDetailsForReferral(referralId2) }
-    coVerify(exactly = 0) { referralRepository.findAllIdsWherePersonSurnameIsNull() }
+    coVerify(exactly = 0) { referralRepository.findAllIdsWherePersonSurnameOrForenameIsUnknown() }
   }
 
   @Test
@@ -79,7 +79,7 @@ class AdminServiceTest {
     val referral1 = ReferralDetailsFactory().withId(referralId1).produce()
     val referral2 = ReferralDetailsFactory().withId(referralId2).produce()
 
-    every { referralRepository.findAllIdsWherePersonSurnameIsNull() } returns fetchedIds
+    every { referralRepository.findAllIdsWherePersonSurnameOrForenameIsUnknown() } returns fetchedIds
     coEvery { referralService.refreshPersonalDetailsForReferral(referralId1) } returns referral1
     coEvery { referralService.refreshPersonalDetailsForReferral(referralId2) } returns referral2
 
@@ -91,7 +91,7 @@ class AdminServiceTest {
     assertThat(result.notFoundIds).isEmpty()
     assertThat(result.failureIds).isEmpty()
 
-    verify(exactly = 1) { referralRepository.findAllIdsWherePersonSurnameIsNull() }
+    verify(exactly = 1) { referralRepository.findAllIdsWherePersonSurnameOrForenameIsUnknown() }
     coVerify(exactly = 1) { referralService.refreshPersonalDetailsForReferral(referralId1) }
     coVerify(exactly = 1) { referralService.refreshPersonalDetailsForReferral(referralId2) }
   }
