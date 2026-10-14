@@ -1796,7 +1796,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
             name = FullName(
               forename = it.facilitatorForename,
               surname = it.facilitatorSurname,
-              middleNames = it.facilitatorSurname,
+              middleNames = it.facilitatorMiddleNames,
             ),
           )
         }.toMutableList()
@@ -1841,7 +1841,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
             name = FullName(
               forename = it.facilitatorForename,
               surname = it.facilitatorSurname,
-              middleNames = it.facilitatorSurname,
+              middleNames = it.facilitatorMiddleNames,
             ),
           )
         }.toMutableList()
@@ -1883,7 +1883,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
             name = FullName(
               forename = it.facilitatorForename,
               surname = it.facilitatorSurname,
-              middleNames = it.facilitatorSurname,
+              middleNames = it.facilitatorMiddleNames,
             ),
           )
         }.toMutableList()
@@ -1945,7 +1945,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
             name = FullName(
               forename = it.facilitatorForename,
               surname = it.facilitatorSurname,
-              middleNames = it.facilitatorSurname,
+              middleNames = it.facilitatorMiddleNames,
             ),
           )
         }.toMutableList()
@@ -2007,7 +2007,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
             name = FullName(
               forename = it.facilitatorForename,
               surname = it.facilitatorSurname,
-              middleNames = it.facilitatorSurname,
+              middleNames = it.facilitatorMiddleNames,
             ),
           )
         }.toMutableList()
