@@ -880,7 +880,7 @@ class ProgrammeGroupService(
       unformattedEndDate = session.endsAt,
       scheduledToAttend = accessGrantedAttendees.map { it.personName },
       facilitators = session.sessionFacilitators.sortedBy { it.facilitator.personSurname }
-        .map { "${it.facilitator.personForename} ${it.facilitator.personSurname} " },
+        .map { "${it.facilitator.personForename} ${it.facilitator.personSurname}" },
       attendanceAndSessionNotes = attendanceAndSessionNotes,
     )
   }
