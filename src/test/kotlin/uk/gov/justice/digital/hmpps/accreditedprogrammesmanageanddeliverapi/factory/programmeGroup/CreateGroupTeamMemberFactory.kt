@@ -6,7 +6,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
 
 class CreateGroupTeamMemberFactory {
-  private var facilitator: String = "Default facilitator name"
   private var facilitatorForename: String = "Default facilitator forename"
   private var facilitatorSurname: String = "Default facilitator surname"
   private var facilitatorMiddleNames: String? = null
@@ -15,7 +14,6 @@ class CreateGroupTeamMemberFactory {
   private var teamCode: String = "Default team code"
   private var teamMemberType: CreateGroupTeamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR
 
-  fun withFacilitator(facilitator: String) = apply { this.facilitator = facilitator }
   fun withFacilitatorForename(facilitatorForename: String) = apply { this.facilitatorForename = facilitatorForename }
   fun withFacilitatorSurname(facilitatorSurname: String) = apply { this.facilitatorSurname = facilitatorSurname }
   fun withFacilitatorMiddleNames(facilitatorMiddleNames: String?) = apply { this.facilitatorMiddleNames = facilitatorMiddleNames }

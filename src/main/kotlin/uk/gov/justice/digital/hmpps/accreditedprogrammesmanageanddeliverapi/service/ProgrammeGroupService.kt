@@ -575,7 +575,7 @@ class ProgrammeGroupService(
             ),
             participants = buildParticipantList(sessionTemplate, scheduledSession),
             facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }
-              .map { it.facilitator.personName },
+              .map { "${it.facilitator.personForename} ${it.facilitator.personSurname}" },
           )
         } ?: emptyList()
       }
@@ -704,14 +704,14 @@ class ProgrammeGroupService(
     val (regularFacilitators, coverFacilitators) = programmeGroup.groupFacilitators
       .partition { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }
       .let { (regular, cover) ->
-        regular.map { it.facilitator.personName } to cover.map { it.facilitator.personName }
+        regular.map { "${it.facilitator.personForename} ${it.facilitator.personSurname}" } to cover.map { "${it.facilitator.personForename} ${it.facilitator.personSurname}" }
       }
 
     return GroupTreatmentManagerAndFacilitatorDetails(
       captionText = "Edit group ${programmeGroup.code}",
       pageTitle = "Edit who is responsible for the group",
       submitButtonText = "Submit",
-      treatmentManager = programmeGroup.treatmentManager?.personName.orEmpty(),
+      treatmentManager = "${programmeGroup.treatmentManager?.personForename.orEmpty()} ${programmeGroup.treatmentManager?.personSurname.orEmpty()}",
       regularFacilitators = regularFacilitators,
       coverFacilitators = coverFacilitators,
     )

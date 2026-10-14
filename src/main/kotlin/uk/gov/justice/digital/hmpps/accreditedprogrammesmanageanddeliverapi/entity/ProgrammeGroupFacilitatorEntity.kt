@@ -46,10 +46,6 @@ class ProgrammeGroupFacilitatorEntity(
   var facilitatorType: FacilitatorType,
 ) {
   @get:Transient
-  val facilitatorName: String
-    get() = facilitator.personName
-
-  @get:Transient
   val facilitatorSurname: String?
     get() = facilitator.personSurname
 

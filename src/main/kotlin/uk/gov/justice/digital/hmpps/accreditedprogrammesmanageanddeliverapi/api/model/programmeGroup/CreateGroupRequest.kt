@@ -119,16 +119,7 @@ data class CreateGroupTeamMember(
   @get:JsonProperty("teamMemberType", required = true)
   @field:Schema(description = "The type of the facilitator for the group")
   var teamMemberType: CreateGroupTeamMemberType,
-) {
-  @get:Schema(
-    example = "John Smith",
-    required = false,
-    description = "The name of the facilitator for the group.",
-  )
-  @get:JsonProperty("facilitator", required = false)
-  val facilitator: String?
-    get() = listOfNotNull(facilitatorForename, facilitatorSurname).joinToString(" ").ifBlank { null }
-}
+)
 
 fun CreateGroupRequest.toEntity(
   region: String,

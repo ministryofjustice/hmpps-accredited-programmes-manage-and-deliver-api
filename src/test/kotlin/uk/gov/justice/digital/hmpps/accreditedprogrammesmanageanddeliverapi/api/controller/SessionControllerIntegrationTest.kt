@@ -36,6 +36,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.sessionNotes.SessionNotes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegionWithMembers
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
@@ -43,7 +44,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequestCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
@@ -1792,7 +1792,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         group.groupFacilitators.map {
           MemberDtoFactory().produce(
             code = it.facilitatorCode,
-            name = it.facilitatorName.toFullName(),
+            name = FullName(
+              forename = it.facilitatorForename!!,
+              surname = it.facilitatorSurname!!,
+              middleNames = it.facilitatorSurname,
+            ),
           )
         }.toMutableList()
       groupFacilitators.add(
@@ -1833,7 +1837,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         group.groupFacilitators.map {
           NDeliusUserTeamMembersFactory().produce(
             code = it.facilitatorCode,
-            name = it.facilitatorName.toFullName(),
+            name = FullName(
+              forename = it.facilitatorForename!!,
+              surname = it.facilitatorSurname!!,
+              middleNames = it.facilitatorSurname,
+            ),
           )
         }.toMutableList()
       groupFacilitators.add(
@@ -1871,7 +1879,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         group.groupFacilitators.map {
           NDeliusUserTeamMembersFactory().produce(
             code = it.facilitatorCode,
-            name = it.facilitatorName.toFullName(),
+            name = FullName(
+              forename = it.facilitatorForename!!,
+              surname = it.facilitatorSurname!!,
+              middleNames = it.facilitatorSurname,
+            ),
           )
         }.toMutableList()
       groupFacilitators.add(
@@ -1929,7 +1941,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         group.groupFacilitators.map {
           NDeliusUserTeamMembersFactory().produce(
             code = it.facilitatorCode,
-            name = it.facilitatorName.toFullName(),
+            name = FullName(
+              forename = it.facilitatorForename!!,
+              surname = it.facilitatorSurname!!,
+              middleNames = it.facilitatorSurname,
+            ),
           )
         }.toMutableList()
       groupFacilitators.add(
@@ -1987,7 +2003,11 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         group.groupFacilitators.map {
           NDeliusUserTeamMembersFactory().produce(
             code = it.facilitatorCode,
-            name = it.facilitatorName.toFullName(),
+            name = FullName(
+              forename = it.facilitatorForename!!,
+              surname = it.facilitatorSurname!!,
+              middleNames = it.facilitatorSurname,
+            ),
           )
         }.toMutableList()
       groupFacilitators.add(

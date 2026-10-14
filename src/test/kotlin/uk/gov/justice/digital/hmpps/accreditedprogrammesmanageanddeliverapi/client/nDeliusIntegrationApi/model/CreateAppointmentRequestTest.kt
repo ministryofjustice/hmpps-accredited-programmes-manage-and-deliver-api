@@ -60,13 +60,15 @@ class CreateAppointmentRequestTest {
   @Test
   fun `toAppointment should select regular facilitators deterministically by name`() {
     val coverFacilitator = FacilitatorEntityFactory()
-      .withPersonName("Aaron Cover")
+      .withPersonForename("Aaron")
+      .withPersonSurname("Cover")
       .withNdeliusPersonCode("COVER")
       .withNdeliusTeamCode("COVER_TEAM")
       .produce()
-    val laterRegular = FacilitatorEntityFactory().withPersonName("Zoe Regular").produce()
+    val laterRegular = FacilitatorEntityFactory().withPersonForename("Zoe").withPersonSurname("Regular").produce()
     val earlierRegular = FacilitatorEntityFactory()
-      .withPersonName("Bilal Regular")
+      .withPersonForename("Bilal")
+      .withPersonSurname("Regular")
       .withNdeliusPersonCode("REG")
       .withNdeliusTeamCode("REG_TEAM")
       .produce()
@@ -103,7 +105,8 @@ class CreateAppointmentRequestTest {
 
   @Test
   fun `toAppointment should include treatment manager name in notes`() {
-    val treatmentManager = FacilitatorEntityFactory().withPersonName("Treatment Manager Name").produce()
+    val treatmentManager =
+      FacilitatorEntityFactory().withPersonForename("Treatment").withPersonSurname("Manager Name").produce()
     val session = buildSession(
       facilitators = listOf(FacilitatorEntityFactory().produce()),
       treatmentManager = treatmentManager,
@@ -127,10 +130,14 @@ class CreateAppointmentRequestTest {
   @Test
   fun `toAppointment should include createdBy, session info and additional facilitator names in notes`() {
     // Given
-    val primaryFacilitator = FacilitatorEntityFactory().withPersonName("Primary Facilitator").produce()
-    val secondFacilitator = FacilitatorEntityFactory().withPersonName("Second Facilitator").produce()
-    val thirdFacilitator = FacilitatorEntityFactory().withPersonName("Third Facilitator").produce()
-    val treatmentManager = FacilitatorEntityFactory().withPersonName("Treatment Manager Name").produce()
+    val primaryFacilitator =
+      FacilitatorEntityFactory().withPersonForename("Primary").withPersonSurname("Facilitator").produce()
+    val secondFacilitator =
+      FacilitatorEntityFactory().withPersonForename("Second").withPersonSurname("Facilitator").produce()
+    val thirdFacilitator =
+      FacilitatorEntityFactory().withPersonForename("Third").withPersonSurname("Facilitator").produce()
+    val treatmentManager =
+      FacilitatorEntityFactory().withPersonForename("Treatment").withPersonSurname("Manager Name").produce()
     val session = buildSession(
       facilitators = listOf(primaryFacilitator, secondFacilitator, thirdFacilitator),
       treatmentManager = treatmentManager,

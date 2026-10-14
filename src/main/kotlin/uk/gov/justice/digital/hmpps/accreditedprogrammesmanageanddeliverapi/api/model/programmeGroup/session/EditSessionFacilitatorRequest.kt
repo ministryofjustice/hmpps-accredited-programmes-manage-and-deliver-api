@@ -36,8 +36,8 @@ data class EditSessionFacilitatorRequest(
 )
 
 fun EditSessionFacilitatorRequest.toFacilitatorEntity(): FacilitatorEntity = FacilitatorEntity(
-  personForename = facilitatorName.substringBefore(" "),
-  personSurname = facilitatorName.substringAfter(" "),
+  personForename = facilitatorName.split(" ").first(),
+  personSurname = facilitatorName.split(" ").last(),
   ndeliusPersonCode = facilitatorCode,
   ndeliusTeamCode = teamCode,
   ndeliusTeamName = teamName,
