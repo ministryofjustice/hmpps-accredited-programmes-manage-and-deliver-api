@@ -1811,6 +1811,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         assertThat(appointment.date).isAfterOrEqualTo(today)
       }
 
+      // Every appointment sent to nDelius must carry a contact description
+      createAppointmentRequest.appointments.forEach { appointment ->
+        assertThat(appointment.description).isNotBlank()
+      }
+
       // Verify the referral is added as attendee only to group sessions in the future
       val allPastGroupSessions = foundReferral.programmeGroupMemberships.first().programmeGroup.sessions
         .filter { it.sessionType == SessionType.GROUP && it.startsAt < now }
@@ -3167,6 +3172,49 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val lastRequest = appointmentRequests.last().bodyAsString
       val createAppointmentRequest = objectMapper.readValue(lastRequest, CreateAppointmentRequest::class.java)
       assertThat(createAppointmentRequest.appointments).hasSize(2)
+
+      // Both appointments describe the group catch-up session as "<module name> <session number> catch-up"
+      assertThat(createAppointmentRequest.appointments.map { it.description })
+        .containsOnly("Getting started ${sessionTemplate.sessionNumber} catch-up")
+    }
+
+    @Test
+    fun `should send the session name as the appointment description to nDelius for a one-to-one session`() {
+      // Given
+      initialiseReferrals()
+      val referral = referrals.first()
+      val group = testGroupHelper.createGroup()
+      testGroupHelper.allocateToGroup(group, referral)
+      val sessionTemplate =
+        group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first { it.sessionType == SessionType.ONE_TO_ONE }
+
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = sessionTemplate.id!!,
+        referralIds = listOf(referral.id!!),
+        facilitators = facilitators,
+        startDate = LocalDate.now().plusDays(1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<String>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Then
+      val appointmentRequests = wiremock.findAll(postRequestedFor(urlEqualTo("/appointments")))
+      val lastRequest = appointmentRequests.last().bodyAsString
+      val createAppointmentRequest = objectMapper.readValue(lastRequest, CreateAppointmentRequest::class.java)
+
+      assertThat(createAppointmentRequest.appointments).hasSize(1)
+      // One-to-one appointments are described by the session template name, with no person name
+      assertThat(createAppointmentRequest.appointments.first().description).isEqualTo(sessionTemplate.name)
+      assertThat(createAppointmentRequest.appointments.first().description).doesNotContain(referral.personName)
     }
 
     @Test

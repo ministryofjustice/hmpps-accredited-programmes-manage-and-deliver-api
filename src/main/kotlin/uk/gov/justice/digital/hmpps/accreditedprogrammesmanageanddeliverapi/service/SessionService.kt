@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
@@ -56,7 +55,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserAccessService.Access
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
@@ -85,8 +83,6 @@ class SessionService(
   private val regionService: RegionService,
   private val clock: Clock,
   private val userAccessService: UserAccessService,
-  @param:Value($$"${app.features.lao-access-check-enabled}")
-  private val laoAccessCheckEnabled: Boolean,
 ) {
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
@@ -229,7 +225,9 @@ class SessionService(
   fun updateNDeliusAppointmentsForMultipleSessions(sessions: List<SessionEntity>) {
     val sessionsWithAppointment = sessions.filter { it.ndeliusAppointments.isNotEmpty() }.ifEmpty { return }
     val updateRequests =
-      sessionsWithAppointment.flatMap { session -> session.ndeliusAppointments.map { it.toUpdateAppointmentRequest() } }
+      sessionsWithAppointment.flatMap { session ->
+        session.ndeliusAppointments.map { it.toUpdateAppointmentRequest(sessionNameFormatter = sessionNameFormatter) }
+      }
 
     when (
       val response = nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateRequests))
@@ -265,7 +263,7 @@ class SessionService(
       return
     }
     val updateRequests = session.ndeliusAppointments.map {
-      it.toUpdateAppointmentRequest(it.currentSessionNotes(), it.currentOutcomeCode())
+      it.toUpdateAppointmentRequest(it.currentSessionNotes(), it.currentOutcomeCode(), sessionNameFormatter)
     }
 
     when (
@@ -301,12 +299,9 @@ class SessionService(
       NotFoundException("Session with id $sessionId not found.")
     }
 
-    var usernameAccessMap = mapOf<String, Access>()
-    if (laoAccessCheckEnabled) {
-      val username = authenticationUtils.getUsername()
-      val caseReferenceNumbers = entity.attendees.map { attendee -> attendee.referral.crn }.toList()
-      usernameAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
-    }
+    val username = authenticationUtils.getUsername()
+    val caseReferenceNumbers = entity.attendees.map { attendee -> attendee.referral.crn }.toList()
+    val usernameAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
 
     return entity.toApi(sessionNameFormatter, usernameAccessMap)
   }
@@ -318,15 +313,13 @@ class SessionService(
     val groupMembers = programmeGroupMembershipRepository.findAllActiveByProgrammeGroupId(session.programmeGroup.id!!)
     val sessionAttendees =
       groupMembers.map { groupMember -> groupMember.toSessionAttendee(session.attendees.map(AttendeeEntity::referralId)) }
-    if (laoAccessCheckEnabled) {
-      val username = authenticationUtils.getUsername()
-      val caseReferenceNumbers = sessionAttendees.map { attendee -> attendee.crn }.toList()
-      val usernameAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
-      sessionAttendees.forEach { attendee ->
-        val access = usernameAccessMap[attendee.crn]
-        attendee.isLimitedAccessOffender = access?.isLimitedAccessOffender
-        attendee.isExcluded = access?.isExcluded
-      }
+    val username = authenticationUtils.getUsername()
+    val caseReferenceNumbers = sessionAttendees.map { attendee -> attendee.crn }.toList()
+    val usernameAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
+    sessionAttendees.forEach { attendee ->
+      val access = usernameAccessMap[attendee.crn]
+      attendee.isLimitedAccessOffender = access?.isLimitedAccessOffender
+      attendee.isExcluded = access?.isExcluded
     }
 
     return EditSessionAttendeesResponse(
@@ -534,7 +527,7 @@ class SessionService(
     val updateAppointmentRequests = changedAttendees.mapNotNull { attendee ->
       val referralId = attendee.referralId
       val nDeliusAppointment = session.ndeliusAppointments.find { it.referral.id == referralId }
-      nDeliusAppointment?.toUpdateAppointmentRequest(attendee.sessionNotes, attendee.outcomeCode)
+      nDeliusAppointment?.toUpdateAppointmentRequest(attendee.sessionNotes, attendee.outcomeCode, sessionNameFormatter)
     }
 
     log.info("Updating ${updateAppointmentRequests.size} appointments in nDelius for session with id: $sessionId")
