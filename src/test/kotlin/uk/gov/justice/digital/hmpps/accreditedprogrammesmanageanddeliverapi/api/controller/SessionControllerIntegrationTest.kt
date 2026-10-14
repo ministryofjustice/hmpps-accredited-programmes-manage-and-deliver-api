@@ -43,7 +43,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RegionDto
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequestCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentsRequest
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
@@ -2097,7 +2096,6 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
     val facilitatorRequest = List(2) {
       EditSessionFacilitatorRequest(
-        _facilitatorName = randomFullName().getNameAsString(),
         facilitatorForename = randomFullName().forename,
         facilitatorSurname = randomFullName().surname,
         facilitatorMiddleNames = randomFullName().middleNames,
@@ -2226,7 +2224,6 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
       val editSessionFacilitatorRequest = listOf(
         EditSessionFacilitatorRequest(
-          _facilitatorName = randomFullName().getNameAsString(),
           facilitatorForename = randomFullName().forename,
           facilitatorSurname = randomFullName().surname,
           facilitatorMiddleNames = randomFullName().middleNames,

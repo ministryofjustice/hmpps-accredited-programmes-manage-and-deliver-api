@@ -10,12 +10,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
   description = "Request to edit the facilitators for a session",
 )
 data class EditSessionFacilitatorRequest(
-  @NotNull(message = "facilitatorName must not be null")
-  @NotBlank(message = "facilitatorName must not be blank")
-  @get:JsonProperty("_facilitatorName", required = true)
-  @Schema(description = "The full name of the facilitator for the group")
-  var _facilitatorName: String,
-
   @get:JsonProperty("facilitatorForename", required = false)
   @field:Schema(description = "The forename of the facilitator for the group")
   var facilitatorForename: String?,
@@ -45,24 +39,9 @@ data class EditSessionFacilitatorRequest(
   @get:JsonProperty("teamCode", required = true)
   @Schema(description = "The code of the team that the member belongs to")
   var teamCode: String,
-) {
-  @get:Schema(
-    example = "John Smith",
-    required = true,
-    description = "The full name of the facilitator.",
-  )
-  @get:JsonProperty("facilitatorName", required = true)
-  val facilitatorName: String
-    get() = if (facilitatorForename != null && facilitatorSurname != null) {
-      listOfNotNull(facilitatorForename, facilitatorMiddleNames, facilitatorSurname).filter { it.isNotBlank() }
-        .joinToString(" ")
-    } else {
-      _facilitatorName
-    }
-}
+)
 
 fun EditSessionFacilitatorRequest.toFacilitatorEntity(): FacilitatorEntity = FacilitatorEntity(
-  personName = _facilitatorName,
   personForename = facilitatorForename,
   personMiddleNames = facilitatorMiddleNames,
   personSurname = facilitatorSurname,
