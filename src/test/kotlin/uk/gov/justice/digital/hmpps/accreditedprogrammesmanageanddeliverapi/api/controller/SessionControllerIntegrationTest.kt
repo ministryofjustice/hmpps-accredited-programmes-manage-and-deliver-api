@@ -2047,7 +2047,10 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
     val facilitatorRequest = List(2) {
       EditSessionFacilitatorRequest(
-        facilitatorName = randomFullName().getNameAsString(),
+        _facilitatorName = randomFullName().getNameAsString(),
+        facilitatorForename = randomFullName().forename,
+        facilitatorSurname = randomFullName().surname,
+        facilitatorMiddleNames = randomFullName().middleNames,
         facilitatorCode = randomAlphanumericString(),
         teamName = randomAlphanumericString(),
         teamCode = randomUppercaseString(),
@@ -2172,7 +2175,10 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
       val editSessionFacilitatorRequest = listOf(
         EditSessionFacilitatorRequest(
-          facilitatorName = randomFullName().getNameAsString(),
+          _facilitatorName = randomFullName().getNameAsString(),
+          facilitatorForename = randomFullName().forename,
+          facilitatorSurname = randomFullName().surname,
+          facilitatorMiddleNames = randomFullName().middleNames,
           facilitatorCode = randomAlphanumericString(),
           teamName = randomAlphanumericString(),
           teamCode = randomUppercaseString(),
