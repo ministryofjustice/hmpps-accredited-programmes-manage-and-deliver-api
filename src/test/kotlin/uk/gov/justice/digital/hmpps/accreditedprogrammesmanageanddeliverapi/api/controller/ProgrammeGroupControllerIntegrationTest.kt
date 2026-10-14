@@ -3005,8 +3005,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
-      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personName)
-        .isEqualTo("Default facilitator forename Default facilitator surname")
+      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personForename)
+        .isEqualTo("Default facilitator forename")
+      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personSurname)
+        .isEqualTo("Default facilitator surname")
       assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
       assertThat(retrievedSession.attendees).hasSize(1)
       assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
@@ -3048,8 +3050,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
-      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personName)
-        .isEqualTo("Default facilitator forename Default facilitator surname")
+      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personForename)
+        .isEqualTo("Default facilitator forename")
+      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personSurname)
+        .isEqualTo("Default facilitator surname")
       assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
       assertThat(retrievedSession.attendees).hasSize(1)
       assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
@@ -3325,7 +3329,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val sessionTemplate = group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first()
 
       val nonExistentFacilitator = CreateGroupTeamMemberFactory()
-        .withFacilitator("Non existent Facilitator")
         .withFacilitatorForename("Non existent")
         .withFacilitatorSurname("Facilitator")
         .withFacilitatorCode("Non existent code")
@@ -3349,12 +3352,14 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
       assertThat(response).isNotNull
-      assertThat(response).isEqualTo("${sessionTemplate.name} for ${referral.personName} has been added.")
+      assertThat(response).isEqualTo("${sessionTemplate.name} for ${referral.personForename} ${referral.personSurname} has been added.")
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
-      assertThat(retrievedSession.sessionFacilitators).extracting("facilitator.personName")
-        .contains("Non existent Facilitator")
+      assertThat(retrievedSession.sessionFacilitators).extracting("facilitator.personForename")
+        .contains("Non existent")
+      assertThat(retrievedSession.sessionFacilitators).extracting("facilitator.personSurname")
+        .contains("Facilitator")
       // This is 2 as we made a call when we allocated to a group as part of test setup
       wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
     }
@@ -3367,7 +3372,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         referralIds = listOf(UUID.randomUUID()),
         facilitators = listOf(
           CreateGroupTeamMember(
-            _facilitator = "Test Facilitator",
             facilitatorForename = "Test",
             facilitatorSurname = "Facilitator",
             facilitatorCode = "FAC001",
@@ -4066,7 +4070,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.time).isEqualTo("9:30am to midday")
       assertThat(response.unformattedEndDate).isEqualTo(LocalDateTime.of(2126, 6, 3, 12, 0))
       assertThat(response.scheduledToAttend).isEqualTo(groupWithAllocation.sessions.first().attendees.map { it.personName })
-      assertThat(response.facilitators).isEqualTo(group.groupFacilitators.map { it.facilitator.personName })
+      assertThat(response.facilitators).hasSize(1)
+      assertThat(response.facilitators.first()).isEqualTo("${group.groupFacilitators.first().facilitator.personForename} ${group.groupFacilitators.first().facilitator.personSurname}")
       assertThat(response.attendanceAndSessionNotes).hasSize(1)
       assertThat(response.attendanceAndSessionNotes)
         .filteredOn { it.crn == groupWithAllocation.programmeGroupMemberships.first().crn }
@@ -5469,7 +5474,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val teamMembers = listOf(
         CreateGroupTeamMember(
-          _facilitator = "Archibald Queenie",
           facilitatorForename = "Archibald",
           facilitatorSurname = "Queenie",
           facilitatorCode = "TM001",
@@ -5478,7 +5482,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER,
         ),
         CreateGroupTeamMember(
-          _facilitator = "Chloe Ransom",
           facilitatorForename = "Chloe",
           facilitatorSurname = "Ransom",
           facilitatorCode = "RF001",
@@ -5487,7 +5490,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR,
         ),
         CreateGroupTeamMember(
-          _facilitator = "James Samhim",
           facilitatorForename = "James",
           facilitatorSurname = "Samhim",
           facilitatorCode = "CF001",

@@ -46,7 +46,6 @@ class FakeGroupGenerator {
   }
 
   private fun teamMember(faker: Faker, type: CreateGroupTeamMemberType) = CreateGroupTeamMember(
-    _facilitator = "${faker.name().firstName()} ${faker.name().lastName()}",
     facilitatorForename = faker.name().firstName(),
     facilitatorSurname = faker.name().lastName(),
     facilitatorCode = "SEEDFAC${faker.number().digits(3)}",

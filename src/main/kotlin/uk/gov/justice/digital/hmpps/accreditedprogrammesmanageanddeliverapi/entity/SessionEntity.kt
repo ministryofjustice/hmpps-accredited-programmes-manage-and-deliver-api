@@ -129,7 +129,11 @@ class SessionEntity(
 }
 
 fun SessionEntity.primaryFacilitator(): FacilitatorEntity {
-  val byName = compareBy<SessionFacilitatorEntity>({ it.facilitator.personName }, { it.facilitatorCode })
+  val byName = compareBy<SessionFacilitatorEntity>(
+    { it.facilitator.personSurname },
+    { it.facilitator.personForename },
+    { it.facilitatorCode },
+  )
   val sessionFacilitator =
     sessionFacilitators.filter { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }.minWithOrNull(byName)
       ?: sessionFacilitators.minWithOrNull(byName)

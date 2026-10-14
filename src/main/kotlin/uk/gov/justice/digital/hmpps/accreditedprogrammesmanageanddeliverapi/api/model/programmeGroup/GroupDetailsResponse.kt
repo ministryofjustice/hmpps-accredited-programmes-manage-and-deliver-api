@@ -143,7 +143,6 @@ data class GroupDetailsResponse(
       treatmentManager = programmeGroup.treatmentManager!!.let {
         CreateGroupTeamMember(
           facilitatorCode = it.ndeliusPersonCode,
-          _facilitator = it.personName,
           facilitatorForename = it.personForename,
           facilitatorSurname = it.personSurname,
           facilitatorMiddleNames = it.personMiddleNames,
@@ -157,7 +156,6 @@ data class GroupDetailsResponse(
         .map {
           CreateGroupTeamMember(
             facilitatorCode = it.facilitatorCode,
-            _facilitator = it.facilitatorName,
             facilitatorForename = it.facilitatorForename,
             facilitatorSurname = it.facilitatorSurname,
             facilitatorMiddleNames = it.facilitatorMiddleNames,
@@ -171,7 +169,6 @@ data class GroupDetailsResponse(
         .map {
           CreateGroupTeamMember(
             facilitatorCode = it.facilitatorCode,
-            _facilitator = it.facilitatorName,
             facilitatorForename = it.facilitatorForename,
             facilitatorSurname = it.facilitatorSurname,
             facilitatorMiddleNames = it.facilitatorMiddleNames,
