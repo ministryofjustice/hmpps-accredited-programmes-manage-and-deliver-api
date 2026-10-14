@@ -395,8 +395,8 @@ class ProgrammeGroupService(
     pageable: Pageable,
     selectedTab: GroupPageTab,
     groupId: UUID,
-    sex: String?,
-    cohort: ProgrammeGroupCohort?,
+    sex: List<String>?,
+    cohorts: List<ProgrammeGroupCohort>?,
     nameOrCrn: String?,
     pdus: List<String>?,
     reportingTeams: List<String>?,
@@ -408,14 +408,14 @@ class ProgrammeGroupService(
 
     val otherTab = if (selectedTab === GroupPageTab.WAITLIST) GroupPageTab.ALLOCATED else GroupPageTab.WAITLIST
 
-    val isFilteredCaseList = isFilterApplied(sex, cohort, nameOrCrn, pdus, reportingTeams)
+    val isFilteredCaseList = isFilterApplied(sex, cohorts, nameOrCrn, pdus, reportingTeams)
 
     val activeSpecification =
       getGroupWaitlistItemSpecification(
         selectedTab,
         groupId,
         sex,
-        cohort,
+        cohorts,
         nameOrCrn,
         pdus,
         reportingTeams,
@@ -427,7 +427,7 @@ class ProgrammeGroupService(
         otherTab,
         groupId,
         sex,
-        cohort,
+        cohorts,
         nameOrCrn,
         pdus,
         reportingTeams,
@@ -448,7 +448,7 @@ class ProgrammeGroupService(
       if (exclusionAccessCheckEnabled && isFilteredCaseList) {
         val crnMatchesSearch = !nameOrCrn.isNullOrEmpty() &&
           item.crn.contains(nameOrCrn, ignoreCase = true)
-        val hasOtherFilters = hasFiltersOtherThanSearch(sex, cohort, pdus, reportingTeams)
+        val hasOtherFilters = hasFiltersOtherThanSearch(sex, cohorts, pdus, reportingTeams)
         val shouldSkipExclusionFilter = crnMatchesSearch && !hasOtherFilters
 
         if (!shouldSkipExclusionFilter) {
@@ -892,23 +892,23 @@ class ProgrammeGroupService(
   }
 
   private fun hasFiltersOtherThanSearch(
-    sex: String?,
-    cohort: ProgrammeGroupCohort?,
+    sex: List<String>?,
+    cohorts: List<ProgrammeGroupCohort>?,
     pdus: List<String>?,
     reportingTeams: List<String>?,
   ): Boolean = !sex.isNullOrEmpty() ||
-    cohort != null ||
+    !cohorts.isNullOrEmpty() ||
     pdus != null ||
     reportingTeams != null
 
   private fun isFilterApplied(
-    sex: String?,
-    cohort: ProgrammeGroupCohort?,
+    sex: List<String>?,
+    cohorts: List<ProgrammeGroupCohort>?,
     nameOrCrn: String?,
     pdus: List<String>?,
     reportingTeams: List<String>?,
   ): Boolean = !sex.isNullOrEmpty() ||
-    cohort != null ||
+    !cohorts.isNullOrEmpty() ||
     !nameOrCrn.isNullOrEmpty() ||
     pdus != null ||
     reportingTeams != null
