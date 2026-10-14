@@ -9,7 +9,8 @@ import java.util.UUID
 class ReferralCaseListItemViewEntityFactory {
   private var referralId: UUID = UUID.randomUUID()
   private var crn: String = "X123456"
-  private var personName: String = "John Smith"
+  private var personForename: String = "John"
+  private var personSurname: String = "Smith"
   private var status: String = "Active"
   private var cohort: String = "SEXUAL_OFFENCE"
   private var hasLdc: Boolean = true
@@ -23,7 +24,14 @@ class ReferralCaseListItemViewEntityFactory {
 
   fun withReferralId(referralId: UUID) = apply { this.referralId }
   fun withCrn(crn: String) = apply { this.crn = crn }
-  fun withPersonName(personName: String) = apply { this.personName = personName }
+  fun withPersonName(personName: String) = apply {
+    this.personForename = personName.substringBefore(" ")
+    this.personSurname = personName.substringAfter(" ")
+  }
+
+  fun withPersonForename(personForename: String) = apply { this.personForename = personForename }
+  fun withPersonSurname(personSurname: String) = apply { this.personSurname = personSurname }
+
   fun withCohort(cohort: String) = apply { this.cohort = cohort }
   fun withStatus(status: String) = apply { this.status = status }
   fun withHasLdc(hasLdc: Boolean) = apply { this.hasLdc = hasLdc }
@@ -37,7 +45,8 @@ class ReferralCaseListItemViewEntityFactory {
   fun produce() = ReferralCaseListItemViewEntity(
     referralId = this.referralId,
     crn = this.crn,
-    personName = this.personName,
+    personForename = this.personForename,
+    personSurname = this.personSurname,
     cohort = this.cohort,
     status = this.status,
     statusLabelColour = this.statusLabelColour,

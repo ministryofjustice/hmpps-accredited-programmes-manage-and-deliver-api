@@ -989,9 +989,9 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(referralDetails.id).isEqualTo(referral.id!!)
       assertThat(referralDetails.crn).isEqualTo(referral.crn)
       assertThat(referralDetails.personName).isEqualTo(name.getNameAsString())
-      assertThat(referralDetails.personForename).isNotBlank().isEqualTo(name.forename)
-      assertThat(referralDetails.personSurname).isNotBlank().isEqualTo(name.surname)
-      assertThat(referralDetails.personMiddleNames).isNotBlank().isEqualTo(name.middleNames)
+      assertThat(referralDetails.personName.forename).isNotBlank().isEqualTo(name.forename)
+      assertThat(referralDetails.personName.surname).isNotBlank().isEqualTo(name.surname)
+      assertThat(referralDetails.personName.middleNames).isNotBlank().isEqualTo(name.middleNames)
       assertThat(referralDetails.interventionName).isEqualTo(referral.interventionName)
       assertThat(referralDetails.createdAt).isEqualTo(referral.createdAt.toLocalDate())
       assertThat(referralDetails.dateOfBirth).isEqualTo(dateOfBirth)
@@ -1087,9 +1087,9 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(referralDetails.id).isEqualTo(referral.id!!)
       assertThat(referralDetails.crn).isEqualTo(referral.crn)
       assertThat(referralDetails.personName).isEqualTo(name.getNameAsString())
-      assertThat(referralDetails.personForename).isNotBlank().isEqualTo(name.forename)
-      assertThat(referralDetails.personSurname).isNotBlank().isEqualTo(name.surname)
-      assertThat(referralDetails.personMiddleNames).isNotBlank().isEqualTo(name.middleNames)
+      assertThat(referralDetails.personName.forename).isNotBlank().isEqualTo(name.forename)
+      assertThat(referralDetails.personName.surname).isNotBlank().isEqualTo(name.surname)
+      assertThat(referralDetails.personName.middleNames).isNotBlank().isEqualTo(name.middleNames)
       assertThat(referralDetails.hasLdc).isFalse()
       assertThat(referralDetails.cohort).isEqualTo(OffenceCohort.GENERAL_OFFENCE)
       assertThat(referralDetails.isLAO).isFalse()
@@ -1117,10 +1117,9 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       // Page should still load with stored data — no 500 error
       assertThat(referralDetails.id).isEqualTo(referral.id!!)
       assertThat(referralDetails.crn).isEqualTo(referral.crn)
-      assertThat(referralDetails.personName).isEqualTo("${referral.personForename} ${referral.personMiddleNames} ${referral.personSurname}")
-      assertThat(referralDetails.personForename).isNotBlank().isEqualTo(referral.personForename)
-      assertThat(referralDetails.personSurname).isNotBlank().isEqualTo(referral.personSurname)
-      assertThat(referralDetails.personMiddleNames).isNotBlank().isEqualTo(referral.personMiddleNames)
+      assertThat(referralDetails.personName.forename).isNotBlank().isEqualTo(referral.personForename)
+      assertThat(referralDetails.personName.surname).isNotBlank().isEqualTo(referral.personSurname)
+      assertThat(referralDetails.personName.middleNames).isNotBlank().isEqualTo(referral.personMiddleNames)
       assertThat(referralDetails.isLAO).isFalse()
     }
 
@@ -1305,10 +1304,9 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
 
       // Verify OASys was only called once (cached on second call)
       oasysApiStubs.verifyPniCallCount(referral.crn, 1)
-      assertThat(referralDetails.personName).isEqualTo(name.getNameAsString())
-      assertThat(referralDetails.personForename).isNotBlank().isEqualTo(name.forename)
-      assertThat(referralDetails.personSurname).isNotBlank().isEqualTo(name.surname)
-      assertThat(referralDetails.personMiddleNames).isNotBlank().isEqualTo(name.middleNames)
+      assertThat(referralDetails.personName.forename).isNotBlank().isEqualTo(name.forename)
+      assertThat(referralDetails.personName.surname).isNotBlank().isEqualTo(name.surname)
+      assertThat(referralDetails.personName.middleNames).isNotBlank().isEqualTo(name.middleNames)
     }
   }
 }

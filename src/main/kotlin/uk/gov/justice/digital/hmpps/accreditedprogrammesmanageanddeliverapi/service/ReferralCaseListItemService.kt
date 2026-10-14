@@ -4,17 +4,16 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
-import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller.OpenOrClosed
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.LocationFilterValues
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListReferrals
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.StatusFilterValues
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralCaseListCriteria
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getReferralCaseListItemSpecification
@@ -36,40 +35,26 @@ class ReferralCaseListItemService(
   private val userAccessService: UserAccessService,
 ) {
   private val log = LoggerFactory.getLogger(this::class.java)
-  fun getReferralCaseListItemServiceByCriteria(
-    pageable: Pageable,
-    openOrClosed: OpenOrClosed,
-    username: String,
-    caseReferenceNumberOrPersonName: String?,
-    cohorts: List<ProgrammeGroupCohort>?,
-    statuses: List<String>?,
-    sexes: List<String>?,
-    probationDeliveryUnits: List<String>?,
-    reportingTeams: List<String>?,
-  ): CaseListReferrals {
+
+  fun getReferralCaseListItemServiceByCriteria(criteria: ReferralCaseListCriteria): CaseListReferrals {
+    val cohorts = criteria.cohorts
+    val username = criteria.username
+    val caseReferenceNumberOrPersonName = criteria.caseReferenceNumberOrPersonName
+
     val offenceCohortAndLdcPairs = cohorts?.mapNotNull { cohort ->
       ProgrammeGroupCohort.toOffenceTypeAndLdc(cohort)
     } ?: emptyList()
+    criteria.offenceCohortAndLdcPairs = offenceCohortAndLdcPairs
 
-    val isFilteredCaseList =
-      isFilterApplied(caseReferenceNumberOrPersonName, cohorts, sexes, probationDeliveryUnits, reportingTeams)
+    val isFilteredCaseList = isFilterApplied(criteria)
     val userRegionNames = userService.getUserRegionNames(username)
 
     // Normalise the status filters once so both the main query and the otherTabCount query
     // receive the same DB-compatible values (e.g. "Breach" -> "Breach (non-attendance)").
-    val normalisedStatuses = statuses?.mapNotNull { ReferralStatusUtils.unformatStatus(it) }
+    val normalisedStatuses = criteria.statuses?.mapNotNull { ReferralStatusUtils.unformatStatus(it) }
+    criteria.statuses = normalisedStatuses
 
-    val referralsPage = getReferralCaseList(
-      pageable = pageable,
-      openOrClosed = openOrClosed,
-      username = username,
-      caseReferenceNumberOrPersonName = caseReferenceNumberOrPersonName,
-      offenceCohortAndLdcPairs = offenceCohortAndLdcPairs,
-      statuses = normalisedStatuses,
-      sexes = sexes,
-      probationDeliveryUnits = probationDeliveryUnits,
-      reportingTeams = reportingTeams,
-    )
+    val referralsPage = getReferralCaseList(criteria)
 
     // Fetch Limited Access Offender (LAO) status for all distinct case reference numbers (CRNs)
     var limitedAccessOffenderAccessMap: Map<String, Access>? = null
@@ -82,7 +67,7 @@ class ReferralCaseListItemService(
       if (exclusionAccessCheckEnabled && isFilteredCaseList) {
         val crnMatchesSearch = !caseReferenceNumberOrPersonName.isNullOrEmpty() &&
           referral.crn.contains(caseReferenceNumberOrPersonName, ignoreCase = true)
-        val hasOtherFilters = hasFiltersOtherThanSearch(cohorts, sexes, probationDeliveryUnits, reportingTeams)
+        val hasOtherFilters = hasFiltersOtherThanSearch(criteria)
         val shouldSkipExclusionFilter = crnMatchesSearch && !hasOtherFilters
 
         if (!shouldSkipExclusionFilter) {
@@ -118,43 +103,21 @@ class ReferralCaseListItemService(
       referralsPage.totalElements - (referralsPage.content.size - referralCaseListItems.size).toLong(),
     )
 
-    val otherTabCount = getReferralCaseList(
-      pageable = pageable,
-      openOrClosed = if (openOrClosed == OpenOrClosed.OPEN) OpenOrClosed.CLOSED else OpenOrClosed.OPEN,
-      username = username,
-      caseReferenceNumberOrPersonName = caseReferenceNumberOrPersonName,
-      offenceCohortAndLdcPairs = offenceCohortAndLdcPairs,
-      statuses = normalisedStatuses,
-      sexes = sexes,
-      probationDeliveryUnits = probationDeliveryUnits,
-      reportingTeams = reportingTeams,
-    ).totalElements
+    criteria.openOrClosed = if (criteria.openOrClosed == OpenOrClosed.OPEN) OpenOrClosed.CLOSED else OpenOrClosed.OPEN
+    val otherTabCount = getReferralCaseList(criteria).totalElements
 
     return CaseListReferrals(referralsToReturn, otherTabCount.toInt(), this.getCaseListFilterData(userRegionNames))
   }
 
-  private fun getReferralCaseList(
-    pageable: Pageable,
-    openOrClosed: OpenOrClosed,
-    username: String,
-    caseReferenceNumberOrPersonName: String?,
-    offenceCohortAndLdcPairs: List<Pair<OffenceCohort, Boolean>>,
-    statuses: List<String>?,
-    sexes: List<String>?,
-    probationDeliveryUnits: List<String>?,
-    reportingTeams: List<String>?,
-  ): Page<ReferralCaseListItemViewEntity> {
-    val possibleStatuses = referralStatusService.getOpenOrClosedStatusesDescriptions(openOrClosed)
+  private fun getReferralCaseList(criteria: ReferralCaseListCriteria): Page<ReferralCaseListItemViewEntity> {
+    val possibleStatuses = referralStatusService.getOpenOrClosedStatusesDescriptions(criteria.openOrClosed)
+    val username = criteria.username
+    val pageable = criteria.pageable
 
     val baseSpec =
       getReferralCaseListItemSpecification(
         possibleStatuses = possibleStatuses,
-        crnOrPersonName = caseReferenceNumberOrPersonName,
-        offenceCohortAndLdcPairs = offenceCohortAndLdcPairs,
-        statuses = statuses,
-        sexes = sexes,
-        pdus = probationDeliveryUnits,
-        reportingTeams = reportingTeams,
+        criteria = criteria,
       )
 
     val userRegions = userService.getUserRegionNames(username)
@@ -184,31 +147,20 @@ class ReferralCaseListItemService(
     val totalAllowedCount = referralCaseListItemRepository.count(restrictedSpec)
     val caseListReferrals = referralCaseListItemRepository.findAll(restrictedSpec, pageable)
 
-    if (caseListReferrals.totalElements < 50) log.warn("Only ${caseListReferrals.totalElements} out of ${pageable.pageSize} referrals returned due to Limited Access Offender check ")
+    if (pageable.isPaged && caseListReferrals.totalElements < 50) log.warn("Only ${caseListReferrals.totalElements} out of ${pageable.pageSize} referrals returned due to Limited Access Offender check ")
     return PageImpl(caseListReferrals.content, pageable, totalAllowedCount)
   }
 
-  private fun isFilterApplied(
-    caseReferenceNumberOrPersonName: String?,
-    cohorts: List<ProgrammeGroupCohort>?,
-    sexes: List<String>?,
-    probationDeliveryUnits: List<String>?,
-    reportingTeams: List<String>?,
-  ): Boolean = !caseReferenceNumberOrPersonName.isNullOrEmpty() ||
-    !cohorts.isNullOrEmpty() ||
-    !sexes.isNullOrEmpty() ||
-    probationDeliveryUnits != null ||
-    reportingTeams != null
+  private fun isFilterApplied(criteria: ReferralCaseListCriteria): Boolean = !criteria.caseReferenceNumberOrPersonName.isNullOrEmpty() ||
+    !criteria.cohorts.isNullOrEmpty() ||
+    !criteria.sexes.isNullOrEmpty() ||
+    criteria.probationDeliveryUnits != null ||
+    criteria.reportingTeams != null
 
-  private fun hasFiltersOtherThanSearch(
-    cohorts: List<ProgrammeGroupCohort>?,
-    sexes: List<String>?,
-    probationDeliveryUnits: List<String>?,
-    reportingTeams: List<String>?,
-  ): Boolean = !cohorts.isNullOrEmpty() ||
-    !sexes.isNullOrEmpty() ||
-    probationDeliveryUnits != null ||
-    reportingTeams != null
+  private fun hasFiltersOtherThanSearch(criteria: ReferralCaseListCriteria): Boolean = !criteria.cohorts.isNullOrEmpty() ||
+    !criteria.sexes.isNullOrEmpty() ||
+    criteria.probationDeliveryUnits != null ||
+    criteria.reportingTeams != null
 
   fun getCaseListFilterData(userRegionNames: List<String>): CaseListFilterValues {
     val allStatuses = referralStatusService.getAllStatuses()

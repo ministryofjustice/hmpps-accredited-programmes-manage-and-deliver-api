@@ -9,7 +9,9 @@ import java.util.UUID
 class GroupWaitlistItemViewEntityFactory {
   private var referralId: UUID = UUID.randomUUID()
   private var crn: String = "X123456"
-  private var personName: String = "John Smith"
+  private var personForename: String = "John"
+  private var personSurname: String = "Smith"
+  private var personMiddleNames: String? = null
   private var sentenceEndDate: LocalDate = LocalDate.now(UTC).plusYears(1)
   private var licenceExpiryDate: LocalDate? = null
   private var sourcedFrom: ReferralEntitySourcedFrom = ReferralEntitySourcedFrom.LICENCE_CONDITION
@@ -26,7 +28,15 @@ class GroupWaitlistItemViewEntityFactory {
 
   fun withReferralId(referralId: UUID) = apply { this.referralId }
   fun withCrn(crn: String) = apply { this.crn = crn }
-  fun withPersonName(personName: String) = apply { this.personName = personName }
+  fun withPersonName(personName: String) = apply {
+    this.personForename = personName.substringBefore(" ")
+    this.personSurname = personName.substringAfter(" ")
+  }
+
+  fun withPersonForename(personForename: String) = apply { this.personForename = personForename }
+  fun withPersonSurname(personSurname: String) = apply { this.personSurname = personSurname }
+  fun withPersonMiddleNames(personMiddleNames: String?) = apply { this.personMiddleNames = personMiddleNames }
+
   fun withSentenceEndDate(sentenceEndDate: LocalDate) = apply { this.sentenceEndDate = sentenceEndDate }
   fun withLicenceExpiryDate(licenceExpiryDate: LocalDate?) = apply { this.licenceExpiryDate = licenceExpiryDate }
   fun withSourcedFrom(sourcedFrom: ReferralEntitySourcedFrom) = apply { this.sourcedFrom = sourcedFrom }
@@ -44,7 +54,9 @@ class GroupWaitlistItemViewEntityFactory {
   fun produce() = GroupWaitlistItemViewEntity(
     referralId = this.referralId,
     crn = this.crn,
-    personName = this.personName,
+    personForename = this.personForename,
+    personSurname = this.personSurname,
+    personMiddleNames = this.personMiddleNames,
     sentenceEndDate = this.sentenceEndDate,
     licenceExpiryDate = this.licenceExpiryDate,
     sourcedFrom = this.sourcedFrom,

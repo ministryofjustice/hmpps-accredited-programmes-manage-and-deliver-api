@@ -51,4 +51,7 @@ class AttendeeEntity(
   @get:Transient
   val referralId: UUID
     get() = referral.id!!
+
+  val personName: String
+    get() = referral.personName
 }

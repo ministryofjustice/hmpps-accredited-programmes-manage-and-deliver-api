@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
 import java.time.LocalDate
 import java.util.UUID
@@ -50,9 +51,11 @@ class ReferralDetailsFactory {
   fun produce() = ReferralDetails(
     id = id,
     crn = crn,
-    personForename = personForename,
-    personSurname = personSurname,
-    personMiddleNames = personMiddleNames,
+    personName = PersonName(
+      forename = personForename,
+      surname = personSurname,
+      middleNames = personMiddleNames,
+    ),
     interventionName = interventionName,
     createdAt = createdAt,
     dateOfBirth = dateOfBirth,

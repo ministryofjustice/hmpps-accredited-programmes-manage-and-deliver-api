@@ -76,11 +76,6 @@ data class CreateGroupRequest(
 )
 
 data class CreateGroupTeamMember(
-  @field:NotNull(message = "facilitator must not be null")
-  @get:JsonProperty("_facilitator")
-  @field:Schema(description = "The full name of the facilitator for the group")
-  var _facilitator: String,
-
   @field:Schema(
     example = "John",
     required = false,
@@ -127,17 +122,12 @@ data class CreateGroupTeamMember(
 ) {
   @get:Schema(
     example = "John Smith",
-    required = true,
-    description = "The full name of the facilitator.",
+    required = false,
+    description = "The name of the facilitator for the group.",
   )
-  @get:JsonProperty("facilitator", required = true)
-  val facilitator: String
-    get() = if (facilitatorForename != null && facilitatorSurname != null) {
-      listOfNotNull(facilitatorForename, facilitatorMiddleNames, facilitatorSurname).filter { it.isNotBlank() }
-        .joinToString(" ")
-    } else {
-      _facilitator
-    }
+  @get:JsonProperty("facilitator", required = false)
+  val facilitator: String?
+    get() = listOfNotNull(facilitatorForename, facilitatorSurname).joinToString(" ").ifBlank { null }
 }
 
 fun CreateGroupRequest.toEntity(

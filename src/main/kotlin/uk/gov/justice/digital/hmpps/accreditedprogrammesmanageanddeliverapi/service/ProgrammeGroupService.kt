@@ -898,7 +898,10 @@ class ProgrammeGroupService(
           surname = it.personSurname!!,
         )
       },
-      facilitators = session.sessionFacilitators.sortedBy { it.facilitator.personName }
+      facilitators = session.sessionFacilitators.sortedBy {
+        it.facilitator.personSurname
+        it.facilitator.personForename
+      }
         .map { it.facilitator.personName },
       attendanceAndSessionNotes = attendanceAndSessionNotes,
     )

@@ -2,8 +2,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomFullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomUppercaseString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomWord
 
@@ -28,7 +26,6 @@ class CreateGroupTeamMemberFactory {
   fun withTeamMemberType(teamMemberType: CreateGroupTeamMemberType) = apply { this.teamMemberType = teamMemberType }
 
   fun produce(): CreateGroupTeamMember = CreateGroupTeamMember(
-    _facilitator = this.facilitator,
     facilitatorForename = this.facilitatorForename,
     facilitatorSurname = this.facilitatorSurname,
     facilitatorMiddleNames = this.facilitatorMiddleNames,
@@ -45,7 +42,6 @@ class CreateGroupTeamMemberFactory {
     ndeliusTeamCode: String? = null,
     teamMemberType: CreateGroupTeamMemberType? = null,
   ): CreateGroupTeamMember = CreateGroupTeamMember(
-    _facilitator = personName ?: randomFullName().getNameAsString(),
     facilitatorForename = personName?.split(" ").orEmpty().firstOrNull() ?: randomWord(1..2).toString(),
     facilitatorSurname = personName?.split(" ").orEmpty().lastOrNull() ?: randomWord(1..2).toString(),
     facilitatorCode = personCode ?: randomUppercaseString(),

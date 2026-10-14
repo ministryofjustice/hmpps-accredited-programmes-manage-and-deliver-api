@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
 
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonalDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import java.time.LocalDate
@@ -35,9 +36,11 @@ class PersonalDetailsFactory {
 
   fun produce() = PersonalDetails(
     crn = crn,
-    personForename = personForename,
-    personSurname = personSurname,
-    personMiddleNames = personMiddleNames,
+    personName = PersonName(
+      forename = personForename,
+      surname = personSurname,
+      middleNames = personMiddleNames,
+    ),
     dateOfBirth = dateOfBirth,
     ethnicity = ethnicity,
     age = age,

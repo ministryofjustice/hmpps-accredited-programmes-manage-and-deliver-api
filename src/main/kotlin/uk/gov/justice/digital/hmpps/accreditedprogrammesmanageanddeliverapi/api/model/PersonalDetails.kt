@@ -24,14 +24,6 @@ data class PersonalDetails(
   val personName: PersonName,
 
   @field:Schema(
-    example = "William",
-    required = false,
-    description = "The middle names of the person being referred.",
-  )
-  @get:JsonProperty("personMiddleNames", required = false)
-  val personMiddleNames: String? = null,
-
-  @field:Schema(
     example = "15 March 1985",
     required = true,
     description = "The date of birth of the person being referred.",

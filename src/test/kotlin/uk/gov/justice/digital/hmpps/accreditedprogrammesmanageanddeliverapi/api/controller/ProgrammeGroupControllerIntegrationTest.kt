@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.PersonName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AllocateToGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
@@ -3367,7 +3368,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         referralIds = listOf(UUID.randomUUID()),
         facilitators = listOf(
           CreateGroupTeamMember(
-            _facilitator = "Test Facilitator",
             facilitatorForename = "Test",
             facilitatorSurname = "Facilitator",
             facilitatorCode = "FAC001",
@@ -3644,9 +3644,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         referral1.crn,
         referral2.crn,
       )
-      assertThat(response.groupMembers.map { it.name }).containsExactlyInAnyOrder(
-        referral1.personName,
-        referral2.personName,
+      assertThat(response.groupMembers.map { it.name.surname }).containsExactlyInAnyOrder(
+        referral1.personSurname,
+        referral2.personSurname,
       )
       assertThat(response.groupMembers.map { it.referralId }).containsExactlyInAnyOrder(
         referral1.id,
@@ -3875,19 +3875,39 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         module.sessions.forEach { session ->
           when {
             session.type == "Group" && !session.isCatchup -> {
-              assertThat(session.participants).isEqualTo(listOf(Participant(name = "All")))
+              assertThat(session.participants).isEqualTo(
+                listOf(
+                  Participant(
+                    name = PersonName(
+                      forename = "All",
+                      surname = "All",
+                    ),
+                  ),
+                ),
+              )
             }
 
             session.type == "Group" && session.isCatchup -> {
               assertThat(session.participants).isNotEmpty()
-              assertThat(session.participants).doesNotContain(Participant(name = "All"))
+              assertThat(session.participants).doesNotContain(
+                Participant(
+                  name = PersonName(
+                    forename = "All",
+                    surname = "All",
+                  ),
+                ),
+              )
             }
 
             session.type == "Individual" -> {
               assertThat(session.participants).isNotEmpty().hasSize(1)
               assertThat(session.participants[0]).isEqualTo(
                 Participant(
-                  name = referral.personName,
+                  name = PersonName(
+                    forename = referral.personForename!!,
+                    surname = referral.personSurname!!,
+                    middleNames = referral.personMiddleNames,
+                  ),
                   crn = referral.crn,
                   isLimitedAccessOffender = false,
                   isExcluded = false,
@@ -5469,7 +5489,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val teamMembers = listOf(
         CreateGroupTeamMember(
-          _facilitator = "Archibald Queenie",
           facilitatorForename = "Archibald",
           facilitatorSurname = "Queenie",
           facilitatorCode = "TM001",
@@ -5478,7 +5497,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER,
         ),
         CreateGroupTeamMember(
-          _facilitator = "Chloe Ransom",
           facilitatorForename = "Chloe",
           facilitatorSurname = "Ransom",
           facilitatorCode = "RF001",
@@ -5487,7 +5505,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR,
         ),
         CreateGroupTeamMember(
-          _facilitator = "James Samhim",
           facilitatorForename = "James",
           facilitatorSurname = "Samhim",
           facilitatorCode = "CF001",

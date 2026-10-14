@@ -5,19 +5,16 @@ import jakarta.persistence.criteria.CriteriaQuery
 import jakarta.persistence.criteria.Predicate
 import jakarta.persistence.criteria.Root
 import org.springframework.data.jpa.domain.Specification
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralCaseListItemViewEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralCaseListCriteria
 
 fun getReferralCaseListItemSpecification(
   possibleStatuses: List<String>,
-  crnOrPersonName: String? = null,
-  offenceCohortAndLdcPairs: List<Pair<OffenceCohort, Boolean>> = emptyList(),
-  statuses: List<String>? = null,
-  sexes: List<String>? = null,
-  pdus: List<String>? = null,
-  reportingTeams: List<String>? = null,
+  criteria: ReferralCaseListCriteria,
 ): Specification<ReferralCaseListItemViewEntity> = Specification { root: Root<ReferralCaseListItemViewEntity>, query: CriteriaQuery<*>?, criteriaBuilder: CriteriaBuilder ->
   val predicates: MutableList<Predicate> = mutableListOf()
+  val caseReferenceNumberOrPersonName = criteria.caseReferenceNumberOrPersonName
+  val offenceCohortAndLdcPairs = criteria.offenceCohortAndLdcPairs
 
   possibleStatuses.let {
     predicates.add(
@@ -25,16 +22,21 @@ fun getReferralCaseListItemSpecification(
     )
   }
 
-  crnOrPersonName?.let {
+  caseReferenceNumberOrPersonName?.let {
     predicates.add(
       criteriaBuilder.or(
         criteriaBuilder.like(
-          criteriaBuilder.lower(root.get("personName")),
-          "%$crnOrPersonName%".lowercase(),
+          criteriaBuilder.lower(
+            criteriaBuilder.concat(
+              criteriaBuilder.concat(root.get<String>("personForename"), " "),
+              root.get<String>("personSurname"),
+            ),
+          ),
+          "%$caseReferenceNumberOrPersonName%".lowercase(),
         ),
         criteriaBuilder.like(
           criteriaBuilder.lower(root.get("crn")),
-          "%$crnOrPersonName%".lowercase(),
+          "%$caseReferenceNumberOrPersonName%".lowercase(),
         ),
       ),
     )
@@ -50,25 +52,25 @@ fun getReferralCaseListItemSpecification(
     predicates.add(criteriaBuilder.or(*cohortPredicates.toTypedArray()))
   }
 
-  statuses?.takeIf { it.isNotEmpty() }?.let {
+  criteria.statuses?.takeIf { it.isNotEmpty() }?.let {
     predicates.add(
       root.get<String>("status").`in`(it),
     )
   }
 
-  sexes?.takeIf { it.isNotEmpty() }?.let {
+  criteria.sexes?.takeIf { it.isNotEmpty() }?.let {
     predicates.add(
       root.get<String>("sex").`in`(it),
     )
   }
 
-  pdus?.takeIf { it.isNotEmpty() }?.let {
+  criteria.probationDeliveryUnits?.takeIf { it.isNotEmpty() }?.let {
     predicates.add(
       root.get<String>("pduName").`in`(it),
     )
   }
 
-  reportingTeams?.takeIf { it.isNotEmpty() }?.let {
+  criteria.reportingTeams?.takeIf { it.isNotEmpty() }?.let {
     predicates.add(
       root.get<String>("reportingTeam").`in`(it),
     )

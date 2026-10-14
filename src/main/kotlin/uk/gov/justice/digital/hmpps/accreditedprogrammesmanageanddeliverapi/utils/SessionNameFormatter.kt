@@ -108,7 +108,7 @@ class SessionNameFormatter {
       SessionType.ONE_TO_ONE -> {
         val attendee = session.attendees.firstOrNull()
         if (attendee != null) {
-          "${attendee.personName}: ${session.sessionName}$catchupSuffix"
+          "${attendee.personForename} ${attendee.personSurname}: ${session.sessionName}$catchupSuffix"
         } else {
           "${session.sessionName}$catchupSuffix"
         }
@@ -126,10 +126,10 @@ class SessionNameFormatter {
    */
   private fun scheduleIndividualSession(session: SessionEntity): String = when {
     session.sessionType == SessionType.ONE_TO_ONE && session.isCatchup ->
-      "${session.sessionName} catch-up for ${session.attendees.first().personName} has been added."
+      "${session.sessionName} catch-up for ${session.attendees.first().personForename} ${session.attendees.first().personSurname} has been added."
 
     session.sessionType == SessionType.ONE_TO_ONE ->
-      "${session.sessionName} for ${session.attendees.first().personName} has been added."
+      "${session.sessionName} for ${session.attendees.first().personForename} ${session.attendees.first().personSurname} has been added."
 
     session.isCatchup ->
       "${session.moduleName} ${session.sessionNumber} catch-up has been added."
@@ -151,7 +151,7 @@ class SessionNameFormatter {
     val catchupSuffix = if (scheduledSession.isCatchup) " catch-up" else ""
     return when (sessionTemplate.sessionType) {
       SessionType.GROUP -> "${sessionTemplate.module.name} ${scheduledSession.sessionNumber}: ${sessionTemplate.name}$catchupSuffix"
-      SessionType.ONE_TO_ONE -> if (scheduledSession.attendees.isEmpty()) "${sessionTemplate.name}$catchupSuffix" else "${scheduledSession.attendees.first().personName} (${scheduledSession.attendees.first().referral.crn}): ${sessionTemplate.name}$catchupSuffix"
+      SessionType.ONE_TO_ONE -> if (scheduledSession.attendees.isEmpty()) "${sessionTemplate.name}$catchupSuffix" else "${scheduledSession.attendees.first().personForename} ${scheduledSession.attendees.first().personSurname} (${scheduledSession.attendees.first().referral.crn}): ${sessionTemplate.name}$catchupSuffix"
     }
   }
 
@@ -201,7 +201,7 @@ class SessionNameFormatter {
       SessionType.GROUP -> "${session.moduleSessionTemplate.module.name} ${session.sessionNumber}: ${session.moduleSessionTemplate.name}$catchupSuffix"
 
       SessionType.ONE_TO_ONE -> {
-        if (session.attendees.isEmpty()) "${session.moduleSessionTemplate.name}$catchupSuffix" else "${session.attendees.first().personName}: ${session.moduleSessionTemplate.name}$catchupSuffix"
+        if (session.attendees.isEmpty()) "${session.moduleSessionTemplate.name}$catchupSuffix" else "${session.attendees.first().personForename} ${session.attendees.first().personSurname}: ${session.moduleSessionTemplate.name}$catchupSuffix"
       }
     }
   }
@@ -219,7 +219,7 @@ class SessionNameFormatter {
   private fun attendanceHistory(session: SessionEntity): String {
     val catchupSuffix = if (session.isCatchup) " catch-up" else ""
     val moduleName = session.moduleSessionTemplate.module.name
-    var prefix = ""
+    var prefix: String
     var isPreOrPost = false
     if (moduleName in listOf("Post-programme reviews", "Pre-group one-to-ones")) {
       prefix = moduleName.dropLast(1)
@@ -259,8 +259,11 @@ class SessionNameFormatter {
         session.moduleName
       }
     }
+
     session.moduleName.startsWith("Post-programme") -> session.sessionName
+
     session.sessionType == SessionType.ONE_TO_ONE -> "${session.moduleName} one-to-one"
+
     else -> "${session.moduleName} ${session.sessionNumber}"
   }
 

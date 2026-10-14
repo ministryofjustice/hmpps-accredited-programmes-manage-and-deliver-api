@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.CaseListReferrals
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralCaseListCriteria
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralCaseListItemService
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import java.net.URLDecoder
@@ -92,15 +93,17 @@ class CaseListController(
       ?.map { URLDecoder.decode(it, UTF_8.name()) }
 
     return referralCaseListItemService.getReferralCaseListItemServiceByCriteria(
-      pageable = pageable,
-      openOrClosed = openOrClosed,
-      username = username,
-      caseReferenceNumberOrPersonName = caseReferenceNumberOrPersonName,
-      cohorts = cohortsDecoded,
-      statuses = statusesDecoded,
-      sexes = sexesDecoded,
-      probationDeliveryUnits = probationDeliveryUnits,
-      reportingTeams = reportingTeamsDecoded,
+      ReferralCaseListCriteria(
+        pageable = pageable,
+        openOrClosed = openOrClosed,
+        username = username,
+        caseReferenceNumberOrPersonName = caseReferenceNumberOrPersonName,
+        cohorts = cohortsDecoded,
+        statuses = statusesDecoded,
+        sexes = sexesDecoded,
+        probationDeliveryUnits = probationDeliveryUnits,
+        reportingTeams = reportingTeamsDecoded,
+      ),
     )
   }
 }
