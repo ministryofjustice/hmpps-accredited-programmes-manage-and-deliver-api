@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.domain.Specification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.PduReportingLocation
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort.GENERAL
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab.WAITLIST
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -119,8 +120,8 @@ class ProgrammeGroupServiceTest {
     val pageable: Pageable = Pageable.ofSize(10)
     val selectedTab = WAITLIST
     val groupId = UUID.randomUUID()
-    val sex = "male"
-    val cohort = GENERAL
+    val sex = listOf("male")
+    val cohorts = listOf(GENERAL)
     val nameOrCrn = "John Smith"
     val probationDeliveryUnit = "Test PDU"
     val probationDeliveryUnits = listOf(probationDeliveryUnit)
@@ -159,7 +160,7 @@ class ProgrammeGroupServiceTest {
       selectedTab = selectedTab,
       groupId = groupId,
       sex = sex,
-      cohort = cohort,
+      cohorts = cohorts,
       nameOrCrn = nameOrCrn,
       pdus = probationDeliveryUnits,
       reportingTeams = reportingTeams,
@@ -209,8 +210,8 @@ class ProgrammeGroupServiceTest {
     val pageable: Pageable = Pageable.ofSize(10)
     val selectedTab = WAITLIST
     val groupId = UUID.randomUUID()
-    val sex = "male"
-    val cohort = GENERAL
+    val sex = listOf("male")
+    val cohorts = listOf(GENERAL)
     val nameOrCrn = "John Smith"
     val probationDeliveryUnit = "Test PDU"
     val probationDeliveryUnits = listOf(probationDeliveryUnit)
@@ -249,7 +250,7 @@ class ProgrammeGroupServiceTest {
       selectedTab = selectedTab,
       groupId = groupId,
       sex = sex,
-      cohort = cohort,
+      cohorts = cohorts,
       nameOrCrn = nameOrCrn,
       pdus = probationDeliveryUnits,
       reportingTeams = reportingTeams,
@@ -281,8 +282,8 @@ class ProgrammeGroupServiceTest {
     val pageable: Pageable = Pageable.ofSize(10)
     val selectedTab = WAITLIST
     val groupId = UUID.randomUUID()
-    val sex = "male"
-    val cohort = GENERAL
+    val sex = listOf("male")
+    val cohorts = listOf(GENERAL)
     val nameOrCrn = "John Smith"
     val probationDeliveryUnit = "Test PDU"
     val probationDeliveryUnits = listOf(probationDeliveryUnit)
@@ -328,7 +329,7 @@ class ProgrammeGroupServiceTest {
       selectedTab = selectedTab,
       groupId = groupId,
       sex = sex,
-      cohort = cohort,
+      cohorts = cohorts,
       nameOrCrn = nameOrCrn,
       pdus = probationDeliveryUnits,
       reportingTeams = reportingTeams,
@@ -360,8 +361,8 @@ class ProgrammeGroupServiceTest {
     val pageable: Pageable = Pageable.ofSize(10)
     val selectedTab = WAITLIST
     val groupId = UUID.randomUUID()
-    val sex = null
-    val cohort = null
+    val sex: List<String>? = null
+    val cohorts: List<ProgrammeGroupCohort>? = null
     val nameOrCrn = "EXCLUDED001"
     val probationDeliveryUnits = null
     val reportingTeams = null
@@ -404,7 +405,7 @@ class ProgrammeGroupServiceTest {
       selectedTab = selectedTab,
       groupId = groupId,
       sex = sex,
-      cohort = cohort,
+      cohorts = cohorts,
       nameOrCrn = nameOrCrn,
       pdus = probationDeliveryUnits,
       reportingTeams = reportingTeams,
