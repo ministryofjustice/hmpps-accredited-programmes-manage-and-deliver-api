@@ -243,7 +243,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       userRegionOverrideRepository.save(
         UserRegionOverrideEntity(
           username = "the_username",
-          regionName = "A very far away Region",
+          regionName = "Another Region",
           createdAt = LocalDateTime.now(),
           createdBy = "AUTH_ADM",
         ),
