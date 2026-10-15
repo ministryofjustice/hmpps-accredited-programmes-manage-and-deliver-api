@@ -13,6 +13,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.EnumSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.data.repository.findByIdOrNull
@@ -1181,6 +1184,148 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .expectStatus().isEqualTo(HttpStatus.FORBIDDEN)
         .expectBody(object : ParameterizedTypeReference<ErrorResponse>() {})
         .returnResult().responseBody!!
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+      delimiter = '|',
+      value = [
+        "cohort=General+offence&sex=MALE | GENERAL-MALE",
+        "cohort=General+offence&sex=FEMALE | GENERAL-FEMALE",
+        "cohort=General+offence+LDC&sex=MALE | GENERAL_LDC-MALE",
+        "cohort=General+offence+LDC&sex=FEMALE | GENERAL_LDC-FEMALE",
+        "cohort=Sexual+offence&sex=MALE | SEXUAL-MALE",
+        "cohort=Sexual+offence&sex=FEMALE | SEXUAL-FEMALE",
+        "cohort=Sexual+offence+LDC&sex=MALE | SEXUAL_LDC-MALE",
+        "cohort=Sexual+offence+LDC&sex=FEMALE | SEXUAL_LDC-FEMALE",
+        "sex=MALE | GENERAL-MALE;GENERAL_LDC-MALE;SEXUAL-MALE;SEXUAL_LDC-MALE",
+        "sex=FEMALE | GENERAL-FEMALE;GENERAL_LDC-FEMALE;SEXUAL-FEMALE;SEXUAL_LDC-FEMALE",
+        "sex=MALE&sex=FEMALE | GENERAL-MALE;GENERAL-FEMALE;GENERAL_LDC-MALE;GENERAL_LDC-FEMALE;SEXUAL-MALE;SEXUAL-FEMALE;SEXUAL_LDC-MALE;SEXUAL_LDC-FEMALE",
+        "cohort=General+offence&cohort=General+offence+LDC | GENERAL-MALE;GENERAL-FEMALE;GENERAL_LDC-MALE;GENERAL_LDC-FEMALE",
+        "cohort=General+offence&cohort=Sexual+offence+LDC | GENERAL-MALE;GENERAL-FEMALE;SEXUAL_LDC-MALE;SEXUAL_LDC-FEMALE",
+        "cohort=General+offence+LDC&cohort=Sexual+offence+LDC | GENERAL_LDC-MALE;GENERAL_LDC-FEMALE;SEXUAL_LDC-MALE;SEXUAL_LDC-FEMALE",
+        "cohort=General+offence&cohort=Sexual+offence+LDC&sex=MALE | GENERAL-MALE;SEXUAL_LDC-MALE",
+        "cohort=General+offence&cohort=Sexual+offence+LDC&sex=FEMALE | GENERAL-FEMALE;SEXUAL_LDC-FEMALE",
+        "cohort=General+offence&cohort=Sexual+offence+LDC&sex=MALE&sex=FEMALE | GENERAL-MALE;GENERAL-FEMALE;SEXUAL_LDC-MALE;SEXUAL_LDC-FEMALE",
+      ],
+    )
+    fun `should match any selected cohort and sex while keeping LDC paired`(query: String, expectedCodes: String) {
+      stubAuthTokenEndpoint()
+      ProgrammeGroupCohort.entries.forEach { cohort ->
+        val (offenceType, isLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(cohort)
+        listOf(ProgrammeGroupSexEnum.MALE, ProgrammeGroupSexEnum.FEMALE).forEach { sex ->
+          testDataGenerator.createGroup(
+            ProgrammeGroupFactory()
+              .withCode("${cohort.name}-${sex.name}")
+              .withRegionName("WIREMOCKED REGION")
+              .withCohort(offenceType)
+              .withIsLdc(isLdc)
+              .withSex(sex)
+              .produce(),
+          )
+        }
+      }
+
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=20&$query",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+
+      val expected = expectedCodes.split(";")
+      assertThat(response.pagedGroupData.content.map { it.code }).containsExactlyInAnyOrderElementsOf(expected)
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(expected.size.toLong())
+      assertThat(response.otherTabTotal).isZero()
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ProgrammeGroupSexEnum::class, names = ["MALE", "FEMALE"])
+    fun `should retain matches when another selected cohort or sex has no groups`(sex: ProgrammeGroupSexEnum) {
+      stubAuthTokenEndpoint()
+      testDataGenerator.createGroup(
+        ProgrammeGroupFactory().withCode("MATCH").withRegionName("WIREMOCKED REGION").withSex(sex).produce(),
+      )
+
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?cohort=General+offence&cohort=General+offence+LDC&sex=MALE&sex=FEMALE",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+
+      assertThat(response.pagedGroupData.content.map { it.code }).containsExactly("MATCH")
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(1)
+      assertThat(response.otherTabTotal).isZero()
+    }
+
+    @Test
+    fun `should apply multiple cohort and sex filters before pagination and to both tab counts`() {
+      stubAuthTokenEndpoint()
+      val activeGroups = listOf(
+        ProgrammeGroupFactory().withCode("ACTIVE-GENERAL-MALE").withSex(ProgrammeGroupSexEnum.MALE),
+        ProgrammeGroupFactory().withCode("ACTIVE-GENERAL-FEMALE").withSex(ProgrammeGroupSexEnum.FEMALE),
+        ProgrammeGroupFactory().withCode("ACTIVE-SEXUAL-LDC").withCohort(OffenceCohort.SEXUAL_OFFENCE)
+          .withIsLdc(true).withSex(ProgrammeGroupSexEnum.MALE),
+        ProgrammeGroupFactory().withCode("EXCLUDED-ACTIVE").withCohort(OffenceCohort.SEXUAL_OFFENCE)
+          .withSex(ProgrammeGroupSexEnum.FEMALE),
+      ).map { testDataGenerator.createGroup(it.withRegionName("WIREMOCKED REGION").produce()) }
+      val completeGroups = listOf(
+        ProgrammeGroupFactory().withCode("COMPLETE-SEXUAL-LDC")
+          .withCohort(OffenceCohort.SEXUAL_OFFENCE).withIsLdc(true).withSex(ProgrammeGroupSexEnum.FEMALE),
+        ProgrammeGroupFactory().withCode("EXCLUDED-COMPLETE").withIsLdc(true).withSex(ProgrammeGroupSexEnum.MALE),
+      ).map { factory ->
+        testDataGenerator.createGroup(
+          factory.withRegionName("WIREMOCKED REGION").withEarliestStartDate(LocalDate.now().minusDays(5)).produce(),
+        )
+      }
+      completeGroups.forEachIndexed { index, group ->
+        val referral = testDataGenerator.createReferral(personName = "Complete $index", crn = "X00000$index")
+        val membership = testDataGenerator.allocateReferralsToGroup(listOf(referral), group).first()
+        testDataGenerator.creatReferralStatusHistory(
+          ReferralStatusHistoryEntityFactory().produce(
+            referral,
+            referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription(),
+          ),
+        )
+        setupPostProgrammeReviewForGroup(group, listOf(membership))
+      }
+      val query = "cohort=General+offence&cohort=Sexual+offence+LDC&sex=MALE&sex=FEMALE&size=1&sort=code,asc"
+
+      val activePages = (0..2).map { page ->
+        performRequestAndExpectOk(
+          HttpMethod.GET,
+          "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=$page&$query",
+          object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+        )
+      }
+      activePages.forEach { response ->
+        assertThat(response.pagedGroupData.content).hasSize(1)
+        assertThat(response.pagedGroupData.totalElements).isEqualTo(3)
+        assertThat(response.otherTabTotal).isEqualTo(1)
+      }
+      assertThat(activePages.flatMap { it.pagedGroupData.content }.map { it.code })
+        .containsExactlyInAnyOrderElementsOf(activeGroups.take(3).map { it.code })
+
+      val completeResponse = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/COMPLETE?page=0&$query",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+      assertThat(completeResponse.pagedGroupData.content.map { it.code }).containsExactly("COMPLETE-SEXUAL-LDC")
+      assertThat(completeResponse.pagedGroupData.totalElements).isEqualTo(1)
+      assertThat(completeResponse.otherTabTotal).isEqualTo(3)
+    }
+
+    @Test
+    fun `should document cohort and sex as query arrays`() {
+      webTestClient.get()
+        .uri("/v3/api-docs")
+        .exchange()
+        .expectStatus().isOk
+        .expectBody()
+        .jsonPath("$.paths['/bff/groups/{selectedTab}'].get.parameters[?(@.name == 'cohort')].schema.type").isEqualTo("array")
+        .jsonPath("$.paths['/bff/groups/{selectedTab}'].get.parameters[?(@.name == 'cohort')].schema.items.type").isEqualTo("string")
+        .jsonPath("$.paths['/bff/groups/{selectedTab}'].get.parameters[?(@.name == 'sex')].schema.type").isEqualTo("array")
+        .jsonPath("$.paths['/bff/groups/{selectedTab}'].get.parameters[?(@.name == 'sex')].schema.items.type").isEqualTo("string")
     }
 
     @Test
