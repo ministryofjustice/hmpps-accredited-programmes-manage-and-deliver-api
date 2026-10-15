@@ -783,12 +783,12 @@ class ProgrammeGroupService(
     groupCode: String?,
     pdus: List<String>?,
     deliveryLocations: List<String>?,
-    cohort: String?,
-    sex: String?,
+    cohort: List<String>?,
+    sex: List<String>?,
     selectedTab: GroupPageByRegionTab,
     username: String,
   ): GroupsByRegion {
-    val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
+    val groupCohorts = cohort?.filter { it.isNotEmpty() }?.map { ProgrammeGroupCohort.fromString(it) }
 
     val userRegionNames = userService.getUserRegionNames(username)
     if (userRegionNames.isEmpty()) {
@@ -801,7 +801,7 @@ class ProgrammeGroupService(
       groupCode = groupCode,
       pdus = pdus,
       deliveryLocations = deliveryLocations,
-      cohort = groupCohort,
+      cohort = groupCohorts,
       sex = sex,
       regionNames = userRegionNames,
     )

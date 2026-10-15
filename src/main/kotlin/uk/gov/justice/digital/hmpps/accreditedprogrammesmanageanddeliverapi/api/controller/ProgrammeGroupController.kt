@@ -203,10 +203,10 @@ class ProgrammeGroupController(
     @PathVariable @Parameter(description = "Return table data for either the Not started/In progress tab or the Completed tab") selectedTab: GroupPageByRegionTab,
     @Parameter(description = "Filter by the unique group code")
     @RequestParam(name = "groupCode", required = false) groupCode: String?,
-    @Parameter(description = "Filter by the cohort of the group Eg: 'Sexual Offence' or 'General Offence LDC")
-    @RequestParam(name = "cohort", required = false) cohort: String?,
-    @Parameter(description = "Filter by the sex that the group is being run for: 'Male', 'Female' or 'Mixed'")
-    @RequestParam(name = "sex", required = false) sex: String?,
+    @Parameter(description = "Filter by any selected cohort of the group, e.g. 'Sexual offence' or 'General offence LDC'")
+    @RequestParam(name = "cohort", required = false) cohort: List<String>?,
+    @Parameter(description = "Filter by any selected sex that the group is being run for: 'MALE', 'FEMALE' or 'MIXED'")
+    @RequestParam(name = "sex", required = false) sex: List<String>?,
     @RequestParam requestParams: MultiValueMap<String, String>,
   ): ResponseEntity<GroupsByRegion> {
     val username = authenticationUtils.getUsername()
