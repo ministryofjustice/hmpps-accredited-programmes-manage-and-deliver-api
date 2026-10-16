@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toCurrentGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toCurrentStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toSuggestedStatus
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.DEFAULT_CREATED_BY_VALUE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
@@ -41,6 +42,7 @@ class ReferralStatusService(
   private val referralRepository: ReferralRepository,
   private val sessionAttendanceRepository: SessionAttendanceRepository,
   private val applicationEventPublisher: ApplicationEventPublisher,
+  private val userService: UserService,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -67,11 +69,11 @@ class ReferralStatusService(
     )
   }
 
-  fun getAllStatuses(): List<ReferralStatusDescriptionEntity> = referralStatusDescriptionRepository.findAll().sortedBy { it.description }
+  fun getAllStatuses(): List<ReferralStatusDescriptionEntity> = referralStatusDescriptionRepository.findAllByDeletedAtIsNull().sortedBy { it.description }
 
   fun getOpenOrClosedStatuses(openOrClosed: OpenOrClosed): List<ReferralStatusDescriptionEntity> {
     val isClosed = openOrClosed === OpenOrClosed.CLOSED
-    return referralStatusDescriptionRepository.findAllByIsClosed(isClosed)
+    return referralStatusDescriptionRepository.findAllByIsClosedAndDeletedAtIsNull(isClosed)
   }
 
   fun getOpenOrClosedStatusesDescriptions(openOrClosed: OpenOrClosed) = getOpenOrClosedStatuses(openOrClosed).map { it.description }
@@ -102,7 +104,7 @@ class ReferralStatusService(
       eventNumber = eventNumber,
       notes = statusHistory.additionalDetails,
       description = statusInfo.description,
-      username = statusHistory.createdBy,
+      username = resolveUsername(statusHistory.createdBy, referral.crn),
     )
   }
 
@@ -184,4 +186,28 @@ class ReferralStatusService(
       )?.let { session to it }
     }
     .maxByOrNull { (_, attendance) -> attendance.recordedAt ?: LocalDateTime.MIN }
+
+  /**
+   * When Delius makes a call to retrieve the status info for a referral they need to have a real username present to assign
+   * the contact to. In our service we have some automated status changes that get associated with [DEFAULT_CREATED_BY_VALUE]
+   * we don't want to change this in our service but for any status with this user we can retrieve the Probation Practitioner username
+   * and send that to Delius to be assigned to the contact, falling back to [DEFAULT_CREATED_BY_VALUE] if the call fails.
+   */
+  private fun resolveUsername(createdBy: String, crn: String): String {
+    if (createdBy != DEFAULT_CREATED_BY_VALUE) return createdBy
+
+    val probationPractitioner = try {
+      userService.getPersonalDetailsByIdentifier(crn).probationPractitioner
+    } catch (ex: Exception) {
+      log.warn("Failed to fetch personal details from nDelius for CRN $crn: ${ex.message}")
+      null
+    }
+
+    if (probationPractitioner == null) {
+      log.warn("No probation practitioner found in nDelius for CRN $crn, falling back to $DEFAULT_CREATED_BY_VALUE")
+      return DEFAULT_CREATED_BY_VALUE
+    }
+
+    return probationPractitioner.code
+  }
 }
