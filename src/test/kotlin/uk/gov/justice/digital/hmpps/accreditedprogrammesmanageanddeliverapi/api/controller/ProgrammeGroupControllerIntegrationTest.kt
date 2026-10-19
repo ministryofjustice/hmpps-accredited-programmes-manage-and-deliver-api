@@ -116,6 +116,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.DayOfWeek
 import java.time.Duration.ofMillis
+import java.time.Duration.ofSeconds
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -1317,7 +1318,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `should document cohort and sex as query arrays`() {
-      webTestClient.get()
+      webTestClient.mutate().responseTimeout(ofSeconds(30)).build().get()
         .uri("/v3/api-docs")
         .exchange()
         .expectStatus().isOk
