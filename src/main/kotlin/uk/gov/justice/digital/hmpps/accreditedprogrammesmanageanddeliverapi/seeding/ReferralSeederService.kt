@@ -97,6 +97,8 @@ class ReferralSeederService(
     val referral = ReferralEntity(
       crn = crn,
       personName = "${person.firstName} ${person.lastName}",
+      personForename = person.firstName,
+      personSurname = person.lastName,
       interventionType = InterventionType.ACP,
       interventionName = "Building Choices",
       setting = SettingType.COMMUNITY,
