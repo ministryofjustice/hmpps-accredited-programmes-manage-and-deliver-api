@@ -437,7 +437,7 @@ class ScheduleService(
     nDeliusAppointmentEntities: List<NDeliusAppointmentEntity>,
     updateAppointmentRequests: List<UpdateAppointmentRequest>,
   ) {
-    if (nDeliusAppointmentEntities.isEmpty()) return
+    if (nDeliusAppointmentEntities.isEmpty() || updateAppointmentRequests.isEmpty()) return
 
     val nDeliusAppointments = nDeliusAppointmentEntities.map { nDeliusAppointmentEntity ->
       val updateAppointmentRequest = updateAppointmentRequests.first { request ->

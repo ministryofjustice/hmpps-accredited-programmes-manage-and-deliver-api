@@ -83,7 +83,12 @@ private fun buildNDeliusAppointment(
     location = RequestCode(session.programmeGroup.deliveryLocationCode),
     staff = RequestCode(primaryFacilitator.ndeliusPersonCode),
     team = RequestCode(primaryFacilitator.ndeliusTeamCode),
-    notes = notes ?: buildSessionNotes(session.programmeGroup.treatmentManager, additionalFacilitators, session),
+    notes = buildSessionNotes(
+      session.programmeGroup.treatmentManager,
+      additionalFacilitators,
+      session,
+      notes,
+    ),
     sensitive = false,
     type = getAppointmentTypeFromModuleName(session.moduleSessionTemplate.module.name),
     description = sessionNameFormatter.format(session, SessionNameContext.NdeliusContactDescription),
@@ -94,12 +99,16 @@ private fun buildSessionNotes(
   treatmentManager: FacilitatorEntity?,
   additionalFacilitators: List<SessionFacilitatorEntity>,
   session: SessionEntity,
+  notes: String? = null,
 ): String? {
   val parts = mutableListOf<String>()
   parts.add(getSessionPart(session))
   treatmentManager?.let { parts.add("Treatment Manager: ${it.personName}") }
   if (additionalFacilitators.isNotEmpty()) {
     parts.add("Additional Facilitators: ${additionalFacilitators.joinToString(", ") { it.facilitator.personName }}")
+  }
+  if (notes != null) {
+    parts.add("Notes: $notes")
   }
   return parts.takeIf { it.isNotEmpty() }?.joinToString("\n")
 }

@@ -567,7 +567,7 @@ class SessionService(
         }
 
         is ClientResult.Success -> {
-          handelUpdateAppointmentResponseSuccess(
+          handleUpdateAppointmentResponseSuccess(
             updateAppointmentRequestsSize = updateAppointmentRequests.size,
             programmeGroupId = session.programmeGroup.id!!,
           )
@@ -740,7 +740,7 @@ class SessionService(
     throw AppointmentUpdateException("Failure to update appointments", exception)
   }
 
-  private fun handelUpdateAppointmentResponseSuccess(updateAppointmentRequestsSize: Int, programmeGroupId: UUID) {
+  private fun handleUpdateAppointmentResponseSuccess(updateAppointmentRequestsSize: Int, programmeGroupId: UUID) {
     log.info("$updateAppointmentRequestsSize appointments created in Ndelius for group with id: $programmeGroupId")
     telemetryService.logToAppInsights(
       eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
@@ -756,14 +756,14 @@ class SessionService(
   ) {
     log.warn("Failure to update appointments in NDelius, due to missing appointment IDs, error message: $errorMessage")
     val uuidRegex = Regex(UUID_REGEX_PATTERN)
-    val missingNDeliusAppointmentIdList: List<String> = uuidRegex.findAll(errorMessage).map { it.value }.toList()
-    if (missingNDeliusAppointmentIdList.isEmpty()) return
+    val missingNDeliusAppointmentIdSet: Set<String> = uuidRegex.findAll(errorMessage).map { it.value }.toSet()
+    if (missingNDeliusAppointmentIdSet.isEmpty()) return
 
     val missingNDeliusAppointmentEntityList = mutableListOf<NDeliusAppointmentEntity>()
     val missingUpdateAppointmentRequestList =
-      updateAppointmentRequests.filter { it -> missingNDeliusAppointmentIdList.contains(it.reference.toString()) }
+      updateAppointmentRequests.filter { it -> missingNDeliusAppointmentIdSet.contains(it.reference.toString()) }
 
-    missingNDeliusAppointmentIdList.forEach { missingNDeliusAppointmentIdString ->
+    missingNDeliusAppointmentIdSet.forEach { missingNDeliusAppointmentIdString ->
       val nDeliusAppointmentId = UUID.fromString(missingNDeliusAppointmentIdString)
       val nDeliusAppointmentList =
         nDeliusAppointmentRepository.findByNdeliusAppointmentId(nDeliusAppointmentId)
@@ -775,9 +775,18 @@ class SessionService(
       updateAppointmentRequests = missingUpdateAppointmentRequestList,
     )
 
+    val updateNonMissingAppointmentRequestList: List<UpdateAppointmentRequest> =
+      updateAppointmentRequests.filter { updateAppointmentRequest ->
+        !missingNDeliusAppointmentIdSet.contains(updateAppointmentRequest.reference.toString())
+      }
+
     when (
       val response =
-        nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateAppointmentRequests))
+        nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+          UpdateAppointmentsRequest(
+            updateNonMissingAppointmentRequestList,
+          ),
+        )
     ) {
       is ClientResult.Failure -> {
         handleUpdateAppointmentResponseError(
@@ -787,7 +796,7 @@ class SessionService(
       }
 
       is ClientResult.Success -> {
-        handelUpdateAppointmentResponseSuccess(
+        handleUpdateAppointmentResponseSuccess(
           updateAppointmentRequestsSize = updateAppointmentRequests.size,
           programmeGroupId = programmeGroupId,
         )

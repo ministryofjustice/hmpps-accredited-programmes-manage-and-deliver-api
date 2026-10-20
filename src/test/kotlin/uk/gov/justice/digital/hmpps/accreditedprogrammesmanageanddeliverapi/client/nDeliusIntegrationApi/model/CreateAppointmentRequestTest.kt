@@ -9,6 +9,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom.REQUIREMENT
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.primaryFacilitator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
@@ -308,7 +309,11 @@ class CreateAppointmentRequestTest {
 
     // Then
     assertThat(result.outcome).isEqualTo(outcome)
-    assertThat(result.notes).isEqualTo(notes)
+    assertThat(result.notes).isEqualToIgnoringWhitespace(
+      "(Prog ID: AAA111, Type: main, Session: Module Session Template 1)\n" +
+        "Treatment Manager: ${session.programmeGroup.treatmentManager?.personName}\n" +
+        "Notes: Custom notes",
+    )
     assertThat(result.reference).isEqualTo(nDeliusAppointmentEntity.ndeliusAppointmentId)
   }
 
