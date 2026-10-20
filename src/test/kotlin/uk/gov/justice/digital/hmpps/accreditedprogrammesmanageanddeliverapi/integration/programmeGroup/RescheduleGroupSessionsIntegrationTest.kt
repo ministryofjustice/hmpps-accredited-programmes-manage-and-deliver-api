@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.UpdateGroupResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.session.EditSessionDateAndTimeResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
@@ -69,6 +70,44 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
   @Nested
   @DisplayName("When editing a group's slots")
   inner class WhenEditingGroupDaysAndTimes {
+
+    @Test
+    fun `preserves additional sessions in scheduled-date order when changing group slots`() {
+      val fixture = buildGroup(
+        earliestStartDate = LocalDate.of(2025, 11, 24),
+        slots = listOf(DayOfWeek.MONDAY to LocalTime.of(10, 0)),
+        sessionSpecs = listOf(
+          1 to LocalDate.of(2025, 11, 17).atTime(10, 0),
+          1 to LocalDate.of(2025, 12, 8).atTime(10, 0),
+          1 to LocalDate.of(2025, 12, 1).atTime(10, 0),
+          2 to LocalDate.of(2025, 12, 15).atTime(10, 0),
+        ),
+      )
+      val pastSession = fixture.sessions.first()
+
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/group/${fixture.group.id}",
+        returnType = object : ParameterizedTypeReference<UpdateGroupResponse>() {},
+        body = UpdateGroupRequest(
+          createGroupSessionSlot = setOf(CreateGroupSessionSlot(DayOfWeek.WEDNESDAY, 2, 0, AmOrPm.PM)),
+          automaticallyRescheduleOtherSessions = true,
+        ),
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      val allSessions = sessionRepository.findByProgrammeGroupId(fixture.group.id!!)
+      assertThat(allSessions).hasSize(4)
+      assertThat(allSessions.first { it.id == pastSession.id }.startsAt)
+        .isEqualTo(LocalDate.of(2025, 11, 17).atTime(10, 0))
+
+      val rescheduledSessions = allSessions.filter { it.id != pastSession.id }.sortedBy { it.startsAt }
+      assertThat(rescheduledSessions).hasSize(3)
+      assertThat(rescheduledSessions.map { it.sessionNumber }).containsExactly(1, 1, 2)
+      assertThat(rescheduledSessions.map { it.startsAt.toLocalDate().dayOfWeek })
+        .containsOnly(DayOfWeek.WEDNESDAY)
+      assertThat(rescheduledSessions.map { it.startsAt }).isSorted
+    }
 
     @Test
     fun `does not change sessions in the past and moves future sessions onto the new slot day`() {
@@ -310,7 +349,7 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
   inner class WhenReschedulingAnSingleSessionWithAutoReschedule {
 
     @Test
-    fun `reschedules subsequent future sessions in template order leaving past sessions unchanged`() {
+    fun `reschedules subsequent future sessions in scheduled-date order leaving past sessions unchanged`() {
       val fixture = buildGroup(
         earliestStartDate = LocalDate.of(2025, 11, 17),
         slots = listOf(DayOfWeek.MONDAY to LocalTime.of(10, 0)),
@@ -337,12 +376,49 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
         expectedResponseStatus = HttpStatus.OK.value(),
       )
 
-      // Then the past session is untouched and the subsequent sessions follow in template order
+      // Then the past session is untouched and the subsequent sessions follow in scheduled-date order
       val overview = scheduleOverview(fixture.group.id!!)
       assertThat(overview.dateOf(s1.id)).isEqualTo(LocalDate.of(2025, 11, 17))
       assertThat(overview.dateOf(s2.id)).isEqualTo(LocalDate.of(2025, 12, 8))
       assertThat(overview.dateOf(s3.id)).isEqualTo(LocalDate.of(2025, 12, 15))
       assertThat(overview.dateOf(s4.id)).isEqualTo(LocalDate.of(2025, 12, 22))
+    }
+
+    @Test
+    fun `includes additional sessions and reschedules them by scheduled date rather than creation order`() {
+      val fixture = buildGroup(
+        earliestStartDate = LocalDate.of(2025, 11, 24),
+        slots = listOf(DayOfWeek.MONDAY to LocalTime.of(10, 0)),
+        sessionSpecs = listOf(
+          1 to LocalDate.of(2025, 12, 8).atTime(10, 0),
+          1 to LocalDate.of(2025, 11, 24).atTime(10, 0),
+          2 to LocalDate.of(2025, 12, 1).atTime(10, 0),
+          2 to LocalDate.of(2025, 12, 15).atTime(10, 0),
+        ),
+      )
+      val selectedSession = fixture.sessions[1]
+      val additionalSessionCreatedFirst = fixture.sessions[0]
+      val nextTemplateSession = fixture.sessions[2]
+      val lastSession = fixture.sessions[3]
+
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${selectedSession.id}/reschedule",
+        returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+        body = RescheduleSessionRequest(
+          sessionStartDate = LocalDate.of(2025, 12, 8),
+          sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+          sessionEndTime = SessionTime(hour = 11, minutes = 0, amOrPm = AmOrPm.AM),
+          rescheduleOtherSessions = true,
+        ),
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      val overview = scheduleOverview(fixture.group.id!!)
+      assertThat(overview.dateOf(selectedSession.id)).isEqualTo(LocalDate.of(2025, 12, 8))
+      assertThat(overview.dateOf(nextTemplateSession.id)).isEqualTo(LocalDate.of(2025, 12, 15))
+      assertThat(overview.dateOf(additionalSessionCreatedFirst.id)).isEqualTo(LocalDate.of(2025, 12, 22))
+      assertThat(overview.dateOf(lastSession.id)).isEqualTo(LocalDate.of(2025, 12, 29))
     }
 
     @Test
@@ -653,14 +729,17 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
       addMembership(group)
     }
 
+    val templatesBySessionNumber = mutableMapOf<Int, ModuleSessionTemplateEntity>()
     val sessions = sessionSpecs.map { (sessionNumber, startsAt) ->
-      val template = testDataGenerator.createModuleSessionTemplate(
-        module = module,
-        name = "Session $sessionNumber",
-        sessionNumber = sessionNumber,
-        sessionType = SessionType.GROUP,
-        durationMinutes = 60,
-      )
+      val template = templatesBySessionNumber.getOrPut(sessionNumber) {
+        testDataGenerator.createModuleSessionTemplate(
+          module = module,
+          name = "Session $sessionNumber",
+          sessionNumber = sessionNumber,
+          sessionType = SessionType.GROUP,
+          durationMinutes = 60,
+        )
+      }
       testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(group)

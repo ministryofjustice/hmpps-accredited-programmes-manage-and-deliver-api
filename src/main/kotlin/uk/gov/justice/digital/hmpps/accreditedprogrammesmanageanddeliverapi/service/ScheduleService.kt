@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
@@ -184,6 +185,7 @@ class ScheduleService(
     skipPreGroupOneToOnePlaceholder: Boolean = false,
     coveredTemplateIds: Set<UUID> = emptySet(),
     preventPastScheduling: Boolean = false,
+    sessionTemplatesToSchedule: List<ModuleSessionTemplateEntity>? = null,
   ): MutableSet<SessionEntity> {
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
       ?: throw NotFoundException("Group with id: $programmeGroupId could not be found")
@@ -201,10 +203,14 @@ class ScheduleService(
         moduleEntity.sessionTemplates.sortedBy { it.sessionNumber }
       }
 
-    // If rescheduling, only regenerate templates that are not already covered by a session we are
-    // keeping (i.e. a past session, or a retained future placeholder). This ensures we do not drop future sessions
-    // that are sit earlier in the template order than the most recent past session
-    if (coveredTemplateIds.isNotEmpty()) {
+    if (sessionTemplatesToSchedule != null) {
+      val scheduledTemplateIds = sessionTemplatesToSchedule.mapNotNull { it.id }.toSet()
+      val missingTemplates = allSessionTemplates.filter { template ->
+        template.id !in coveredTemplateIds && template.id !in scheduledTemplateIds
+      }
+      allSessionTemplates = sessionTemplatesToSchedule + missingTemplates
+    } else if (coveredTemplateIds.isNotEmpty()) {
+      // Avoid regenerating templates already represented by sessions we are keeping.
       allSessionTemplates = allSessionTemplates.filter { template -> template.id !in coveredTemplateIds }
     }
 
@@ -417,6 +423,13 @@ class ScheduleService(
       coveredTemplateIds,
       // Empty groups may regenerate into the past (in-flight import); groups with members never may.
       preventPastScheduling = !isEmptyGroup,
+      // Preserve additional sessions and map them to slots in their scheduled-date order.
+      sessionTemplatesToSchedule = sessionsToReschedule
+        .asSequence()
+        .filterNot { it.isCatchup }
+        .sorted()
+        .map { it.moduleSessionTemplate }
+        .toList(),
     )
 
     val attendees = sessions
@@ -562,8 +575,8 @@ class ScheduleService(
     .toSet()
 
   /**
-   * Generates the new dates for an ordered list of sessions being rescheduled (in module/session
-   * template order), placing each on the group's slots. Each session keeps its own template
+   * Generates the new dates for an ordered list of sessions being rescheduled (in scheduled-date
+   * order), placing each on the group's slots. Each session keeps its own template
    * duration, and the six-week gap before the first Post-programme reviews session is re-applied so
    * the cascade preserves the same spacing as the initial schedule.
    */

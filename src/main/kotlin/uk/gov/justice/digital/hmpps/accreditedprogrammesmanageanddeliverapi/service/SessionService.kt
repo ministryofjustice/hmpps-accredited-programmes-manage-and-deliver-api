@@ -145,6 +145,8 @@ class SessionService(
       throw BusinessException("The session duration cannot be longer than originally scheduled. Change the start or end time.")
     }
 
+    val originalSessionStart = session.startsAt
+
     // update the start and end times of the requested session
     session.startsAt = requestedStartTime
     session.endsAt = requestedEndTime
@@ -161,10 +163,8 @@ class SessionService(
       // never move past sessions that could have recorded attendance/outcomes.
       val isEmptyGroup = !programmeGroupMembershipRepository.existsByProgrammeGroupId(session.programmeGroup.id!!)
 
-      // Select and order sessions that come AFTER the rescheduled session in template order
-      // (module number then session number), not by the current scheduled date.
-      // A date-based filter would miss sessions that are later in template order but
-      // currently have an earlier date (e.g. due to a prior ordering bug).
+      // Select sessions that were scheduled after this session and order them by their scheduled date.
+      // Additional sessions can share a template, so template order alone cannot identify their sequence.
       // For groups with members, only future sessions may be auto-rescheduled: past sessions must
       // never be moved. For empty groups, past sessions may also be cascaded.
       val subsequentGroupSessions = session.programmeGroup.sessions
@@ -173,11 +173,8 @@ class SessionService(
         .filter { it.id != session.id }
         .filter { !it.isCatchup }
         .filter { isEmptyGroup || it.startsAt > now }
-        .filter {
-          it.moduleNumber > session.moduleNumber ||
-            (it.moduleNumber == session.moduleNumber && it.sessionNumber > session.sessionNumber)
-        }
-        .sortedWith(compareBy({ it.moduleNumber }, { it.sessionNumber }))
+        .filter { it.startsAt > originalSessionStart }
+        .sorted()
         .toList()
 
       if (isGroupSession && session.programmeGroup.programmeGroupSessionSlots.isNotEmpty()) {
