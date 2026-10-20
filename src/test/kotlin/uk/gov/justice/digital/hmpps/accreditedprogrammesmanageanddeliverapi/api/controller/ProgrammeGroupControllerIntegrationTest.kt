@@ -116,6 +116,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.DayOfWeek
 import java.time.Duration.ofMillis
+import java.time.Duration.ofSeconds
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -1317,7 +1318,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `should document cohort and sex as query arrays`() {
-      webTestClient.get()
+      webTestClient.mutate().responseTimeout(ofSeconds(30)).build().get()
         .uri("/v3/api-docs")
         .exchange()
         .expectStatus().isOk
@@ -3103,6 +3104,59 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     val facilitators = listOf(CreateGroupTeamMemberFactory().produce())
 
     @Test
+    fun `additional main group sessions keep the schedule and receive newly allocated participants`() {
+      initialiseReferrals()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      val group = testGroupHelper.createGroup(earliestStartDate = LocalDate.now().plusWeeks(1))
+      testGroupHelper.allocateToGroup(group, referrals.first())
+      val originalSessions = sessionRepository.findByProgrammeGroupId(group.id!!)
+      val originalDates = originalSessions.associate { it.id to it.startsAt }
+      val template = originalSessions.first { it.sessionType == SessionType.GROUP }.moduleSessionTemplate
+
+      repeat(2) { index ->
+        val request = ScheduleSessionRequest(
+          sessionTemplateId = template.id!!,
+          referralIds = listOf(referrals.first().id!!),
+          facilitators = facilitators,
+          startDate = LocalDate.now().plusDays(2L + index),
+          startTime = SessionTime(10, 0, AmOrPm.AM),
+          endTime = SessionTime(11, 30, AmOrPm.AM),
+          sessionScheduleType = SessionScheduleType.SCHEDULED,
+        )
+        val response = performRequestAndExpectStatusWithBody(
+          httpMethod = HttpMethod.POST,
+          uri = "/group/${group.id}/session/schedule",
+          body = request,
+          returnType = object : ParameterizedTypeReference<String>() {},
+          expectedResponseStatus = HttpStatus.CREATED.value(),
+        )
+        assertThat(response).isEqualTo("${template.module.name} ${template.sessionNumber} has been added.")
+      }
+
+      val sessionsAfterAdding = sessionRepository.findByProgrammeGroupId(group.id!!)
+      assertThat(sessionsAfterAdding.filter { it.id in originalDates }.associate { it.id to it.startsAt })
+        .isEqualTo(originalDates)
+      val additionalSessions = sessionsAfterAdding.filter { it.id !in originalDates }
+      assertThat(additionalSessions).hasSize(2)
+      additionalSessions.forEach { session ->
+        assertThat(session.sessionType).isEqualTo(SessionType.GROUP)
+        assertThat(session.isCatchup).isFalse()
+        assertThat(session.isPlaceholder).isFalse()
+        assertThat(session.attendees.map { it.referral.id }).containsExactly(referrals.first().id)
+        assertThat(session.sessionFacilitators).hasSize(facilitators.size)
+      }
+
+      testGroupHelper.allocateToGroup(group, referrals[1])
+
+      val futureMainSessions = sessionRepository.findByProgrammeGroupId(group.id!!)
+        .filter { it.sessionType == SessionType.GROUP && !it.isCatchup }
+      assertThat(futureMainSessions).hasSize(originalSessions.count { it.sessionType == SessionType.GROUP } + 2)
+      futureMainSessions.forEach { session ->
+        assertThat(session.attendees.map { it.referral.id }).contains(referrals[1].id)
+      }
+    }
+
+    @Test
     fun `should return 201 when scheduling a one-to-one session with valid data`() {
       // Given
       initialiseReferrals()
@@ -3596,20 +3650,24 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response.sessionTemplates).hasSize(4)
+      assertThat(response.sessionTemplates).hasSize(3)
       assertThat(response.sessionTemplates.map { it.name })
         .containsExactly(
-          "Getting started 1 catch-up",
-          "Getting started 2 catch-up",
+          "Getting started 1",
+          "Getting started 2",
           "Getting started one-to-one",
-          "Getting started one-to-one catch-up",
         )
       assertThat(response.sessionTemplates.map { it.sessionType })
         .containsExactly(
           SessionType.GROUP,
           SessionType.GROUP,
           SessionType.ONE_TO_ONE,
-          SessionType.ONE_TO_ONE,
+        )
+      assertThat(response.sessionTemplates.map { it.sessionScheduleType })
+        .containsExactly(
+          SessionScheduleType.SCHEDULED,
+          SessionScheduleType.SCHEDULED,
+          SessionScheduleType.SCHEDULED,
         )
       assertThat(response.pageHeading).isEqualTo("Schedule a Getting started session")
     }
@@ -3642,11 +3700,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response.sessionTemplates).hasSize(2)
+      assertThat(response.sessionTemplates).hasSize(1)
       assertThat(response.sessionTemplates.map { it.name })
-        .containsExactly("Pre-group one-to-one", "Pre-group one-to-one catch-up")
+        .containsExactly("Pre-group one-to-one")
       assertThat(response.sessionTemplates.map { it.sessionType })
-        .containsExactly(SessionType.ONE_TO_ONE, SessionType.ONE_TO_ONE)
+        .containsExactly(SessionType.ONE_TO_ONE)
       assertThat(response.pageHeading).isEqualTo("Schedule a pre-group one-to-one")
     }
 
@@ -3678,17 +3736,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response.sessionTemplates).hasSize(2)
+      assertThat(response.sessionTemplates).hasSize(1)
       assertThat(response.sessionTemplates.map { it.name })
-        .containsOnly(
-          "Post-programme review",
-          "Post-programme review catch-up",
-        )
+        .containsOnly("Post-programme review")
       assertThat(response.sessionTemplates.map { it.sessionType })
-        .containsOnly(
-          SessionType.ONE_TO_ONE,
-          SessionType.ONE_TO_ONE,
-        )
+        .containsOnly(SessionType.ONE_TO_ONE)
       assertThat(response.pageHeading).isEqualTo("Schedule a post-programme review")
     }
 

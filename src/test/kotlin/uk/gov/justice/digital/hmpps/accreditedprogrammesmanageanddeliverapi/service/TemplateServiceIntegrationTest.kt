@@ -75,23 +75,17 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `Successfully retrieves session templates for Pre-Group module (one session and its catch up)`() {
+    fun `Successfully retrieves the session template for Pre-Group module`() {
       // When
       val sessionTemplates = service.getSessionTemplatesForGroupAndModule(groupId, preGroupModuleId).second
 
       // Then
-      assertThat(sessionTemplates).hasSize(2)
-      val sessionTemplate = sessionTemplates.first()
+      assertThat(sessionTemplates).hasSize(1)
+      val sessionTemplate = sessionTemplates.single()
       assertThat(sessionTemplate.number).isEqualTo(1)
       assertThat(sessionTemplate.name).isEqualTo("Pre-group one-to-one")
       assertThat(sessionTemplate.sessionScheduleType).isEqualTo(SessionScheduleType.SCHEDULED)
       assertThat(sessionTemplate.id).isNotNull
-
-      val catchUpTemplate = sessionTemplates.last()
-      assertThat(catchUpTemplate.number).isEqualTo(1)
-      assertThat(catchUpTemplate.name).isEqualTo("Pre-group one-to-one catch-up")
-      assertThat(catchUpTemplate.sessionScheduleType).isEqualTo(SessionScheduleType.CATCH_UP)
-      assertThat(catchUpTemplate.id).isNotNull
     }
 
     @Test
@@ -103,17 +97,16 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
       val sessionTemplates = service.getSessionTemplatesForGroupAndModule(groupId, managingMyselfModule?.id!!).second
 
       // Then
-      assertThat(sessionTemplates).hasSize(8)
+      assertThat(sessionTemplates).hasSize(7)
         .extracting("name", "number", "sessionScheduleType")
         .containsExactly(
-          tuple("Managing myself 1 catch-up", 1, SessionScheduleType.CATCH_UP),
-          tuple("Managing myself 2 catch-up", 2, SessionScheduleType.CATCH_UP),
-          tuple("Managing myself 3 catch-up", 3, SessionScheduleType.CATCH_UP),
-          tuple("Managing myself 4 catch-up", 4, SessionScheduleType.CATCH_UP),
-          tuple("Managing myself 5 catch-up", 5, SessionScheduleType.CATCH_UP),
-          tuple("Managing myself 6 catch-up", 6, SessionScheduleType.CATCH_UP),
+          tuple("Managing myself 1", 1, SessionScheduleType.SCHEDULED),
+          tuple("Managing myself 2", 2, SessionScheduleType.SCHEDULED),
+          tuple("Managing myself 3", 3, SessionScheduleType.SCHEDULED),
+          tuple("Managing myself 4", 4, SessionScheduleType.SCHEDULED),
+          tuple("Managing myself 5", 5, SessionScheduleType.SCHEDULED),
+          tuple("Managing myself 6", 6, SessionScheduleType.SCHEDULED),
           tuple("Managing myself one-to-one", 7, SessionScheduleType.SCHEDULED),
-          tuple("Managing myself one-to-one catch-up", 7, SessionScheduleType.CATCH_UP),
         )
     }
 
@@ -129,9 +122,9 @@ class TemplateServiceIntegrationTest : IntegrationTestBase() {
       assertThat(sessionTemplates).hasSize(3)
         .extracting("name", "number", "sessionScheduleType")
         .containsExactly(
-          tuple("Bringing it all together 1 catch-up", 1, SessionScheduleType.CATCH_UP),
-          tuple("Bringing it all together 2 catch-up", 2, SessionScheduleType.CATCH_UP),
-          tuple("Bringing it all together 3 catch-up", 3, SessionScheduleType.CATCH_UP),
+          tuple("Bringing it all together 1", 1, SessionScheduleType.SCHEDULED),
+          tuple("Bringing it all together 2", 2, SessionScheduleType.SCHEDULED),
+          tuple("Bringing it all together 3", 3, SessionScheduleType.SCHEDULED),
         )
     }
 

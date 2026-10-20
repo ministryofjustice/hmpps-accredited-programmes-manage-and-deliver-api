@@ -5,7 +5,6 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ModuleSessionTemplate
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionScheduleType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleEntity
@@ -46,42 +45,19 @@ class TemplateService(
 
     val sessionTemplates = moduleSessionTemplateRepository.findByModuleId(moduleId)
       .sortedBy { it.sessionNumber }
-      .flatMap(::addCatchUpModuleSessions)
+      .map(::toScheduleSessionTemplate)
 
     log.info("Found ${sessionTemplates.size} session templates for module: $moduleId")
 
     return module to sessionTemplates
   }
 
-  private fun addCatchUpModuleSessions(entity: ModuleSessionTemplateEntity): List<ModuleSessionTemplate> {
+  private fun toScheduleSessionTemplate(entity: ModuleSessionTemplateEntity): ModuleSessionTemplate {
     val sessionTemplate = entity.toApi()
-    val module = entity.module
     return if (entity.sessionType == SessionType.ONE_TO_ONE) {
-      // If it's a one-to-one catchup:
-      // If the module name is "Post-programme reviews" or "Pre-group one-to-ones", drop the s (e.g. "Pre-group one-to-ones" -> "Pre-group one-to-one")
-      // and append "catch-up" directly -> (e.g. "Pre-group one-to-one catch-up", "Post-programme review catch-up").
-      // Otherwise, just add "one-to-one catch-up"-> (e.g. "Getting started one-to-one catch-up").
-      // If it's not a one-to-one catchup:
-      // Return the module name and session number and append catch-up -> (e.g. "Getting started 1 catch-up")
-      val catchUpName = if (module.name in listOf("Post-programme reviews", "Pre-group one-to-ones")) {
-        "${module.name.dropLast(1)} catch-up"
-      } else {
-        "${module.name} one-to-one catch-up"
-      }
-      listOf(
-        sessionTemplate,
-        sessionTemplate.copy(
-          name = catchUpName,
-          sessionScheduleType = SessionScheduleType.CATCH_UP,
-        ),
-      )
+      sessionTemplate
     } else {
-      listOf(
-        sessionTemplate.apply {
-          name = "${module.name} ${sessionTemplate.number} catch-up"
-          sessionScheduleType = SessionScheduleType.CATCH_UP
-        },
-      )
+      sessionTemplate.copy(name = "${entity.module.name} ${sessionTemplate.number}")
     }
   }
 }
