@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.ser
 
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.http.HttpStatus
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -28,9 +29,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toUpdateAppointmentRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UUID_REGEX_PATTERN
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.AppointmentUpdateException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -51,6 +54,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.UPDATE_APPOINTMENT_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.RECORD_ATTENDANCE
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
@@ -83,7 +87,12 @@ class SessionService(
   private val regionService: RegionService,
   private val clock: Clock,
   private val userAccessService: UserAccessService,
+  private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
 ) {
+  companion object {
+    private val log = LoggerFactory.getLogger(this::class.java)
+    private const val MISSING_APPOINTMENT_ERROR_MESSAGE = "Could not find appointments with references"
+  }
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
     val session = sessionRepository.findById(sessionId).orElseThrow {
@@ -288,10 +297,6 @@ class SessionService(
         )
       }
     }
-  }
-
-  companion object {
-    private val log = LoggerFactory.getLogger(SessionService::class.java)
   }
 
   fun getSession(sessionId: UUID): Session {
@@ -536,22 +541,35 @@ class SessionService(
         val response =
           nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateAppointmentRequests))
       ) {
-        is ClientResult.Failure -> {
-          log.warn("Failure to update appointments: ${response.getErrorMessage()}")
-          telemetryService.logToAppInsights(
-            eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
-            integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
-            outcome = "failure",
+        is ClientResult.Failure.StatusCode -> {
+          val errorMessage = response.getErrorMessage()
+          if (response.status.value() == HttpStatus.BAD_REQUEST.value() &&
+            errorMessage.contains(MISSING_APPOINTMENT_ERROR_MESSAGE)
+          ) {
+            handleUpdateAppointmentResponseMissingAppointmentError(
+              errorMessage,
+              updateAppointmentRequests,
+              session.programmeGroup.id!!,
+            )
+          } else {
+            handleUpdateAppointmentResponseError(
+              errorMessage = errorMessage,
+              exception = response.toException(),
+            )
+          }
+        }
+
+        is ClientResult.Failure.Other -> {
+          handleUpdateAppointmentResponseError(
+            errorMessage = response.getErrorMessage(),
+            exception = response.toException(),
           )
-          throw AppointmentUpdateException("Failure to update appointments", response.toException())
         }
 
         is ClientResult.Success -> {
-          log.info("${updateAppointmentRequests.size} appointments created in Ndelius for group with id: ${session.programmeGroup.id}")
-          telemetryService.logToAppInsights(
-            eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
-            integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
-            outcome = "success",
+          handleUpdateAppointmentResponseSuccess(
+            updateAppointmentRequestsSize = updateAppointmentRequests.size,
+            programmeGroupId = session.programmeGroup.id!!,
           )
         }
       }
@@ -710,5 +728,79 @@ class SessionService(
     UAAB -> "Did not attend"
     null -> "To be confirmed"
     else -> attendanceOutcome.description!!
+  }
+
+  private fun handleUpdateAppointmentResponseError(errorMessage: String, exception: Throwable) {
+    log.warn("Failure to update appointments: $errorMessage")
+    telemetryService.logToAppInsights(
+      eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+      integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
+      outcome = "failure",
+    )
+    throw AppointmentUpdateException("Failure to update appointments", exception)
+  }
+
+  private fun handleUpdateAppointmentResponseSuccess(updateAppointmentRequestsSize: Int, programmeGroupId: UUID) {
+    log.info("$updateAppointmentRequestsSize appointments created in Ndelius for group with id: $programmeGroupId")
+    telemetryService.logToAppInsights(
+      eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
+      integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
+      outcome = "success",
+    )
+  }
+
+  private fun handleUpdateAppointmentResponseMissingAppointmentError(
+    errorMessage: String,
+    updateAppointmentRequests: List<UpdateAppointmentRequest>,
+    programmeGroupId: UUID,
+  ) {
+    log.warn("Failure to update appointments in NDelius, due to missing appointment IDs, error message: $errorMessage")
+    val uuidRegex = Regex(UUID_REGEX_PATTERN)
+    val missingNDeliusAppointmentIdSet: Set<String> = uuidRegex.findAll(errorMessage).map { it.value }.toSet()
+    if (missingNDeliusAppointmentIdSet.isEmpty()) return
+
+    val missingNDeliusAppointmentEntityList = mutableListOf<NDeliusAppointmentEntity>()
+    val missingUpdateAppointmentRequestList =
+      updateAppointmentRequests.filter { it -> missingNDeliusAppointmentIdSet.contains(it.reference.toString()) }
+
+    missingNDeliusAppointmentIdSet.forEach { missingNDeliusAppointmentIdString ->
+      val nDeliusAppointmentId = UUID.fromString(missingNDeliusAppointmentIdString)
+      val nDeliusAppointmentList =
+        nDeliusAppointmentRepository.findByNdeliusAppointmentId(nDeliusAppointmentId)
+      missingNDeliusAppointmentEntityList.addAll(nDeliusAppointmentList)
+    }
+
+    scheduleService.createNDeliusAppointments(
+      nDeliusAppointmentEntities = missingNDeliusAppointmentEntityList,
+      updateAppointmentRequests = missingUpdateAppointmentRequestList,
+    )
+
+    val updateNonMissingAppointmentRequestList: List<UpdateAppointmentRequest> =
+      updateAppointmentRequests.filter { updateAppointmentRequest ->
+        !missingNDeliusAppointmentIdSet.contains(updateAppointmentRequest.reference.toString())
+      }
+
+    when (
+      val response =
+        nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+          UpdateAppointmentsRequest(
+            updateNonMissingAppointmentRequestList,
+          ),
+        )
+    ) {
+      is ClientResult.Failure -> {
+        handleUpdateAppointmentResponseError(
+          errorMessage = response.getErrorMessage(),
+          exception = response.toException(),
+        )
+      }
+
+      is ClientResult.Success -> {
+        handleUpdateAppointmentResponseSuccess(
+          updateAppointmentRequestsSize = updateAppointmentRequests.size,
+          programmeGroupId = programmeGroupId,
+        )
+      }
+    }
   }
 }
