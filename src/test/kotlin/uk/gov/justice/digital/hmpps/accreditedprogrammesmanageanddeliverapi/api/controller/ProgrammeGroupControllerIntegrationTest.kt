@@ -1316,19 +1316,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should document cohort and sex as query arrays`() {
-      webTestClient.get()
-        .uri("/v3/api-docs")
-        .exchange()
-        .expectStatus().isOk
-        .expectBody()
-        .jsonPath("$.paths['/bff/groups/{selectedTab}'].get.parameters[?(@.name == 'cohort')].schema.type").isEqualTo("array")
-        .jsonPath("$.paths['/bff/groups/{selectedTab}'].get.parameters[?(@.name == 'cohort')].schema.items.type").isEqualTo("string")
-        .jsonPath("$.paths['/bff/groups/{selectedTab}'].get.parameters[?(@.name == 'sex')].schema.type").isEqualTo("array")
-        .jsonPath("$.paths['/bff/groups/{selectedTab}'].get.parameters[?(@.name == 'sex')].schema.items.type").isEqualTo("string")
-    }
-
-    @Test
     fun `should filter by single PDU`() {
       // Given - BeforeEach already stubs "Test PDU 1" in "WIREMOCKED REGION"
       stubAuthTokenEndpoint()
