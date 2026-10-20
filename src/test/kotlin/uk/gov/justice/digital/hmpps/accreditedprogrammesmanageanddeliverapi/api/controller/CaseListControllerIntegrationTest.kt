@@ -867,21 +867,6 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `getCaseListItems sex filter is case insensitive`() {
-      val response = performRequestAndExpectOk(
-        HttpMethod.GET,
-        "/pages/caselist/open?sex=female",
-        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
-      )
-
-      assertThat(response).isNotNull
-      assertThat(response.pagedReferrals.totalElements).isEqualTo(2)
-      assertThat(response.pagedReferrals.content.map { it.crn })
-        .containsExactlyInAnyOrder("CRN-999999", "CRN-888888")
-      assertThat(response.otherTabTotal).isEqualTo(0)
-    }
-
-    @Test
     fun `getCaseListItems returns matching referrals when pdu is used as part of request`() {
       val response = performRequestAndExpectOk(
         HttpMethod.GET,

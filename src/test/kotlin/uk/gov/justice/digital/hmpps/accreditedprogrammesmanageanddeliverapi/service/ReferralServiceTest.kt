@@ -118,7 +118,6 @@ class ReferralServiceTest {
       applicationEventPublisher = applicationEventPublisher,
       probationAccessControlApiClient = probationAccessControlApiClient,
       sessionRepository = sessionRepository,
-      laoAccessCheckEnabled = true,
       authenticationHolder = authenticationHolder,
       transactionTemplate = transactionTemplate,
       nDeliusAppointmentRepository = nDeliusAppointmentRepository,

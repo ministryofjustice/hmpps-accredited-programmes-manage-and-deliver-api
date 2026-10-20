@@ -17,10 +17,6 @@ sentry:
   send-default-pii: false
 
 app:
-  features:
-    lao-access-check-enabled: ${LAO_ACCESS_CHECK_ENABLED:false}
-    exclusion-access-check-enabled: ${EXCLUSION_ACCESS_CHECK_ENABLED:false}
-
   scheduling:
     referral-details-updated:
       cron: "${REFERRAL_DETAILS_UPDATED_CRON:0 0 1 * * *}"  # default every day at 1 AM
@@ -161,9 +157,3 @@ services:
 
 reporting:
   enabled: ${REPORTING_ENABLED:false}
-
-# Hardcode version due to hmpps-gradle-spring-boot forcing this version
-# More details here - https://github.com/ministryofjustice/hmpps-gradle-spring-boot/blob/main/release-notes/11.x.md#1102
-springdoc:
-  swagger-ui:
-    version: 5.32.11

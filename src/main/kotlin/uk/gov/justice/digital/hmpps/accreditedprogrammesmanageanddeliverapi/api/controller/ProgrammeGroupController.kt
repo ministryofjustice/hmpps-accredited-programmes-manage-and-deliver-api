@@ -129,16 +129,16 @@ class ProgrammeGroupController(
     @PathVariable @Parameter(description = "The id (UUID) of a group", required = true) groupId: UUID,
     @PathVariable @Parameter(description = "Return table data for either the allocated tab or the waitlist tab") selectedTab: GroupPageTab,
     @Parameter(description = "Filter by the sex of the person in the referral")
-    @RequestParam(name = "sex", required = false) sex: String?,
+    @RequestParam(name = "sex", required = false) sex: List<String>?,
     @Parameter(description = "Filter by the cohort of the referral Eg: 'Sexual Offence' or 'General Offence LDC")
-    @RequestParam(name = "cohort", required = false) cohort: String?,
+    @RequestParam(name = "cohort", required = false) cohort: List<String>?,
     @Parameter(description = "Search by the name or the CRN of the offender in the referral")
     @RequestParam(name = "nameOrCRN", required = false) nameOrCRN: String?,
     @RequestParam requestParams: MultiValueMap<String, String>,
   ): ResponseEntity<ProgrammeGroupAllocations> {
     // This logic is non-trivial, please see [this doc](docs/2025-11-group-details-page-tabs.md)
     // for an explanation of the flow of data and expected behaviour.
-    val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
+    val groupCohorts = cohort?.mapNotNull { ProgrammeGroupCohort.fromString(it) }
 
     // Handle non-alpha characters in the PDU or delivery location, such as ','
     val pdusDecoded = requestParams["pdu"]
@@ -154,7 +154,7 @@ class ProgrammeGroupController(
       selectedTab,
       groupId,
       sex,
-      groupCohort,
+      groupCohorts,
       nameOrCRN,
       pdusDecoded,
       reportingTeamsDecoded,
@@ -203,10 +203,10 @@ class ProgrammeGroupController(
     @PathVariable @Parameter(description = "Return table data for either the Not started/In progress tab or the Completed tab") selectedTab: GroupPageByRegionTab,
     @Parameter(description = "Filter by the unique group code")
     @RequestParam(name = "groupCode", required = false) groupCode: String?,
-    @Parameter(description = "Filter by the cohort of the group Eg: 'Sexual Offence' or 'General Offence LDC")
-    @RequestParam(name = "cohort", required = false) cohort: String?,
-    @Parameter(description = "Filter by the sex that the group is being run for: 'Male', 'Female' or 'Mixed'")
-    @RequestParam(name = "sex", required = false) sex: String?,
+    @Parameter(description = "Filter by any selected cohort of the group, e.g. 'Sexual offence' or 'General offence LDC'")
+    @RequestParam(name = "cohort", required = false) cohort: List<String>?,
+    @Parameter(description = "Filter by any selected sex that the group is being run for: 'MALE', 'FEMALE' or 'MIXED'")
+    @RequestParam(name = "sex", required = false) sex: List<String>?,
     @RequestParam requestParams: MultiValueMap<String, String>,
   ): ResponseEntity<GroupsByRegion> {
     val username = authenticationUtils.getUsername()

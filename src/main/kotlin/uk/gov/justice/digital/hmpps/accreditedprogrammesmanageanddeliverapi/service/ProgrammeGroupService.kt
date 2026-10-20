@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
@@ -67,7 +66,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsByRegionTabSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserAccessService.Access
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
@@ -93,10 +91,6 @@ class ProgrammeGroupService(
   private val sessionService: SessionService,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
   private val userAccessService: UserAccessService,
-  @param:Value("\${app.features.lao-access-check-enabled}")
-  private val limitedAccessOffenderCheckEnabled: Boolean,
-  @param:Value("\${app.features.exclusion-access-check-enabled}")
-  private val exclusionAccessCheckEnabled: Boolean,
   private val moduleRepository: ModuleRepository,
   private val authenticationUtils: AuthenticationUtils,
   private val regionService: RegionService,
@@ -395,8 +389,8 @@ class ProgrammeGroupService(
     pageable: Pageable,
     selectedTab: GroupPageTab,
     groupId: UUID,
-    sex: String?,
-    cohort: ProgrammeGroupCohort?,
+    sex: List<String>?,
+    cohorts: List<ProgrammeGroupCohort>?,
     nameOrCrn: String?,
     pdus: List<String>?,
     reportingTeams: List<String>?,
@@ -408,14 +402,14 @@ class ProgrammeGroupService(
 
     val otherTab = if (selectedTab === GroupPageTab.WAITLIST) GroupPageTab.ALLOCATED else GroupPageTab.WAITLIST
 
-    val isFilteredCaseList = isFilterApplied(sex, cohort, nameOrCrn, pdus, reportingTeams)
+    val isFilteredCaseList = isFilterApplied(sex, cohorts, nameOrCrn, pdus, reportingTeams)
 
     val activeSpecification =
       getGroupWaitlistItemSpecification(
         selectedTab,
         groupId,
         sex,
-        cohort,
+        cohorts,
         nameOrCrn,
         pdus,
         reportingTeams,
@@ -427,7 +421,7 @@ class ProgrammeGroupService(
         otherTab,
         groupId,
         sex,
-        cohort,
+        cohorts,
         nameOrCrn,
         pdus,
         reportingTeams,
@@ -437,22 +431,19 @@ class ProgrammeGroupService(
     val pagedData = groupWaitlistItemViewRepository.findAll(activeSpecification, pageable)
 
     // Fetch Limited Access Offender (LAO) status for all distinct case reference numbers (CRNs)
-    var limitedAccessOffenderAccessMap: Map<String, Access>? = null
-    if (limitedAccessOffenderCheckEnabled) {
-      val username = authenticationUtils.getUsername()
-      val caseReferenceNumbers = pagedData.content.map { it.crn }.distinct()
-      limitedAccessOffenderAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
-    }
+    val username = authenticationUtils.getUsername()
+    val caseReferenceNumbers = pagedData.content.map { it.crn }.distinct()
+    val limitedAccessOffenderAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
 
     val groupItems = pagedData.content.filter { item ->
-      if (exclusionAccessCheckEnabled && isFilteredCaseList) {
+      if (isFilteredCaseList) {
         val crnMatchesSearch = !nameOrCrn.isNullOrEmpty() &&
           item.crn.contains(nameOrCrn, ignoreCase = true)
-        val hasOtherFilters = hasFiltersOtherThanSearch(sex, cohort, pdus, reportingTeams)
+        val hasOtherFilters = hasFiltersOtherThanSearch(sex, cohorts, pdus, reportingTeams)
         val shouldSkipExclusionFilter = crnMatchesSearch && !hasOtherFilters
 
         if (!shouldSkipExclusionFilter) {
-          val access = limitedAccessOffenderAccessMap?.get(item.crn)
+          val access = limitedAccessOffenderAccessMap[item.crn]
           val isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false
           val isExcluded = access?.isExcluded ?: false
           if (isLimitedAccessOffender) {
@@ -463,7 +454,7 @@ class ProgrammeGroupService(
 
       return@filter true
     }.map { item ->
-      val access = limitedAccessOffenderAccessMap?.get(item.crn)
+      val access = limitedAccessOffenderAccessMap[item.crn]
       item.toApi(
         isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false,
         isExcluded = access?.isExcluded ?: false,
@@ -792,12 +783,12 @@ class ProgrammeGroupService(
     groupCode: String?,
     pdus: List<String>?,
     deliveryLocations: List<String>?,
-    cohort: String?,
-    sex: String?,
+    cohort: List<String>?,
+    sex: List<String>?,
     selectedTab: GroupPageByRegionTab,
     username: String,
   ): GroupsByRegion {
-    val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
+    val groupCohorts = cohort?.filter { it.isNotEmpty() }?.map { ProgrammeGroupCohort.fromString(it) }
 
     val userRegionNames = userService.getUserRegionNames(username)
     if (userRegionNames.isEmpty()) {
@@ -810,7 +801,7 @@ class ProgrammeGroupService(
       groupCode = groupCode,
       pdus = pdus,
       deliveryLocations = deliveryLocations,
-      cohort = groupCohort,
+      cohort = groupCohorts,
       sex = sex,
       regionNames = userRegionNames,
     )
@@ -892,23 +883,23 @@ class ProgrammeGroupService(
   }
 
   private fun hasFiltersOtherThanSearch(
-    sex: String?,
-    cohort: ProgrammeGroupCohort?,
+    sex: List<String>?,
+    cohorts: List<ProgrammeGroupCohort>?,
     pdus: List<String>?,
     reportingTeams: List<String>?,
   ): Boolean = !sex.isNullOrEmpty() ||
-    cohort != null ||
+    !cohorts.isNullOrEmpty() ||
     pdus != null ||
     reportingTeams != null
 
   private fun isFilterApplied(
-    sex: String?,
-    cohort: ProgrammeGroupCohort?,
+    sex: List<String>?,
+    cohorts: List<ProgrammeGroupCohort>?,
     nameOrCrn: String?,
     pdus: List<String>?,
     reportingTeams: List<String>?,
   ): Boolean = !sex.isNullOrEmpty() ||
-    cohort != null ||
+    !cohorts.isNullOrEmpty() ||
     !nameOrCrn.isNullOrEmpty() ||
     pdus != null ||
     reportingTeams != null

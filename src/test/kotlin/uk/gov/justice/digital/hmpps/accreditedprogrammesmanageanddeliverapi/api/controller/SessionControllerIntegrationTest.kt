@@ -1089,6 +1089,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
               .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
               .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
               .withNotes(null)
+              .withDescription("Test Module 2")
               .produce(),
             UpdateAppointmentRequestFactory()
               .withReference(placeholderOneToOneAppointment.ndeliusAppointmentId)
@@ -1099,6 +1100,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
               .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
               .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
               .withNotes(null)
+              .withDescription("Session 3")
               .produce(),
             UpdateAppointmentRequestFactory()
               .withReference(appointment1.ndeliusAppointmentId)
@@ -1109,6 +1111,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
               .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
               .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
               .withNotes(null)
+              .withDescription("Test Module 1")
               .produce(),
           ),
         )
@@ -1180,6 +1183,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
               .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
               .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
               .withNotes(null)
+              .withDescription("Post-programme review")
               .produce(),
           ),
         )
@@ -2218,6 +2222,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
               .withTeam(RequestCode(editSessionFacilitatorRequest.first().teamCode))
               .withOutcome(RequestCode(ATTC.toString()))
               .withNotes("Test notes that should not change")
+              .withDescription("Test Module 2")
               .produce(),
           ),
         )
@@ -2354,6 +2359,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
               .withTeam(RequestCode(primaryFacilitator.ndeliusTeamCode))
               .withNotes("Test session notes")
               .withSensitive(false)
+              .withDescription("Getting started 1")
               .produce(),
           ),
         ),
@@ -2521,6 +2527,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
               .withTeam(RequestCode(primaryFacilitator.ndeliusTeamCode))
               .withNotes("Test session notes")
               .withSensitive(false)
+              .withDescription("Getting started 1")
               .produce(),
           ),
         ),

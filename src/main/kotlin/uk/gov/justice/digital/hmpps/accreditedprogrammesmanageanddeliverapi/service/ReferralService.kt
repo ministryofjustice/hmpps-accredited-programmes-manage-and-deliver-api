@@ -4,7 +4,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -100,8 +99,6 @@ class ReferralService(
   private val applicationEventPublisher: ApplicationEventPublisher,
   private val probationAccessControlApiClient: ProbationAccessControlApiClient,
   private val sessionRepository: SessionRepository,
-  @param:Value($$"${app.features.lao-access-check-enabled}")
-  private val laoAccessCheckEnabled: Boolean,
   private val authenticationHolder: HmppsAuthenticationHolder,
   private val transactionTemplate: TransactionTemplate,
   private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
@@ -204,10 +201,7 @@ class ReferralService(
     val latestReferralCohort =
       referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.cohort
     val allocatedGroup = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
-    var isLAO = false
-    if (laoAccessCheckEnabled) {
-      isLAO = getLaoByCrn(referral.crn)
-    }
+    val isLAO = getLaoByCrn(referral.crn)
 
     if (personalDetails != null) {
       ReferralDetails.toModel(
