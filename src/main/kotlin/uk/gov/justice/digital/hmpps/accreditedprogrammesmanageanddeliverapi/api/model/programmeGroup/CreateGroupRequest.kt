@@ -77,6 +77,7 @@ data class CreateGroupRequest(
 
 data class CreateGroupTeamMember(
   @field:NotNull(message = "facilitator must not be null")
+  @param:JsonProperty("facilitator")
   @get:JsonProperty("_facilitator")
   @field:Schema(description = "The full name of the facilitator for the group")
   var _facilitator: String,
