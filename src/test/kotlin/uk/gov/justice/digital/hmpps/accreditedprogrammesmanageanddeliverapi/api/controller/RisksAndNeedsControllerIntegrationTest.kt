@@ -217,10 +217,11 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should return empty Risk and needs when random crn and no assessment found`() {
+  fun `should return empty Risk and needs but retain nDelius alerts when no assessment found`() {
     // Given
     val crn = randomCrn()
     oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
+    nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn)
 
     // When
     val response = performRequestAndExpectOk(
@@ -255,7 +256,28 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     assertThat(response.ogrS4Risks?.indirectImageContactSexualReoffendingBand).isNull()
     assertThat(response.ogrS4Risks?.combinedSeriousReoffendingScoreType).isNull()
     assertThat(response.ogrS4Risks?.combinedSeriousReoffendingScore).isNull()
-    assertThat(response.alerts).isEmpty()
+
+    // Alerts are held in nDelius, not OASys, so they survive the missing assessment
+    assertThat(response.alerts).hasSize(2)
+  }
+
+  @Test
+  fun `should return 404 when crn is not recognised by nDelius`() {
+    // Given
+    val crn = randomCrn()
+    oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
+    nDeliusApiStubs.stubNotFoundNDeliusRegistrationsResponse(crn)
+
+    // When
+    val response = performRequestAndExpectStatus(
+      httpMethod = HttpMethod.GET,
+      uri = "/risks-and-needs/$crn/risks-and-alerts",
+      object : ParameterizedTypeReference<ErrorResponse>() {},
+      HttpStatus.NOT_FOUND.value(),
+    )
+
+    // Then
+    assertThat(response.developerMessage).contains("Failure to retrieve ActiveAlerts for crn: $crn")
   }
 
   @Test
@@ -265,6 +287,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
     oasysApiStubs.stubNotFoundOasysOffendingInfoResponse(assessmentId)
+    nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn)
 
     val response = performRequestAndExpectStatus(
       httpMethod = HttpMethod.GET,
@@ -284,6 +307,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
     oasysApiStubs.stubSuccessfulOasysOffendingInfoResponse(assessmentId)
     oasysApiStubs.stubNotFoundOasysRelationshipsResponse(assessmentId)
+    nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn)
 
     val response = performRequestAndExpectStatus(
       httpMethod = HttpMethod.GET,
@@ -305,6 +329,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     oasysApiStubs.stubSuccessfulOasysOffendingInfoResponse(assessmentId)
     oasysApiStubs.stubSuccessfulOasysRelationshipsResponse(assessmentId)
     oasysApiStubs.stubNotFoundOasysOasysRoshSummaryResponse(assessmentId)
+    nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn)
 
     val response = performRequestAndExpectStatus(
       httpMethod = HttpMethod.GET,
@@ -327,6 +352,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(assessmentId)
 
     arnsApiStubs.stubNotFoundRiskPredictorsResponse(assessmentId)
+    nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn)
     val response = performRequestAndExpectStatus(
       httpMethod = HttpMethod.GET,
       uri = "/risks-and-needs/$crn/risks-and-alerts",
