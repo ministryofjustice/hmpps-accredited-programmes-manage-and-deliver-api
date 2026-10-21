@@ -131,12 +131,15 @@ data class CreateGroupTeamMember(
     description = "The full name of the facilitator.",
   )
   @get:JsonProperty("facilitator", required = true)
-  val facilitator: String
+  var facilitator: String
     get() = if (facilitatorForename != null && facilitatorSurname != null) {
       listOfNotNull(facilitatorForename, facilitatorMiddleNames, facilitatorSurname).filter { it.isNotBlank() }
         .joinToString(" ")
     } else {
       _facilitator
+    }
+    set(value) {
+      _facilitator = value
     }
 }
 
