@@ -22,7 +22,7 @@ sealed class SessionNameContext {
   /**
    * Formatting for the Schedule Individual Session confirmation message,
    */
-  object ScheduleIndividualSession : SessionNameContext()
+  object ScheduleSession : SessionNameContext()
 
   /**
    * Formatting for the Schedule Overview page.
@@ -88,7 +88,7 @@ class SessionNameFormatter {
    */
   fun format(session: SessionEntity, context: SessionNameContext): String = when (context) {
     is SessionNameContext.Default -> defaultFormatting(session)
-    is SessionNameContext.ScheduleIndividualSession -> scheduleIndividualSession(session)
+    is SessionNameContext.ScheduleSession -> scheduleSession(session)
     is SessionNameContext.ScheduleOverview -> scheduleOverview(session)
     is SessionNameContext.SessionsAndAttendance -> sessionsAndAttendance(context.sessionTemplate, session)
     is SessionNameContext.SessionDetails -> sessionDetails(session)
@@ -130,7 +130,7 @@ class SessionNameFormatter {
    * - GROUP catch-up: `"<moduleName> <sessionNumber> catch-up has been added."`
    * - GROUP: `"<moduleName> <sessionNumber> has been added."`
    */
-  private fun scheduleIndividualSession(session: SessionEntity): String = when {
+  private fun scheduleSession(session: SessionEntity): String = when {
     session.sessionType == SessionType.ONE_TO_ONE && session.isCatchup ->
       "${session.sessionName} catch-up for ${session.attendees.first().personName} has been added."
 

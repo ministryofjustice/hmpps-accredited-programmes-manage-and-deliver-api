@@ -2,11 +2,11 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.12"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.14"
   kotlin("plugin.spring") version "2.4.21"
   kotlin("plugin.jpa") version "2.4.21"
   kotlin("plugin.allopen") version "2.4.21"
-  id("io.sentry.jvm.gradle") version "6.23.0"
+  id("io.sentry.jvm.gradle") version "6.24.0"
 }
 
 configurations {
@@ -26,7 +26,7 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
   implementation("org.springframework.boot:spring-boot-starter-cache")
   implementation("com.github.ben-manes.caffeine:caffeine")
-  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
+  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
   implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-csv")
   implementation("com.fasterxml.jackson.core:jackson-databind")
   implementation("net.javacrumbs.shedlock:shedlock-spring:$shedLockVersion")
@@ -60,7 +60,7 @@ dependencies {
   testImplementation("io.kotest:kotest-assertions-core:6.2.6")
   testImplementation("io.mockk:mockk:1.14.11")
   testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.8.4")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.8.5")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql:42.7.14")

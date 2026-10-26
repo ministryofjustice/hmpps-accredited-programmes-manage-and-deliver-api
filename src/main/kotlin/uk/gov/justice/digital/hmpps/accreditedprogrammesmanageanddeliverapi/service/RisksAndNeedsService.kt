@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.arnsApi.model.AllPredictorVersioned
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegistrations
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.listOfActiveRegistrations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.OasysApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAssessmentTimeline
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysOffendingInfo
@@ -158,8 +159,11 @@ class RisksAndNeedsService(
   }
 
   fun getRisksByCrn(crn: String): Risks {
+    // Fetch alerts first so if CRN does not exist then Delius returns 404
+    val activeAlerts: NDeliusRegistrations? = getActiveAlerts(crn)
+
     val assessmentId = getAssessmentIdAndDate(crn)?.first
-      ?: return Risks.empty()
+      ?: return Risks.empty().copy(alerts = activeAlerts?.listOfActiveRegistrations() ?: emptyList())
         .also { log.warn("No assessment found for crn $crn") }
 
     val oasysOffendingInfo: OasysOffendingInfo =
@@ -169,7 +173,6 @@ class RisksAndNeedsService(
     val oasysRoshSummary: OasysRoshSummary = getDetails(assessmentId, oasysApiClient::getRoshSummary, "RoshSummary")
     val riskPredictors: AllPredictorVersioned<*> =
       getDetails(assessmentId, assessRiskAndNeedsApiClient::getRiskPredictors, "AllPredictorVersioned")
-    val activeAlerts: NDeliusRegistrations? = getActiveAlerts(crn)
 
     return buildRiskModel(
       oasysOffendingInfo,
@@ -194,7 +197,10 @@ class RisksAndNeedsService(
         outcome = "failure",
       )
       log.warn("Failure to retrieve ActiveAlerts for crn: $crn reason ${response.toException().message}")
-      throw NotFoundException("Failure to retrieve ActiveAlerts for crn: $crn, reason: '${response.toException().message}'")
+      if (response is ClientResult.Failure.StatusCode && response.status.value() == 404) {
+        throw NotFoundException("Failure to retrieve ActiveAlerts for crn: $crn, reason: '${response.toException().message}'")
+      }
+      throw BusinessException("Failed to retrieve ActiveAlerts for crn: $crn due to upstream error")
     }
 
     is ClientResult.Success -> {

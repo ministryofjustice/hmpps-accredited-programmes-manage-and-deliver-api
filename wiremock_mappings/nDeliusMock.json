@@ -1156,6 +1156,116 @@
           ]
         }
       }
+    },
+    {
+      "request": {
+        "method": "GET",
+        "urlPathPattern": "/case/.*/registrations"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "registrations": [
+            {
+              "type": {
+                "code": "MAPP",
+                "description": "MAPPA"
+              },
+              "category": {
+                "code": "M1",
+                "description": "MAPPA Cat 1"
+              },
+              "date": "2025-11-20",
+              "nextReviewDate": "2027-04-01"
+            },
+            {
+              "type": {
+                "code": "INVI",
+                "description": "Victim Contact"
+              },
+              "category": {
+                "code": "X9",
+                "description": "Category to be determined"
+              },
+              "date": "2013-03-20",
+              "nextReviewDate": "2036-02-06"
+            },
+            {
+              "type": {
+                "code": "CSEP",
+                "description": "Child Sexual Exploitation - Perpetrator"
+              },
+              "date": "2019-12-19",
+              "nextReviewDate": "2026-10-30"
+            },
+            {
+              "type": {
+                "code": "RMRH",
+                "description": "Medium RoSH"
+              },
+              "date": "2026-04-15",
+              "nextReviewDate": "2027-04-08"
+            },
+            {
+              "type": {
+                "code": "RCHD",
+                "description": "Risk to Children"
+              },
+              "date": "2025-03-03",
+              "nextReviewDate": "2026-10-28"
+            },
+            {
+              "type": {
+                "code": "AVIS",
+                "description": "ViSOR"
+              },
+              "category": {
+                "code": "X9",
+                "description": "Category to be determined"
+              },
+              "date": "2012-12-13",
+              "nextReviewDate": "2031-05-28"
+            },
+            {
+              "type": {
+                "code": "REG15",
+                "description": "Risk to Known Adult"
+              },
+              "date": "2025-03-03",
+              "nextReviewDate": "2026-10-28"
+            },
+            {
+              "type": {
+                "code": "REG17",
+                "description": "Risk to Public"
+              },
+              "date": "2025-03-03",
+              "nextReviewDate": "2026-10-28"
+            },
+            {
+              "type": {
+                "code": "PMEX",
+                "description": "Progression Model Excluded"
+              },
+              "date": "2026-09-30"
+            },
+            {
+              "type": {
+                "code": "RSC",
+                "description": "Sexual Conviction"
+              },
+              "category": {
+                "code": "SC1",
+                "description": "Registered"
+              },
+              "date": "2026-01-24"
+            }
+          ]
+        }
+      }
     }
   ]
 }

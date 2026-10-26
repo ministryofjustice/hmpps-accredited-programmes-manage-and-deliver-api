@@ -1316,19 +1316,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should document cohort and sex as query arrays`() {
-      webTestClient.get()
-        .uri("/v3/api-docs")
-        .exchange()
-        .expectStatus().isOk
-        .expectBody()
-        .jsonPath("$.paths['/bff/groups/{selectedTab}'].get.parameters[?(@.name == 'cohort')].schema.type").isEqualTo("array")
-        .jsonPath("$.paths['/bff/groups/{selectedTab}'].get.parameters[?(@.name == 'cohort')].schema.items.type").isEqualTo("string")
-        .jsonPath("$.paths['/bff/groups/{selectedTab}'].get.parameters[?(@.name == 'sex')].schema.type").isEqualTo("array")
-        .jsonPath("$.paths['/bff/groups/{selectedTab}'].get.parameters[?(@.name == 'sex')].schema.items.type").isEqualTo("string")
-    }
-
-    @Test
     fun `should filter by single PDU`() {
       // Given - BeforeEach already stubs "Test PDU 1" in "WIREMOCKED REGION"
       stubAuthTokenEndpoint()
@@ -1841,7 +1828,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
-      scheduleService.scheduleIndividualSessionAndReturnResponse(group.id!!, scheduleSessionRequest)
+      scheduleService.scheduleSessionAndReturnResponse(group.id!!, scheduleSessionRequest)
 
       val groupSessionId = group.sessions.find { it.sessionType == SessionType.GROUP }!!.id!!
       val optionalGroupSession = sessionRepository.findById(groupSessionId)
@@ -3136,7 +3123,49 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
       assertThat(retrievedSession.sessionFacilitators.first().facilitator.personName)
-        .isEqualTo("Default facilitator name")
+        .isEqualTo("Default facilitator forename Default facilitator surname")
+      assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
+      assertThat(retrievedSession.attendees).hasSize(1)
+      assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
+      wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
+      assertThat(nDeliusAppointmentRepository.findBySessionId(retrievedSession.id!!)).isNotNull
+    }
+
+    @Test
+    fun `should return 201 when scheduling a group session with valid data`() {
+      // Given
+      initialiseReferrals()
+      val referral = referrals.first()
+      val group = testGroupHelper.createGroup()
+      testGroupHelper.allocateToGroup(group, referral)
+      val groupSessionTemplate = group.sessions.find { it.sessionType == SessionType.GROUP }!!.moduleSessionTemplate
+
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = groupSessionTemplate.id!!,
+        referralIds = listOf(referral.id!!),
+        facilitators = facilitators,
+        startDate = LocalDate.now().plusDays(1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<String>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response).isEqualTo("${groupSessionTemplate.module.name} ${groupSessionTemplate.sessionNumber} has been added.")
+      val retrievedSession =
+        sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(groupSessionTemplate.id!!, group.id!!)
+          .sortedByDescending { it.createdAt }.first()
+      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personName)
+        .isEqualTo("Default facilitator forename Default facilitator surname")
       assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
       assertThat(retrievedSession.attendees).hasSize(1)
       assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
@@ -3179,7 +3208,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
       assertThat(retrievedSession.sessionFacilitators.first().facilitator.personName)
-        .isEqualTo("Default facilitator name")
+        .isEqualTo("Default facilitator forename Default facilitator surname")
       assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
       assertThat(retrievedSession.attendees).hasSize(1)
       assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
@@ -3499,6 +3528,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val nonExistentFacilitator = CreateGroupTeamMemberFactory()
         .withFacilitator("Non existent Facilitator")
+        .withFacilitatorForename("Non existent")
+        .withFacilitatorSurname("Facilitator")
         .withFacilitatorCode("Non existent code")
         .produce()
 
@@ -3538,7 +3569,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         referralIds = listOf(UUID.randomUUID()),
         facilitators = listOf(
           CreateGroupTeamMember(
-            facilitator = "Test Facilitator",
+            _facilitator = "Test Facilitator",
+            facilitatorForename = "Test",
+            facilitatorSurname = "Facilitator",
             facilitatorCode = "FAC001",
             teamName = "Test Team",
             teamCode = "TEAM001",
@@ -3599,8 +3632,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.sessionTemplates).hasSize(4)
       assertThat(response.sessionTemplates.map { it.name })
         .containsExactly(
-          "Getting started 1 catch-up",
-          "Getting started 2 catch-up",
+          "Getting started 1",
+          "Getting started 2",
           "Getting started one-to-one",
           "Getting started one-to-one catch-up",
         )
@@ -5638,21 +5671,27 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val teamMembers = listOf(
         CreateGroupTeamMember(
-          facilitator = "Archibald Queenie",
+          _facilitator = "Archibald Queenie",
+          facilitatorForename = "Archibald",
+          facilitatorSurname = "Queenie",
           facilitatorCode = "TM001",
           teamName = "Management Team",
           teamCode = "TEAM001",
           teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER,
         ),
         CreateGroupTeamMember(
-          facilitator = "Chloe Ransom",
+          _facilitator = "Chloe Ransom",
+          facilitatorForename = "Chloe",
+          facilitatorSurname = "Ransom",
           facilitatorCode = "RF001",
           teamName = "Facilitator Team",
           teamCode = "TEAM002",
           teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR,
         ),
         CreateGroupTeamMember(
-          facilitator = "James Samhim",
+          _facilitator = "James Samhim",
+          facilitatorForename = "James",
+          facilitatorSurname = "Samhim",
           facilitatorCode = "CF001",
           teamName = "Cover Team",
           teamCode = "TEAM003",

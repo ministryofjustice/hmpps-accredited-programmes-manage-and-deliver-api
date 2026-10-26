@@ -330,6 +330,33 @@ Configuration is provided via environment variables and spring configuration fil
 - **OAuth**: Client credentials for HMPPS Auth integration
 - **API clients**: Configuration for downstream API calls
 
+### Subject Access Request (SAR) template versioning
+
+The SAR report is rendered from a versioned Mustache template under
+`src/main/resources/sar/templates/` (`V1__sar_template.mustache`,
+`V2__sar_template.mustache`, ...). The active template is chosen by the
+`hmpps.sar.template.path` property, which defaults to the **lowest/safest**
+version and is overridable per environment via the `HMPPS_SAR_TEMPLATE_PATH`
+environment variable (set in `helm_deploy/values-<env>.yaml`).
+
+**⚠️ Before changing the SAR data model:** any change to the data shown in a SAR
+(new/renamed/removed fields) must be agreed with the **SAR team** in advance to
+confirm it is SAR-able and the collator can render it.
+
+**To ship a SAR change:**
+
+1. Agree the fields with the SAR team.
+2. Add a **new** template version (e.g. copy `V2__` to `V3__`) and edit the new
+   file — never edit a version that is already live in prod.
+3. If the data (not just layout) changes, add the matching `V{n}` response DTO +
+   mapping (and any new repository query), and branch the service on a feature
+   flag so existing behaviour is unchanged by default.
+4. Update the expected-render test fixture
+   (`src/test/resources/sar/sar-expected-render-result.html`).
+5. Roll out by pointing `HMPPS_SAR_TEMPLATE_PATH` at the new version in **dev →
+   preprod → prod**, validating with the SAR team at each step. Roll back by
+   pointing the env var back at the previous version.
+
 ## API Documentation
 
 Interactive API documentation is available via Swagger UI:

@@ -179,7 +179,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
-      val session = scheduleService.scheduleIndividualSession(group.id!!, scheduleSessionRequest)
+      val session = scheduleService.scheduleSession(group.id!!, scheduleSessionRequest)
 
       val attendee = session.attendees.find { it.referralId == referral.id }!!
 
@@ -269,7 +269,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
-      val session = scheduleService.scheduleIndividualSession(group.id!!, scheduleSessionRequest)
+      val session = scheduleService.scheduleSession(group.id!!, scheduleSessionRequest)
 
       val attendee = session.attendees.find { it.referralId == referral.id }!!
 
@@ -319,7 +319,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
-      val firstSession = scheduleService.scheduleIndividualSession(group.id!!, scheduleSessionRequest)
+      val firstSession = scheduleService.scheduleSession(group.id!!, scheduleSessionRequest)
 
       // Record attendance on the first session as "not attended"
       val firstAttendanceRequest = SessionAttendance(
@@ -340,7 +340,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Schedule a second post-programme review session and record attended and complied
-      val secondSession = scheduleService.scheduleIndividualSession(
+      val secondSession = scheduleService.scheduleSession(
         group.id!!,
         scheduleSessionRequest.copy(startDate = LocalDate.now().plusDays(2)),
       )
