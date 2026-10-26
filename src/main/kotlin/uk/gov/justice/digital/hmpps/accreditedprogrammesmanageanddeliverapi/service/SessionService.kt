@@ -780,6 +780,8 @@ class SessionService(
         !missingNDeliusAppointmentIdSet.contains(updateAppointmentRequest.reference.toString())
       }
 
+    if (updateNonMissingAppointmentRequestList.isEmpty()) return
+
     when (
       val response =
         nDeliusIntegrationApiClient.updateAppointmentsInDelius(
