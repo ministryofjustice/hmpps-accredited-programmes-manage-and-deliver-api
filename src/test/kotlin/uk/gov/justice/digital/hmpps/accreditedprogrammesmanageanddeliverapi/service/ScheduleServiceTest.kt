@@ -32,7 +32,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.util.UUID
 
@@ -178,7 +177,7 @@ class ScheduleServiceTest {
     )
 
     // When
-    val result = scheduleService.scheduleIndividualSession(groupId, request)
+    val result = scheduleService.scheduleSession(groupId, request)
 
     // Then
     verify(exactly = 1) { sessionRepository.save(any()) }
@@ -200,7 +199,7 @@ class ScheduleServiceTest {
     every { programmeGroupRepository.findByIdOrNull(groupId) } returns null
 
     // When/Then
-    assertThatThrownBy { scheduleService.scheduleIndividualSession(groupId, request) }
+    assertThatThrownBy { scheduleService.scheduleSession(groupId, request) }
       .isInstanceOf(NotFoundException::class.java)
       .hasMessage("Group with id: $groupId could not be found")
   }
@@ -218,7 +217,7 @@ class ScheduleServiceTest {
     every { moduleSessionTemplateRepository.findByIdOrNull(templateId) } returns null
 
     // When/Then
-    assertThatThrownBy { scheduleService.scheduleIndividualSession(groupId, request) }
+    assertThatThrownBy { scheduleService.scheduleSession(groupId, request) }
       .isInstanceOf(NotFoundException::class.java)
       .hasMessage("Session template with id: $templateId could not be found")
   }
@@ -239,7 +238,7 @@ class ScheduleServiceTest {
     every { referralRepository.findByIdOrNull(referralId) } returns null
 
     // When/Then
-    assertThatThrownBy { scheduleService.scheduleIndividualSession(groupId, request) }
+    assertThatThrownBy { scheduleService.scheduleSession(groupId, request) }
       .isInstanceOf(NotFoundException::class.java)
       .hasMessage("Referral with id: $referralId could not be found")
   }
@@ -262,7 +261,7 @@ class ScheduleServiceTest {
     every { sessionRepository.save(any()) } answers { firstArg() }
 
     // When
-    val result = scheduleService.scheduleIndividualSession(groupId, request)
+    val result = scheduleService.scheduleSession(groupId, request)
 
     // Then
     verify(exactly = 1) { sessionRepository.save(any()) }

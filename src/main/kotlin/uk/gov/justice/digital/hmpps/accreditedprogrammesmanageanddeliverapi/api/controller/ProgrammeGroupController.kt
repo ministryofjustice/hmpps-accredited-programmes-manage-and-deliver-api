@@ -609,9 +609,9 @@ class ProgrammeGroupController(
 
   @Operation(
     tags = ["Programme Group controller"],
-    summary = "Schedule a session (one-to-one, or catch ups) for group members",
+    summary = "Schedule a session (one-to-one, group, or catch ups) for group members",
     operationId = "scheduleSession",
-    description = "Schedule a session for members of a programme group. This endpoint allows facilitators to schedule individual sessions that must be coordinated across multiple group members.",
+    description = "Schedule a session for members of a programme group. This endpoint allows facilitators to schedule individual or group sessions that must be coordinated across multiple group members.",
     responses = [
       ApiResponse(
         responseCode = "201",
@@ -641,7 +641,7 @@ class ProgrammeGroupController(
     @PathVariable @Parameter(description = "The UUID of the programme group", required = true) groupId: UUID,
     @Valid @RequestBody scheduleSessionRequest: ScheduleSessionRequest,
   ): ResponseEntity<String> {
-    val successMessage = scheduleService.scheduleIndividualSessionAndReturnResponse(groupId, scheduleSessionRequest)
+    val successMessage = scheduleService.scheduleSessionAndReturnResponse(groupId, scheduleSessionRequest)
 
     return ResponseEntity.status(HttpStatus.CREATED).body(successMessage)
   }

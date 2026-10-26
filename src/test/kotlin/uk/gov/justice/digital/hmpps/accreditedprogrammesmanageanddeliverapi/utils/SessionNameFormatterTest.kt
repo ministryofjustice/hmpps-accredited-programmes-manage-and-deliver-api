@@ -163,7 +163,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
   }
 
   @Nested
-  inner class ScheduleIndividualSession {
+  inner class ScheduleSession {
 
     @Test
     fun `returns sessionName for personName has been added for one-to-one session`() {
@@ -195,7 +195,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       session.attendees.add(attendee)
       sessionRepository.save(session)
 
-      assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleIndividualSession))
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleSession))
         .isEqualTo("Getting started one-to-one for Alex River has been added.")
     }
 
@@ -230,7 +230,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
       session.attendees.add(attendee)
       sessionRepository.save(session)
 
-      assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleIndividualSession))
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleSession))
         .isEqualTo("Getting started one-to-one catch-up for Alex River has been added.")
     }
 
@@ -260,7 +260,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleIndividualSession))
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleSession))
         .isEqualTo("Getting started 1 has been added.")
     }
 
@@ -291,7 +291,7 @@ class SessionNameFormatterTest : IntegrationTestBase() {
           .produce(),
       )
 
-      assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleIndividualSession))
+      assertThat(sessionNameFormatter.format(session, SessionNameContext.ScheduleSession))
         .isEqualTo("Getting started 1 catch-up has been added.")
     }
   }
