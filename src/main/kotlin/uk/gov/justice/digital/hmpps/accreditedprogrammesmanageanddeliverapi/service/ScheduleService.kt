@@ -36,7 +36,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.Clock
@@ -73,12 +72,12 @@ class ScheduleService(
 
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  fun scheduleIndividualSessionAndReturnResponse(groupId: UUID, request: ScheduleSessionRequest): String {
-    val scheduledSession = scheduleIndividualSession(groupId, request)
-    return sessionNameFormatter.format(scheduledSession, SessionNameContext.ScheduleIndividualSession)
+  fun scheduleSessionAndReturnResponse(groupId: UUID, request: ScheduleSessionRequest): String {
+    val scheduledSession = scheduleSession(groupId, request)
+    return sessionNameFormatter.format(scheduledSession, SessionNameContext.ScheduleSession)
   }
 
-  fun scheduleIndividualSession(groupId: UUID, request: ScheduleSessionRequest): SessionEntity {
+  fun scheduleSession(groupId: UUID, request: ScheduleSessionRequest): SessionEntity {
     val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id: $groupId could not be found")
 

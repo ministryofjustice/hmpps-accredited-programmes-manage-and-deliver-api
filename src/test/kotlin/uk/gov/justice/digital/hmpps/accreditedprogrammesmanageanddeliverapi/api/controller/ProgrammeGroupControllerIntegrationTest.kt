@@ -1828,7 +1828,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
-      scheduleService.scheduleIndividualSessionAndReturnResponse(group.id!!, scheduleSessionRequest)
+      scheduleService.scheduleSessionAndReturnResponse(group.id!!, scheduleSessionRequest)
 
       val groupSessionId = group.sessions.find { it.sessionType == SessionType.GROUP }!!.id!!
       val optionalGroupSession = sessionRepository.findById(groupSessionId)
@@ -3132,6 +3132,48 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should return 201 when scheduling a group session with valid data`() {
+      // Given
+      initialiseReferrals()
+      val referral = referrals.first()
+      val group = testGroupHelper.createGroup()
+      testGroupHelper.allocateToGroup(group, referral)
+      val groupSessionTemplate = group.sessions.find { it.sessionType == SessionType.GROUP }!!.moduleSessionTemplate
+
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = groupSessionTemplate.id!!,
+        referralIds = listOf(referral.id!!),
+        facilitators = facilitators,
+        startDate = LocalDate.now().plusDays(1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<String>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response).isEqualTo("${groupSessionTemplate.module.name} ${groupSessionTemplate.sessionNumber} has been added.")
+      val retrievedSession =
+        sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(groupSessionTemplate.id!!, group.id!!)
+          .sortedByDescending { it.createdAt }.first()
+      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personName)
+        .isEqualTo("Default facilitator forename Default facilitator surname")
+      assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
+      assertThat(retrievedSession.attendees).hasSize(1)
+      assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
+      wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
+      assertThat(nDeliusAppointmentRepository.findBySessionId(retrievedSession.id!!)).isNotNull
+    }
+
+    @Test
     fun `should return 201 when scheduling a one-to-one catch-up session with valid data`() {
       // Given
       initialiseReferrals()
@@ -3590,8 +3632,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.sessionTemplates).hasSize(4)
       assertThat(response.sessionTemplates.map { it.name })
         .containsExactly(
-          "Getting started 1 catch-up",
-          "Getting started 2 catch-up",
+          "Getting started 1",
+          "Getting started 2",
           "Getting started one-to-one",
           "Getting started one-to-one catch-up",
         )
