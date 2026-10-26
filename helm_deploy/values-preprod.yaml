@@ -26,9 +26,4 @@ generic-service:
     # data-model change (agreed with the SAR team) is shipped into V2.
     HMPPS_SAR_TEMPLATE_PATH: "/sar/templates/V2__sar_template.mustache"
 
-# CloudPlatform AlertManager receiver to route prometheus alerts to slack
-# See https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html#creating-your-own-custom-alerts
-generic-prometheus-alerts:
-  alertSeverity: hmpps-accredited-programmes-manage-and-deliver-alerts-nonprod
-
 dataRefreshEnabled: false
