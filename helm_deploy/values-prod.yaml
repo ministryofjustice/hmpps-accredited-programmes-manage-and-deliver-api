@@ -23,5 +23,8 @@ generic-service:
     SPRINGDOC_API_DOCS_ENABLED: "false"
     REPORTING_ENABLED: "true"
     REFERRAL_DETAILS_UPDATED_CRON: "0 0 1 * * *"  # 1 AM every day
+    # SAR template: intentionally left on the V1 default (hmpps.sar.template.path).
+    # Set HMPPS_SAR_TEMPLATE_PATH here to promote a new version to prod, only after
+    # it has been validated in dev + preprod and signed off by the SAR team.
 
 dataRefreshEnabled: true

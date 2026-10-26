@@ -141,14 +141,45 @@ data class GroupDetailsResponse(
       daysAndTimes = daysAndTimes,
       currentlyAllocatedNumber = programmeGroup.programmeGroupMemberships.count { it.deletedAt == null },
       treatmentManager = programmeGroup.treatmentManager!!.let {
-        CreateGroupTeamMember(facilitatorCode = it.ndeliusPersonCode, facilitator = it.personName, teamName = it.ndeliusTeamName, teamCode = it.ndeliusTeamCode, teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER)
+        CreateGroupTeamMember(
+          facilitatorCode = it.ndeliusPersonCode,
+          _facilitator = it.personName,
+          facilitatorForename = it.personForename,
+          facilitatorSurname = it.personSurname,
+          facilitatorMiddleNames = it.personMiddleNames,
+          teamName = it.ndeliusTeamName,
+          teamCode = it.ndeliusTeamCode,
+          teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER,
+        )
       },
       facilitators = programmeGroup.groupFacilitators
         .filter { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }
-        .map { CreateGroupTeamMember(facilitatorCode = it.facilitatorCode, facilitator = it.facilitatorName, teamName = it.teamName, teamCode = it.teamCode, teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR) },
+        .map {
+          CreateGroupTeamMember(
+            facilitatorCode = it.facilitatorCode,
+            _facilitator = it.facilitatorName,
+            facilitatorForename = it.facilitatorForename,
+            facilitatorSurname = it.facilitatorSurname,
+            facilitatorMiddleNames = it.facilitatorMiddleNames,
+            teamName = it.teamName,
+            teamCode = it.teamCode,
+            teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR,
+          )
+        },
       coverFacilitators = programmeGroup.groupFacilitators
         .filter { it.facilitatorType == FacilitatorType.COVER_FACILITATOR }
-        .map { CreateGroupTeamMember(facilitatorCode = it.facilitatorCode, facilitator = it.facilitatorName, teamName = it.teamName, teamCode = it.teamCode, teamMemberType = CreateGroupTeamMemberType.COVER_FACILITATOR) },
+        .map {
+          CreateGroupTeamMember(
+            facilitatorCode = it.facilitatorCode,
+            _facilitator = it.facilitatorName,
+            facilitatorForename = it.facilitatorForename,
+            facilitatorSurname = it.facilitatorSurname,
+            facilitatorMiddleNames = it.facilitatorMiddleNames,
+            teamName = it.teamName,
+            teamCode = it.teamCode,
+            teamMemberType = CreateGroupTeamMemberType.COVER_FACILITATOR,
+          )
+        },
     )
   }
 }

@@ -56,7 +56,7 @@ hmpps:
   sar:
     additionalAccessRole: ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR
     template:
-      path: /sar_template.mustache
+      path: /sar/templates/V1__sar_template.mustache
       enabled: true
     tests:
       expected-api-response:
@@ -64,7 +64,7 @@ hmpps:
       expected-render-result:
         path: /sar/sar-expected-render-result.html
       attachments-expected: false
-      expected-flyway-schema-version: 121
+      expected-flyway-schema-version: 122
       expected-jpa-entity-schema:
         path: /sar/entity-schema-snapshot.json
 

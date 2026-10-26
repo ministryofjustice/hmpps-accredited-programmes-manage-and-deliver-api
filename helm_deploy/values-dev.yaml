@@ -21,5 +21,9 @@ generic-service:
     SERVICES_PROBATION-ACCESS-CONTROL-API_BASE-URL: "https://probation-access-control-dev.hmpps.service.justice.gov.uk"
     SENTRY_ENVIRONMENT: dev
     REFERRAL_DETAILS_UPDATED_CRON: "0 0 8 * * *"  # 8 AM every day
+    # SAR template version override. Points at V2 so new versioned templates can be
+    # validated in dev first. Currently V2 == V1 (scaffolding only) until a data-model
+    # change (agreed with the SAR team) is shipped into V2.
+    HMPPS_SAR_TEMPLATE_PATH: "/sar/templates/V2__sar_template.mustache"
 
 dataRefreshEnabled: false
