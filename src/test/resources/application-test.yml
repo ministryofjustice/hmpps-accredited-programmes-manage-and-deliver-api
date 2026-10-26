@@ -56,7 +56,7 @@ hmpps:
   sar:
     additionalAccessRole: ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR
     template:
-      path: /sar_template.mustache
+      path: /sar/templates/V1__sar_template.mustache
       enabled: true
     tests:
       expected-api-response:

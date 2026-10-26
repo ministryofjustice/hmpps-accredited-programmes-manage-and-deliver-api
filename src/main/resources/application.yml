@@ -111,7 +111,11 @@ hmpps:
   sar:
     additionalAccessRole: ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR
     template:
-      path: /sar_template.mustache
+      # Default (safest) template version. Override per environment via the
+      # HMPPS_SAR_TEMPLATE_PATH env var to promote a newer version (e.g. V2).
+      # Any SAR data-model change must be agreed with the SAR team in advance
+      # and shipped as a new versioned template rather than editing V1 in place.
+      path: /sar/templates/V1__sar_template.mustache
       enabled: true
 
 max-response-in-memory-size-bytes: 750000
