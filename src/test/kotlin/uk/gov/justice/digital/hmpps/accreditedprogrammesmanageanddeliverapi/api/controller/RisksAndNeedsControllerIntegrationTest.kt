@@ -22,11 +22,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.RoshAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.ThinkingAndBehaviour
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.arnsApi.model.type.ScoreLevel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegistrations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysOffenceAnalysis.WhatOccurred
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.Timeline
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.getLatestCompletedLayerThreeAssessment
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.asString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCapitalisedWord
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
@@ -64,6 +67,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return risks and alerts section with legacy ARNS risk data`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -108,6 +112,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return risks and alerts section with non-legacy (OGRS4) ARNS risk data`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -169,6 +174,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return risks and alerts section with null objects for scores when they are missing`() {
       val crn = randomCrn()
+      testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -220,6 +226,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   fun `should return empty Risk and needs but retain nDelius alerts when no assessment found`() {
     // Given
     val crn = randomCrn()
+    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
     oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
     nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn)
 
@@ -262,11 +269,11 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should return 404 when crn is not recognised by nDelius`() {
-    // Given
+  fun `should return 404 for an unknown crn even though nDelius returns an empty registrations list`() {
+    // Given no referral is held for the crn, and nDelius responds 200 with no registrations
     val crn = randomCrn()
     oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
-    nDeliusApiStubs.stubNotFoundNDeliusRegistrationsResponse(crn)
+    nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn, NDeliusRegistrations(emptyList()))
 
     // When
     val response = performRequestAndExpectStatus(
@@ -277,12 +284,32 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     )
 
     // Then
-    assertThat(response.developerMessage).contains("Failure to retrieve ActiveAlerts for crn: $crn")
+    assertThat(response.developerMessage).isEqualTo("No referral found for crn: $crn")
+  }
+
+  @Test
+  fun `should return no alerts when the crn is known but nDelius holds no registrations`() {
+    // Given
+    val crn = randomCrn()
+    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
+    oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
+    nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn, NDeliusRegistrations(emptyList()))
+
+    // When
+    val response = performRequestAndExpectOk(
+      httpMethod = HttpMethod.GET,
+      uri = "/risks-and-needs/$crn/risks-and-alerts",
+      returnType = object : ParameterizedTypeReference<Risks>() {},
+    )
+
+    // Then
+    assertThat(response.alerts).isEmpty()
   }
 
   @Test
   fun `should return 404 when no Offending Info found for section1 of assessment`() {
     val crn = randomCrn()
+    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
     val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
     val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -302,6 +329,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `should return 404 when no Relationships found for section6 of assessment`() {
     val crn = randomCrn()
+    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
     val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
     val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -323,6 +351,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   fun `should return 404 when no Rosh Summary found for sectionroshsumm of assessment`() {
     // Given
     val crn = randomCrn()
+    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
     val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
     val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -344,6 +373,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `should return 404 when no Risk Predictors found for risk-predictors of assessment`() {
     val crn = randomCrn()
+    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
     val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
     val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -366,6 +396,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   fun `should return 404 when no Alerts found for a crn`() {
     // Given
     val crn = randomCrn()
+    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
     val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
     val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)

@@ -25,6 +25,8 @@ interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
   @EntityGraph(attributePaths = ["statusHistories"])
   fun findByCrn(crn: String): List<ReferralEntity>
 
+  fun existsByCrn(crn: String): Boolean
+
   fun findByCrnAndEventIdAndSourcedFrom(
     crn: String,
     eventId: String,
