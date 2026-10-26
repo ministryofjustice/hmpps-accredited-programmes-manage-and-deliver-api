@@ -32,7 +32,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REGISTRATION_N_DELIUS
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.time.LocalDateTime
 
 @Service
@@ -42,6 +42,7 @@ class RisksAndNeedsService(
   private val assessRiskAndNeedsApiClient: AssessRiskAndNeedsApiClient,
   private val pniService: PniService,
   private val telemetryService: TelemetryService,
+  private val referralRepository: ReferralRepository,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -159,7 +160,7 @@ class RisksAndNeedsService(
   }
 
   fun getRisksByCrn(crn: String): Risks {
-    // Fetch alerts first so if CRN does not exist then Delius returns 404
+    // Fetch alerts first so an unknown CRN results in a 404
     val activeAlerts: NDeliusRegistrations? = getActiveAlerts(crn)
 
     val assessmentId = getAssessmentIdAndDate(crn)?.first
@@ -189,28 +190,34 @@ class RisksAndNeedsService(
     return getDetails(assessmentId, oasysApiClient::getRoshFull, "RoshFull").toModel(assessmentCompletedDate)
   }
 
-  fun getActiveAlerts(crn: String): NDeliusRegistrations? = when (val response = nDeliusIntegrationApiClient.getRegistrations(crn)) {
-    is ClientResult.Failure -> {
-      telemetryService.logToAppInsights(
-        eventName = "${GET_REGISTRATION_N_DELIUS.eventName}.failure",
-        integrationActionType = GET_REGISTRATION_N_DELIUS.name,
-        outcome = "failure",
-      )
-      log.warn("Failure to retrieve ActiveAlerts for crn: $crn reason ${response.toException().message}")
-      if (response is ClientResult.Failure.StatusCode && response.status.value() == 404) {
-        throw NotFoundException("Failure to retrieve ActiveAlerts for crn: $crn, reason: '${response.toException().message}'")
-      }
-      throw BusinessException("Failed to retrieve ActiveAlerts for crn: $crn due to upstream error")
+  fun getActiveAlerts(crn: String): NDeliusRegistrations? {
+    if (!referralRepository.existsByCrn(crn)) {
+      throw NotFoundException("No referral found for crn: $crn")
     }
 
-    is ClientResult.Success -> {
-      telemetryService.logToAppInsights(
-        eventName = "${GET_REGISTRATION_N_DELIUS.eventName}.success",
-        integrationActionType = GET_REGISTRATION_N_DELIUS.name,
-        outcome = "success",
-      )
+    return when (val response = nDeliusIntegrationApiClient.getRegistrations(crn)) {
+      is ClientResult.Failure -> {
+        telemetryService.logToAppInsights(
+          eventName = "${GET_REGISTRATION_N_DELIUS.eventName}.failure",
+          integrationActionType = GET_REGISTRATION_N_DELIUS.name,
+          outcome = "failure",
+        )
+        log.warn("Failure to retrieve ActiveAlerts for crn: $crn reason ${response.toException().message}")
+        if (response is ClientResult.Failure.StatusCode && response.status.value() == 404) {
+          throw NotFoundException("Failure to retrieve ActiveAlerts for crn: $crn, reason: '${response.toException().message}'")
+        }
+        throw BusinessException("Failed to retrieve ActiveAlerts for crn: $crn due to upstream error")
+      }
 
-      response.body
+      is ClientResult.Success -> {
+        telemetryService.logToAppInsights(
+          eventName = "${GET_REGISTRATION_N_DELIUS.eventName}.success",
+          integrationActionType = GET_REGISTRATION_N_DELIUS.name,
+          outcome = "success",
+        )
+
+        response.body
+      }
     }
   }
 
