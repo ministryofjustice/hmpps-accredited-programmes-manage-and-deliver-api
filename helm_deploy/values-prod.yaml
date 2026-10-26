@@ -27,9 +27,4 @@ generic-service:
     # Set HMPPS_SAR_TEMPLATE_PATH here to promote a new version to prod, only after
     # it has been validated in dev + preprod and signed off by the SAR team.
 
-# CloudPlatform AlertManager receiver to route prometheus alerts to slack
-# See https://user-guide.cloud-platform.service.justice.gov.uk/documentation/monitoring-an-app/how-to-create-alarms.html#creating-your-own-custom-alerts
-generic-prometheus-alerts:
-  alertSeverity: hmpps-accredited-programmes-manage-and-deliver-alerts-prod
-
 dataRefreshEnabled: true
