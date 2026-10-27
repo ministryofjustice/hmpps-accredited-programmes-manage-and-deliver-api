@@ -453,7 +453,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
 
       // Stub PNI response with LDC subTotal >= 3 (threshold)
       val ldcWithHighSubTotal = Ldc(
-        score = 4,
+        score = 0,
         subTotal = 4, // >= 3, so hasLdc() should return true
       )
       oasysApiStubs.stubSuccessfulPniResponseWithLdc(referralEntity.crn, ldcWithHighSubTotal)
@@ -500,7 +500,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
 
       // Stub PNI response with LDC subTotal < 3 (threshold)
       val ldcWithLowSubTotal = Ldc(
-        score = 2,
+        score = 5,
         subTotal = 2, // < 3, so hasLdc() should return false
       )
       oasysApiStubs.stubSuccessfulPniResponseWithLdc(referralEntity.crn, ldcWithLowSubTotal)
