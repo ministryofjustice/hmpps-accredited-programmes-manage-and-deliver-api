@@ -148,12 +148,6 @@ class SessionService(
     val currentSessionDuration = Duration.between(session.startsAt, session.endsAt)
     val requestedSessionDuration = Duration.between(requestedStartTime, requestedEndTime)
 
-    // Past sessions (end time has passed) may not be lengthened; shortening is allowed
-    if (session.endsAt.isBefore(LocalDateTime.now()) && requestedSessionDuration > currentSessionDuration) {
-      log.warn("Invalid reschedule request received for past session with id: $sessionId. Requested duration $requestedSessionDuration exceeds current duration $currentSessionDuration")
-      throw BusinessException("The session duration cannot be longer than originally scheduled. Change the start or end time.")
-    }
-
     // update the start and end times of the requested session
     session.startsAt = requestedStartTime
     session.endsAt = requestedEndTime
