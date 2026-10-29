@@ -6,7 +6,7 @@ plugins {
   kotlin("plugin.spring") version "2.4.21"
   kotlin("plugin.jpa") version "2.4.21"
   kotlin("plugin.allopen") version "2.4.21"
-  id("io.sentry.jvm.gradle") version "6.24.0"
+  id("io.sentry.jvm.gradle") version "6.25.0"
 }
 
 configurations {
@@ -60,7 +60,7 @@ dependencies {
   testImplementation("io.kotest:kotest-assertions-core:6.2.6")
   testImplementation("io.mockk:mockk:1.14.11")
   testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.8.5")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.8.6")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql:42.7.14")
