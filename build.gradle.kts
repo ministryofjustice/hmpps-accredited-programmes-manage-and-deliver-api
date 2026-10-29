@@ -27,6 +27,9 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-cache")
   implementation("com.github.ben-manes.caffeine:caffeine")
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
+  constraints {
+    implementation("org.webjars:swagger-ui:5.34.0")
+  }
   implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-csv")
   implementation("com.fasterxml.jackson.core:jackson-databind")
   implementation("net.javacrumbs.shedlock:shedlock-spring:$shedLockVersion")
