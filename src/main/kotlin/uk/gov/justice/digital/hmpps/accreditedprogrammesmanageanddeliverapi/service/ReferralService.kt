@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralOnProgrammeStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
@@ -776,6 +777,23 @@ class ReferralService(
       referralCreatedBy = referral.createdBy,
       attendanceHistory = sessions,
     )
+  }
+
+  fun getReferralOnProgrammeStatus(crn: String): ReferralOnProgrammeStatus? {
+    val referral = referralRepository.findMostRecentByCrn(crn)
+
+    return referral?.let {
+      val currentStatus = it.statusHistories.maxByOrNull { history -> history.createdAt }?.referralStatusDescription?.description ?: "Unknown"
+      ReferralOnProgrammeStatus(
+        referralId = it.id!!,
+        crn = it.crn,
+        sentenceType = it.sourcedFrom?.name,
+        eventId = it.eventId,
+        eventNumber = it.eventNumber,
+        currentStatus = currentStatus,
+        isOnProgramme = currentStatus == "On programme",
+      )
+    }
   }
 
   private fun getPersonalDetails(crn: String) = when (val result = nDeliusIntegrationApiClient.getPersonalDetails(crn)) {
