@@ -148,12 +148,6 @@ class SessionService(
     val currentSessionDuration = Duration.between(session.startsAt, session.endsAt)
     val requestedSessionDuration = Duration.between(requestedStartTime, requestedEndTime)
 
-    // Past sessions (end time has passed) may not be lengthened; shortening is allowed
-    if (session.endsAt.isBefore(LocalDateTime.now()) && requestedSessionDuration > currentSessionDuration) {
-      log.warn("Invalid reschedule request received for past session with id: $sessionId. Requested duration $requestedSessionDuration exceeds current duration $currentSessionDuration")
-      throw BusinessException("The session duration cannot be longer than originally scheduled. Change the start or end time.")
-    }
-
     // update the start and end times of the requested session
     session.startsAt = requestedStartTime
     session.endsAt = requestedEndTime
@@ -241,26 +235,28 @@ class SessionService(
     when (
       val response = nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateRequests))
     ) {
-      is ClientResult.Failure -> {
-        log.warn("Failure to update appointments: ${response.getErrorMessage()}")
-        telemetryService.logToAppInsights(
-          eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
-          integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
-          outcome = "failure",
+      is ClientResult.Failure.StatusCode -> {
+        handleUpdateAppointmentBadRequestResponseError(
+          errorMessage = response.getErrorMessage(),
+          responseStatusValue = response.status.value(),
+          updateAppointmentRequestList = updateRequests,
+          programmeGroupId = sessions.first().programmeGroup.id!!,
+          exception = response.toException(),
         )
-        throw AppointmentUpdateException("Failure to update appointments", response.toException())
+      }
+
+      is ClientResult.Failure.Other -> {
+        handleUpdateAppointmentResponseError(
+          errorMessage = response.getErrorMessage(),
+          exception = response.toException(),
+        )
       }
 
       is ClientResult.Success -> {
-        log.info(
-          "${updateRequests.size} appointments updated in nDelius for sessions with ids: ${
+        handleUpdateAppointmentResponseSuccess(
+          logMessage = "${updateRequests.size} appointments updated in nDelius for sessions with ids: ${
             sessionsWithAppointment.map { it.id }.joinToString(", ")
           }",
-        )
-        telemetryService.logToAppInsights(
-          eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
-          integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
-          outcome = "success",
         )
       }
     }
@@ -268,7 +264,10 @@ class SessionService(
 
   fun updateNDeliusAppointmentsForSession(session: SessionEntity) {
     if (session.ndeliusAppointments.isEmpty()) {
-      log.debug("updateNDeliusAppointmentsForSession not called as no nDelius appointments found for session ${session.id}")
+      log.debug(
+        "updateNDeliusAppointmentsForSession not called as no nDelius appointments found for session {}",
+        session.id,
+      )
       return
     }
     val updateRequests = session.ndeliusAppointments.map {
@@ -278,22 +277,26 @@ class SessionService(
     when (
       val response = nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateRequests))
     ) {
-      is ClientResult.Failure -> {
-        log.warn("Failure to update appointments: ${response.getErrorMessage()}")
-        telemetryService.logToAppInsights(
-          eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
-          integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
-          outcome = "failure",
+      is ClientResult.Failure.StatusCode -> {
+        handleUpdateAppointmentBadRequestResponseError(
+          errorMessage = response.getErrorMessage(),
+          responseStatusValue = response.status.value(),
+          updateAppointmentRequestList = updateRequests,
+          programmeGroupId = session.programmeGroup.id!!,
+          exception = response.toException(),
         )
-        throw AppointmentUpdateException("Failure to update appointments", response.toException())
+      }
+
+      is ClientResult.Failure.Other -> {
+        handleUpdateAppointmentResponseError(
+          errorMessage = response.getErrorMessage(),
+          exception = response.toException(),
+        )
       }
 
       is ClientResult.Success -> {
-        log.info("${updateRequests.size} appointments updated in nDelius for session with id: ${session.id}")
-        telemetryService.logToAppInsights(
-          eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
-          integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
-          outcome = "success",
+        handleUpdateAppointmentResponseSuccess(
+          logMessage = "${updateRequests.size} appointments updated in nDelius for session with id: ${session.id}",
         )
       }
     }
@@ -542,21 +545,13 @@ class SessionService(
           nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateAppointmentRequests))
       ) {
         is ClientResult.Failure.StatusCode -> {
-          val errorMessage = response.getErrorMessage()
-          if (response.status.value() == HttpStatus.BAD_REQUEST.value() &&
-            errorMessage.contains(MISSING_APPOINTMENT_ERROR_MESSAGE)
-          ) {
-            handleUpdateAppointmentResponseMissingAppointmentError(
-              errorMessage,
-              updateAppointmentRequests,
-              session.programmeGroup.id!!,
-            )
-          } else {
-            handleUpdateAppointmentResponseError(
-              errorMessage = errorMessage,
-              exception = response.toException(),
-            )
-          }
+          handleUpdateAppointmentBadRequestResponseError(
+            errorMessage = response.getErrorMessage(),
+            responseStatusValue = response.status.value(),
+            updateAppointmentRequestList = updateAppointmentRequests,
+            programmeGroupId = session.programmeGroup.id!!,
+            exception = response.toException(),
+          )
         }
 
         is ClientResult.Failure.Other -> {
@@ -568,8 +563,7 @@ class SessionService(
 
         is ClientResult.Success -> {
           handleUpdateAppointmentResponseSuccess(
-            updateAppointmentRequestsSize = updateAppointmentRequests.size,
-            programmeGroupId = session.programmeGroup.id!!,
+            logMessage = "${updateAppointmentRequests.size} appointments created in Ndelius for group with id: ${session.programmeGroup.id!!}",
           )
         }
       }
@@ -730,6 +724,29 @@ class SessionService(
     else -> attendanceOutcome.description!!
   }
 
+  private fun handleUpdateAppointmentBadRequestResponseError(
+    errorMessage: String,
+    responseStatusValue: Int,
+    updateAppointmentRequestList: List<UpdateAppointmentRequest>,
+    programmeGroupId: UUID,
+    exception: Throwable,
+  ) {
+    if (responseStatusValue == HttpStatus.BAD_REQUEST.value() &&
+      errorMessage.contains(MISSING_APPOINTMENT_ERROR_MESSAGE)
+    ) {
+      handleUpdateAppointmentResponseMissingAppointmentError(
+        errorMessage = errorMessage,
+        updateAppointmentRequests = updateAppointmentRequestList,
+        programmeGroupId = programmeGroupId,
+      )
+    } else {
+      handleUpdateAppointmentResponseError(
+        errorMessage = errorMessage,
+        exception = exception,
+      )
+    }
+  }
+
   private fun handleUpdateAppointmentResponseError(errorMessage: String, exception: Throwable) {
     log.warn("Failure to update appointments: $errorMessage")
     telemetryService.logToAppInsights(
@@ -740,8 +757,8 @@ class SessionService(
     throw AppointmentUpdateException("Failure to update appointments", exception)
   }
 
-  private fun handleUpdateAppointmentResponseSuccess(updateAppointmentRequestsSize: Int, programmeGroupId: UUID) {
-    log.info("$updateAppointmentRequestsSize appointments created in Ndelius for group with id: $programmeGroupId")
+  private fun handleUpdateAppointmentResponseSuccess(logMessage: String) {
+    log.info(logMessage)
     telemetryService.logToAppInsights(
       eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
       integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
@@ -799,8 +816,7 @@ class SessionService(
 
       is ClientResult.Success -> {
         handleUpdateAppointmentResponseSuccess(
-          updateAppointmentRequestsSize = updateAppointmentRequests.size,
-          programmeGroupId = programmeGroupId,
+          logMessage = "${updateAppointmentRequests.size} appointments created in Ndelius for group with id: $programmeGroupId",
         )
       }
     }

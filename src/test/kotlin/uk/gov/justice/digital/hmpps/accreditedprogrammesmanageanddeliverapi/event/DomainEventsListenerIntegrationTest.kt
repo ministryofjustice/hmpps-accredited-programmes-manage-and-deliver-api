@@ -419,10 +419,10 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should create referral and automatically assign ldc status true when score greater than or equal to 3 and on receipt of community referral creation message`() {
+  fun `should create referral and automatically assign ldc status true when subTotal greater than or equal to 3 and on receipt of community referral creation message`() {
     // Given
     val ldc = Ldc(
-      score = 4,
+      score = 0,
       subTotal = 4,
     )
     oasysApiStubs.stubSuccessfulPniResponseWithLdc(crn, ldc)
@@ -478,10 +478,10 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should create referral and automatically assign ldc status false when score less than 3 and on receipt of community referral creation message`() {
+  fun `should create referral and automatically assign ldc status false when subTotal less than 3 and on receipt of community referral creation message`() {
     // Given
     val ldc = Ldc(
-      score = 2,
+      score = 5,
       subTotal = 2,
     )
     oasysApiStubs.stubSuccessfulPniResponseWithLdc(crn, ldc)

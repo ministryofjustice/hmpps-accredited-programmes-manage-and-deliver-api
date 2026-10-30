@@ -447,7 +447,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       oasysApiStubs.stubSuccessfulPniResponse(
         crn,
         PniResponseFactory().withAssessment(
-          PniAssessmentFactory().withLdc(Ldc(4, 4)).produce(),
+          PniAssessmentFactory().withLdc(Ldc(score = 4, subTotal = 7)).produce(),
         ).produce(),
       )
 
@@ -480,7 +480,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.qualifications).isEqualTo("NVQ Level 2")
       assertThat(response.basicSkillsScore).isEqualTo("3")
       assertThat(response.basicSkillsScoreDescription).isEqualTo("ete issues")
-      assertThat(response.ldcScore).isEqualTo(4)
+      assertThat(response.ldcScore).isEqualTo(7)
     }
 
     @Test
