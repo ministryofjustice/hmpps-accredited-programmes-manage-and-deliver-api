@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import java.util.UUID
 
 data class ReferralOnProgrammeStatus(
@@ -27,7 +28,7 @@ data class ReferralOnProgrammeStatus(
     description = "The type of sentence.",
   )
   @get:JsonProperty("sentenceType", required = false)
-  val sentenceType: String? = null,
+  val sentenceType: ReferralEntitySourcedFrom? = null,
 
   @Schema(example = "2500828798", description = "Event ID of the referral", required = true)
   @get:JsonProperty("eventId", required = true)

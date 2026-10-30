@@ -787,7 +787,7 @@ class ReferralService(
       ReferralOnProgrammeStatus(
         referralId = it.id!!,
         crn = it.crn,
-        sentenceType = it.sourcedFrom?.name,
+        sentenceType = it.sourcedFrom,
         eventId = it.eventId,
         eventNumber = it.eventNumber,
         currentStatus = currentStatus,
