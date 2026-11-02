@@ -5,6 +5,8 @@ import io.mockk.mockk
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.context.ApplicationEventPublisher
@@ -1539,5 +1541,92 @@ class ReferralServiceTest {
     // Then
     assertThat(result.attendanceHistory).hasSize(1)
     assertThat(result.attendanceHistory.single().attendanceStatus).isEqualTo("Attended")
+  }
+
+  @Nested
+  @DisplayName("getReferralOnProgrammeStatus")
+  inner class GetReferralOnProgrammeStatus {
+    @Test
+    fun `should return most recent referral when multiple exist for a crn`() {
+      // Given
+      val crn = "X123456"
+      val statusDescription = ReferralStatusDescriptionEntityFactory()
+        .withDescription("Awaiting assessment")
+        .produce()
+
+      val olderId = UUID.randomUUID()
+      val olderReferral = ReferralEntityFactory()
+        .withId(olderId)
+        .withCrn(crn)
+        .withCreatedAt(LocalDateTime.now().minusDays(2))
+        .produce()
+      val olderStatusHistory = ReferralStatusHistoryEntityFactory().produce(olderReferral, statusDescription)
+      olderReferral.statusHistories = mutableListOf(olderStatusHistory)
+
+      val newerId = UUID.randomUUID()
+      val newerReferral = ReferralEntityFactory()
+        .withId(newerId)
+        .withCrn(crn)
+        .withCreatedAt(LocalDateTime.now())
+        .produce()
+      val newerStatusHistory = ReferralStatusHistoryEntityFactory().produce(newerReferral, statusDescription)
+      newerReferral.statusHistories = mutableListOf(newerStatusHistory)
+
+      every { referralRepository.findMostRecentByCrn(crn) } returns newerReferral
+
+      // When
+      val result = referralService.getReferralOnProgrammeStatus(crn)
+
+      // Then
+      assertThat(result).isNotNull
+      assertThat(result!!.referralId).isEqualTo(newerId)
+      assertThat(result.crn).isEqualTo(crn)
+      verify { referralRepository.findMostRecentByCrn(crn) }
+    }
+
+    @Test
+    fun `should return null when no referral exists for crn`() {
+      // Given
+      val crn = "X999999"
+      every { referralRepository.findMostRecentByCrn(crn) } returns null
+
+      // When
+      val result = referralService.getReferralOnProgrammeStatus(crn)
+
+      // Then
+      assertThat(result).isNull()
+      verify { referralRepository.findMostRecentByCrn(crn) }
+    }
+
+    @Test
+    fun `should return referral with correct status information`() {
+      // Given
+      val crn = "X123456"
+      val referralId = UUID.randomUUID()
+      val statusDescription = ReferralStatusDescriptionEntityFactory()
+        .withDescription("Awaiting assessment")
+        .produce()
+      val referral = ReferralEntityFactory()
+        .withId(referralId)
+        .withCrn(crn)
+        .withEventId("12345")
+        .withEventNumber(1)
+        .produce()
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(referral, statusDescription)
+      referral.statusHistories = mutableListOf(statusHistory)
+
+      every { referralRepository.findMostRecentByCrn(crn) } returns referral
+
+      // When
+      val result = referralService.getReferralOnProgrammeStatus(crn)
+
+      // Then
+      assertThat(result).isNotNull
+      assertThat(result!!.referralId).isEqualTo(referralId)
+      assertThat(result.crn).isEqualTo(crn)
+      assertThat(result.eventId).isEqualTo("12345")
+      assertThat(result.eventNumber).isEqualTo(1)
+      assertThat(result.currentStatus).isEqualTo("Awaiting assessment")
+    }
   }
 }

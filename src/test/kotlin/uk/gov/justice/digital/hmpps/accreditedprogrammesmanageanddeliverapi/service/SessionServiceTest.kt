@@ -40,6 +40,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ModuleEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ModuleSessionTemplateEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusAppointmentEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceFactory
@@ -2401,11 +2402,11 @@ class SessionServiceTest {
     val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Post-programme reviews")
     val nDeliusAppointmentId = UUID.randomUUID()
     sessionEntity.ndeliusAppointments.add(
-      NDeliusAppointmentEntity(
-        ndeliusAppointmentId = nDeliusAppointmentId,
-        session = sessionEntity,
-        referral = referralEntity,
-      ),
+      NDeliusAppointmentEntityFactory()
+        .withNdeliusAppointmentId(nDeliusAppointmentId)
+        .withSession(sessionEntity)
+        .withReferral(referralEntity)
+        .produce(),
     )
 
     every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
@@ -2442,11 +2443,11 @@ class SessionServiceTest {
     val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Post-programme reviews")
     val nDeliusAppointmentId = UUID.randomUUID()
     sessionEntity.ndeliusAppointments.add(
-      NDeliusAppointmentEntity(
-        ndeliusAppointmentId = nDeliusAppointmentId,
-        session = sessionEntity,
-        referral = referralEntity,
-      ),
+      NDeliusAppointmentEntityFactory()
+        .withNdeliusAppointmentId(nDeliusAppointmentId)
+        .withSession(sessionEntity)
+        .withReferral(referralEntity)
+        .produce(),
     )
 
     every {
@@ -2486,6 +2487,126 @@ class SessionServiceTest {
   }
 
   @Test
+  fun `should recreate missing NDelius appointments when updating multiple sessions`() {
+    // Given
+    val missingReferral = ReferralEntityFactory().withPersonName("John Smith").produce()
+    val remainingReferral = ReferralEntityFactory().withPersonName("Jane Doe").produce()
+    val missingSession = sessionWithAttendees(listOf(missingReferral), moduleName = "Module 1")
+    val remainingSession = sessionWithAttendees(listOf(remainingReferral), moduleName = "Module 2")
+    val missingAppointmentId = UUID.randomUUID()
+    val remainingAppointmentId = UUID.randomUUID()
+    val missingAppointment =
+      NDeliusAppointmentEntityFactory()
+        .withNdeliusAppointmentId(missingAppointmentId)
+        .withSession(missingSession)
+        .withReferral(missingReferral)
+        .produce()
+    missingSession.ndeliusAppointments.add(missingAppointment)
+    remainingSession.ndeliusAppointments.add(
+      NDeliusAppointmentEntityFactory()
+        .withNdeliusAppointmentId(remainingAppointmentId)
+        .withSession(remainingSession)
+        .withReferral(remainingReferral)
+        .produce(),
+    )
+
+    every { nDeliusAppointmentRepository.findByNdeliusAppointmentId(missingAppointmentId) } returns
+      listOf(missingAppointment)
+    every { scheduleService.createNDeliusAppointments(any(), any()) } just Runs
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
+      ClientResult.Failure.StatusCode(
+        method = HttpMethod.PUT,
+        path = "/appointments",
+        status = HttpStatus.BAD_REQUEST,
+        body = """{"message":"Could not find appointments with references: [$missingAppointmentId]"}""",
+      ) andThen ClientResult.Success(HttpStatus.NO_CONTENT, Unit)
+
+    // When
+    service.updateNDeliusAppointmentsForMultipleSessions(listOf(missingSession, remainingSession))
+
+    // Then
+    verify(exactly = 1) {
+      nDeliusAppointmentRepository.findByNdeliusAppointmentId(missingAppointmentId)
+    }
+    verify {
+      scheduleService.createNDeliusAppointments(
+        match { appointments -> appointments.single().ndeliusAppointmentId == missingAppointmentId },
+        match { requests -> requests.single().reference == missingAppointmentId },
+      )
+    }
+    verify(exactly = 2) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+    verify {
+      nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+        match { request ->
+          request.appointments.size == 1 && request.appointments.single().reference == remainingAppointmentId
+        },
+      )
+    }
+  }
+
+  @Test
+  fun `should fail when NDelius returns an unrelated bad request while updating multiple sessions`() {
+    // Given
+    val firstReferral = ReferralEntityFactory().withPersonName("John Smith").produce()
+    val secondReferral = ReferralEntityFactory().withPersonName("Jane Doe").produce()
+    val firstSession = sessionWithAttendees(listOf(firstReferral), moduleName = "Module 1")
+    val secondSession = sessionWithAttendees(listOf(secondReferral), moduleName = "Module 2")
+    val firstAppointmentId = UUID.randomUUID()
+    val secondAppointmentId = UUID.randomUUID()
+    firstSession.ndeliusAppointments.add(
+      NDeliusAppointmentEntityFactory()
+        .withNdeliusAppointmentId(firstAppointmentId)
+        .withSession(firstSession)
+        .withReferral(firstReferral)
+        .produce(),
+    )
+    secondSession.ndeliusAppointments.add(
+      NDeliusAppointmentEntityFactory()
+        .withNdeliusAppointmentId(secondAppointmentId)
+        .withSession(secondSession)
+        .withReferral(secondReferral)
+        .produce(),
+    )
+
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
+      ClientResult.Failure.StatusCode(
+        method = HttpMethod.PUT,
+        path = "/appointments",
+        status = HttpStatus.BAD_REQUEST,
+        body = """{"message":"Invalid appointment details"}""",
+      )
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When
+    val exception =
+      assertThrows<AppointmentUpdateException> {
+        service.updateNDeliusAppointmentsForMultipleSessions(listOf(firstSession, secondSession))
+      }
+
+    // Then
+    assertThat(exception.message).contains("Failure to update appointments")
+    verify {
+      nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+        match {
+          it.appointments.size == 2 &&
+            it.appointments.map { appointment -> appointment.reference }.toSet() ==
+            setOf(firstAppointmentId, secondAppointmentId)
+        },
+      )
+    }
+    verify(exactly = 0) { nDeliusAppointmentRepository.findByNdeliusAppointmentId(any()) }
+    verify(exactly = 0) { scheduleService.createNDeliusAppointments(any(), any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "Appointment.update-nDelius.failure",
+        integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
+        outcome = "failure",
+      )
+    }
+  }
+
+  @Test
   fun `should successfully update NDelius appointments for a single session`() {
     // Given
     val referralId = UUID.randomUUID()
@@ -2493,11 +2614,11 @@ class SessionServiceTest {
     val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Post-programme reviews")
     val nDeliusAppointmentId = UUID.randomUUID()
     sessionEntity.ndeliusAppointments.add(
-      NDeliusAppointmentEntity(
-        ndeliusAppointmentId = nDeliusAppointmentId,
-        session = sessionEntity,
-        referral = referralEntity,
-      ),
+      NDeliusAppointmentEntityFactory()
+        .withNdeliusAppointmentId(nDeliusAppointmentId)
+        .withSession(sessionEntity)
+        .withReferral(referralEntity)
+        .produce(),
     )
 
     every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
@@ -2527,6 +2648,18 @@ class SessionServiceTest {
   }
 
   @Test
+  fun `should not call NDelius when a session has no appointments to update`() {
+    // Given
+    val sessionEntity = SessionFactory().produce()
+
+    // When
+    service.updateNDeliusAppointmentsForSession(sessionEntity)
+
+    // Then
+    verify(exactly = 0) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+  }
+
+  @Test
   fun `should fail to update NDelius appointments for a single session`() {
     // Given
     val referralId = UUID.randomUUID()
@@ -2534,11 +2667,11 @@ class SessionServiceTest {
     val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Post-programme reviews")
     val nDeliusAppointmentId = UUID.randomUUID()
     sessionEntity.ndeliusAppointments.add(
-      NDeliusAppointmentEntity(
-        ndeliusAppointmentId = nDeliusAppointmentId,
-        session = sessionEntity,
-        referral = referralEntity,
-      ),
+      NDeliusAppointmentEntityFactory()
+        .withNdeliusAppointmentId(nDeliusAppointmentId)
+        .withSession(sessionEntity)
+        .withReferral(referralEntity)
+        .produce(),
     )
 
     every {
@@ -2568,6 +2701,133 @@ class SessionServiceTest {
         match { it.appointments.single().reference == nDeliusAppointmentId },
       )
     }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "Appointment.update-nDelius.failure",
+        integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
+        outcome = "failure",
+      )
+    }
+  }
+
+  @Test
+  fun `should fail to update NDelius appointments for a single session when NDelius is unavailable`() {
+    // Given
+    val referralEntity = ReferralEntityFactory().withPersonName("John Smith").produce()
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Post-programme reviews")
+    val nDeliusAppointmentId = UUID.randomUUID()
+    sessionEntity.ndeliusAppointments.add(
+      NDeliusAppointmentEntityFactory()
+        .withNdeliusAppointmentId(nDeliusAppointmentId)
+        .withSession(sessionEntity)
+        .withReferral(referralEntity)
+        .produce(),
+    )
+
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
+      ClientResult.Failure.Other(
+        HttpMethod.PUT,
+        "/path",
+        RuntimeException("Connection refused"),
+        "nDelius",
+      )
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When
+    val exception =
+      assertThrows<AppointmentUpdateException> {
+        service.updateNDeliusAppointmentsForSession(sessionEntity)
+      }
+
+    // Then
+    assertThat(exception.message).contains("Failure to update appointments")
+    verify {
+      nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+        match { it.appointments.single().reference == nDeliusAppointmentId },
+      )
+    }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "Appointment.update-nDelius.failure",
+        integrationActionType = "UPDATE_APPOINTMENT_N_DELIUS",
+        outcome = "failure",
+      )
+    }
+  }
+
+  @Test
+  fun `should recreate missing NDelius appointments after a bad request for a single session`() {
+    // Given
+    val referralEntity = ReferralEntityFactory().withPersonName("John Smith").produce()
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Post-programme reviews")
+    val nDeliusAppointmentId = UUID.randomUUID()
+    val appointment =
+      NDeliusAppointmentEntityFactory()
+        .withNdeliusAppointmentId(nDeliusAppointmentId)
+        .withSession(sessionEntity)
+        .withReferral(referralEntity)
+        .produce()
+    sessionEntity.ndeliusAppointments.add(appointment)
+
+    every { nDeliusAppointmentRepository.findByNdeliusAppointmentId(nDeliusAppointmentId) } returns listOf(appointment)
+    every { scheduleService.createNDeliusAppointments(any(), any()) } just Runs
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
+      ClientResult.Failure.StatusCode(
+        method = HttpMethod.PUT,
+        path = "/appointments",
+        status = HttpStatus.BAD_REQUEST,
+        body = """{"message":"Could not find appointments with references: [$nDeliusAppointmentId]"}""",
+      )
+
+    // When
+    service.updateNDeliusAppointmentsForSession(sessionEntity)
+
+    // Then
+    verify(exactly = 1) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+    verify(exactly = 1) {
+      nDeliusAppointmentRepository.findByNdeliusAppointmentId(nDeliusAppointmentId)
+    }
+    verify {
+      scheduleService.createNDeliusAppointments(
+        match { it.single().ndeliusAppointmentId == nDeliusAppointmentId },
+        match { it.single().reference == nDeliusAppointmentId },
+      )
+    }
+  }
+
+  @Test
+  fun `should fail when NDelius returns an unrelated bad request for appointment update for a single session`() {
+    // Given
+    val referralEntity = ReferralEntityFactory().withPersonName("John Smith").produce()
+    val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Post-programme reviews")
+    val nDeliusAppointmentId = UUID.randomUUID()
+    sessionEntity.ndeliusAppointments.add(
+      NDeliusAppointmentEntityFactory()
+        .withNdeliusAppointmentId(nDeliusAppointmentId)
+        .withSession(sessionEntity)
+        .withReferral(referralEntity)
+        .produce(),
+    )
+
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
+      ClientResult.Failure.StatusCode(
+        method = HttpMethod.PUT,
+        path = "/appointments",
+        status = HttpStatus.BAD_REQUEST,
+        body = """{"message":"Invalid appointment details"}""",
+      )
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When
+    val exception =
+      assertThrows<AppointmentUpdateException> {
+        service.updateNDeliusAppointmentsForSession(sessionEntity)
+      }
+
+    // Then
+    assertThat(exception.message).contains("Failure to update appointments")
+    verify(exactly = 0) { nDeliusAppointmentRepository.findByNdeliusAppointmentId(any()) }
+    verify(exactly = 0) { scheduleService.createNDeliusAppointments(any(), any()) }
     verify {
       telemetryService.logToAppInsights(
         eventName = "Appointment.update-nDelius.failure",
