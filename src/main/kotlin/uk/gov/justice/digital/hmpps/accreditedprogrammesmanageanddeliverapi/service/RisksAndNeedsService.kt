@@ -47,7 +47,7 @@ class RisksAndNeedsService(
 
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  fun getAssessments(crn: String): OasysAssessmentTimeline? = when (val result = oasysApiClient.getAssessments(crn)) {
+  private fun getAssessments(crn: String): OasysAssessmentTimeline? = when (val result = oasysApiClient.getAssessments(crn)) {
     is ClientResult.Failure.StatusCode -> {
       if (result.status.value() == 404) {
         log.warn("No assessment found found for crn : $crn")
@@ -69,6 +69,7 @@ class RisksAndNeedsService(
   fun getLearningNeedsForCrn(crn: String): LearningNeeds {
     val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
+
     return buildLearningNeeds(
       assessmentCompletedDate?.toLocalDate(),
       getDetails(assessmentId, oasysApiClient::getLearning, "LearningNeeds"),
@@ -162,7 +163,6 @@ class RisksAndNeedsService(
   fun getRisksByCrn(crn: String): Risks {
     // Fetch alerts first so an unknown CRN results in a 404
     val activeAlerts: NDeliusRegistrations? = getActiveAlerts(crn)
-
     val assessmentId = getAssessmentIdAndDate(crn)?.first
       ?: return Risks.empty().copy(alerts = activeAlerts?.listOfActiveRegistrations() ?: emptyList())
         .also { log.warn("No assessment found for crn $crn") }
@@ -187,6 +187,7 @@ class RisksAndNeedsService(
   fun getRoshFullForCrn(crn: String): RoshAnalysis {
     val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
+
     return getDetails(assessmentId, oasysApiClient::getRoshFull, "RoshFull").toModel(assessmentCompletedDate)
   }
 
@@ -224,6 +225,7 @@ class RisksAndNeedsService(
   fun getOffenceAnalysis(crn: String): OffenceAnalysis {
     val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
+
     return getDetails(assessmentId, oasysApiClient::getOffenceAnalysis, "OffenceAnalysis").toModel(
       assessmentCompletedDate,
     )
@@ -255,6 +257,9 @@ class RisksAndNeedsService(
   }
 
   private fun getAssessmentIdAndDate(crn: String): Pair<Long, LocalDateTime?>? {
+    if (!referralRepository.existsByCrn(crn)) {
+      throw NotFoundException("No referral found for case reference number: $crn")
+    }
     val assessmentTimeline = getAssessments(crn)
     val assessment = assessmentTimeline?.getLatestCompletedLayerThreeAssessment()
 
