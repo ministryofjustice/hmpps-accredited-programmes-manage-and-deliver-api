@@ -7,6 +7,9 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.EnumSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.Pageable
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
@@ -24,7 +27,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.UserRegionOverrideEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
@@ -113,7 +118,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
       testDataGenerator.createGroup(
         ProgrammeGroupFactory()
-          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withSex(ProgrammeGroupSexEnum.FEMALE)
           .withCode("GROUP_TWO_CODE")
           .withProbationDeliveryUnit("Another PDU Description", "ANOTHER_PDU_CODE")
           .withDeliveryLocation("Location Two", "LOC_TWO")
@@ -135,8 +140,8 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createGroup(
         ProgrammeGroupFactory()
           .withSex(ProgrammeGroupSexEnum.MALE)
-          .withCode("THE_VERY_FAR_AWAY_GROUP")
-          .withRegionName("A very far away Region")
+          .withCode("GROUP_FOUR_CODE")
+          .withRegionName("Another Region")
           .produce(),
       )
 
@@ -146,6 +151,14 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           .withSex(ProgrammeGroupSexEnum.FEMALE)
           .withRegionName("Region Description")
           .withEarliestStartDate(LocalDate.now().plusDays(1))
+          .produce(),
+      )
+
+      testDataGenerator.createGroup(
+        ProgrammeGroupFactory()
+          .withCode("GROUP_SIX_CODE")
+          .withSex(ProgrammeGroupSexEnum.FEMALE)
+          .withRegionName("Another Region")
           .produce(),
       )
     }
@@ -182,8 +195,15 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(exception).hasMessageContaining("Cannot find any regions (or teams) for user the_username")
     }
 
-    @Test
-    fun `Returning the ProgrammeGroups for a Region`() {
+    @ParameterizedTest
+    @CsvSource(
+      delimiter = '|',
+      value = [
+        "MALE | THE_GROUP_CODE;GROUP_THREE_CODE",
+        "FEMALE | GROUP_TWO_CODE;THE_FEMALE_GROUP_CODE",
+      ],
+    )
+    fun `Returning the ProgrammeGroups for a Region`(sex: String, expectedCodes: String) {
       // When
       val programmeGroups = service.getProgrammeGroupsForRegion(
         pageable = Pageable.ofSize(10),
@@ -191,18 +211,15 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         pdus = null,
         deliveryLocations = null,
         cohort = null,
-        sex = "MALE",
+        sex = listOf(sex),
         selectedTab = GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS,
         username = "the_username",
       )
 
       // Then
-      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(3)
-      assertThat(programmeGroups.pagedGroupData.map { it.code }).containsExactlyInAnyOrder(
-        "THE_GROUP_CODE",
-        "GROUP_TWO_CODE",
-        "GROUP_THREE_CODE",
-      )
+      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(2)
+      assertThat(programmeGroups.pagedGroupData.map { it.code })
+        .containsExactlyInAnyOrderElementsOf(expectedCodes.split(";"))
       // Scenario 1: pdu not specified - should return all unique PDU names
       assertThat(programmeGroups.probationDeliveryUnitNames).containsExactlyInAnyOrder(
         "PDU Description",
@@ -213,13 +230,20 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(programmeGroups.deliveryLocationNames).isNull()
     }
 
-    @Test
-    fun `Returning the ProgrammeGroups for all effective regions including manual overrides`() {
+    @ParameterizedTest
+    @CsvSource(
+      delimiter = '|',
+      value = [
+        "MALE | THE_GROUP_CODE;GROUP_THREE_CODE;GROUP_FOUR_CODE",
+        "FEMALE | GROUP_TWO_CODE;THE_FEMALE_GROUP_CODE;GROUP_SIX_CODE",
+      ],
+    )
+    fun `Returning the ProgrammeGroups for all effective regions including manual overrides`(sex: String, expectedCodes: String) {
       // Given
       userRegionOverrideRepository.save(
         UserRegionOverrideEntity(
           username = "the_username",
-          regionName = "A very far away Region",
+          regionName = "Another Region",
           createdAt = LocalDateTime.now(),
           createdBy = "AUTH_ADM",
         ),
@@ -232,23 +256,26 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         pdus = null,
         deliveryLocations = null,
         cohort = null,
-        sex = "MALE",
+        sex = listOf(sex),
         selectedTab = GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS,
         username = "the_username",
       )
 
       // Then
-      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(4)
-      assertThat(programmeGroups.pagedGroupData.map { it.code }).contains(
-        "THE_GROUP_CODE",
-        "GROUP_TWO_CODE",
-        "GROUP_THREE_CODE",
-        "THE_VERY_FAR_AWAY_GROUP",
-      )
+      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(3)
+      assertThat(programmeGroups.pagedGroupData.map { it.code })
+        .containsExactlyInAnyOrderElementsOf(expectedCodes.split(";"))
     }
 
-    @Test
-    fun `Returning ProgrammeGroups when nDelius has no teams but manual override exists`() {
+    @ParameterizedTest
+    @CsvSource(
+      delimiter = '|',
+      value = [
+        "MALE | THE_GROUP_CODE;GROUP_THREE_CODE",
+        "FEMALE | GROUP_TWO_CODE;THE_FEMALE_GROUP_CODE",
+      ],
+    )
+    fun `Returning ProgrammeGroups when nDelius has no teams but manual override exists`(sex: String, expectedCodes: String) {
       // Given
       nDeliusApiStubs.stubUserTeamsResponse("the_username", NDeliusUserTeams(emptyList()))
       userRegionOverrideRepository.save(
@@ -267,18 +294,15 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         pdus = null,
         deliveryLocations = null,
         cohort = null,
-        sex = "MALE",
+        sex = listOf(sex),
         selectedTab = GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS,
         username = "the_username",
       )
 
       // Then
-      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(3)
-      assertThat(programmeGroups.pagedGroupData.map { it.code }).containsExactlyInAnyOrder(
-        "THE_GROUP_CODE",
-        "GROUP_TWO_CODE",
-        "GROUP_THREE_CODE",
-      )
+      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(2)
+      assertThat(programmeGroups.pagedGroupData.map { it.code })
+        .containsExactlyInAnyOrderElementsOf(expectedCodes.split(";"))
     }
 
     @Test
@@ -300,40 +324,52 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(programmeGroups.pagedGroupData.first().code).isEqualTo("THE_GROUP_CODE")
     }
 
-    @Test
-    fun `Returns unique delivery locations when pdu is specified`() {
+    @ParameterizedTest
+    @CsvSource(
+      delimiter = '|',
+      value = [
+        "MALE | PDU Description | THE_GROUP_CODE;GROUP_THREE_CODE | Location One;Delivery Location 1",
+        "FEMALE | Another PDU Description | GROUP_TWO_CODE | Location Two",
+      ],
+    )
+    fun `Returns unique delivery locations when pdu is specified`(
+      sex: String,
+      pdu: String,
+      expectedCodes: String,
+      expectedLocations: String,
+    ) {
       // When - filtering by specific PDU
       val programmeGroups = service.getProgrammeGroupsForRegion(
         pageable = Pageable.ofSize(10),
         groupCode = null,
-        pdus = listOf("PDU Description"),
+        pdus = listOf(pdu),
         deliveryLocations = null,
         cohort = null,
-        sex = "MALE",
+        sex = listOf(sex),
         selectedTab = GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS,
         username = "the_username",
       )
 
       // Then
-      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(2)
-      assertThat(programmeGroups.pagedGroupData.map { it.code }).containsExactlyInAnyOrder(
-        "THE_GROUP_CODE",
-        "GROUP_THREE_CODE",
-      )
+      val expected = expectedCodes.split(";")
+      assertThat(programmeGroups.pagedGroupData.totalElements).isEqualTo(expected.size.toLong())
+      assertThat(programmeGroups.pagedGroupData.map { it.code }).containsExactlyInAnyOrderElementsOf(expected)
       assertThat(programmeGroups.probationDeliveryUnitNames).containsExactly(
         "Another PDU Description",
         "PDU Description",
         "Test PDU 1",
       )
-      assertThat(programmeGroups.deliveryLocationNames).containsExactlyInAnyOrder("Location One", "Delivery Location 1")
+      assertThat(programmeGroups.deliveryLocationNames)
+        .containsExactlyInAnyOrderElementsOf(expectedLocations.split(";"))
     }
 
-    @Test
-    fun `NOT_STARTED_OR_IN_PROGRESS should return groups that have at least one referral without Programme complete status`() {
+    @ParameterizedTest
+    @EnumSource(value = ProgrammeGroupSexEnum::class, names = ["MALE", "FEMALE"])
+    fun `NOT_STARTED_OR_IN_PROGRESS should return groups that have at least one referral without Programme complete status`(sex: ProgrammeGroupSexEnum) {
       // Given a group that has all referrals completed (should be in COMPLETE tab)
       val completedGroup = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
-          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withSex(sex)
           .withCode("COMPLETED_GROUP")
           .withRegionName("Region Description")
           .withEarliestStartDate(LocalDate.now().minusDays(10))
@@ -377,7 +413,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       // Given a group that has one completed and one not completed referral (should be in NOT_STARTED_OR_IN_PROGRESS tab)
       val partiallyCompletedGroup = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
-          .withSex(ProgrammeGroupSexEnum.MALE)
+          .withSex(sex)
           .withCode("PARTIALLY_COMPLETED_GROUP")
           .withRegionName("Region Description")
           .withEarliestStartDate(LocalDate.now().minusDays(10))
@@ -401,7 +437,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         pdus = null,
         deliveryLocations = null,
         cohort = null,
-        sex = "MALE",
+        sex = listOf(sex.name),
         selectedTab = GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS,
         username = "the_username",
       )
@@ -410,6 +446,142 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(programmeGroups.pagedGroupData.map { it.code }).contains("PARTIALLY_COMPLETED_GROUP")
       assertThat(programmeGroups.pagedGroupData.map { it.code }).doesNotContain("COMPLETED_GROUP")
     }
+
+    @ParameterizedTest
+    @EnumSource(value = ProgrammeGroupSexEnum::class, names = ["MALE", "FEMALE"])
+    fun `COMPLETE should include a group where every active member completed and a member was removed early without completing`(sex: ProgrammeGroupSexEnum) {
+      val group = createStartedGroup("COMPLETED_WITH_DROPOUT", sex)
+
+      val completer = createReferralWithProgrammeCompleteStatus("Completer", "CRN_C")
+      val completerMembership =
+        testDataGenerator.allocateReferralsToGroup(listOf(completer), group, deletedAt = LocalDateTime.now()).first()
+      createAttendedPostProgrammeReview(group, completerMembership)
+
+      val dropout = testDataGenerator.createReferral("Dropout", "CRN_D")
+      testDataGenerator.allocateReferralsToGroup(listOf(dropout), group, deletedAt = LocalDateTime.now())
+
+      assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE, sex)).contains("COMPLETED_WITH_DROPOUT")
+      assertThat(groupCodesForTab(GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS, sex)).doesNotContain("COMPLETED_WITH_DROPOUT")
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ProgrammeGroupSexEnum::class, names = ["MALE", "FEMALE"])
+    fun `a group where every member was removed early without completing is not complete`(sex: ProgrammeGroupSexEnum) {
+      val group = createStartedGroup("ALL_DROPOUTS", sex)
+      val referralOne = testDataGenerator.createReferral("Dropout One", "CRN_D1")
+      val referralTwo = testDataGenerator.createReferral("Dropout Two", "CRN_D2")
+      testDataGenerator.allocateReferralsToGroup(listOf(referralOne, referralTwo), group, deletedAt = LocalDateTime.now())
+
+      assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE, sex)).doesNotContain("ALL_DROPOUTS")
+      assertThat(groupCodesForTab(GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS, sex)).contains("ALL_DROPOUTS")
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ProgrammeGroupSexEnum::class, names = ["MALE", "FEMALE"])
+    fun `a group is not complete while a member is still active and working through the programme`(sex: ProgrammeGroupSexEnum) {
+      val group = createStartedGroup("PARTIALLY_ACTIVE", sex)
+
+      val completer = createReferralWithProgrammeCompleteStatus("Completer", "CRN_PC")
+      val completerMembership =
+        testDataGenerator.allocateReferralsToGroup(listOf(completer), group, deletedAt = LocalDateTime.now()).first()
+      createAttendedPostProgrammeReview(group, completerMembership)
+
+      val inProgress = testDataGenerator.createReferral("In Progress", "CRN_IP")
+      testDataGenerator.allocateReferralsToGroup(listOf(inProgress), group)
+
+      assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE, sex)).doesNotContain("PARTIALLY_ACTIVE")
+      assertThat(groupCodesForTab(GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS, sex)).contains("PARTIALLY_ACTIVE")
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ProgrammeGroupSexEnum::class, names = ["MALE", "FEMALE"])
+    fun `a group is not complete when a member's only post-programme review attendance belongs to a different group`(sex: ProgrammeGroupSexEnum) {
+      val group = createStartedGroup("GROUP_AWAITING_COMPLETION", sex)
+      val otherGroup = createStartedGroup("GROUP_WITH_THE_REVIEW", sex)
+
+      val referral = createReferralWithProgrammeCompleteStatus("Cross Group", "CRN_XG")
+      val membership = testDataGenerator.allocateReferralsToGroup(listOf(referral), group).first()
+
+      val template = testDataGenerator.createAccreditedProgrammeTemplate("Template GROUP_WITH_THE_REVIEW")
+      val module = testDataGenerator.createModule(template, "post-programme review", 1)
+      val moduleSessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        module = module,
+        name = "Post Programme Session",
+        sessionNumber = 1,
+      )
+      val otherGroupSession = testDataGenerator.createSession(
+        SessionFactory(programmeGroup = otherGroup, moduleSessionTemplate = moduleSessionTemplate).produce(),
+      )
+      testDataGenerator.createSessionAttendance(
+        SessionAttendanceEntity(
+          session = otherGroupSession,
+          groupMembership = membership,
+          outcomeType = attendedCompliedOutcome(),
+        ),
+      )
+
+      assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE, sex)).doesNotContain("GROUP_AWAITING_COMPLETION")
+      assertThat(groupCodesForTab(GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS, sex)).contains("GROUP_AWAITING_COMPLETION")
+    }
+
+    private fun createStartedGroup(code: String, sex: ProgrammeGroupSexEnum): ProgrammeGroupEntity = testDataGenerator.createGroup(
+      ProgrammeGroupFactory()
+        .withSex(sex)
+        .withCode(code)
+        .withRegionName("Region Description")
+        .withEarliestStartDate(LocalDate.now().minusDays(10))
+        .produce(),
+    )
+
+    private fun createReferralWithProgrammeCompleteStatus(personName: String, crn: String): ReferralEntity {
+      val referral = testDataGenerator.createReferral(personName, crn)
+      testDataGenerator.creatReferralStatusHistory(
+        ReferralStatusHistoryEntityFactory().produce(
+          referral = referral,
+          referralStatusDescription = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription(),
+        ),
+      )
+      return referral
+    }
+
+    private fun createAttendedPostProgrammeReview(
+      group: ProgrammeGroupEntity,
+      membership: ProgrammeGroupMembershipEntity,
+    ) {
+      val template = testDataGenerator.createAccreditedProgrammeTemplate("Template ${group.code}")
+      val module = testDataGenerator.createModule(template, "post-programme review", 1)
+      val moduleSessionTemplate = testDataGenerator.createModuleSessionTemplate(
+        module = module,
+        name = "Post Programme Session",
+        sessionNumber = 1,
+      )
+      val session = testDataGenerator.createSession(
+        SessionFactory(programmeGroup = group, moduleSessionTemplate = moduleSessionTemplate).produce(),
+      )
+      testDataGenerator.createSessionAttendance(
+        SessionAttendanceEntity(
+          session = session,
+          groupMembership = membership,
+          outcomeType = attendedCompliedOutcome(),
+        ),
+      )
+    }
+
+    private fun attendedCompliedOutcome() = sessionAttendanceOutcomeTypeRepository.findByCode(SessionAttendanceNDeliusCode.ATTC)
+      ?: testDataGenerator.createSessionAttendanceOutcome(
+        SessionAttendanceNDeliusOutcomeEntityFactory().withCode(SessionAttendanceNDeliusCode.ATTC).produce(),
+      )
+
+    private fun groupCodesForTab(tab: GroupPageByRegionTab, sex: ProgrammeGroupSexEnum): List<String> = service.getProgrammeGroupsForRegion(
+      pageable = pageable,
+      groupCode = null,
+      pdus = null,
+      deliveryLocations = null,
+      cohort = null,
+      sex = listOf(sex.name),
+      selectedTab = tab,
+      username = "the_username",
+    ).pagedGroupData.content.map { it.code }
   }
 
   @Nested
@@ -538,8 +710,12 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       assertThat(gettingStartedModule).isNotNull
       val gettingStartedModuleId = gettingStartedModule!!.id!!
 
-      // Find regular module
-      val regularModule = modules.find { it.moduleNumber == modules[3].moduleNumber }
+      // Find regular module - skip Pre-group, Getting Started, and Post-programme modules
+      val regularModule = modules.find {
+        !it.name.startsWith("Pre-group") &&
+          !it.name.startsWith("Getting started") &&
+          !it.name.startsWith("Post-programme")
+      }
       assertThat(regularModule).isNotNull
       val regularModuleId = regularModule!!.id!!
 
@@ -785,7 +961,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(programmeGroup)
-          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.GROUP })
+          .withModuleSessionTemplate(regularModuleSessions.first())
           .withStartsAt(LocalDateTime.of(2026, 7, 20, 15, 30))
           .withEndsAt(LocalDateTime.of(2026, 7, 20, 17, 30))
           .withIsPlaceholder(false)
@@ -795,7 +971,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(programmeGroup)
-          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.GROUP })
+          .withModuleSessionTemplate(regularModuleSessions.first())
           .withStartsAt(LocalDateTime.of(2026, 7, 27, 15, 30))
           .withEndsAt(LocalDateTime.of(2026, 7, 27, 17, 30))
           .withIsPlaceholder(false)
@@ -805,7 +981,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.createSession(
         SessionFactory()
           .withProgrammeGroup(programmeGroup)
-          .withModuleSessionTemplate(regularModuleSessions.first { it.sessionType == SessionType.ONE_TO_ONE })
+          .withModuleSessionTemplate(regularModuleSessions.last())
           .withStartsAt(LocalDateTime.of(2026, 7, 27, 15, 30))
           .withEndsAt(LocalDateTime.of(2026, 7, 27, 17, 30))
           .withIsPlaceholder(false)

@@ -10,8 +10,8 @@ import java.util.UUID
 fun getGroupWaitlistItemSpecification(
   selectedTab: GroupPageTab,
   groupId: UUID,
-  sex: String?,
-  cohort: ProgrammeGroupCohort?,
+  sex: List<String>?,
+  cohorts: List<ProgrammeGroupCohort>?,
   nameOrCRN: String?,
   pdus: List<String>?,
   reportingTeams: List<String>?,
@@ -30,14 +30,19 @@ fun getGroupWaitlistItemSpecification(
       predicates.add(criteriaBuilder.equal(root.get<String>("regionName"), regionName))
       predicates.add(criteriaBuilder.equal(root.get<String>("status"), "Awaiting allocation"))
       predicates.add(criteriaBuilder.isNull(root.get<UUID>("activeProgrammeGroupId")))
-      sex?.let {
-        predicates.add(criteriaBuilder.equal(root.get<String>("sex"), it))
+      sex?.takeIf { it.isNotEmpty() }?.let {
+        predicates.add(root.get<String>("sex").`in`(it))
       }
 
-      cohort?.let {
-        val (offenceType, hasLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(it)
-        predicates.add(criteriaBuilder.equal(root.get<String>("cohort"), offenceType.name))
-        predicates.add(criteriaBuilder.equal(root.get<Boolean>("hasLdc"), hasLdc))
+      cohorts?.takeIf { it.isNotEmpty() }?.let { cohortList ->
+        val cohortOrPredicates = cohortList.map { cohort ->
+          val (offenceType, hasLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(cohort)
+          criteriaBuilder.and(
+            criteriaBuilder.equal(root.get<String>("cohort"), offenceType.name),
+            criteriaBuilder.equal(root.get<Boolean>("hasLdc"), hasLdc),
+          )
+        }
+        predicates.add(criteriaBuilder.or(*cohortOrPredicates.toTypedArray()))
       }
 
       pdus?.let {

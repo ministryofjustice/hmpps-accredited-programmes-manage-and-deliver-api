@@ -9,9 +9,6 @@ hmpps-auth:
   url: "http://localhost:9999/auth"
 
 app:
-  features:
-    lao-access-check-enabled: true
-    exclusion-access-check-enabled: true
   scheduling:
     referral-details-updated:
       cron: "0 0 1 * * *"  # every day at 1 AM
@@ -50,7 +47,7 @@ hmpps:
         queueName: hmpps_domain_events_queue
         dlqName: hmpps_domain_events_dlq
         subscribeTopicId: hmppseventtopic
-        subscribeFilter: '{"eventType":[ "interventions.community-referral.created", "interventions.community-referral.imported", "probation-case.merge.completed", "probation-case.unmerge.completed", "accredited-programmes-manage-and-deliver.referral.details-updated"] }'
+        subscribeFilter: '{"eventType":[ "interventions.community-referral.created", "interventions.community-referral.imported", "probation-case.merge.completed", "probation-case.unmerge.completed", "accredited-programmes-manage-and-deliver.referral.details-updated", "probation-case.sentence.deleted"] }'
         asyncQueueClient: true
 
     topics:
@@ -59,7 +56,7 @@ hmpps:
   sar:
     additionalAccessRole: ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR
     template:
-      path: /sar_template.mustache
+      path: /sar/templates/V1__sar_template.mustache
       enabled: true
     tests:
       expected-api-response:
@@ -67,7 +64,7 @@ hmpps:
       expected-render-result:
         path: /sar/sar-expected-render-result.html
       attachments-expected: false
-      expected-flyway-schema-version: 114
+      expected-flyway-schema-version: 122
       expected-jpa-entity-schema:
         path: /sar/entity-schema-snapshot.json
 

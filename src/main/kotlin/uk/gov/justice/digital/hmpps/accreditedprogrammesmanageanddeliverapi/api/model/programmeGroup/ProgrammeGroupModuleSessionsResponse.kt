@@ -80,8 +80,8 @@ data class ProgrammeGroupModuleSessionsResponseGroupSession(
   @Schema(description = "The time of the session with special times capitalised", required = true, example = "11am to Midday")
   val timeWithCapitalisedMidday: String = "",
 
-  @Schema(description = "The names of the participants in the session", required = true, example = "[\"John Doe\", \"Jane Smith\"]")
-  val participants: List<String>,
+  @Schema(description = "The list of participants in the session", required = true)
+  val participants: List<Participant>,
 
   @Schema(description = "The names of the facilitators in the session", required = true, example = "[\"John Doe\", \"Jane Smith\"]")
   val facilitators: List<String>,
@@ -93,4 +93,15 @@ data class StartDateText(
 
   @Schema(description = "The date of the earliest session", required = true, example = "Thursday 12 January 2023")
   val sessionStartDate: String,
+)
+
+data class Participant(
+  @Schema(description = "The name of the participant", required = true, example = "John Doe")
+  val name: String,
+  @Schema(description = "The CRN of the participant", example = "X12345")
+  val crn: String? = null,
+  @Schema(description = "A flag denoting whether the person is a limited access offender", example = "true")
+  val isLimitedAccessOffender: Boolean? = false,
+  @Schema(description = "A flag denoting whether the logged in user is excluded from viewing this person", example = "false")
+  val isExcluded: Boolean? = false,
 )

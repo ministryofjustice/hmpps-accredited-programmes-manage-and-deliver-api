@@ -195,6 +195,36 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `should force update referral status across an otherwise-invalid transition`() {
+    // Given - a referral whose current status is 'Awaiting assessment'
+    val referralEntity = ReferralEntityFactory().produce()
+    testDataGenerator.createReferralWithStatusHistory(referralEntity)
+
+    // 'Awaiting assessment' -> 'On programme' is not a configured transition, so the normal
+    // update-status path would reject it. The force-status endpoint must bypass that guard.
+    val onProgrammeStatusDescription = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
+    val body = CreateReferralStatusHistoryFactory()
+      .withReferralStatusDescriptionId(onProgrammeStatusDescription.id)
+      .produce()
+
+    // When
+    val response = performRequestAndExpectStatusWithBody(
+      HttpMethod.POST,
+      "/admin/referral/${referralEntity.id}/force-status",
+      object : ParameterizedTypeReference<StatusUpdateResponse>() {},
+      body = body,
+      expectedResponseStatus = HttpStatus.OK.value(),
+    )
+
+    // Then
+    assertThat(response.referralStatusHistory.referralStatusDescriptionId).isEqualTo(onProgrammeStatusDescription.id)
+
+    val updatedReferralResult = referralRepository.findByIdOrNull(referralEntity.id!!)
+    assertThat(updatedReferralResult!!.statusHistories.first().referralStatusDescription.id)
+      .isEqualTo(onProgrammeStatusDescription.id)
+  }
+
+  @Test
   fun `should return 404 when force update referral status`() {
     val nonExistentReferralId = UUID.randomUUID()
     val body = CreateReferralStatusHistoryFactory().produce()

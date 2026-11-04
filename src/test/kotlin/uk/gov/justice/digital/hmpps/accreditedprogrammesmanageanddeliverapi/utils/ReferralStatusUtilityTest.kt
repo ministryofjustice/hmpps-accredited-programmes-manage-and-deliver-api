@@ -6,11 +6,6 @@ import org.junit.jupiter.api.Test
 class ReferralStatusUtilityTest {
 
   @Test
-  fun `formatStatus returns Breach for Breach (non-attendance)`() {
-    assertThat(ReferralStatusUtils.formatStatus("Breach (non-attendance)")).isEqualTo("Breach")
-  }
-
-  @Test
   fun `formatStatus returns description unchanged for all other statuses`() {
     assertThat(ReferralStatusUtils.formatStatus("Awaiting allocation")).isEqualTo("Awaiting allocation")
     assertThat(ReferralStatusUtils.formatStatus("On programme")).isEqualTo("On programme")
@@ -22,11 +17,6 @@ class ReferralStatusUtilityTest {
     assertThat(ReferralStatusUtils.formatStatus("Return to court")).isEqualTo("Return to court")
     assertThat(ReferralStatusUtils.formatStatus("Programme complete")).isEqualTo("Programme complete")
     assertThat(ReferralStatusUtils.formatStatus("Withdrawn")).isEqualTo("Withdrawn")
-  }
-
-  @Test
-  fun `unformatStatus returns Breach (non-attendance) for Breach`() {
-    assertThat(ReferralStatusUtils.unformatStatus("Breach")).isEqualTo("Breach (non-attendance)")
   }
 
   @Test
@@ -43,13 +33,13 @@ class ReferralStatusUtilityTest {
   @Test
   fun `sortStatuses returns all statuses in correct full order`() {
     val input = listOf(
-      "Withdrawn", "Return to court", "Recall", "Breach", "Deprioritised",
-      "Deferred", "Suitable but not ready", "On programme", "Scheduled",
+      "Withdrawn", "Return to court", "Recall", "Breach",
+      "On hold", "Suitable but not ready", "On programme", "Scheduled",
       "Awaiting allocation", "Awaiting assessment", "Programme complete",
     )
     val expected = listOf(
       "Awaiting assessment", "Awaiting allocation", "Scheduled", "On programme",
-      "Suitable but not ready", "Deferred", "Deprioritised", "Breach",
+      "Suitable but not ready", "On hold", "Breach",
       "Recall", "Return to court", "Programme complete", "Withdrawn",
     )
     assertThat(ReferralStatusUtils.sortStatuses(input)).isEqualTo(expected)

@@ -28,11 +28,18 @@ class SubjectAccessRequestService(
     crn: String,
     fromDate: LocalDate?,
     toDate: LocalDate?,
-  ): HmppsSubjectAccessRequestContent {
+  ): HmppsSubjectAccessRequestContent? {
     log.info("Retrieving subject access request content for crn: $crn")
     val referrals = getSubjectAccessRequestReferrals(crn, fromDate, toDate)
     log.info("Retrieved ${referrals.size} referrals")
-    log.info("referrals: $referrals")
+    // Per the HMPPS SAR component API spec, respond with HTTP 204 (no content)
+    // when we recognise the identifier type but hold no data for the subject.
+    // Returning `null` here signals the starter's SAR controller to emit 204,
+    // which lets the SAR collator render its single top-level "no data held"
+    // section instead of our template rendering every empty sub-section.
+    if (referrals.isEmpty()) {
+      return null
+    }
     val content = SubjectAccessRequestContent(referrals)
 
     return HmppsSubjectAccessRequestContent(content)

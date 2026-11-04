@@ -5,12 +5,16 @@ import io.mockk.mockk
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatusCode
+import org.springframework.transaction.support.TransactionCallback
+import org.springframework.transaction.support.TransactionTemplate
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.findAndReferInterventionApi.FindAndReferInterventionApiClient
@@ -21,7 +25,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.comm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralStatusUpdateEvent
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.CreateReferralStatusHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusCaseRequirementOrLicenceConditionResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
@@ -41,6 +44,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_SENTENCE_REFERENCE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_STATUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.VIEW_REFERRAL
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
@@ -80,8 +85,11 @@ class ReferralServiceTest {
   private val telemetryService: TelemetryService = mockk()
   private val probationAccessControlApiClient: ProbationAccessControlApiClient = mockk()
   private val sessionRepository: SessionRepository = mockk()
-  private val authenticationHolder: HmppsAuthenticationHolder = mockk()
   private val userAccessService: UserAccessService = mockk()
+  private val authenticationHolder: HmppsAuthenticationHolder = mockk()
+  private val transactionTemplate: TransactionTemplate = mockk()
+  private val nDeliusAppointmentRepository: NDeliusAppointmentRepository = mockk()
+  private val messageHistoryRepository: MessageHistoryRepository = mockk()
 
   private lateinit var referralService: ReferralService
 
@@ -112,9 +120,11 @@ class ReferralServiceTest {
       applicationEventPublisher = applicationEventPublisher,
       probationAccessControlApiClient = probationAccessControlApiClient,
       sessionRepository = sessionRepository,
-      laoAccessCheckEnabled = true,
-      userAccessService = userAccessService,
       authenticationHolder = authenticationHolder,
+      transactionTemplate = transactionTemplate,
+      nDeliusAppointmentRepository = nDeliusAppointmentRepository,
+      messageHistoryRepository = messageHistoryRepository,
+      userAccessService = userAccessService,
     )
   }
 
@@ -181,6 +191,220 @@ class ReferralServiceTest {
 
     assertThrows<BusinessException> { referralService.getFindAndReferReferralDetails(referralId) }
     verify { findAndReferInterventionApiClient.getFindAndReferReferral(referralId) }
+  }
+
+  @Suppress("UNCHECKED_CAST")
+  @Test
+  fun `deleteReferralByCaseReferenceNumber should delete referrals when they are not found in NDelius`() {
+    // Given
+    val crn = "X123456"
+    val requirementReferral = ReferralEntityFactory()
+      .withCrn(crn)
+      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
+      .withEventId("req-123")
+      .produce()
+
+    val licenceConditionReferral = ReferralEntityFactory()
+      .withCrn(crn)
+      .withSourcedFrom(ReferralEntitySourcedFrom.LICENCE_CONDITION)
+      .withEventId("lc-456")
+      .produce()
+
+    every { referralRepository.findByCrn(crn) } returns listOf(requirementReferral, licenceConditionReferral)
+    every {
+      nDeliusIntegrationApiClient.getRequirementManagerDetails(
+        crn,
+        "req-123",
+      )
+    } returns ClientResult.Failure.StatusCode(
+      method = HttpMethod.GET,
+      path = "/some-path",
+      status = HttpStatusCode.valueOf(404),
+      body = null,
+      serviceName = "n-delius",
+    )
+    every {
+      nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(
+        crn,
+        "lc-456",
+      )
+    } returns ClientResult.Failure.StatusCode(
+      method = HttpMethod.GET,
+      path = "/some-path",
+      status = HttpStatusCode.valueOf(404),
+      body = null,
+      serviceName = "n-delius",
+    )
+    every { referralRepository.delete(any()) } returns Unit
+    every { transactionTemplate.execute(any<TransactionCallback<Any>>()) } answers {
+      val callback = it.invocation.args[0] as TransactionCallback<Any>
+      callback.doInTransaction(mockk())
+    }
+    every { nDeliusAppointmentRepository.deleteByReferral(any()) } returns Unit
+    every { messageHistoryRepository.deleteByReferral(any()) } returns Unit
+
+    // When
+    referralService.deleteReferralByCaseReferenceNumber(crn)
+
+    // Then
+    verify { referralRepository.delete(requirementReferral) }
+    verify { referralRepository.delete(licenceConditionReferral) }
+    verify { transactionTemplate.execute(any()) }
+    verify { nDeliusAppointmentRepository.deleteByReferral(any()) }
+    verify { messageHistoryRepository.deleteByReferral(any()) }
+  }
+
+  @Test
+  fun `deleteReferralByCaseReferenceNumber should not delete referrals when they are found in NDelius`() {
+    // Given
+    val crn = "X123456"
+    val referral = ReferralEntityFactory()
+      .withCrn(crn)
+      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
+      .withEventId("req-123")
+      .produce()
+
+    val managerResponse = NDeliusCaseRequirementOrLicenceConditionResponseFactory().produce()
+
+    every { referralRepository.findByCrn(crn) } returns listOf(referral)
+    every { nDeliusIntegrationApiClient.getRequirementManagerDetails(crn, "req-123") } returns ClientResult.Success(
+      status = HttpStatusCode.valueOf(200),
+      body = managerResponse,
+    )
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When
+    referralService.deleteReferralByCaseReferenceNumber(crn)
+
+    // Then
+    verify(exactly = 0) { referralRepository.delete(any()) }
+    verify(exactly = 0) { transactionTemplate.execute(any()) }
+    verify(exactly = 0) { nDeliusAppointmentRepository.deleteByReferral(any()) }
+    verify(exactly = 0) { messageHistoryRepository.deleteByReferral(any()) }
+    verify(exactly = 1) {
+      telemetryService.logToAppInsights(
+        eventName = "RequirementManagerDetails.get-nDelius.success",
+        integrationActionType = "GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS",
+        outcome = "success",
+      )
+    }
+  }
+
+  @Test
+  fun `deleteReferralByCaseReferenceNumber should return early if no referrals are found`() {
+    // Given
+    val crn = "X123456"
+    every { referralRepository.findByCrn(crn) } returns emptyList()
+
+    // When
+    referralService.deleteReferralByCaseReferenceNumber(crn)
+
+    // Then
+    verify(exactly = 0) { nDeliusIntegrationApiClient.getRequirementManagerDetails(any(), any()) }
+    verify(exactly = 0) { nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(any(), any()) }
+    verify(exactly = 0) { referralRepository.delete(any()) }
+  }
+
+  @Test
+  fun `deleteReferralByCaseReferenceNumber should throw BusinessException when NDelius call fails with 500`() {
+    // Given
+    val crn = "X123456"
+    val referral = ReferralEntityFactory()
+      .withCrn(crn)
+      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
+      .withEventId("req-123")
+      .produce()
+
+    every { referralRepository.findByCrn(crn) } returns listOf(referral)
+    every {
+      nDeliusIntegrationApiClient.getRequirementManagerDetails(
+        crn,
+        "req-123",
+      )
+    } returns ClientResult.Failure.StatusCode(
+      method = HttpMethod.GET,
+      path = "/some-path",
+      status = HttpStatusCode.valueOf(500),
+      body = "Bad Request",
+      serviceName = "n-delius",
+    )
+
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When & Then
+    assertThrows<BusinessException> {
+      referralService.deleteReferralByCaseReferenceNumber(crn)
+    }
+
+    verify(exactly = 0) { referralRepository.delete(any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "RequirementManagerDetails.get-nDelius.failure",
+        integrationActionType = "GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS",
+        outcome = "failure",
+      )
+    }
+  }
+
+  @Test
+  fun `deleteReferralByCaseReferenceNumber should skip referrals with no eventId or null sourcedFrom`() {
+    // Given
+    val crn = "X123456"
+    val referralNullSourcedFrom = ReferralEntityFactory()
+      .withCrn(crn)
+      .withSourcedFrom(null)
+      .withEventId("req-123")
+      .produce()
+
+    every { referralRepository.findByCrn(crn) } returns listOf(referralNullSourcedFrom)
+
+    // When
+    referralService.deleteReferralByCaseReferenceNumber(crn)
+
+    // Then
+    verify(exactly = 0) { nDeliusIntegrationApiClient.getRequirementManagerDetails(any(), any()) }
+    verify(exactly = 0) { referralRepository.delete(any()) }
+  }
+
+  @Test
+  fun `deleteReferralByCaseReferenceNumber should not throw exception when NDelius call fails with 400`() {
+    // Given
+    val crn = "X123456"
+    val referral = ReferralEntityFactory()
+      .withCrn(crn)
+      .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
+      .withEventId("req-123")
+      .produce()
+
+    every { referralRepository.findByCrn(crn) } returns listOf(referral)
+    every {
+      nDeliusIntegrationApiClient.getRequirementManagerDetails(
+        crn,
+        "req-123",
+      )
+    } returns ClientResult.Failure.StatusCode(
+      method = HttpMethod.GET,
+      path = "/some-path",
+      status = HttpStatusCode.valueOf(400),
+      body = "Bad Request",
+      serviceName = "n-delius",
+    )
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+
+    // When
+    assertThrows<BusinessException> {
+      referralService.deleteReferralByCaseReferenceNumber(crn)
+    }
+
+    // Then
+    verify(exactly = 0) { referralRepository.delete(any()) }
+    verify {
+      telemetryService.logToAppInsights(
+        eventName = "RequirementManagerDetails.get-nDelius.failure",
+        integrationActionType = "GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS",
+        outcome = "failure",
+      )
+    }
   }
 
   @Test
@@ -482,51 +706,6 @@ class ReferralServiceTest {
         "failure",
       )
     }
-  }
-
-  @Test
-  fun `updateStatus should update referral status and return response`() {
-    // Given
-    val referralId = UUID.randomUUID()
-    val referralEntity = ReferralEntityFactory().withId(referralId).produce()
-    val createReferralStatusHistory = CreateReferralStatusHistoryFactory().produce()
-    val createdBy = "test-user"
-    val user = UserFactory().produce()
-
-    every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
-    every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
-
-    // Mock the overloaded updateStatus call
-    val incomingStatusDescription = ReferralStatusDescriptionEntityFactory().produce()
-    every { referralStatusDescriptionRepository.findByIdOrNull(any()) } returns incomingStatusDescription
-    val currentStatusHistory = ReferralStatusHistoryEntityFactory()
-      .withId(UUID.randomUUID())
-      .produce(referralEntity, ReferralStatusDescriptionEntityFactory().produce())
-    every { referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId) } returns currentStatusHistory
-    val transition = ReferralStatusTransitionEntityFactory().produce()
-    every { referralStatusTransitionRepository.findByFromStatusIdAndToStatusId(any(), any()) } returns transition
-    every { programmeGroupMembershipService.getCurrentlyAllocatedGroup(any()) } returns null
-    every { referralStatusHistoryRepository.save(any()) } returns ReferralStatusHistoryEntityFactory()
-      .withId(UUID.randomUUID())
-      .produce(referralEntity, incomingStatusDescription)
-    every { applicationEventPublisher.publishEvent(any<Any>()) } returns Unit
-    every { userService.getUserByUsernameOrNull(any()) } returns user
-
-    // When
-    referralService.updateStatus(referralId, createReferralStatusHistory, createdBy)
-
-    // Then
-    verify { referralRepository.findByIdOrNull(referralId) }
-    verify {
-      telemetryService.logToAppInsights(
-        referralEntity,
-        "Referral.admin-update-status.success",
-        UPDATE_REFERRAL_STATUS.name,
-        createReferralStatusHistory.referralStatusDescriptionId,
-        createdBy,
-      )
-    }
-    verify { userService.getUserByUsernameOrNull(createdBy) }
   }
 
   @Test
@@ -883,7 +1062,7 @@ class ReferralServiceTest {
     // Need to mock other things that createReferral calls
     every { referralRepository.findByCrnAndEventIdAndSourcedFrom(any(), any(), any()) } returns null
     every { pniService.getPniCalculation(crn) } returns mockk(relaxed = true)
-    every { sentenceService.getSentenceEndDate(any(), any(), any()) } returns null
+    every { sentenceService.getSentenceEndDateDetails(any(), any(), any()) } returns null
     every { cohortService.determineOffenceCohort(any()) } returns mockk(relaxed = true)
     val awaitingAssessmentStatusDescription = ReferralStatusDescriptionEntityFactory().produce()
     every { referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription() } returns awaitingAssessmentStatusDescription
@@ -893,6 +1072,7 @@ class ReferralServiceTest {
     every { referralCohortHistoryRepository.save(any()) } returns mockk(relaxed = true)
     every { referralLdcHistoryRepository.save(any()) } returns mockk(relaxed = true)
     every { referralReportingLocationRepository.save(any()) } returns mockk(relaxed = true)
+    every { applicationEventPublisher.publishEvent(any<ReferralStatusUpdateEvent>()) } returns Unit
 
     // When
     referralService.createReferral(referralDetails)
@@ -906,11 +1086,13 @@ class ReferralServiceTest {
         "success",
       )
     }
+    verify { applicationEventPublisher.publishEvent(any<ReferralStatusUpdateEvent>()) }
   }
 
   @Test
   fun `getPersonalDetails should return null and log failure when call fails`() {
     // Given
+    val referralId = UUID.randomUUID()
     val crn = "X123456"
     val referralDetails = FindAndReferReferralDetailsFactory().withPersonReference(crn).produce()
 
@@ -925,16 +1107,17 @@ class ReferralServiceTest {
     // Other mocks for createReferral
     every { referralRepository.findByCrnAndEventIdAndSourcedFrom(any(), any(), any()) } returns null
     every { pniService.getPniCalculation(crn) } returns mockk(relaxed = true)
-    every { sentenceService.getSentenceEndDate(any(), any(), any()) } returns null
+    every { sentenceService.getSentenceEndDateDetails(any(), any(), any()) } returns null
     every { cohortService.determineOffenceCohort(any()) } returns mockk(relaxed = true)
     val awaitingAssessmentStatusDescription = ReferralStatusDescriptionEntityFactory().produce()
     every { referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription() } returns awaitingAssessmentStatusDescription
-    val savedReferral = ReferralEntityFactory().withId(UUID.randomUUID()).produce()
+    val savedReferral = ReferralEntityFactory().withId(referralId).produce()
     every { referralRepository.save(any()) } returns savedReferral
     every { referralStatusHistoryRepository.save(any()) } returns mockk(relaxed = true)
     every { referralCohortHistoryRepository.save(any()) } returns mockk(relaxed = true)
     every { referralLdcHistoryRepository.save(any()) } returns mockk(relaxed = true)
     every { referralReportingLocationRepository.save(any()) } returns mockk(relaxed = true)
+    every { applicationEventPublisher.publishEvent(any<ReferralStatusUpdateEvent>()) } returns Unit
 
     // When
     referralService.createReferral(referralDetails)
@@ -948,6 +1131,7 @@ class ReferralServiceTest {
         "failure",
       )
     }
+    verify { applicationEventPublisher.publishEvent(any<ReferralStatusUpdateEvent>()) }
   }
 
   @Test
@@ -1292,7 +1476,9 @@ class ReferralServiceTest {
 
     every { referralRepository.findByIdOrNull(referralId) } returns referral
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns membership
-    every { programmeGroupMembershipRepository.findAllByReferralIdWithAttendances(referralId) } returns listOf(membership)
+    every { programmeGroupMembershipRepository.findAllByReferralIdWithAttendances(referralId) } returns listOf(
+      membership,
+    )
     every { sessionRepository.findAllByProgrammeGroupIdIn(any()) } returns listOf(session, futureSession)
     every { programmeGroupService.getAttendanceTextFromOutcome(null) } returns "To be confirmed"
     every { sessionNameFormatter.format(any(), any()) } returns "Session 1"
@@ -1341,7 +1527,10 @@ class ReferralServiceTest {
     every { referralRepository.findByIdOrNull(referralId) } returns referral
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns newMembership
     // Ordered newest first, matching the repository's `ORDER BY pgm.createdAt DESC`.
-    every { programmeGroupMembershipRepository.findAllByReferralIdWithAttendances(referralId) } returns listOf(newMembership, oldMembership)
+    every { programmeGroupMembershipRepository.findAllByReferralIdWithAttendances(referralId) } returns listOf(
+      newMembership,
+      oldMembership,
+    )
     every { sessionRepository.findAllByProgrammeGroupIdIn(any()) } returns listOf(session)
     every { programmeGroupService.getAttendanceTextFromOutcome(attendance.outcomeType) } returns "Attended"
     every { sessionNameFormatter.format(any(), any()) } returns "Session 1"
@@ -1352,5 +1541,92 @@ class ReferralServiceTest {
     // Then
     assertThat(result.attendanceHistory).hasSize(1)
     assertThat(result.attendanceHistory.single().attendanceStatus).isEqualTo("Attended")
+  }
+
+  @Nested
+  @DisplayName("getReferralOnProgrammeStatus")
+  inner class GetReferralOnProgrammeStatus {
+    @Test
+    fun `should return most recent referral when multiple exist for a crn`() {
+      // Given
+      val crn = "X123456"
+      val statusDescription = ReferralStatusDescriptionEntityFactory()
+        .withDescription("Awaiting assessment")
+        .produce()
+
+      val olderId = UUID.randomUUID()
+      val olderReferral = ReferralEntityFactory()
+        .withId(olderId)
+        .withCrn(crn)
+        .withCreatedAt(LocalDateTime.now().minusDays(2))
+        .produce()
+      val olderStatusHistory = ReferralStatusHistoryEntityFactory().produce(olderReferral, statusDescription)
+      olderReferral.statusHistories = mutableListOf(olderStatusHistory)
+
+      val newerId = UUID.randomUUID()
+      val newerReferral = ReferralEntityFactory()
+        .withId(newerId)
+        .withCrn(crn)
+        .withCreatedAt(LocalDateTime.now())
+        .produce()
+      val newerStatusHistory = ReferralStatusHistoryEntityFactory().produce(newerReferral, statusDescription)
+      newerReferral.statusHistories = mutableListOf(newerStatusHistory)
+
+      every { referralRepository.findMostRecentByCrn(crn) } returns newerReferral
+
+      // When
+      val result = referralService.getReferralOnProgrammeStatus(crn)
+
+      // Then
+      assertThat(result).isNotNull
+      assertThat(result!!.referralId).isEqualTo(newerId)
+      assertThat(result.crn).isEqualTo(crn)
+      verify { referralRepository.findMostRecentByCrn(crn) }
+    }
+
+    @Test
+    fun `should return null when no referral exists for crn`() {
+      // Given
+      val crn = "X999999"
+      every { referralRepository.findMostRecentByCrn(crn) } returns null
+
+      // When
+      val result = referralService.getReferralOnProgrammeStatus(crn)
+
+      // Then
+      assertThat(result).isNull()
+      verify { referralRepository.findMostRecentByCrn(crn) }
+    }
+
+    @Test
+    fun `should return referral with correct status information`() {
+      // Given
+      val crn = "X123456"
+      val referralId = UUID.randomUUID()
+      val statusDescription = ReferralStatusDescriptionEntityFactory()
+        .withDescription("Awaiting assessment")
+        .produce()
+      val referral = ReferralEntityFactory()
+        .withId(referralId)
+        .withCrn(crn)
+        .withEventId("12345")
+        .withEventNumber(1)
+        .produce()
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(referral, statusDescription)
+      referral.statusHistories = mutableListOf(statusHistory)
+
+      every { referralRepository.findMostRecentByCrn(crn) } returns referral
+
+      // When
+      val result = referralService.getReferralOnProgrammeStatus(crn)
+
+      // Then
+      assertThat(result).isNotNull
+      assertThat(result!!.referralId).isEqualTo(referralId)
+      assertThat(result.crn).isEqualTo(crn)
+      assertThat(result.eventId).isEqualTo("12345")
+      assertThat(result.eventNumber).isEqualTo(1)
+      assertThat(result.currentStatus).isEqualTo("Awaiting assessment")
+    }
   }
 }

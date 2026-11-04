@@ -19,12 +19,12 @@ fun PniResponse.toPniScore(sourcedFrom: ReferralEntitySourcedFrom? = null) = Pni
   ),
   validationErrors = emptyList(),
   hasLdc = this.hasLdc(),
-  ldcScore = assessment?.ldc?.score,
+  ldcScore = assessment?.ldc?.subTotal,
   displayIneligibleWarning = shouldDisplayIneligibleWarning(Type.toIntensity(pniCalculation?.pni), sourcedFrom),
 )
 
-fun PniResponse.hasLdc(): Boolean = assessment?.ldc?.subTotal?.let { subTotal ->
-  subTotal >= LEARNING_DISABILITIES_AND_CHALLENGES_THRESHOLD
+fun PniResponse.hasLdc(): Boolean = assessment?.ldc?.subTotal?.let { score ->
+  score >= LEARNING_DISABILITIES_AND_CHALLENGES_THRESHOLD
 } ?: false
 
 private fun shouldDisplayIneligibleWarning(

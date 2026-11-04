@@ -1,5 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
+import com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
@@ -24,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupTeamMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.EditSessionAttendeesResponse
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RemoveFromGroupRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.RescheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.recordAttendance.RecordSessionAttendance
@@ -36,6 +39,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegionWithMembers
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RegionDto
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequestCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
@@ -64,6 +68,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UpdateAppointmentRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UpdateAppointmentsRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserDtoFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.MemberDtoFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.RegionDtoFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.TeamDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
@@ -71,7 +78,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.BankHolidayRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ProgrammeGroupMembershipService
@@ -110,6 +119,12 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var sessionAttendanceOutcomeTypeRepository: SessionAttendanceOutcomeTypeRepository
+
+  @Autowired
+  private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
+
+  @Autowired
+  private lateinit var nDeliusAppointmentRepository: NDeliusAppointmentRepository
 
   @Nested
   @DisplayName("GET /bff/session/{sessionId}")
@@ -339,7 +354,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response.sessionName).isEqualTo("Managing people around me 6 catch-up")
+      assertThat(response.sessionName).isEqualTo("People around me 6 catch-up")
     }
 
     @Test
@@ -381,6 +396,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `getRescheduleSessionDetails returns 200 and reschedule details for post-programme review`() {
       // Given
+      stubAuthTokenEndpoint()
       val programmeTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
       val sessionTemplate = moduleSessionTemplateRepository.findByName("Post-programme review")
 
@@ -403,6 +419,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         crn = "Y654321",
       )
       testDataGenerator.createAttendee(referral, session)
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
       // When
       val response = performRequestAndExpectOk(
@@ -419,55 +436,6 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
   @Nested
   @DisplayName("PUT /session/{sessionId}/reschedule")
   inner class RescheduleSession {
-    @Test
-    fun `should return HTTP 400 code when attempting to amend the duration of a session in the past `() {
-      // Given
-      val programmeTemplate = testDataGenerator.createAccreditedProgrammeTemplate("Test Programme")
-      val module = testDataGenerator.createModule(programmeTemplate, "Test Module", 1)
-      val sessionTemplate = testDataGenerator.createModuleSessionTemplate(
-        ModuleSessionTemplateEntity(
-          module = module,
-          sessionNumber = 2,
-          sessionType = SessionType.GROUP,
-          pathway = Pathway.MODERATE_INTENSITY,
-          name = "Test Session Template",
-          durationMinutes = 120,
-        ),
-      )
-      val group = testDataGenerator.createGroup(
-        ProgrammeGroupFactory()
-          .withAccreditedProgrammeTemplate(programmeTemplate)
-          .withCode("RESCHED")
-          .produce(),
-      )
-      val session = testDataGenerator.createSession(
-        SessionFactory()
-          .withProgrammeGroup(group)
-          .withModuleSessionTemplate(sessionTemplate)
-          .withStartsAt(LocalDateTime.now().minusDays(2).withHour(13).withMinute(30))
-          .withEndsAt(LocalDateTime.now().minusDays(2).withHour(14).withMinute(30))
-          .produce(),
-      )
-
-      val rescheduleRequest = RescheduleSessionRequest(
-        sessionStartDate = LocalDate.now().plusDays(2),
-        sessionStartTime = SessionTime(hour = 9, minutes = 0, amOrPm = AmOrPm.AM),
-        sessionEndTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
-        rescheduleOtherSessions = false,
-      )
-
-      // When
-      val response = performRequestAndExpectStatusWithBody(
-        httpMethod = HttpMethod.PUT,
-        uri = "/session/${session.id}/reschedule",
-        body = rescheduleRequest,
-        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
-        expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
-      )
-
-      // Then
-      assertThat(response.userMessage).isEqualTo("Bad request: The session duration cannot be longer than originally scheduled. Change the start or end time.")
-    }
 
     @Test
     fun `should return HTTP 400 when requested session end time is before start time`() {
@@ -1072,6 +1040,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
               .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
               .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
               .withNotes(null)
+              .withDescription("Test Module 2")
               .produce(),
             UpdateAppointmentRequestFactory()
               .withReference(placeholderOneToOneAppointment.ndeliusAppointmentId)
@@ -1082,6 +1051,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
               .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
               .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
               .withNotes(null)
+              .withDescription("Session 3")
               .produce(),
             UpdateAppointmentRequestFactory()
               .withReference(appointment1.ndeliusAppointmentId)
@@ -1092,6 +1062,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
               .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
               .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
               .withNotes(null)
+              .withDescription("Test Module 1")
               .produce(),
           ),
         )
@@ -1163,6 +1134,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
               .withStaff(RequestCode(regularFacilitator.ndeliusPersonCode))
               .withTeam(RequestCode(regularFacilitator.ndeliusTeamCode))
               .withNotes(null)
+              .withDescription("Post-programme review")
               .produce(),
           ),
         )
@@ -1472,6 +1444,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           .withModuleSessionTemplate(sessionTemplate!!)
           .produce(),
       )
+      val regularFacilitator = testDataGenerator.createFacilitator(FacilitatorEntityFactory().withId(null).produce())
+      testDataGenerator.createSessionFacilitator(session, regularFacilitator)
+
       referral1 = testDataGenerator.createReferral(
         personName = "John Doe",
         crn = "X123456",
@@ -1483,8 +1458,122 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should allow adding an appointment to a past session`() {
+      // Given
+      stubAuthTokenEndpoint()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      session.startsAt = LocalDateTime.now().minusDays(1)
+      session.endsAt = LocalDateTime.now().minusDays(1).plusHours(1)
+      sessionRepository.save(session)
+
+      val request = UpdateSessionAttendeesRequest(referralIdList = listOf(referral1.id!!))
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        HttpMethod.PUT,
+        "/session/${session.id}/attendees",
+        object : ParameterizedTypeReference<String>() {},
+        request,
+        HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response).isEqualTo("John Doe has been added to this session.")
+
+      val updatedSession = sessionRepository.findById(session.id!!).get()
+      assertThat(updatedSession.attendees).hasSize(1)
+      assertThat(updatedSession.attendees.single().referral.id).isEqualTo(referral1.id)
+
+      wiremock.verify(1, postRequestedFor(urlEqualTo("/appointments")))
+      wiremock.verify(0, putRequestedFor(urlEqualTo("/appointments")))
+      wiremock.verify(0, deleteRequestedFor(urlEqualTo("/appointments")))
+
+      assertThat(nDeliusAppointmentRepository.findBySessionId(session.id!!))
+        .extracting<UUID> { it.referral.id }
+        .containsExactly(referral1.id)
+    }
+
+    @Test
+    fun `should leave appointments unchanged when attempting to remove an appointment from a past session`() {
+      // Given
+      stubAuthTokenEndpoint()
+      testDataGenerator.createAttendee(referral1, session)
+      val existingAppointment = testDataGenerator.createNDeliusAppointment(session, referral1)
+
+      session.startsAt = LocalDateTime.now().minusDays(1)
+      session.endsAt = LocalDateTime.now().minusDays(1).plusHours(1)
+      sessionRepository.save(session)
+
+      val request = UpdateSessionAttendeesRequest(referralIdList = listOf(referral1.id!!))
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        HttpMethod.PUT,
+        "/session/${session.id}/attendees",
+        object : ParameterizedTypeReference<String>() {},
+        request,
+        HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response).isEqualTo("No changes were made")
+
+      val updatedSession = sessionRepository.findById(session.id!!).get()
+      assertThat(updatedSession.attendees).hasSize(1)
+      assertThat(updatedSession.attendees.single().referral.id).isEqualTo(referral1.id)
+
+      assertThat(nDeliusAppointmentRepository.findBySessionId(session.id!!))
+        .extracting<UUID> { it.ndeliusAppointmentId }
+        .containsExactly(existingAppointment.ndeliusAppointmentId)
+
+      wiremock.verify(0, postRequestedFor(urlEqualTo("/appointments")))
+      wiremock.verify(0, deleteRequestedFor(urlEqualTo("/appointments")))
+    }
+
+    @Test
+    fun `should reject adding and removing attendees when request removes an appointment from a past session`() {
+      // Given
+      stubAuthTokenEndpoint()
+      testDataGenerator.createAttendee(referral1, session)
+      val existingAppointment = testDataGenerator.createNDeliusAppointment(session, referral1)
+
+      session.startsAt = LocalDateTime.now().minusDays(1)
+      session.endsAt = LocalDateTime.now().minusDays(1).plusHours(1)
+      sessionRepository.save(session)
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+
+      val request = UpdateSessionAttendeesRequest(referralIdList = listOf(referral1.id!!, referral2.id!!))
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        HttpMethod.PUT,
+        "/session/${session.id}/attendees",
+        object : ParameterizedTypeReference<String>() {},
+        request,
+        HttpStatus.OK.value(),
+      )
+
+      // Then
+      assertThat(response).isEqualTo("Alex River has been added to this session.")
+
+      val updatedSession = sessionRepository.findById(session.id!!).get()
+      assertThat(updatedSession.attendees).hasSize(2)
+      assertThat(updatedSession.attendees.map { it.referral.id }).isEqualTo(listOf(referral1.id, referral2.id))
+
+      assertThat(nDeliusAppointmentRepository.findBySessionId(session.id!!)).hasSize(2)
+        .extracting<UUID> { it.ndeliusAppointmentId }
+        .contains(existingAppointment.ndeliusAppointmentId)
+
+      wiremock.verify(1, postRequestedFor(urlEqualTo("/appointments")))
+      wiremock.verify(0, deleteRequestedFor(urlEqualTo("/appointments")))
+    }
+
+    @Test
     fun `should update session attendees successfully`() {
       // Given
+      stubAuthTokenEndpoint()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       val request = UpdateSessionAttendeesRequest(referralIdList = listOf(referral1.id!!, referral2.id!!))
 
       // When
@@ -1501,6 +1590,14 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       val updatedSession = sessionRepository.findById(session.id!!).get()
       assertThat(updatedSession.attendees).hasSize(2)
       assertThat(updatedSession.attendees.map { it.referral.id }).containsExactlyInAnyOrder(referral1.id, referral2.id)
+
+      wiremock.verify(1, postRequestedFor(urlEqualTo("/appointments")))
+      wiremock.verify(0, putRequestedFor(urlEqualTo("/appointments")))
+      wiremock.verify(0, deleteRequestedFor(urlEqualTo("/appointments")))
+
+      assertThat(nDeliusAppointmentRepository.findBySessionId(session.id!!))
+        .extracting<UUID> { it.referral.id }
+        .containsExactlyInAnyOrder(referral1.id, referral2.id)
     }
 
     @Test
@@ -1627,27 +1724,25 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return list of facilitators for the session and set currentlyFacilitating to true for facilitators already part of the group`() {
       // Given
-      // Stub Ndelius Response with 2 facilitators already assigned to the group and one that is just pulled from the full list from Ndelius
-      val groupFacilitators: MutableList<NDeliusRegionWithMembers.NDeliusUserTeamMembers> =
+      // Stub NDelius response with 2 facilitators already assigned to the group and one that is just pulled from the full list from NDelius
+      val groupFacilitators: MutableList<RegionDto.MemberDto> =
         group.groupFacilitators.map {
-          NDeliusUserTeamMembersFactory().produce(
+          MemberDtoFactory().produce(
             code = it.facilitatorCode,
             name = it.facilitatorName.toFullName(),
           )
         }.toMutableList()
       groupFacilitators.add(
-        NDeliusUserTeamMembersFactory().produce(
+        MemberDtoFactory().produce(
           code = randomAlphanumericString(),
           name = randomFullName(),
         ),
       )
-      val teams = listOf(NDeliusUserTeamWithMembersFactory().produce(members = groupFacilitators))
-      val pdu = NDeliusPduWithTeamFactory().produce(team = teams)
-      val regionWithMembers = NDeliusRegionWithMembersFactory().produce(
-        pdus = listOf(pdu),
-        code = "WIREMOCKED_REGION",
+      val teams = listOf(TeamDtoFactory().produce(members = groupFacilitators))
+      val regionWithMembers = RegionDtoFactory().produce(
+        teams = teams,
       )
-      nDeliusApiStubs.stubRegionWithMembersResponse("WIREMOCKED_REGION", regionWithMembers)
+      nDeliusApiStubs.stubRegionWithAccreditedProgrammesMembersResponse("WIREMOCKED_REGION", regionWithMembers)
       val sessionId = group.sessions.find { it.sessionType == SessionType.GROUP }!!.id!!
 
       // When
@@ -1907,7 +2002,10 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
     val facilitatorRequest = List(2) {
       EditSessionFacilitatorRequest(
-        facilitatorName = randomFullName().getNameAsString(),
+        _facilitatorName = randomFullName().getNameAsString(),
+        facilitatorForename = randomFullName().forename,
+        facilitatorSurname = randomFullName().surname,
+        facilitatorMiddleNames = randomFullName().middleNames,
         facilitatorCode = randomAlphanumericString(),
         teamName = randomAlphanumericString(),
         teamCode = randomUppercaseString(),
@@ -2032,7 +2130,10 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
       val editSessionFacilitatorRequest = listOf(
         EditSessionFacilitatorRequest(
-          facilitatorName = randomFullName().getNameAsString(),
+          _facilitatorName = randomFullName().getNameAsString(),
+          facilitatorForename = randomFullName().forename,
+          facilitatorSurname = randomFullName().surname,
+          facilitatorMiddleNames = randomFullName().middleNames,
           facilitatorCode = randomAlphanumericString(),
           teamName = randomAlphanumericString(),
           teamCode = randomUppercaseString(),
@@ -2072,6 +2173,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
               .withTeam(RequestCode(editSessionFacilitatorRequest.first().teamCode))
               .withOutcome(RequestCode(ATTC.toString()))
               .withNotes("Test notes that should not change")
+              .withDescription("Test Module 2")
               .produce(),
           ),
         )
@@ -2208,12 +2310,110 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
               .withTeam(RequestCode(primaryFacilitator.ndeliusTeamCode))
               .withNotes("Test session notes")
               .withSensitive(false)
+              .withDescription("Getting started 1")
               .produce(),
           ),
         ),
       )
 
       manageUsersApiStubs.verifyGetUser(1, username)
+    }
+
+    @Test
+    fun `should POST session attendance for a past group session after the PoP was removed from the group`() {
+      // Given a PoP allocated to a group, with a group session that has since moved into the past
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
+      val referral = testReferralHelper.createReferral(personName = "Alex River")
+      programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!, "SYSTEM", "")
+
+      val sessionEntity =
+        sessionRepository.findByProgrammeGroupId(group.id!!).first { it.sessionType == SessionType.GROUP }
+      sessionEntity.startsAt = LocalDateTime.now().minusDays(1)
+      sessionEntity.endsAt = LocalDateTime.now().minusDays(1).plusHours(1)
+      sessionRepository.save(sessionEntity)
+      val sessionId = sessionEntity.id!!
+
+      // When the PoP is removed from the group (soft-deletes the membership, keeps the past-session attendee)
+      programmeGroupMembershipService.removeReferralFromGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        RemoveFromGroupRequest(
+          referralStatusDescriptionId = referralStatusDescriptionRepository.getReturnToCourtStatusDescription().id,
+          additionalDetails = "removed from group",
+        ),
+      )
+      assertThat(programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)).isNull()
+
+      manageUsersApiStubs.stubUserResponse(UserDtoFactory().withName("John Smith").produce())
+
+      val sessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = referral.id!!,
+            outcomeCode = ATTC,
+            sessionNotes = "Test session notes",
+          ),
+        ),
+      )
+
+      // Then attendance can still be recorded for the past session
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = sessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      assertThat(response.responseMessage).isEqualTo("Attendance saved for session $sessionId")
+      val updatedSessionEntity = sessionRepository.findById(sessionId)
+      assertThat(updatedSessionEntity.isPresent).isTrue()
+      assertThat(updatedSessionEntity.get().attendances).hasSize(1)
+      val sessionAttendanceEntity = updatedSessionEntity.get().attendances.first()
+      assertThat(sessionAttendanceEntity.outcomeType.code).isEqualTo(ATTC)
+      // The attendance is linked to the soft-deleted membership
+      assertThat(sessionAttendanceEntity.groupMembership.deletedAt).isNotNull
+      assertThat(sessionAttendanceEntity.groupMembership.referralId).isEqualTo(referral.id)
+    }
+
+    @Test
+    fun `should return 400 when submitting attendance for someone who is not an attendee of the session`() {
+      // Given a session with one allocated attendee
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      val referral = testReferralHelper.createReferral()
+      programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!, "SYSTEM", "")
+      val sessionEntity =
+        sessionRepository.findByProgrammeGroupId(group.id!!).first { it.sessionType == SessionType.GROUP }
+      val sessionId = sessionEntity.id!!
+
+      // When attendance is submitted for a referral who is not an attendee of the session
+      val nonAttendeeReferralId = UUID.randomUUID()
+      val sessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = nonAttendeeReferralId,
+            outcomeCode = ATTC,
+            sessionNotes = "Test session notes",
+          ),
+        ),
+      )
+
+      // Then the request is rejected and nothing is recorded
+      val error = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = sessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+      )
+
+      assertThat(error.userMessage).contains("$nonAttendeeReferralId are not attendees of this session")
+      assertThat(sessionRepository.findById(sessionId).get().attendances).isEmpty()
     }
 
     @Test
@@ -2278,6 +2478,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
               .withTeam(RequestCode(primaryFacilitator.ndeliusTeamCode))
               .withNotes("Test session notes")
               .withSensitive(false)
+              .withDescription("Getting started 1")
               .produce(),
           ),
         ),
@@ -2517,6 +2718,10 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return session notes for a referral`() {
       // Given
+      val userFullName = "John Smith"
+      manageUsersApiStubs.stubUserResponse(
+        userDto = UserDtoFactory().withName(userFullName).produce(),
+      )
       val group = testGroupHelper.createGroup()
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
@@ -2552,8 +2757,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
 
-      val userFullName = "John Smith"
-      manageUsersApiStubs.stubUserResponse(UserDtoFactory().withName(userFullName).produce())
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
       // When
       val response = performRequestAndExpectOk(
@@ -2609,6 +2813,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
       // When
       val response = performRequestAndExpectOk(
@@ -2675,6 +2880,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
 
       // When
       val response = performRequestAndExpectOk(

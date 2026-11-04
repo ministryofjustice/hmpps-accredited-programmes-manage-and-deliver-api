@@ -4,18 +4,21 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.http.HttpStatus
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionTemplate
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralOnProgrammeStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.SentenceEndDateDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.AttendanceHistoryResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.AttendanceHistorySession
@@ -32,7 +35,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RequirementOrLicenceConditionManager
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.ProbationAccessControlApiClient
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.ACCREDITED_PROGRAMMES_AUTOMATED_UPDATE
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.DEFAULT_CREATED_BY_VALUE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -43,13 +46,15 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralReportingLocationEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralStatusUpdateEvent
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_PERSONAL_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_SENTENCE_REFERENCE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_STATUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.VIEW_REFERRAL
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
@@ -64,7 +69,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.util
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeOfSession
 import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
@@ -96,10 +100,11 @@ class ReferralService(
   private val applicationEventPublisher: ApplicationEventPublisher,
   private val probationAccessControlApiClient: ProbationAccessControlApiClient,
   private val sessionRepository: SessionRepository,
-  @Value("\${app.features.lao-access-check-enabled}")
-  private val laoAccessCheckEnabled: Boolean,
-  private val userAccessService: UserAccessService,
   private val authenticationHolder: HmppsAuthenticationHolder,
+  private val transactionTemplate: TransactionTemplate,
+  private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
+  private val messageHistoryRepository: MessageHistoryRepository,
+  private val userAccessService: UserAccessService,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -120,11 +125,8 @@ class ReferralService(
       try {
         if (authenticateUser) {
           val userName = authenticationHolder.username ?: UNKNOWN_USER_USERNAME
-          val accessMap = userAccessService.determineUserAccess(userName, listOf(referral.crn))
-          accessMap[referral.crn]?.let {
-            if (it.isExcluded) {
-              throw AccessDeniedException("You are not authorized to view this person's details. Either contact your administrator or enter a different CRN or Prison Number")
-            }
+          if (userAccessService.isUserExcluded(userName, referral.crn)) {
+            throw AccessDeniedException("You are not authorized to view this person's details. Either contact your administrator or enter a different CRN or Prison Number")
           }
         }
         userService.getPersonalDetailsByIdentifier(referral.crn)
@@ -148,12 +150,18 @@ class ReferralService(
 
     val pniScore = pniDeferred?.await()
     if (pniScore != null) {
-      if (!ldcOverridden) ldcService.updateLdcStatusForReferral(referral, UpdateLdc(pniScore.hasLdc), "SYSTEM")
+      if (!ldcOverridden) {
+        ldcService.updateLdcStatusForReferral(
+          referral,
+          UpdateLdc(pniScore.hasLdc),
+          DEFAULT_CREATED_BY_VALUE,
+        )
+      }
       if (!cohortOverridden) {
         cohortService.updateCohortForReferral(
           referral,
           cohortService.determineOffenceCohort(pniScore),
-          "SYSTEM",
+          DEFAULT_CREATED_BY_VALUE,
         )
       }
     }
@@ -163,7 +171,7 @@ class ReferralService(
 
     val sentenceEndDateDeferred = async(Dispatchers.IO) {
       try {
-        sentenceService.getSentenceEndDate(referral.crn, referral.eventNumber, referral.sourcedFrom)
+        sentenceService.getSentenceEndDateDetails(referral.crn, referral.eventNumber, referral.sourcedFrom)
       } catch (ex: Exception) {
         log.warn("Failed to fetch sentence end date from nDelius for CRN ${referral.crn}: ${ex.message}")
         null
@@ -171,14 +179,20 @@ class ReferralService(
     }
 
     val personalDetails = personalDetailsDeferred.await()
-    val sentenceEndDate = sentenceEndDateDeferred.await()
+    val sentenceEndDateDetails = sentenceEndDateDeferred.await()
 
     if (personalDetails != null) {
-      updateReferralDetails(referral, personalDetails, sentenceEndDate)
+      updateReferralDetails(referral, personalDetails, sentenceEndDateDetails)
     } else {
       // If we at least have a sentence end date but no personal details, update just the sentence
-      if (sentenceEndDate != null && sentenceEndDate != referral.sentenceEndDate) {
-        referral.sentenceEndDate = sentenceEndDate
+      if (sentenceEndDateDetails != null &&
+        (
+          sentenceEndDateDetails.expectedEndDate != referral.sentenceEndDate ||
+            sentenceEndDateDetails.licenceExpiryDate != referral.licenceExpiryDate
+          )
+      ) {
+        referral.sentenceEndDate = sentenceEndDateDetails.expectedEndDate
+        referral.licenceExpiryDate = sentenceEndDateDetails.licenceExpiryDate
         referralRepository.save(referral)
       }
     }
@@ -188,10 +202,7 @@ class ReferralService(
     val latestReferralCohort =
       referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.cohort
     val allocatedGroup = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
-    var isLAO = false
-    if (laoAccessCheckEnabled) {
-      isLAO = getLaoByCrn(referral.crn)
-    }
+    val isLAO = getLaoByCrn(referral.crn)
 
     if (personalDetails != null) {
       ReferralDetails.toModel(
@@ -246,7 +257,7 @@ class ReferralService(
     }
 
     val pniScore = pniService.getPniCalculation(findAndReferReferralDetails.personReference)
-    val sentenceEndDate = sentenceService.getSentenceEndDate(
+    val sentenceEndDate = sentenceService.getSentenceEndDateDetails(
       findAndReferReferralDetails.personReference,
       findAndReferReferralDetails.eventNumber,
       findAndReferReferralDetails.sourcedFromReferenceType,
@@ -264,7 +275,7 @@ class ReferralService(
       statusHistories = mutableListOf(),
       cohortHistories = mutableSetOf(),
       personalDetails = personalDetails,
-      sentenceEndDate = sentenceEndDate,
+      sentenceEndDateDetails = sentenceEndDate,
     )
 
     log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort")
@@ -275,7 +286,7 @@ class ReferralService(
       referralStatusDescription = awaitingAssessmentStatusDescription,
       startDate = LocalDateTime.now(),
       additionalDetails = null,
-      createdBy = ACCREDITED_PROGRAMMES_AUTOMATED_UPDATE,
+      createdBy = DEFAULT_CREATED_BY_VALUE,
     )
     referralEntity.statusHistories = mutableListOf(statusHistoryEntity)
     log.info("Inserting the default ReferralStatusHistory row for newly created Referral with id ${referral.id!!}")
@@ -285,13 +296,19 @@ class ReferralService(
         ReferralCohortHistoryEntity(
           referral = referralEntity,
           cohort = cohort,
-          createdBy = "SYSTEM",
+          createdBy = DEFAULT_CREATED_BY_VALUE,
         ),
       )
     referralEntity.referralCohortHistories = referralCohortHistories
 
     val referralLdcHistories =
-      mutableSetOf(ReferralLdcHistoryEntity(hasLdc = hasLdc, referral = referralEntity, createdBy = "SYSTEM"))
+      mutableSetOf(
+        ReferralLdcHistoryEntity(
+          hasLdc = hasLdc,
+          referral = referralEntity,
+          createdBy = DEFAULT_CREATED_BY_VALUE,
+        ),
+      )
     referralEntity.referralLdcHistories = referralLdcHistories
 
     personalDetails?.let {
@@ -306,28 +323,63 @@ class ReferralService(
     }
 
     log.info("Inserting referral for Intervention: '${referralEntity.interventionName}' and Crn: '${referralEntity.crn}' with cohort: $cohort and Ldc status: '$hasLdc'")
-    return referralRepository.save(referralEntity)
+    val savedReferral = referralRepository.save(referralEntity)
+    applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(savedReferral.id!!))
+
+    return savedReferral
   }
 
   /**
-   * Updates the CRN of all referrals associated with the given current CRN to the new CRN.
+   * Updates the case reference number (CRN) of all referrals associated with the given current CRN to the new CRN.
    *
-   * @param currentCrn The current CRN associated with the referrals that need to be updated.
-   * @param newCrn The new CRN to replace the current CRN in the referrals.
+   * @param currentCaseReferenceNumber The current CRN associated with the referrals that need to be updated.
+   * @param newCaseReferenceNumber The new CRN to replace the current CRN in the referrals.
    */
-  fun updateReferralCrn(currentCrn: String, newCrn: String) {
-    val referrals = referralRepository.findByCrn(currentCrn)
+  fun updateReferralCaseReferenceNumber(currentCaseReferenceNumber: String, newCaseReferenceNumber: String) {
+    val referrals = referralRepository.findByCrn(currentCaseReferenceNumber)
 
     if (referrals.isEmpty()) {
-      log.info("updateReferralCrn: no referrals found for CRN $currentCrn — nothing to update")
+      log.info("updateReferralCaseReferenceNumber: no referrals found for case reference number: $currentCaseReferenceNumber — nothing to update")
       return
     }
 
     referrals.forEach { referral ->
-      referral.crn = newCrn
+      referral.crn = newCaseReferenceNumber
     }
 
     referralRepository.saveAll(referrals)
+  }
+
+  /**
+   * Deletes all referrals associated with the given case reference number that are missing in NDelius.
+   *
+   * @param caseReferenceNumber The unique case reference number used to find and delete the associated referrals.
+   */
+  fun deleteReferralByCaseReferenceNumber(caseReferenceNumber: String) {
+    val referrals = referralRepository.findByCrn(caseReferenceNumber)
+
+    if (referrals.isEmpty()) {
+      log.info("deleteReferralByCaseReferenceNumber: no referrals found for case reference number: $caseReferenceNumber — nothing to delete")
+      return
+    }
+
+    referrals.forEach { referral ->
+      if (referral.sourcedFrom != null &&
+        referral.sourcedFrom == ReferralEntitySourcedFrom.REQUIREMENT &&
+        !referral.eventId.isNullOrBlank()
+      ) {
+        deleteSourcedFromRequirementReferral(referral)
+      } else {
+        if (referral.sourcedFrom != null &&
+          referral.sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION &&
+          referral.eventId != null
+        ) {
+          deleteSourcedFromLicenceConditionReferral(referral)
+        } else {
+          log.warn("Referral with id ${referral.id} has an invalid sourcedFrom value: ${referral.sourcedFrom} and/or eventId value: ${referral.eventId}")
+        }
+      }
+    }
   }
 
   fun getReferralById(referralId: UUID): ReferralEntity {
@@ -533,34 +585,11 @@ class ReferralService(
   }
 
   fun updateStatus(
-    referralId: UUID,
-    createReferralStatusHistory: CreateReferralStatusHistory,
-    createdBy: String,
-  ): StatusUpdateResponse {
-    val referralEntity = getReferralById(referralId)
-
-    val statusUpdateResponse = updateStatus(
-      referralEntity,
-      createReferralStatusHistory.referralStatusDescriptionId,
-      createReferralStatusHistory.additionalDetails,
-      createdBy,
-    )
-    telemetryService.logToAppInsights(
-      referralEntity,
-      "Referral.admin-update-status.success",
-      UPDATE_REFERRAL_STATUS.name,
-      createReferralStatusHistory.referralStatusDescriptionId,
-      createdBy,
-    )
-
-    return statusUpdateResponse
-  }
-
-  fun updateStatus(
     referral: ReferralEntity,
     referralStatusDescriptionId: UUID,
     additionalDetails: String? = null,
     createdBy: String,
+    forceUpdate: Boolean = false,
   ): StatusUpdateResponse {
     val incomingReferralStatusDescription =
       referralStatusDescriptionRepository.findByIdOrNull(referralStatusDescriptionId)
@@ -587,7 +616,8 @@ class ReferralService(
     // Guard against invalid transitions (e.g. Scheduled -> Programme complete) that the
     // frontend should never send. Without this check the requested status was being saved
     // verbatim, allowing referrals to jump into states they cannot reach via the UI.
-    if (transition == null && currentDescription.id != incomingReferralStatusDescription.id) {
+    // Admin/support flows can set force = true to deliberately apply a normally-invalid transition.
+    if (!forceUpdate && transition == null && currentDescription.id != incomingReferralStatusDescription.id) {
       throw BusinessException(
         "Invalid referral status transition: '${currentDescription.description}' -> '${incomingReferralStatusDescription.description}'",
       )
@@ -651,10 +681,10 @@ class ReferralService(
 
   fun getStatusHistory(referralId: UUID): List<ReferralStatusHistory> = referralStatusHistoryRepository.findAllByReferralId(referralId).sortedBy { it.createdAt }.map { it.toApi() }
 
-  fun updateReferralDetails(
+  private fun updateReferralDetails(
     referral: ReferralEntity,
     personalDetails: NDeliusPersonalDetails,
-    sentenceEndDate: LocalDate?,
+    sentenceEndDateDetails: SentenceEndDateDetails?,
   ) {
     // If there is already a row in the db then update it otherwise create a new one
     val referralReportingLocation = referralReportingLocationRepository.findByReferralId(referral.id)
@@ -674,9 +704,15 @@ class ReferralService(
     // Update our referral entity with details fetched from nDelius
     referral.referralReportingLocation = savedEntity
     referral.personName = personalDetails.name.getNameAsString()
+    referral.personForename = personalDetails.name.forename
+    referral.personSurname = personalDetails.name.surname
+    referral.personMiddleNames = personalDetails.name.middleNames
     referral.sex = personalDetails.sex.description
     referral.dateOfBirth = personalDetails.dateOfBirth.toLocalDate()
-    referral.sentenceEndDate = sentenceEndDate
+    sentenceEndDateDetails?.let {
+      referral.sentenceEndDate = it.expectedEndDate
+      referral.licenceExpiryDate = it.licenceExpiryDate
+    }
     referralRepository.save(referral)
   }
 
@@ -743,6 +779,23 @@ class ReferralService(
     )
   }
 
+  fun getReferralOnProgrammeStatus(crn: String): ReferralOnProgrammeStatus? {
+    val referral = referralRepository.findMostRecentByCrn(crn)
+
+    return referral?.let {
+      val currentStatus = it.statusHistories.maxByOrNull { history -> history.createdAt }?.referralStatusDescription?.description ?: "Unknown"
+      ReferralOnProgrammeStatus(
+        referralId = it.id!!,
+        crn = it.crn,
+        sentenceType = it.sourcedFrom,
+        eventId = it.eventId,
+        eventNumber = it.eventNumber,
+        currentStatus = currentStatus,
+        isOnProgramme = currentStatus == "On programme",
+      )
+    }
+  }
+
   private fun getPersonalDetails(crn: String) = when (val result = nDeliusIntegrationApiClient.getPersonalDetails(crn)) {
     is ClientResult.Success -> {
       telemetryService.logToAppInsights(
@@ -755,6 +808,7 @@ class ReferralService(
     }
 
     else -> {
+      log.warn("Failure to retrieve personal details from nDelius for crn: $crn")
       telemetryService.logToAppInsights(
         "${GET_PERSONAL_DETAILS_N_DELIUS.eventName}.failure",
         GET_PERSONAL_DETAILS_N_DELIUS.name,
@@ -768,5 +822,73 @@ class ReferralService(
   private fun getLaoByCrn(crn: String): Boolean = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
     is ClientResult.Success -> response.body.excludedFrom.isNotEmpty() || response.body.restrictedTo.isNotEmpty()
     is ClientResult.Failure -> throw response.toException()
+  }
+
+  private fun deleteSourcedFromLicenceConditionReferral(referral: ReferralEntity) {
+    val caseReferenceNumber = referral.crn
+    val licenceConditionId = referral.eventId
+    val response =
+      nDeliusIntegrationApiClient.getLicenceConditionManagerDetails(caseReferenceNumber, licenceConditionId!!)
+    deleteReferralByNDeliusCaseRequirementOrLicenceConditionResponse(
+      referral,
+      response,
+      caseReferenceNumber,
+      licenceConditionId,
+      GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS,
+    )
+  }
+
+  private fun deleteSourcedFromRequirementReferral(referral: ReferralEntity) {
+    val caseReferenceNumber = referral.crn
+    val requirementEventId = referral.eventId
+    val response = nDeliusIntegrationApiClient.getRequirementManagerDetails(caseReferenceNumber, requirementEventId!!)
+    deleteReferralByNDeliusCaseRequirementOrLicenceConditionResponse(
+      referral,
+      response,
+      caseReferenceNumber,
+      requirementEventId,
+      GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS,
+    )
+  }
+
+  private fun deleteReferralByNDeliusCaseRequirementOrLicenceConditionResponse(
+    referral: ReferralEntity,
+    response: ClientResult<NDeliusCaseRequirementOrLicenceConditionResponse>,
+    caseReferenceNumber: String,
+    eventId: String,
+    integrationActivityType: IntegrationActivityType,
+  ) {
+    when (response) {
+      is ClientResult.Failure.StatusCode -> {
+        if (response.status.value() == HttpStatus.NOT_FOUND.value()) {
+          log.info("Deleting referral ${referral.id}...")
+          transactionTemplate.execute {
+            nDeliusAppointmentRepository.deleteByReferral(referral)
+            messageHistoryRepository.deleteByReferral(referral)
+            referralRepository.delete(referral)
+          }
+        } else {
+          log.warn("Failure to retrieve manager details for crn : $caseReferenceNumber and eventId: $eventId (generic failure)")
+          telemetryService.logToAppInsights(
+            eventName = "${integrationActivityType.eventName}.failure",
+            integrationActionType = integrationActivityType.name,
+            outcome = "failure",
+          )
+          throw BusinessException(
+            "Failed to retrieve manager details for caseReferenceNumber: $caseReferenceNumber and eventId: $eventId - ${response.getErrorMessage()} ",
+            response.toException(),
+          )
+        }
+      }
+
+      else -> {
+        log.info("deleteReferralByNDeliusCaseRequirementOrLicenceConditionResponse: manager details found for referral case reference number: $caseReferenceNumber and eventId: $eventId in NDelius — nothing to delete")
+        telemetryService.logToAppInsights(
+          eventName = "${integrationActivityType.eventName}.success",
+          integrationActionType = integrationActivityType.name,
+          outcome = "success",
+        )
+      }
+    }
   }
 }

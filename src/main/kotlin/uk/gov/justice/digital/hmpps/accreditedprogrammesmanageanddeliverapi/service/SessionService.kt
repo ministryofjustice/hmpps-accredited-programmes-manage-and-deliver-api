@@ -1,8 +1,8 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.http.HttpStatus
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -29,13 +29,16 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toUpdateAppointmentRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UNKNOWN_USER_USERNAME
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.UUID_REGEX_PATTERN
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.AppointmentUpdateException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
@@ -51,11 +54,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.UPDATE_APPOINTMENT_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.RECORD_ATTENDANCE
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserAccessService.Access
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
@@ -84,9 +87,12 @@ class SessionService(
   private val regionService: RegionService,
   private val clock: Clock,
   private val userAccessService: UserAccessService,
-  @param:Value($$"${app.features.lao-access-check-enabled}")
-  private val laoAccessCheckEnabled: Boolean,
+  private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
 ) {
+  companion object {
+    private val log = LoggerFactory.getLogger(this::class.java)
+    private const val MISSING_APPOINTMENT_ERROR_MESSAGE = "Could not find appointments with references"
+  }
 
   fun getSessionDetailsToEdit(sessionId: UUID): EditSessionDetails {
     val session = sessionRepository.findById(sessionId).orElseThrow {
@@ -141,12 +147,6 @@ class SessionService(
 
     val currentSessionDuration = Duration.between(session.startsAt, session.endsAt)
     val requestedSessionDuration = Duration.between(requestedStartTime, requestedEndTime)
-
-    // Past sessions (end time has passed) may not be lengthened; shortening is allowed
-    if (session.endsAt.isBefore(LocalDateTime.now()) && requestedSessionDuration > currentSessionDuration) {
-      log.warn("Invalid reschedule request received for past session with id: $sessionId. Requested duration $requestedSessionDuration exceeds current duration $currentSessionDuration")
-      throw BusinessException("The session duration cannot be longer than originally scheduled. Change the start or end time.")
-    }
 
     // update the start and end times of the requested session
     session.startsAt = requestedStartTime
@@ -228,31 +228,35 @@ class SessionService(
   fun updateNDeliusAppointmentsForMultipleSessions(sessions: List<SessionEntity>) {
     val sessionsWithAppointment = sessions.filter { it.ndeliusAppointments.isNotEmpty() }.ifEmpty { return }
     val updateRequests =
-      sessionsWithAppointment.flatMap { session -> session.ndeliusAppointments.map { it.toUpdateAppointmentRequest() } }
+      sessionsWithAppointment.flatMap { session ->
+        session.ndeliusAppointments.map { it.toUpdateAppointmentRequest(sessionNameFormatter = sessionNameFormatter) }
+      }
 
     when (
       val response = nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateRequests))
     ) {
-      is ClientResult.Failure -> {
-        log.warn("Failure to update appointments: ${response.getErrorMessage()}")
-        telemetryService.logToAppInsights(
-          eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
-          integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
-          outcome = "failure",
+      is ClientResult.Failure.StatusCode -> {
+        handleUpdateAppointmentBadRequestResponseError(
+          errorMessage = response.getErrorMessage(),
+          responseStatusValue = response.status.value(),
+          updateAppointmentRequestList = updateRequests,
+          programmeGroupId = sessions.first().programmeGroup.id!!,
+          exception = response.toException(),
         )
-        throw AppointmentUpdateException("Failure to update appointments", response.toException())
+      }
+
+      is ClientResult.Failure.Other -> {
+        handleUpdateAppointmentResponseError(
+          errorMessage = response.getErrorMessage(),
+          exception = response.toException(),
+        )
       }
 
       is ClientResult.Success -> {
-        log.info(
-          "${updateRequests.size} appointments updated in nDelius for sessions with ids: ${
+        handleUpdateAppointmentResponseSuccess(
+          logMessage = "${updateRequests.size} appointments updated in nDelius for sessions with ids: ${
             sessionsWithAppointment.map { it.id }.joinToString(", ")
           }",
-        )
-        telemetryService.logToAppInsights(
-          eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
-          integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
-          outcome = "success",
         )
       }
     }
@@ -267,35 +271,35 @@ class SessionService(
       return
     }
     val updateRequests = session.ndeliusAppointments.map {
-      it.toUpdateAppointmentRequest(it.currentSessionNotes(), it.currentOutcomeCode())
+      it.toUpdateAppointmentRequest(it.currentSessionNotes(), it.currentOutcomeCode(), sessionNameFormatter)
     }
 
     when (
       val response = nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateRequests))
     ) {
-      is ClientResult.Failure -> {
-        log.warn("Failure to update appointments: ${response.getErrorMessage()}")
-        telemetryService.logToAppInsights(
-          eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
-          integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
-          outcome = "failure",
+      is ClientResult.Failure.StatusCode -> {
+        handleUpdateAppointmentBadRequestResponseError(
+          errorMessage = response.getErrorMessage(),
+          responseStatusValue = response.status.value(),
+          updateAppointmentRequestList = updateRequests,
+          programmeGroupId = session.programmeGroup.id!!,
+          exception = response.toException(),
         )
-        throw AppointmentUpdateException("Failure to update appointments", response.toException())
+      }
+
+      is ClientResult.Failure.Other -> {
+        handleUpdateAppointmentResponseError(
+          errorMessage = response.getErrorMessage(),
+          exception = response.toException(),
+        )
       }
 
       is ClientResult.Success -> {
-        log.info("${updateRequests.size} appointments updated in nDelius for session with id: ${session.id}")
-        telemetryService.logToAppInsights(
-          eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
-          integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
-          outcome = "success",
+        handleUpdateAppointmentResponseSuccess(
+          logMessage = "${updateRequests.size} appointments updated in nDelius for session with id: ${session.id}",
         )
       }
     }
-  }
-
-  companion object {
-    private val log = LoggerFactory.getLogger(SessionService::class.java)
   }
 
   fun getSession(sessionId: UUID): Session {
@@ -303,12 +307,9 @@ class SessionService(
       NotFoundException("Session with id $sessionId not found.")
     }
 
-    var usernameAccessMap = mapOf<String, Access>()
-    if (laoAccessCheckEnabled) {
-      val username = authenticationUtils.getUsername()
-      val caseReferenceNumbers = entity.attendees.map { attendee -> attendee.referral.crn }.toList()
-      usernameAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
-    }
+    val username = authenticationUtils.getUsername()
+    val caseReferenceNumbers = entity.attendees.map { attendee -> attendee.referral.crn }.toList()
+    val usernameAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
 
     return entity.toApi(sessionNameFormatter, usernameAccessMap)
   }
@@ -320,15 +321,13 @@ class SessionService(
     val groupMembers = programmeGroupMembershipRepository.findAllActiveByProgrammeGroupId(session.programmeGroup.id!!)
     val sessionAttendees =
       groupMembers.map { groupMember -> groupMember.toSessionAttendee(session.attendees.map(AttendeeEntity::referralId)) }
-    if (laoAccessCheckEnabled) {
-      val username = authenticationUtils.getUsername()
-      val caseReferenceNumbers = sessionAttendees.map { attendee -> attendee.crn }.toList()
-      val usernameAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
-      sessionAttendees.forEach { attendee ->
-        val access = usernameAccessMap[attendee.crn]
-        attendee.isLimitedAccessOffender = access?.lao
-        attendee.isExcluded = access?.isExcluded
-      }
+    val username = authenticationUtils.getUsername()
+    val caseReferenceNumbers = sessionAttendees.map { attendee -> attendee.crn }.toList()
+    val usernameAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
+    sessionAttendees.forEach { attendee ->
+      val access = usernameAccessMap[attendee.crn]
+      attendee.isLimitedAccessOffender = access?.isLimitedAccessOffender
+      attendee.isExcluded = access?.isExcluded
     }
 
     return EditSessionAttendeesResponse(
@@ -345,7 +344,12 @@ class SessionService(
     val userRegion = userService.getUserRegions(username).firstOrNull()
 
     val regionFacilitators: MutableList<UserTeamMember> =
-      if (userRegion == null) mutableListOf() else regionService.getTeamMembersForPdu(userRegion.code).toMutableList()
+      if (userRegion == null) {
+        mutableListOf()
+      } else {
+        regionService.getTeamMembersByRegionCode(userRegion.code)
+          .toMutableList()
+      }
 
     return getSessionFacilitators(sessionId, regionFacilitators)
   }
@@ -415,9 +419,9 @@ class SessionService(
     val addedReferralIds = newReferralIdsSet - currentReferralIds
     val removedReferralIds = currentReferralIds - newReferralIdsSet
 
-    val removedNames = session.attendees
-      .filter { it.referralId in removedReferralIds }
-      .map { it.personName }
+    if (removedReferralIds.isNotEmpty() && session.startsAt.isBefore(LocalDateTime.now(clock))) {
+      log.warn("Attempt to remove nDelius Appointment from a past session")
+    }
 
     val addedNames = referralIds
       .filter { it in addedReferralIds }
@@ -428,7 +432,21 @@ class SessionService(
         referral.personName
       }
 
-    session.attendees.removeIf { it.referralId in removedReferralIds }
+    var removedNames = emptyList<String>()
+    var nDeliusAppointmentsToRemove = emptyList<NDeliusAppointmentEntity>()
+
+    // Only interested in future sessions for removal
+    if (!session.startsAt.isBefore(LocalDateTime.now(clock))) {
+      removedNames = session.attendees
+        .filter { it.referralId in removedReferralIds }
+        .map { it.personName }
+
+      nDeliusAppointmentsToRemove = session.ndeliusAppointments
+        .filter { it.referral.id in removedReferralIds }
+        .toList()
+
+      session.attendees.removeIf { it.referralId in removedReferralIds }
+    }
 
     val newAttendees = addedReferralIds.map { referralId ->
       val referral = referralRepository.findById(referralId).orElseThrow {
@@ -440,10 +458,18 @@ class SessionService(
     session.attendees.addAll(newAttendees)
     sessionRepository.save(session)
 
+    if (newAttendees.isNotEmpty()) {
+      scheduleService.createNdeliusAppointmentsForSessions(newAttendees)
+    }
+
+    if (nDeliusAppointmentsToRemove.isNotEmpty()) {
+      scheduleService.removeNDeliusAppointments(nDeliusAppointmentsToRemove, listOf(session))
+    }
+
     val addedMessage = buildSessionAttendeesUpdateMessage(addedNames, "added to")
     val removedMessage = buildSessionAttendeesUpdateMessage(removedNames, "removed from")
 
-    return "$addedMessage$removedMessage".trim()
+    return if (addedMessage.isEmpty() && removedMessage.isEmpty()) "No changes were made" else "$addedMessage$removedMessage".trim()
   }
 
   fun buildSessionAttendeesUpdateMessage(names: List<String>, action: String): String {
@@ -459,6 +485,15 @@ class SessionService(
       NotFoundException("Session not found with id: $sessionId")
     }
 
+    val sessionAttendeeReferralIds = session.attendees.map { it.referralId }.toSet()
+    val invalidReferralIds =
+      sessionAttendance.attendees.map { it.referralId }.filterNot { it in sessionAttendeeReferralIds }
+    if (invalidReferralIds.isNotEmpty()) {
+      throw BusinessException(
+        "Cannot record attendance for session $sessionId: referral ids ${invalidReferralIds.joinToString(", ")} are not attendees of this session",
+      )
+    }
+
     val latestAttendanceByReferralId = session.attendances
       .groupBy { it.groupMembership.referral.id }
       .mapValues { (_, attendances) ->
@@ -472,9 +507,17 @@ class SessionService(
     // must not reach nDelius, which appends the notes on every update.
     val changedAttendees = sessionAttendance.attendees.filter { attendee ->
       val latestAttendance = latestAttendanceByReferralId[attendee.referralId] ?: return@filter true
+
+      // Check if outcome has changed
+      val outcomeChanged = attendee.outcomeCode != latestAttendance.outcomeType.code
+
+      // Check if notes have changed (if new notes are provided)
       val submittedNotes = attendee.sessionNotes?.trim()
       val latestNotes = latestAttendance.notesHistory.maxByOrNull { it.createdAt }?.notes?.trim()
-      !submittedNotes.isNullOrEmpty() && submittedNotes != latestNotes
+      val notesChanged = !submittedNotes.isNullOrEmpty() && submittedNotes != latestNotes
+
+      // Include if either outcome or notes have changed
+      outcomeChanged || notesChanged
     }
 
     if (changedAttendees.isEmpty()) {
@@ -492,7 +535,7 @@ class SessionService(
     val updateAppointmentRequests = changedAttendees.mapNotNull { attendee ->
       val referralId = attendee.referralId
       val nDeliusAppointment = session.ndeliusAppointments.find { it.referral.id == referralId }
-      nDeliusAppointment?.toUpdateAppointmentRequest(attendee.sessionNotes, attendee.outcomeCode)
+      nDeliusAppointment?.toUpdateAppointmentRequest(attendee.sessionNotes, attendee.outcomeCode, sessionNameFormatter)
     }
 
     log.info("Updating ${updateAppointmentRequests.size} appointments in nDelius for session with id: $sessionId")
@@ -501,22 +544,26 @@ class SessionService(
         val response =
           nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateAppointmentRequests))
       ) {
-        is ClientResult.Failure -> {
-          log.warn("Failure to update appointments: ${response.getErrorMessage()}")
-          telemetryService.logToAppInsights(
-            eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
-            integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
-            outcome = "failure",
+        is ClientResult.Failure.StatusCode -> {
+          handleUpdateAppointmentBadRequestResponseError(
+            errorMessage = response.getErrorMessage(),
+            responseStatusValue = response.status.value(),
+            updateAppointmentRequestList = updateAppointmentRequests,
+            programmeGroupId = session.programmeGroup.id!!,
+            exception = response.toException(),
           )
-          throw AppointmentUpdateException("Failure to update appointments", response.toException())
+        }
+
+        is ClientResult.Failure.Other -> {
+          handleUpdateAppointmentResponseError(
+            errorMessage = response.getErrorMessage(),
+            exception = response.toException(),
+          )
         }
 
         is ClientResult.Success -> {
-          log.info("${updateAppointmentRequests.size} appointments created in Ndelius for group with id: ${session.programmeGroup.id}")
-          telemetryService.logToAppInsights(
-            eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
-            integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
-            outcome = "success",
+          handleUpdateAppointmentResponseSuccess(
+            logMessage = "${updateAppointmentRequests.size} appointments created in Ndelius for group with id: ${session.programmeGroup.id!!}",
           )
         }
       }
@@ -590,7 +637,7 @@ class SessionService(
           options = outcomeOptions,
           sessionNotes = latestSessionNotesHistory?.notes,
           sessionNotesCreatedByFullName = latestSessionNotesHistory?.createdByFullName,
-          isLao = userAccessMap[attendee.referral.crn]?.lao ?: false,
+          isLao = userAccessMap[attendee.referral.crn]?.isLimitedAccessOffender ?: false,
           isExcluded = userAccessMap[attendee.referral.crn]?.isExcluded ?: false,
         )
       },
@@ -641,8 +688,9 @@ class SessionService(
 
     return attendees?.map { attendee ->
       val referralId = attendee.referralId
+      // Include soft-deleted memberships so we can submit previous session attendance
       val groupMembershipEntity =
-        programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referralId, programmeGroupId)
+        programmeGroupMembershipRepository.findByReferralAndGroupIdsIncludingDeleted(referralId, programmeGroupId)
           ?: throw NotFoundException(
             "Programme group membership not found with referralId: $referralId and programmeGroupId: $programmeGroupId",
           )
@@ -674,5 +722,103 @@ class SessionService(
     UAAB -> "Did not attend"
     null -> "To be confirmed"
     else -> attendanceOutcome.description!!
+  }
+
+  private fun handleUpdateAppointmentBadRequestResponseError(
+    errorMessage: String,
+    responseStatusValue: Int,
+    updateAppointmentRequestList: List<UpdateAppointmentRequest>,
+    programmeGroupId: UUID,
+    exception: Throwable,
+  ) {
+    if (responseStatusValue == HttpStatus.BAD_REQUEST.value() &&
+      errorMessage.contains(MISSING_APPOINTMENT_ERROR_MESSAGE)
+    ) {
+      handleUpdateAppointmentResponseMissingAppointmentError(
+        errorMessage = errorMessage,
+        updateAppointmentRequests = updateAppointmentRequestList,
+        programmeGroupId = programmeGroupId,
+      )
+    } else {
+      handleUpdateAppointmentResponseError(
+        errorMessage = errorMessage,
+        exception = exception,
+      )
+    }
+  }
+
+  private fun handleUpdateAppointmentResponseError(errorMessage: String, exception: Throwable) {
+    log.warn("Failure to update appointments: $errorMessage")
+    telemetryService.logToAppInsights(
+      eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.failure",
+      integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
+      outcome = "failure",
+    )
+    throw AppointmentUpdateException("Failure to update appointments", exception)
+  }
+
+  private fun handleUpdateAppointmentResponseSuccess(logMessage: String) {
+    log.info(logMessage)
+    telemetryService.logToAppInsights(
+      eventName = "${UPDATE_APPOINTMENT_N_DELIUS.eventName}.success",
+      integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
+      outcome = "success",
+    )
+  }
+
+  private fun handleUpdateAppointmentResponseMissingAppointmentError(
+    errorMessage: String,
+    updateAppointmentRequests: List<UpdateAppointmentRequest>,
+    programmeGroupId: UUID,
+  ) {
+    log.warn("Failure to update appointments in NDelius, due to missing appointment IDs, error message: $errorMessage")
+    val uuidRegex = Regex(UUID_REGEX_PATTERN)
+    val missingNDeliusAppointmentIdSet: Set<String> = uuidRegex.findAll(errorMessage).map { it.value }.toSet()
+    if (missingNDeliusAppointmentIdSet.isEmpty()) return
+
+    val missingNDeliusAppointmentEntityList = mutableListOf<NDeliusAppointmentEntity>()
+    val missingUpdateAppointmentRequestList =
+      updateAppointmentRequests.filter { it -> missingNDeliusAppointmentIdSet.contains(it.reference.toString()) }
+
+    missingNDeliusAppointmentIdSet.forEach { missingNDeliusAppointmentIdString ->
+      val nDeliusAppointmentId = UUID.fromString(missingNDeliusAppointmentIdString)
+      val nDeliusAppointmentList =
+        nDeliusAppointmentRepository.findByNdeliusAppointmentId(nDeliusAppointmentId)
+      missingNDeliusAppointmentEntityList.addAll(nDeliusAppointmentList)
+    }
+
+    scheduleService.createNDeliusAppointments(
+      nDeliusAppointmentEntities = missingNDeliusAppointmentEntityList,
+      updateAppointmentRequests = missingUpdateAppointmentRequestList,
+    )
+
+    val updateNonMissingAppointmentRequestList: List<UpdateAppointmentRequest> =
+      updateAppointmentRequests.filter { updateAppointmentRequest ->
+        !missingNDeliusAppointmentIdSet.contains(updateAppointmentRequest.reference.toString())
+      }
+
+    if (updateNonMissingAppointmentRequestList.isEmpty()) return
+
+    when (
+      val response =
+        nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+          UpdateAppointmentsRequest(
+            updateNonMissingAppointmentRequestList,
+          ),
+        )
+    ) {
+      is ClientResult.Failure -> {
+        handleUpdateAppointmentResponseError(
+          errorMessage = response.getErrorMessage(),
+          exception = response.toException(),
+        )
+      }
+
+      is ClientResult.Success -> {
+        handleUpdateAppointmentResponseSuccess(
+          logMessage = "${updateAppointmentRequests.size} appointments created in Ndelius for group with id: $programmeGroupId",
+        )
+      }
+    }
   }
 }

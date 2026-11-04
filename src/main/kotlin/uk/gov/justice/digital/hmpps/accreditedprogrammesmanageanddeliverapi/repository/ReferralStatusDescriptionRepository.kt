@@ -33,11 +33,11 @@ interface ReferralStatusDescriptionRepository : JpaRepository<ReferralStatusDesc
   @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Programme complete'")
   fun getProgrammeCompleteStatusDescription(): ReferralStatusDescriptionEntity
 
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Breach (non-attendance)'")
-  fun getBreachNonAttendanceStatusDescription(): ReferralStatusDescriptionEntity
+  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Breach'")
+  fun getBreachStatusDescription(): ReferralStatusDescriptionEntity
 
-  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Deferred'")
-  fun getDeferredStatusDescription(): ReferralStatusDescriptionEntity
+  @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'On hold'")
+  fun getOnHoldStatusDescription(): ReferralStatusDescriptionEntity
 
   @Query("SELECT rs FROM ReferralStatusDescriptionEntity rs WHERE rs.description = 'Withdrawn'")
   fun getWithdrawnStatusDescription(): ReferralStatusDescriptionEntity
@@ -51,7 +51,8 @@ interface ReferralStatusDescriptionRepository : JpaRepository<ReferralStatusDesc
    */
   @Override()
   fun save(entity: ReferralStatusDescriptionEntity): Unit = throw NotImplementedError("Not implemented yet")
-  fun findAllByIsClosed(isClosed: Boolean): MutableList<ReferralStatusDescriptionEntity>
+  fun findAllByDeletedAtIsNull(): MutableList<ReferralStatusDescriptionEntity>
+  fun findAllByIsClosedAndDeletedAtIsNull(isClosed: Boolean): MutableList<ReferralStatusDescriptionEntity>
 
   @Query(
     """

@@ -22,6 +22,9 @@ import java.util.UUID
 class ReferralEntityFactory {
   private var id: UUID? = null
   private var personName: String? = randomSentence(wordRange = 1..3)
+  private var personForename: String? = randomSentence(wordRange = 1..3)
+  private var personSurname: String? = randomSentence(wordRange = 1..3)
+  private var personMiddleNames: String? = randomSentence(wordRange = 1..3)
   private var interventionName: String? = "Building Choices"
   private var interventionType: InterventionType = InterventionType.ACP
   private var crn: String? = randomCrn()
@@ -35,6 +38,7 @@ class ReferralEntityFactory {
   private var referralLdcHistories: MutableSet<ReferralLdcHistoryEntity> = mutableSetOf()
   private var referralCohortHistories: MutableSet<ReferralCohortHistoryEntity> = mutableSetOf()
   private var sentenceEndDate: LocalDate? = null
+  private var licenceExpiryDate: LocalDate? = null
   private var sex: String? = null
   private var dateOfBirth: LocalDate? = null
   private var motivationBackgroundAndNonAssociations: ReferralMotivationBackgroundAndNonAssociationsEntity? = null
@@ -43,6 +47,9 @@ class ReferralEntityFactory {
 
   fun withId(id: UUID?) = apply { this.id = id }
   fun withPersonName(personName: String?) = apply { this.personName = personName }
+  fun withPersonForename(personForename: String?) = apply { this.personForename = personForename }
+  fun withPersonSurname(personSurname: String?) = apply { this.personSurname = personSurname }
+  fun withPersonMiddleNames(personMiddleNames: String?) = apply { this.personMiddleNames = personMiddleNames }
   fun withCrn(crn: String?) = apply { this.crn = crn }
   fun withCreatedAt(createdAt: LocalDateTime) = apply { this.createdAt = createdAt }
   fun withStatusHistories(statusHistories: MutableList<ReferralStatusHistoryEntity>) = apply { this.statusHistories = statusHistories }
@@ -62,6 +69,7 @@ class ReferralEntityFactory {
   fun withCohortHistories(cohortHistories: MutableSet<ReferralCohortHistoryEntity>) = apply { this.referralCohortHistories = cohortHistories }
 
   fun withSentenceEndDate(sentenceEndDate: LocalDate) = apply { this.sentenceEndDate = sentenceEndDate }
+  fun withLicenceExpiryDate(licenceExpiryDate: LocalDate?) = apply { this.licenceExpiryDate = licenceExpiryDate }
   fun withSex(sex: String) = apply { this.sex = sex }
   fun withDateOfBirth(dateOfBirth: LocalDate) = apply { this.dateOfBirth = dateOfBirth }
 
@@ -74,6 +82,9 @@ class ReferralEntityFactory {
   fun produce() = ReferralEntity(
     id = this.id,
     personName = this.personName!!,
+    personForename = this.personForename!!,
+    personSurname = this.personSurname!!,
+    personMiddleNames = this.personMiddleNames,
     crn = this.crn!!,
     createdAt = this.createdAt,
     interventionName = this.interventionName,
@@ -85,6 +96,7 @@ class ReferralEntityFactory {
     eventNumber = this.eventNumber,
     referralCohortHistories = referralCohortHistories,
     sentenceEndDate = this.sentenceEndDate,
+    licenceExpiryDate = this.licenceExpiryDate,
     sex = this.sex,
     dateOfBirth = this.dateOfBirth,
     referralLdcHistories = referralLdcHistories,

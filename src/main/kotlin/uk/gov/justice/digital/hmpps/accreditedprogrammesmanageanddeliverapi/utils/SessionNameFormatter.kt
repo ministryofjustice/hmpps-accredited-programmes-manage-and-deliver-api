@@ -22,7 +22,7 @@ sealed class SessionNameContext {
   /**
    * Formatting for the Schedule Individual Session confirmation message,
    */
-  object ScheduleIndividualSession : SessionNameContext()
+  object ScheduleSession : SessionNameContext()
 
   /**
    * Formatting for the Schedule Overview page.
@@ -55,6 +55,11 @@ sealed class SessionNameContext {
    * Formatting for the Record Session Attendance page.
    */
   object RecordSessionAttendance : SessionNameContext()
+
+  /**
+   * Formatting for the nDelius contact description request.
+   */
+  object NdeliusContactDescription : SessionNameContext()
 }
 
 /**
@@ -83,13 +88,14 @@ class SessionNameFormatter {
    */
   fun format(session: SessionEntity, context: SessionNameContext): String = when (context) {
     is SessionNameContext.Default -> defaultFormatting(session)
-    is SessionNameContext.ScheduleIndividualSession -> scheduleIndividualSession(session)
+    is SessionNameContext.ScheduleSession -> scheduleSession(session)
     is SessionNameContext.ScheduleOverview -> scheduleOverview(session)
     is SessionNameContext.SessionsAndAttendance -> sessionsAndAttendance(context.sessionTemplate, session)
     is SessionNameContext.SessionDetails -> sessionDetails(session)
     is SessionNameContext.SessionNotes -> sessionNotes(session, context.popName)
     is SessionNameContext.AttendanceHistory -> attendanceHistory(session)
     is SessionNameContext.RecordSessionAttendance -> recordSessionAttendance(session)
+    is SessionNameContext.NdeliusContactDescription -> nDeliusContactDescription(session)
   }
 
   /**
@@ -124,7 +130,7 @@ class SessionNameFormatter {
    * - GROUP catch-up: `"<moduleName> <sessionNumber> catch-up has been added."`
    * - GROUP: `"<moduleName> <sessionNumber> has been added."`
    */
-  private fun scheduleIndividualSession(session: SessionEntity): String = when {
+  private fun scheduleSession(session: SessionEntity): String = when {
     session.sessionType == SessionType.ONE_TO_ONE && session.isCatchup ->
       "${session.sessionName} catch-up for ${session.attendees.first().personName} has been added."
 
@@ -259,8 +265,11 @@ class SessionNameFormatter {
         session.moduleName
       }
     }
+
     session.moduleName.startsWith("Post-programme") -> session.sessionName
+
     session.sessionType == SessionType.ONE_TO_ONE -> "${session.moduleName} one-to-one"
+
     else -> "${session.moduleName} ${session.sessionNumber}"
   }
 
@@ -270,6 +279,21 @@ class SessionNameFormatter {
       name.removeSuffix("s")
     } else {
       name
+    }
+  }
+
+  /**
+   * Ndelius contact description session name format , appending a catch-up suffix where applicable.
+   *
+   * - GROUP: `"<moduleName> <sessionNumber>[catch-up]"`
+   * - ONE_TO_ONE: `"<sessionName>[ catch-up]"`
+   *
+   */
+  private fun nDeliusContactDescription(session: SessionEntity): String {
+    val catchupSuffix = if (session.isCatchup) " catch-up" else ""
+    return when (session.sessionType) {
+      SessionType.GROUP -> "${session.moduleName} ${session.sessionNumber}$catchupSuffix"
+      SessionType.ONE_TO_ONE -> "${session.sessionName}$catchupSuffix"
     }
   }
 }

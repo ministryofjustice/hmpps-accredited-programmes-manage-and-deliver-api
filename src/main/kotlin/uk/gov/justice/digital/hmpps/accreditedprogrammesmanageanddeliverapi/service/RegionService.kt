@@ -8,9 +8,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.getNameAsString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_PDU_OFFICE_LOCATION_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REGION_ACCREDITED_PROGRAMMES_MEMBERS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REGION_PDU_N_DELIUS
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 
 @Service
 class RegionService(
@@ -24,11 +25,7 @@ class RegionService(
     is ClientResult.Success -> {
       val pduNames = result.body.pdus
       log.debug("Region code: {} returned pduNames: {}", regionCode, pduNames.map { it.description }.distinct())
-      telemetryService.logToAppInsights(
-        eventName = "${GET_REGION_PDU_N_DELIUS.eventName}.success",
-        integrationActionType = GET_REGION_PDU_N_DELIUS.name,
-        outcome = "success",
-      )
+      logTelemetry(GET_REGION_PDU_N_DELIUS, "success")
       pduNames
         .map { CodeDescription(it.code, it.description) }
         .sortedBy { it.description.lowercase() }
@@ -40,11 +37,7 @@ class RegionService(
 
     is ClientResult.Failure -> {
       log.error("Failed to fetch PDU's for regionCode: $regionCode:  ${result.toException().message}")
-      telemetryService.logToAppInsights(
-        eventName = "${GET_REGION_PDU_N_DELIUS.eventName}.failure",
-        integrationActionType = GET_REGION_PDU_N_DELIUS.name,
-        outcome = "failure",
-      )
+      logTelemetry(GET_REGION_PDU_N_DELIUS, "failure")
 
       emptyList()
     }
@@ -54,20 +47,12 @@ class RegionService(
     is ClientResult.Success -> {
       val officeNames = result.body.officeLocations
       log.debug("Pdu code: {} returned officeNames: {}", pduCode, officeNames.map { it.description }.distinct())
-      telemetryService.logToAppInsights(
-        eventName = "${GET_PDU_OFFICE_LOCATION_N_DELIUS.eventName}.success",
-        integrationActionType = GET_PDU_OFFICE_LOCATION_N_DELIUS.name,
-        outcome = "success",
-      )
+      logTelemetry(GET_PDU_OFFICE_LOCATION_N_DELIUS, "success")
       officeNames
         .sortedBy { it.description.lowercase() }
         .ifEmpty {
           log.warn("No office location's returned for pduCode: $pduCode")
-          telemetryService.logToAppInsights(
-            eventName = "${GET_PDU_OFFICE_LOCATION_N_DELIUS.eventName}.failure",
-            integrationActionType = GET_PDU_OFFICE_LOCATION_N_DELIUS.name,
-            outcome = "failure",
-          )
+          logTelemetry(GET_PDU_OFFICE_LOCATION_N_DELIUS, "failure")
 
           emptyList()
         }
@@ -79,41 +64,38 @@ class RegionService(
     }
   }
 
-  fun getTeamMembersForPdu(regionCode: String): List<UserTeamMember> = when (val result = nDeliusApiIntegrationApiClient.getPdusForRegion(regionCode)) {
+  fun getTeamMembersByRegionCode(regionCode: String): List<UserTeamMember> = when (val result = nDeliusApiIntegrationApiClient.getAccreditedProgrammesMembersByRegionCode(regionCode)) {
     is ClientResult.Success -> {
-      logTelemetry("success")
-      val pdus = result.body.pdus
-      if (pdus.isEmpty()) {
-        log.warn("No pdus found in region: $regionCode")
+      logTelemetry(GET_REGION_ACCREDITED_PROGRAMMES_MEMBERS_N_DELIUS, "success")
+      val teams = result.body.teams
+      if (teams.isEmpty()) {
+        log.warn("No teams found in region: $regionCode")
       }
-      pdus
-        .flatMap { pdu ->
-          pdu.team.flatMap { team ->
-            team.members.map { member ->
-              UserTeamMember(
-                personCode = member.code,
-                personName = member.name.getNameAsString(),
-                teamName = team.description,
-                teamCode = team.code,
-              )
-            }
-          }
+      teams.flatMap { team ->
+        team.members.map { member ->
+          UserTeamMember(
+            personCode = member.code,
+            personName = member.name.getNameAsString(),
+            teamName = team.description,
+            teamCode = team.code,
+          )
         }
+      }
         // Filter out any duplicates which are returned
         .distinctBy { it.personCode to it.personName }
     }
 
     is ClientResult.Failure -> {
       log.error("Failed to fetch team members for region: $regionCode ${result.toException().message}")
-      logTelemetry("failure")
+      logTelemetry(GET_REGION_ACCREDITED_PROGRAMMES_MEMBERS_N_DELIUS, "failure")
       emptyList()
     }
   }
 
-  private fun logTelemetry(outcome: String) {
+  private fun logTelemetry(type: IntegrationActivityType, outcome: String) {
     telemetryService.logToAppInsights(
-      eventName = "${GET_REGION_PDU_N_DELIUS.eventName}.$outcome",
-      integrationActionType = GET_REGION_PDU_N_DELIUS.name,
+      eventName = "${type.eventName}.$outcome",
+      integrationActionType = type.name,
       outcome = outcome,
     )
   }

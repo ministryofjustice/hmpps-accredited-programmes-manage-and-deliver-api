@@ -22,11 +22,14 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.RoshAnalysis
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.risksAndNeeds.ThinkingAndBehaviour
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.arnsApi.model.type.ScoreLevel
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegistrations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.Ldc
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysOffenceAnalysis.WhatOccurred
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.Timeline
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.getLatestCompletedLayerThreeAssessment
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.asString
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomAlphanumericString
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCapitalisedWord
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.randomCrn
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniResponseFactory
@@ -43,6 +46,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysOffenceAnalysisFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRelationshipsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRoshFullFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysRoshSummaryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.oasys.OasysThinkingAndBehaviourFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.hmppsaccreditedprogrammesapi.client.arnsApi.model.type.ScoreType
@@ -63,12 +67,19 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return risks and alerts section with legacy ARNS risk data`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
       oasysApiStubs.stubSuccessfulOasysOffendingInfoResponse(assessmentId)
       oasysApiStubs.stubSuccessfulOasysRelationshipsResponse(assessmentId)
-      oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(assessmentId)
+      oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(
+        assessmentId,
+        OasysRoshSummaryFactory()
+          .withRiskChildrenCommunity(uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.ScoreLevel.HIGH)
+          .withRiskChildrenCustody(uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.ScoreLevel.MEDIUM)
+          .produce(),
+      )
       arnsApiStubs.stubSuccessfulLegacyRiskPredictorsResponse(assessmentId)
       nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn)
 
@@ -88,6 +99,8 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.sara?.imminentRiskOfViolenceTowardsPartner).isEqualTo(ScoreLevel.LOW.type)
       assertThat(response.riskOfSeriousRecidivism?.percentageScore).isEqualTo(BigDecimal.valueOf(3.45))
       assertThat(response.riskOfSeriousHarm?.riskPrisonersCustody).isEqualTo(ScoreLevel.MEDIUM.type)
+      assertThat(response.riskOfSeriousHarm?.riskChildrenCommunity).isEqualTo(ScoreLevel.HIGH.type)
+      assertThat(response.riskOfSeriousHarm?.riskChildrenCustody).isEqualTo(ScoreLevel.MEDIUM.type)
       assertThat(response.alerts).hasSize(2)
       assertThat(response).hasFieldOrProperty("dateRetrieved")
       assertThat(response).hasFieldOrProperty("lastUpdated")
@@ -99,6 +112,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return risks and alerts section with non-legacy (OGRS4) ARNS risk data`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -160,6 +174,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return risks and alerts section with null objects for scores when they are missing`() {
       val crn = randomCrn()
+      testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -208,10 +223,12 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should return empty Risk and needs when random crn and no assessment found`() {
+  fun `should return empty Risk and needs but retain nDelius alerts when no assessment found`() {
     // Given
     val crn = randomCrn()
+    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
     oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
+    nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn)
 
     // When
     val response = performRequestAndExpectOk(
@@ -246,16 +263,58 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     assertThat(response.ogrS4Risks?.indirectImageContactSexualReoffendingBand).isNull()
     assertThat(response.ogrS4Risks?.combinedSeriousReoffendingScoreType).isNull()
     assertThat(response.ogrS4Risks?.combinedSeriousReoffendingScore).isNull()
+
+    // Alerts are held in nDelius, not OASys, so they survive the missing assessment
+    assertThat(response.alerts).hasSize(2)
+  }
+
+  @Test
+  fun `should return 404 for an unknown crn even though nDelius returns an empty registrations list`() {
+    // Given no referral is held for the crn, and nDelius responds 200 with no registrations
+    val crn = randomCrn()
+    oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
+    nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn, NDeliusRegistrations(emptyList()))
+
+    // When
+    val response = performRequestAndExpectStatus(
+      httpMethod = HttpMethod.GET,
+      uri = "/risks-and-needs/$crn/risks-and-alerts",
+      object : ParameterizedTypeReference<ErrorResponse>() {},
+      HttpStatus.NOT_FOUND.value(),
+    )
+
+    // Then
+    assertThat(response.developerMessage).isEqualTo("No referral found for crn: $crn")
+  }
+
+  @Test
+  fun `should return no alerts when the crn is known but nDelius holds no registrations`() {
+    // Given
+    val crn = randomCrn()
+    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
+    oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
+    nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn, NDeliusRegistrations(emptyList()))
+
+    // When
+    val response = performRequestAndExpectOk(
+      httpMethod = HttpMethod.GET,
+      uri = "/risks-and-needs/$crn/risks-and-alerts",
+      returnType = object : ParameterizedTypeReference<Risks>() {},
+    )
+
+    // Then
     assertThat(response.alerts).isEmpty()
   }
 
   @Test
   fun `should return 404 when no Offending Info found for section1 of assessment`() {
     val crn = randomCrn()
+    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
     val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
     val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
     oasysApiStubs.stubNotFoundOasysOffendingInfoResponse(assessmentId)
+    nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn)
 
     val response = performRequestAndExpectStatus(
       httpMethod = HttpMethod.GET,
@@ -270,11 +329,13 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `should return 404 when no Relationships found for section6 of assessment`() {
     val crn = randomCrn()
+    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
     val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
     val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
     oasysApiStubs.stubSuccessfulOasysOffendingInfoResponse(assessmentId)
     oasysApiStubs.stubNotFoundOasysRelationshipsResponse(assessmentId)
+    nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn)
 
     val response = performRequestAndExpectStatus(
       httpMethod = HttpMethod.GET,
@@ -290,12 +351,14 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   fun `should return 404 when no Rosh Summary found for sectionroshsumm of assessment`() {
     // Given
     val crn = randomCrn()
+    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
     val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
     val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
     oasysApiStubs.stubSuccessfulOasysOffendingInfoResponse(assessmentId)
     oasysApiStubs.stubSuccessfulOasysRelationshipsResponse(assessmentId)
     oasysApiStubs.stubNotFoundOasysOasysRoshSummaryResponse(assessmentId)
+    nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn)
 
     val response = performRequestAndExpectStatus(
       httpMethod = HttpMethod.GET,
@@ -310,6 +373,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `should return 404 when no Risk Predictors found for risk-predictors of assessment`() {
     val crn = randomCrn()
+    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
     val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
     val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -318,6 +382,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     oasysApiStubs.stubSuccessfulOasysRoshSummaryResponse(assessmentId)
 
     arnsApiStubs.stubNotFoundRiskPredictorsResponse(assessmentId)
+    nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn)
     val response = performRequestAndExpectStatus(
       httpMethod = HttpMethod.GET,
       uri = "/risks-and-needs/$crn/risks-and-alerts",
@@ -331,6 +396,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   fun `should return 404 when no Alerts found for a crn`() {
     // Given
     val crn = randomCrn()
+    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
     val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
     val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -371,6 +437,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return learning needs section`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
 
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
@@ -381,7 +448,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       oasysApiStubs.stubSuccessfulPniResponse(
         crn,
         PniResponseFactory().withAssessment(
-          PniAssessmentFactory().withLdc(Ldc(4, 4)).produce(),
+          PniAssessmentFactory().withLdc(Ldc(score = 4, subTotal = 7)).produce(),
         ).produce(),
       )
 
@@ -414,13 +481,14 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.qualifications).isEqualTo("NVQ Level 2")
       assertThat(response.basicSkillsScore).isEqualTo("3")
       assertThat(response.basicSkillsScoreDescription).isEqualTo("ete issues")
-      assertThat(response.ldcScore).isEqualTo(4)
+      assertThat(response.ldcScore).isEqualTo(7)
     }
 
     @Test
     fun `should return 404 when providing an unknown crn for learning needs and no assessment exists`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -435,9 +503,27 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should return 404 when providing an unknown case reference number`() {
+      // Given
+      val caseReferenceNumber = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(caseReferenceNumber)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$caseReferenceNumber/learning-needs",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+      // Then
+      assertThat(response.developerMessage).isEqualTo("No referral found for case reference number: $caseReferenceNumber")
+    }
+
+    @Test
     fun `should return 404 when no Learning Needs found for section4 of assessment`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -457,13 +543,18 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `should return 400 when crn is not in the correct format for learning needs`() {
-      // Given & When
+      // Given
+      val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+
+      // When
       val response = performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
         uri = "/risks-and-needs/${randomAlphanumericString(6)}/learning-needs",
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.BAD_REQUEST.value(),
       )
+
       // Then
       assertThat(response.developerMessage).isEqualTo("400 BAD_REQUEST \"Validation failure\"")
     }
@@ -476,6 +567,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return attitude section`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       val assessmentCompletedDate = assessment.getLatestCompletedLayerThreeAssessment()!!.completedAt?.toLocalDate()
@@ -504,6 +596,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return 404 when providing an unknown crn for attitude and no assessment exists`() {
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       val response = performRequestAndExpectStatus(
@@ -517,8 +610,24 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should return 404 when providing an unknown case reference number`() {
+      val caseReferenceNumber = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(caseReferenceNumber)
+
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$caseReferenceNumber/attitude",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      assertThat(response.developerMessage).isEqualTo("No referral found for case reference number: $caseReferenceNumber")
+    }
+
+    @Test
     fun `should return 404 when no attitude found for assessment`() {
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
 
@@ -557,6 +666,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return health section`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -580,6 +690,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for health and no assessment exists`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -594,9 +705,27 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should return 404 when providing an unknown case reference number`() {
+      // Given
+      val caseReferenceNumber = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(caseReferenceNumber)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$caseReferenceNumber/health",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+      // Then
+      assertThat(response.developerMessage).isEqualTo("No referral found for case reference number: $caseReferenceNumber")
+    }
+
+    @Test
     fun `should return 404 when no health found for section13 of assessment`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -634,6 +763,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return relationships section for known CRN`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -694,6 +824,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for relationships and no assessment exists`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -709,9 +840,28 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should return 404 when providing an unknown case reference number`() {
+      // Given
+      val caseReferenceNumber = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(caseReferenceNumber)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$caseReferenceNumber/relationships",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      // Then
+      assertThat(response.developerMessage).isEqualTo("No referral found for case reference number: $caseReferenceNumber")
+    }
+
+    @Test
     fun `should return 404 when no relationships found for section6 of assessment`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -751,6 +901,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return Rosh analysis section`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val timeline = assessment.getLatestCompletedLayerThreeAssessment()
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -792,6 +943,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for Rosh Analysis and no assessment exists`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -806,9 +958,27 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should return 404 when providing an unknown case reference number`() {
+      // Given
+      val caseReferenceNumber = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(caseReferenceNumber)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$caseReferenceNumber/rosh-analysis",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+      // Then
+      assertThat(response.developerMessage).isEqualTo("No referral found for case reference number: $caseReferenceNumber")
+    }
+
+    @Test
     fun `should return 404 when no Rosh Analysis found for sectionroshfull of assessment`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -848,6 +1018,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return drug detail section`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val timeline = listOf<Timeline>(Timeline(1L, "COMPLETE", "LAYER3", LocalDateTime.now()))
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).withTimeline(timeline).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
@@ -873,6 +1044,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for drug detail and no assessment exists`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -882,14 +1054,34 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.NOT_FOUND.value(),
       )
+
       // Then
       assertThat(response.developerMessage).isEqualTo("No assessment found for crn: $crn")
+    }
+
+    @Test
+    fun `should return 404 when providing an unknown case reference number`() {
+      // Given
+      val caseReferenceNumber = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(caseReferenceNumber)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$caseReferenceNumber/drug-details",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      // Then
+      assertThat(response.developerMessage).isEqualTo("No referral found for case reference number: $caseReferenceNumber")
     }
 
     @Test
     fun `should return 404 when no drug detail found for section8 of assessment`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -928,6 +1120,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return lifestyle and associates detail section`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val timeline = listOf<Timeline>(Timeline(1L, "COMPLETE", "LAYER3", LocalDateTime.now()))
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).withTimeline(timeline).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
@@ -952,6 +1145,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for lifestyle and associates and no assessment exists`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -966,9 +1160,27 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should return 404 when providing an unknown case reference number`() {
+      // Given
+      val caseReferenceNumber = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(caseReferenceNumber)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$caseReferenceNumber/lifestyle-and-associates",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+      // Then
+      assertThat(response.developerMessage).isEqualTo("No referral found for case reference number: $caseReferenceNumber")
+    }
+
+    @Test
     fun `should return 404 when no lifestyle and associates found for section7 of assessment`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -1007,6 +1219,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return emotional wellbeing detail section`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val timeline = listOf<Timeline>(Timeline(1L, "COMPLETE", "LAYER3", LocalDateTime.now()))
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).withTimeline(timeline).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
@@ -1034,6 +1247,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for drug detail and no assessment exists`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -1043,14 +1257,34 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.NOT_FOUND.value(),
       )
+
       // Then
       assertThat(response.developerMessage).isEqualTo("No assessment found for crn: $crn")
+    }
+
+    @Test
+    fun `should return 404 when providing an unknown case reference number`() {
+      // Given
+      val caseReferenceNumber = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(caseReferenceNumber)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$caseReferenceNumber/emotional-wellbeing",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      // Then
+      assertThat(response.developerMessage).isEqualTo("No referral found for case reference number: $caseReferenceNumber")
     }
 
     @Test
     fun `should return 404 when no drug detail found for section8 of assessment`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -1070,13 +1304,19 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `should return 400 when crn is not in the correct format`() {
+      // Given
+      val crn = randomAlphanumericString(6)
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+
+      // When
       val response = performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
-        uri = "/risks-and-needs/${randomAlphanumericString(6)}/emotional-wellbeing",
+        uri = "/risks-and-needs/$crn/emotional-wellbeing",
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.BAD_REQUEST.value(),
       )
 
+      // Then
       assertThat(response.developerMessage).isEqualTo("400 BAD_REQUEST \"Validation failure\"")
     }
   }
@@ -1089,6 +1329,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return alcohol misuse details section for known crn`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val timeline = listOf(Timeline(1L, "COMPLETE", "LAYER3", LocalDateTime.now()))
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).withTimeline(timeline).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
@@ -1114,6 +1355,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for alcohol misuse details and no assessment exists`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -1123,14 +1365,33 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.NOT_FOUND.value(),
       )
+
       // Then
       assertThat(response.developerMessage).isEqualTo("No assessment found for crn: $crn")
+    }
+
+    @Test
+    fun `should return 404 when providing an unknown case reference number`() {
+      // Given
+      val caseReferenceNumber = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(caseReferenceNumber)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$caseReferenceNumber/alcohol-misuse-details",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+      // Then
+      assertThat(response.developerMessage).isEqualTo("No referral found for case reference number: $caseReferenceNumber")
     }
 
     @Test
     fun `should return 404 when no alcohol misuse details found for section9 of assessment`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -1169,6 +1430,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return thinking and behaviour details section for known crn`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val timeline = listOf(Timeline(1L, "COMPLETE", "LAYER3", LocalDateTime.now()))
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).withTimeline(timeline).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
@@ -1196,6 +1458,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for thinking and behaviour details and no assessment exists`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -1210,9 +1473,27 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should return 404 when providing an unknown case reference number`() {
+      // Given
+      val caseReferenceNumber = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(caseReferenceNumber)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$caseReferenceNumber/thinking-and-behaviour",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+      // Then
+      assertThat(response.developerMessage).isEqualTo("No referral found for case reference number: $caseReferenceNumber")
+    }
+
+    @Test
     fun `should return 404 when no thinking and behaviour details found for section11 of assessment`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -1232,9 +1513,11 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `should return 400 when crn is not in the correct format`() {
+      val crn = randomAlphanumericString(6)
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val response = performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
-        uri = "/risks-and-needs/${randomAlphanumericString(6)}/thinking-and-behaviour",
+        uri = "/risks-and-needs/$crn/thinking-and-behaviour",
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.BAD_REQUEST.value(),
       )
@@ -1250,6 +1533,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return Offence analysis section`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val timeline = assessment.getLatestCompletedLayerThreeAssessment()
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -1310,6 +1594,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for Offence Analysis and no assessment exists`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -1319,14 +1604,34 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
         object : ParameterizedTypeReference<ErrorResponse>() {},
         HttpStatus.NOT_FOUND.value(),
       )
+
       // Then
       assertThat(response.developerMessage).isEqualTo("No assessment found for crn: $crn")
+    }
+
+    @Test
+    fun `should return 404 when providing an unknown case reference number`() {
+      // Given
+      val caseReferenceNumber = randomCrn()
+      oasysApiStubs.stubNotFoundAssessmentsResponse(caseReferenceNumber)
+
+      // When
+      val response = performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/risks-and-needs/$caseReferenceNumber/offence-analysis",
+        object : ParameterizedTypeReference<ErrorResponse>() {},
+        HttpStatus.NOT_FOUND.value(),
+      )
+
+      // Then
+      assertThat(response.developerMessage).isEqualTo("No referral found for case reference number: $caseReferenceNumber")
     }
 
     @Test
     fun `should return 404 when no Offence Analysis found for section2 of assessment`() {
       // Given
       val crn = randomCrn()
+      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)

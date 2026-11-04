@@ -62,7 +62,10 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
-class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMembershipService: ProgrammeGroupMembershipService) : IntegrationTestBase() {
+class ReferralControllerIntegrationTest : IntegrationTestBase() {
+
+  @Autowired
+  private lateinit var programmeGroupMembershipService: ProgrammeGroupMembershipService
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
@@ -126,6 +129,9 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+      val forename = nDeliusPersonalDetails.name.forename
+      val surname = nDeliusPersonalDetails.name.surname
+      val middleNames = nDeliusPersonalDetails.name.middleNames
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
       nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
@@ -145,7 +151,10 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.crn).isEqualTo(savedReferral.crn)
       assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
       assertThat(response.currentStatusDescription).isEqualTo("Awaiting allocation")
-      assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      assertThat(response.personName).isEqualTo("$forename $middleNames $surname")
+      assertThat(response.personForename).isEqualTo(forename)
+      assertThat(response.personSurname).isEqualTo(surname)
+      assertThat(response.personMiddleNames).isEqualTo(middleNames)
       assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
       assertThat(response.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
@@ -180,6 +189,9 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+      val forename = nDeliusPersonalDetails.name.forename
+      val surname = nDeliusPersonalDetails.name.surname
+      val middleNames = nDeliusPersonalDetails.name.middleNames
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
       nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
@@ -198,7 +210,10 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.id).isEqualTo(savedReferral.id)
       assertThat(response.crn).isEqualTo(savedReferral.crn)
       assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
-      assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      assertThat(response.personName).isEqualTo("$forename $middleNames $surname")
+      assertThat(response.personForename).isEqualTo(forename)
+      assertThat(response.personSurname).isEqualTo(surname)
+      assertThat(response.personMiddleNames).isEqualTo(middleNames)
       assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
       assertThat(response.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
@@ -239,6 +254,9 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
 
       val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().produce()
+      val forename = nDeliusPersonalDetails.name.forename
+      val surname = nDeliusPersonalDetails.name.surname
+      val middleNames = nDeliusPersonalDetails.name.middleNames
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
       nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
@@ -257,7 +275,10 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.id).isEqualTo(savedReferral.id)
       assertThat(response.crn).isEqualTo(savedReferral.crn)
       assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
-      assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      assertThat(response.personName).isEqualTo("$forename $middleNames $surname")
+      assertThat(response.personForename).isEqualTo(forename)
+      assertThat(response.personSurname).isEqualTo(surname)
+      assertThat(response.personMiddleNames).isEqualTo(middleNames)
       assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
       assertThat(response.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
@@ -296,6 +317,9 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val fullName = randomFullName(middleName = null)
 
       val nDeliusPersonalDetails = NDeliusPersonalDetailsFactory().withName(fullName).produce()
+      val forename = nDeliusPersonalDetails.name.forename
+      val surname = nDeliusPersonalDetails.name.surname
+      val middleNames = nDeliusPersonalDetails.name.middleNames
 
       nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
       nDeliusApiStubs.stubPersonalDetailsResponse(nDeliusPersonalDetails)
@@ -313,7 +337,10 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.id).isEqualTo(savedReferral.id)
       assertThat(response.crn).isEqualTo(savedReferral.crn)
       assertThat(response.interventionName).isEqualTo(savedReferral.interventionName)
-      assertThat(response.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
+      assertThat(response.personName).isEqualTo("$forename $middleNames $surname")
+      assertThat(response.personForename).isEqualTo(forename)
+      assertThat(response.personSurname).isEqualTo(surname)
+      assertThat(response.personMiddleNames).isEqualTo(middleNames)
       assertThat(response.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
       assertThat(response.createdAt).isEqualTo(savedReferral.createdAt.toLocalDate())
       assertThat(response.cohort).isEqualTo(OffenceCohort.SEXUAL_OFFENCE)
@@ -329,7 +356,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     }
 
     @Test
-    fun `should return forbidden when access denied`() {
+    fun `should return forbidden when nDelius access is denied`() {
       // Given
       nDeliusApiStubs.stubAccessCheck(granted = true)
 
@@ -350,6 +377,37 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
       oasysApiStubs.stubSuccessfulPniResponseWithLdc(referralEntity.crn)
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(referralEntity.crn, referralEntity.eventNumber)
+
+      // When & Then
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral-details/${savedReferral.id}",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.FORBIDDEN.value(),
+      )
+    }
+
+    @Test
+    fun `should return forbidden when authenticated user is present in PAC excludedFrom`() {
+      // Given
+      val referralEntity = ReferralEntityFactory().produce()
+      val statusHistory = ReferralStatusHistoryEntityFactory().produce(
+        referralEntity,
+        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      )
+      val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
+
+      testDataGenerator.createReferralWithFields(
+        referralEntity,
+        listOf(statusHistory, cohortHistory),
+      )
+      val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        referralEntity.crn,
+        excludedFrom = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange("AUTH_ADM")),
+      )
 
       // When & Then
       performRequestAndExpectStatus(
@@ -395,7 +453,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
 
       // Stub PNI response with LDC subTotal >= 3 (threshold)
       val ldcWithHighSubTotal = Ldc(
-        score = 4,
+        score = 0,
         subTotal = 4, // >= 3, so hasLdc() should return true
       )
       oasysApiStubs.stubSuccessfulPniResponseWithLdc(referralEntity.crn, ldcWithHighSubTotal)
@@ -442,7 +500,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
 
       // Stub PNI response with LDC subTotal < 3 (threshold)
       val ldcWithLowSubTotal = Ldc(
-        score = 2,
+        score = 5,
         subTotal = 2, // < 3, so hasLdc() should return false
       )
       oasysApiStubs.stubSuccessfulPniResponseWithLdc(referralEntity.crn, ldcWithLowSubTotal)
@@ -596,7 +654,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     }
 
     @Test
-    fun `should return referral details with isLAO true when offender has excluded access`() {
+    fun `should return referral details when another user is excluded`() {
       // Given
       val createdAt = LocalDateTime.now()
       val referralEntity = ReferralEntityFactory()
@@ -624,7 +682,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(referralEntity.crn, referralEntity.eventNumber)
       oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
 
-      // Stub restricted access with excludedFrom list populated
+      // The authenticated test user is AUTH_ADM; another user is excluded.
       probationAccessControlApiStubs.stubCaseAccessByCrn(
         referralEntity.crn,
         excludedFrom = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange("EXCLUDED_USER")),
@@ -644,7 +702,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
     }
 
     @Test
-    fun `should return referral details with isLAO true when offender has restricted access`() {
+    fun `should return referral details when authenticated user is only in restrictedTo`() {
       // Given
       val createdAt = LocalDateTime.now()
       val referralEntity = ReferralEntityFactory()
@@ -672,7 +730,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(referralEntity.crn, referralEntity.eventNumber)
       oasysApiStubs.stubSuccessfulPniResponse(referralEntity.crn)
 
-      // Stub restricted access with restrictedTo list populated
+      // restrictedTo alone must not trigger ReferralService's exclusion guard.
       probationAccessControlApiStubs.stubCaseAccessByCrn(
         referralEntity.crn,
         restrictedTo = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange("AUTHORIZED_USER")),
@@ -951,6 +1009,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         referralEntity.eventNumber.toString(),
         offences,
       )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
 
       // When
       val response = performRequestAndExpectOk(
@@ -1026,6 +1085,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
       nDeliusApiStubs.stubNotFoundOffencesResponse(savedReferral.crn, savedReferral.eventNumber.toString())
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
 
       // When & Then
       performRequestAndExpectStatus(
@@ -1048,6 +1108,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       )
       testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
 
       // When & Then
       performRequestAndExpectStatus(
@@ -1079,6 +1140,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         referralEntity.eventNumber,
         nDeliusSentenceResponse,
       )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
 
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
@@ -1099,6 +1161,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
 
       assertThat(response.sentenceType).isEqualTo(nDeliusSentenceResponse.description)
       assertThat(response.releaseType).isEqualTo(nDeliusSentenceResponse.releaseType)
+      assertThat(response.licenceEndDate).isEqualTo(nDeliusSentenceResponse.licenceExpiryDate)
       assertThat(response.postSentenceSupervisionStartDate)
         .isEqualTo(nDeliusSentenceResponse.licenceExpiryDate!!.plusDays(1))
     }
@@ -1111,6 +1174,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
       )
       testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
 
       performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
@@ -1566,6 +1630,8 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
 
       testDataGenerator.createDeliveryLocationPreference(deliveryLocationPreference)
 
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
+
       // When
       val response = performRequestAndExpectOk(
         httpMethod = HttpMethod.GET,
@@ -1595,6 +1661,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
         deliusDescription = "Test PDU",
       )
       testDataGenerator.createPreferredDeliveryLocationProbationDeliveryUnit(probationDeliveryUnit)
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
 
       // When
       val response = performRequestAndExpectOk(
@@ -1634,6 +1701,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       )
       testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
+      nDeliusApiStubs.stubAccessCheck(granted = true, referralEntity.crn)
 
       // When
       val result = performRequestAndExpectStatus(
@@ -1674,7 +1742,7 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response.currentStatus.title).isEqualTo("Awaiting assessment")
       assertThat(response.availableStatuses).isNotEmpty
       assertThat(response.availableStatuses.first { it.status == "Awaiting allocation" }.transitionDescription)
-        .isEqualTo("The person has been assessed as suitable and can be allocated to a group.")
+        .isEqualTo("The person has been assessed as suitable and can be allocated to a group, either for the first time or if they have been bus-stopped.")
     }
 
     @Test
@@ -1764,20 +1832,26 @@ class ReferralControllerIntegrationTest(@Autowired private val programmeGroupMem
       assertThat(response).isNotNull
       assertThat(response.currentStatus.title).isEqualTo("On programme")
       assertThat(response.availableStatuses).isNotEmpty
-      assertThat(response.availableStatuses).hasSize(5)
+      assertThat(response.availableStatuses).hasSize(8)
       assertThat(response.availableStatuses.map { it.status }).containsOnly(
-        "Breach (non-attendance)",
+        "Breach",
         "Recall",
         "Return to court",
         "Awaiting assessment",
         "Awaiting allocation",
+        "Suitable but not ready",
+        "On hold",
+        "Withdrawn",
       )
       assertThat(response.availableStatuses.map { it.status }).containsSequence(
         "Awaiting assessment",
         "Awaiting allocation",
-        "Breach (non-attendance)",
-        "Recall",
+        "Suitable but not ready",
         "Return to court",
+        "Breach",
+        "Recall",
+        "On hold",
+        "Withdrawn",
       )
     }
   }

@@ -24,6 +24,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.PersonReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.DomainEventsMessageFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.MessageHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralCohortHistoryFactory
@@ -124,7 +125,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .produce()
     nDeliusApiStubs.stubPersonalDetailsResponse(personalDetails)
     val sentenceInformation =
-      NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2025-10-01")).produce()
+      NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2025-10-01")).withLicenceExpiryDate(LocalDate.parse("2026-03-20")).produce()
     nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(crn, eventNumber, sentenceInformation)
     probationAccessControlApiStubs.stubOpenAccessForAnyCrn()
   }
@@ -269,6 +270,37 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
+  fun `should create message history on receipt of probation case sentence deleted message`() {
+    // Given
+    val eventType = "probation-case.sentence.deleted"
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", "X777878"))))
+      .withEventType(eventType)
+      .produce()
+
+    // When
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
+    await untilCallTo {
+      messageHistoryRepository.findAll().firstOrNull()
+    } matches { it != null }
+
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(eventType)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+      )
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
+  }
+
+  @Test
   fun `should create message history on receipt of ACP M&D referral details updated message`() {
     // Given
     val eventType = "accredited-programmes-manage-and-deliver.referral.details-updated"
@@ -368,6 +400,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.referralReportingLocation!!.pduName).isEqualTo("PDU_1")
       assertThat(it.referralReportingLocation!!.regionName).isEqualTo("REGION_1")
       assertThat(it.sentenceEndDate).isEqualTo(LocalDate.parse("2025-10-01"))
+      assertThat(it.licenceExpiryDate).isEqualTo(LocalDate.parse("2026-03-20"))
       true
     }
 
@@ -386,10 +419,10 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should create referral and automatically assign ldc status true when score greater than or equal to 3 and on receipt of community referral creation message`() {
+  fun `should create referral and automatically assign ldc status true when subTotal greater than or equal to 3 and on receipt of community referral creation message`() {
     // Given
     val ldc = Ldc(
-      score = 4,
+      score = 0,
       subTotal = 4,
     )
     oasysApiStubs.stubSuccessfulPniResponseWithLdc(crn, ldc)
@@ -426,6 +459,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.referralReportingLocation!!.reportingTeam).isEqualTo("TEAM_1")
       assertThat(it.referralReportingLocation!!.pduName).isEqualTo("PDU_1")
       assertThat(it.sentenceEndDate!!).isEqualTo(LocalDate.parse("2025-10-01"))
+      assertThat(it.licenceExpiryDate!!).isEqualTo(LocalDate.parse("2026-03-20"))
       true
     }
 
@@ -444,10 +478,10 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   }
 
   @Test
-  fun `should create referral and automatically assign ldc status false when score less than 3 and on receipt of community referral creation message`() {
+  fun `should create referral and automatically assign ldc status false when subTotal less than 3 and on receipt of community referral creation message`() {
     // Given
     val ldc = Ldc(
-      score = 2,
+      score = 5,
       subTotal = 2,
     )
     oasysApiStubs.stubSuccessfulPniResponseWithLdc(crn, ldc)
@@ -485,6 +519,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.referralReportingLocation!!.reportingTeam).isEqualTo("TEAM_1")
       assertThat(it.referralReportingLocation!!.pduName).isEqualTo("PDU_1")
       assertThat(it.sentenceEndDate).isEqualTo(LocalDate.parse("2025-10-01"))
+      assertThat(it.licenceExpiryDate).isEqualTo(LocalDate.parse("2026-03-20"))
       true
     }
 
@@ -541,6 +576,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.referralReportingLocation!!.reportingTeam).isEqualTo("TEAM_1")
       assertThat(it.referralReportingLocation!!.pduName).isEqualTo("PDU_1")
       assertThat(it.sentenceEndDate).isEqualTo(LocalDate.parse("2025-10-01"))
+      assertThat(it.licenceExpiryDate).isEqualTo(LocalDate.parse("2026-03-20"))
       true
     }
     messageHistoryRepository.findAll().first().let {
@@ -948,5 +984,56 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
     assertThat(result.personName).isEqualTo(nDeliusPersonalDetails.name.getNameAsString())
     assertThat(result.dateOfBirth).isEqualTo(nDeliusPersonalDetails.dateOfBirth)
     assertThat(result.sex).isEqualTo(nDeliusPersonalDetails.sex.description)
+  }
+
+  @Test
+  fun `should delete referral on receipt of probation case sentence deleted message`() {
+    // Given
+    val eventType = "probation-case.sentence.deleted"
+    val savedReferral = testReferralHelper.createReferral()
+    val savedMessageHistoryEntity = messageHistoryRepository.save(
+      MessageHistoryEntityFactory().withEventType(eventType).withReferral(savedReferral).produce(),
+    )
+    assertThat(savedMessageHistoryEntity).isNotNull
+    assertThat(savedMessageHistoryEntity.id).isNotNull
+    val caseReferenceNumber = savedReferral.crn
+    val eventId = savedReferral.eventId
+    val domainEventsMessage = DomainEventsMessageFactory()
+      .withPersonReference(PersonReference(listOf(PersonReference.Identifier("CRN", caseReferenceNumber))))
+      .withEventType(eventType)
+      .produce()
+    nDeliusApiStubs.stubNotFoundLicenceConditionManagerResponse(
+      crn = caseReferenceNumber,
+      licenceConditionId = eventId!!,
+    )
+
+    // When
+    domainEventsQueueConfig.sendDomainEvent(domainEventsMessage)
+
+    // Then
+    await withPollDelay ofMillis(100) untilCallTo { with(domainEventsQueueConfig) { domainEventQueue.countAllMessagesOnQueue() } } matches { it == 0 }
+    await untilCallTo {
+      messageHistoryRepository.findAll().firstOrNull()
+    } matches { it != null }
+
+    messageHistoryRepository.findAll().first().let {
+      assertThat(it.id).isNotNull
+      assertThat(it.eventType).isEqualTo(eventType)
+      assertThat(it.detailUrl).isEqualTo(domainEventsMessage.detailUrl)
+      assertThat(it.description).isEqualTo(domainEventsMessage.description)
+      assertThat(it.occurredAt).isEqualToIgnoringNanos(
+        domainEventsMessage.occurredAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
+      )
+      assertThat(it.message).isEqualTo(
+        objectMapper.writeValueAsString(domainEventsMessage),
+      )
+    }
+
+    val result = referralRepository.findByCrn(caseReferenceNumber)
+    val resultMessageHistoryList = messageHistoryRepository.findByReferral(savedReferral)
+
+    // Then
+    assertThat(result).isEmpty()
+    assertThat(resultMessageHistoryList).isEmpty()
   }
 }

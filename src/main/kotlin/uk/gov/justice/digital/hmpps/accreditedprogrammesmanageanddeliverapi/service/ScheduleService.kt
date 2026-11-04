@@ -11,7 +11,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.AppointmentReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest.NdeliusAppointment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.DeleteAppointmentsRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toAppointment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -22,6 +24,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toNdeliusAppointmentEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.CREATE_APPOINTMENT_N_DELIUS
@@ -33,7 +36,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.Clock
@@ -70,12 +72,12 @@ class ScheduleService(
 
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  fun scheduleIndividualSessionAndReturnResponse(groupId: UUID, request: ScheduleSessionRequest): String {
-    val scheduledSession = scheduleIndividualSession(groupId, request)
-    return sessionNameFormatter.format(scheduledSession, SessionNameContext.ScheduleIndividualSession)
+  fun scheduleSessionAndReturnResponse(groupId: UUID, request: ScheduleSessionRequest): String {
+    val scheduledSession = scheduleSession(groupId, request)
+    return sessionNameFormatter.format(scheduledSession, SessionNameContext.ScheduleSession)
   }
 
-  fun scheduleIndividualSession(groupId: UUID, request: ScheduleSessionRequest): SessionEntity {
+  fun scheduleSession(groupId: UUID, request: ScheduleSessionRequest): SessionEntity {
     val programmeGroup = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id: $groupId could not be found")
 
@@ -417,12 +419,48 @@ class ScheduleService(
       // Empty groups may regenerate into the past (in-flight import); groups with members never may.
       preventPastScheduling = !isEmptyGroup,
     )
-    val attendees = sessions.flatMap { it.attendees }.toList()
+
+    val attendees = sessions
+      .filter { it.sessionType == SessionType.GROUP && !it.isCatchup }
+      .flatMap { it.attendees }
+      .toList()
+
     if (attendees.isNotEmpty()) {
       createNdeliusAppointmentsForSessions(attendees)
     }
 
     return sessions
+  }
+
+  fun createNDeliusAppointments(
+    nDeliusAppointmentEntities: List<NDeliusAppointmentEntity>,
+    updateAppointmentRequests: List<UpdateAppointmentRequest>,
+  ) {
+    if (nDeliusAppointmentEntities.isEmpty() || updateAppointmentRequests.isEmpty()) return
+
+    val nDeliusAppointments = nDeliusAppointmentEntities.map { nDeliusAppointmentEntity ->
+      val updateAppointmentRequest = updateAppointmentRequests.first { request ->
+        request.reference == nDeliusAppointmentEntity.ndeliusAppointmentId
+      }
+      nDeliusAppointmentEntity.toAppointment(
+        sessionNameFormatter = sessionNameFormatter,
+        notes = updateAppointmentRequest.notes,
+        outcome = updateAppointmentRequest.outcome,
+      )
+    }
+
+    val affectedCaseReferenceNumbers = nDeliusAppointmentEntities.map { it.referral.crn }.distinct()
+    val affectedEventNumbers =
+      nDeliusAppointmentEntities.map { "${it.referral.crn}:${it.referral.eventNumber}" }.distinct()
+    val groupId = nDeliusAppointmentEntities.firstOrNull()?.session?.programmeGroup?.id
+
+    createNDeliusAppointments(
+      nDeliusAppointments = nDeliusAppointments,
+      nDeliusAppointmentEntities = nDeliusAppointmentEntities,
+      affectedCaseReferenceNumbers = affectedCaseReferenceNumbers,
+      affectedEventNumbers = affectedEventNumbers,
+      groupId = groupId,
+    )
   }
 
   fun createNdeliusAppointmentsForSessions(attendees: List<AttendeeEntity>) {
@@ -432,16 +470,32 @@ class ScheduleService(
     val (nDeliusAppointments, nDeliusAppointmentEntities) = attendees.map { attendee ->
       // Generate an appointment ID to be used by NDelius
       val appointmentId = UUID.randomUUID()
-      val appointment = attendee.toAppointment(appointmentId)
+      val appointment = attendee.toAppointment(appointmentId, sessionNameFormatter)
       val appointmentEntity = attendee.toNdeliusAppointmentEntity(appointmentId)
       appointment to appointmentEntity
     }.unzip()
 
     // Extract CRNs and event numbers for diagnostic logging
-    val affectedCrns = attendees.map { it.referral.crn }.distinct()
+    val affectedCaseReferenceNumbers = attendees.map { it.referral.crn }.distinct()
     val affectedEventNumbers = attendees.map { "${it.referral.crn}:${it.referral.eventNumber}" }.distinct()
     val groupId = attendees.firstOrNull()?.session?.programmeGroup?.id
 
+    createNDeliusAppointments(
+      nDeliusAppointments = nDeliusAppointments,
+      nDeliusAppointmentEntities = nDeliusAppointmentEntities,
+      affectedCaseReferenceNumbers = affectedCaseReferenceNumbers,
+      affectedEventNumbers = affectedEventNumbers,
+      groupId = groupId,
+    )
+  }
+
+  private fun createNDeliusAppointments(
+    nDeliusAppointments: List<NdeliusAppointment>,
+    nDeliusAppointmentEntities: List<NDeliusAppointmentEntity>,
+    affectedCaseReferenceNumbers: List<String>,
+    affectedEventNumbers: List<String>,
+    groupId: UUID?,
+  ) {
     when (
       val response =
         nDeliusIntegrationApiClient.createAppointmentsInDelius(CreateAppointmentRequest(nDeliusAppointments))
@@ -450,7 +504,7 @@ class ScheduleService(
         log.error(
           "Failure to create nDelius appointments — status: ${response.status}, " +
             "path: ${response.path}, groupId: $groupId, " +
-            "CRNs: $affectedCrns, eventNumbers: $affectedEventNumbers, " +
+            "CRNs: $affectedCaseReferenceNumbers, eventNumbers: $affectedEventNumbers, " +
             "responseBody: ${response.body}",
         )
         telemetryService.logToAppInsights(
@@ -459,7 +513,7 @@ class ScheduleService(
             "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
             "outcome" to "failure",
             "statusCode" to response.status.toString(),
-            "crns" to affectedCrns.joinToString(","),
+            "crns" to affectedCaseReferenceNumbers.joinToString(","),
             "eventNumbers" to affectedEventNumbers.joinToString(","),
             "groupId" to (groupId?.toString() ?: ""),
             "responseBody" to (response.body?.take(500) ?: ""),
@@ -476,7 +530,7 @@ class ScheduleService(
             properties = mapOf(
               "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
               "outcome" to "terminated-requirement",
-              "crns" to affectedCrns.joinToString(","),
+              "crns" to affectedCaseReferenceNumbers.joinToString(","),
               "eventNumbers" to affectedEventNumbers.joinToString(","),
               "groupId" to (groupId?.toString() ?: ""),
             ),
@@ -489,7 +543,7 @@ class ScheduleService(
       is ClientResult.Failure.Other -> {
         log.error(
           "Failure to create nDelius appointments — service: ${response.serviceName}, " +
-            "groupId: $groupId, CRNs: $affectedCrns, eventNumbers: $affectedEventNumbers, " +
+            "groupId: $groupId, CRNs: $affectedCaseReferenceNumbers, eventNumbers: $affectedEventNumbers, " +
             "exception: ${response.exception.message}",
           response.exception,
         )
@@ -498,7 +552,7 @@ class ScheduleService(
           properties = mapOf(
             "integrationActionType" to CREATE_APPOINTMENT_N_DELIUS.name,
             "outcome" to "failure",
-            "crns" to affectedCrns.joinToString(","),
+            "crns" to affectedCaseReferenceNumbers.joinToString(","),
             "eventNumbers" to affectedEventNumbers.joinToString(","),
             "groupId" to (groupId?.toString() ?: ""),
             "errorMessage" to (response.exception.message ?: "unknown"),
@@ -511,7 +565,7 @@ class ScheduleService(
       }
 
       is ClientResult.Success -> {
-        log.info("${nDeliusAppointments.size} appointments created in nDelius for groupId: $groupId, CRNs: $affectedCrns")
+        log.info("${nDeliusAppointments.size} appointments created in nDelius for groupId: $groupId, CRNs: $affectedCaseReferenceNumbers")
         telemetryService.logToAppInsights(
           eventName = "${CREATE_APPOINTMENT_N_DELIUS.eventName}.success",
           properties = mapOf(

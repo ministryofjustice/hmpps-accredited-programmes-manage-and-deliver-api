@@ -5,22 +5,26 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 
 @Schema(description = "Details of a referral status change event")
 data class ReferralStatusInfo(
-  @Schema(description = "The new status of the referral", required = true)
+  @field:Schema(description = "The new status of the referral", required = true)
   val newStatus: Status,
-  @Schema(description = "The type of entity from which this status change was sourced", required = true)
+  @field:Schema(description = "The type of entity from which this status change was sourced", required = true)
   val sourcedFromEntityType: ReferralEntitySourcedFrom,
-  @Schema(description = "The ID of the entity from which this status change was sourced", required = true)
+  @field:Schema(description = "The ID of the entity from which this status change was sourced", required = true)
   val sourcedFromEntityId: Long,
-  @Schema(description = "Optional notes associated with the status change")
+  @field:Schema(description = "The event number associated with the requirement/licence condition for this referral", required = true)
+  val eventNumber: Int,
+  @field:Schema(description = "Optional notes associated with the status change")
   val notes: String?,
-  @Schema(description = "A human-readable description of the status change", required = true)
+  @field:Schema(description = "A human-readable description of the status change", required = true)
   val description: String,
+  @field:Schema(description = "Username of the person who made the status update", required = true)
+  val username: String,
 ) {
   @Schema(description = "The status of a referral")
   enum class Status(
-    @Schema(description = "The human-readable display name of the status")
+    @field:Schema(description = "The human-readable display name of the status")
     val displayName: String,
-    @Schema(description = "A description of what the status means")
+    @field:Schema(description = "A description of what the status means")
     val description: String,
   ) {
     @Schema(description = "The person is ready to be allocated to a programme group.")
@@ -34,20 +38,14 @@ data class ReferralStatusInfo(
 
     @Schema(description = "The person has breached their conditions through non-attendance of the programme.")
     BREACH(
-      "Breach (non-attendance)",
+      "Breach",
       "The person has breached their conditions through non-attendance of the programme.",
     ),
 
-    @Schema(description = "The person is suitable but does not currently meet the prioritisation criteria. The referral will be paused.")
-    DEPRIORITISED(
-      "Deprioritised",
-      "The person is suitable but does not currently meet the prioritisation criteria. The referral will be paused.",
-    ),
-
-    @Schema(description = "The court has agreed that the programme requirement should be deferred until the person can continue.")
-    DEFERRED(
-      "Deferred",
-      "The court has agreed that the programme requirement should be deferred until the person can continue.",
+    @Schema(description = "The referral is paused, for example during a transfer or after the court has extended an order.")
+    ON_HOLD(
+      "On hold",
+      "The referral is paused, for example during a transfer or after the court has extended an order.",
     ),
 
     @Schema(description = "The person has started the programme. They have attended a pre-group one-to-one.")

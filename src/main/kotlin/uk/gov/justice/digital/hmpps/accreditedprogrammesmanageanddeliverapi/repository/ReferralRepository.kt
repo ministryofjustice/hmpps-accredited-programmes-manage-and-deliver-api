@@ -25,6 +25,12 @@ interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
   @EntityGraph(attributePaths = ["statusHistories"])
   fun findByCrn(crn: String): List<ReferralEntity>
 
+  @EntityGraph(attributePaths = ["statusHistories"])
+  @Query("SELECT r FROM ReferralEntity r WHERE r.crn = :crn ORDER BY r.createdAt DESC LIMIT 1")
+  fun findMostRecentByCrn(crn: String): ReferralEntity?
+
+  fun existsByCrn(crn: String): Boolean
+
   fun findByCrnAndEventIdAndSourcedFrom(
     crn: String,
     eventId: String,

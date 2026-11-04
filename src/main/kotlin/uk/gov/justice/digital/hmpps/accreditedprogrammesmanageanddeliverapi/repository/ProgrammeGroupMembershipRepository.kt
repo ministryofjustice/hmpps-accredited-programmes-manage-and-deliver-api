@@ -32,6 +32,20 @@ interface ProgrammeGroupMembershipRepository : JpaRepository<ProgrammeGroupMembe
   )
   fun findNonDeletedByReferralAndGroupIds(referralId: UUID, programmeGroupId: UUID): ProgrammeGroupMembershipEntity?
 
+  @Query(
+    """
+    SELECT pgm FROM ProgrammeGroupMembershipEntity pgm
+    WHERE pgm.referral.id = :referralId
+    AND pgm.programmeGroup.id = :programmeGroupId
+    ORDER BY CASE WHEN pgm.deletedAt IS NULL THEN 0 ELSE 1 END ASC, pgm.createdAt DESC
+    LIMIT 1
+    """,
+  )
+  fun findByReferralAndGroupIdsIncludingDeleted(
+    referralId: UUID,
+    programmeGroupId: UUID,
+  ): ProgrammeGroupMembershipEntity?
+
   @EntityGraph(attributePaths = ["programmeGroup"])
   fun findAllByProgrammeGroupIdAndDeletedAtIsNullOrderByCreatedAtDesc(programmeGroupId: UUID): List<ProgrammeGroupMembershipEntity>
 

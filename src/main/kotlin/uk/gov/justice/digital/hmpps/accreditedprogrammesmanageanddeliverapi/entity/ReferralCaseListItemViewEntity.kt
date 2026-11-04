@@ -66,6 +66,10 @@ class ReferralCaseListItemViewEntity(
   var sentenceEndDate: LocalDate? = null,
 
   @Nullable
+  @Column("licence_expiry_date")
+  var licenceExpiryDate: LocalDate? = null,
+
+  @Nullable
   @Enumerated(EnumType.STRING)
   @Column(name = "sentence_end_date_source")
   var sentenceEndDateSource: ReferralEntitySourcedFrom,

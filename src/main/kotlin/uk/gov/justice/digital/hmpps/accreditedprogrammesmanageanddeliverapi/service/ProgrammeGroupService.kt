@@ -1,8 +1,8 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -14,12 +14,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.CreateGroupSessionSlot
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Group
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupDetailsResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupItem
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupMember
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverview
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupScheduleOverviewSession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupSessionResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.GroupsByRegion
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.Participant
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupAllocations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupModuleSessionsResponse
@@ -45,6 +45,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
@@ -65,7 +66,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsByRegionTabSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserAccessService.Access
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
@@ -91,8 +91,6 @@ class ProgrammeGroupService(
   private val sessionService: SessionService,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
   private val userAccessService: UserAccessService,
-  @Value("\${app.features.lao-access-check-enabled}")
-  private val limitedAccessOffenderCheckEnabled: Boolean,
   private val moduleRepository: ModuleRepository,
   private val authenticationUtils: AuthenticationUtils,
   private val regionService: RegionService,
@@ -266,7 +264,7 @@ class ProgrammeGroupService(
     val username = authenticationUtils.getUsername()
     val userRegion = userService.getUserRegions(username).firstOrNull()
       ?: throw NotFoundException("Region for username $username not found")
-    val facilitators = regionService.getTeamMembersForPdu(userRegion.code)
+    val facilitators = regionService.getTeamMembersByRegionCode(userRegion.code)
     val memberships = programmeGroupMembershipService.getActiveGroupMemberships(groupId)
     val groupMembers = memberships.map { membership ->
       GroupMember(
@@ -280,7 +278,7 @@ class ProgrammeGroupService(
     val accessGrantedMembers = groupMembers.filter { it.crn in accessByCrn }
     accessGrantedMembers.forEach { groupMember ->
       val access = accessByCrn[groupMember.crn]
-      groupMember.isLimitedAccessOffender = access?.lao
+      groupMember.isLimitedAccessOffender = access?.isLimitedAccessOffender
       groupMember.isExcluded = access?.isExcluded
     }
 
@@ -391,8 +389,8 @@ class ProgrammeGroupService(
     pageable: Pageable,
     selectedTab: GroupPageTab,
     groupId: UUID,
-    sex: String?,
-    cohort: ProgrammeGroupCohort?,
+    sex: List<String>?,
+    cohorts: List<ProgrammeGroupCohort>?,
     nameOrCrn: String?,
     pdus: List<String>?,
     reportingTeams: List<String>?,
@@ -404,12 +402,14 @@ class ProgrammeGroupService(
 
     val otherTab = if (selectedTab === GroupPageTab.WAITLIST) GroupPageTab.ALLOCATED else GroupPageTab.WAITLIST
 
+    val isFilteredCaseList = isFilterApplied(sex, cohorts, nameOrCrn, pdus, reportingTeams)
+
     val activeSpecification =
       getGroupWaitlistItemSpecification(
         selectedTab,
         groupId,
         sex,
-        cohort,
+        cohorts,
         nameOrCrn,
         pdus,
         reportingTeams,
@@ -421,7 +421,7 @@ class ProgrammeGroupService(
         otherTab,
         groupId,
         sex,
-        cohort,
+        cohorts,
         nameOrCrn,
         pdus,
         reportingTeams,
@@ -431,21 +431,41 @@ class ProgrammeGroupService(
     val pagedData = groupWaitlistItemViewRepository.findAll(activeSpecification, pageable)
 
     // Fetch Limited Access Offender (LAO) status for all distinct case reference numbers (CRNs)
-    var limitedAccessOffenderAccessMap: Map<String, Access>? = null
-    if (limitedAccessOffenderCheckEnabled) {
-      val username = authenticationUtils.getUsername()
-      val caseReferenceNumbers = pagedData.content.map { it.crn }.distinct()
-      limitedAccessOffenderAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
+    val username = authenticationUtils.getUsername()
+    val caseReferenceNumbers = pagedData.content.map { it.crn }.distinct()
+    val limitedAccessOffenderAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
+
+    val groupItems = pagedData.content.filter { item ->
+      if (isFilteredCaseList) {
+        val crnMatchesSearch = !nameOrCrn.isNullOrEmpty() &&
+          item.crn.contains(nameOrCrn, ignoreCase = true)
+        val hasOtherFilters = hasFiltersOtherThanSearch(sex, cohorts, pdus, reportingTeams)
+        val shouldSkipExclusionFilter = crnMatchesSearch && !hasOtherFilters
+
+        if (!shouldSkipExclusionFilter) {
+          val access = limitedAccessOffenderAccessMap[item.crn]
+          val isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false
+          val isExcluded = access?.isExcluded ?: false
+          if (isLimitedAccessOffender) {
+            return@filter !isExcluded
+          }
+        }
+      }
+
+      return@filter true
+    }.map { item ->
+      val access = limitedAccessOffenderAccessMap[item.crn]
+      item.toApi(
+        isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false,
+        isExcluded = access?.isExcluded ?: false,
+      )
     }
 
-    val groupListDataToReturn: Page<GroupItem> =
-      pagedData.map { item ->
-        val access = limitedAccessOffenderAccessMap?.get(item.crn)
-        item.toApi(
-          isLimitedAccessOffender = access?.lao ?: false,
-          isExcluded = access?.isExcluded ?: false,
-        )
-      }
+    val groupListDataToReturn = PageImpl(
+      groupItems,
+      pagedData.pageable,
+      pagedData.totalElements - (pagedData.content.size - groupItems.size).toLong(),
+    )
 
     val otherTabCount: Int = groupWaitlistItemViewRepository.count(nonActiveSpecification).toInt()
 
@@ -539,11 +559,7 @@ class ProgrammeGroupService(
               scheduledSession.endsAt.toLocalTime(),
               capitaliseMidday = true,
             ),
-            participants = when {
-              sessionTemplate.sessionType == SessionType.GROUP && !scheduledSession.isCatchup -> listOf("All")
-              sessionTemplate.sessionType == SessionType.ONE_TO_ONE -> scheduledSession.attendees.map { it.personName }
-              else -> scheduledSession.attendees.map { it.personName }
-            },
+            participants = buildParticipantList(sessionTemplate, scheduledSession),
             facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }
               .map { it.facilitator.personName },
           )
@@ -565,6 +581,27 @@ class ProgrammeGroupService(
     }.orEmpty()
 
     return ProgrammeGroupModuleSessionsResponse(programmeGroupModuleSessionsResponseGroup, modules)
+  }
+
+  private fun buildParticipantList(
+    sessionTemplate: ModuleSessionTemplateEntity,
+    scheduledSession: SessionEntity,
+  ): List<Participant> {
+    val username = authenticationUtils.getUsername()
+    val userAccessMap =
+      userAccessService.determineUserAccess(username, scheduledSession.attendees.map { it.referral.crn })
+    return if (sessionTemplate.sessionType == SessionType.GROUP && !scheduledSession.isCatchup) {
+      listOf(Participant(name = "All"))
+    } else {
+      scheduledSession.attendees.map {
+        Participant(
+          name = it.personName,
+          crn = it.referral.crn,
+          isLimitedAccessOffender = userAccessMap[it.referral.crn]?.isLimitedAccessOffender ?: false,
+          isExcluded = userAccessMap[it.referral.crn]?.isExcluded ?: false,
+        )
+      }
+    }
   }
 
   fun getEditCohortForGroup(groupId: UUID): EditGroupCohort {
@@ -746,12 +783,12 @@ class ProgrammeGroupService(
     groupCode: String?,
     pdus: List<String>?,
     deliveryLocations: List<String>?,
-    cohort: String?,
-    sex: String?,
+    cohort: List<String>?,
+    sex: List<String>?,
     selectedTab: GroupPageByRegionTab,
     username: String,
   ): GroupsByRegion {
-    val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
+    val groupCohorts = cohort?.filter { it.isNotEmpty() }?.map { ProgrammeGroupCohort.fromString(it) }
 
     val userRegionNames = userService.getUserRegionNames(username)
     if (userRegionNames.isEmpty()) {
@@ -764,7 +801,7 @@ class ProgrammeGroupService(
       groupCode = groupCode,
       pdus = pdus,
       deliveryLocations = deliveryLocations,
-      cohort = groupCohort,
+      cohort = groupCohorts,
       sex = sex,
       regionNames = userRegionNames,
     )
@@ -812,7 +849,7 @@ class ProgrammeGroupService(
         name = attendee.personName,
         referralId = attendee.referralId,
         crn = attendee.referral.crn,
-        lao = access?.lao ?: false,
+        lao = access?.isLimitedAccessOffender ?: false,
         isExcluded = access?.isExcluded ?: false,
         attendance = getAttendanceTextFromOutcome(attendanceRecord?.outcomeType),
         sessionNotes = attendanceRecord?.notesHistory?.maxByOrNull { it.createdAt }?.notes ?: "Not added",
@@ -844,4 +881,26 @@ class ProgrammeGroupService(
     null -> "To be confirmed"
     else -> attendanceOutcome.description!!
   }
+
+  private fun hasFiltersOtherThanSearch(
+    sex: List<String>?,
+    cohorts: List<ProgrammeGroupCohort>?,
+    pdus: List<String>?,
+    reportingTeams: List<String>?,
+  ): Boolean = !sex.isNullOrEmpty() ||
+    !cohorts.isNullOrEmpty() ||
+    pdus != null ||
+    reportingTeams != null
+
+  private fun isFilterApplied(
+    sex: List<String>?,
+    cohorts: List<ProgrammeGroupCohort>?,
+    nameOrCrn: String?,
+    pdus: List<String>?,
+    reportingTeams: List<String>?,
+  ): Boolean = !sex.isNullOrEmpty() ||
+    !cohorts.isNullOrEmpty() ||
+    !nameOrCrn.isNullOrEmpty() ||
+    pdus != null ||
+    reportingTeams != null
 }

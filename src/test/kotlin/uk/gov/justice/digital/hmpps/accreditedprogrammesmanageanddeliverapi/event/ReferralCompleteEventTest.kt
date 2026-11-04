@@ -71,7 +71,7 @@ class ReferralCompleteEventTest(
       startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
       endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
     )
-    val postProgrammeSession = scheduleService.scheduleIndividualSession(programmeGroup.id!!, scheduleSessionRequest)
+    val postProgrammeSession = scheduleService.scheduleSession(programmeGroup.id!!, scheduleSessionRequest)
     postProgrammeSession.startsAt = LocalDateTime.now().minusHours(2)
     sessionRepository.save(postProgrammeSession)
     val freshSession = sessionRepository.findByIdOrNull(postProgrammeSession.id!!)!!
@@ -161,7 +161,7 @@ class ReferralCompleteEventTest(
       startTime = SessionTime(hour = 9, minutes = 0, amOrPm = AmOrPm.AM),
       endTime = SessionTime(hour = 10, minutes = 30, amOrPm = AmOrPm.AM),
     )
-    val postProgrammeSession2 = scheduleService.scheduleIndividualSession(programmeGroup.id!!, scheduleSessionRequest2)
+    val postProgrammeSession2 = scheduleService.scheduleSession(programmeGroup.id!!, scheduleSessionRequest2)
     postProgrammeSession2.startsAt = LocalDateTime.now().minusHours(4)
     sessionRepository.save(postProgrammeSession2)
     val freshSession2 = sessionRepository.findByIdOrNull(postProgrammeSession2.id!!)!!
@@ -197,7 +197,7 @@ class ReferralCompleteEventTest(
       startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
       endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
     )
-    val postProgrammeSession = scheduleService.scheduleIndividualSession(programmeGroup.id!!, scheduleSessionRequest)
+    val postProgrammeSession = scheduleService.scheduleSession(programmeGroup.id!!, scheduleSessionRequest)
     postProgrammeSession.startsAt = LocalDateTime.now().minusHours(2)
     sessionRepository.save(postProgrammeSession)
     val freshSession = sessionRepository.findByIdOrNull(postProgrammeSession.id!!)!!

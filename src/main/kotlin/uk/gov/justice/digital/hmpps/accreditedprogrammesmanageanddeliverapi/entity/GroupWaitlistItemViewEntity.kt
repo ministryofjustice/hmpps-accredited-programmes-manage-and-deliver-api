@@ -34,6 +34,10 @@ class GroupWaitlistItemViewEntity(
   var sentenceEndDate: LocalDate? = null,
 
   @Nullable
+  @Column(name = "licence_expiry_date")
+  val licenceExpiryDate: LocalDate? = null,
+
+  @Nullable
   @Enumerated(EnumType.STRING)
   @Column(name = "sourced_from")
   var sourcedFrom: ReferralEntitySourcedFrom? = null,

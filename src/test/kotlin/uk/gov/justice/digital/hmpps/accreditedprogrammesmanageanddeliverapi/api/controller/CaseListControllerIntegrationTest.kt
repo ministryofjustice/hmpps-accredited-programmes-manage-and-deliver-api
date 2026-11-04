@@ -341,6 +341,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
         assertThat(item).hasFieldOrProperty("sentenceEndDate")
+        assertThat(item).hasFieldOrProperty("licenceExpiryDate")
         assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
         assertThat(item).hasFieldOrProperty("statusLabelColour")
       }
@@ -480,6 +481,62 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `getCaseListItems for OPEN referrals does NOT filter out excluded LAO when searching by CRN`() {
+      // Given
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = "CRN-999999",
+        restrictedTo = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange()),
+      )
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = "X7182552",
+        restrictedTo = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange()),
+      )
+
+      nDeliusApiStubs.stubAccessCheckMixed(
+        grantedCrns = listOf("CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555"),
+        restrictedCrns = listOf("CRN-999999"),
+        excludedCrns = listOf("X7182552"),
+      )
+
+      // When - search by CRN that is excluded
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?crnOrPersonName=X7182552",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      // Then - excluded LAO should be returned
+      assertThat(response.pagedReferrals.content).hasSize(1)
+      assertThat(response.pagedReferrals.content.single().crn).isEqualTo("X7182552")
+      assertThat(response.pagedReferrals.content.single().isExcluded).isTrue
+    }
+
+    @Test
+    fun `getCaseListItems for OPEN referrals SHOULD filter out excluded LAO when searching by person name`() {
+      // Given
+      probationAccessControlApiStubs.stubCaseAccessByCrn(
+        crn = "X7182552",
+        restrictedTo = listOf(probationAccessControlApiStubs.createAllCaseAccessUsernameRange()),
+      )
+
+      nDeliusApiStubs.stubAccessCheckMixed(
+        grantedCrns = listOf("CRN-999999", "CRN-888888", "CRN-777777", "CRN-66666", "CRN-555555"),
+        restrictedCrns = emptyList(),
+        excludedCrns = listOf("X7182552"),
+      )
+
+      // When - search by person name that matches an excluded LAO
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/pages/caselist/open?crnOrPersonName=Joe Bloggs",
+        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
+      )
+
+      // Then - excluded LAO should NOT be returned (person name is a restricted field)
+      assertThat(response.pagedReferrals.content).hasSize(0)
+    }
+
+    @Test
     fun `getCaseListItems for OPEN referrals include manual override regions in results and filters`() {
       // Given
       userRegionOverrideRepository.save(
@@ -561,6 +618,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
         assertThat(item).hasFieldOrProperty("sentenceEndDate")
+        assertThat(item).hasFieldOrProperty("licenceExpiryDate")
         assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
         assertThat(item).hasFieldOrProperty("statusLabelColour")
       }
@@ -617,6 +675,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
         assertThat(item).hasFieldOrProperty("sentenceEndDate")
+        assertThat(item).hasFieldOrProperty("licenceExpiryDate")
         assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
         assertThat(item).hasFieldOrProperty("statusLabelColour")
       }
@@ -694,6 +753,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
         assertThat(item).hasFieldOrProperty("sentenceEndDate")
+        assertThat(item).hasFieldOrProperty("licenceExpiryDate")
         assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
         assertThat(item).hasFieldOrProperty("statusLabelColour")
       }
@@ -720,6 +780,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         assertThat(item).hasFieldOrProperty("cohort")
         assertThat(item).hasFieldOrProperty("hasLdc")
         assertThat(item).hasFieldOrProperty("sentenceEndDate")
+        assertThat(item).hasFieldOrProperty("licenceExpiryDate")
         assertThat(item).hasFieldOrProperty("sentenceEndDateSource")
         assertThat(item).hasFieldOrProperty("statusLabelColour")
       }
@@ -803,21 +864,6 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.pagedReferrals.content.map { it.crn })
         .containsExactlyInAnyOrder("X7182552", "CRN-777777", "CRN-66666", "CRN-555555")
       assertThat(response.otherTabTotal).isEqualTo(1)
-    }
-
-    @Test
-    fun `getCaseListItems sex filter is case insensitive`() {
-      val response = performRequestAndExpectOk(
-        HttpMethod.GET,
-        "/pages/caselist/open?sex=female",
-        object : ParameterizedTypeReference<PagedCaseListReferrals<ReferralCaseListItem>>() {},
-      )
-
-      assertThat(response).isNotNull
-      assertThat(response.pagedReferrals.totalElements).isEqualTo(2)
-      assertThat(response.pagedReferrals.content.map { it.crn })
-        .containsExactlyInAnyOrder("CRN-999999", "CRN-888888")
-      assertThat(response.otherTabTotal).isEqualTo(0)
     }
 
     @Test
@@ -1377,7 +1423,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     }
 
     private fun seedBreachReferral() {
-      val breachStatusDescription = referralStatusDescriptionRepository.getBreachNonAttendanceStatusDescription()
+      val breachStatusDescription = referralStatusDescriptionRepository.getBreachStatusDescription()
 
       // Re-stub access check to include the additional CRN alongside the ones set up in @BeforeEach
       nDeliusApiStubs.stubAccessCheck(

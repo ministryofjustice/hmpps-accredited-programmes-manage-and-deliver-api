@@ -677,7 +677,7 @@ class ScheduleServiceIntegrationTest(@Autowired private val sessionRepository: S
 
     // Get a regular module
     val regularModule = buildingChoicesTemplate.modules.first {
-      it.name == "Managing people around me"
+      it.name == "People around me"
     }
 
     val nextSlotDate = scheduleService.getNextSlotDate(group.id!!, regularModule.id!!)

@@ -506,7 +506,8 @@ class ReportingService(
           sessionName = it.sessionName,
         )
       }.mapValues { (_, attendedRows) ->
-        attendedRows.map { it.groupCode }.distinct().sorted().joinToString(",")
+        attendedRows.map { "${it.groupCode} - ${it.sessionStartAt.toLocalDate()} - ${if (it.sessionIsCatchup) "Catch Up" else "Non-Catch Up"}" }
+          .distinct().sorted().joinToString(",")
       }
 
       listOf(referral.licReqNo.orEmpty(), referral.crn, attendedSessionCount.toString()) +

@@ -19,7 +19,7 @@ import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.ACCREDITED_PROGRAMMES_AUTOMATED_UPDATE
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.DEFAULT_CREATED_BY_VALUE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
 import java.time.LocalDate
@@ -37,6 +37,18 @@ class ReferralEntity(
 
   @Column(name = "person_name")
   var personName: String,
+
+  @Nullable
+  @Column(name = "person_forename")
+  var personForename: String? = null,
+
+  @Nullable
+  @Column(name = "person_middle_names")
+  var personMiddleNames: String? = null,
+
+  @Nullable
+  @Column(name = "person_surname")
+  var personSurname: String? = null,
 
   @NotNull
   @Column(name = "crn")
@@ -62,7 +74,7 @@ class ReferralEntity(
   @NotNull
   @Column(name = "created_by")
   @CreatedBy
-  var createdBy: String = ACCREDITED_PROGRAMMES_AUTOMATED_UPDATE,
+  var createdBy: String = DEFAULT_CREATED_BY_VALUE,
 
   @OneToMany(
     mappedBy = "referral",
@@ -91,6 +103,10 @@ class ReferralEntity(
   @Nullable
   @Column("sentence_end_date")
   var sentenceEndDate: LocalDate? = null,
+
+  @Nullable
+  @Column("licence_expiry_date")
+  var licenceExpiryDate: LocalDate? = null,
 
   @Nullable
   @Column("sex")

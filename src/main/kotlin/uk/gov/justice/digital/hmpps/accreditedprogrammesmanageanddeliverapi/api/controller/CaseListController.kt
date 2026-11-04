@@ -37,6 +37,9 @@ class CaseListController(
   companion object {
     private const val REQUEST_PARAM_NAME_PROBATION_DELIVERY_UNIT = "pdu"
     private const val REQUEST_PARAM_NAME_REPORTING_TEAM = "reportingTeam"
+    private const val REQUEST_PARAM_NAME_STATUS = "status"
+    private const val REQUEST_PARAM_NAME_COHORT = "cohort"
+    private const val REQUEST_PARAM_NAME_SEX = "sex"
   }
 
   @Operation(
@@ -58,18 +61,6 @@ class CaseListController(
     @PathVariable(required = true) openOrClosed: OpenOrClosed,
     @Parameter(description = "CRN or persons name")
     @RequestParam(name = "crnOrPersonName", required = false) caseReferenceNumberOrPersonName: String?,
-    @Parameter(description = "Filter by the cohort of the referral using the human-readable label, e.g. 'General Offence', 'General Offence LDC', 'Sexual Offence', 'Sexual Offence LDC'") @RequestParam(
-      value = "cohort",
-      required = false,
-    ) cohort: String?,
-    @Parameter(description = "Filter by the status of the referral") @RequestParam(
-      value = "status",
-      required = false,
-    ) status: String?,
-    @Parameter(description = "Filter by the sex of the person on probation (Male/Female)") @RequestParam(
-      value = "sex",
-      required = false,
-    ) sex: String?,
     @RequestParam requestParams: MultiValueMap<String, String>,
   ): CaseListReferrals {
     val username = authenticationHolder.username
@@ -78,7 +69,7 @@ class CaseListController(
       throw AuthenticationCredentialsNotFoundException("No authenticated user found")
     }
 
-    // Read raw repeated query params so comma-containing PDU names are treated as a single value.
+    // Read raw repeated query params so comma-containing values are treated as single values.
     // Decode each value for exact DB matching (e.g. "%2C" -> ",").
     val probationDeliveryUnits = requestParams[REQUEST_PARAM_NAME_PROBATION_DELIVERY_UNIT]
       ?.takeIf { it.isNotEmpty() }
@@ -88,14 +79,26 @@ class CaseListController(
       ?.takeIf { it.isNotEmpty() }
       ?.map { URLDecoder.decode(it, UTF_8.name()) }
 
+    val statusesDecoded = requestParams[REQUEST_PARAM_NAME_STATUS]
+      ?.takeIf { it.isNotEmpty() }
+      ?.map { URLDecoder.decode(it, UTF_8.name()) }
+
+    val cohortsDecoded = requestParams[REQUEST_PARAM_NAME_COHORT]
+      ?.takeIf { it.isNotEmpty() }
+      ?.mapNotNull { ProgrammeGroupCohort.fromString(it) }
+
+    val sexesDecoded = requestParams[REQUEST_PARAM_NAME_SEX]
+      ?.takeIf { it.isNotEmpty() }
+      ?.map { URLDecoder.decode(it, UTF_8.name()) }
+
     return referralCaseListItemService.getReferralCaseListItemServiceByCriteria(
       pageable = pageable,
       openOrClosed = openOrClosed,
       username = username,
       caseReferenceNumberOrPersonName = caseReferenceNumberOrPersonName,
-      cohort = cohort?.let { ProgrammeGroupCohort.fromString(it) },
-      status = if (status.isNullOrEmpty()) null else URLDecoder.decode(status, UTF_8.name()),
-      sex = if (sex.isNullOrEmpty()) null else URLDecoder.decode(sex, UTF_8.name()),
+      cohorts = cohortsDecoded,
+      statuses = statusesDecoded,
+      sexes = sexesDecoded,
       probationDeliveryUnits = probationDeliveryUnits,
       reportingTeams = reportingTeamsDecoded,
     )

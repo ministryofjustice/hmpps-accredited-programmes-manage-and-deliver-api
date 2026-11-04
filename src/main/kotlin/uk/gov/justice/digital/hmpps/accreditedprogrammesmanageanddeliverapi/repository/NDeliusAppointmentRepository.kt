@@ -8,4 +8,5 @@ import java.util.UUID
 interface NDeliusAppointmentRepository : JpaRepository<NDeliusAppointmentEntity, UUID> {
   fun findBySessionId(sessionId: UUID): List<NDeliusAppointmentEntity>
   fun deleteByReferral(referral: ReferralEntity)
+  fun findByNdeliusAppointmentId(nDeliusAppointmentId: UUID): List<NDeliusAppointmentEntity>
 }

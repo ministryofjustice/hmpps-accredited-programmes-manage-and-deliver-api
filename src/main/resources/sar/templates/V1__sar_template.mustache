@@ -6,6 +6,7 @@
   <table class="summary-list">
     <tr><td>Sex</td><td>{{ optionalValue sex }}</td></tr>
     <tr><td>Sentence End Date</td><td>{{ formatDate sentenceEndDate }}</td></tr>
+    <tr><td>Licence Expiry Date</td><td>{{ optionalValue (formatDate licenceExpiryDate) }}</td></tr>
     <tr><td>Intervention Name</td><td>{{ optionalValue interventionName }}</td></tr>
     <tr><td>Intervention Type</td><td>{{ optionalValue interventionType }}</td></tr>
     <tr><td>Setting</td><td>{{ optionalValue setting }}</td></tr>
@@ -180,7 +181,13 @@
             {{/if}}
           {{/if}}
         </td></tr>
-        <tr><td>Recorded By</td><td>{{ optionalValue recordedByFacilitator.personName }}</td></tr>
+        <tr><td>Recorded By</td><td>
+            {{#if (eq recordedByFacilitator.personSurname null)}}
+                {{ optionalValue recordedByFacilitator.personName }}
+            {{else}}
+                {{ optionalValue recordedByFacilitator.personSurname }}
+            {{/if}}
+        </td></tr>
         <tr><td>Recorded At</td><td>{{ formatDate recordedAt }}</td></tr>
       </table>
 
@@ -232,7 +239,11 @@
       <td>Facilitators</td>
       <td>
         {{#session.sessionFacilitators}}
-        {{ optionalValue facilitator.personName }}<br/>
+        {{#if (eq facilitator.personSurname null)}}
+            {{ optionalValue facilitator.personName }}<br/>
+        {{else}}
+            {{ optionalValue facilitator.personSurname }}<br/>
+        {{/if}}
         {{/session.sessionFacilitators}}
         {{^session.sessionFacilitators}}No Data Held{{/session.sessionFacilitators}}
       </td>

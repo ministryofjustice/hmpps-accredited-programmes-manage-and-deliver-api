@@ -18,6 +18,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusSentenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Offences
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.RegionDto
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Requirements
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentsRequest
 
@@ -110,6 +111,16 @@ class NDeliusIntegrationApiClient(
    */
   fun getPdusForRegion(regionCode: String) = getRequest<NDeliusRegionWithMembers>(N_DELIUS_INTEGRATION_API) {
     path = "/regions/$regionCode/members"
+  }
+
+  /**
+   * Fetch accredited programmes members for the given region code.
+   *
+   * @param regionCode - The code of the region in NDelius.
+   * @return Region with a list of teams and their members
+   */
+  fun getAccreditedProgrammesMembersByRegionCode(regionCode: String) = getRequest<RegionDto>(N_DELIUS_INTEGRATION_API) {
+    path = "/regions/$regionCode/local-admin-units/accredited-programmes/members"
   }
 
   /**

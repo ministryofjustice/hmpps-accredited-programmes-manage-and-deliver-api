@@ -18,7 +18,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.ProbationPractitioner
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -55,9 +58,76 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response).isNotNull
       assertThat(response.newStatus).isEqualTo(ReferralStatusInfo.Status.AWAITING_ALLOCATION)
       assertThat(response.sourcedFromEntityId).isEqualTo(referral.eventId!!.toLong())
+      assertThat(response.eventNumber).isEqualTo(referral.eventNumber)
       assertThat(response.sourcedFromEntityType).isEqualTo(referral.sourcedFrom)
       assertThat(response.notes).isEqualTo("TEST ADDITIONAL DETAILS")
       assertThat(response.description).isEqualTo("The person is ready to be allocated to a programme group.")
+      assertThat(response.username).isEqualTo("AUTH_USER")
+    }
+
+    @Test
+    fun `should return the probation practitioner as the username when the status was set by SYSTEM`() {
+      // Given
+      val referral = testReferralHelper.createReferral()
+      stubPersonalDetailsWithPractitioner(
+        referral.crn,
+        ProbationPractitioner(name = FullName(forename = "Jane", surname = "Practitioner"), code = "PP123"),
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral/${referral.id}/status-change-details",
+        returnType = object : ParameterizedTypeReference<ReferralStatusInfo>() {},
+      )
+
+      // Then
+      assertThat(response.newStatus).isEqualTo(ReferralStatusInfo.Status.AWAITING_ASSESSMENT)
+      assertThat(response.username).isEqualTo("PP123")
+    }
+
+    @Test
+    fun `should fall back to SYSTEM when nDelius has no probation practitioner for the person`() {
+      // Given
+      val referral = testReferralHelper.createReferral()
+      stubPersonalDetailsWithPractitioner(referral.crn, probationPractitioner = null)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral/${referral.id}/status-change-details",
+        returnType = object : ParameterizedTypeReference<ReferralStatusInfo>() {},
+      )
+
+      // Then
+      assertThat(response.username).isEqualTo("SYSTEM")
+    }
+
+    @Test
+    fun `should fall back to SYSTEM when the nDelius personal details call fails`() {
+      // Given
+      val referral = testReferralHelper.createReferral()
+      nDeliusApiStubs.stubNotFoundPersonalDetailsResponse(referral.crn)
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral/${referral.id}/status-change-details",
+        returnType = object : ParameterizedTypeReference<ReferralStatusInfo>() {},
+      )
+
+      // Then
+      assertThat(response.username).isEqualTo("SYSTEM")
+    }
+
+    private fun stubPersonalDetailsWithPractitioner(crn: String, probationPractitioner: ProbationPractitioner?) {
+      nDeliusApiStubs.stubPersonalDetailsResponseForCrn(
+        crn,
+        NDeliusPersonalDetailsFactory()
+          .withCrn(crn)
+          .withProbationPractitioner(probationPractitioner)
+          .produce(),
+      )
     }
 
     @Test
@@ -109,7 +179,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
-      val session = scheduleService.scheduleIndividualSession(group.id!!, scheduleSessionRequest)
+      val session = scheduleService.scheduleSession(group.id!!, scheduleSessionRequest)
 
       val attendee = session.attendees.find { it.referralId == referral.id }!!
 
@@ -199,7 +269,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
-      val session = scheduleService.scheduleIndividualSession(group.id!!, scheduleSessionRequest)
+      val session = scheduleService.scheduleSession(group.id!!, scheduleSessionRequest)
 
       val attendee = session.attendees.find { it.referralId == referral.id }!!
 
@@ -249,7 +319,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
-      val firstSession = scheduleService.scheduleIndividualSession(group.id!!, scheduleSessionRequest)
+      val firstSession = scheduleService.scheduleSession(group.id!!, scheduleSessionRequest)
 
       // Record attendance on the first session as "not attended"
       val firstAttendanceRequest = SessionAttendance(
@@ -270,7 +340,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Schedule a second post-programme review session and record attended and complied
-      val secondSession = scheduleService.scheduleIndividualSession(
+      val secondSession = scheduleService.scheduleSession(
         group.id!!,
         scheduleSessionRequest.copy(startDate = LocalDate.now().plusDays(2)),
       )

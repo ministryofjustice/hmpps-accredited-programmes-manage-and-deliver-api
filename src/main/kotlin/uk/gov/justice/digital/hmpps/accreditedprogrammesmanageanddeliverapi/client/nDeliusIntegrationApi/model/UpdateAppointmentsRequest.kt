@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotEmpty
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.primaryFacilitator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
@@ -21,11 +23,13 @@ data class UpdateAppointmentRequest(
   val team: RequestCode,
   val notes: String?,
   val sensitive: Boolean,
+  val description: String?,
 )
 
 fun NDeliusAppointmentEntity.toUpdateAppointmentRequest(
   sessionNotes: String? = null,
   outcome: SessionAttendanceNDeliusCode? = null,
+  sessionNameFormatter: SessionNameFormatter = SessionNameFormatter(),
 ): UpdateAppointmentRequest {
   val primaryFacilitator = session.primaryFacilitator()
   return UpdateAppointmentRequest(
@@ -39,5 +43,6 @@ fun NDeliusAppointmentEntity.toUpdateAppointmentRequest(
     team = RequestCode(primaryFacilitator.ndeliusTeamCode),
     notes = sessionNotes,
     sensitive = false,
+    description = sessionNameFormatter.format(session, SessionNameContext.NdeliusContactDescription),
   )
 }

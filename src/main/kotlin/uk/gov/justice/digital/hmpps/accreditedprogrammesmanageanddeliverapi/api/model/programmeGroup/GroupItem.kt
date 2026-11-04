@@ -22,12 +22,12 @@ data class GroupItem(
   val referralId: UUID,
 
   @get:Schema(
-    example = "Order end date",
+    example = "REQUIREMENT",
     required = true,
-    description = "A human-readable string describing the entity (Licence Condition or Requirement) that caused the Referral to be created in our system",
+    description = "The type of entity (Licence Condition or Requirement) that caused the Referral to be created in our system",
   )
   @get:JsonProperty("sourcedFrom", required = true)
-  val sourcedFrom: String? = null,
+  val sourcedFrom: ReferralEntitySourcedFrom? = null,
 
   @get:Schema(
     example = "X933590",
@@ -69,6 +69,15 @@ data class GroupItem(
   @get:JsonProperty("sentenceEndDate", required = false)
   @get:JsonFormat(pattern = "d MMMM yyyy")
   val sentenceEndDate: LocalDate?,
+
+  @get:Schema(
+    example = "1 January 2030",
+    required = false,
+    description = "The licence expiry date. Populated for licence cases and null for requirement cases.",
+  )
+  @get:JsonProperty("licenceExpiryDate", required = false)
+  @get:JsonFormat(pattern = "d MMMM yyyy")
+  var licenceExpiryDate: LocalDate? = null,
 
   @get:Schema(
     example = "SEXUAL_OFFENCE",
@@ -145,12 +154,13 @@ data class GroupItem(
 
 fun GroupWaitlistItemViewEntity.toApi(isLimitedAccessOffender: Boolean = false, isExcluded: Boolean = false) = GroupItem(
   referralId = referralId,
-  sourcedFrom = sourcedFrom?.toDisplayString(),
+  sourcedFrom = sourcedFrom,
   crn = crn,
   isLimitedAccessOffender = isLimitedAccessOffender,
   isExcluded = isExcluded,
   personName = personName,
   sentenceEndDate = sentenceEndDate,
+  licenceExpiryDate = licenceExpiryDate,
   cohort = cohort.let { OffenceCohort.fromDisplayName(it) },
   hasLdc = hasLdc,
   age = dateOfBirth?.calculateAge(),
@@ -161,10 +171,5 @@ fun GroupWaitlistItemViewEntity.toApi(isLimitedAccessOffender: Boolean = false, 
   statusColour = statusColour,
   activeProgrammeGroupId = activeProgrammeGroupId,
 )
-
-private fun ReferralEntitySourcedFrom.toDisplayString(): String = when (this) {
-  ReferralEntitySourcedFrom.REQUIREMENT -> "Order end date"
-  ReferralEntitySourcedFrom.LICENCE_CONDITION -> "Licence end date"
-}
 
 private fun LocalDate.calculateAge(): Int = Period.between(this, LocalDate.now()).years
