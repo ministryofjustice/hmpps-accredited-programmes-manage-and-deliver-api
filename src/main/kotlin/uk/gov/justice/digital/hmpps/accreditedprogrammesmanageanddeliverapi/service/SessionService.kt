@@ -44,7 +44,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentOutcomeCode
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentSessionNotes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.latestByCreatedAt
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
@@ -63,6 +62,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeOfSession
 import java.time.Clock
 import java.time.Duration
 import java.time.LocalDateTime
@@ -121,13 +121,6 @@ class SessionService(
       sessionName = sessionNameFormatter.format(session, SessionNameContext.Default),
       previousSessionDateAndTime = formatPreviousSessionDateAndTime(session),
     )
-  }
-
-  private fun formatTime(dateTime: LocalDateTime): String {
-    val hour = if (dateTime.hour == 0 || dateTime.hour == 12) 12 else dateTime.hour % 12
-    val amPm = if (dateTime.hour < 12) "am" else "pm"
-    val minutes = if (dateTime.minute == 0) "" else ":${dateTime.minute.toString().padStart(2, '0')}"
-    return "$hour$minutes$amPm"
   }
 
   fun rescheduleSessions(sessionId: UUID, request: RescheduleSessionRequest): EditSessionDateAndTimeResponse {
@@ -198,11 +191,11 @@ class SessionService(
         startFrom = anchorDate.plusDays(1),
       )
 
-      updateNDeliusAppointmentsForMultipleSessions(subsequentGroupSessions + session)
+      updateNDeliusAppointmentsForSessions(subsequentGroupSessions + session)
       return EditSessionDateAndTimeResponse("The date and time and schedule have been updated.")
     }
 
-    updateNDeliusAppointmentsForSession(session)
+    updateNDeliusAppointmentsForSessions(listOf(session))
 
     return EditSessionDateAndTimeResponse("The date and time have been updated.")
   }
@@ -248,14 +241,18 @@ class SessionService(
     }
 
     scheduleService.moveSessionsOntoSlots(group.programmeGroupSessionSlots, sessionsToMove, startFrom)
-    updateNDeliusAppointmentsForMultipleSessions(sessionsToMove)
+    updateNDeliusAppointmentsForSessions(sessionsToMove)
   }
 
-  fun updateNDeliusAppointmentsForMultipleSessions(sessions: List<SessionEntity>) {
+  fun updateNDeliusAppointmentsForSessions(sessions: List<SessionEntity>) {
     val sessionsWithAppointment = sessions.filter { it.ndeliusAppointments.isNotEmpty() }.ifEmpty { return }
+    // The outcome must be sent because nDelius clears it when none is sent. Notes must not be, because nDelius
+    // appends them on every update and keeps the notes it already has when none are sent.
     val updateRequests =
       sessionsWithAppointment.flatMap { session ->
-        session.ndeliusAppointments.map { it.toUpdateAppointmentRequest(sessionNameFormatter = sessionNameFormatter) }
+        session.ndeliusAppointments.map {
+          it.toUpdateAppointmentRequest(outcome = it.currentOutcomeCode(), sessionNameFormatter = sessionNameFormatter)
+        }
       }
 
     when (
@@ -283,46 +280,6 @@ class SessionService(
           logMessage = "${updateRequests.size} appointments updated in nDelius for sessions with ids: ${
             sessionsWithAppointment.map { it.id }.joinToString(", ")
           }",
-        )
-      }
-    }
-  }
-
-  fun updateNDeliusAppointmentsForSession(session: SessionEntity) {
-    if (session.ndeliusAppointments.isEmpty()) {
-      log.debug(
-        "updateNDeliusAppointmentsForSession not called as no nDelius appointments found for session {}",
-        session.id,
-      )
-      return
-    }
-    val updateRequests = session.ndeliusAppointments.map {
-      it.toUpdateAppointmentRequest(it.currentSessionNotes(), it.currentOutcomeCode(), sessionNameFormatter)
-    }
-
-    when (
-      val response = nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateRequests))
-    ) {
-      is ClientResult.Failure.StatusCode -> {
-        handleUpdateAppointmentBadRequestResponseError(
-          errorMessage = response.getErrorMessage(),
-          responseStatusValue = response.status.value(),
-          updateAppointmentRequestList = updateRequests,
-          programmeGroupId = session.programmeGroup.id!!,
-          exception = response.toException(),
-        )
-      }
-
-      is ClientResult.Failure.Other -> {
-        handleUpdateAppointmentResponseError(
-          errorMessage = response.getErrorMessage(),
-          exception = response.toException(),
-        )
-      }
-
-      is ClientResult.Success -> {
-        handleUpdateAppointmentResponseSuccess(
-          logMessage = "${updateRequests.size} appointments updated in nDelius for session with id: ${session.id}",
         )
       }
     }
@@ -418,7 +375,7 @@ class SessionService(
     session.sessionFacilitators.addAll(sessionFacilitators)
 
     sessionRepository.save(session)
-    updateNDeliusAppointmentsForSession(session)
+    updateNDeliusAppointmentsForSessions(listOf(session))
   }
 
   // Deletes session and returns the deleted entity and a properly formatted session name as a string
@@ -561,7 +518,12 @@ class SessionService(
     val updateAppointmentRequests = changedAttendees.mapNotNull { attendee ->
       val referralId = attendee.referralId
       val nDeliusAppointment = session.ndeliusAppointments.find { it.referral.id == referralId }
-      nDeliusAppointment?.toUpdateAppointmentRequest(attendee.sessionNotes, attendee.outcomeCode, sessionNameFormatter)
+
+      // nDelius appends notes on every update, so when only the outcome has changed the notes must not be sent again
+      val latestNotes = latestAttendanceByReferralId[referralId]?.notesHistory?.maxByOrNull { it.createdAt }?.notes?.trim()
+      val notesToSend = attendee.sessionNotes.takeUnless { it?.trim() == latestNotes }
+
+      nDeliusAppointment?.toUpdateAppointmentRequest(notesToSend, attendee.outcomeCode, sessionNameFormatter)
     }
 
     log.info("Updating ${updateAppointmentRequests.size} appointments in nDelius for session with id: $sessionId")
@@ -730,10 +692,9 @@ class SessionService(
 
   private fun formatPreviousSessionDateAndTime(session: SessionEntity): String {
     val date = session.startsAt.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ENGLISH))
-    val startTime = formatTime(session.startsAt)
-    val endTime = formatTime(session.endsAt)
+    val time = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime())
 
-    return "$date, $startTime to $endTime"
+    return "$date, $time"
   }
 
   private fun getSessionAttendance(

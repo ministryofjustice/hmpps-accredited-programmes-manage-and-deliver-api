@@ -306,7 +306,7 @@ class ProgrammeGroupService(
       session.sessionFacilitators.addAll(updatedFacilitators)
     }
     sessionRepository.saveAll(futureSessions)
-    sessionService.updateNDeliusAppointmentsForMultipleSessions(futureSessions)
+    sessionService.updateNDeliusAppointmentsForSessions(futureSessions)
   }
 
   private fun reschedulePreGroupOneToOneSession(groupId: UUID, sessionStartDate: LocalDate) {

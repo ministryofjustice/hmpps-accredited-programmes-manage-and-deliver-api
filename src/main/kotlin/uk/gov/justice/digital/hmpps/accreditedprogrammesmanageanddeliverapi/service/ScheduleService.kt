@@ -4,9 +4,8 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.toLocalTime
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.AppointmentReference
@@ -23,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.currentSessionNotes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toNdeliusAppointmentEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.toFacilitatorType
@@ -38,7 +38,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.util
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.temporal.TemporalAdjusters
 import java.util.PriorityQueue
 import java.util.UUID
@@ -82,8 +81,8 @@ class ScheduleService(
     val session = SessionEntity(
       programmeGroup = programmeGroup,
       moduleSessionTemplate = moduleSessionTemplate,
-      startsAt = convertToLocalDateTime(request.startDate, request.startTime),
-      endsAt = convertToLocalDateTime(request.startDate, request.endTime),
+      startsAt = LocalDateTime.of(request.startDate, request.startTime.toLocalTime()),
+      endsAt = LocalDateTime.of(request.startDate, request.endTime.toLocalTime()),
       locationName = programmeGroup.deliveryLocationName,
       // When scheduling session it should not be a placeholder
       isPlaceholder = false,
@@ -158,17 +157,11 @@ class ScheduleService(
     val groupSlots = group.programmeGroupSessionSlots
     require(groupSlots.isNotEmpty()) { "Programme group slots must not be empty" }
 
-    val bankHolidays = englandAndWalesHolidayDates()
-
-    val slotQueue = buildSlotQueue(
-      bankHolidays = bankHolidays,
+    val nextValidDate = buildSlotQueue(
+      bankHolidays = englandAndWalesHolidayDates(),
       groupSlots = groupSlots,
       startFrom = dateToScheduleFrom,
-    )
-
-    val nextSlot = slotQueue.poll()
-    val nextValidDate = findNextValidDate(bankHolidays, dateToScheduleFrom, nextSlot.slot)
-    slotQueue.add(nextSlot.copy(nextDate = nextValidDate))
+    ).poll().nextDate
 
     log.debug("generated next valid slot date: {}", nextValidDate)
     return nextValidDate
@@ -252,7 +245,7 @@ class ScheduleService(
       }
       nDeliusAppointmentEntity.toAppointment(
         sessionNameFormatter = sessionNameFormatter,
-        notes = updateAppointmentRequest.notes,
+        notes = updateAppointmentRequest.notes ?: nDeliusAppointmentEntity.currentSessionNotes(),
         outcome = updateAppointmentRequest.outcome,
       )
     }
@@ -467,18 +460,6 @@ class ScheduleService(
       }
     }
   }
-
-  private fun convertToLocalDateTime(startDate: LocalDate, sessionTime: SessionTime): LocalDateTime = LocalDateTime.of(
-    startDate,
-    LocalTime.of(
-      when (sessionTime.amOrPm) {
-        AmOrPm.PM if sessionTime.hour < 12 -> sessionTime.hour + 12
-        AmOrPm.AM if sessionTime.hour == 12 -> 0
-        else -> sessionTime.hour
-      },
-      sessionTime.minutes,
-    ),
-  )
 
   fun removeNDeliusAppointments(
     nDeliusAppointmentsToRemove: List<NDeliusAppointmentEntity>,

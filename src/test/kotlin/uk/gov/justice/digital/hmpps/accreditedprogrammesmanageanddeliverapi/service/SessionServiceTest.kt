@@ -2422,7 +2422,7 @@ class SessionServiceTest {
     every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
-    val result = service.updateNDeliusAppointmentsForMultipleSessions(listOf(sessionEntity))
+    val result = service.updateNDeliusAppointmentsForSessions(listOf(sessionEntity))
 
     // Then
     assertThat { result }.isNotNull
@@ -2469,7 +2469,7 @@ class SessionServiceTest {
     // When
     val exception =
       assertThrows<AppointmentUpdateException> {
-        service.updateNDeliusAppointmentsForMultipleSessions(listOf(sessionEntity))
+        service.updateNDeliusAppointmentsForSessions(listOf(sessionEntity))
       }
 
     // Then
@@ -2528,7 +2528,7 @@ class SessionServiceTest {
       ) andThen ClientResult.Success(HttpStatus.NO_CONTENT, Unit)
 
     // When
-    service.updateNDeliusAppointmentsForMultipleSessions(listOf(missingSession, remainingSession))
+    service.updateNDeliusAppointmentsForSessions(listOf(missingSession, remainingSession))
 
     // Then
     verify(exactly = 1) {
@@ -2586,7 +2586,7 @@ class SessionServiceTest {
     // When
     val exception =
       assertThrows<AppointmentUpdateException> {
-        service.updateNDeliusAppointmentsForMultipleSessions(listOf(firstSession, secondSession))
+        service.updateNDeliusAppointmentsForSessions(listOf(firstSession, secondSession))
       }
 
     // Then
@@ -2634,7 +2634,7 @@ class SessionServiceTest {
     every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
 
     // When
-    val result = service.updateNDeliusAppointmentsForSession(sessionEntity)
+    val result = service.updateNDeliusAppointmentsForSessions(listOf(sessionEntity))
 
     // Then
     assertThat { result }.isNotNull
@@ -2658,7 +2658,7 @@ class SessionServiceTest {
     val sessionEntity = SessionFactory().produce()
 
     // When
-    service.updateNDeliusAppointmentsForSession(sessionEntity)
+    service.updateNDeliusAppointmentsForSessions(listOf(sessionEntity))
 
     // Then
     verify(exactly = 0) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
@@ -2693,7 +2693,7 @@ class SessionServiceTest {
     // When
     val exception =
       assertThrows<AppointmentUpdateException> {
-        service.updateNDeliusAppointmentsForSession(sessionEntity)
+        service.updateNDeliusAppointmentsForSessions(listOf(sessionEntity))
       }
 
     // Then
@@ -2741,7 +2741,7 @@ class SessionServiceTest {
     // When
     val exception =
       assertThrows<AppointmentUpdateException> {
-        service.updateNDeliusAppointmentsForSession(sessionEntity)
+        service.updateNDeliusAppointmentsForSessions(listOf(sessionEntity))
       }
 
     // Then
@@ -2785,7 +2785,7 @@ class SessionServiceTest {
       )
 
     // When
-    service.updateNDeliusAppointmentsForSession(sessionEntity)
+    service.updateNDeliusAppointmentsForSessions(listOf(sessionEntity))
 
     // Then
     verify(exactly = 1) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
@@ -2826,7 +2826,7 @@ class SessionServiceTest {
     // When
     val exception =
       assertThrows<AppointmentUpdateException> {
-        service.updateNDeliusAppointmentsForSession(sessionEntity)
+        service.updateNDeliusAppointmentsForSessions(listOf(sessionEntity))
       }
 
     // Then
