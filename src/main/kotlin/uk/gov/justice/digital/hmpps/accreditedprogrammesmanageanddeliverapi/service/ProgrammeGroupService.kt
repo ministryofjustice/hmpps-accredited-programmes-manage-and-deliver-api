@@ -244,7 +244,7 @@ class ProgrammeGroupService(
 
     // Reschedule future sessions if requested
     if (updateGroupRequest.automaticallyRescheduleOtherSessions == true) {
-      scheduleService.rescheduleSessionsForGroup(savedGroup.id!!)
+      sessionService.rescheduleSessionsForGroup(savedGroup.id!!)
     }
 
     val successMessage =

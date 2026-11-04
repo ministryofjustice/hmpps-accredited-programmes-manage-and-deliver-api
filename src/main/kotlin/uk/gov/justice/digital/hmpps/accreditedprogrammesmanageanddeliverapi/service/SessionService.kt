@@ -56,6 +56,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.RECORD_ATTENDANCE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
@@ -88,6 +89,7 @@ class SessionService(
   private val clock: Clock,
   private val userAccessService: UserAccessService,
   private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
+  private val programmeGroupRepository: ProgrammeGroupRepository,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -145,14 +147,9 @@ class SessionService(
       throw BusinessException("The session end time must be after the session start time.")
     }
 
-    val currentSessionDuration = Duration.between(session.startsAt, session.endsAt)
-    val requestedSessionDuration = Duration.between(requestedStartTime, requestedEndTime)
-
     // update the start and end times of the requested session
     session.startsAt = requestedStartTime
     session.endsAt = requestedEndTime
-
-    val isGroupSession = session.sessionType == SessionType.GROUP
 
     // Reschedule later group sessions, place-holder one-to-ones, but not catch-up sessions
     if (request.rescheduleOtherSessions) {
@@ -180,49 +177,78 @@ class SessionService(
           it.moduleNumber > session.moduleNumber ||
             (it.moduleNumber == session.moduleNumber && it.sessionNumber > session.sessionNumber)
         }
-        .sortedWith(compareBy({ it.moduleNumber }, { it.sessionNumber }))
+        .sortedWith(compareBy({ it.moduleNumber }, { it.sessionNumber }, { it.startsAt }))
         .toList()
 
-      if (isGroupSession && session.programmeGroup.programmeGroupSessionSlots.isNotEmpty()) {
-        // For groups with members, anchor on the later of the edited session's new date and today, so
-        // later sessions are never generated into the past. For empty groups, honour the edited
-        // session's new date exactly so the schedule can be moved to any point.
-        val anchorDate = if (isEmptyGroup) {
-          session.startsAt.toLocalDate()
-        } else {
-          maxOf(session.startsAt.toLocalDate(), now.toLocalDate())
-        }
-        val scheduleDates = scheduleService.generateScheduleDates(
-          programmeGroupSlots = session.programmeGroup.programmeGroupSessionSlots,
-          initialStartDate = anchorDate,
-          subsequentSessions = subsequentGroupSessions,
-          bankHolidays = scheduleService.englandAndWalesHolidayDates(),
-        )
-
-        subsequentGroupSessions.zip(scheduleDates).forEach { (subsequentSession, newDates) ->
-          subsequentSession.startsAt = newDates.first
-          subsequentSession.endsAt = newDates.second
-        }
+      // For groups with members, anchor on the later of the edited session's new date and today, so
+      // later sessions are never generated into the past. For empty groups, honour the edited
+      // session's new date exactly so the schedule can be moved to any point.
+      val anchorDate = if (isEmptyGroup) {
+        session.startsAt.toLocalDate()
       } else {
-        subsequentGroupSessions.forEach { subsequentSession ->
-          subsequentSession.startsAt = subsequentSession.startsAt.plus(startOffset)
-          subsequentSession.endsAt = subsequentSession.endsAt.plus(startOffset)
-        }
+        maxOf(session.startsAt.toLocalDate(), now.toLocalDate())
       }
+      // Start from the day after the anchor so later sessions take the next available slots. This
+      // works regardless of whether the rescheduled session is on a slot day: when it is, its own slot is
+      // skipped; when it is not, the first available slot goes to the next session rather than being
+      // consumed as if it were the rescheduled session's own.
+      scheduleService.moveSessionsOntoSlots(
+        slots = session.programmeGroup.programmeGroupSessionSlots,
+        sessions = subsequentGroupSessions,
+        startFrom = anchorDate.plusDays(1),
+      )
 
       updateNDeliusAppointmentsForMultipleSessions(subsequentGroupSessions + session)
       return EditSessionDateAndTimeResponse("The date and time and schedule have been updated.")
     }
 
-    if (!isGroupSession) {
-      request.sessionEndTime?.let { requestedEndTime ->
-        session.endsAt = LocalDateTime.of(request.sessionStartDate, requestedEndTime.toLocalTime())
-      }
-    }
-
     updateNDeliusAppointmentsForSession(session)
 
     return EditSessionDateAndTimeResponse("The date and time have been updated.")
+  }
+
+  /**
+   * Reschedules a group's sessions onto its days and times after those, or its start date, have changed and the
+   * user chose to update the schedule automatically. The group's existing sessions are moved in the same way as
+   * when one session is moved with 'automatically move other sessions'. So sessions the user has added or deleted,
+   * catch-ups, one-to-ones booked with a person, and changes to who attends a session are all kept.
+   *
+   * Groups with members only move their future sessions, starting no earlier than today or the day after their
+   * most recent past session. Empty groups (no membership, ever) move every session from the start date, to
+   * support migrating in-flight groups that were created with an early start date.
+   */
+  fun rescheduleSessionsForGroup(programmeGroupId: UUID) {
+    val group = requireNotNull(programmeGroupRepository.findByIdOrNull(programmeGroupId)) {
+      "Group must not be null"
+    }
+    val now = LocalDateTime.now(clock)
+    val isEmptyGroup = !programmeGroupMembershipRepository.existsByProgrammeGroupId(programmeGroupId)
+
+    // Main group sessions and one-to-one placeholders move, in template order (module number, then session number,
+    // then date so two sessions of the same kind keep their order). Catch-ups and one-to-ones booked with a person
+    // stay where they are.
+    val sessionsToMove = group.sessions
+      .filter { it.sessionType == SessionType.GROUP || it.isPlaceholder }
+      .filter { !it.isCatchup }
+      .filter { isEmptyGroup || it.startsAt > now }
+      .sortedWith(compareBy({ it.moduleNumber }, { it.sessionNumber }, { it.startsAt }))
+
+    val startFrom = if (isEmptyGroup) {
+      group.earliestPossibleStartDate
+    } else {
+      // The latest of: the day after the most recent past session, so no moved session comes before it; the
+      // group's start date, honoured when e.g. a future restart date was set; and today, so no session is moved
+      // into the past.
+      val mostRecentPastSession = group.sessions.filter { it.startsAt <= now }.maxByOrNull { it.startsAt }
+      listOfNotNull(
+        mostRecentPastSession?.startsAt?.toLocalDate()?.plusDays(1),
+        group.earliestPossibleStartDate,
+        now.toLocalDate(),
+      ).max()
+    }
+
+    scheduleService.moveSessionsOntoSlots(group.programmeGroupSessionSlots, sessionsToMove, startFrom)
+    updateNDeliusAppointmentsForMultipleSessions(sessionsToMove)
   }
 
   fun updateNDeliusAppointmentsForMultipleSessions(sessions: List<SessionEntity>) {
@@ -778,7 +804,7 @@ class SessionService(
 
     val missingNDeliusAppointmentEntityList = mutableListOf<NDeliusAppointmentEntity>()
     val missingUpdateAppointmentRequestList =
-      updateAppointmentRequests.filter { it -> missingNDeliusAppointmentIdSet.contains(it.reference.toString()) }
+      updateAppointmentRequests.filter { missingNDeliusAppointmentIdSet.contains(it.reference.toString()) }
 
     missingNDeliusAppointmentIdSet.forEach { missingNDeliusAppointmentIdString ->
       val nDeliusAppointmentId = UUID.fromString(missingNDeliusAppointmentIdString)
@@ -801,24 +827,18 @@ class SessionService(
 
     when (
       val response =
-        nDeliusIntegrationApiClient.updateAppointmentsInDelius(
-          UpdateAppointmentsRequest(
-            updateNonMissingAppointmentRequestList,
-          ),
-        )
+        nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateNonMissingAppointmentRequestList))
     ) {
-      is ClientResult.Failure -> {
+      is ClientResult.Failure ->
         handleUpdateAppointmentResponseError(
           errorMessage = response.getErrorMessage(),
           exception = response.toException(),
         )
-      }
 
-      is ClientResult.Success -> {
+      is ClientResult.Success ->
         handleUpdateAppointmentResponseSuccess(
           logMessage = "${updateAppointmentRequests.size} appointments created in Ndelius for group with id: $programmeGroupId",
         )
-      }
     }
   }
 }
