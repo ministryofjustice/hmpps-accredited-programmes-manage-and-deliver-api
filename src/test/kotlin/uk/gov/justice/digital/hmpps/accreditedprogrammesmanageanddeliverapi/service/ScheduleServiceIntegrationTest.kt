@@ -26,7 +26,6 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalDateTime.now
 import java.time.LocalTime
 import java.time.ZoneId
 
@@ -300,7 +299,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     sessionService.rescheduleSessionsForGroup(group.id!!)
 
     val updatedGroup = programmeGroupRepository.findByIdOrNull(group.id!!)!!
-    val now: LocalDateTime? = now()
+    val now: LocalDateTime? = LocalDateTime.now(clock)
 
     val pastSessions = updatedGroup.sessions.filter { it.startsAt <= now }.sortedBy { it.startsAt }
     val futureSessions = updatedGroup.sessions.filter { it.startsAt > now }.sortedBy { it.startsAt }

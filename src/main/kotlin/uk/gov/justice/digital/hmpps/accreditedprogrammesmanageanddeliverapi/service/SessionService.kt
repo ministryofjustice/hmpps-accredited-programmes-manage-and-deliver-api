@@ -144,8 +144,9 @@ class SessionService(
     session.startsAt = requestedStartTime
     session.endsAt = requestedEndTime
 
-    // Reschedule later group sessions, place-holder one-to-ones, but not catch-up sessions
-    if (request.rescheduleOtherSessions) {
+    // Reschedule later group sessions, place-holder one-to-ones, but not catch-up sessions. Only main group sessions
+    // do this, matching the UI, so moving a one-to-one or a catch-up only ever moves that session.
+    if (request.rescheduleOtherSessions && session.sessionType == SessionType.GROUP && !session.isCatchup) {
       val now = LocalDateTime.now(clock)
 
       // Empty groups (no membership, ever) may cascade-reschedule past sessions too: this supports

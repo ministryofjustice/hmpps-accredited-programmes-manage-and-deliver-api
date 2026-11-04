@@ -827,6 +827,105 @@ class RescheduleGroupSessionsIntegrationTest : IntegrationTestBase() {
   }
 
   @Nested
+  @DisplayName("When moving a session that is not a main group session")
+  inner class WhenMovingASessionThatIsNotAMainGroupSession {
+
+    // The UI only offers 'automatically move' for main group sessions. These tests check the API behaves the same
+    // way if it is asked to move later sessions for anything else.
+
+    @Test
+    fun `moving the pre-group one-to-ones placeholder only moves the placeholder`() {
+      // Given a group with one person allocated
+      val group = createBuildingChoicesGroupOnMondayMornings()
+      allocateNewMember(group)
+      val scheduleBefore = scheduleOverview(group.id!!)
+      val placeholder = scheduleBefore.session("Pre-group one-to-ones")
+      val newDate = placeholder.date.plusWeeks(1)
+
+      // When
+      moveAndAskToMoveLaterSessions(placeholder.id, newDate)
+
+      // Then only the placeholder has moved
+      val scheduleAfter = scheduleOverview(group.id!!)
+      assertThat(scheduleAfter.dateOf(placeholder.id)).isEqualTo(newDate)
+      assertThat(scheduleAfter.sessions.filter { it.id != placeholder.id })
+        .containsExactlyInAnyOrderElementsOf(scheduleBefore.sessions.filter { it.id != placeholder.id })
+    }
+
+    @Test
+    fun `moving a booked one-to-one only moves the one-to-one`() {
+      // Given a group with one person allocated, who the user has booked a 'Getting started one-to-one' with
+      val group = createBuildingChoicesGroupOnMondayMornings()
+      val member = allocateNewMember(group)
+      val scheduleBefore = scheduleOverview(group.id!!)
+      val gettingStartedOneToOnes = scheduleBefore.session("Getting started one-to-ones")
+      scheduleSession(
+        group = group,
+        sameTemplateAs = gettingStartedOneToOnes,
+        attendees = listOf(member),
+        date = gettingStartedOneToOnes.date.plusDays(1),
+        endTime = SessionTime(hour = 11, minutes = 0, amOrPm = AmOrPm.AM),
+      )
+      val oneToOne = sessionRepository.findByProgrammeGroupId(group.id!!)
+        .single { it.sessionType == SessionType.ONE_TO_ONE && !it.isPlaceholder }
+      val newDate = oneToOne.startsAt.toLocalDate().plusWeeks(1)
+
+      // When
+      moveAndAskToMoveLaterSessions(oneToOne.id, newDate)
+
+      // Then the one-to-one and its nDelius contact have moved
+      assertThat(sessionRepository.findByIdOrNull(oneToOne.id!!)!!.startsAt.toLocalDate()).isEqualTo(newDate)
+      assertThat(contactsHeldInNDelius().single { it.description == "Getting started one-to-one" }.date).isEqualTo(newDate)
+
+      // And nothing on the schedule has
+      assertThat(scheduleOverview(group.id!!).sessions).containsExactlyInAnyOrderElementsOf(scheduleBefore.sessions)
+    }
+
+    @Test
+    fun `moving a catch-up only moves the catch-up`() {
+      // Given a group with one person allocated, who the user has scheduled onto a 'Managing myself 3' catch-up
+      val group = createBuildingChoicesGroupOnMondayMornings()
+      val member = allocateNewMember(group)
+      val scheduleBefore = scheduleOverview(group.id!!)
+      val managingMyself3 = scheduleBefore.session("Managing myself 3")
+      scheduleSession(
+        group = group,
+        sameTemplateAs = managingMyself3,
+        attendees = listOf(member),
+        date = managingMyself3.date.plusDays(3),
+        type = SessionScheduleType.CATCH_UP,
+      )
+      val catchUp = sessionRepository.findByProgrammeGroupId(group.id!!).single { it.isCatchup }
+      val newDate = catchUp.startsAt.toLocalDate().plusWeeks(1)
+
+      // When
+      moveAndAskToMoveLaterSessions(catchUp.id, newDate)
+
+      // Then the catch-up and its nDelius contact have moved
+      assertThat(sessionRepository.findByIdOrNull(catchUp.id!!)!!.startsAt.toLocalDate()).isEqualTo(newDate)
+      assertThat(contactsHeldInNDelius().single { it.description == "Managing myself 3 catch-up" }.date).isEqualTo(newDate)
+
+      // And nothing on the schedule has
+      assertThat(scheduleOverview(group.id!!).sessions).containsExactlyInAnyOrderElementsOf(scheduleBefore.sessions)
+    }
+
+    private fun moveAndAskToMoveLaterSessions(sessionId: UUID?, newDate: LocalDate) {
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/$sessionId/reschedule",
+        returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+        body = RescheduleSessionRequest(
+          sessionStartDate = newDate,
+          sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+          sessionEndTime = SessionTime(hour = 11, minutes = 0, amOrPm = AmOrPm.AM),
+          rescheduleOtherSessions = true,
+        ),
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+    }
+  }
+
+  @Nested
   @DisplayName("When cascade rescheduling past sessions in empty groups (in-flight migration)")
   inner class WhenCascadeReschedulingEmptyGroups {
 
