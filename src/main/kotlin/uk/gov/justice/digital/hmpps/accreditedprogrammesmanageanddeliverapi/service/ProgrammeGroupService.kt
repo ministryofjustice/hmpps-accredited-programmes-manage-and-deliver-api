@@ -244,7 +244,7 @@ class ProgrammeGroupService(
 
     // Reschedule future sessions if requested
     if (updateGroupRequest.automaticallyRescheduleOtherSessions == true) {
-      scheduleService.rescheduleSessionsForGroup(savedGroup.id!!)
+      sessionService.rescheduleSessionsForGroup(savedGroup.id!!)
     }
 
     val successMessage =
@@ -306,7 +306,7 @@ class ProgrammeGroupService(
       session.sessionFacilitators.addAll(updatedFacilitators)
     }
     sessionRepository.saveAll(futureSessions)
-    sessionService.updateNDeliusAppointmentsForMultipleSessions(futureSessions)
+    sessionService.updateNDeliusAppointmentsForSessions(futureSessions)
   }
 
   private fun reschedulePreGroupOneToOneSession(groupId: UUID, sessionStartDate: LocalDate) {

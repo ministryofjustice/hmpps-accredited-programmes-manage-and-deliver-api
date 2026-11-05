@@ -46,9 +46,6 @@ interface ProgrammeGroupMembershipRepository : JpaRepository<ProgrammeGroupMembe
     programmeGroupId: UUID,
   ): ProgrammeGroupMembershipEntity?
 
-  @EntityGraph(attributePaths = ["programmeGroup"])
-  fun findAllByProgrammeGroupIdAndDeletedAtIsNullOrderByCreatedAtDesc(programmeGroupId: UUID): List<ProgrammeGroupMembershipEntity>
-
   // Includes soft-deleted memberships: a group is only considered "empty" if it has never had any
   // membership, so that past sessions can be safely cascade-rescheduled without checking attendance.
   fun existsByProgrammeGroupId(programmeGroupId: UUID): Boolean
