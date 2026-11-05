@@ -233,7 +233,7 @@ class ScheduleService(
     return slotQueue
   }
 
-  fun createNDeliusAppointments(
+  fun recreateMissingNDeliusAppointments(
     nDeliusAppointmentEntities: List<NDeliusAppointmentEntity>,
     updateAppointmentRequests: List<UpdateAppointmentRequest>,
   ) {
@@ -243,6 +243,8 @@ class ScheduleService(
       val updateAppointmentRequest = updateAppointmentRequests.first { request ->
         request.reference == nDeliusAppointmentEntity.ndeliusAppointmentId
       }
+      // Contacts are soft-deleted in delius when sent from our service so we cannot use the original UUID to recreate the contact
+      nDeliusAppointmentEntity.ndeliusAppointmentId = UUID.randomUUID()
       nDeliusAppointmentEntity.toAppointment(
         sessionNameFormatter = sessionNameFormatter,
         notes = updateAppointmentRequest.notes ?: nDeliusAppointmentEntity.currentSessionNotes(),
@@ -255,7 +257,7 @@ class ScheduleService(
       nDeliusAppointmentEntities.map { "${it.referral.crn}:${it.referral.eventNumber}" }.distinct()
     val groupId = nDeliusAppointmentEntities.firstOrNull()?.session?.programmeGroup?.id
 
-    createNDeliusAppointments(
+    createMissingNDeliusAppointments(
       nDeliusAppointments = nDeliusAppointments,
       nDeliusAppointmentEntities = nDeliusAppointmentEntities,
       affectedCaseReferenceNumbers = affectedCaseReferenceNumbers,
@@ -281,7 +283,7 @@ class ScheduleService(
     val affectedEventNumbers = attendees.map { "${it.referral.crn}:${it.referral.eventNumber}" }.distinct()
     val groupId = attendees.firstOrNull()?.session?.programmeGroup?.id
 
-    createNDeliusAppointments(
+    createMissingNDeliusAppointments(
       nDeliusAppointments = nDeliusAppointments,
       nDeliusAppointmentEntities = nDeliusAppointmentEntities,
       affectedCaseReferenceNumbers = affectedCaseReferenceNumbers,
@@ -290,7 +292,7 @@ class ScheduleService(
     )
   }
 
-  private fun createNDeliusAppointments(
+  private fun createMissingNDeliusAppointments(
     nDeliusAppointments: List<NdeliusAppointment>,
     nDeliusAppointmentEntities: List<NDeliusAppointmentEntity>,
     affectedCaseReferenceNumbers: List<String>,

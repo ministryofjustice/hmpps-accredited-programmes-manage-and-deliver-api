@@ -27,6 +27,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toNdeliusAppointmentEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusAppointmentEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ScheduleSessionRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
@@ -268,7 +269,7 @@ class ScheduleServiceTest {
   }
 
   @Test
-  fun `createNDeliusAppointments successfully calls nDelius`() {
+  fun `recreateMissingNDeliusAppointments successfully calls nDelius`() {
     // Given
     val nDeliusAppointmentId = UUID.randomUUID()
     val nDeliusAppointmentEntity = mockk<NDeliusAppointmentEntity>(relaxed = true)
@@ -285,12 +286,38 @@ class ScheduleServiceTest {
     )
 
     // When
-    scheduleService.createNDeliusAppointments(listOf(nDeliusAppointmentEntity), listOf(updateAppointmentRequest))
+    scheduleService.recreateMissingNDeliusAppointments(listOf(nDeliusAppointmentEntity), listOf(updateAppointmentRequest))
 
     // Then
     verify(exactly = 1) {
       nDeliusIntegrationApiClient.createAppointmentsInDelius(any())
     }
+  }
+
+  @Test
+  fun `recreateMissingNDeliusAppointments gives each recreated contact its own new reference`() {
+    // Given
+    val firstAppointment = NDeliusAppointmentEntityFactory().produce()
+    val secondAppointment = NDeliusAppointmentEntityFactory().produce()
+    val originalReferences = listOf(firstAppointment.ndeliusAppointmentId, secondAppointment.ndeliusAppointmentId)
+    val updateAppointmentRequests = originalReferences.map { originalReference ->
+      mockk<UpdateAppointmentRequest>(relaxed = true) {
+        every { reference } returns originalReference
+      }
+    }
+
+    every { nDeliusIntegrationApiClient.createAppointmentsInDelius(any()) } returns ClientResult.Success(
+      HttpStatusCode.valueOf(200),
+      mockk(relaxed = true),
+    )
+
+    // When
+    scheduleService.recreateMissingNDeliusAppointments(listOf(firstAppointment, secondAppointment), updateAppointmentRequests)
+
+    // Then
+    assertThat(listOf(firstAppointment.ndeliusAppointmentId, secondAppointment.ndeliusAppointmentId))
+      .doesNotContainAnyElementsOf(originalReferences)
+      .doesNotHaveDuplicates()
   }
 
   private fun buildAttendee(

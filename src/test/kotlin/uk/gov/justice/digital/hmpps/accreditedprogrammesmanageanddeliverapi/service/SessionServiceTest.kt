@@ -5,6 +5,7 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.verify
+import io.mockk.verifyOrder
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -882,7 +883,7 @@ class SessionServiceTest {
     every { nDeliusAppointmentRepository.findByNdeliusAppointmentId(sessionEntity.ndeliusAppointments.last().id!!) } returns listOf(
       sessionEntity.ndeliusAppointments.last(),
     )
-    every { scheduleService.createNDeliusAppointments(any(), any()) } just Runs
+    every { scheduleService.recreateMissingNDeliusAppointments(any(), any()) } just Runs
 
     // First call fails, second call succeeds
     every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
@@ -903,7 +904,7 @@ class SessionServiceTest {
     // Then
     assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
     verify(exactly = 2) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
-    verify(exactly = 1) { scheduleService.createNDeliusAppointments(any(), any()) }
+    verify(exactly = 1) { scheduleService.recreateMissingNDeliusAppointments(any(), any()) }
   }
 
   @Test
@@ -975,7 +976,7 @@ class SessionServiceTest {
     every { userService.getUserByUsernameOrNull(any()) } returns UserFactory().produce()
 
     every { nDeliusAppointmentRepository.findByNdeliusAppointmentId(any()) } returns listOf(sessionEntity.ndeliusAppointments.first())
-    every { scheduleService.createNDeliusAppointments(any(), any()) } just Runs
+    every { scheduleService.recreateMissingNDeliusAppointments(any(), any()) } just Runs
 
     // First call fails, second call succeeds
     every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
@@ -996,7 +997,7 @@ class SessionServiceTest {
     // Then
     assertThat(result.responseMessage).isEqualTo("Attendance saved for session $sessionId")
     verify(exactly = 1) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
-    verify(exactly = 1) { scheduleService.createNDeliusAppointments(any(), any()) }
+    verify(exactly = 1) { scheduleService.recreateMissingNDeliusAppointments(any(), any()) }
   }
 
   @Test
@@ -1069,7 +1070,7 @@ class SessionServiceTest {
 
     every { nDeliusAppointmentRepository.findByNdeliusAppointmentId(any()) } returns listOf(sessionEntity.ndeliusAppointments.first())
     every {
-      scheduleService.createNDeliusAppointments(
+      scheduleService.recreateMissingNDeliusAppointments(
         any(),
         any(),
       )
@@ -1094,7 +1095,7 @@ class SessionServiceTest {
     }
 
     verify(exactly = 1) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
-    verify(exactly = 1) { scheduleService.createNDeliusAppointments(any(), any()) }
+    verify(exactly = 1) { scheduleService.recreateMissingNDeliusAppointments(any(), any()) }
   }
 
   @Test
@@ -2517,7 +2518,7 @@ class SessionServiceTest {
 
     every { nDeliusAppointmentRepository.findByNdeliusAppointmentId(missingAppointmentId) } returns
       listOf(missingAppointment)
-    every { scheduleService.createNDeliusAppointments(any(), any()) } just Runs
+    every { scheduleService.recreateMissingNDeliusAppointments(any(), any()) } just Runs
     every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
     every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
       ClientResult.Failure.StatusCode(
@@ -2535,7 +2536,7 @@ class SessionServiceTest {
       nDeliusAppointmentRepository.findByNdeliusAppointmentId(missingAppointmentId)
     }
     verify {
-      scheduleService.createNDeliusAppointments(
+      scheduleService.recreateMissingNDeliusAppointments(
         match { appointments -> appointments.single().ndeliusAppointmentId == missingAppointmentId },
         match { requests -> requests.single().reference == missingAppointmentId },
       )
@@ -2548,6 +2549,60 @@ class SessionServiceTest {
         },
       )
     }
+    verifyOrder {
+      nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+        match { request -> request.appointments.map { it.reference } == listOf(remainingAppointmentId) },
+      )
+      scheduleService.recreateMissingNDeliusAppointments(any(), any())
+    }
+  }
+
+  @Test
+  fun `should not recreate missing NDelius appointments when updating the remaining appointments fails`() {
+    // Given
+    val missingReferral = ReferralEntityFactory().withPersonName("John Smith").produce()
+    val remainingReferral = ReferralEntityFactory().withPersonName("Jane Doe").produce()
+    val missingSession = sessionWithAttendees(listOf(missingReferral), moduleName = "Module 1")
+    val remainingSession = sessionWithAttendees(listOf(remainingReferral), moduleName = "Module 2")
+    val missingAppointmentId = UUID.randomUUID()
+    val missingAppointment =
+      NDeliusAppointmentEntityFactory()
+        .withNdeliusAppointmentId(missingAppointmentId)
+        .withSession(missingSession)
+        .withReferral(missingReferral)
+        .produce()
+    missingSession.ndeliusAppointments.add(missingAppointment)
+    remainingSession.ndeliusAppointments.add(
+      NDeliusAppointmentEntityFactory()
+        .withSession(remainingSession)
+        .withReferral(remainingReferral)
+        .produce(),
+    )
+
+    every { nDeliusAppointmentRepository.findByNdeliusAppointmentId(missingAppointmentId) } returns
+      listOf(missingAppointment)
+    every { telemetryService.logToAppInsights(any(), any(), any()) } returns Unit
+    every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
+      ClientResult.Failure.StatusCode(
+        method = HttpMethod.PUT,
+        path = "/appointments",
+        status = HttpStatus.BAD_REQUEST,
+        body = """{"message":"Could not find appointments with references: [$missingAppointmentId]"}""",
+      ) andThen ClientResult.Failure.StatusCode(
+        method = HttpMethod.PUT,
+        path = "/appointments",
+        status = HttpStatus.BAD_REQUEST,
+        body = """{"message":"Only permissible absences can be recorded for a future attendance"}""",
+      )
+
+    // When
+    assertThrows<AppointmentUpdateException> {
+      service.updateNDeliusAppointmentsForSessions(listOf(missingSession, remainingSession))
+    }
+
+    // Then
+    verify(exactly = 2) { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) }
+    verify(exactly = 0) { scheduleService.recreateMissingNDeliusAppointments(any(), any()) }
   }
 
   @Test
@@ -2601,7 +2656,7 @@ class SessionServiceTest {
       )
     }
     verify(exactly = 0) { nDeliusAppointmentRepository.findByNdeliusAppointmentId(any()) }
-    verify(exactly = 0) { scheduleService.createNDeliusAppointments(any(), any()) }
+    verify(exactly = 0) { scheduleService.recreateMissingNDeliusAppointments(any(), any()) }
     verify {
       telemetryService.logToAppInsights(
         eventName = "Appointment.update-nDelius.failure",
@@ -2775,7 +2830,7 @@ class SessionServiceTest {
     sessionEntity.ndeliusAppointments.add(appointment)
 
     every { nDeliusAppointmentRepository.findByNdeliusAppointmentId(nDeliusAppointmentId) } returns listOf(appointment)
-    every { scheduleService.createNDeliusAppointments(any(), any()) } just Runs
+    every { scheduleService.recreateMissingNDeliusAppointments(any(), any()) } just Runs
     every { nDeliusIntegrationApiClient.updateAppointmentsInDelius(any()) } returns
       ClientResult.Failure.StatusCode(
         method = HttpMethod.PUT,
@@ -2793,7 +2848,7 @@ class SessionServiceTest {
       nDeliusAppointmentRepository.findByNdeliusAppointmentId(nDeliusAppointmentId)
     }
     verify {
-      scheduleService.createNDeliusAppointments(
+      scheduleService.recreateMissingNDeliusAppointments(
         match { it.single().ndeliusAppointmentId == nDeliusAppointmentId },
         match { it.single().reference == nDeliusAppointmentId },
       )
@@ -2832,7 +2887,7 @@ class SessionServiceTest {
     // Then
     assertThat(exception.message).contains("Failure to update appointments")
     verify(exactly = 0) { nDeliusAppointmentRepository.findByNdeliusAppointmentId(any()) }
-    verify(exactly = 0) { scheduleService.createNDeliusAppointments(any(), any()) }
+    verify(exactly = 0) { scheduleService.recreateMissingNDeliusAppointments(any(), any()) }
     verify {
       telemetryService.logToAppInsights(
         eventName = "Appointment.update-nDelius.failure",

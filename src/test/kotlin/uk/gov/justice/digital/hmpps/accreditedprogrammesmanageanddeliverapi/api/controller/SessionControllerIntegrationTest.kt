@@ -3108,7 +3108,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `a contact deleted in nDelius is recreated with the session notes`() {
+    fun `a contact deleted in nDelius is recreated with the session notes and given a new reference`() {
       // Given the contact has since been deleted in nDelius
       val contactReference = session.ndeliusAppointments.single().ndeliusAppointmentId
       wiremock.stubFor(
@@ -3137,7 +3137,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         .let { objectMapper.readValue<CreateAppointmentRequest>(it.bodyAsString) }
         .appointments
         .single()
-      assertThat(recreatedContact.reference).isEqualTo(contactReference)
+      assertThat(recreatedContact.reference).isNotEqualTo(contactReference)
       assertThat(recreatedContact.notes).contains(sessionNotes)
     }
 
