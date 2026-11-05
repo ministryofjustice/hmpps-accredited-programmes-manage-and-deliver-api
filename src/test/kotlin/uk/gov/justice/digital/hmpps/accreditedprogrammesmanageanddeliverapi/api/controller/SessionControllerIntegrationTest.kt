@@ -4,11 +4,15 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.containing
 import com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.put
 import com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
+import org.awaitility.kotlin.await
+import org.awaitility.kotlin.matches
+import org.awaitility.kotlin.untilCallTo
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -96,6 +100,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.temporal.TemporalAdjusters
 import java.util.UUID
+import java.util.concurrent.CompletableFuture
 
 class SessionControllerIntegrationTest : IntegrationTestBase() {
 
@@ -3111,16 +3116,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     fun `a contact deleted in nDelius is recreated with the session notes and given a new reference`() {
       // Given the contact has since been deleted in nDelius
       val contactReference = session.ndeliusAppointments.single().ndeliusAppointmentId
-      wiremock.stubFor(
-        put(urlEqualTo("/appointments"))
-          .withRequestBody(containing(contactReference.toString()))
-          .willReturn(
-            aResponse()
-              .withStatus(HttpStatus.BAD_REQUEST.value())
-              .withHeader("Content-Type", "application/json")
-              .withBody("""{"message":"Could not find appointments with references: [$contactReference]"}"""),
-          ),
-      )
+      stubContactDeletedInNDelius(contactReference)
 
       // When
       performRequestAndExpectStatusWithBody(
@@ -3139,6 +3135,91 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         .single()
       assertThat(recreatedContact.reference).isNotEqualTo(contactReference)
       assertThat(recreatedContact.notes).contains(sessionNotes)
+
+      // And the session now points at the recreated contact
+      assertThat(nDeliusAppointmentRepository.findBySessionId(session.id!!).single().ndeliusAppointmentId)
+        .isEqualTo(recreatedContact.reference)
+    }
+
+    @Test
+    fun `a contact deleted in nDelius keeps its reference when nDelius refuses to recreate it`() {
+      // Given the contact has since been deleted in nDelius
+      val contactReference = session.ndeliusAppointments.single().ndeliusAppointmentId
+      stubContactDeletedInNDelius(contactReference)
+
+      // And nDelius refuses to create a replacement
+      wiremock.stubFor(
+        post(urlEqualTo("/appointments"))
+          .willReturn(
+            aResponse()
+              .withStatus(HttpStatus.BAD_REQUEST.value())
+              .withHeader("Content-Type", "application/json")
+              .withBody("""{"message":"Invalid Requirement IDs: [1]"}"""),
+          ),
+      )
+
+      // When
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${session.id}/reschedule",
+        body = moveTheSessionADayLater(rescheduleOtherSessions = false),
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+      )
+
+      // Then the new reference is not kept, as nDelius never created a contact with it
+      assertThat(nDeliusAppointmentRepository.findBySessionId(session.id!!).single().ndeliusAppointmentId)
+        .isEqualTo(contactReference)
+    }
+
+    @Test
+    fun `a contact deleted in nDelius is only recreated once if the user submits again while it is being recreated`() {
+      // Given the contact has since been deleted in nDelius
+      val contactReference = session.ndeliusAppointments.single().ndeliusAppointmentId
+      stubContactDeletedInNDelius(contactReference)
+
+      // And nDelius takes a while to create the replacement
+      wiremock.stubFor(
+        post(urlEqualTo("/appointments"))
+          .willReturn(aResponse().withStatus(HttpStatus.CREATED.value()).withFixedDelay(2000)),
+      )
+
+      // When the user submits again while the first request is still waiting for nDelius
+      val moveTheSession = {
+        performRequestAndExpectStatusWithBody(
+          httpMethod = HttpMethod.PUT,
+          uri = "/session/${session.id}/reschedule",
+          body = moveTheSessionADayLater(rescheduleOtherSessions = false),
+          returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+          expectedResponseStatus = HttpStatus.OK.value(),
+        )
+      }
+      val firstRequest = CompletableFuture.supplyAsync { moveTheSession() }
+      await untilCallTo { wiremock.findAll(postRequestedFor(urlEqualTo("/appointments"))).size } matches { it == 1 }
+      val secondRequest = CompletableFuture.supplyAsync { moveTheSession() }
+      CompletableFuture.allOf(firstRequest, secondRequest).join()
+
+      // Then only one contact is created, and the session points at it
+      val recreatedContact = wiremock.findAll(postRequestedFor(urlEqualTo("/appointments")))
+        .single()
+        .let { objectMapper.readValue<CreateAppointmentRequest>(it.bodyAsString) }
+        .appointments
+        .single()
+      assertThat(nDeliusAppointmentRepository.findBySessionId(session.id!!).single().ndeliusAppointmentId)
+        .isEqualTo(recreatedContact.reference)
+    }
+
+    private fun stubContactDeletedInNDelius(contactReference: UUID) {
+      wiremock.stubFor(
+        put(urlEqualTo("/appointments"))
+          .withRequestBody(containing(contactReference.toString()))
+          .willReturn(
+            aResponse()
+              .withStatus(HttpStatus.BAD_REQUEST.value())
+              .withHeader("Content-Type", "application/json")
+              .withBody("""{"message":"Could not find appointments with references: [$contactReference]"}"""),
+          ),
+      )
     }
 
     private fun moveTheSessionADayLater(rescheduleOtherSessions: Boolean) = RescheduleSessionRequest(

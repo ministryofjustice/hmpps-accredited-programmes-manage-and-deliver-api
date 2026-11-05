@@ -768,7 +768,8 @@ class SessionService(
     val missingUpdateAppointmentRequestList =
       updateAppointmentRequests.filter { missingNDeliusAppointmentIdSet.contains(it.reference.toString()) }
 
-    missingNDeliusAppointmentIdSet.forEach { missingNDeliusAppointmentIdString ->
+    // In a fixed order, so that two requests needing the same rows lock them the same way round and can't deadlock
+    missingNDeliusAppointmentIdSet.sorted().forEach { missingNDeliusAppointmentIdString ->
       val nDeliusAppointmentId = UUID.fromString(missingNDeliusAppointmentIdString)
       val nDeliusAppointmentList =
         nDeliusAppointmentRepository.findByNdeliusAppointmentId(nDeliusAppointmentId)

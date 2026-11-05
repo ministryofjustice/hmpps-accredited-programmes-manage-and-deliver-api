@@ -257,7 +257,7 @@ class ScheduleService(
       nDeliusAppointmentEntities.map { "${it.referral.crn}:${it.referral.eventNumber}" }.distinct()
     val groupId = nDeliusAppointmentEntities.firstOrNull()?.session?.programmeGroup?.id
 
-    createMissingNDeliusAppointments(
+    createNDeliusAppointments(
       nDeliusAppointments = nDeliusAppointments,
       nDeliusAppointmentEntities = nDeliusAppointmentEntities,
       affectedCaseReferenceNumbers = affectedCaseReferenceNumbers,
@@ -283,7 +283,7 @@ class ScheduleService(
     val affectedEventNumbers = attendees.map { "${it.referral.crn}:${it.referral.eventNumber}" }.distinct()
     val groupId = attendees.firstOrNull()?.session?.programmeGroup?.id
 
-    createMissingNDeliusAppointments(
+    createNDeliusAppointments(
       nDeliusAppointments = nDeliusAppointments,
       nDeliusAppointmentEntities = nDeliusAppointmentEntities,
       affectedCaseReferenceNumbers = affectedCaseReferenceNumbers,
@@ -292,7 +292,7 @@ class ScheduleService(
     )
   }
 
-  private fun createMissingNDeliusAppointments(
+  private fun createNDeliusAppointments(
     nDeliusAppointments: List<NdeliusAppointment>,
     nDeliusAppointmentEntities: List<NDeliusAppointmentEntity>,
     affectedCaseReferenceNumbers: List<String>,
