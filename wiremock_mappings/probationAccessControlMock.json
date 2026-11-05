@@ -11,7 +11,7 @@
         "headers": {
           "Content-Type": "application/json"
         },
-        "body": "{\"crn\":\"{{request.pathSegments.[1]}}\",\"excludedFrom\":[{\"username\":\"AUTH_ADM\",\"since\":\"2024-01-01T00:00:00Z\",\"until\":null}],\"restrictedTo\":[],\"exclusionMessage\":null,\"restrictionMessage\":null}",
+        "body": "{\"crn\":\"{{request.pathSegments.[1]}}\",\"excludedFrom\":[{\"username\":\"AUTH_ADM\",\"since\":\"2024-01-01T00:00:00Z\",\"until\":null},{\"username\":\"REFER_MONITOR_PP\",\"since\":\"2024-01-01T00:00:00Z\",\"until\":null}],\"restrictedTo\":[],\"exclusionMessage\":null,\"restrictionMessage\":null}",
         "transformers": [
           "response-template"
         ]
