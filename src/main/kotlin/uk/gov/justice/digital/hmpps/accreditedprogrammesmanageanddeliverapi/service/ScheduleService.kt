@@ -233,7 +233,7 @@ class ScheduleService(
     return slotQueue
   }
 
-  fun createNDeliusAppointments(
+  fun recreateMissingNDeliusAppointments(
     nDeliusAppointmentEntities: List<NDeliusAppointmentEntity>,
     updateAppointmentRequests: List<UpdateAppointmentRequest>,
   ) {
@@ -243,6 +243,8 @@ class ScheduleService(
       val updateAppointmentRequest = updateAppointmentRequests.first { request ->
         request.reference == nDeliusAppointmentEntity.ndeliusAppointmentId
       }
+      // Contacts are soft-deleted in delius when sent from our service so we cannot use the original UUID to recreate the contact
+      nDeliusAppointmentEntity.ndeliusAppointmentId = UUID.randomUUID()
       nDeliusAppointmentEntity.toAppointment(
         sessionNameFormatter = sessionNameFormatter,
         notes = updateAppointmentRequest.notes ?: nDeliusAppointmentEntity.currentSessionNotes(),
