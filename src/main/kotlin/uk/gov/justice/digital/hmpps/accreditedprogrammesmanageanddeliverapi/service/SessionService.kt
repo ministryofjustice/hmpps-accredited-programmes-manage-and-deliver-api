@@ -527,7 +527,8 @@ class SessionService(
       val nDeliusAppointment = session.ndeliusAppointments.find { it.referral.id == referralId }
 
       // nDelius appends notes on every update, so when only the outcome has changed the notes must not be sent again
-      val latestNotes = latestAttendanceByReferralId[referralId]?.notesHistory?.maxByOrNull { it.createdAt }?.notes?.trim()
+      val latestNotes =
+        latestAttendanceByReferralId[referralId]?.notesHistory?.maxByOrNull { it.createdAt }?.notes?.trim()
       val notesToSend = attendee.sessionNotes.takeUnless { it?.trim() == latestNotes }
 
       nDeliusAppointment?.toUpdateAppointmentRequest(notesToSend, attendee.outcomeCode, sessionNameFormatter)
@@ -758,6 +759,10 @@ class SessionService(
       if (!optionalReferralEntity.isPresent) return@forEach
       val referralEntity = optionalReferralEntity.get()
       if (referralEntity.statusHistories.first().referralStatusDescription.description != SCHEDULED.description) return@forEach
+      log.info(
+        "Auto-transitioning referral {} from SCHEDULED to ON_PROGRAMME after Pre-group attendance recorded",
+        referralEntity.id,
+      )
       referralService.updateStatus(
         referral = referralEntity,
         referralStatusDescriptionId = referralStatusDescriptionOnProgrammeEntity?.id!!,
@@ -833,7 +838,11 @@ class SessionService(
 
     when (
       val response =
-        nDeliusIntegrationApiClient.updateAppointmentsInDelius(UpdateAppointmentsRequest(updateNonMissingAppointmentRequestList))
+        nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+          UpdateAppointmentsRequest(
+            updateNonMissingAppointmentRequestList,
+          ),
+        )
     ) {
       is ClientResult.Failure ->
         handleUpdateAppointmentResponseError(
