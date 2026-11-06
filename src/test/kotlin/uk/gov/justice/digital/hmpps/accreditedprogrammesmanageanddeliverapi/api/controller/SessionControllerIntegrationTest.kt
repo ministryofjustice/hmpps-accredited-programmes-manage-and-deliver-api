@@ -1,7 +1,11 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.controller
 
+import com.fasterxml.jackson.module.kotlin.readValue
+import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.containing
 import com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor
+import com.github.tomakehurst.wiremock.client.WireMock.put
 import com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import org.assertj.core.api.Assertions.assertThat
@@ -36,6 +40,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.sessionNotes.SessionNotes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.CreateGroupTeamMemberType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegionWithMembers
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeam
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusUserTeams
@@ -56,6 +61,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.primaryFacilitator
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.Pathway
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.AFTC
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionAttendanceNDeliusCode.ATTC
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
@@ -2180,7 +2186,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
               .withStaff(RequestCode(editSessionFacilitatorRequest.first().facilitatorCode))
               .withTeam(RequestCode(editSessionFacilitatorRequest.first().teamCode))
               .withOutcome(RequestCode(ATTC.toString()))
-              .withNotes("Test notes that should not change")
+              .withNotes(null)
               .withDescription("Test Module 2")
               .produce(),
           ),
@@ -3022,5 +3028,199 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         body = {},
       )
     }
+  }
+
+  @Nested
+  @DisplayName("When a session already has attendance recorded in nDelius")
+  inner class WhenASessionAlreadyHasAttendanceInNDelius {
+
+    private val sessionNotes = "Engaged well with the group exercise"
+    private lateinit var session: SessionEntity
+    private lateinit var referralId: UUID
+
+    @BeforeEach
+    fun beforeEach() {
+      // Given a group session with one person allocated
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+      val referral = testReferralHelper.createReferral()
+      programmeGroupMembershipService.allocateReferralToGroup(referral.id!!, group.id!!, "SYSTEM", "")
+      session = sessionRepository.findByProgrammeGroupId(group.id!!).find { it.sessionType == SessionType.GROUP }!!
+      referralId = referral.id!!
+
+      // And the user has recorded their attendance with notes, which nDelius stores on the contact
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${session.id}/attendance",
+        body = SessionAttendance(listOf(SessionAttendee(referralId, ATTC, sessionNotes))),
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Only the nDelius calls made after the notes were recorded matter to these tests
+      wiremock.resetRequests()
+    }
+
+    @Test
+    fun `changing the facilitators does not send the notes to nDelius again`() {
+      // When
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${session.id}/session-facilitators",
+        body = listOf(
+          EditSessionFacilitatorRequest(
+            _facilitatorName = randomFullName().getNameAsString(),
+            facilitatorForename = randomFullName().forename,
+            facilitatorSurname = randomFullName().surname,
+            facilitatorMiddleNames = randomFullName().middleNames,
+            facilitatorCode = randomAlphanumericString(),
+            teamName = randomAlphanumericString(),
+            teamCode = randomUppercaseString(),
+          ),
+        ),
+        returnType = object : ParameterizedTypeReference<String>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then nDelius is updated, keeping the outcome, without the notes it already has
+      val update = updateSentToNDelius()
+      assertThat(update.notes).isNull()
+      assertThat(update.outcome?.code).isEqualTo(ATTC.name)
+    }
+
+    @Test
+    fun `changing the date without moving other sessions does not send the notes to nDelius again`() {
+      // When
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${session.id}/reschedule",
+        body = moveTheSessionADayLater(rescheduleOtherSessions = false),
+        returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then nDelius is updated, keeping the outcome, without the notes it already has
+      val update = updateSentToNDelius()
+      assertThat(update.notes).isNull()
+      assertThat(update.outcome?.code).isEqualTo(ATTC.name)
+    }
+
+    @Test
+    fun `moving the session and the sessions after it keeps its outcome without sending the notes again`() {
+      // When the user moves the session and selects 'Yes, automatically move...'
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${session.id}/reschedule",
+        body = moveTheSessionADayLater(rescheduleOtherSessions = true),
+        returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then the update for this session keeps its outcome, without the notes nDelius already has
+      val contactReference = session.ndeliusAppointments.single().ndeliusAppointmentId
+      val update = wiremock.findAll(putRequestedFor(urlEqualTo("/appointments")))
+        .single()
+        .let { objectMapper.readValue<UpdateAppointmentsRequest>(it.bodyAsString) }
+        .appointments
+        .single { it.reference == contactReference }
+      assertThat(update.notes).isNull()
+      assertThat(update.outcome?.code).isEqualTo(ATTC.name)
+    }
+
+    @Test
+    fun `moving the session and the sessions after it changes nothing if nDelius refuses the outcome`() {
+      // Given nDelius refuses this contact's outcome, as it does for an attended outcome on a future date
+      val contactReference = session.ndeliusAppointments.single().ndeliusAppointmentId
+      wiremock.stubFor(
+        put(urlEqualTo("/appointments"))
+          .withRequestBody(containing(contactReference.toString()))
+          .willReturn(
+            aResponse()
+              .withStatus(HttpStatus.BAD_REQUEST.value())
+              .withHeader("Content-Type", "application/json")
+              .withBody("""{"message":"Only permissible absences can be recorded for a future attendance"}"""),
+          ),
+      )
+      val groupId = session.programmeGroup.id!!
+      val datesBeforeMoving = sessionRepository.findByProgrammeGroupId(groupId).associate { it.id to it.startsAt }
+
+      // When the user moves the session and selects 'Yes, automatically move...'
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${session.id}/reschedule",
+        body = moveTheSessionADayLater(rescheduleOtherSessions = true),
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.BAD_REQUEST.value(),
+      )
+
+      // Then no session has moved
+      assertThat(sessionRepository.findByProgrammeGroupId(groupId).associate { it.id to it.startsAt })
+        .isEqualTo(datesBeforeMoving)
+    }
+
+    @Test
+    fun `changing only the outcome does not send the notes to nDelius again`() {
+      // When the user changes the outcome, leaving the notes page as it was pre-filled
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${session.id}/attendance",
+        body = SessionAttendance(listOf(SessionAttendee(referralId, AFTC, sessionNotes))),
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Then nDelius gets the new outcome without the notes it already has
+      val update = updateSentToNDelius()
+      assertThat(update.notes).isNull()
+      assertThat(update.outcome?.code).isEqualTo(AFTC.name)
+    }
+
+    @Test
+    fun `a contact deleted in nDelius is recreated with the session notes`() {
+      // Given the contact has since been deleted in nDelius
+      val contactReference = session.ndeliusAppointments.single().ndeliusAppointmentId
+      wiremock.stubFor(
+        put(urlEqualTo("/appointments"))
+          .withRequestBody(containing(contactReference.toString()))
+          .willReturn(
+            aResponse()
+              .withStatus(HttpStatus.BAD_REQUEST.value())
+              .withHeader("Content-Type", "application/json")
+              .withBody("""{"message":"Could not find appointments with references: [$contactReference]"}"""),
+          ),
+      )
+
+      // When
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.PUT,
+        uri = "/session/${session.id}/reschedule",
+        body = moveTheSessionADayLater(rescheduleOtherSessions = false),
+        returnType = object : ParameterizedTypeReference<EditSessionDateAndTimeResponse>() {},
+        expectedResponseStatus = HttpStatus.OK.value(),
+      )
+
+      // Then the contact is recreated with the notes, because a new contact starts with none
+      val recreatedContact = wiremock.findAll(postRequestedFor(urlEqualTo("/appointments")))
+        .single()
+        .let { objectMapper.readValue<CreateAppointmentRequest>(it.bodyAsString) }
+        .appointments
+        .single()
+      assertThat(recreatedContact.reference).isEqualTo(contactReference)
+      assertThat(recreatedContact.notes).contains(sessionNotes)
+    }
+
+    private fun moveTheSessionADayLater(rescheduleOtherSessions: Boolean) = RescheduleSessionRequest(
+      sessionStartDate = session.startsAt.toLocalDate().plusDays(1),
+      sessionStartTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+      sessionEndTime = SessionTime(hour = 11, minutes = 0, amOrPm = AmOrPm.AM),
+      rescheduleOtherSessions = rescheduleOtherSessions,
+    )
+
+    private fun updateSentToNDelius() = wiremock.findAll(putRequestedFor(urlEqualTo("/appointments")))
+      .single()
+      .let { objectMapper.readValue<UpdateAppointmentsRequest>(it.bodyAsString) }
+      .appointments
+      .single()
   }
 }

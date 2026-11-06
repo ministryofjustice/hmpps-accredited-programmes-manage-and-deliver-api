@@ -41,7 +41,7 @@ class ReferralCaseListItemService(
     probationDeliveryUnits: List<String>?,
     reportingTeams: List<String>?,
   ): CaseListReferrals {
-    val offenceCohortAndLdcPairs = cohorts?.mapNotNull { cohort ->
+    val offenceCohortAndLdcPairs = cohorts?.map { cohort ->
       ProgrammeGroupCohort.toOffenceTypeAndLdc(cohort)
     } ?: emptyList()
 

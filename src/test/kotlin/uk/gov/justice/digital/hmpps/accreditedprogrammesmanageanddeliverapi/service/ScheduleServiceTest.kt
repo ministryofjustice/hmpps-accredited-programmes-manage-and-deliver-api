@@ -58,8 +58,6 @@ class ScheduleServiceTest {
   private val scheduleService = ScheduleService(
     programmeGroupRepository = programmeGroupRepository,
     moduleRepository = mockk(relaxed = true),
-    clock = mockk(relaxed = true),
-    programmeGroupMembershipRepository = mockk(relaxed = true),
     moduleSessionTemplateRepository = moduleSessionTemplateRepository,
     nDeliusIntegrationApiClient = nDeliusIntegrationApiClient,
     nDeliusAppointmentRepository = mockk(relaxed = true),
