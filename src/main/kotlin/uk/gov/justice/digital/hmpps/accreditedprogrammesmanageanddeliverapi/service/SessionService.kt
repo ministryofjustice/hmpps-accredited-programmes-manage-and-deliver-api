@@ -758,24 +758,20 @@ class SessionService(
     changedAttendees: List<SessionAttendee>,
     username: String,
   ) {
-    if (session.sessionType == SessionType.ONE_TO_ONE && session.moduleName.startsWith("Pre-group")) {
-      changedAttendees.forEach { attendee ->
-        if (attendee.outcomeCode == ATTC) {
-          val optionalReferralEntity = referralRepository.findById(attendee.referralId)
-          if (optionalReferralEntity.isPresent) {
-            val referralEntity = optionalReferralEntity.get()
-            if (referralEntity.statusHistories.first().referralStatusDescription.description == SCHEDULED.description) {
-              val referralStatusDescriptionOnProgrammeEntity =
-                referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)
-              referralService.updateStatus(
-                referral = referralEntity,
-                referralStatusDescriptionId = referralStatusDescriptionOnProgrammeEntity?.id!!,
-                createdBy = username,
-              )
-            }
-          }
-        }
-      }
+    if (session.sessionType != SessionType.ONE_TO_ONE || !session.moduleName.startsWith("Pre-group")) return
+    val referralStatusDescriptionOnProgrammeEntity =
+      referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)
+    changedAttendees.forEach { attendee ->
+      if (attendee.outcomeCode != ATTC) return@forEach
+      val optionalReferralEntity = referralRepository.findById(attendee.referralId)
+      if (!optionalReferralEntity.isPresent) return@forEach
+      val referralEntity = optionalReferralEntity.get()
+      if (referralEntity.statusHistories.first().referralStatusDescription.description != SCHEDULED.description) return@forEach
+      referralService.updateStatus(
+        referral = referralEntity,
+        referralStatusDescriptionId = referralStatusDescriptionOnProgrammeEntity?.id!!,
+        createdBy = username,
+      )
     }
   }
 
