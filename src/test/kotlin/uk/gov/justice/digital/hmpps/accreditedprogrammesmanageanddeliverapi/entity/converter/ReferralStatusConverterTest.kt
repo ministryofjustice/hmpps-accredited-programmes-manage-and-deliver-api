@@ -28,7 +28,7 @@ class ReferralStatusConverterTest {
     val result = converter.convertToDatabaseColumn(statusType)
 
     // Then
-    assertThat(result).isEqualTo(statusType.description)
+    assertThat(result).isEqualTo(statusType.displayName)
   }
 
   @Test
@@ -44,7 +44,7 @@ class ReferralStatusConverterTest {
   @EnumSource(ReferralStatusType::class)
   fun `convertToEntityAttribute should return ReferralStatusType for each valid description`(statusType: ReferralStatusType) {
     // When
-    val result = converter.convertToEntityAttribute(statusType.description)
+    val result = converter.convertToEntityAttribute(statusType.displayName)
 
     // Then
     assertThat(result).isEqualTo(statusType)

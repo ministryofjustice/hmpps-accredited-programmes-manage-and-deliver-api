@@ -110,7 +110,7 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
 
     // Then
     assertThat(transitions).hasSize(7)
-    assertThat(transitions.map { it.toStatus.referralStatusType.description }).containsExactlyInAnyOrder(
+    assertThat(transitions.map { it.toStatus.referralStatusType.displayName }).containsExactlyInAnyOrder(
       "Recall",
       "Return to court",
       "Awaiting assessment",
@@ -122,7 +122,7 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
   }
 
   private fun getTransition(fromStatusDescription: String, toStatusDescription: String) = referralStatusTransitionRepository.findAll().find {
-    it.fromStatus.referralStatusType.description == fromStatusDescription && it.toStatus.referralStatusType.description == toStatusDescription
+    it.fromStatus.referralStatusType.displayName == fromStatusDescription && it.toStatus.referralStatusType.displayName == toStatusDescription
   }
 
   @Test

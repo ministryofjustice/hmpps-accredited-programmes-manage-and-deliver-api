@@ -83,7 +83,7 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
     )
 
     // Then
-    assertEquals(response.ids, listOf("*"))
+    assertEquals(listOf("*"), response.ids)
   }
 
   @Test
