@@ -26,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
 import java.time.Clock
 import java.time.LocalDateTime
 import java.util.UUID
@@ -77,7 +78,7 @@ class ProgrammeGroupMembershipService(
     val statusHistory =
       ReferralStatusHistoryEntity(
         referral = referral,
-        referralStatusDescription = referralStatusDescriptionRepository.getScheduledStatusDescription(),
+        referralStatusDescription = referralStatusDescriptionRepository.findByDescription(ReferralStatusType.SCHEDULED.description)!!,
         additionalDetails = additionalDetails,
         createdBy = allocatedToGroupBy,
       )

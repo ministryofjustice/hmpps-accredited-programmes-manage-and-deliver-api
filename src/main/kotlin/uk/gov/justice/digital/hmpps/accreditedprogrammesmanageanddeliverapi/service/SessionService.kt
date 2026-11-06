@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Lazy
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.context.SecurityContextHolder
@@ -57,8 +58,11 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.ON_PROGRAMME
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.SCHEDULED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
@@ -88,6 +92,8 @@ class SessionService(
   private val clock: Clock,
   private val userAccessService: UserAccessService,
   private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
+  @Lazy private val referralService: ReferralService,
+  private val referralStatusDescriptionRepository: ReferralStatusDescriptionRepository,
 ) {
   companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -144,9 +150,6 @@ class SessionService(
       log.warn("Invalid reschedule request received for session with id: $sessionId. Requested end time $requestedEndTime is not after requested start time $requestedStartTime")
       throw BusinessException("The session end time must be after the session start time.")
     }
-
-    val currentSessionDuration = Duration.between(session.startsAt, session.endsAt)
-    val requestedSessionDuration = Duration.between(requestedStartTime, requestedEndTime)
 
     // update the start and end times of the requested session
     session.startsAt = requestedStartTime
@@ -570,29 +573,13 @@ class SessionService(
     }
 
     // If this is a post-programme review session, check if completion events should be published.
-    val isPostProgrammeReviewSession =
-      session.moduleSessionTemplate.module.isPostProgrammeModule() && !session.isPlaceholder
-    if (isPostProgrammeReviewSession) {
-      changedAttendees.forEach { attendee ->
-        try {
-          referralStatusService.checkAndPublishCompletionEvent(attendee.referralId)
-        } catch (e: Exception) {
-          log.error("Failed to check and publish completion event for referral with id: ${attendee.referralId}", e)
-        }
-      }
-    }
-
-    changedAttendees.firstOrNull()?.let { attendee ->
-      val referral = referralRepository.findByIdOrNull(attendee.referralId)
-      telemetryService.logToAppInsights(
-        referralEntity = referral,
-        eventName = "Session.create-attendance.success",
-        activityType = RECORD_ATTENDANCE.name,
-        toReferralStatusId = null,
-        appliedBy = null,
-      )
-    }
-
+    publishCompletionEvent(session = session, changedAttendees = changedAttendees)
+    logCreateAttendance(changedAttendees = changedAttendees)
+    updateReferralStatusToOnProgramme(
+      session = session,
+      changedAttendees = changedAttendees,
+      username = createdByUsername,
+    )
     sessionAttendance.responseMessage = "Attendance saved for session $sessionId"
 
     return sessionAttendance
@@ -764,6 +751,64 @@ class SessionService(
       integrationActionType = UPDATE_APPOINTMENT_N_DELIUS.name,
       outcome = "success",
     )
+  }
+
+  private fun updateReferralStatusToOnProgramme(
+    session: SessionEntity,
+    changedAttendees: List<SessionAttendee>,
+    username: String,
+  ) {
+    if (session.sessionType == SessionType.ONE_TO_ONE && session.moduleName.startsWith("Pre-group")) {
+      changedAttendees.forEach { attendee ->
+        if (attendee.outcomeCode == ATTC) {
+          val optionalReferralEntity = referralRepository.findById(attendee.referralId)
+          if (optionalReferralEntity.isPresent) {
+            val referralEntity = optionalReferralEntity.get()
+            if (referralEntity.statusHistories.first().referralStatusDescription.description == SCHEDULED.description) {
+              val referralStatusDescriptionOnProgrammeEntity =
+                referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)
+              referralService.updateStatus(
+                referral = referralEntity,
+                referralStatusDescriptionId = referralStatusDescriptionOnProgrammeEntity?.id!!,
+                createdBy = username,
+              )
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private fun logCreateAttendance(
+    changedAttendees: List<SessionAttendee>,
+  ) {
+    changedAttendees.firstOrNull()?.let { attendee ->
+      val referral = referralRepository.findByIdOrNull(attendee.referralId)
+      telemetryService.logToAppInsights(
+        referralEntity = referral,
+        eventName = "Session.create-attendance.success",
+        activityType = RECORD_ATTENDANCE.name,
+        toReferralStatusId = null,
+        appliedBy = null,
+      )
+    }
+  }
+
+  private fun publishCompletionEvent(
+    session: SessionEntity,
+    changedAttendees: List<SessionAttendee>,
+  ) {
+    val isPostProgrammeReviewSession =
+      session.moduleSessionTemplate.module.isPostProgrammeModule() && !session.isPlaceholder
+    if (isPostProgrammeReviewSession) {
+      changedAttendees.forEach { attendee ->
+        try {
+          referralStatusService.checkAndPublishCompletionEvent(attendee.referralId)
+        } catch (e: Exception) {
+          log.error("Failed to check and publish completion event for referral with id: ${attendee.referralId}", e)
+        }
+      }
+    }
   }
 
   private fun handleUpdateAppointmentResponseMissingAppointmentError(

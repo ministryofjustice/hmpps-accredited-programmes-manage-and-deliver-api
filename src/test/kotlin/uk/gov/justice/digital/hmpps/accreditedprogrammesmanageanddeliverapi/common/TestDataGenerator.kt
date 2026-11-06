@@ -40,6 +40,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ASSESSMENT
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -118,7 +119,7 @@ class TestDataGenerator {
 
     val statusHistory = referralStatusHistoryEntity ?: ReferralStatusHistoryEntityFactory().produce(
       referral,
-      referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+      referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
     )
 
     entityManager.persist(referral)
