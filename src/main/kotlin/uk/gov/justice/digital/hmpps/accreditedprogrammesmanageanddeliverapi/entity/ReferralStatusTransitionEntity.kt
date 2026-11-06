@@ -55,9 +55,9 @@ class ReferralStatusTransitionEntity(
 ) {
   @get:Transient
   val toStatusStatusName: String
-    get() = toStatus.description
+    get() = toStatus.referralStatusType.description
 
   @get:Transient
   val fromStatusStatusName: String
-    get() = fromStatus.description
+    get() = fromStatus.referralStatusType.description
 }

@@ -60,7 +60,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     val statusHistory = ReferralStatusHistoryEntityFactory()
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
       )
     val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -195,7 +195,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     val statusHistory = ReferralStatusHistoryEntityFactory()
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
       )
     val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -282,7 +282,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     val statusHistory = ReferralStatusHistoryEntityFactory()
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
       )
     val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -363,7 +363,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
     val statusHistory = ReferralStatusHistoryEntityFactory()
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
       )
     val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 

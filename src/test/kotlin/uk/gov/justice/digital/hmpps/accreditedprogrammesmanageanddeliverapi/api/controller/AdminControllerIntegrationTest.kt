@@ -35,7 +35,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralSentenceReferenceRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.RequirementFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ALLOCATION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.ON_PROGRAMME
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.PopulatePersonalDetailsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -168,7 +168,7 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
     val referralEntity = ReferralEntityFactory().produce()
     testDataGenerator.createReferralWithStatusHistory(referralEntity)
     val referralStatusDescription =
-      referralStatusDescriptionRepository.findByDescription(ReferralStatusType.AWAITING_ALLOCATION.description)
+      referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)
     val body = CreateReferralStatusHistoryFactory()
       .withReferralStatusDescriptionId(referralStatusDescription?.id!!)
       .produce()
@@ -205,7 +205,7 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
 
     // 'Awaiting assessment' -> 'On programme' is not a configured transition, so the normal
     // update-status path would reject it. The force-status endpoint must bypass that guard.
-    val onProgrammeStatusDescription = referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)
+    val onProgrammeStatusDescription = referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME)
     val body = CreateReferralStatusHistoryFactory()
       .withReferralStatusDescriptionId(onProgrammeStatusDescription?.id!!)
       .produce()

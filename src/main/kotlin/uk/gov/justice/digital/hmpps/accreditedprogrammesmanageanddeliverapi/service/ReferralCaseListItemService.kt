@@ -204,11 +204,11 @@ class ReferralCaseListItemService(
 
     // For this instance of displaying the status' on the front end, the description of "Breach (non-attendance)" needs to be changed.
     val openDescriptions =
-      ReferralStatusUtils.sortStatuses(open.map { ReferralStatusUtils.formatStatus(it.description) })
+      ReferralStatusUtils.sortStatuses(open.map { ReferralStatusUtils.formatStatus(it.referralStatusType.description) })
 
     val statusFilterValues = StatusFilterValues(
       open = openDescriptions,
-      closed = ReferralStatusUtils.sortStatuses(closed.map { it.description }),
+      closed = ReferralStatusUtils.sortStatuses(closed.map { it.referralStatusType.description }),
     )
 
     return CaseListFilterValues(

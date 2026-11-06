@@ -47,7 +47,7 @@ class GroupAllocationNotesControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
         .produce(
           referralEntity,
-          referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!,
+          referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!,
         )
       val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
       val motivationBackgroundAndNonAssociations =
@@ -111,7 +111,7 @@ class GroupAllocationNotesControllerIntegrationTest : IntegrationTestBase() {
 
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
-        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!,
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!,
       )
       val motivationBackgroundAndNonAssociations =
         ReferralMotivationBackgroundAndNonAssociationsFactory().withReferral(referralEntity).produce()
@@ -157,7 +157,7 @@ class GroupAllocationNotesControllerIntegrationTest : IntegrationTestBase() {
 
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
-        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!,
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!,
       )
       testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
 

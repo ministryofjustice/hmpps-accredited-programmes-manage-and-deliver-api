@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.rep
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType
 import java.util.UUID
 
 interface ReferralStatusDescriptionRepository : JpaRepository<ReferralStatusDescriptionEntity, UUID> {
@@ -31,5 +32,6 @@ interface ReferralStatusDescriptionRepository : JpaRepository<ReferralStatusDesc
   )
   fun findMostRecentStatusByReferralId(referralId: UUID): ReferralStatusDescriptionEntity?
 
-  fun findByDescription(description: String): ReferralStatusDescriptionEntity?
+  @Query("SELECT r FROM ReferralStatusDescriptionEntity r WHERE r.referralStatusType = :referralStatusType")
+  fun findByReferralStatusType(referralStatusType: ReferralStatusType): ReferralStatusDescriptionEntity?
 }

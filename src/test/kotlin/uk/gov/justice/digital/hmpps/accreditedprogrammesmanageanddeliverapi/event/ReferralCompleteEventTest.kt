@@ -52,10 +52,10 @@ class ReferralCompleteEventTest(
 
     // Go through referral journey update status -> assign to group
     val awaitingAllocationStatus =
-      referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!
-    val onProgrammeStatus = referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)!!
+      referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!
+    val onProgrammeStatus = referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME)!!
     val programmeCompleteStatus =
-      referralStatusDescriptionRepository.findByDescription(PROGRAMME_COMPLETE.description)!!
+      referralStatusDescriptionRepository.findByReferralStatusType(PROGRAMME_COMPLETE)!!
     var referral = testReferralHelper.createReferral()
     referral = testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus)
 
@@ -139,10 +139,10 @@ class ReferralCompleteEventTest(
 
     // Go through referral journey update status -> assign to group
     val awaitingAllocationStatus =
-      referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!
-    val onProgrammeStatus = referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)!!
+      referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!
+    val onProgrammeStatus = referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME)!!
     val programmeCompleteStatus =
-      referralStatusDescriptionRepository.findByDescription(PROGRAMME_COMPLETE.description)!!
+      referralStatusDescriptionRepository.findByReferralStatusType(PROGRAMME_COMPLETE)!!
     var referral1 = testReferralHelper.createReferral()
     referral1 = testReferralHelper.updateReferralStatus(referral1, awaitingAllocationStatus)
     var referral2 = testReferralHelper.createReferral()

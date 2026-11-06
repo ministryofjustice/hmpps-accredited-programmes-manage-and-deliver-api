@@ -268,7 +268,7 @@ class ReportingControllerIntegrationTest : IntegrationTestBase() {
       referralStatusHistoryRepository.save(
         ReferralStatusHistoryEntityFactory()
           .withCreatedAt(LocalDateTime.parse("2026-05-20T09:00:00"))
-          .produce(referral, referralStatusDescriptionRepository.findByDescription(PROGRAMME_COMPLETE.description)!!),
+          .produce(referral, referralStatusDescriptionRepository.findByReferralStatusType(PROGRAMME_COMPLETE)!!),
       )
 
       val group = programmeGroupRepository.save(

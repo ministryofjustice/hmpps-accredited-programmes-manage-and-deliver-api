@@ -41,7 +41,7 @@ class ReferralStatusEventTest : IntegrationTestBase() {
   fun `publish a status change event and retrieve the details via rest endpoint`() {
     // Creates referral and moves to awaiting allocation status
     val awaitingAllocationStatus =
-      referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!
+      referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!
     val referral = testReferralHelper.createReferral()
     testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus, "TEST ADDITIONAL DETAILS")
 

@@ -752,13 +752,13 @@ class SessionService(
   ) {
     if (session.sessionType != SessionType.ONE_TO_ONE || !session.moduleName.startsWith("Pre-group")) return
     val referralStatusDescriptionOnProgrammeEntity =
-      referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)
+      referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME)
     changedAttendees.forEach { attendee ->
       if (attendee.outcomeCode != ATTC) return@forEach
       val optionalReferralEntity = referralRepository.findById(attendee.referralId)
       if (!optionalReferralEntity.isPresent) return@forEach
       val referralEntity = optionalReferralEntity.get()
-      if (referralEntity.statusHistories.first().referralStatusDescription.description != SCHEDULED.description) return@forEach
+      if (referralEntity.statusHistories.first().referralStatusDescription.referralStatusType != SCHEDULED) return@forEach
       log.info(
         "Auto-transitioning referral {} from SCHEDULED to ON_PROGRAMME after Pre-group attendance recorded",
         referralEntity.id,

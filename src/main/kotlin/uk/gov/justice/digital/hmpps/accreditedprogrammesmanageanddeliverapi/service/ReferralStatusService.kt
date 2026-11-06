@@ -69,14 +69,14 @@ class ReferralStatusService(
     )
   }
 
-  fun getAllStatuses(): List<ReferralStatusDescriptionEntity> = referralStatusDescriptionRepository.findAllByDeletedAtIsNull().sortedBy { it.description }
+  fun getAllStatuses(): List<ReferralStatusDescriptionEntity> = referralStatusDescriptionRepository.findAllByDeletedAtIsNull().sortedBy { it.referralStatusType }
 
   fun getOpenOrClosedStatuses(openOrClosed: OpenOrClosed): List<ReferralStatusDescriptionEntity> {
     val isClosed = openOrClosed === OpenOrClosed.CLOSED
     return referralStatusDescriptionRepository.findAllByIsClosedAndDeletedAtIsNull(isClosed)
   }
 
-  fun getOpenOrClosedStatusesDescriptions(openOrClosed: OpenOrClosed) = getOpenOrClosedStatuses(openOrClosed).map { it.description }
+  fun getOpenOrClosedStatusesDescriptions(openOrClosed: OpenOrClosed) = getOpenOrClosedStatuses(openOrClosed).map { it.referralStatusType.description }
 
   fun getStatusChangeDetailsForReferral(referralId: UUID): ReferralStatusInfo {
     val statusHistory =
@@ -95,7 +95,7 @@ class ReferralStatusService(
     // Map our M&D status description to a more readable string
     // e.g. Awaiting allocation -> The person is ready to be allocated to a programme group.
     val statusInfo =
-      ReferralStatusInfo.Status.fromDisplayName(statusHistory.referralStatusDescription.description)
+      ReferralStatusInfo.Status.fromDisplayName(statusHistory.referralStatusDescription.referralStatusType.description)
 
     return ReferralStatusInfo(
       newStatus = statusInfo,
@@ -141,7 +141,7 @@ class ReferralStatusService(
 
     // Check if the referral status is "Programme complete"
     val currentStatus = referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId)
-    if (currentStatus?.referralStatusDescription?.description != ReferralStatusType.PROGRAMME_COMPLETE.description) {
+    if (currentStatus?.referralStatusDescription?.referralStatusType != ReferralStatusType.PROGRAMME_COMPLETE) {
       log.debug("Referral is not in Programme complete status, not publishing completion event for referral: $referralId")
       return false
     }

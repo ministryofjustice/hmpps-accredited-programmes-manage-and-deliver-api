@@ -119,7 +119,7 @@ class TestDataGenerator {
 
     val statusHistory = referralStatusHistoryEntity ?: ReferralStatusHistoryEntityFactory().produce(
       referral,
-      referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
+      referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
     )
 
     entityManager.persist(referral)

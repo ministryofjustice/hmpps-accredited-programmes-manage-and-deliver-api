@@ -85,7 +85,7 @@ class HmppsSubjectAccessRequestControllerIntegrationTest : IntegrationTestBase()
       ),
     )
     // Update all referrals to 'Awaiting Allocation status'
-    val status = referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!
+    val status = referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!
     referrals.forEach {
       referralService.updateStatus(
         it,

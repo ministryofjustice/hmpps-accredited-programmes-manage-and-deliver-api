@@ -47,7 +47,7 @@ class ReferralStatusControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
         .produce(
           referralEntity,
-          referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
+          referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
         )
       val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -87,7 +87,7 @@ class ReferralStatusControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
         .produce(
           referralEntity,
-          referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)!!,
+          referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME)!!,
         )
       val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -137,7 +137,7 @@ class ReferralStatusControllerIntegrationTest : IntegrationTestBase() {
       val referralEntity = ReferralEntityFactory().produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
-        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
       )
       val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -166,13 +166,13 @@ class ReferralStatusControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
         .produce(
           referralEntity,
-          referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
+          referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
         )
       val latestStatus = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.of(2025, 9, 24, 16, 0))
         .produce(
           referralEntity,
-          referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)!!,
+          referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME)!!,
         )
       val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 

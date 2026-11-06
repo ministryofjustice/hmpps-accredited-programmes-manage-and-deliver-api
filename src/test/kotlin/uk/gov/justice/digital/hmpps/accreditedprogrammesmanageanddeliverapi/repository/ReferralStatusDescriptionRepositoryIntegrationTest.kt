@@ -32,78 +32,78 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
   @Test
   @Transactional
   fun `getAwaitingAssessmentStatusDescription returns a Referral Status Description`() {
-    val result = repository.findByDescription(AWAITING_ASSESSMENT.description)!!
-    assertThat(result.description).isEqualTo("Awaiting assessment")
+    val result = repository.findByReferralStatusType(AWAITING_ASSESSMENT)!!
+    assertThat(result.referralStatusType).isEqualTo(AWAITING_ASSESSMENT)
   }
 
   @Test
   @Transactional
   fun `getAwaitingAllocationStatusDescription returns a Referral Status Description`() {
-    val result = repository.findByDescription(AWAITING_ALLOCATION.description)!!
-    assertThat(result.description).isEqualTo("Awaiting allocation")
+    val result = repository.findByReferralStatusType(AWAITING_ALLOCATION)!!
+    assertThat(result.referralStatusType).isEqualTo(AWAITING_ALLOCATION)
   }
 
   @Test
   @Transactional
   fun `getSuitableButNotReadyStatusDescription returns a Referral Status Description`() {
-    val result = repository.findByDescription(SUITABLE_BUT_NOT_READY.description)!!
-    assertThat(result.description).isEqualTo("Suitable but not ready")
+    val result = repository.findByReferralStatusType(SUITABLE_BUT_NOT_READY)!!
+    assertThat(result.referralStatusType).isEqualTo(SUITABLE_BUT_NOT_READY)
   }
 
   @Test
   @Transactional
   fun `getRecallStatusDescription returns a Referral Status Description`() {
-    val result = repository.findByDescription(RECALL.description)!!
-    assertThat(result.description).isEqualTo("Recall")
+    val result = repository.findByReferralStatusType(RECALL)!!
+    assertThat(result.referralStatusType).isEqualTo(RECALL)
   }
 
   @Test
   @Transactional
   fun `getReturnToCourtStatusDescription returns a Referral Status Description`() {
-    val result = repository.findByDescription(RETURN_TO_COURT.description)!!
-    assertThat(result.description).isEqualTo("Return to court")
+    val result = repository.findByReferralStatusType(RETURN_TO_COURT)!!
+    assertThat(result.referralStatusType).isEqualTo(RETURN_TO_COURT)
   }
 
   @Test
   @Transactional
   fun `getScheduledStatusDescription returns a Referral Status Description`() {
-    val result = repository.findByDescription(SCHEDULED.description)!!
-    assertThat(result.description).isEqualTo("Scheduled")
+    val result = repository.findByReferralStatusType(SCHEDULED)!!
+    assertThat(result.referralStatusType).isEqualTo(SCHEDULED)
   }
 
   @Test
   @Transactional
   fun `getOnProgrammeStatusDescription returns a Referral Status Description`() {
-    val result = repository.findByDescription(ON_PROGRAMME.description)!!
-    assertThat(result.description).isEqualTo("On programme")
+    val result = repository.findByReferralStatusType(ON_PROGRAMME)!!
+    assertThat(result.referralStatusType).isEqualTo(ON_PROGRAMME)
   }
 
   @Test
   @Transactional
   fun `getProgrammeCompleteStatusDescription returns a Referral Status Description`() {
-    val result = repository.findByDescription(PROGRAMME_COMPLETE.description)!!
-    assertThat(result.description).isEqualTo("Programme complete")
+    val result = repository.findByReferralStatusType(PROGRAMME_COMPLETE)!!
+    assertThat(result.referralStatusType).isEqualTo(PROGRAMME_COMPLETE)
   }
 
   @Test
   @Transactional
   fun `getBreachStatusDescription returns a Referral Status Description`() {
-    val result = repository.findByDescription(BREACH.description)!!
-    assertThat(result.description).isEqualTo("Breach")
+    val result = repository.findByReferralStatusType(BREACH)!!
+    assertThat(result.referralStatusType).isEqualTo(BREACH)
   }
 
   @Test
   @Transactional
   fun `getOnHoldStatusDescription returns a Referral Status Description`() {
-    val result = repository.findByDescription(ON_HOLD.description)!!
-    assertThat(result.description).isEqualTo("On hold")
+    val result = repository.findByReferralStatusType(ON_HOLD)!!
+    assertThat(result.referralStatusType).isEqualTo(ON_HOLD)
   }
 
   @Test
   @Transactional
   fun `getWithdrawnStatusDescription returns a Referral Status Description`() {
-    val result = repository.findByDescription(WITHDRAWN.description)!!
-    assertThat(result.description).isEqualTo("Withdrawn")
+    val result = repository.findByReferralStatusType(WITHDRAWN)!!
+    assertThat(result.referralStatusType).isEqualTo(WITHDRAWN)
   }
 
   @Test
@@ -113,12 +113,12 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
     testDataGenerator.createReferralWithStatusHistory(
       referral,
       listOf(
-        repository.findByDescription(AWAITING_ASSESSMENT.description)!!,
-        repository.findByDescription(SUITABLE_BUT_NOT_READY.description)!!,
-        repository.findByDescription(ON_HOLD.description)!!,
-        repository.findByDescription(RECALL.description)!!,
-        repository.findByDescription(ON_PROGRAMME.description)!!,
-        repository.findByDescription(PROGRAMME_COMPLETE.description)!!,
+        repository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
+        repository.findByReferralStatusType(SUITABLE_BUT_NOT_READY)!!,
+        repository.findByReferralStatusType(ON_HOLD)!!,
+        repository.findByReferralStatusType(RECALL)!!,
+        repository.findByReferralStatusType(ON_PROGRAMME)!!,
+        repository.findByReferralStatusType(PROGRAMME_COMPLETE)!!,
       ),
     )
 
@@ -127,6 +127,6 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
 
     // Then
     assertThat(latestStatus).isNotNull
-    assertThat(latestStatus?.description).isEqualTo(PROGRAMME_COMPLETE.description)
+    assertThat(latestStatus?.referralStatusType).isEqualTo(PROGRAMME_COMPLETE)
   }
 }

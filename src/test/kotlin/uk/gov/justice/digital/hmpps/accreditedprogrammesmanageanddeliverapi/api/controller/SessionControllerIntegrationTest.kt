@@ -2352,7 +2352,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedAt(LocalDateTime.now())
         .produce(
           referral,
-          referralStatusDescriptionRepository.findByDescription(SCHEDULED.description)!!,
+          referralStatusDescriptionRepository.findByReferralStatusType(SCHEDULED)!!,
         )
       testDataGenerator.createReferralStatusHistory(secondStatus)
 
@@ -2390,8 +2390,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       val optionalReferralResult = referralRepository.findById(referral.id!!)
       assertThat(optionalReferralResult).isPresent()
       val referralResult = optionalReferralResult.get()
-      assertThat(referralResult.statusHistories.first().referralStatusDescription.description)
-        .isEqualTo(ON_PROGRAMME.description)
+      assertThat(referralResult.statusHistories.first().referralStatusDescription.referralStatusType)
+        .isEqualTo(ON_PROGRAMME)
     }
 
     @Test
@@ -2417,7 +2417,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         group.id!!,
         "SYSTEM",
         RemoveFromGroupRequest(
-          referralStatusDescriptionId = referralStatusDescriptionRepository.findByDescription(RETURN_TO_COURT.description)!!.id,
+          referralStatusDescriptionId = referralStatusDescriptionRepository.findByReferralStatusType(RETURN_TO_COURT)!!.id,
           additionalDetails = "removed from group",
         ),
       )

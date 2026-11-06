@@ -75,7 +75,7 @@ class TelemetryServiceTest {
           "deliveryUnitCode" to referralEntity.referralReportingLocation!!.pduName,
           "deliveryLocation" to programmeGroupMembershipEntity.programmeGroup.deliveryLocationName,
           "referralId" to referralEntity.id.toString(),
-          "referralStatus" to referralEntity.statusHistories.first().referralStatusDescription.description,
+          "referralStatus" to referralEntity.statusHistories.first().referralStatusDescription.referralStatusType.description,
           "cohort" to referralEntity.referralCohortHistories.first().cohort.toString(),
           "crn" to referralEntity.crn,
           "fromStatus" to referralEntity.statusHistories.first().referralStatusDescription.id.toString(),
