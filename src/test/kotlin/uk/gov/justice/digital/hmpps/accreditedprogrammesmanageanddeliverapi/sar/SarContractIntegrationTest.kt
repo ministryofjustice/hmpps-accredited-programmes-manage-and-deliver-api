@@ -42,6 +42,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ALLOCATION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.TestReferralHelper
 import uk.gov.justice.digital.hmpps.subjectaccessrequest.SarApiDataTest
@@ -242,7 +243,7 @@ class SarContractIntegrationTest :
     )
     availabilityRepository.saveAndFlush(availability)
 
-    val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    val status = referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!
     referralService.updateStatus(referral, status.id, createdBy = "AUTH_USER")
 
     val messageHistory = MessageHistoryEntity(
@@ -321,7 +322,8 @@ class SarContractIntegrationTest :
   override fun `SAR API should return expected data`() {
     setupTestData()
 
-    val response = sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient, SubjectAccessRequestContent::class.java)
+    val response =
+      sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient, SubjectAccessRequestContent::class.java)
     val normalizedActual = normalizeDynamicValues(sarIntegrationTestHelper.toJson(response))
 
     if (generateActual) {
@@ -341,7 +343,8 @@ class SarContractIntegrationTest :
     sarIntegrationTestHelper.stubFindLocationNameByNomisIdWith("PROPERTY BOX 1")
     sarIntegrationTestHelper.stubFindLocationNameByDpsIdWith("PROPERTY BOX 2")
 
-    val dataResponse = sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient, SubjectAccessRequestContent::class.java)
+    val dataResponse =
+      sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient, SubjectAccessRequestContent::class.java)
     val templateResponse = sarIntegrationTestHelper.requestSarTemplate(webTestClient)
 
     val renderResult = sarIntegrationTestHelper.renderServiceReport(

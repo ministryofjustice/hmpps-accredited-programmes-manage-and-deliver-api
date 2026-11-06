@@ -49,6 +49,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.UserRegionOverrideRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.PROGRAMME_COMPLETE
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -238,7 +239,10 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         "FEMALE | GROUP_TWO_CODE;THE_FEMALE_GROUP_CODE;GROUP_SIX_CODE",
       ],
     )
-    fun `Returning the ProgrammeGroups for all effective regions including manual overrides`(sex: String, expectedCodes: String) {
+    fun `Returning the ProgrammeGroups for all effective regions including manual overrides`(
+      sex: String,
+      expectedCodes: String,
+    ) {
       // Given
       userRegionOverrideRepository.save(
         UserRegionOverrideEntity(
@@ -275,7 +279,10 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         "FEMALE | GROUP_TWO_CODE;THE_FEMALE_GROUP_CODE",
       ],
     )
-    fun `Returning ProgrammeGroups when nDelius has no teams but manual override exists`(sex: String, expectedCodes: String) {
+    fun `Returning ProgrammeGroups when nDelius has no teams but manual override exists`(
+      sex: String,
+      expectedCodes: String,
+    ) {
       // Given
       nDeliusApiStubs.stubUserTeamsResponse("the_username", NDeliusUserTeams(emptyList()))
       userRegionOverrideRepository.save(
@@ -365,7 +372,9 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     @ParameterizedTest
     @EnumSource(value = ProgrammeGroupSexEnum::class, names = ["MALE", "FEMALE"])
-    fun `NOT_STARTED_OR_IN_PROGRESS should return groups that have at least one referral without Programme complete status`(sex: ProgrammeGroupSexEnum) {
+    fun `NOT_STARTED_OR_IN_PROGRESS should return groups that have at least one referral without Programme complete status`(
+      sex: ProgrammeGroupSexEnum,
+    ) {
       // Given a group that has all referrals completed (should be in COMPLETE tab)
       val completedGroup = testDataGenerator.createGroup(
         ProgrammeGroupFactory()
@@ -377,7 +386,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           .produce(),
       )
       val referral1 = testDataGenerator.createReferral("Person 1", "CRN1")
-      val statusComplete = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+      val statusComplete = referralStatusDescriptionRepository.findByDescription(PROGRAMME_COMPLETE.description)!!
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory()
           .produce(
@@ -449,7 +458,9 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
 
     @ParameterizedTest
     @EnumSource(value = ProgrammeGroupSexEnum::class, names = ["MALE", "FEMALE"])
-    fun `COMPLETE should include a group where every active member completed and a member was removed early without completing`(sex: ProgrammeGroupSexEnum) {
+    fun `COMPLETE should include a group where every active member completed and a member was removed early without completing`(
+      sex: ProgrammeGroupSexEnum,
+    ) {
       val group = createStartedGroup("COMPLETED_WITH_DROPOUT", sex)
 
       val completer = createReferralWithProgrammeCompleteStatus("Completer", "CRN_C")
@@ -461,7 +472,12 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.allocateReferralsToGroup(listOf(dropout), group, deletedAt = LocalDateTime.now())
 
       assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE, sex)).contains("COMPLETED_WITH_DROPOUT")
-      assertThat(groupCodesForTab(GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS, sex)).doesNotContain("COMPLETED_WITH_DROPOUT")
+      assertThat(
+        groupCodesForTab(
+          GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS,
+          sex,
+        ),
+      ).doesNotContain("COMPLETED_WITH_DROPOUT")
     }
 
     @ParameterizedTest
@@ -470,7 +486,11 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       val group = createStartedGroup("ALL_DROPOUTS", sex)
       val referralOne = testDataGenerator.createReferral("Dropout One", "CRN_D1")
       val referralTwo = testDataGenerator.createReferral("Dropout Two", "CRN_D2")
-      testDataGenerator.allocateReferralsToGroup(listOf(referralOne, referralTwo), group, deletedAt = LocalDateTime.now())
+      testDataGenerator.allocateReferralsToGroup(
+        listOf(referralOne, referralTwo),
+        group,
+        deletedAt = LocalDateTime.now(),
+      )
 
       assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE, sex)).doesNotContain("ALL_DROPOUTS")
       assertThat(groupCodesForTab(GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS, sex)).contains("ALL_DROPOUTS")
@@ -521,7 +541,12 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       )
 
       assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE, sex)).doesNotContain("GROUP_AWAITING_COMPLETION")
-      assertThat(groupCodesForTab(GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS, sex)).contains("GROUP_AWAITING_COMPLETION")
+      assertThat(
+        groupCodesForTab(
+          GroupPageByRegionTab.NOT_STARTED_OR_IN_PROGRESS,
+          sex,
+        ),
+      ).contains("GROUP_AWAITING_COMPLETION")
     }
 
     private fun createStartedGroup(code: String, sex: ProgrammeGroupSexEnum): ProgrammeGroupEntity = testDataGenerator.createGroup(
@@ -538,7 +563,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral = referral,
-          referralStatusDescription = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription(),
+          referralStatusDescription = referralStatusDescriptionRepository.findByDescription(PROGRAMME_COMPLETE.description)!!,
         ),
       )
       return referral

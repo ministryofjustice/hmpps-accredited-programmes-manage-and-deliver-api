@@ -64,6 +64,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ASSESSMENT
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
@@ -267,7 +268,7 @@ class ReferralService(
     val hasLdc = pniScore.hasLdc
 
     val awaitingAssessmentStatusDescription =
-      referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+      referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)
 
     val personalDetails: NDeliusPersonalDetails? = getPersonalDetails(findAndReferReferralDetails.personReference)
 
@@ -283,7 +284,7 @@ class ReferralService(
 
     val statusHistoryEntity = ReferralStatusHistoryEntity(
       referral = referral,
-      referralStatusDescription = awaitingAssessmentStatusDescription,
+      referralStatusDescription = awaitingAssessmentStatusDescription!!,
       startDate = LocalDateTime.now(),
       additionalDetails = null,
       createdBy = DEFAULT_CREATED_BY_VALUE,
@@ -783,7 +784,9 @@ class ReferralService(
     val referral = referralRepository.findMostRecentByCrn(crn)
 
     return referral?.let {
-      val currentStatus = it.statusHistories.maxByOrNull { history -> history.createdAt }?.referralStatusDescription?.description ?: "Unknown"
+      val currentStatus =
+        it.statusHistories.maxByOrNull { history -> history.createdAt }?.referralStatusDescription?.description
+          ?: "Unknown"
       ReferralOnProgrammeStatus(
         referralId = it.id!!,
         crn = it.crn,

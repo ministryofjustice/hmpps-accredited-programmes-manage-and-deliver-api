@@ -14,7 +14,7 @@ class ReferralStatusDescriptionEntity(
   @Column(name = "id")
   val id: UUID,
 
-  @Column(name = "description_text")
+  @Column(name = "description_text", unique = true, nullable = false)
   val description: String,
 
   @Column(name = "is_closed")

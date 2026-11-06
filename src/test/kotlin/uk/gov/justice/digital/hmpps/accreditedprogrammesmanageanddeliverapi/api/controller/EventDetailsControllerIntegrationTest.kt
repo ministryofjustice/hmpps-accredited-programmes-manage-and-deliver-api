@@ -25,6 +25,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ALLOCATION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import java.time.LocalDate
 import java.util.UUID
@@ -43,9 +44,10 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 200 response and ReferralStatusInfo`() {
       // Given
       // Creates referral and moves to awaiting allocation status
-      val awaitingAllocationStatus = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+      val awaitingAllocationStatus =
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)
       val referral = testReferralHelper.createReferral()
-      testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus, "TEST ADDITIONAL DETAILS")
+      testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus!!, "TEST ADDITIONAL DETAILS")
 
       // When
       val response = performRequestAndExpectOk(
@@ -134,7 +136,8 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 401 when not authorized`() {
       // Given
       // Creates referral and moves to awaiting allocation status
-      val awaitingAllocationStatus = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+      val awaitingAllocationStatus =
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)
       val referral = testReferralHelper.createReferralAndUpdateStatus(awaitingAllocationStatus)
 
       // When & Then

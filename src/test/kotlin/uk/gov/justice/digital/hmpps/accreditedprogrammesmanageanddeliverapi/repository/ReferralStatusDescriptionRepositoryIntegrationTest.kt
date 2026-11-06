@@ -7,7 +7,17 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ALLOCATION
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ASSESSMENT
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.BREACH
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.ON_HOLD
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.ON_PROGRAMME
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.PROGRAMME_COMPLETE
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.RECALL
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.RETURN_TO_COURT
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.SCHEDULED
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.SUITABLE_BUT_NOT_READY
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.WITHDRAWN
 
 class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase() {
 
@@ -22,77 +32,77 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
   @Test
   @Transactional
   fun `getAwaitingAssessmentStatusDescription returns a Referral Status Description`() {
-    val result = repository.getAwaitingAssessmentStatusDescription()
+    val result = repository.findByDescription(AWAITING_ASSESSMENT.description)!!
     assertThat(result.description).isEqualTo("Awaiting assessment")
   }
 
   @Test
   @Transactional
   fun `getAwaitingAllocationStatusDescription returns a Referral Status Description`() {
-    val result = repository.getAwaitingAllocationStatusDescription()
+    val result = repository.findByDescription(AWAITING_ALLOCATION.description)!!
     assertThat(result.description).isEqualTo("Awaiting allocation")
   }
 
   @Test
   @Transactional
   fun `getSuitableButNotReadyStatusDescription returns a Referral Status Description`() {
-    val result = repository.getSuitableButNotReadyStatusDescription()
+    val result = repository.findByDescription(SUITABLE_BUT_NOT_READY.description)!!
     assertThat(result.description).isEqualTo("Suitable but not ready")
   }
 
   @Test
   @Transactional
   fun `getRecallStatusDescription returns a Referral Status Description`() {
-    val result = repository.getRecallStatusDescription()
+    val result = repository.findByDescription(RECALL.description)!!
     assertThat(result.description).isEqualTo("Recall")
   }
 
   @Test
   @Transactional
   fun `getReturnToCourtStatusDescription returns a Referral Status Description`() {
-    val result = repository.getReturnToCourtStatusDescription()
+    val result = repository.findByDescription(RETURN_TO_COURT.description)!!
     assertThat(result.description).isEqualTo("Return to court")
   }
 
   @Test
   @Transactional
   fun `getScheduledStatusDescription returns a Referral Status Description`() {
-    val result = repository.getScheduledStatusDescription()
+    val result = repository.findByDescription(SCHEDULED.description)!!
     assertThat(result.description).isEqualTo("Scheduled")
   }
 
   @Test
   @Transactional
   fun `getOnProgrammeStatusDescription returns a Referral Status Description`() {
-    val result = repository.getOnProgrammeStatusDescription()
+    val result = repository.findByDescription(ON_PROGRAMME.description)!!
     assertThat(result.description).isEqualTo("On programme")
   }
 
   @Test
   @Transactional
   fun `getProgrammeCompleteStatusDescription returns a Referral Status Description`() {
-    val result = repository.getProgrammeCompleteStatusDescription()
+    val result = repository.findByDescription(PROGRAMME_COMPLETE.description)!!
     assertThat(result.description).isEqualTo("Programme complete")
   }
 
   @Test
   @Transactional
   fun `getBreachStatusDescription returns a Referral Status Description`() {
-    val result = repository.getBreachStatusDescription()
+    val result = repository.findByDescription(BREACH.description)!!
     assertThat(result.description).isEqualTo("Breach")
   }
 
   @Test
   @Transactional
   fun `getOnHoldStatusDescription returns a Referral Status Description`() {
-    val result = repository.getOnHoldStatusDescription()
+    val result = repository.findByDescription(ON_HOLD.description)!!
     assertThat(result.description).isEqualTo("On hold")
   }
 
   @Test
   @Transactional
   fun `getWithdrawnStatusDescription returns a Referral Status Description`() {
-    val result = repository.getWithdrawnStatusDescription()
+    val result = repository.findByDescription(WITHDRAWN.description)!!
     assertThat(result.description).isEqualTo("Withdrawn")
   }
 
@@ -103,12 +113,12 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
     testDataGenerator.createReferralWithStatusHistory(
       referral,
       listOf(
-        repository.getAwaitingAssessmentStatusDescription(),
-        repository.getSuitableButNotReadyStatusDescription(),
-        repository.getOnHoldStatusDescription(),
-        repository.getRecallStatusDescription(),
-        repository.getOnProgrammeStatusDescription(),
-        repository.getProgrammeCompleteStatusDescription(),
+        repository.findByDescription(AWAITING_ASSESSMENT.description)!!,
+        repository.findByDescription(SUITABLE_BUT_NOT_READY.description)!!,
+        repository.findByDescription(ON_HOLD.description)!!,
+        repository.findByDescription(RECALL.description)!!,
+        repository.findByDescription(ON_PROGRAMME.description)!!,
+        repository.findByDescription(PROGRAMME_COMPLETE.description)!!,
       ),
     )
 
@@ -117,6 +127,6 @@ class ReferralStatusDescriptionRepositoryIntegrationTest : IntegrationTestBase()
 
     // Then
     assertThat(latestStatus).isNotNull
-    assertThat(latestStatus?.description).isEqualTo(ReferralStatusType.PROGRAMME_COMPLETE.description)
+    assertThat(latestStatus?.description).isEqualTo(PROGRAMME_COMPLETE.description)
   }
 }

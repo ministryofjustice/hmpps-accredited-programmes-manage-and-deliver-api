@@ -38,6 +38,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.PopulatePersonalDetailsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.ON_PROGRAMME
 import java.time.Duration.ofMillis
 import java.util.UUID
 
@@ -165,9 +167,10 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
     // Given
     val referralEntity = ReferralEntityFactory().produce()
     testDataGenerator.createReferralWithStatusHistory(referralEntity)
-    val referralStatusDescription = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    val referralStatusDescription =
+      referralStatusDescriptionRepository.findByDescription(ReferralStatusType.AWAITING_ALLOCATION.description)
     val body = CreateReferralStatusHistoryFactory()
-      .withReferralStatusDescriptionId(referralStatusDescription.id)
+      .withReferralStatusDescriptionId(referralStatusDescription?.id!!)
       .produce()
 
     // When
@@ -202,9 +205,9 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
 
     // 'Awaiting assessment' -> 'On programme' is not a configured transition, so the normal
     // update-status path would reject it. The force-status endpoint must bypass that guard.
-    val onProgrammeStatusDescription = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
+    val onProgrammeStatusDescription = referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)
     val body = CreateReferralStatusHistoryFactory()
-      .withReferralStatusDescriptionId(onProgrammeStatusDescription.id)
+      .withReferralStatusDescriptionId(onProgrammeStatusDescription?.id!!)
       .produce()
 
     // When

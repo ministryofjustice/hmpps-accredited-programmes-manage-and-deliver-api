@@ -36,6 +36,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ALLOCATION
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ASSESSMENT
 import uk.gov.justice.hmpps.sqs.countMessagesOnQueue
 import java.time.Duration.ofMillis
 import java.time.LocalDate
@@ -125,7 +127,8 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .produce()
     nDeliusApiStubs.stubPersonalDetailsResponse(personalDetails)
     val sentenceInformation =
-      NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2025-10-01")).withLicenceExpiryDate(LocalDate.parse("2026-03-20")).produce()
+      NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2025-10-01"))
+        .withLicenceExpiryDate(LocalDate.parse("2026-03-20")).produce()
     nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(crn, eventNumber, sentenceInformation)
     probationAccessControlApiStubs.stubOpenAccessForAnyCrn()
   }
@@ -738,7 +741,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
       )
     val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -751,7 +754,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .withCreatedAt(LocalDateTime.of(2025, 9, 24, 16, 0))
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!,
       )
 
     testDataGenerator.createReferralStatusHistory(secondStatus)
@@ -913,7 +916,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
       )
     val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -926,7 +929,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .withCreatedAt(LocalDateTime.of(2025, 9, 24, 16, 0))
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
       )
 
     testDataGenerator.createReferralStatusHistory(secondStatus)

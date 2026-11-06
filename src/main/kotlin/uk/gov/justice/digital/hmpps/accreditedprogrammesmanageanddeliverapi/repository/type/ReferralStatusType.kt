@@ -8,9 +8,10 @@ enum class ReferralStatusType(val description: String) {
   RECALL("Recall"),
   RETURN_TO_COURT("Return to court"),
   SCHEDULED("Scheduled"),
+  ON_HOLD("On hold"),
   ON_PROGRAMME("On programme"),
   PROGRAMME_COMPLETE("Programme complete"),
-  BREACH_NON_ATTENDANCE("Breach (non-attendance)"),
+  BREACH("Breach"),
   DEFERRED("Deferred"),
   WITHDRAWN("Withdrawn"),
 }

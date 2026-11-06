@@ -17,6 +17,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type.ReferralStatusType.AWAITING_ASSESSMENT
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Random
@@ -39,8 +40,7 @@ class ReferralSeederService(
   fun seedReferrals(count: Int): ReferralSeedingResult {
     val createdReferrals = mutableListOf<SeededReferralInfo>()
 
-    val statusDescription = referralStatusDescriptionRepository
-      .getAwaitingAssessmentStatusDescription()
+    val statusDescription = referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)
 
     repeat(count) { _ ->
       val crn = fakePersonGenerator.generateCrn()
@@ -54,7 +54,7 @@ class ReferralSeederService(
 
       wiremockStubGenerator.generateStub(person)
 
-      val referral = createReferralEntity(crn, requirementId, person, statusDescription, sourcedFrom, sentenceEndDate)
+      val referral = createReferralEntity(crn, requirementId, person, statusDescription!!, sourcedFrom, sentenceEndDate)
 
       createdReferrals.add(
         SeededReferralInfo(
