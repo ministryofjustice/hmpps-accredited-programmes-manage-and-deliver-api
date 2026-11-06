@@ -243,7 +243,7 @@ class SarContractIntegrationTest :
     )
     availabilityRepository.saveAndFlush(availability)
 
-    val status = referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!
+    val status = referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!
     referralService.updateStatus(referral, status.id, createdBy = "AUTH_USER")
 
     val messageHistory = MessageHistoryEntity(

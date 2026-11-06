@@ -294,7 +294,7 @@ class TestReferralHelper {
     personName: String? = null,
   ): ReferralEntity {
     val status =
-      statusEntity ?: referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!
+      statusEntity ?: referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!
     val referral = if (personName != null) createReferral(personName = personName) else createReferral()
     // Persist the status history directly so test fixtures can place a referral in any
     // state without being constrained by configured transitions (the production

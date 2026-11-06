@@ -3663,7 +3663,7 @@ class SessionServiceTest {
         .produce()
     val scheduledStatusDescription =
       ReferralStatusDescriptionEntityFactory()
-        .withDescription(SCHEDULED.description)
+        .withReferralStatusType(SCHEDULED)
         .produce()
     val referralStatusHistory =
       ReferralStatusHistoryEntityFactory()
@@ -3703,7 +3703,7 @@ class SessionServiceTest {
     val user = UserFactory().produce()
     val onProgrammeStatusDescription =
       ReferralStatusDescriptionEntityFactory()
-        .withDescription(ON_PROGRAMME.description)
+        .withReferralStatusType(ON_PROGRAMME)
         .produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
@@ -3714,7 +3714,7 @@ class SessionServiceTest {
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findById(referralId) } returns Optional.of(referralEntity)
-    every { referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description) } returns onProgrammeStatusDescription
+    every { referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME) } returns onProgrammeStatusDescription
     every { referralService.updateStatus(any(), any(), any(), any(), any()) } returns mockk()
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
     every { userService.getUserByUsernameOrNull(any()) } returns user
@@ -3758,7 +3758,7 @@ class SessionServiceTest {
         .produce()
     val scheduledStatusDescription =
       ReferralStatusDescriptionEntityFactory()
-        .withDescription(SCHEDULED.description)
+        .withReferralStatusType(SCHEDULED)
         .produce()
     val referralStatusHistory1 =
       ReferralStatusHistoryEntityFactory()
@@ -3820,7 +3820,7 @@ class SessionServiceTest {
     val user = UserFactory().produce()
     val onProgrammeStatusDescription =
       ReferralStatusDescriptionEntityFactory()
-        .withDescription(ON_PROGRAMME.description)
+        .withReferralStatusType(ON_PROGRAMME)
         .produce()
 
     every { sessionRepository.findById(any()) } returns Optional.of(sessionEntity)
@@ -3835,7 +3835,7 @@ class SessionServiceTest {
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findById(referralId1) } returns Optional.of(referralEntity1)
     every { referralRepository.findById(referralId2) } returns Optional.of(referralEntity2)
-    every { referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description) } returns onProgrammeStatusDescription
+    every { referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME) } returns onProgrammeStatusDescription
     every { referralService.updateStatus(any(), any(), any(), any(), any()) } returns mockk()
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
     every { userService.getUserByUsernameOrNull(any()) } returns user
@@ -3882,7 +3882,7 @@ class SessionServiceTest {
         .produce()
     val scheduledStatusDescription =
       ReferralStatusDescriptionEntityFactory()
-        .withDescription(SCHEDULED.description)
+        .withReferralStatusType(SCHEDULED)
         .produce()
     val referralStatusHistory =
       ReferralStatusHistoryEntityFactory()
@@ -3961,7 +3961,7 @@ class SessionServiceTest {
         .produce()
     val scheduledStatusDescription =
       ReferralStatusDescriptionEntityFactory()
-        .withDescription(SCHEDULED.description)
+        .withReferralStatusType(SCHEDULED)
         .produce()
     val referralStatusHistory =
       ReferralStatusHistoryEntityFactory()
@@ -4040,7 +4040,7 @@ class SessionServiceTest {
         .produce()
     val scheduledStatusDescription =
       ReferralStatusDescriptionEntityFactory()
-        .withDescription(SCHEDULED.description)
+        .withReferralStatusType(SCHEDULED)
         .produce()
     val referralStatusHistory =
       ReferralStatusHistoryEntityFactory()
@@ -4073,7 +4073,7 @@ class SessionServiceTest {
         .produce()
     val onProgrammeStatusDescription =
       ReferralStatusDescriptionEntityFactory()
-        .withDescription(ON_PROGRAMME.description)
+        .withReferralStatusType(ON_PROGRAMME)
         .produce()
 
     sessionEntity.sessionFacilitators.add(
@@ -4091,7 +4091,7 @@ class SessionServiceTest {
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findByIdOrNull(any()) } returns referralEntity
-    every { referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description) } returns onProgrammeStatusDescription
+    every { referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME) } returns onProgrammeStatusDescription
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
     every { userService.getUserByUsernameOrNull(any()) } returns user
 
@@ -4124,7 +4124,7 @@ class SessionServiceTest {
         .produce()
     val awaitingAssessmentStatusDescription =
       ReferralStatusDescriptionEntityFactory()
-        .withDescription(AWAITING_ASSESSMENT.description)
+        .withReferralStatusType(AWAITING_ASSESSMENT)
         .produce()
     val referralStatusHistory =
       ReferralStatusHistoryEntityFactory()
@@ -4157,7 +4157,7 @@ class SessionServiceTest {
         .produce()
     val onProgrammeStatusDescription =
       ReferralStatusDescriptionEntityFactory()
-        .withDescription(ON_PROGRAMME.description)
+        .withReferralStatusType(ON_PROGRAMME)
         .produce()
 
     sessionEntity.sessionFacilitators.add(
@@ -4175,7 +4175,7 @@ class SessionServiceTest {
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findById(referralId) } returns Optional.of(referralEntity)
-    every { referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description) } returns onProgrammeStatusDescription
+    every { referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME) } returns onProgrammeStatusDescription
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
     every { userService.getUserByUsernameOrNull(any()) } returns user
 
@@ -4230,7 +4230,7 @@ class SessionServiceTest {
         .produce()
     val onProgrammeStatusDescription =
       ReferralStatusDescriptionEntityFactory()
-        .withDescription(ON_PROGRAMME.description)
+        .withReferralStatusType(ON_PROGRAMME)
         .produce()
 
     sessionEntity.sessionFacilitators.add(
@@ -4248,7 +4248,7 @@ class SessionServiceTest {
       SessionAttendanceNDeliusOutcomeEntityFactory().produce()
     every { sessionRepository.save(any()) } returns sessionEntity
     every { referralRepository.findById(referralId) } returns Optional.empty()
-    every { referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description) } returns onProgrammeStatusDescription
+    every { referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME) } returns onProgrammeStatusDescription
     every { telemetryService.logToAppInsights(any(), any(), any(), any(), any()) } returns Unit
     every { userService.getUserByUsernameOrNull(any()) } returns user
 

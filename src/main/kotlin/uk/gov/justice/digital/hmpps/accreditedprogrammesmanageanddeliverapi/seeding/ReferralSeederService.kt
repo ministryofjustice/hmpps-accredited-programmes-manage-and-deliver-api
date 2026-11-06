@@ -40,7 +40,7 @@ class ReferralSeederService(
   fun seedReferrals(count: Int): ReferralSeedingResult {
     val createdReferrals = mutableListOf<SeededReferralInfo>()
 
-    val statusDescription = referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)
+    val statusDescription = referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)
 
     repeat(count) { _ ->
       val crn = fakePersonGenerator.generateCrn()

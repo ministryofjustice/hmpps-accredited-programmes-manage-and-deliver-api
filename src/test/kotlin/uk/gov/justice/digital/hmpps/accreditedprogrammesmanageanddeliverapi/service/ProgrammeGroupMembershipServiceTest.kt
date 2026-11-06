@@ -83,7 +83,7 @@ class ProgrammeGroupMembershipServiceTest {
     every { programmeGroupRepository.findByIdOrNull(groupId) } returns programmeGroupEntity
     every { referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId) } returns referralStatusDescriptionEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns null andThen programmeGroupMembershipEntity
-    every { referralStatusDescriptionRepository.findByDescription(SCHEDULED.description)!! } returns referralStatusDescriptionEntity
+    every { referralStatusDescriptionRepository.findByReferralStatusType(SCHEDULED)!! } returns referralStatusDescriptionEntity
     every { telemetryService.logToAppInsights(any(), any()) } returns Unit
 
     return referralId to groupId
@@ -181,7 +181,7 @@ class ProgrammeGroupMembershipServiceTest {
     every { programmeGroupRepository.findByIdOrNull(groupId) } returns programmeGroupEntity
     every { referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId) } returns referralStatusDescriptionEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns null andThen programmeGroupMembershipEntity
-    every { referralStatusDescriptionRepository.findByDescription(SCHEDULED.description)!! } returns referralStatusDescriptionEntity
+    every { referralStatusDescriptionRepository.findByReferralStatusType(SCHEDULED)!! } returns referralStatusDescriptionEntity
     every { telemetryService.logToAppInsights(any(), any()) } returns Unit
     every { referralRepository.save(referralEntity) } returns referralEntity
     every { nDeliusIntegrationApiClient.getRequirementManagerDetails(any(), any()) } returns ClientResult.Success(
@@ -337,7 +337,7 @@ class ProgrammeGroupMembershipServiceTest {
 
     // Then
     assertThat(result).isNotNull()
-    assertThat(result.message).isEqualTo("John Smith was removed from this group. Their referral status is now ${referralStatusDescriptionEntity.description}.")
+    assertThat(result.message).isEqualTo("John Smith was removed from this group. Their referral status is now ${referralStatusDescriptionEntity.referralStatusType.description}.")
     verify { programmeGroupRepository.findByIdOrNull(groupId) }
     verify { referralRepository.findByIdOrNull(referralId) }
     verify { programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referralId, groupId) }

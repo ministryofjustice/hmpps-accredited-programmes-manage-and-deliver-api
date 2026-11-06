@@ -46,7 +46,7 @@ class ReferralReportingLocationRepositoryIntegrationTest : IntegrationTestBase()
       .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
       )
 
     testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)

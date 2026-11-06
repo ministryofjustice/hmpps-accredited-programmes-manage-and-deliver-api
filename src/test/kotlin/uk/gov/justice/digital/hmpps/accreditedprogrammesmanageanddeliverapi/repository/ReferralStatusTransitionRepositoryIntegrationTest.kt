@@ -89,7 +89,7 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
   @Test
   @Transactional
   fun `findByFromStatusId returns all transitions for a given status`() {
-    val awaitingAssessment = referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!
+    val awaitingAssessment = referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!
     val transitions = referralStatusTransitionRepository.findByFromStatusId(awaitingAssessment.id)
 
     assertThat(transitions).isNotEmpty
@@ -103,14 +103,14 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
   @Transactional
   fun `should return all appropriate transitions for Awaiting allocation`() {
     // Given
-    val awaitingAllocation = referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!
+    val awaitingAllocation = referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!
 
     // When
     val transitions = referralStatusTransitionRepository.findByFromStatusId(awaitingAllocation.id)
 
     // Then
     assertThat(transitions).hasSize(7)
-    assertThat(transitions.map { it.toStatus.description }).containsExactlyInAnyOrder(
+    assertThat(transitions.map { it.toStatus.referralStatusType.description }).containsExactlyInAnyOrder(
       "Recall",
       "Return to court",
       "Awaiting assessment",
@@ -122,13 +122,13 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
   }
 
   private fun getTransition(fromStatusDescription: String, toStatusDescription: String) = referralStatusTransitionRepository.findAll().find {
-    it.fromStatus.description == fromStatusDescription && it.toStatus.description == toStatusDescription
+    it.fromStatus.referralStatusType.description == fromStatusDescription && it.toStatus.referralStatusType.description == toStatusDescription
   }
 
   @Test
   @Transactional
   fun `should return statuses ordered by priority`() {
-    val onProgramme = referralStatusDescriptionRepository.findByDescription(ON_PROGRAMME.description)!!
+    val onProgramme = referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME)!!
 
     val transitions = referralStatusTransitionRepository
       .findByFromStatusIdAndIsVisibleTrueOrderByPriorityAsc(onProgramme.id)

@@ -386,7 +386,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           .produce(),
       )
       val referral1 = testDataGenerator.createReferral("Person 1", "CRN1")
-      val statusComplete = referralStatusDescriptionRepository.findByDescription(PROGRAMME_COMPLETE.description)!!
+      val statusComplete = referralStatusDescriptionRepository.findByReferralStatusType(PROGRAMME_COMPLETE)!!
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory()
           .produce(
@@ -563,7 +563,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral = referral,
-          referralStatusDescription = referralStatusDescriptionRepository.findByDescription(PROGRAMME_COMPLETE.description)!!,
+          referralStatusDescription = referralStatusDescriptionRepository.findByReferralStatusType(PROGRAMME_COMPLETE)!!,
         ),
       )
       return referral

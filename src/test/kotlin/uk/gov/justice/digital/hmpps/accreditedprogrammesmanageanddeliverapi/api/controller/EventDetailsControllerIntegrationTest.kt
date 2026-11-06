@@ -46,7 +46,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
       // Given
       // Creates referral and moves to awaiting allocation status
       val awaitingAllocationStatus =
-        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)
       val referral = testReferralHelper.createReferral()
       testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus!!, "TEST ADDITIONAL DETAILS")
 
@@ -138,7 +138,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
       // Given
       // Creates referral and moves to awaiting allocation status
       val awaitingAllocationStatus =
-        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)
       val referral = testReferralHelper.createReferralAndUpdateStatus(awaitingAllocationStatus)
 
       // When & Then

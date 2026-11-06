@@ -460,7 +460,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.crn).isEqualTo(crn)
       assertThat(it.interventionName).isEqualTo("Test Intervention")
       assertThat(it.interventionType).isEqualTo(InterventionType.ACP)
-      assertThat(it.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
+      assertThat(it.statusHistories.first().referralStatusDescription.referralStatusType).isEqualTo(AWAITING_ASSESSMENT)
       assertThat(it.sourcedFrom).isEqualTo(ReferralEntitySourcedFrom.LICENCE_CONDITION)
       assertThat(it.eventId).isEqualTo("LIC-12345")
       assertThat(it.personName).isEqualTo("John Alex Doe")
@@ -519,7 +519,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.crn).isEqualTo(crn)
       assertThat(it.interventionName).isEqualTo("Test Intervention")
       assertThat(it.interventionType).isEqualTo(InterventionType.ACP)
-      assertThat(it.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
+      assertThat(it.statusHistories.first().referralStatusDescription.referralStatusType).isEqualTo(AWAITING_ASSESSMENT)
       assertThat(it.sourcedFrom).isEqualTo(ReferralEntitySourcedFrom.LICENCE_CONDITION)
       assertThat(it.eventId).isEqualTo("LIC-12345")
       assertThat(it.sex).isEqualTo("Male")
@@ -576,7 +576,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.crn).isEqualTo(crn)
       assertThat(it.interventionName).isEqualTo("Test Intervention")
       assertThat(it.interventionType).isEqualTo(InterventionType.ACP)
-      assertThat(it.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
+      assertThat(it.statusHistories.first().referralStatusDescription.referralStatusType).isEqualTo(AWAITING_ASSESSMENT)
       assertThat(it.sourcedFrom).isEqualTo(ReferralEntitySourcedFrom.LICENCE_CONDITION)
       assertThat(it.eventId).isEqualTo("LIC-12345")
       assertThat(it.sex).isEqualTo("Male")
@@ -749,7 +749,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
       )
     val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -762,7 +762,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .withCreatedAt(LocalDateTime.of(2025, 9, 24, 16, 0))
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.findByDescription(AWAITING_ALLOCATION.description)!!,
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!,
       )
 
     testDataGenerator.createReferralStatusHistory(secondStatus)
@@ -924,7 +924,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
       )
     val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -937,7 +937,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .withCreatedAt(LocalDateTime.of(2025, 9, 24, 16, 0))
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.findByDescription(AWAITING_ASSESSMENT.description)!!,
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
       )
 
     testDataGenerator.createReferralStatusHistory(secondStatus)
