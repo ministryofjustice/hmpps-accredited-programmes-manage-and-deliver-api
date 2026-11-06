@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusInfo
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusInfo.Status
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.DomainEventsMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
@@ -70,6 +69,6 @@ class ReferralStatusEventTest : IntegrationTestBase() {
     assertThat(response.sourcedFromEntityType).isEqualTo(ReferralEntitySourcedFrom.LICENCE_CONDITION)
     assertThat(response.sourcedFromEntityId).isEqualTo(referral.eventId!!.toLong())
 
-    assertThat(response.newStatus).isEqualTo(Status.AWAITING_ALLOCATION)
+    assertThat(response.newStatus).isEqualTo(AWAITING_ALLOCATION)
   }
 }

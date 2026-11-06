@@ -25,6 +25,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ALLOCATION
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ASSESSMENT
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import java.time.LocalDate
@@ -58,7 +59,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response).isNotNull
-      assertThat(response.newStatus).isEqualTo(ReferralStatusInfo.Status.AWAITING_ALLOCATION)
+      assertThat(response.newStatus).isEqualTo(AWAITING_ALLOCATION)
       assertThat(response.sourcedFromEntityId).isEqualTo(referral.eventId!!.toLong())
       assertThat(response.eventNumber).isEqualTo(referral.eventNumber)
       assertThat(response.sourcedFromEntityType).isEqualTo(referral.sourcedFrom)
@@ -84,7 +85,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response.newStatus).isEqualTo(ReferralStatusInfo.Status.AWAITING_ASSESSMENT)
+      assertThat(response.newStatus).isEqualTo(AWAITING_ASSESSMENT)
       assertThat(response.username).isEqualTo("PP123")
     }
 
