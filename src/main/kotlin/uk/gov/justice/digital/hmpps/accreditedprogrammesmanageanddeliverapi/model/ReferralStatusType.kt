@@ -1,4 +1,4 @@
-package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.type
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model
 
 enum class ReferralStatusType(val description: String) {
   AWAITING_ASSESSMENT("Awaiting assessment"),
