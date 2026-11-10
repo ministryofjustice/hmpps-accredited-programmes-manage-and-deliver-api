@@ -27,9 +27,6 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-cache")
   implementation("com.github.ben-manes.caffeine:caffeine")
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
-  constraints {
-    implementation("org.webjars:swagger-ui:5.34.1")
-  }
   implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-csv")
   implementation("com.fasterxml.jackson.core:jackson-databind")
   implementation("net.javacrumbs.shedlock:shedlock-spring:$shedLockVersion")
@@ -52,9 +49,6 @@ dependencies {
   testImplementation("org.springframework.boot:spring-boot-starter-webclient-test")
   testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
   testImplementation("org.wiremock:wiremock-standalone:3.13.2")
-  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.48") {
-    exclude(group = "io.swagger.core.v3")
-  }
   testImplementation("org.testcontainers:testcontainers:2.0.5")
   testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
   testImplementation("org.testcontainers:testcontainers-localstack:2.0.5")
