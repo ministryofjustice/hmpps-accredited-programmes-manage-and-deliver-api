@@ -2334,7 +2334,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `should POST session attendance request and auto update referral status from scheduled to on programme`() {
+    fun `should POST create session attendance request and auto update referral status from scheduled to on programme`() {
       // Given
       // Create group
       val group = testGroupHelper.createGroup()
@@ -2381,6 +2381,87 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         httpMethod = HttpMethod.POST,
         uri = "/session/$sessionId/attendance",
         body = sessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Then
+      assertThat(response.responseMessage).isEqualTo("Attendance saved for session $sessionId")
+      val optionalReferralResult = referralRepository.findById(referral.id!!)
+      assertThat(optionalReferralResult).isPresent()
+      val referralResult = optionalReferralResult.get()
+      assertThat(referralResult.statusHistories.first().referralStatusDescription.referralStatusType)
+        .isEqualTo(ON_PROGRAMME)
+    }
+
+    @Test
+    fun `should POST update session attendance request and auto update referral status from scheduled to on programme`() {
+      // Given
+      // Create group
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+      val referral = testReferralHelper.createReferral()
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
+
+      val sessionEntity =
+        sessionRepository.findByProgrammeGroupId(group.id!!)
+          .find { it.sessionType == SessionType.ONE_TO_ONE && it.moduleName.startsWith("Pre-group") }
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+      val scheduledSession = testGroupHelper.scheduleSession(group, referral, sessionEntity!!)
+      val sessionId = scheduledSession.id!!
+
+      val createSessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = scheduledSession.attendees.first().referralId,
+            outcomeCode = AFTC,
+            sessionNotes = "Test session notes failed to comply",
+          ),
+        ),
+      )
+
+      val createdByFullName = "John Smith"
+      manageUsersApiStubs.stubUserResponse(UserDtoFactory().withName(createdByFullName).produce())
+
+      // create session attendance
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = createSessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val updateSessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = scheduledSession.attendees.first().referralId,
+            outcomeCode = ATTC,
+            sessionNotes = "Test session notes complied",
+          ),
+        ),
+      )
+
+      // Change the referral status to scheduled
+      val secondStatus = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .produce(
+          referral,
+          referralStatusDescriptionRepository.findByReferralStatusType(SCHEDULED)!!,
+        )
+      testDataGenerator.createReferralStatusHistory(secondStatus)
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = updateSessionAttendanceRequest,
         returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
