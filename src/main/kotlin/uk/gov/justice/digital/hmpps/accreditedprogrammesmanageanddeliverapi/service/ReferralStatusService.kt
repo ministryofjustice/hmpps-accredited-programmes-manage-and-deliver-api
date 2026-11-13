@@ -14,6 +14,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toCurrentStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toSuggestedStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.DEFAULT_CREATED_BY_VALUE
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.Constants.MODULE_NAME_PREFIX_PRE_GROUP
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
@@ -21,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType.ONE_TO_ONE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralProgrammeCompleteEvent
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -60,12 +62,19 @@ class ReferralStatusService(
       referralStatusTransitionRepository.findFirstByFromStatusIdAndIsSuggestedTrue(currentStatus.referralStatusDescription.id)
 
     val currentGroupMembership = programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId)
+    val preGroupAttendances = currentGroupMembership?.attendances?.filter { attendanceEntity ->
+      attendanceEntity.session.sessionType == ONE_TO_ONE &&
+        attendanceEntity.session.moduleName.startsWith(MODULE_NAME_PREFIX_PRE_GROUP)
+    }
 
     return ReferralStatusTransitions(
       currentStatus = currentStatus.toCurrentStatus(),
       availableStatuses = statuses,
       suggestedStatus = suggestedStatus?.toSuggestedStatus(),
-      currentGroupDetails = currentGroupMembership?.toCurrentGroupDetails(),
+      currentGroupDetails = currentGroupMembership?.toCurrentGroupDetails(
+        personName = currentStatus.referral.personName,
+        sessionAttendances = preGroupAttendances,
+      ),
     )
   }
 
@@ -142,13 +151,19 @@ class ReferralStatusService(
     // Check if the referral status is "Programme complete"
     val currentStatus = referralStatusHistoryRepository.findFirstByReferralIdOrderByCreatedAtDesc(referralId)
     if (currentStatus?.referralStatusDescription?.description != ReferralStatusType.PROGRAMME_COMPLETE.description) {
-      log.debug("Referral is not in Programme complete status, not publishing completion event for referral: $referralId")
+      log.debug(
+        "Referral is not in Programme complete status, not publishing completion event for referral: {}",
+        referralId,
+      )
       return false
     }
 
     // Check if the referral has attended and complied with the post-programme review
     if (!hasValidPostProgrammeReviewAttendance(referral)) {
-      log.debug("No valid post programme review attendance, not publishing completion event for referral: $referralId")
+      log.debug(
+        "No valid post programme review attendance, not publishing completion event for referral: {}",
+        referralId,
+      )
       return false
     }
     // Publish the completion event

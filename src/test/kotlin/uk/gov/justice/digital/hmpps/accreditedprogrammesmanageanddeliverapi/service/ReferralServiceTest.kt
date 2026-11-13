@@ -77,7 +77,6 @@ class ReferralServiceTest {
   private val sentenceService: SentenceService = mockk()
   private val referralStatusService: ReferralStatusService = mockk()
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService = mockk()
-  private val programmeGroupService: ProgrammeGroupService = mockk()
   private val applicationEventPublisher: ApplicationEventPublisher = mockk()
   private val sessionNameFormatter: SessionNameFormatter = mockk()
   private val referralCohortHistoryRepository: ReferralCohortHistoryRepository = mockk()
@@ -111,7 +110,6 @@ class ReferralServiceTest {
       referralReportingLocationRepository = referralReportingLocationRepository,
       sentenceService = sentenceService,
       programmeGroupMembershipService = programmeGroupMembershipService,
-      programmeGroupService = programmeGroupService,
       sessionNameFormatter = sessionNameFormatter,
       referralStatusService = referralStatusService,
       referralCohortHistoryRepository = referralCohortHistoryRepository,
@@ -1480,7 +1478,6 @@ class ReferralServiceTest {
       membership,
     )
     every { sessionRepository.findAllByProgrammeGroupIdIn(any()) } returns listOf(session, futureSession)
-    every { programmeGroupService.getAttendanceTextFromOutcome(null) } returns "To be confirmed"
     every { sessionNameFormatter.format(any(), any()) } returns "Session 1"
 
     // When
@@ -1532,7 +1529,6 @@ class ReferralServiceTest {
       oldMembership,
     )
     every { sessionRepository.findAllByProgrammeGroupIdIn(any()) } returns listOf(session)
-    every { programmeGroupService.getAttendanceTextFromOutcome(attendance.outcomeType) } returns "Attended"
     every { sessionNameFormatter.format(any(), any()) } returns "Session 1"
 
     // When
@@ -1540,7 +1536,7 @@ class ReferralServiceTest {
 
     // Then
     assertThat(result.attendanceHistory).hasSize(1)
-    assertThat(result.attendanceHistory.single().attendanceStatus).isEqualTo("Attended")
+    assertThat(result.attendanceHistory.single().attendanceStatus).isEqualTo("Attended - Complied")
   }
 
   @Nested

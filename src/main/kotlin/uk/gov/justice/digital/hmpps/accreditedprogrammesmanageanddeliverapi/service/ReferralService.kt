@@ -64,6 +64,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusTransitionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AttendanceUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
@@ -91,7 +92,6 @@ class ReferralService(
   private val referralReportingLocationRepository: ReferralReportingLocationRepository,
   private val sentenceService: SentenceService,
   private val programmeGroupMembershipService: ProgrammeGroupMembershipService,
-  private val programmeGroupService: ProgrammeGroupService,
   private val sessionNameFormatter: SessionNameFormatter,
   private val referralStatusService: ReferralStatusService,
   private val referralCohortHistoryRepository: ReferralCohortHistoryRepository,
@@ -760,7 +760,10 @@ class ReferralService(
                 session.endsAt.toLocalTime(),
                 capitaliseMidday = true,
               ),
-              attendanceStatus = programmeGroupService.getAttendanceTextFromOutcome(latestAttendance?.outcomeType),
+              attendanceStatus = AttendanceUtils.getAttendanceTextFromOutcome(
+                attendanceOutcomeCode = latestAttendance?.outcomeType?.code,
+                attendanceOutcomeDescription = latestAttendance?.outcomeType?.description,
+              ),
               hasNotes = latestAttendance?.notesHistory?.isNotEmpty() == true,
               isCatchup = session.isCatchup,
             )
@@ -783,7 +786,9 @@ class ReferralService(
     val referral = referralRepository.findMostRecentByCrn(crn)
 
     return referral?.let {
-      val currentStatus = it.statusHistories.maxByOrNull { history -> history.createdAt }?.referralStatusDescription?.description ?: "Unknown"
+      val currentStatus =
+        it.statusHistories.maxByOrNull { history -> history.createdAt }?.referralStatusDescription?.description
+          ?: "Unknown"
       ReferralOnProgrammeStatus(
         referralId = it.id!!,
         crn = it.crn,

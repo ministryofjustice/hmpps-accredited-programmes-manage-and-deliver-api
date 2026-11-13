@@ -4,4 +4,5 @@ object Constants {
   const val DEFAULT_CREATED_BY_VALUE = "SYSTEM"
   const val UNKNOWN_USER_USERNAME = "UNKNOWN_USER"
   const val UUID_REGEX_PATTERN = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+  const val MODULE_NAME_PREFIX_PRE_GROUP = "Pre-group"
 }
