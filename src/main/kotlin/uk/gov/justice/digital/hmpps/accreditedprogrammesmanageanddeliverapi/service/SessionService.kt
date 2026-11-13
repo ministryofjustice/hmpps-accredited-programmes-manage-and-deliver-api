@@ -767,6 +767,7 @@ class SessionService(
         referral = referralEntity,
         referralStatusDescriptionId = referralStatusDescriptionOnProgrammeEntity?.id!!,
         createdBy = username,
+        additionalDetails = attendee.additionalDetails,
       )
     }
   }

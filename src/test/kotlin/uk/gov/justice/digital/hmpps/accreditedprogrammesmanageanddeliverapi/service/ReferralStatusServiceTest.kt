@@ -23,6 +23,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ASSESSMENT
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.ON_PROGRAMME
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.RETURN_TO_COURT
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -86,7 +89,7 @@ class ReferralStatusServiceTest {
       val referral = ReferralEntityFactory().withId(referralId).withPersonName("Alex River").produce()
 
       val currentStatusDescription = ReferralStatusDescriptionEntityFactory()
-        .withDescription("Awaiting assessment")
+        .withReferralStatusType(AWAITING_ASSESSMENT)
         .withLabelColour("blue")
         .produce()
 
@@ -95,8 +98,8 @@ class ReferralStatusServiceTest {
         .withCreatedAt(LocalDateTime.of(2026, 4, 1, 10, 0))
         .produce(referral, currentStatusDescription)
 
-      val toStatus1 = ReferralStatusDescriptionEntityFactory().withDescription("Assessment started").produce()
-      val toStatus2 = ReferralStatusDescriptionEntityFactory().withDescription("Not eligible").produce()
+      val toStatus1 = ReferralStatusDescriptionEntityFactory().withReferralStatusType(ON_PROGRAMME).produce()
+      val toStatus2 = ReferralStatusDescriptionEntityFactory().withReferralStatusType(RETURN_TO_COURT).produce()
 
       val transition1 = ReferralStatusTransitionEntityFactory()
         .withFromStatus(currentStatusDescription)
@@ -147,16 +150,16 @@ class ReferralStatusServiceTest {
 
       assertThat(result.availableStatuses).hasSize(2)
       assertThat(result.availableStatuses[0].id).isEqualTo(toStatus1.id)
-      assertThat(result.availableStatuses[0].status).isEqualTo("Assessment started")
+      assertThat(result.availableStatuses[0].status).isEqualTo("On programme")
       assertThat(result.availableStatuses[0].transitionDescription).isEqualTo("Start assessment")
       assertThat(result.availableStatuses[1].id).isEqualTo(toStatus2.id)
-      assertThat(result.availableStatuses[1].status).isEqualTo("Not eligible")
+      assertThat(result.availableStatuses[1].status).isEqualTo("Return to court")
       assertThat(result.availableStatuses[1].transitionDescription).isEqualTo("Mark as not eligible")
 
       assertThat(result.suggestedStatus).isNotNull
       val suggested = result.suggestedStatus!!
       assertThat(suggested.statusDescriptionId).isEqualTo(toStatus1.id)
-      assertThat(suggested.name).isEqualTo(toStatus1.description)
+      assertThat(suggested.name).isEqualTo(toStatus1.referralStatusType.displayName)
 
       assertThat(result.currentGroupDetails).isNull()
     }

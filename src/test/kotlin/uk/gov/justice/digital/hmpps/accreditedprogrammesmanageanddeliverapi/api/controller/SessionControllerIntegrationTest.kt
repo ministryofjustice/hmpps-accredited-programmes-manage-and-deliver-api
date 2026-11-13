@@ -3308,6 +3308,16 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
           ),
       )
 
+      wiremock.stubFor(
+        put(urlEqualTo("/appointments"))
+          .willReturn(
+            aResponse()
+              .withStatus(HttpStatus.BAD_REQUEST.value())
+              .withHeader("Content-Type", "application/json")
+              .withBody("""{"message":"Invalid Requirement IDs: [1]"}"""),
+          ),
+      )
+
       // When
       performRequestAndExpectStatusWithBody(
         httpMethod = HttpMethod.PUT,

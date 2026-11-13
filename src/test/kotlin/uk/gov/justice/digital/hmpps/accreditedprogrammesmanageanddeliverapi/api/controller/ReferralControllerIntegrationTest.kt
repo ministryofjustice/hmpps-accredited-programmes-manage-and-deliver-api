@@ -1814,7 +1814,7 @@ class ReferralControllerIntegrationTest : IntegrationTestBase() {
       val referralEntity = ReferralEntityFactory().produce()
       val statusHistory = ReferralStatusHistoryEntityFactory().produce(
         referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
       )
       testDataGenerator.createReferralWithStatusHistory(referralEntity, statusHistory)
       val savedReferral = referralRepository.findByCrn(referralEntity.crn)[0]
