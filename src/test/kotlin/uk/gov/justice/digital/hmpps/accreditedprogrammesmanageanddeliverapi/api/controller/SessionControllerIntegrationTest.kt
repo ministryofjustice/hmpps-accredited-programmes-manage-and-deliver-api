@@ -2374,6 +2374,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
             referralId = scheduledSession.attendees.first().referralId,
             outcomeCode = ATTC,
             sessionNotes = "Test session notes",
+            additionalDetails = "Test additional details",
           ),
         ),
       )
@@ -2397,6 +2398,8 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       val referralResult = optionalReferralResult.get()
       assertThat(referralResult.statusHistories.first().referralStatusDescription.referralStatusType)
         .isEqualTo(ON_PROGRAMME)
+      assertThat(referralResult.statusHistories.first().additionalDetails)
+        .isEqualTo("Test additional details")
     }
 
     @Test
