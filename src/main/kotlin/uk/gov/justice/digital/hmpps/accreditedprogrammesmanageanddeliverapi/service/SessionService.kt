@@ -831,26 +831,26 @@ class SessionService(
         !missingNDeliusAppointmentIdSet.contains(updateAppointmentRequest.reference.toString())
       }
 
-    if (updateNonMissingAppointmentRequestList.isEmpty()) return
+    if (updateNonMissingAppointmentRequestList.isNotEmpty()) {
+      when (
+        val response =
+          nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+            UpdateAppointmentsRequest(
+              updateNonMissingAppointmentRequestList,
+            ),
+          )
+      ) {
+        is ClientResult.Failure ->
+          handleUpdateAppointmentResponseError(
+            errorMessage = response.getErrorMessage(),
+            exception = response.toException(),
+          )
 
-    when (
-      val response =
-        nDeliusIntegrationApiClient.updateAppointmentsInDelius(
-          UpdateAppointmentsRequest(
-            updateNonMissingAppointmentRequestList,
-          ),
-        )
-    ) {
-      is ClientResult.Failure ->
-        handleUpdateAppointmentResponseError(
-          errorMessage = response.getErrorMessage(),
-          exception = response.toException(),
-        )
-
-      is ClientResult.Success ->
-        handleUpdateAppointmentResponseSuccess(
-          logMessage = "${updateAppointmentRequests.size} appointments created in Ndelius for group with id: $programmeGroupId",
-        )
+        is ClientResult.Success ->
+          handleUpdateAppointmentResponseSuccess(
+            logMessage = "${updateAppointmentRequests.size} appointments created in Ndelius for group with id: $programmeGroupId",
+          )
+      }
     }
 
     // Recreating the missing contacts must be the last nDelius call. A failure after it would roll back their new
