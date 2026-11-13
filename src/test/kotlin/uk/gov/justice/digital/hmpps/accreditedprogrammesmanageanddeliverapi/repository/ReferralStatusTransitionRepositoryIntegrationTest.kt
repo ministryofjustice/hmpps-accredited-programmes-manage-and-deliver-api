@@ -6,6 +6,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ALLOCATION
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ASSESSMENT
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.ON_PROGRAMME
 
 class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() {
 
@@ -86,7 +89,7 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
   @Test
   @Transactional
   fun `findByFromStatusId returns all transitions for a given status`() {
-    val awaitingAssessment = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+    val awaitingAssessment = referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!
     val transitions = referralStatusTransitionRepository.findByFromStatusId(awaitingAssessment.id)
 
     assertThat(transitions).isNotEmpty
@@ -100,14 +103,14 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
   @Transactional
   fun `should return all appropriate transitions for Awaiting allocation`() {
     // Given
-    val awaitingAllocation = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    val awaitingAllocation = referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!
 
     // When
     val transitions = referralStatusTransitionRepository.findByFromStatusId(awaitingAllocation.id)
 
     // Then
     assertThat(transitions).hasSize(7)
-    assertThat(transitions.map { it.toStatus.description }).containsExactlyInAnyOrder(
+    assertThat(transitions.map { it.toStatus.referralStatusType.displayName }).containsExactlyInAnyOrder(
       "Recall",
       "Return to court",
       "Awaiting assessment",
@@ -119,13 +122,13 @@ class ReferralStatusTransitionRepositoryIntegrationTest : IntegrationTestBase() 
   }
 
   private fun getTransition(fromStatusDescription: String, toStatusDescription: String) = referralStatusTransitionRepository.findAll().find {
-    it.fromStatus.description == fromStatusDescription && it.toStatus.description == toStatusDescription
+    it.fromStatus.referralStatusType.displayName == fromStatusDescription && it.toStatus.referralStatusType.displayName == toStatusDescription
   }
 
   @Test
   @Transactional
   fun `should return statuses ordered by priority`() {
-    val onProgramme = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
+    val onProgramme = referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME)!!
 
     val transitions = referralStatusTransitionRepository
       .findByFromStatusIdAndIsVisibleTrueOrderByPriorityAsc(onProgramme.id)

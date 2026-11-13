@@ -30,6 +30,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.RemoveFromGroupRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.SCHEDULED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
@@ -82,7 +83,7 @@ class ProgrammeGroupMembershipServiceTest {
     every { programmeGroupRepository.findByIdOrNull(groupId) } returns programmeGroupEntity
     every { referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId) } returns referralStatusDescriptionEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns null andThen programmeGroupMembershipEntity
-    every { referralStatusDescriptionRepository.getScheduledStatusDescription() } returns referralStatusDescriptionEntity
+    every { referralStatusDescriptionRepository.findByReferralStatusType(SCHEDULED)!! } returns referralStatusDescriptionEntity
     every { telemetryService.logToAppInsights(any(), any()) } returns Unit
 
     return referralId to groupId
@@ -139,7 +140,8 @@ class ProgrammeGroupMembershipServiceTest {
     val groupId = UUID.randomUUID()
     val facilitator = FacilitatorEntityFactory().produce()
     val groupSessionTemplate = ModuleSessionTemplateEntityFactory().withSessionType(SessionType.GROUP).produce()
-    val individualSessionTemplate = ModuleSessionTemplateEntityFactory().withSessionType(SessionType.ONE_TO_ONE).produce()
+    val individualSessionTemplate =
+      ModuleSessionTemplateEntityFactory().withSessionType(SessionType.ONE_TO_ONE).produce()
 
     val futureGroupSession = SessionFactory(moduleSessionTemplate = groupSessionTemplate)
       .withStartsAt(LocalDateTime.now().plusDays(1))
@@ -162,16 +164,24 @@ class ProgrammeGroupMembershipServiceTest {
       .withId(groupId)
       .withTreatmentManager(facilitator)
       .produce()
-    programmeGroupEntity.sessions.addAll(listOf(futureGroupSession, futureCatchUpGroupSession, pastGroupSession, futureIndividualSession))
+    programmeGroupEntity.sessions.addAll(
+      listOf(
+        futureGroupSession,
+        futureCatchUpGroupSession,
+        pastGroupSession,
+        futureIndividualSession,
+      ),
+    )
 
     val referralStatusDescriptionEntity = ReferralStatusDescriptionEntityFactory().produce()
-    val programmeGroupMembershipEntity = ProgrammeGroupMembershipFactory().withReferral(referralEntity).withProgrammeGroup(programmeGroupEntity).produce()
+    val programmeGroupMembershipEntity =
+      ProgrammeGroupMembershipFactory().withReferral(referralEntity).withProgrammeGroup(programmeGroupEntity).produce()
 
     every { referralRepository.findByIdOrNull(referralId) } returns referralEntity
     every { programmeGroupRepository.findByIdOrNull(groupId) } returns programmeGroupEntity
     every { referralStatusDescriptionRepository.findMostRecentStatusByReferralId(referralId) } returns referralStatusDescriptionEntity
     every { programmeGroupMembershipRepository.findCurrentGroupByReferralId(referralId) } returns null andThen programmeGroupMembershipEntity
-    every { referralStatusDescriptionRepository.getScheduledStatusDescription() } returns referralStatusDescriptionEntity
+    every { referralStatusDescriptionRepository.findByReferralStatusType(SCHEDULED)!! } returns referralStatusDescriptionEntity
     every { telemetryService.logToAppInsights(any(), any()) } returns Unit
     every { referralRepository.save(referralEntity) } returns referralEntity
     every { nDeliusIntegrationApiClient.getRequirementManagerDetails(any(), any()) } returns ClientResult.Success(
@@ -327,7 +337,7 @@ class ProgrammeGroupMembershipServiceTest {
 
     // Then
     assertThat(result).isNotNull()
-    assertThat(result.message).isEqualTo("John Smith was removed from this group. Their referral status is now ${referralStatusDescriptionEntity.description}.")
+    assertThat(result.message).isEqualTo("John Smith was removed from this group. Their referral status is now ${referralStatusDescriptionEntity.referralStatusType.displayName}.")
     verify { programmeGroupRepository.findByIdOrNull(groupId) }
     verify { referralRepository.findByIdOrNull(referralId) }
     verify { programmeGroupMembershipRepository.findNonDeletedByReferralAndGroupIds(referralId, groupId) }

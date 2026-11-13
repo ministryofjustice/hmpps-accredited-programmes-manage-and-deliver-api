@@ -153,7 +153,7 @@ fun ProgrammeGroupMembershipEntity.toCurrentGroupDetails(
 
 fun ReferralStatusHistoryEntity.toCurrentStatus() = CurrentStatus(
   statusDescriptionId = referralStatusDescription.id,
-  title = ReferralStatusUtils.formatStatus(referralStatusDescription.description),
+  title = ReferralStatusUtils.formatStatus(referralStatusDescription.referralStatusType.displayName),
   tagColour = referralStatusDescription.labelColour,
   updatedByName = createdBy,
   createdAt = createdAt,

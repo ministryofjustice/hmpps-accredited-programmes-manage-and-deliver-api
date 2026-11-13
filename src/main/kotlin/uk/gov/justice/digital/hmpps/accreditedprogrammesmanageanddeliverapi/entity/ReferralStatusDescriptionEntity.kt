@@ -4,6 +4,7 @@ import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -14,8 +15,8 @@ class ReferralStatusDescriptionEntity(
   @Column(name = "id")
   val id: UUID,
 
-  @Column(name = "description_text")
-  val description: String,
+  @Column(name = "description_text", unique = true, nullable = false)
+  val referralStatusType: ReferralStatusType,
 
   @Column(name = "is_closed")
   val isClosed: Boolean,
