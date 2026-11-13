@@ -2,6 +2,13 @@ info.app:
   name: HMPPS Accredited Programmes Manage And Deliver Api
   version: 1.0
 
+springdoc:
+  swagger-ui:
+    # Must match the org.webjars:swagger-ui version constraint in build.gradle.kts.
+    # springdoc's bundled default (5.32.14) is stale and is used as a fallback if the
+    # webjar version can't be resolved dynamically, which 404s against the actual webjar.
+    version: 5.34.1
+
 sentry:
   # Run Sentry's exception resolver first so exceptions handled by @RestControllerAdvice are still captured,
   # removing the need for manual Sentry.captureException calls in exception handlers.
