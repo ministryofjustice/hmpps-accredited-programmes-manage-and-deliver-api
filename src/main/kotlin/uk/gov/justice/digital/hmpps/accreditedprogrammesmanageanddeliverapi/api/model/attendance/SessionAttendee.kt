@@ -23,4 +23,7 @@ data class SessionAttendee(
 
   @Schema(description = "Session notes for the attendee")
   var sessionNotes: String? = null,
+
+  @Schema(description = "Additional details for the attendee")
+  val additionalDetails: String? = null,
 )

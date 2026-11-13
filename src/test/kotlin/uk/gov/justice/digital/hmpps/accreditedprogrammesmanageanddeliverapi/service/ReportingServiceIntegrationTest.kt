@@ -19,6 +19,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.PROGRAMME_COMPLETE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
@@ -122,7 +123,7 @@ class ReportingServiceIntegrationTest : IntegrationTestBase() {
     whenever(clock.instant()).thenReturn(Instant.parse("2026-05-21T08:42:00Z"))
     whenever(clock.zone).thenReturn(ZoneId.of("Europe/London"))
 
-    val context = createGroupWithSessions(
+    createGroupWithSessions(
       groupCode = "GROUP_A",
       groupCreatedAt = LocalDateTime.parse("2026-05-10T10:00:00"),
       firstSessionAt = LocalDateTime.parse("2026-05-20T09:00:00"),
@@ -626,7 +627,7 @@ class ReportingServiceIntegrationTest : IntegrationTestBase() {
     referralStatusHistoryRepository.save(
       ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.parse("2026-05-22T09:00:00"))
-        .produce(referral, referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()),
+        .produce(referral, referralStatusDescriptionRepository.findByReferralStatusType(PROGRAMME_COMPLETE)!!),
     )
 
     val firstGroup = programmeGroupRepository.save(

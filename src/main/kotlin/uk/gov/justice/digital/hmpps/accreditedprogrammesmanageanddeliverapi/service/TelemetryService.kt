@@ -34,7 +34,7 @@ class TelemetryService(
         "deliveryLocation" to (programmeGroupMembership?.programmeGroup?.deliveryLocationName ?: ""),
         "referralId" to (referralId?.toString() ?: ""),
         "referralStatus" to (
-          referralEntity?.statusHistories?.firstOrNull()?.referralStatusDescription?.description
+          referralEntity?.statusHistories?.firstOrNull()?.referralStatusDescription?.referralStatusType?.displayName
             ?: ""
           ),
         "cohort" to (

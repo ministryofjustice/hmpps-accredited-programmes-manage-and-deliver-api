@@ -2,11 +2,16 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.AttendanceHistorySession
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupMembershipEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusTransitionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AttendanceUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.ReferralStatusUtils
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.formatTimeOfSession
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 @Schema(description = "Status transition information for the update status form in the M&D UI")
@@ -110,16 +115,45 @@ data class CurrentGroupDetails(
   )
   @get:JsonProperty("currentlyAllocatedGroupId", required = false)
   val currentlyAllocatedGroupId: UUID?,
+
+  @Schema(description = "List of attendance history information")
+  val attendanceHistories: List<AttendanceHistorySession> = emptyList(),
 )
 
-fun ProgrammeGroupMembershipEntity.toCurrentGroupDetails() = CurrentGroupDetails(
+fun ProgrammeGroupMembershipEntity.toCurrentGroupDetails(
+  personName: String,
+  sessionAttendances: List<SessionAttendanceEntity>? = null,
+) = CurrentGroupDetails(
   currentlyAllocatedGroupCode = groupCode,
   currentlyAllocatedGroupId = groupId,
+  attendanceHistories = (sessionAttendances ?: attendances).map { attendance ->
+    AttendanceHistorySession(
+      sessionId = attendance.session.id!!,
+      sessionName = attendance.session.sessionName,
+      groupCode = groupCode,
+      popName = personName,
+      groupId = groupId,
+      date = attendance.session.startsAt.format(DateTimeFormatter.ofPattern("d MMMM yyyy")),
+      unformattedDate = attendance.session.startsAt,
+      time = formatTimeOfSession(attendance.session.startsAt.toLocalTime(), attendance.session.endsAt.toLocalTime()),
+      timeWithCapitalisedMidday = formatTimeOfSession(
+        attendance.session.startsAt.toLocalTime(),
+        attendance.session.endsAt.toLocalTime(),
+        capitaliseMidday = true,
+      ),
+      attendanceStatus = AttendanceUtils.getAttendanceTextFromOutcome(
+        attendanceOutcomeCode = attendance.outcomeType.code,
+        attendanceOutcomeDescription = attendance.outcomeType.description,
+      ),
+      hasNotes = attendance.notesHistory.isNotEmpty(),
+      isCatchup = attendance.session.isCatchup,
+    )
+  }.toList(),
 )
 
 fun ReferralStatusHistoryEntity.toCurrentStatus() = CurrentStatus(
   statusDescriptionId = referralStatusDescription.id,
-  title = ReferralStatusUtils.formatStatus(referralStatusDescription.description),
+  title = ReferralStatusUtils.formatStatus(referralStatusDescription.referralStatusType.displayName),
   tagColour = referralStatusDescription.labelColour,
   updatedByName = createdBy,
   createdAt = createdAt,
