@@ -513,6 +513,127 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should return 404 when referral attended their only pre-group one-to-one but failed to comply`() {
+      val group = testGroupHelper.createGroup()
+      val referral = testReferralHelper.createReferral()
+      testGroupHelper.allocateToGroup(group, referral)
+
+      val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+      val preGroupModule = buildingChoicesTemplate.modules.first { it.name == "Pre-group one-to-ones" }
+      val preGroupSessionTemplate = preGroupModule.sessionTemplates.first()
+
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = preGroupSessionTemplate.id!!,
+        referralIds = listOf(referral.id!!),
+        facilitators = listOf(
+          CreateGroupTeamMemberFactory().withTeamMemberType(CreateGroupTeamMemberType.REGULAR_FACILITATOR).produce(),
+        ),
+        startDate = LocalDate.now().plusDays(1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+      val session = scheduleService.scheduleSession(group.id!!, scheduleSessionRequest)
+
+      val attendee = session.attendees.find { it.referralId == referral.id }!!
+
+      // Record attendance as attended but failed to comply - this must not set an actual start date
+      val attendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = attendee.referralId,
+            outcomeCode = SessionAttendanceNDeliusCode.AFTC,
+            sessionNotes = "Attended but failed to comply",
+          ),
+        ),
+      )
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${session.id}/attendance",
+        body = attendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral/${referral.id}/start-data",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+    }
+
+    @Test
+    fun `should use the first complied pre-group one-to-one and ignore an earlier attended but failed to comply one`() {
+      val group = testGroupHelper.createGroup()
+      val referral = testReferralHelper.createReferral()
+      testGroupHelper.allocateToGroup(group, referral)
+
+      val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+      val preGroupModule = buildingChoicesTemplate.modules.first { it.name == "Pre-group one-to-ones" }
+      val preGroupSessionTemplate = preGroupModule.sessionTemplates.first()
+
+      val failedToComplyRequest = ScheduleSessionRequest(
+        sessionTemplateId = preGroupSessionTemplate.id!!,
+        referralIds = listOf(referral.id!!),
+        facilitators = listOf(
+          CreateGroupTeamMemberFactory().withTeamMemberType(CreateGroupTeamMemberType.REGULAR_FACILITATOR).produce(),
+        ),
+        startDate = LocalDate.now().plusDays(1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+      val failedToComplySession = scheduleService.scheduleSession(group.id!!, failedToComplyRequest)
+      val failedToComplyAttendee = failedToComplySession.attendees.find { it.referralId == referral.id }!!
+
+      // Earlier session: attended but failed to comply - should be ignored
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${failedToComplySession.id}/attendance",
+        body = SessionAttendance(
+          attendees = listOf(
+            SessionAttendee(
+              referralId = failedToComplyAttendee.referralId,
+              outcomeCode = SessionAttendanceNDeliusCode.AFTC,
+              sessionNotes = "Attended but failed to comply",
+            ),
+          ),
+        ),
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Later session: attended and complied - this is the one that should set the actual start date
+      val compliedRequest = failedToComplyRequest.copy(startDate = LocalDate.now().plusDays(2))
+      val compliedSession = scheduleService.scheduleSession(group.id!!, compliedRequest)
+      val compliedAttendee = compliedSession.attendees.find { it.referralId == referral.id }!!
+
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${compliedSession.id}/attendance",
+        body = SessionAttendance(
+          attendees = listOf(
+            SessionAttendee(
+              referralId = compliedAttendee.referralId,
+              outcomeCode = SessionAttendanceNDeliusCode.ATTC,
+              sessionNotes = "Attended and complied",
+            ),
+          ),
+        ),
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral/${referral.id}/start-data",
+        returnType = object : ParameterizedTypeReference<ReferralStartData>() {},
+      )
+
+      assertThat(response.licReqStartedAt.toLocalDate()).isEqualTo(compliedSession.startsAt.toLocalDate())
+      assertThat(response.licReqStartedAt.toLocalDate()).isNotEqualTo(failedToComplySession.startsAt.toLocalDate())
+    }
+
+    @Test
     fun `should not overwrite actual start date when a later pre-group one-to-one is also attended`() {
       val group = testGroupHelper.createGroup()
       val referral = testReferralHelper.createReferral()

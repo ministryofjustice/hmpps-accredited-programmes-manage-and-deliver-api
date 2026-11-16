@@ -203,7 +203,9 @@ class ReferralStatusService(
   /**
    * A referral can have multiple pre-group one-to-one sessions (e.g. following a non-attendance).
    * We look at all non-placeholder pre-group one-to-one sessions, in chronological order, and return
-   * the first one with a recorded attendance marked as attended against this membership.
+   * the first one that was actually attended and complied with (outcome "Attended - Complied", ATTC)
+   * against this membership. Outcomes such as "Attended - Failed to Comply" (AFTC) or any non-attendance
+   * do not count, so the actual start date stays blank until the programme is genuinely started.
    */
   private fun findFirstAttendedPreGroupOneToOne(
     currentGroupMembership: ProgrammeGroupMembershipEntity,
@@ -216,7 +218,9 @@ class ReferralStatusService(
         groupMembershipId = currentGroupMembership.id!!,
       )?.let { session to it }
     }
-    .firstOrNull { (_, attendance) -> attendance.outcomeType.attendance == true }
+    .firstOrNull { (_, attendance) ->
+      attendance.outcomeType.attendance == true && attendance.outcomeType.compliant == true
+    }
 
   private fun hasValidPostProgrammeReviewAttendance(referral: ReferralEntity): Boolean {
     val currentGroupMembership = referral.programmeGroupMemberships.maxByOrNull { it.createdAt } ?: return false
