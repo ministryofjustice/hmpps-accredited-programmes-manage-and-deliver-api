@@ -571,6 +571,19 @@ class SessionService(
       }
     }
 
+    // If this is a pre-group one-to-one session, check if the programme started event should be published.
+    val isPreGroupOneToOneSession =
+      session.moduleSessionTemplate.module.isPreGroupModule() && !session.isPlaceholder
+    if (isPreGroupOneToOneSession) {
+      changedAttendees.forEach { attendee ->
+        try {
+          referralStatusService.checkAndPublishProgrammeStartedEvent(attendee.referralId)
+        } catch (e: Exception) {
+          log.error("Failed to check and publish programme started event for referral with id: ${attendee.referralId}", e)
+        }
+      }
+    }
+
     changedAttendees.firstOrNull()?.let { attendee ->
       val referral = referralRepository.findByIdOrNull(attendee.referralId)
       telemetryService.logToAppInsights(

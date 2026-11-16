@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusInfo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.eventDetails.ReferralCompletionData
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.eventDetails.ReferralStartData
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralStatusService
 import java.util.UUID
 
@@ -106,5 +107,44 @@ class EventDetailsController(
     val statusInfo = referralStatusService.getCompletionDataForReferral(referralId)
 
     return ResponseEntity.ok(statusInfo)
+  }
+
+  @Operation(
+    tags = ["Event Details"],
+    summary = "Retrieve start data for a referral",
+    operationId = "getStartData",
+    description = "Returns the actual start date for a given referral, derived from the first attended pre-group one-to-one session. Secured with a read-only role for use by external services.",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Start data for the referral",
+        content = [Content(schema = Schema(implementation = ReferralStartData::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "The request was unauthorised",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden. The client is not authorised to access this referral.",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "The referral does not exist, or has no recorded actual start date",
+        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+    security = [SecurityRequirement(name = "bearerAuth")],
+  )
+  @GetMapping("/referral/{referralId}/start-data")
+  fun getStartData(
+    @PathVariable @Parameter(description = "The id (UUID) of a referral", required = true) referralId: UUID,
+  ): ResponseEntity<ReferralStartData> {
+    log.info("Request to retrieve start data for referral with id: $referralId")
+    val startData = referralStatusService.getStartDataForReferral(referralId)
+
+    return ResponseEntity.ok(startData)
   }
 }

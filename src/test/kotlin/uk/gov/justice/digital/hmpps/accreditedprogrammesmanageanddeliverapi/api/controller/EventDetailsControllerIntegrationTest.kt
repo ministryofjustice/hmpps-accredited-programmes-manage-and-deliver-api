@@ -14,6 +14,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendance
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendee
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.eventDetails.ReferralCompletionData
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.eventDetails.ReferralStartData
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.AmOrPm
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ScheduleSessionRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.SessionTime
@@ -372,6 +373,219 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.licReqId).isEqualTo(referral.eventId)
       assertThat(response.licReqCompletedAt).isNotNull()
       assertThat(response.sourcedFromEntityType).isEqualTo(referral.sourcedFrom)
+    }
+  }
+
+  @Nested
+  inner class GetStartData {
+
+    @BeforeEach
+    fun beforeEach() {
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+    }
+
+    @Test
+    fun `should return start data when referral attended their pre-group one-to-one`() {
+      val group = testGroupHelper.createGroup()
+      val referral = testReferralHelper.createReferral()
+      testGroupHelper.allocateToGroup(group, referral)
+
+      val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+      val preGroupModule = buildingChoicesTemplate.modules.first { it.name == "Pre-group one-to-ones" }
+      val preGroupSessionTemplate = preGroupModule.sessionTemplates.first()
+
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = preGroupSessionTemplate.id!!,
+        referralIds = listOf(referral.id!!),
+        facilitators = listOf(
+          CreateGroupTeamMemberFactory().withTeamMemberType(CreateGroupTeamMemberType.REGULAR_FACILITATOR).produce(),
+        ),
+        startDate = LocalDate.now().plusDays(1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+      val session = scheduleService.scheduleSession(group.id!!, scheduleSessionRequest)
+
+      val attendee = session.attendees.find { it.referralId == referral.id }!!
+
+      // Record attendance as attended
+      val attendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = attendee.referralId,
+            outcomeCode = SessionAttendanceNDeliusCode.ATTC,
+            sessionNotes = "Attended pre-group one-to-one",
+          ),
+        ),
+      )
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${session.id}/attendance",
+        body = attendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral/${referral.id}/start-data",
+        returnType = object : ParameterizedTypeReference<ReferralStartData>() {},
+      )
+
+      assertThat(response).isNotNull
+      assertThat(response.licReqId).isEqualTo(referral.eventId)
+      assertThat(response.licReqStartedAt).isNotNull()
+      assertThat(response.sourcedFromEntityType).isEqualTo(referral.sourcedFrom)
+    }
+
+    @Test
+    fun `should return 404 when referral is not found`() {
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral/${UUID.randomUUID()}/start-data",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+    }
+
+    @Test
+    fun `should return 404 when no actual start date has been recorded`() {
+      val group = testGroupHelper.createGroup()
+      val referral = testReferralHelper.createReferral()
+      testGroupHelper.allocateToGroup(group, referral)
+
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral/${referral.id}/start-data",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+    }
+
+    @Test
+    fun `should return 404 when referral did not attend their only pre-group one-to-one`() {
+      val group = testGroupHelper.createGroup()
+      val referral = testReferralHelper.createReferral()
+      testGroupHelper.allocateToGroup(group, referral)
+
+      val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+      val preGroupModule = buildingChoicesTemplate.modules.first { it.name == "Pre-group one-to-ones" }
+      val preGroupSessionTemplate = preGroupModule.sessionTemplates.first()
+
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = preGroupSessionTemplate.id!!,
+        referralIds = listOf(referral.id!!),
+        facilitators = listOf(
+          CreateGroupTeamMemberFactory().withTeamMemberType(CreateGroupTeamMemberType.REGULAR_FACILITATOR).produce(),
+        ),
+        startDate = LocalDate.now().plusDays(1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+      val session = scheduleService.scheduleSession(group.id!!, scheduleSessionRequest)
+
+      val attendee = session.attendees.find { it.referralId == referral.id }!!
+
+      // Record attendance as not attended
+      val attendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = attendee.referralId,
+            outcomeCode = SessionAttendanceNDeliusCode.UAAB,
+            sessionNotes = "Did not attend",
+          ),
+        ),
+      )
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${session.id}/attendance",
+        body = attendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      performRequestAndExpectStatus(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral/${referral.id}/start-data",
+        returnType = object : ParameterizedTypeReference<ErrorResponse>() {},
+        expectedResponseStatus = HttpStatus.NOT_FOUND.value(),
+      )
+    }
+
+    @Test
+    fun `should not overwrite actual start date when a later pre-group one-to-one is also attended`() {
+      val group = testGroupHelper.createGroup()
+      val referral = testReferralHelper.createReferral()
+      testGroupHelper.allocateToGroup(group, referral)
+
+      val buildingChoicesTemplate = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
+      val preGroupModule = buildingChoicesTemplate.modules.first { it.name == "Pre-group one-to-ones" }
+      val preGroupSessionTemplate = preGroupModule.sessionTemplates.first()
+
+      val firstScheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = preGroupSessionTemplate.id!!,
+        referralIds = listOf(referral.id!!),
+        facilitators = listOf(
+          CreateGroupTeamMemberFactory().withTeamMemberType(CreateGroupTeamMemberType.REGULAR_FACILITATOR).produce(),
+        ),
+        startDate = LocalDate.now().plusDays(1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+      val firstSession = scheduleService.scheduleSession(group.id!!, firstScheduleSessionRequest)
+      val firstAttendee = firstSession.attendees.find { it.referralId == referral.id }!!
+
+      // Record attendance as attended on the first pre-group one-to-one
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${firstSession.id}/attendance",
+        body = SessionAttendance(
+          attendees = listOf(
+            SessionAttendee(
+              referralId = firstAttendee.referralId,
+              outcomeCode = SessionAttendanceNDeliusCode.ATTC,
+              sessionNotes = "Attended first pre-group one-to-one",
+            ),
+          ),
+        ),
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val firstResponse = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral/${referral.id}/start-data",
+        returnType = object : ParameterizedTypeReference<ReferralStartData>() {},
+      )
+
+      // Schedule and attend a second, later, pre-group one-to-one for the same referral
+      val secondScheduleSessionRequest = firstScheduleSessionRequest.copy(startDate = LocalDate.now().plusDays(2))
+      val secondSession = scheduleService.scheduleSession(group.id!!, secondScheduleSessionRequest)
+      val secondAttendee = secondSession.attendees.find { it.referralId == referral.id }!!
+
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/${secondSession.id}/attendance",
+        body = SessionAttendance(
+          attendees = listOf(
+            SessionAttendee(
+              referralId = secondAttendee.referralId,
+              outcomeCode = SessionAttendanceNDeliusCode.ATTC,
+              sessionNotes = "Attended second pre-group one-to-one",
+            ),
+          ),
+        ),
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val secondResponse = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/referral/${referral.id}/start-data",
+        returnType = object : ParameterizedTypeReference<ReferralStartData>() {},
+      )
+
+      assertThat(secondResponse.licReqStartedAt).isEqualTo(firstResponse.licReqStartedAt)
     }
   }
 }

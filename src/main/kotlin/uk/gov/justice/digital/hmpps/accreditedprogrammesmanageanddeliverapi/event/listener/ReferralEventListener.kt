@@ -20,4 +20,9 @@ class ReferralEventListener(private val referralEventService: ReferralEventServi
   fun onReferralProgrammeComplete(event: ReferralProgrammeCompleteEvent) {
     referralEventService.publishReferralCompletedEvent(event.referralId)
   }
+
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  fun onReferralProgrammeStarted(event: ReferralProgrammeStartedEvent) {
+    referralEventService.publishReferralProgrammeStartedEvent(event.referralId)
+  }
 }
