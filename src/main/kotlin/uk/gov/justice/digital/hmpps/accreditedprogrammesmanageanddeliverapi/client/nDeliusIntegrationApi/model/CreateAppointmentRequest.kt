@@ -2,10 +2,14 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.cli
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.AttendeeEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.FacilitatorEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.NDeliusAppointmentEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.primaryFacilitator
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
@@ -28,29 +32,66 @@ data class CreateAppointmentRequest(
     val notes: String?,
     val sensitive: Boolean,
     val type: AppointmentType,
+    val description: String?,
   )
 }
 
-fun AttendeeEntity.toAppointment(ndeliusAppointmentId: UUID): CreateAppointmentRequest.NdeliusAppointment {
+fun AttendeeEntity.toAppointment(
+  ndeliusAppointmentId: UUID,
+  sessionNameFormatter: SessionNameFormatter = SessionNameFormatter(),
+): CreateAppointmentRequest.NdeliusAppointment = buildNDeliusAppointment(
+  session = session,
+  nDeliusAppointmentId = ndeliusAppointmentId,
+  referral = referral,
+  sessionNameFormatter = sessionNameFormatter,
+)
+
+fun NDeliusAppointmentEntity.toAppointment(
+  sessionNameFormatter: SessionNameFormatter = SessionNameFormatter(),
+  outcome: RequestCode?,
+  notes: String?,
+): CreateAppointmentRequest.NdeliusAppointment = buildNDeliusAppointment(
+  session = session,
+  nDeliusAppointmentId = ndeliusAppointmentId,
+  referral = referral,
+  sessionNameFormatter = sessionNameFormatter,
+  notes = notes,
+  outcome = outcome,
+)
+
+private fun buildNDeliusAppointment(
+  session: SessionEntity,
+  nDeliusAppointmentId: UUID,
+  referral: ReferralEntity,
+  sessionNameFormatter: SessionNameFormatter,
+  notes: String? = null,
+  outcome: RequestCode? = null,
+): CreateAppointmentRequest.NdeliusAppointment {
   val primaryFacilitator = session.primaryFacilitator()
   val additionalFacilitators = session.sessionFacilitators
     .filter { it.facilitatorCode != primaryFacilitator.ndeliusPersonCode }
     .sortedBy { it.facilitator.personName }
 
   return CreateAppointmentRequest.NdeliusAppointment(
-    reference = ndeliusAppointmentId,
+    reference = nDeliusAppointmentId,
     requirementId = if (referral.sourcedFrom == ReferralEntitySourcedFrom.REQUIREMENT) referral.eventId else null,
     licenceConditionId = if (referral.sourcedFrom == ReferralEntitySourcedFrom.LICENCE_CONDITION) referral.eventId else null,
     date = session.startsAt.toLocalDate(),
     startTime = session.startsAt.toLocalTime(),
     endTime = session.endsAt.toLocalTime(),
-    outcome = null,
+    outcome = outcome,
     location = RequestCode(session.programmeGroup.deliveryLocationCode),
     staff = RequestCode(primaryFacilitator.ndeliusPersonCode),
     team = RequestCode(primaryFacilitator.ndeliusTeamCode),
-    notes = buildSessionNotes(session.programmeGroup.treatmentManager, additionalFacilitators, session),
+    notes = buildSessionNotes(
+      session.programmeGroup.treatmentManager,
+      additionalFacilitators,
+      session,
+      notes,
+    ),
     sensitive = false,
     type = getAppointmentTypeFromModuleName(session.moduleSessionTemplate.module.name),
+    description = sessionNameFormatter.format(session, SessionNameContext.NdeliusContactDescription),
   )
 }
 
@@ -58,12 +99,16 @@ private fun buildSessionNotes(
   treatmentManager: FacilitatorEntity?,
   additionalFacilitators: List<SessionFacilitatorEntity>,
   session: SessionEntity,
+  notes: String? = null,
 ): String? {
   val parts = mutableListOf<String>()
   parts.add(getSessionPart(session))
   treatmentManager?.let { parts.add("Treatment Manager: ${it.personName}") }
   if (additionalFacilitators.isNotEmpty()) {
     parts.add("Additional Facilitators: ${additionalFacilitators.joinToString(", ") { it.facilitator.personName }}")
+  }
+  if (notes != null) {
+    parts.add("Notes: $notes")
   }
   return parts.takeIf { it.isNotEmpty() }?.joinToString("\n")
 }

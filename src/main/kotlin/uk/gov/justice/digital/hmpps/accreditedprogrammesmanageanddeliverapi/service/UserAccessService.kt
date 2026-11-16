@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.probationAccessControlApi.ProbationAccessControlApiClient
@@ -10,10 +9,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 class UserAccessService(
   private val probationAccessControlApiClient: ProbationAccessControlApiClient,
   private val userService: UserService,
-  @Value("\${app.features.lao-access-check-enabled:false}")
-  private val laoAccessCheckEnabled: Boolean,
-  @Value("\${app.features.exclusion-access-check-enabled}")
-  private val exclusionAccessCheck: Boolean,
 ) {
   data class Access(
     val isLimitedAccessOffender: Boolean,
@@ -36,22 +31,11 @@ class UserAccessService(
           isExcluded = crn !in accessibleCRNs,
         )
       }
-      .let(::filterAccessByRestrictionFeature)
   }
 
-  private fun determineLimitedAccessOffendersByCRN(crnList: List<String>): Map<String, Boolean> = if (laoAccessCheckEnabled) crnList.associateWith(::isLimitedAccessOffender) else emptyMap()
+  private fun determineLimitedAccessOffendersByCRN(crnList: List<String>): Map<String, Boolean> = crnList.associateWith(::isLimitedAccessOffender)
 
-  private fun determineAccessibleCRNs(username: String, crnList: List<String>): Set<String> {
-    val accessChecksEnabled = laoAccessCheckEnabled || exclusionAccessCheck
-
-    return if (accessChecksEnabled) {
-      userService.getAccessibleOffenders(username, crnList)
-    } else {
-      crnList.toSet()
-    }
-  }
-
-  private fun filterAccessByRestrictionFeature(accessMap: Map<String, Access>): Map<String, Access> = if (exclusionAccessCheck) accessMap else accessMap.filterValues { !it.isExcluded }
+  private fun determineAccessibleCRNs(username: String, crnList: List<String>): Set<String> = userService.getAccessibleOffenders(username, crnList)
 
   fun isLimitedAccessOffender(crn: String): Boolean = when (val response = probationAccessControlApiClient.getCaseAccessByCrn(crn)) {
     is ClientResult.Success -> response.body.excludedFrom.isNotEmpty() || response.body.restrictedTo.isNotEmpty()

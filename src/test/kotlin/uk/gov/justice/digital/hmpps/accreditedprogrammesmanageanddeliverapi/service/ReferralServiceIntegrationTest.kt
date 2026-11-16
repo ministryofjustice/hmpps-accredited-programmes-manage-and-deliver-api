@@ -741,11 +741,11 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `createReferral should save referral and add status history and determine ldc status true when score greater than or equal to 3`() {
+    fun `createReferral should save referral and add status history and determine ldc status true when subTotal greater than or equal to 3`() {
       // Given
       val cohort = OffenceCohort.SEXUAL_OFFENCE
       val ldcResponse = Ldc(
-        score = 4,
+        score = 0,
         subTotal = 4,
       )
       val pniAssessment = PniAssessmentFactory().withLdc(ldcResponse).produce()
@@ -778,11 +778,11 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `createReferral should save referral and add status history and determine ldc status false when score less than 3`() {
+    fun `createReferral should save referral and add status history and determine ldc status false when subTotal less than 3`() {
       // Given
       val cohort = OffenceCohort.SEXUAL_OFFENCE
       val ldcResponse = Ldc(
-        score = 2,
+        score = 5,
         subTotal = 2,
       )
       val pniAssessment = PniAssessmentFactory().withLdc(ldcResponse).produce()

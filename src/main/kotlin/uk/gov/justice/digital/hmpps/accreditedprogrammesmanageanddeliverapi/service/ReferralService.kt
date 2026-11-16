@@ -4,7 +4,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -15,6 +14,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralDetails
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralOnProgrammeStatus
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusHistory
@@ -100,8 +100,6 @@ class ReferralService(
   private val applicationEventPublisher: ApplicationEventPublisher,
   private val probationAccessControlApiClient: ProbationAccessControlApiClient,
   private val sessionRepository: SessionRepository,
-  @param:Value($$"${app.features.lao-access-check-enabled}")
-  private val laoAccessCheckEnabled: Boolean,
   private val authenticationHolder: HmppsAuthenticationHolder,
   private val transactionTemplate: TransactionTemplate,
   private val nDeliusAppointmentRepository: NDeliusAppointmentRepository,
@@ -204,10 +202,7 @@ class ReferralService(
     val latestReferralCohort =
       referralCohortHistoryRepository.findTopByReferralIdOrderByCreatedAtDesc(referralId)?.cohort
     val allocatedGroup = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
-    var isLAO = false
-    if (laoAccessCheckEnabled) {
-      isLAO = getLaoByCrn(referral.crn)
-    }
+    val isLAO = getLaoByCrn(referral.crn)
 
     if (personalDetails != null) {
       ReferralDetails.toModel(
@@ -782,6 +777,23 @@ class ReferralService(
       referralCreatedBy = referral.createdBy,
       attendanceHistory = sessions,
     )
+  }
+
+  fun getReferralOnProgrammeStatus(crn: String): ReferralOnProgrammeStatus? {
+    val referral = referralRepository.findMostRecentByCrn(crn)
+
+    return referral?.let {
+      val currentStatus = it.statusHistories.maxByOrNull { history -> history.createdAt }?.referralStatusDescription?.description ?: "Unknown"
+      ReferralOnProgrammeStatus(
+        referralId = it.id!!,
+        crn = it.crn,
+        sentenceType = it.sourcedFrom,
+        eventId = it.eventId,
+        eventNumber = it.eventNumber,
+        currentStatus = currentStatus,
+        isOnProgramme = currentStatus == "On programme",
+      )
+    }
   }
 
   private fun getPersonalDetails(crn: String) = when (val result = nDeliusIntegrationApiClient.getPersonalDetails(crn)) {

@@ -12,6 +12,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 data class EditSessionFacilitatorRequest(
   @NotNull(message = "facilitatorName must not be null")
   @NotBlank(message = "facilitatorName must not be blank")
+  @param:JsonProperty("facilitatorName")
   @get:JsonProperty("_facilitatorName", required = true)
   @Schema(description = "The full name of the facilitator for the group")
   var _facilitatorName: String,
@@ -52,12 +53,15 @@ data class EditSessionFacilitatorRequest(
     description = "The full name of the facilitator.",
   )
   @get:JsonProperty("facilitatorName", required = true)
-  val facilitatorName: String
+  var facilitatorName: String
     get() = if (facilitatorForename != null && facilitatorSurname != null) {
       listOfNotNull(facilitatorForename, facilitatorMiddleNames, facilitatorSurname).filter { it.isNotBlank() }
         .joinToString(" ")
     } else {
       _facilitatorName
+    }
+    set(value) {
+      _facilitatorName = value
     }
 }
 

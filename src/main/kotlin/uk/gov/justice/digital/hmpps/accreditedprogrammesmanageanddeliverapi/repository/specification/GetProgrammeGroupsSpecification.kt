@@ -29,8 +29,8 @@ fun getProgrammeGroupsSpecification(
   groupCode: String?,
   pdus: List<String>?,
   deliveryLocations: List<String>?,
-  cohort: ProgrammeGroupCohort?,
-  sex: String?,
+  cohort: List<ProgrammeGroupCohort>?,
+  sex: List<String>?,
   regionNames: Collection<String>?,
 ): Specification<ProgrammeGroupEntity> = Specification { root, _, cb ->
   val predicates = mutableListOf<Predicate>()
@@ -57,14 +57,19 @@ fun getProgrammeGroupsSpecification(
     }
   }
 
-  cohort?.let {
-    val (offenceType, hasLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(it)
-    predicates.add(cb.equal(root.get<OffenceCohort>("cohort"), offenceType))
-    predicates.add(cb.equal(root.get<Boolean>("isLdc"), hasLdc))
+  cohort?.takeIf { it.isNotEmpty() }?.let { cohorts ->
+    val cohortPredicates = cohorts.map {
+      val (offenceType, hasLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(it)
+      cb.and(
+        cb.equal(root.get<OffenceCohort>("cohort"), offenceType),
+        cb.equal(root.get<Boolean>("isLdc"), hasLdc),
+      )
+    }
+    predicates.add(cb.or(*cohortPredicates.toTypedArray()))
   }
 
-  sex?.let {
-    predicates.add(cb.equal(root.get<ProgrammeGroupSexEnum>("sex"), it))
+  sex?.takeIf { it.isNotEmpty() }?.let {
+    predicates.add(root.get<ProgrammeGroupSexEnum>("sex").`in`(it))
   }
 
   regionNames?.let {

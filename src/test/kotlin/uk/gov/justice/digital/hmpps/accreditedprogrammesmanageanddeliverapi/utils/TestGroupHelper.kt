@@ -235,6 +235,6 @@ class TestGroupHelper {
       startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
       endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
     )
-    return scheduleService.scheduleIndividualSession(group.id!!, scheduleSessionRequest)
+    return scheduleService.scheduleSession(group.id!!, scheduleSessionRequest)
   }
 }

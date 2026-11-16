@@ -77,6 +77,7 @@ data class CreateGroupRequest(
 
 data class CreateGroupTeamMember(
   @field:NotNull(message = "facilitator must not be null")
+  @param:JsonProperty("facilitator")
   @get:JsonProperty("_facilitator")
   @field:Schema(description = "The full name of the facilitator for the group")
   var _facilitator: String,
@@ -131,12 +132,15 @@ data class CreateGroupTeamMember(
     description = "The full name of the facilitator.",
   )
   @get:JsonProperty("facilitator", required = true)
-  val facilitator: String
+  var facilitator: String
     get() = if (facilitatorForename != null && facilitatorSurname != null) {
       listOfNotNull(facilitatorForename, facilitatorMiddleNames, facilitatorSurname).filter { it.isNotBlank() }
         .joinToString(" ")
     } else {
       _facilitator
+    }
+    set(value) {
+      _facilitator = value
     }
 }
 

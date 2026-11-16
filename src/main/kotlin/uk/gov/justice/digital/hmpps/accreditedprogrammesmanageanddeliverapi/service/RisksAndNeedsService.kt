@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.arnsApi.model.AllPredictorVersioned
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.NDeliusRegistrations
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.listOfActiveRegistrations
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.OasysApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysAssessmentTimeline
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.oasysApi.model.risksAndNeeds.OasysOffendingInfo
@@ -31,7 +32,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REGISTRATION_N_DELIUS
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import java.time.LocalDateTime
 
 @Service
@@ -41,11 +42,12 @@ class RisksAndNeedsService(
   private val assessRiskAndNeedsApiClient: AssessRiskAndNeedsApiClient,
   private val pniService: PniService,
   private val telemetryService: TelemetryService,
+  private val referralRepository: ReferralRepository,
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  fun getAssessments(crn: String): OasysAssessmentTimeline? = when (val result = oasysApiClient.getAssessments(crn)) {
+  private fun getAssessments(crn: String): OasysAssessmentTimeline? = when (val result = oasysApiClient.getAssessments(crn)) {
     is ClientResult.Failure.StatusCode -> {
       if (result.status.value() == 404) {
         log.warn("No assessment found found for crn : $crn")
@@ -67,6 +69,7 @@ class RisksAndNeedsService(
   fun getLearningNeedsForCrn(crn: String): LearningNeeds {
     val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
+
     return buildLearningNeeds(
       assessmentCompletedDate?.toLocalDate(),
       getDetails(assessmentId, oasysApiClient::getLearning, "LearningNeeds"),
@@ -158,8 +161,10 @@ class RisksAndNeedsService(
   }
 
   fun getRisksByCrn(crn: String): Risks {
+    // Fetch alerts first so an unknown CRN results in a 404
+    val activeAlerts: NDeliusRegistrations? = getActiveAlerts(crn)
     val assessmentId = getAssessmentIdAndDate(crn)?.first
-      ?: return Risks.empty()
+      ?: return Risks.empty().copy(alerts = activeAlerts?.listOfActiveRegistrations() ?: emptyList())
         .also { log.warn("No assessment found for crn $crn") }
 
     val oasysOffendingInfo: OasysOffendingInfo =
@@ -169,7 +174,6 @@ class RisksAndNeedsService(
     val oasysRoshSummary: OasysRoshSummary = getDetails(assessmentId, oasysApiClient::getRoshSummary, "RoshSummary")
     val riskPredictors: AllPredictorVersioned<*> =
       getDetails(assessmentId, assessRiskAndNeedsApiClient::getRiskPredictors, "AllPredictorVersioned")
-    val activeAlerts: NDeliusRegistrations? = getActiveAlerts(crn)
 
     return buildRiskModel(
       oasysOffendingInfo,
@@ -183,34 +187,45 @@ class RisksAndNeedsService(
   fun getRoshFullForCrn(crn: String): RoshAnalysis {
     val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
+
     return getDetails(assessmentId, oasysApiClient::getRoshFull, "RoshFull").toModel(assessmentCompletedDate)
   }
 
-  fun getActiveAlerts(crn: String): NDeliusRegistrations? = when (val response = nDeliusIntegrationApiClient.getRegistrations(crn)) {
-    is ClientResult.Failure -> {
-      telemetryService.logToAppInsights(
-        eventName = "${GET_REGISTRATION_N_DELIUS.eventName}.failure",
-        integrationActionType = GET_REGISTRATION_N_DELIUS.name,
-        outcome = "failure",
-      )
-      log.warn("Failure to retrieve ActiveAlerts for crn: $crn reason ${response.toException().message}")
-      throw NotFoundException("Failure to retrieve ActiveAlerts for crn: $crn, reason: '${response.toException().message}'")
+  fun getActiveAlerts(crn: String): NDeliusRegistrations? {
+    if (!referralRepository.existsByCrn(crn)) {
+      throw NotFoundException("No referral found for crn: $crn")
     }
 
-    is ClientResult.Success -> {
-      telemetryService.logToAppInsights(
-        eventName = "${GET_REGISTRATION_N_DELIUS.eventName}.success",
-        integrationActionType = GET_REGISTRATION_N_DELIUS.name,
-        outcome = "success",
-      )
+    return when (val response = nDeliusIntegrationApiClient.getRegistrations(crn)) {
+      is ClientResult.Failure -> {
+        telemetryService.logToAppInsights(
+          eventName = "${GET_REGISTRATION_N_DELIUS.eventName}.failure",
+          integrationActionType = GET_REGISTRATION_N_DELIUS.name,
+          outcome = "failure",
+        )
+        log.warn("Failure to retrieve ActiveAlerts for crn: $crn reason ${response.toException().message}")
+        if (response is ClientResult.Failure.StatusCode && response.status.value() == 404) {
+          throw NotFoundException("Failure to retrieve ActiveAlerts for crn: $crn, reason: '${response.toException().message}'")
+        }
+        throw BusinessException("Failed to retrieve ActiveAlerts for crn: $crn due to upstream error")
+      }
 
-      response.body
+      is ClientResult.Success -> {
+        telemetryService.logToAppInsights(
+          eventName = "${GET_REGISTRATION_N_DELIUS.eventName}.success",
+          integrationActionType = GET_REGISTRATION_N_DELIUS.name,
+          outcome = "success",
+        )
+
+        response.body
+      }
     }
   }
 
   fun getOffenceAnalysis(crn: String): OffenceAnalysis {
     val (assessmentId, assessmentCompletedDate) = getAssessmentIdAndDate(crn)
       ?: throw NotFoundException("No assessment found for crn: $crn")
+
     return getDetails(assessmentId, oasysApiClient::getOffenceAnalysis, "OffenceAnalysis").toModel(
       assessmentCompletedDate,
     )
@@ -242,6 +257,9 @@ class RisksAndNeedsService(
   }
 
   private fun getAssessmentIdAndDate(crn: String): Pair<Long, LocalDateTime?>? {
+    if (!referralRepository.existsByCrn(crn)) {
+      throw NotFoundException("No referral found for case reference number: $crn")
+    }
     val assessmentTimeline = getAssessments(crn)
     val assessment = assessmentTimeline?.getLatestCompletedLayerThreeAssessment()
 

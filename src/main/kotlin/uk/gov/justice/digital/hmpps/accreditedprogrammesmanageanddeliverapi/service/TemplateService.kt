@@ -78,8 +78,8 @@ class TemplateService(
     } else {
       listOf(
         sessionTemplate.apply {
-          name = "${module.name} ${sessionTemplate.number} catch-up"
-          sessionScheduleType = SessionScheduleType.CATCH_UP
+          name = "${module.name} ${sessionTemplate.number}"
+          sessionScheduleType = SessionScheduleType.SCHEDULED
         },
       )
     }

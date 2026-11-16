@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.domain.Specification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.caseList.PduReportingLocation
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.programmeGroup.ProgrammeGroupCohort.GENERAL
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.type.GroupPageTab.WAITLIST
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -66,8 +67,6 @@ class ProgrammeGroupServiceTest {
       sessionService,
       moduleSessionTemplateRepository,
       userAccessService,
-      true,
-      true,
       moduleRepository,
       authenticationUtils,
       regionService,
@@ -121,8 +120,8 @@ class ProgrammeGroupServiceTest {
     val pageable: Pageable = Pageable.ofSize(10)
     val selectedTab = WAITLIST
     val groupId = UUID.randomUUID()
-    val sex = "male"
-    val cohort = GENERAL
+    val sex = listOf("male")
+    val cohorts = listOf(GENERAL)
     val nameOrCrn = "John Smith"
     val probationDeliveryUnit = "Test PDU"
     val probationDeliveryUnits = listOf(probationDeliveryUnit)
@@ -161,7 +160,7 @@ class ProgrammeGroupServiceTest {
       selectedTab = selectedTab,
       groupId = groupId,
       sex = sex,
-      cohort = cohort,
+      cohorts = cohorts,
       nameOrCrn = nameOrCrn,
       pdus = probationDeliveryUnits,
       reportingTeams = reportingTeams,
@@ -188,7 +187,7 @@ class ProgrammeGroupServiceTest {
   }
 
   @Test
-  fun `should get group waitlist data by criteria with limited access offender check disabled`() {
+  fun `should always include access information in group waitlist data`() {
     // Given
     service = ProgrammeGroupService(
       programmeGroupRepository,
@@ -203,8 +202,6 @@ class ProgrammeGroupServiceTest {
       sessionService,
       moduleSessionTemplateRepository,
       userAccessService = userAccessService,
-      false,
-      false,
       moduleRepository,
       authenticationUtils,
       regionService,
@@ -213,8 +210,8 @@ class ProgrammeGroupServiceTest {
     val pageable: Pageable = Pageable.ofSize(10)
     val selectedTab = WAITLIST
     val groupId = UUID.randomUUID()
-    val sex = "male"
-    val cohort = GENERAL
+    val sex = listOf("male")
+    val cohorts = listOf(GENERAL)
     val nameOrCrn = "John Smith"
     val probationDeliveryUnit = "Test PDU"
     val probationDeliveryUnits = listOf(probationDeliveryUnit)
@@ -228,6 +225,8 @@ class ProgrammeGroupServiceTest {
       ),
     )
     val caseReferenceNumber = groupWaitlistItemViewEntity.crn
+    val username = "user1"
+    val accessMap = mapOf(caseReferenceNumber to Access(isLimitedAccessOffender = false, isExcluded = false))
     val probationDeliveryUnitReportingLocation =
       PduReportingLocation(pduName = probationDeliveryUnit, reportingTeam = reportingTeam)
 
@@ -239,6 +238,8 @@ class ProgrammeGroupServiceTest {
       )
     } returns page
     every { groupWaitlistItemViewRepository.count(any<Specification<GroupWaitlistItemViewEntity>>()) } returns 1L
+    every { authenticationUtils.getUsername() } returns username
+    every { userAccessService.determineUserAccess(username, listOf(caseReferenceNumber)) } returns accessMap
     every { referralReportingLocationRepository.getPdusAndReportingTeamsByRegions(any()) } returns listOf(
       probationDeliveryUnitReportingLocation,
     )
@@ -249,7 +250,7 @@ class ProgrammeGroupServiceTest {
       selectedTab = selectedTab,
       groupId = groupId,
       sex = sex,
-      cohort = cohort,
+      cohorts = cohorts,
       nameOrCrn = nameOrCrn,
       pdus = probationDeliveryUnits,
       reportingTeams = reportingTeams,
@@ -263,14 +264,14 @@ class ProgrammeGroupServiceTest {
     assertThat(result.pagedGroupData.content[0].isExcluded).isFalse()
 
     verify(exactly = 1) { programmeGroupRepository.findById(groupId) }
-    verify(exactly = 0) { authenticationUtils.getUsername() }
+    verify(exactly = 1) { authenticationUtils.getUsername() }
     verify(exactly = 1) {
       groupWaitlistItemViewRepository.findAll(
         any<Specification<GroupWaitlistItemViewEntity>>(),
         any<Pageable>(),
       )
     }
-    verify(exactly = 0) { userAccessService.determineUserAccess(any(), any()) }
+    verify(exactly = 1) { userAccessService.determineUserAccess(username, listOf(caseReferenceNumber)) }
     verify(exactly = 1) { groupWaitlistItemViewRepository.count(any<Specification<GroupWaitlistItemViewEntity>>()) }
     verify(exactly = 1) { referralReportingLocationRepository.getPdusAndReportingTeamsByRegions(any()) }
   }
@@ -281,8 +282,8 @@ class ProgrammeGroupServiceTest {
     val pageable: Pageable = Pageable.ofSize(10)
     val selectedTab = WAITLIST
     val groupId = UUID.randomUUID()
-    val sex = "male"
-    val cohort = GENERAL
+    val sex = listOf("male")
+    val cohorts = listOf(GENERAL)
     val nameOrCrn = "John Smith"
     val probationDeliveryUnit = "Test PDU"
     val probationDeliveryUnits = listOf(probationDeliveryUnit)
@@ -328,7 +329,7 @@ class ProgrammeGroupServiceTest {
       selectedTab = selectedTab,
       groupId = groupId,
       sex = sex,
-      cohort = cohort,
+      cohorts = cohorts,
       nameOrCrn = nameOrCrn,
       pdus = probationDeliveryUnits,
       reportingTeams = reportingTeams,
@@ -360,8 +361,8 @@ class ProgrammeGroupServiceTest {
     val pageable: Pageable = Pageable.ofSize(10)
     val selectedTab = WAITLIST
     val groupId = UUID.randomUUID()
-    val sex = null
-    val cohort = null
+    val sex: List<String>? = null
+    val cohorts: List<ProgrammeGroupCohort>? = null
     val nameOrCrn = "EXCLUDED001"
     val probationDeliveryUnits = null
     val reportingTeams = null
@@ -404,7 +405,7 @@ class ProgrammeGroupServiceTest {
       selectedTab = selectedTab,
       groupId = groupId,
       sex = sex,
-      cohort = cohort,
+      cohorts = cohorts,
       nameOrCrn = nameOrCrn,
       pdus = probationDeliveryUnits,
       reportingTeams = reportingTeams,
