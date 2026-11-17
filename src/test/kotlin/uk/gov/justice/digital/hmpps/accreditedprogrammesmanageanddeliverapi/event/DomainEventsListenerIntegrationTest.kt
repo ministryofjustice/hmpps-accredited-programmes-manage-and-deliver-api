@@ -33,6 +33,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupMembershipFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ALLOCATION
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ASSESSMENT
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -125,7 +127,8 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .produce()
     nDeliusApiStubs.stubPersonalDetailsResponse(personalDetails)
     val sentenceInformation =
-      NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2025-10-01")).withLicenceExpiryDate(LocalDate.parse("2026-03-20")).produce()
+      NDeliusSentenceResponseFactory().withExpectedEndDate(LocalDate.parse("2025-10-01"))
+        .withLicenceExpiryDate(LocalDate.parse("2026-03-20")).produce()
     nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(crn, eventNumber, sentenceInformation)
     probationAccessControlApiStubs.stubOpenAccessForAnyCrn()
   }
@@ -449,7 +452,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.crn).isEqualTo(crn)
       assertThat(it.interventionName).isEqualTo("Test Intervention")
       assertThat(it.interventionType).isEqualTo(InterventionType.ACP)
-      assertThat(it.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
+      assertThat(it.statusHistories.first().referralStatusDescription.referralStatusType).isEqualTo(AWAITING_ASSESSMENT)
       assertThat(it.sourcedFrom).isEqualTo(ReferralEntitySourcedFrom.LICENCE_CONDITION)
       assertThat(it.eventId).isEqualTo("LIC-12345")
       assertThat(it.personName).isEqualTo("John Alex Doe")
@@ -508,7 +511,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.crn).isEqualTo(crn)
       assertThat(it.interventionName).isEqualTo("Test Intervention")
       assertThat(it.interventionType).isEqualTo(InterventionType.ACP)
-      assertThat(it.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
+      assertThat(it.statusHistories.first().referralStatusDescription.referralStatusType).isEqualTo(AWAITING_ASSESSMENT)
       assertThat(it.sourcedFrom).isEqualTo(ReferralEntitySourcedFrom.LICENCE_CONDITION)
       assertThat(it.eventId).isEqualTo("LIC-12345")
       assertThat(it.sex).isEqualTo("Male")
@@ -565,7 +568,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.crn).isEqualTo(crn)
       assertThat(it.interventionName).isEqualTo("Test Intervention")
       assertThat(it.interventionType).isEqualTo(InterventionType.ACP)
-      assertThat(it.statusHistories.first().referralStatusDescription.description).isEqualTo("Awaiting assessment")
+      assertThat(it.statusHistories.first().referralStatusDescription.referralStatusType).isEqualTo(AWAITING_ASSESSMENT)
       assertThat(it.sourcedFrom).isEqualTo(ReferralEntitySourcedFrom.LICENCE_CONDITION)
       assertThat(it.eventId).isEqualTo("LIC-12345")
       assertThat(it.sex).isEqualTo("Male")
@@ -738,7 +741,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
       )
     val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -751,7 +754,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .withCreatedAt(LocalDateTime.of(2025, 9, 24, 16, 0))
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!,
       )
 
     testDataGenerator.createReferralStatusHistory(secondStatus)
@@ -913,7 +916,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .withCreatedAt(LocalDateTime.of(2025, 9, 24, 15, 0))
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription(),
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
       )
     val cohortHistory = ReferralCohortHistoryFactory().withReferral(referralEntity).produce()
 
@@ -926,7 +929,7 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       .withCreatedAt(LocalDateTime.of(2025, 9, 24, 16, 0))
       .produce(
         referralEntity,
-        referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!,
       )
 
     testDataGenerator.createReferralStatusHistory(secondStatus)

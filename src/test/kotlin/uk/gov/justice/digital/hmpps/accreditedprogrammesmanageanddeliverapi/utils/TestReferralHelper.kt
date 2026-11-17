@@ -34,6 +34,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.inte
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.GovUkApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.NDeliusApiStubs
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.wiremock.stubs.OasysApiStubs
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ALLOCATION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusHistoryRepository
@@ -199,6 +200,7 @@ class TestReferralHelper {
         licenceConditionId = findAndReferReferralDetails.sourcedFromReference,
         licenceConditionResponse = validationResponse,
       )
+
       ReferralEntitySourcedFrom.REQUIREMENT -> nDeliusApiStubs.stubSuccessfulRequirementManagerResponse(
         crn = crn,
         requirementId = findAndReferReferralDetails.sourcedFromReference,
@@ -291,7 +293,8 @@ class TestReferralHelper {
     statusEntity: ReferralStatusDescriptionEntity? = null,
     personName: String? = null,
   ): ReferralEntity {
-    val status = statusEntity ?: referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    val status =
+      statusEntity ?: referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!
     val referral = if (personName != null) createReferral(personName = personName) else createReferral()
     // Persist the status history directly so test fixtures can place a referral in any
     // state without being constrained by configured transitions (the production

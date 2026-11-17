@@ -225,7 +225,8 @@ data class ReferralDetails(
       hasLdc = LdcStatus.fromBoolean(hasLdc).value,
       hasLdcDisplayText = LdcStatus.getDisplayText(hasLdc),
       hasLdcSuccessMessageText = LdcStatus.getSuccessMessageText(hasLdc),
-      currentStatusDescription = latestReferralStatus?.description ?: DEFAULT_STATUS_DESCRIPTION_VALUE,
+      currentStatusDescription = latestReferralStatus?.referralStatusType?.displayName
+        ?: DEFAULT_STATUS_DESCRIPTION_VALUE,
       currentlyAllocatedGroupCode = currentlyAllocatedGroup?.programmeGroup?.code,
       currentlyAllocatedGroupId = currentlyAllocatedGroup?.programmeGroup?.id,
       pdu = nDeliusPersonalDetails.probationDeliveryUnit.description,
@@ -260,7 +261,8 @@ data class ReferralDetails(
       hasLdc = LdcStatus.fromBoolean(hasLdc).value,
       hasLdcDisplayText = LdcStatus.getDisplayText(hasLdc),
       hasLdcSuccessMessageText = LdcStatus.getSuccessMessageText(hasLdc),
-      currentStatusDescription = latestReferralStatus?.description ?: DEFAULT_STATUS_DESCRIPTION_VALUE,
+      currentStatusDescription = latestReferralStatus?.referralStatusType?.displayName
+        ?: DEFAULT_STATUS_DESCRIPTION_VALUE,
       currentlyAllocatedGroupCode = currentlyAllocatedGroup?.programmeGroup?.code,
       currentlyAllocatedGroupId = currentlyAllocatedGroup?.programmeGroup?.id,
       pdu = referral.referralReportingLocation?.pduName ?: DEFAULT_VALUE,

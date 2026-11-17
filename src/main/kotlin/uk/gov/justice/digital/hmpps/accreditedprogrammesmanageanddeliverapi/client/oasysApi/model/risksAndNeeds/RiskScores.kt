@@ -25,13 +25,14 @@ class Score(
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 class RsrScore(
-  @Schema(example = "3.45", description = "Risk of Serious Recidivism score")
-  val scoreLevel: String? = null,
   @Schema(
     example = "Medium",
     description = "Risk of Serious Recidivism level",
     allowableValues = ["Low", "Medium", "High"],
   )
+  val scoreLevel: String? = null,
+
+  @Schema(example = "3.45", description = "Risk of Serious Recidivism score")
   val percentageScore: BigDecimal? = null,
 )
 

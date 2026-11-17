@@ -166,7 +166,7 @@ class SubjectAccessRequestServiceTest {
     assertThat(resultContent.referrals[0].statusHistories[0].startDate)
       .isEqualTo(referralEntity1.statusHistories[0].startDate)
     assertThat(resultContent.referrals[0].statusHistories[0].referralStatusDescription.description)
-      .isEqualTo(referralEntity1.statusHistories[0].referralStatusDescription.description)
+      .isEqualTo(referralEntity1.statusHistories[0].referralStatusDescription.referralStatusType.displayName)
 
     assertThat(resultContent.referrals[0].messageHistories).isNotNull().hasSize(1)
     assertThat(resultContent.referrals[0].messageHistories[0]).isNotNull()

@@ -20,6 +20,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusHistoryEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SessionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralStatusUpdateEvent
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.SCHEDULED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.ASSIGN_REFERRAL_TO_GROUP
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.REMOVE_REFERRAL_FROM_GROUP
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
@@ -77,7 +78,7 @@ class ProgrammeGroupMembershipService(
     val statusHistory =
       ReferralStatusHistoryEntity(
         referral = referral,
-        referralStatusDescription = referralStatusDescriptionRepository.getScheduledStatusDescription(),
+        referralStatusDescription = referralStatusDescriptionRepository.findByReferralStatusType(SCHEDULED)!!,
         additionalDetails = additionalDetails,
         createdBy = allocatedToGroupBy,
       )
@@ -175,7 +176,7 @@ class ProgrammeGroupMembershipService(
     )
 
     return RemoveFromGroupResponse(
-      message = "${savedReferral.personName} was removed from this group. Their referral status is now ${desiredStatus.description}.",
+      message = "${savedReferral.personName} was removed from this group. Their referral status is now ${desiredStatus.referralStatusType.displayName}.",
     )
   }
 

@@ -2,16 +2,20 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api
 
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType
 
 @Schema(description = "Details of a referral status change event")
 data class ReferralStatusInfo(
   @field:Schema(description = "The new status of the referral", required = true)
-  val newStatus: Status,
+  val newStatus: ReferralStatusType,
   @field:Schema(description = "The type of entity from which this status change was sourced", required = true)
   val sourcedFromEntityType: ReferralEntitySourcedFrom,
   @field:Schema(description = "The ID of the entity from which this status change was sourced", required = true)
   val sourcedFromEntityId: Long,
-  @field:Schema(description = "The event number associated with the requirement/licence condition for this referral", required = true)
+  @field:Schema(
+    description = "The event number associated with the requirement/licence condition for this referral",
+    required = true,
+  )
   val eventNumber: Int,
   @field:Schema(description = "Optional notes associated with the status change")
   val notes: String?,
@@ -19,71 +23,4 @@ data class ReferralStatusInfo(
   val description: String,
   @field:Schema(description = "Username of the person who made the status update", required = true)
   val username: String,
-) {
-  @Schema(description = "The status of a referral")
-  enum class Status(
-    @field:Schema(description = "The human-readable display name of the status")
-    val displayName: String,
-    @field:Schema(description = "A description of what the status means")
-    val description: String,
-  ) {
-    @Schema(description = "The person is ready to be allocated to a programme group.")
-    AWAITING_ALLOCATION("Awaiting allocation", "The person is ready to be allocated to a programme group."),
-
-    @Schema(description = "The person has a requirement to complete the programme. Their suitability and readiness will be assessed by the programme team.")
-    AWAITING_ASSESSMENT(
-      "Awaiting assessment",
-      "The person has a requirement to complete the programme. Their suitability and readiness will be assessed by the programme team.",
-    ),
-
-    @Schema(description = "The person has breached their conditions through non-attendance of the programme.")
-    BREACH(
-      "Breach",
-      "The person has breached their conditions through non-attendance of the programme.",
-    ),
-
-    @Schema(description = "The referral is paused, for example during a transfer or after the court has extended an order.")
-    ON_HOLD(
-      "On hold",
-      "The referral is paused, for example during a transfer or after the court has extended an order.",
-    ),
-
-    @Schema(description = "The person has started the programme. They have attended a pre-group one-to-one.")
-    ON_PROGRAMME("On programme", "The person has started the programme. They have attended a pre-group one-to-one."),
-
-    @Schema(description = "The person has completed the programme and their post-programme review has taken place.")
-    PROGRAMME_COMPLETE(
-      "Programme complete",
-      "The person has completed the programme and their post-programme review has taken place.",
-    ),
-
-    @Schema(description = "The person has been recalled.")
-    RECALL("Recall", "The person has been recalled."),
-
-    @Schema(description = "The person is not suitable for the programme or cannot continue with it. The case will be returned to court.")
-    RETURN_TO_COURT(
-      "Return to court",
-      "The person is not suitable for the programme or cannot continue with it. The case will be returned to court.",
-    ),
-
-    @Schema(description = "The person has been allocated to a group.")
-    SCHEDULED("Scheduled", "The person has been allocated to a group."),
-
-    @Schema(description = "The person is suitable for the programme but not ready to start it or continue with it.")
-    SUITABLE_BUT_NOT_READY(
-      "Suitable but not ready",
-      "The person is suitable for the programme but not ready to start it or continue with it.",
-    ),
-
-    @Schema(description = "The referral has been closed because the person cannot complete the programme.")
-    WITHDRAWN("Withdrawn", "The referral has been closed because the person cannot complete the programme."),
-    ;
-
-    companion object {
-      private val byDisplayName = entries.associateBy { it.displayName.lowercase() }
-
-      fun fromDisplayName(displayName: String): Status = byDisplayName[displayName.lowercase()]
-        ?: throw IllegalArgumentException("Unknown referral status description: $displayName")
-    }
-  }
-}
+)

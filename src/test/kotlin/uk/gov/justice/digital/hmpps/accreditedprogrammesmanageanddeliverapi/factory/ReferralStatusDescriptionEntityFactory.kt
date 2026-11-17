@@ -1,25 +1,25 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ASSESSMENT
 import java.util.UUID
 
 class ReferralStatusDescriptionEntityFactory {
-  companion object {
-    fun awaitingAssessmentStatusDescription(): ReferralStatusDescriptionEntity = ReferralStatusDescriptionEntityFactory().withDescription("Awaiting assessment").produce()
-  }
   private var id: UUID = UUID.randomUUID()
-  private var description: String = "Test Status Description"
+  private var referralStatusType: ReferralStatusType = AWAITING_ASSESSMENT
   private var isClosed: Boolean = false
   private var labelColour: String = "blue"
 
   fun withId(id: UUID) = apply { this.id = id }
-  fun withDescription(description: String) = apply { this.description = description }
+  fun withReferralStatusType(referralStatusType: ReferralStatusType) = apply { this.referralStatusType = referralStatusType }
+
   fun withIsClosed(isClosed: Boolean) = apply { this.isClosed = isClosed }
   fun withLabelColour(labelColour: String) = apply { this.labelColour = labelColour }
 
   fun produce() = ReferralStatusDescriptionEntity(
     id = this.id,
-    description = this.description,
+    referralStatusType = this.referralStatusType,
     isClosed = this.isClosed,
     labelColour = this.labelColour,
   )

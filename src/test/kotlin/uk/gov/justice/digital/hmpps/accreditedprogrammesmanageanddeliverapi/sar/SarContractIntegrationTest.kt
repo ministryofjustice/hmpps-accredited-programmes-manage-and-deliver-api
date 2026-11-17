@@ -31,6 +31,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupSessionSlotFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ALLOCATION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.AvailabilityRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.BankHolidayRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.DeliveryLocationPreferenceRepository
@@ -242,7 +243,7 @@ class SarContractIntegrationTest :
     )
     availabilityRepository.saveAndFlush(availability)
 
-    val status = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    val status = referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!
     referralService.updateStatus(referral, status.id, createdBy = "AUTH_USER")
 
     val messageHistory = MessageHistoryEntity(
@@ -321,7 +322,8 @@ class SarContractIntegrationTest :
   override fun `SAR API should return expected data`() {
     setupTestData()
 
-    val response = sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient, SubjectAccessRequestContent::class.java)
+    val response =
+      sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient, SubjectAccessRequestContent::class.java)
     val normalizedActual = normalizeDynamicValues(sarIntegrationTestHelper.toJson(response))
 
     if (generateActual) {
@@ -341,7 +343,8 @@ class SarContractIntegrationTest :
     sarIntegrationTestHelper.stubFindLocationNameByNomisIdWith("PROPERTY BOX 1")
     sarIntegrationTestHelper.stubFindLocationNameByDpsIdWith("PROPERTY BOX 2")
 
-    val dataResponse = sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient, SubjectAccessRequestContent::class.java)
+    val dataResponse =
+      sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient, SubjectAccessRequestContent::class.java)
     val templateResponse = sarIntegrationTestHelper.requestSarTemplate(webTestClient)
 
     val renderResult = sarIntegrationTestHelper.renderServiceReport(

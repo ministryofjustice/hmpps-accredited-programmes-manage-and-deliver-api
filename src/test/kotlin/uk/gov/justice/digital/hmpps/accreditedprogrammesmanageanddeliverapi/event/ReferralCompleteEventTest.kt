@@ -24,6 +24,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ALLOCATION
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.ON_PROGRAMME
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.PROGRAMME_COMPLETE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
@@ -48,9 +51,11 @@ class ReferralCompleteEventTest(
     nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
     // Go through referral journey update status -> assign to group
-    val awaitingAllocationStatus = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
-    val onProgrammeStatus = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
-    val programmeCompleteStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+    val awaitingAllocationStatus =
+      referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!
+    val onProgrammeStatus = referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME)!!
+    val programmeCompleteStatus =
+      referralStatusDescriptionRepository.findByReferralStatusType(PROGRAMME_COMPLETE)!!
     var referral = testReferralHelper.createReferral()
     referral = testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus)
 
@@ -133,9 +138,11 @@ class ReferralCompleteEventTest(
     nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
     // Go through referral journey update status -> assign to group
-    val awaitingAllocationStatus = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
-    val onProgrammeStatus = referralStatusDescriptionRepository.getOnProgrammeStatusDescription()
-    val programmeCompleteStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+    val awaitingAllocationStatus =
+      referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!
+    val onProgrammeStatus = referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME)!!
+    val programmeCompleteStatus =
+      referralStatusDescriptionRepository.findByReferralStatusType(PROGRAMME_COMPLETE)!!
     var referral1 = testReferralHelper.createReferral()
     referral1 = testReferralHelper.updateReferralStatus(referral1, awaitingAllocationStatus)
     var referral2 = testReferralHelper.createReferral()
@@ -179,7 +186,7 @@ class ReferralCompleteEventTest(
         ),
       ),
     )
-    val attendanceResult2 = performRequestAndExpectStatusWithBody(
+    performRequestAndExpectStatusWithBody(
       httpMethod = HttpMethod.POST,
       uri = "/session/${freshSession2.id}/attendance",
       body = attendanceRequest2,

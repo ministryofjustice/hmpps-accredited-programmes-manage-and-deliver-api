@@ -12,6 +12,6 @@ data class SubjectAccessRequestReferralStatusDescription(
 
 fun ReferralStatusDescriptionEntity.toApi() = SubjectAccessRequestReferralStatusDescription(
   id = id,
-  description = description,
+  description = referralStatusType.displayName,
   updatedAt = updatedAt,
 )

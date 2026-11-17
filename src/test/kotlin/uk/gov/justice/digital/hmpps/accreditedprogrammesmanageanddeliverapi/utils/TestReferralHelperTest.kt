@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ALLOCATION
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.PROGRAMME_COMPLETE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import kotlin.time.measureTimedValue
 
@@ -23,17 +25,17 @@ class TestReferralHelperTest : IntegrationTestBase() {
   @Test
   fun `test Referral creation with default 'Awaiting allocation' status`() {
     val referral = testReferralHelper.createReferralAndUpdateStatus()
-    assertThat(referral.statusHistories.first().referralStatusDescription.description)
-      .isEqualTo("Awaiting allocation")
+    assertThat(referral.statusHistories.first().referralStatusDescription.referralStatusType)
+      .isEqualTo(AWAITING_ALLOCATION)
   }
 
   @Test
   fun `test Referral creation with 'Awaiting allocation' status`() {
     val referralStatusDescription =
-      referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+      referralStatusDescriptionRepository.findByReferralStatusType(PROGRAMME_COMPLETE)!!
     val referral = testReferralHelper.createReferralAndUpdateStatus(referralStatusDescription)
-    assertThat(referral.statusHistories.first().referralStatusDescription.description)
-      .isEqualTo("Programme complete")
+    assertThat(referral.statusHistories.first().referralStatusDescription.referralStatusType)
+      .isEqualTo(PROGRAMME_COMPLETE)
   }
 
   @Test

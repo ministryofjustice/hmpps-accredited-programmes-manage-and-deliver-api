@@ -73,6 +73,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusRegionWithMembersFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamMembersFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusUserTeamWithMembersFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionAttendanceEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.SessionNotesHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UpdateAppointmentRequestFactory
@@ -85,11 +86,15 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.ProgrammeGroupFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.SessionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.ON_PROGRAMME
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.RETURN_TO_COURT
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.SCHEDULED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.BankHolidayRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.NDeliusAppointmentRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionAttendanceOutcomeTypeRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
@@ -133,6 +138,9 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
 
   @Autowired
   private lateinit var referralStatusDescriptionRepository: ReferralStatusDescriptionRepository
+
+  @Autowired
+  private lateinit var referralRepository: ReferralRepository
 
   @Autowired
   private lateinit var nDeliusAppointmentRepository: NDeliusAppointmentRepository
@@ -2331,6 +2339,151 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should POST create session attendance request and auto update referral status from scheduled to on programme`() {
+      // Given
+      // Create group
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+      val referral = testReferralHelper.createReferral()
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
+      // Change the referral status to scheduled
+      val secondStatus = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .produce(
+          referral,
+          referralStatusDescriptionRepository.findByReferralStatusType(SCHEDULED)!!,
+        )
+      testDataGenerator.createReferralStatusHistory(secondStatus)
+
+      val sessionEntity =
+        sessionRepository.findByProgrammeGroupId(group.id!!)
+          .find { it.sessionType == SessionType.ONE_TO_ONE && it.moduleName.startsWith("Pre-group") }
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+      val scheduledSession = testGroupHelper.scheduleSession(group, referral, sessionEntity!!)
+      val sessionId = scheduledSession.id!!
+
+      val sessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = scheduledSession.attendees.first().referralId,
+            outcomeCode = ATTC,
+            sessionNotes = "Test session notes",
+            additionalDetails = "Test additional details",
+          ),
+        ),
+      )
+
+      val createdByFullName = "John Smith"
+      manageUsersApiStubs.stubUserResponse(UserDtoFactory().withName(createdByFullName).produce())
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = sessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Then
+      assertThat(response.responseMessage).isEqualTo("Attendance saved for session $sessionId")
+      val optionalReferralResult = referralRepository.findById(referral.id!!)
+      assertThat(optionalReferralResult).isPresent()
+      val referralResult = optionalReferralResult.get()
+      assertThat(referralResult.statusHistories.first().referralStatusDescription.referralStatusType)
+        .isEqualTo(ON_PROGRAMME)
+      assertThat(referralResult.statusHistories.first().additionalDetails)
+        .isEqualTo("Test additional details")
+    }
+
+    @Test
+    fun `should POST update session attendance request and auto update referral status from scheduled to on programme`() {
+      // Given
+      // Create group
+      val group = testGroupHelper.createGroup()
+      nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
+      // Allocate one referral to a group with 'Awaiting allocation' status to ensure it's not returned as part of our waitlist data
+      val referral = testReferralHelper.createReferral()
+      programmeGroupMembershipService.allocateReferralToGroup(
+        referral.id!!,
+        group.id!!,
+        "SYSTEM",
+        "",
+      )
+
+      val sessionEntity =
+        sessionRepository.findByProgrammeGroupId(group.id!!)
+          .find { it.sessionType == SessionType.ONE_TO_ONE && it.moduleName.startsWith("Pre-group") }
+      nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
+      val scheduledSession = testGroupHelper.scheduleSession(group, referral, sessionEntity!!)
+      val sessionId = scheduledSession.id!!
+
+      val createSessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = scheduledSession.attendees.first().referralId,
+            outcomeCode = AFTC,
+            sessionNotes = "Test session notes failed to comply",
+          ),
+        ),
+      )
+
+      val createdByFullName = "John Smith"
+      manageUsersApiStubs.stubUserResponse(UserDtoFactory().withName(createdByFullName).produce())
+
+      // create session attendance
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = createSessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      val updateSessionAttendanceRequest = SessionAttendance(
+        attendees = listOf(
+          SessionAttendee(
+            referralId = scheduledSession.attendees.first().referralId,
+            outcomeCode = ATTC,
+            sessionNotes = "Test session notes complied",
+          ),
+        ),
+      )
+
+      // Change the referral status to scheduled
+      val secondStatus = ReferralStatusHistoryEntityFactory()
+        .withCreatedAt(LocalDateTime.now())
+        .produce(
+          referral,
+          referralStatusDescriptionRepository.findByReferralStatusType(SCHEDULED)!!,
+        )
+      testDataGenerator.createReferralStatusHistory(secondStatus)
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/session/$sessionId/attendance",
+        body = updateSessionAttendanceRequest,
+        returnType = object : ParameterizedTypeReference<SessionAttendance>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Then
+      assertThat(response.responseMessage).isEqualTo("Attendance saved for session $sessionId")
+      val optionalReferralResult = referralRepository.findById(referral.id!!)
+      assertThat(optionalReferralResult).isPresent()
+      val referralResult = optionalReferralResult.get()
+      assertThat(referralResult.statusHistories.first().referralStatusDescription.referralStatusType)
+        .isEqualTo(ON_PROGRAMME)
+    }
+
+    @Test
     fun `should POST session attendance for a past group session after the PoP was removed from the group`() {
       // Given a PoP allocated to a group, with a group session that has since moved into the past
       val group = testGroupHelper.createGroup()
@@ -2353,7 +2506,7 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
         group.id!!,
         "SYSTEM",
         RemoveFromGroupRequest(
-          referralStatusDescriptionId = referralStatusDescriptionRepository.getReturnToCourtStatusDescription().id,
+          referralStatusDescriptionId = referralStatusDescriptionRepository.findByReferralStatusType(RETURN_TO_COURT)!!.id,
           additionalDetails = "removed from group",
         ),
       )
@@ -3150,6 +3303,16 @@ class SessionControllerIntegrationTest : IntegrationTestBase() {
       // And nDelius refuses to create a replacement
       wiremock.stubFor(
         post(urlEqualTo("/appointments"))
+          .willReturn(
+            aResponse()
+              .withStatus(HttpStatus.BAD_REQUEST.value())
+              .withHeader("Content-Type", "application/json")
+              .withBody("""{"message":"Invalid Requirement IDs: [1]"}"""),
+          ),
+      )
+
+      wiremock.stubFor(
+        put(urlEqualTo("/appointments"))
           .willReturn(
             aResponse()
               .withStatus(HttpStatus.BAD_REQUEST.value())

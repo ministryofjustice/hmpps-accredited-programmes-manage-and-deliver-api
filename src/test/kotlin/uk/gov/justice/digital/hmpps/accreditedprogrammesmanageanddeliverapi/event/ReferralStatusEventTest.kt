@@ -12,12 +12,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.http.HttpMethod
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusInfo
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusInfo.Status
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.DomainEventsMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.UserDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ALLOCATION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import java.time.Duration.ofMillis
 
@@ -39,7 +39,8 @@ class ReferralStatusEventTest : IntegrationTestBase() {
   @Test
   fun `publish a status change event and retrieve the details via rest endpoint`() {
     // Creates referral and moves to awaiting allocation status
-    val awaitingAllocationStatus = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    val awaitingAllocationStatus =
+      referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)!!
     val referral = testReferralHelper.createReferral()
     testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus, "TEST ADDITIONAL DETAILS")
 
@@ -68,6 +69,6 @@ class ReferralStatusEventTest : IntegrationTestBase() {
     assertThat(response.sourcedFromEntityType).isEqualTo(ReferralEntitySourcedFrom.LICENCE_CONDITION)
     assertThat(response.sourcedFromEntityId).isEqualTo(referral.eventId!!.toLong())
 
-    assertThat(response.newStatus).isEqualTo(Status.AWAITING_ALLOCATION)
+    assertThat(response.newStatus).isEqualTo(AWAITING_ALLOCATION)
   }
 }
