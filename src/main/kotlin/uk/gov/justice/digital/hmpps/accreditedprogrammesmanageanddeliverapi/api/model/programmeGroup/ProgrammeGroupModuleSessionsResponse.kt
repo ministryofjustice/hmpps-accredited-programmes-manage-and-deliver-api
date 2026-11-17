@@ -44,8 +44,8 @@ data class ProgrammeGroupModuleSessionsResponseGroupModule(
   @Schema(description = "The name of the module", required = true, example = "Getting started")
   val name: String,
 
-  @Schema(description = "Object containing the start date text", required = true, example = "Estimated date of Getting started one-to-ones: Thursday 21 May 2026")
-  val startDateText: StartDateText,
+  @Schema(description = "Object containing the start date text, or null when the group has no sessions to estimate it from", example = "Estimated date of Getting started one-to-ones: Thursday 21 May 2026")
+  val startDateText: StartDateText?,
 
   @Schema(description = "The text to display on the schedule button", required = true, example = "Schedule a Getting started session")
   val scheduleButtonText: String,

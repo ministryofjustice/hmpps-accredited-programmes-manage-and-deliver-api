@@ -117,7 +117,7 @@ class ScheduleService(
     return savedSession
   }
 
-  fun getNextSlotDate(programmeGroupId: UUID, moduleId: UUID): LocalDate {
+  fun getNextSlotDate(programmeGroupId: UUID, moduleId: UUID): LocalDate? {
     val group = programmeGroupRepository.findByIdOrNull(programmeGroupId)
       ?: throw NotFoundException("Group with id: $programmeGroupId could not be found")
 
@@ -127,7 +127,7 @@ class ScheduleService(
       return sessions
         .filter { it.moduleSessionTemplate.module.isPreGroupModule() }
         .minByOrNull { it.startsAt }
-        ?.startsAt!!.toLocalDate()
+        ?.startsAt?.toLocalDate()
     }
 
     // Post programme should use the next date after the final group plus a 6-week buffer
@@ -135,7 +135,7 @@ class ScheduleService(
       val sessions = sessionRepository.findByProgrammeGroupId(programmeGroupId)
       return sessions
         .maxByOrNull { it.startsAt }
-        ?.startsAt!!.toLocalDate()
+        ?.startsAt?.toLocalDate()
     }
 
     // Otherwise get the date of the last scheduled session (not a catch-up) for the module and calculate the next date based on that
@@ -151,8 +151,12 @@ class ScheduleService(
       sessionsToCheck.addAll(sessions)
     }
 
+    // If all core group sessions are removed for a module then fallback to the placeholder session
     val lastScheduledSession = sessionsToCheck.maxByOrNull { it.startsAt }
-    val dateToScheduleFrom = lastScheduledSession!!.startsAt.toLocalDate().plusDays(1)
+      ?: return sessionRepository.findByProgrammeGroupId(programmeGroupId)
+        .firstOrNull { it.isPlaceholder && it.moduleSessionTemplate.module.id == moduleId }
+        ?.startsAt?.toLocalDate()
+    val dateToScheduleFrom = lastScheduledSession.startsAt.toLocalDate().plusDays(1)
 
     val groupSlots = group.programmeGroupSessionSlots
     require(groupSlots.isNotEmpty()) { "Programme group slots must not be empty" }
