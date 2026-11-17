@@ -8,6 +8,7 @@ enum class IntegrationActivityType(val eventName: String) {
   GET_LIMITED_ACCESS_OFFENDER_N_DELIUS("LimitedAccessOffender.get-nDelius"),
   GET_OFFENCE_N_DELIUS("Offence.get-nDelius"),
   GET_REGISTRATION_N_DELIUS("Registration.get-nDelius"),
+  GET_STAFF_N_DELIUS("Staff.get-nDelius"),
   GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS("RequirementManagerDetails.get-nDelius"),
   GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS("LicenceConditionManagerDetails.get-nDelius"),
   GET_LICENCE_CONDITIONS_N_DELIUS("LicenceConditions.get-nDelius"),

@@ -47,6 +47,9 @@ interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
 
   fun findAllByUpdatedAtBefore(updatedAtBefore: LocalDateTime, pageable: Pageable): Page<ReferralEntity>
 
+  @Query("SELECT r.id FROM ReferralEntity r WHERE r.personSurname IS NULL")
+  fun findAllIdsWherePersonSurnameIsNull(): List<UUID>
+
   @Query(
     value = """
       SELECT DISTINCT r.id AS referralId,
@@ -73,6 +76,7 @@ interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
 
   fun findByEventNumber(eventNumber: Int): List<ReferralEntity>
 }
+
 interface DosageReportReferralProjection {
   val referralId: UUID
   val licReqNo: String?
