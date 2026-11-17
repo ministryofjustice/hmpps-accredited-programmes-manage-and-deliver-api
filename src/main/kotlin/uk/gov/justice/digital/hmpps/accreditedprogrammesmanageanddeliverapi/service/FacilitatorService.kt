@@ -51,13 +51,13 @@ class FacilitatorService(
     val notFoundIds: MutableList<UUID> = mutableListOf()
     val failureIds: MutableList<UUID> = mutableListOf()
 
-    val facilitatorIds = facilitatorIds.ifEmpty {
+    val idsToProcess = facilitatorIds.ifEmpty {
       withContext(Dispatchers.IO) {
         facilitatorRepository.findAllIdsWherePersonSurnameIsNull()
       }
     }
 
-    facilitatorIds.forEachIndexed { index, id ->
+    idsToProcess.forEachIndexed { index, id ->
       log.info("[{}/{}] Refreshing Name for Facilitator with id {}...", index + 1, facilitatorIds.size, id)
       try {
         val optionalFacilitator = facilitatorRepository.findById(id)
@@ -68,10 +68,11 @@ class FacilitatorService(
           facilitator.personSurname = staffDto.surname
           facilitator.personMiddleNames = staffDto.middleNames
           facilitatorRepository.save(facilitator)
+          log.info("[Facilitator of id $id]...success!")
+          successIds.add(id)
+        } else {
+          notFoundIds.add(id)
         }
-
-        log.info("[Facilitator of id $id]...success!")
-        successIds.add(id)
       } catch (e: Exception) {
         log.error("[Facilitator of id $id]...failure: ${e.message})")
         failureIds.add(id)
