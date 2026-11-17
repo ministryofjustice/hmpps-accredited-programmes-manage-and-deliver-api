@@ -488,4 +488,50 @@ class EntityFactoriesTest {
     assertThat(sessionNotesHistory.createdAt).isEqualTo(createdAt)
     assertThat(sessionNotesHistory.createdByFullName).isEqualTo(createdByFullName)
   }
+
+  @Test
+  fun `FacilitatorEntityFactory should create entity with default values`() {
+    val facilitator = FacilitatorEntityFactory().produce()
+
+    assertThat(facilitator.id).isNull()
+    assertThat(facilitator.personName).isNotNull()
+    assertThat(facilitator.personForename).isNull()
+    assertThat(facilitator.personMiddleNames).isNull()
+    assertThat(facilitator.personSurname).isNull()
+    assertThat(facilitator.ndeliusPersonCode).isNotNull()
+    assertThat(facilitator.ndeliusTeamCode).isNotNull()
+    assertThat(facilitator.ndeliusTeamName).isNotNull()
+  }
+
+  @Test
+  fun `FacilitatorEntityFactory should create entity with custom values`() {
+    val id = UUID.randomUUID()
+    val personName = "Jane Doe"
+    val personForename = "Jane"
+    val personMiddleNames = "Ann"
+    val personSurname = "Doe"
+    val ndeliusPersonCode = "CODE123"
+    val ndeliusTeamCode = "TEAM123"
+    val ndeliusTeamName = "Team Name"
+
+    val facilitator = FacilitatorEntityFactory()
+      .withId(id)
+      .withPersonName(personName)
+      .withPersonForename(personForename)
+      .withPersonMiddleNames(personMiddleNames)
+      .withPersonSurname(personSurname)
+      .withNdeliusPersonCode(ndeliusPersonCode)
+      .withNdeliusTeamCode(ndeliusTeamCode)
+      .withNdeliusTeamName(ndeliusTeamName)
+      .produce()
+
+    assertThat(facilitator.id).isEqualTo(id)
+    assertThat(facilitator.personName).isEqualTo(personName)
+    assertThat(facilitator.personForename).isEqualTo(personForename)
+    assertThat(facilitator.personMiddleNames).isEqualTo(personMiddleNames)
+    assertThat(facilitator.personSurname).isEqualTo(personSurname)
+    assertThat(facilitator.ndeliusPersonCode).isEqualTo(ndeliusPersonCode)
+    assertThat(facilitator.ndeliusTeamCode).isEqualTo(ndeliusTeamCode)
+    assertThat(facilitator.ndeliusTeamName).isEqualTo(ndeliusTeamName)
+  }
 }

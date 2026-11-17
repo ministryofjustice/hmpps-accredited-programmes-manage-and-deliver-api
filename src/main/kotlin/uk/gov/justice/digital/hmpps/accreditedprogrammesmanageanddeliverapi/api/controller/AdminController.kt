@@ -212,7 +212,7 @@ class AdminController(
     var result = RefreshPersonalDetailsResult(successIds = facilitatorIdList)
     CoroutineScope(dispatcher).launch {
       try {
-        result = facilitatorService.updatePersonName(facilitatorIdList)
+        result = facilitatorService.updateNameByFacilitatorIds(facilitatorIdList)
       } catch (e: Exception) {
         log.error("Error during background processing of update facilitator structured personal names", e)
       }
