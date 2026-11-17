@@ -119,6 +119,7 @@ import java.time.Duration.ofMillis
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
@@ -3954,6 +3955,29 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(errorResponse.status).isEqualTo(HttpStatus.NOT_FOUND.value())
       assertThat(errorResponse.userMessage).contains("Module with id $nonExistentModuleId not found")
     }
+
+    @Test
+    fun `returns 200 with no suggested date when the module has no main group sessions or one-to-one placeholder left`() {
+      // Given
+      nDeliusApiStubs.stubRegionWithAccreditedProgrammesMembersResponse("REGION001", RegionDtoFactory().produce())
+      val group = testGroupHelper.createGroup()
+      // Bringing it all together only has group sessions, so it has no one-to-one placeholder to fall back on
+      val module = buildingChoicesTemplate.modules.first { it.name == "Bringing it all together" }
+      sessionRepository.deleteAll(
+        sessionRepository.findByProgrammeGroupId(group.id!!)
+          .filter { it.moduleSessionTemplate.module.id == module.id && it.sessionType == SessionType.GROUP },
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/module/${module.id}/schedule-individual-session-details",
+        returnType = object : ParameterizedTypeReference<ScheduleIndividualSessionDetailsResponse>() {},
+      )
+
+      // Then
+      assertThat(response.suggestedDate).isNull()
+    }
   }
 
   @Nested
@@ -4075,17 +4099,17 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       response.modules.forEach { module ->
         module.sessions.forEach { session ->
-          when {
-            session.type == "Group" && !session.isCatchup -> {
+          when (session.type) {
+            "Group" if !session.isCatchup -> {
               assertThat(session.participants).isEqualTo(listOf(Participant(name = "All")))
             }
 
-            session.type == "Group" && session.isCatchup -> {
+            "Group" -> {
               assertThat(session.participants).isNotEmpty()
               assertThat(session.participants).doesNotContain(Participant(name = "All"))
             }
 
-            session.type == "Individual" -> {
+            "Individual" -> {
               assertThat(session.participants).isNotEmpty().hasSize(1)
               assertThat(session.participants[0]).isEqualTo(
                 Participant(
@@ -4099,6 +4123,31 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           }
         }
       }
+    }
+
+    @Test
+    fun `return 200 and use the one-to-one placeholder date for a module whose main group sessions have all been deleted`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val gettingStarted = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate().modules.first { it.name == "Getting started" }
+      val gettingStartedSessions = sessionRepository.findByProgrammeGroupId(group.id!!)
+        .filter { it.moduleSessionTemplate.module.id == gettingStarted.id }
+      sessionRepository.deleteAll(gettingStartedSessions.filter { it.sessionType == SessionType.GROUP })
+      val placeholderDate = gettingStartedSessions.single { it.isPlaceholder }.startsAt.toLocalDate()
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/sessions",
+        returnType = object : ParameterizedTypeReference<ProgrammeGroupModuleSessionsResponse>() {},
+      )
+
+      // Then
+      val module = response.modules.single { it.name == "Getting started" }
+      assertThat(module.sessions).isEmpty()
+      assertThat(module.startDateText?.estimatedStartDateText).isEqualTo("Estimated date of Getting started one-to-ones")
+      assertThat(module.startDateText?.sessionStartDate).isEqualTo(placeholderDate.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")))
+      assertThat(module.scheduleButtonText).isEqualTo("Schedule a Getting started session")
     }
 
     @Test
