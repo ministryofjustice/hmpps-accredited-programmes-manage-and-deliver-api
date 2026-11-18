@@ -564,7 +564,7 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     val nextSlotDate = scheduleService.getNextSlotDate(group.id!!, regularModule.id!!)
 
     // The next slot should be on one of the valid slot days (Monday or Thursday)
-    assertThat(nextSlotDate.dayOfWeek).isIn(DayOfWeek.MONDAY, DayOfWeek.THURSDAY)
+    assertThat(nextSlotDate?.dayOfWeek).isIn(DayOfWeek.MONDAY, DayOfWeek.THURSDAY)
 
     // The next slot date should be on the correct date
     assertThat(nextSlotDate).isEqualTo(LocalDate.of(2126, 8, 19))
@@ -591,9 +591,52 @@ class ScheduleServiceIntegrationTest : IntegrationTestBase() {
     val nextSlotDate = scheduleService.getNextSlotDate(group.id!!, regularModule.id!!)
 
     // Should return a date on one of the valid slot days
-    assertThat(nextSlotDate.dayOfWeek).isIn(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY)
+    assertThat(nextSlotDate?.dayOfWeek).isIn(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY)
 
     // Should be the correct date
     assertThat(nextSlotDate).isEqualTo(LocalDate.of(2126, 7, 10))
+  }
+
+  @Test
+  fun `getNextSlotDate should fall back to the one-to-one placeholder date once all of a module's main group sessions are deleted`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+
+    val group = testGroupHelper.createGroup(
+      earliestStartDate = LocalDate.of(2126, 5, 1),
+      createGroupSessionSlots = setOf(slot1),
+    )
+
+    val regularModule = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate().modules.first {
+      it.name == "People around me"
+    }
+    val moduleSessions = programmeGroupRepository.findByIdOrNull(group.id!!)!!.sessions
+      .filter { it.moduleSessionTemplate.module.id == regularModule.id }
+    moduleSessions.filter { it.sessionType == SessionType.GROUP }.forEach { sessionService.deleteSession(it.id!!) }
+
+    val nextSlotDate = scheduleService.getNextSlotDate(group.id!!, regularModule.id!!)
+
+    assertThat(nextSlotDate).isEqualTo(moduleSessions.single { it.isPlaceholder }.startsAt.toLocalDate())
+  }
+
+  @Test
+  fun `getNextSlotDate should return null once all of a module's main group sessions are deleted and it has no one-to-one placeholder`() {
+    val slot1 = CreateGroupSessionSlotFactory().produce(DayOfWeek.MONDAY, 9, 30, AmOrPm.AM)
+
+    val group = testGroupHelper.createGroup(
+      earliestStartDate = LocalDate.of(2126, 5, 1),
+      createGroupSessionSlots = setOf(slot1),
+    )
+
+    // Bringing it all together only has group sessions, so it has no one-to-one placeholder to fall back on
+    val moduleWithoutOneToOnes = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate().modules.first {
+      it.name == "Bringing it all together"
+    }
+    programmeGroupRepository.findByIdOrNull(group.id!!)!!.sessions
+      .filter { it.moduleSessionTemplate.module.id == moduleWithoutOneToOnes.id }
+      .forEach { sessionService.deleteSession(it.id!!) }
+
+    val nextSlotDate = scheduleService.getNextSlotDate(group.id!!, moduleWithoutOneToOnes.id!!)
+
+    assertThat(nextSlotDate).isNull()
   }
 }

@@ -14,8 +14,8 @@ data class ScheduleIndividualSessionDetailsResponse(
   @Schema(description = "Details of the Group's members via their Referrals")
   val groupMembers: List<GroupMember>,
 
-  @get:JsonProperty("suggestedDate", required = true)
+  @get:JsonProperty("suggestedDate")
   @JsonFormat(pattern = "dd/MM/yyyy")
-  @Schema(description = "Suggested date for the next one to one session")
-  val suggestedDate: LocalDate,
+  @Schema(description = "Suggested date for the next one to one session, or null when the group has no sessions to suggest it from")
+  val suggestedDate: LocalDate?,
 )
