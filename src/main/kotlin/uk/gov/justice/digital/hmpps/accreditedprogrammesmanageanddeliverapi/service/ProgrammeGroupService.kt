@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
@@ -46,12 +45,10 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.ConflictException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ModuleSessionTemplateEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ProgrammeGroupSessionSlotEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceNDeliusOutcomeEntity
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionFacilitatorEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.latestByCreatedAt
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.FacilitatorType
@@ -67,7 +64,6 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getGroupWaitlistItemSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsByRegionTabSpecification
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.specification.getProgrammeGroupsSpecification
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.UserAccessService.Access
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameContext
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
@@ -93,10 +89,6 @@ class ProgrammeGroupService(
   private val sessionService: SessionService,
   private val moduleSessionTemplateRepository: ModuleSessionTemplateRepository,
   private val userAccessService: UserAccessService,
-  @param:Value("\${app.features.lao-access-check-enabled}")
-  private val limitedAccessOffenderCheckEnabled: Boolean,
-  @param:Value("\${app.features.exclusion-access-check-enabled}")
-  private val exclusionAccessCheckEnabled: Boolean,
   private val moduleRepository: ModuleRepository,
   private val authenticationUtils: AuthenticationUtils,
   private val regionService: RegionService,
@@ -250,7 +242,7 @@ class ProgrammeGroupService(
 
     // Reschedule future sessions if requested
     if (updateGroupRequest.automaticallyRescheduleOtherSessions == true) {
-      scheduleService.rescheduleSessionsForGroup(savedGroup.id!!)
+      sessionService.rescheduleSessionsForGroup(savedGroup.id!!)
     }
 
     val successMessage =
@@ -312,7 +304,7 @@ class ProgrammeGroupService(
       session.sessionFacilitators.addAll(updatedFacilitators)
     }
     sessionRepository.saveAll(futureSessions)
-    sessionService.updateNDeliusAppointmentsForMultipleSessions(futureSessions)
+    sessionService.updateNDeliusAppointmentsForSessions(futureSessions)
   }
 
   private fun reschedulePreGroupOneToOneSession(groupId: UUID, sessionStartDate: LocalDate) {
@@ -395,8 +387,8 @@ class ProgrammeGroupService(
     pageable: Pageable,
     selectedTab: GroupPageTab,
     groupId: UUID,
-    sex: String?,
-    cohort: ProgrammeGroupCohort?,
+    sex: List<String>?,
+    cohorts: List<ProgrammeGroupCohort>?,
     nameOrCrn: String?,
     pdus: List<String>?,
     reportingTeams: List<String>?,
@@ -408,14 +400,14 @@ class ProgrammeGroupService(
 
     val otherTab = if (selectedTab === GroupPageTab.WAITLIST) GroupPageTab.ALLOCATED else GroupPageTab.WAITLIST
 
-    val isFilteredCaseList = isFilterApplied(sex, cohort, nameOrCrn, pdus, reportingTeams)
+    val isFilteredCaseList = isFilterApplied(sex, cohorts, nameOrCrn, pdus, reportingTeams)
 
     val activeSpecification =
       getGroupWaitlistItemSpecification(
         selectedTab,
         groupId,
         sex,
-        cohort,
+        cohorts,
         nameOrCrn,
         pdus,
         reportingTeams,
@@ -427,7 +419,7 @@ class ProgrammeGroupService(
         otherTab,
         groupId,
         sex,
-        cohort,
+        cohorts,
         nameOrCrn,
         pdus,
         reportingTeams,
@@ -437,22 +429,19 @@ class ProgrammeGroupService(
     val pagedData = groupWaitlistItemViewRepository.findAll(activeSpecification, pageable)
 
     // Fetch Limited Access Offender (LAO) status for all distinct case reference numbers (CRNs)
-    var limitedAccessOffenderAccessMap: Map<String, Access>? = null
-    if (limitedAccessOffenderCheckEnabled) {
-      val username = authenticationUtils.getUsername()
-      val caseReferenceNumbers = pagedData.content.map { it.crn }.distinct()
-      limitedAccessOffenderAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
-    }
+    val username = authenticationUtils.getUsername()
+    val caseReferenceNumbers = pagedData.content.map { it.crn }.distinct()
+    val limitedAccessOffenderAccessMap = userAccessService.determineUserAccess(username, caseReferenceNumbers)
 
     val groupItems = pagedData.content.filter { item ->
-      if (exclusionAccessCheckEnabled && isFilteredCaseList) {
+      if (isFilteredCaseList) {
         val crnMatchesSearch = !nameOrCrn.isNullOrEmpty() &&
           item.crn.contains(nameOrCrn, ignoreCase = true)
-        val hasOtherFilters = hasFiltersOtherThanSearch(sex, cohort, pdus, reportingTeams)
+        val hasOtherFilters = hasFiltersOtherThanSearch(sex, cohorts, pdus, reportingTeams)
         val shouldSkipExclusionFilter = crnMatchesSearch && !hasOtherFilters
 
         if (!shouldSkipExclusionFilter) {
-          val access = limitedAccessOffenderAccessMap?.get(item.crn)
+          val access = limitedAccessOffenderAccessMap[item.crn]
           val isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false
           val isExcluded = access?.isExcluded ?: false
           if (isLimitedAccessOffender) {
@@ -463,7 +452,7 @@ class ProgrammeGroupService(
 
       return@filter true
     }.map { item ->
-      val access = limitedAccessOffenderAccessMap?.get(item.crn)
+      val access = limitedAccessOffenderAccessMap[item.crn]
       item.toApi(
         isLimitedAccessOffender = access?.isLimitedAccessOffender ?: false,
         isExcluded = access?.isExcluded ?: false,
@@ -531,86 +520,68 @@ class ProgrammeGroupService(
     )
   }
 
-  fun getModuleSessionsForGroup(groupId: UUID): ProgrammeGroupModuleSessionsResponse? {
+  fun getModuleSessionsForGroup(groupId: UUID): ProgrammeGroupModuleSessionsResponse {
     val group = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
 
-    val programmeGroupModuleSessionsResponseGroup =
-      ProgrammeGroupModuleSessionsResponseGroup(group.code, group.regionName)
+    val sessions = sessionRepository.findByProgrammeGroupId(groupId).filter { !it.isPlaceholder }
+    val sessionsByModuleId = sessions.groupBy { it.moduleSessionTemplate.module.id }
 
-    // We need to get all modules for the group's accredited programme template. From there, we get all the session templates for each module,
-    // and then we need to go to the database to find any scheduled sessions for the group that use that session template.
-    // We need to do this as we currently have no direct link from session templates to scheduled sessions.
-    // This then builds the api response object with all the required data.
-    val modules = group.accreditedProgrammeTemplate?.modules?.map { module ->
-      val sessions = module.sessionTemplates.flatMap { sessionTemplate ->
-        val scheduledSessions = getScheduledSessionForGroupAndSessionTemplate(
-          groupId = group.id!!,
-          sessionTemplateId = sessionTemplate.id!!,
-        )?.filter { !it.isPlaceholder }
-        scheduledSessions?.map { scheduledSession ->
-          ProgrammeGroupModuleSessionsResponseGroupSession(
-            id = scheduledSession.id!!,
-            number = sessionTemplate.sessionNumber,
-            name = sessionNameFormatter.format(
-              scheduledSession,
-              SessionNameContext.SessionsAndAttendance(sessionTemplate),
-            ),
-            type = if (sessionTemplate.sessionType == SessionType.ONE_TO_ONE) "Individual" else "Group",
-            isCatchup = scheduledSession.isCatchup,
-            dateOfSession = scheduledSession.startsAt.toLocalDate(),
-            timeOfSession = formatTimeOfSession(
-              scheduledSession.startsAt.toLocalTime(),
-              scheduledSession.endsAt.toLocalTime(),
-            ),
-            timeWithCapitalisedMidday = formatTimeOfSession(
-              scheduledSession.startsAt.toLocalTime(),
-              scheduledSession.endsAt.toLocalTime(),
-              capitaliseMidday = true,
-            ),
-            participants = buildParticipantList(sessionTemplate, scheduledSession),
-            facilitators = scheduledSession.sessionFacilitators.filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }
-              .map { "${it.facilitator.personForename} ${it.facilitator.personSurname}" },
-          )
-        } ?: emptyList()
-      }
+    // Main group sessions show "All" rather than each person, so only the other sessions need an access check
+    val accessByCrn = userAccessService.determineUserAccess(
+      authenticationUtils.getUsername(),
+      sessions
+        .filterNot { it.sessionType == SessionType.GROUP && !it.isCatchup }
+        .flatMap { session -> session.attendees.map { it.referral.crn } },
+    )
 
+    val modules = group.accreditedProgrammeTemplate?.modules.orEmpty().map { module ->
       ProgrammeGroupModuleSessionsResponseGroupModule(
         id = module.id!!,
         number = module.moduleNumber,
         name = module.name,
-        startDateText = StartDateText(
-          formatEstimatedStartText(module.name),
-          scheduleService.getNextSlotDate(group.id!!, module.id!!)
-            .format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")),
-        ),
+        startDateText = scheduleService.getNextSlotDate(groupId, module.id!!)?.let { nextSlotDate ->
+          StartDateText(
+            formatEstimatedStartText(module.name),
+            nextSlotDate.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")),
+          )
+        },
         scheduleButtonText = formatButtonText(module.name),
-        sessions = sessions,
+        sessions = sessionsByModuleId[module.id].orEmpty().sortedBy { it.sessionNumber }.map { session ->
+          ProgrammeGroupModuleSessionsResponseGroupSession(
+            id = session.id!!,
+            number = session.sessionNumber,
+            name = sessionNameFormatter.format(session, SessionNameContext.SessionsAndAttendance(session.moduleSessionTemplate)),
+            type = session.sessionType.value,
+            isCatchup = session.isCatchup,
+            dateOfSession = session.startsAt.toLocalDate(),
+            timeOfSession = formatTimeOfSession(session.startsAt.toLocalTime(), session.endsAt.toLocalTime()),
+            timeWithCapitalisedMidday = formatTimeOfSession(
+              session.startsAt.toLocalTime(),
+              session.endsAt.toLocalTime(),
+              capitaliseMidday = true,
+            ),
+            participants = if (session.sessionType == SessionType.GROUP && !session.isCatchup) {
+              listOf(Participant(name = "All"))
+            } else {
+              session.attendees.map {
+                Participant(
+                  name = it.personName,
+                  crn = it.referral.crn,
+                  isLimitedAccessOffender = accessByCrn[it.referral.crn]?.isLimitedAccessOffender ?: false,
+                  isExcluded = accessByCrn[it.referral.crn]?.isExcluded ?: false,
+                )
+              }
+            },
+            facilitators = session.sessionFacilitators
+              .filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }
+              .map { it.facilitator.personName },
+          )
+        },
       )
-    }.orEmpty()
-
-    return ProgrammeGroupModuleSessionsResponse(programmeGroupModuleSessionsResponseGroup, modules)
-  }
-
-  private fun buildParticipantList(
-    sessionTemplate: ModuleSessionTemplateEntity,
-    scheduledSession: SessionEntity,
-  ): List<Participant> {
-    val username = authenticationUtils.getUsername()
-    val userAccessMap =
-      userAccessService.determineUserAccess(username, scheduledSession.attendees.map { it.referral.crn })
-    return if (sessionTemplate.sessionType == SessionType.GROUP && !scheduledSession.isCatchup) {
-      listOf(Participant(name = "All"))
-    } else {
-      scheduledSession.attendees.map {
-        Participant(
-          name = it.personName,
-          crn = it.referral.crn,
-          isLimitedAccessOffender = userAccessMap[it.referral.crn]?.isLimitedAccessOffender ?: false,
-          isExcluded = userAccessMap[it.referral.crn]?.isExcluded ?: false,
-        )
-      }
     }
+
+    return ProgrammeGroupModuleSessionsResponse(ProgrammeGroupModuleSessionsResponseGroup(group.code, group.regionName), modules)
   }
 
   fun getEditCohortForGroup(groupId: UUID): EditGroupCohort {
@@ -720,11 +691,6 @@ class ProgrammeGroupService(
     else -> "Estimated date of $moduleName one-to-ones"
   }
 
-  fun getScheduledSessionForGroupAndSessionTemplate(
-    groupId: UUID,
-    sessionTemplateId: UUID,
-  ): List<SessionEntity>? = sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplateId, groupId)
-
   fun getScheduleOverviewForGroup(groupId: UUID): GroupScheduleOverview {
     val group = programmeGroupRepository.findByIdOrNull(groupId)
       ?: throw NotFoundException("Group with id $groupId not found")
@@ -792,12 +758,12 @@ class ProgrammeGroupService(
     groupCode: String?,
     pdus: List<String>?,
     deliveryLocations: List<String>?,
-    cohort: String?,
-    sex: String?,
+    cohort: List<String>?,
+    sex: List<String>?,
     selectedTab: GroupPageByRegionTab,
     username: String,
   ): GroupsByRegion {
-    val groupCohort = if (cohort.isNullOrEmpty()) null else ProgrammeGroupCohort.fromString(cohort)
+    val groupCohorts = cohort?.filter { it.isNotEmpty() }?.map { ProgrammeGroupCohort.fromString(it) }
 
     val userRegionNames = userService.getUserRegionNames(username)
     if (userRegionNames.isEmpty()) {
@@ -810,7 +776,7 @@ class ProgrammeGroupService(
       groupCode = groupCode,
       pdus = pdus,
       deliveryLocations = deliveryLocations,
-      cohort = groupCohort,
+      cohort = groupCohorts,
       sex = sex,
       regionNames = userRegionNames,
     )
@@ -892,23 +858,23 @@ class ProgrammeGroupService(
   }
 
   private fun hasFiltersOtherThanSearch(
-    sex: String?,
-    cohort: ProgrammeGroupCohort?,
+    sex: List<String>?,
+    cohorts: List<ProgrammeGroupCohort>?,
     pdus: List<String>?,
     reportingTeams: List<String>?,
   ): Boolean = !sex.isNullOrEmpty() ||
-    cohort != null ||
+    !cohorts.isNullOrEmpty() ||
     pdus != null ||
     reportingTeams != null
 
   private fun isFilterApplied(
-    sex: String?,
-    cohort: ProgrammeGroupCohort?,
+    sex: List<String>?,
+    cohorts: List<ProgrammeGroupCohort>?,
     nameOrCrn: String?,
     pdus: List<String>?,
     reportingTeams: List<String>?,
   ): Boolean = !sex.isNullOrEmpty() ||
-    cohort != null ||
+    !cohorts.isNullOrEmpty() ||
     !nameOrCrn.isNullOrEmpty() ||
     pdus != null ||
     reportingTeams != null

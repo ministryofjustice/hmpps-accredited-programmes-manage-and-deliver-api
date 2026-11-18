@@ -22,11 +22,9 @@ class UserAccessServiceTest {
   private val laoAuthorisedCrn = "CRN-LAO-AUTHORISED"
   private val laoRestrictedCrn = "CRN-LAO-RESTRICTED"
 
-  private fun resolver(accessCheckEnabled: Boolean, restrictionEnabled: Boolean) = UserAccessService(
+  private fun resolver() = UserAccessService(
     probationAccessControlApiClient = probationAccessControlApiClient,
     userService = userService,
-    laoAccessCheckEnabled = accessCheckEnabled,
-    exclusionAccessCheck = restrictionEnabled,
   )
 
   private fun stubCaseAccess(
@@ -47,68 +45,26 @@ class UserAccessServiceTest {
   private fun usernameRange(name: String) = AllCaseAccessUsernameRange(username = name, since = OffsetDateTime.now().minusDays(1), until = null)
 
   @Test
-  fun `both feature flags off should not make any calls to getCaseAccessByCrn and no LAO's`() {
-    val result = resolver(accessCheckEnabled = false, restrictionEnabled = false)
-      .determineUserAccess(username, listOf(ordinaryCrn, laoRestrictedCrn))
-
-    assertThat(result[ordinaryCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = false, isExcluded = false))
-    assertThat(result[laoRestrictedCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = false, isExcluded = false))
-
-    verify(exactly = 0) { probationAccessControlApiClient.getCaseAccessByCrn(any()) }
-    verify(exactly = 0) { userService.getAccessibleOffenders(any(), any()) }
-  }
-
-  @Test
-  fun `access check enabled feature flag shows authorised LAO's`() {
+  fun `returns access details for authorised and excluded LAOs`() {
     stubCaseAccess(ordinaryCrn)
     stubCaseAccess(laoAuthorisedCrn, restrictedTo = listOf(username))
     stubCaseAccess(laoRestrictedCrn, excludedFrom = listOf(username))
     // Only the ordinary and authorised-LAO CRNs are accessible to this user.
     every { userService.getAccessibleOffenders(username, any()) } returns setOf(ordinaryCrn, laoAuthorisedCrn)
 
-    val result = resolver(accessCheckEnabled = true, restrictionEnabled = false)
-      .determineUserAccess(username, listOf(ordinaryCrn, laoAuthorisedCrn, laoRestrictedCrn))
-
-    assertThat(result[ordinaryCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = false, isExcluded = false))
-    assertThat(result[laoAuthorisedCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = true, isExcluded = false))
-    assertThat(result).doesNotContainKey(laoRestrictedCrn)
-
-    verify(exactly = 1) { userService.getAccessibleOffenders(username, any()) }
-  }
-
-  @Test
-  fun `restriction flag enabled unauthorised participants are excluded`() {
-    every { userService.getAccessibleOffenders(username, any()) } returns setOf(ordinaryCrn, laoAuthorisedCrn)
-
-    val result = resolver(accessCheckEnabled = false, restrictionEnabled = true)
-      .determineUserAccess(username, listOf(ordinaryCrn, laoAuthorisedCrn, laoRestrictedCrn))
-
-    assertThat(result[ordinaryCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = false, isExcluded = false))
-    assertThat(result[laoAuthorisedCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = false, isExcluded = false))
-    assertThat(result[laoRestrictedCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = false, isExcluded = true))
-
-    verify(exactly = 0) { probationAccessControlApiClient.getCaseAccessByCrn(any()) }
-    verify(exactly = 1) { userService.getAccessibleOffenders(username, any()) }
-  }
-
-  @Test
-  fun `both feature flags enabled - LAOs are access checked and unauthorised LAOs are excluded`() {
-    stubCaseAccess(ordinaryCrn)
-    stubCaseAccess(laoAuthorisedCrn, restrictedTo = listOf(username))
-    stubCaseAccess(laoRestrictedCrn, excludedFrom = listOf(username))
-    every { userService.getAccessibleOffenders(username, any()) } returns setOf(ordinaryCrn, laoAuthorisedCrn)
-
-    val result = resolver(accessCheckEnabled = true, restrictionEnabled = true)
+    val result = resolver()
       .determineUserAccess(username, listOf(ordinaryCrn, laoAuthorisedCrn, laoRestrictedCrn))
 
     assertThat(result[ordinaryCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = false, isExcluded = false))
     assertThat(result[laoAuthorisedCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = true, isExcluded = false))
     assertThat(result[laoRestrictedCrn]).isEqualTo(UserAccessService.Access(isLimitedAccessOffender = true, isExcluded = true))
+
+    verify(exactly = 1) { userService.getAccessibleOffenders(username, any()) }
   }
 
   @Test
   fun `empty crns - returns an empty map and makes no external calls`() {
-    val result = resolver(accessCheckEnabled = true, restrictionEnabled = true).determineUserAccess(username, emptyList())
+    val result = resolver().determineUserAccess(username, emptyList())
 
     assertThat(result).isEmpty()
     verify(exactly = 0) { probationAccessControlApiClient.getCaseAccessByCrn(any()) }
@@ -119,20 +75,20 @@ class UserAccessServiceTest {
   fun `user is excluded when their username is present in excludedFrom`() {
     stubCaseAccess(ordinaryCrn, excludedFrom = listOf(username))
 
-    assertThat(resolver(accessCheckEnabled = false, restrictionEnabled = true).isUserExcluded(username, ordinaryCrn)).isTrue()
+    assertThat(resolver().isUserExcluded(username, ordinaryCrn)).isTrue()
   }
 
   @Test
   fun `user is not excluded when excludedFrom contains another username`() {
     stubCaseAccess(ordinaryCrn, excludedFrom = listOf("OTHER_USER"))
 
-    assertThat(resolver(accessCheckEnabled = false, restrictionEnabled = true).isUserExcluded(username, ordinaryCrn)).isFalse()
+    assertThat(resolver().isUserExcluded(username, ordinaryCrn)).isFalse()
   }
 
   @Test
   fun `user is not excluded when their username is only present in restrictedTo`() {
     stubCaseAccess(ordinaryCrn, restrictedTo = listOf(username))
 
-    assertThat(resolver(accessCheckEnabled = false, restrictionEnabled = true).isUserExcluded(username, ordinaryCrn)).isFalse()
+    assertThat(resolver().isUserExcluded(username, ordinaryCrn)).isFalse()
   }
 }

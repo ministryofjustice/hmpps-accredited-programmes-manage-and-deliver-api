@@ -8,9 +8,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 class PniResponseTest {
 
   @Test
-  fun `hasLdc should return true if PNI assessment score greater than 3`() {
+  fun `hasLdc should return true if PNI assessment subTotal greater than 3`() {
     // Given
-    val ldc = Ldc(score = 4, subTotal = 5)
+    val ldc = Ldc(score = 0, subTotal = 4)
     val pniAssessment = PniAssessmentFactory().withLdc(ldc).produce()
     val response = PniResponseFactory().withAssessment(pniAssessment).produce()
 
@@ -22,9 +22,9 @@ class PniResponseTest {
   }
 
   @Test
-  fun `hasLdc should return true if PNI assessment score is equal to 3`() {
+  fun `hasLdc should return true if PNI assessment subTotal is equal to 3`() {
     // Given
-    val ldc = Ldc(score = 4, subTotal = 5)
+    val ldc = Ldc(score = 0, subTotal = 3)
     val pniAssessment = PniAssessmentFactory().withLdc(ldc).produce()
     val response = PniResponseFactory().withAssessment(pniAssessment).produce()
 
@@ -36,9 +36,9 @@ class PniResponseTest {
   }
 
   @Test
-  fun `hasLdc should return false if PNI assessment score is less than 3`() {
+  fun `hasLdc should return false if PNI assessment subTotal is less than 3`() {
     // Given
-    val ldc = Ldc(score = 2, subTotal = 5)
+    val ldc = Ldc(score = 5, subTotal = 2)
     val pniAssessment = PniAssessmentFactory().withLdc(ldc).produce()
     val response = PniResponseFactory().withAssessment(pniAssessment).produce()
 

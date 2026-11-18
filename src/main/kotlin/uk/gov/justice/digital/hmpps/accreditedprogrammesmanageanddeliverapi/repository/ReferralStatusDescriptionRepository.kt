@@ -51,7 +51,8 @@ interface ReferralStatusDescriptionRepository : JpaRepository<ReferralStatusDesc
    */
   @Override()
   fun save(entity: ReferralStatusDescriptionEntity): Unit = throw NotImplementedError("Not implemented yet")
-  fun findAllByIsClosed(isClosed: Boolean): MutableList<ReferralStatusDescriptionEntity>
+  fun findAllByDeletedAtIsNull(): MutableList<ReferralStatusDescriptionEntity>
+  fun findAllByIsClosedAndDeletedAtIsNull(isClosed: Boolean): MutableList<ReferralStatusDescriptionEntity>
 
   @Query(
     """

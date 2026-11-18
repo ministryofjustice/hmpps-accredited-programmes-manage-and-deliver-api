@@ -12,13 +12,13 @@ data class RescheduleSessionRequest(
   @get:JsonProperty("sessionStartDate", required = true)
   @Schema(description = "The start date of the session in YYYY-MM-DD format", example = "2025-12-17")
   @JsonFormat(pattern = "yyyy-MM-dd")
-  val sessionStartDate: LocalDate,
+  var sessionStartDate: LocalDate,
 
   @Valid
   @NotNull(message = "sessionStartTime must not be null")
   @get:JsonProperty("sessionStartTime", required = true)
   @Schema(description = "The start time of the session")
-  val sessionStartTime: SessionTime,
+  var sessionStartTime: SessionTime,
 
   @Valid
   @get:JsonProperty("sessionEndTime")
@@ -27,6 +27,6 @@ data class RescheduleSessionRequest(
 
   @NotNull(message = "rescheduleOtherSessions must not be null")
   @get:JsonProperty("rescheduleOtherSessions", required = true)
-  @Schema(description = "Whether to reschedule other sessions", example = "true")
-  val rescheduleOtherSessions: Boolean,
+  @Schema(description = "Whether to reschedule the sessions after this one. Only applies to main group sessions.", example = "true")
+  var rescheduleOtherSessions: Boolean,
 )

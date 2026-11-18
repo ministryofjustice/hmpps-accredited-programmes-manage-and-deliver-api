@@ -1,6 +1,6 @@
 # How to Add a Feature Flag
 
-This guide provides a brief outline of how to add a Spring Boot feature flag to this codebase, using the `lao-access-check-enabled` flag as a worked example.
+This guide provides a brief outline of how to add a Spring Boot feature flag to this codebase. The names below are illustrative; replace them with the property and environment variable names for your flag.
 
 ## 1. Define the Flag in `application.yml`
 
@@ -10,12 +10,12 @@ environment variable placeholder and a safe default:
 ```yaml
 app:
   features:
-    lao-access-check-enabled: ${LAO_ACCESS_CHECK_ENABLED:false}
+    example-feature-enabled: ${EXAMPLE_FEATURE_ENABLED:false}
 ```
 
 The `${VAR:default}` form means the flag is off everywhere unless an environment explicitly overrides it, and it
 documents the environment variable name in one place. If your flag has the same value in every environment, a plain
-literal (`lao-access-check-enabled: false`) is fine — see the next section for making it environment specific.
+literal (`example-feature-enabled: false`) is fine — see the next section for making it environment specific.
 
 ## 2. Inject the Flag into Your Service
 
@@ -27,11 +27,11 @@ import org.springframework.beans.factory.annotation.Value
 ```
 
 ### Usage
-In your class (e.g., `ReferralService`), inject the property:
+In a Spring-managed service, inject the property:
 
 ```kotlin
-@Value("${app.features.lao-access-check-enabled}")
-private val laoAccessCheckEnabled: Boolean
+@Value("${app.features.example-feature-enabled}")
+private val exampleFeatureEnabled: Boolean
 ```
 
 ## 3. Use the Flag in Your Logic
@@ -39,13 +39,12 @@ private val laoAccessCheckEnabled: Boolean
 You can then use this boolean to conditionally execute code.
 
 ```kotlin
-var isLAO = false
-if (laoAccessCheckEnabled) {
-  isLAO = getLaoByCrn(referral.crn)
+if (exampleFeatureEnabled) {
+  performOptionalOperation()
 }
 ```
 
-In this example, the `lao-access-check-enabled` flag controls whether the application performs a Limited Access Offender (LAO) check via the nDelius API.
+Use the flag to control the operation that should be temporary or environment-specific.
 
 ## 4. Make the Flag Environment Specific
 
@@ -57,7 +56,7 @@ under `generic-service.env`. This is how the other environment specific settings
 # helm_deploy/values-preprod.yaml
 generic-service:
   env:
-    LAO_ACCESS_CHECK_ENABLED: "true"
+    EXAMPLE_FEATURE_ENABLED: "true"
 ```
 
 Add the same line to `values-dev.yaml` or `values-prod.yaml` as the rollout progresses. Set the value explicitly in
@@ -70,7 +69,7 @@ and Spring converts `"true"` / `"false"` back to `Boolean` when binding.
 ### Naming the environment variable
 
 Spring's relaxed binding uppercases the property name and converts both dots and hyphens to underscores, so
-`app.features.lao-access-check-enabled` can also be set directly as `APP_FEATURES_LAO_ACCESS_CHECK_ENABLED` without
+`app.features.example-feature-enabled` can also be set directly as `APP_FEATURES_EXAMPLE_FEATURE_ENABLED` without
 the `${...}` placeholder from step 1. This is the same rule that lets `SPRINGDOC_SWAGGER_UI_ENABLED` in
 `values-prod.yaml` override `springdoc.swagger-ui.enabled`. Prefer the shorter placeholder name — it keeps the helm
 files readable and makes the flag's environment variable discoverable from `application.yml`.
@@ -90,9 +89,9 @@ Either way, changing a flag requires a deployment. Neither mechanism can be togg
 
 ### Tests
 
-`src/test/resources/application-test.yml` sets its own value for `app.features`, so integration tests are unaffected
-by the helm values. If a flag needs to be exercised in both states, override it per test class with
-`@TestPropertySource(properties = ["app.features.lao-access-check-enabled=false"])`.
+Set the property in test configuration when a test needs a default value. If a flag needs to be exercised in both
+states, override it per test class with
+`@TestPropertySource(properties = ["app.features.example-feature-enabled=false"])`.
 
 ## 5. (Optionally) Create a tech debt JIRA ticket for removing the feature flag
 

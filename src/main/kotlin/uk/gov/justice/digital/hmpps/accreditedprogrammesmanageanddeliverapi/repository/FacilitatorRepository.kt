@@ -8,6 +8,6 @@ import java.util.UUID
 interface FacilitatorRepository : JpaRepository<FacilitatorEntity, UUID> {
   fun findByNdeliusPersonCode(ndeliusPersonCode: String): FacilitatorEntity?
 
-  @Query("SELECT f.ndeliusPersonCode FROM FacilitatorEntity f WHERE f.personSurname IS NULL")
-  fun findAllNdeliusPersonCodesWherePersonSurnameIsNull(): List<String>
+  @Query("SELECT f.id FROM FacilitatorEntity f WHERE f.personSurname IS NULL")
+  fun findAllIdsWherePersonSurnameIsNull(): List<UUID>
 }

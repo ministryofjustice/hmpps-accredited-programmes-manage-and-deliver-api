@@ -13,6 +13,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.EnumSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.ParameterizedTypeReference
 import org.springframework.data.repository.findByIdOrNull
@@ -116,6 +119,7 @@ import java.time.Duration.ofMillis
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
@@ -1187,6 +1191,135 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         .returnResult().responseBody!!
     }
 
+    @ParameterizedTest
+    @CsvSource(
+      delimiter = '|',
+      value = [
+        "cohort=General+offence&sex=MALE | GENERAL-MALE",
+        "cohort=General+offence&sex=FEMALE | GENERAL-FEMALE",
+        "cohort=General+offence+LDC&sex=MALE | GENERAL_LDC-MALE",
+        "cohort=General+offence+LDC&sex=FEMALE | GENERAL_LDC-FEMALE",
+        "cohort=Sexual+offence&sex=MALE | SEXUAL-MALE",
+        "cohort=Sexual+offence&sex=FEMALE | SEXUAL-FEMALE",
+        "cohort=Sexual+offence+LDC&sex=MALE | SEXUAL_LDC-MALE",
+        "cohort=Sexual+offence+LDC&sex=FEMALE | SEXUAL_LDC-FEMALE",
+        "sex=MALE | GENERAL-MALE;GENERAL_LDC-MALE;SEXUAL-MALE;SEXUAL_LDC-MALE",
+        "sex=FEMALE | GENERAL-FEMALE;GENERAL_LDC-FEMALE;SEXUAL-FEMALE;SEXUAL_LDC-FEMALE",
+        "sex=MALE&sex=FEMALE | GENERAL-MALE;GENERAL-FEMALE;GENERAL_LDC-MALE;GENERAL_LDC-FEMALE;SEXUAL-MALE;SEXUAL-FEMALE;SEXUAL_LDC-MALE;SEXUAL_LDC-FEMALE",
+        "cohort=General+offence&cohort=General+offence+LDC | GENERAL-MALE;GENERAL-FEMALE;GENERAL_LDC-MALE;GENERAL_LDC-FEMALE",
+        "cohort=General+offence&cohort=Sexual+offence+LDC | GENERAL-MALE;GENERAL-FEMALE;SEXUAL_LDC-MALE;SEXUAL_LDC-FEMALE",
+        "cohort=General+offence+LDC&cohort=Sexual+offence+LDC | GENERAL_LDC-MALE;GENERAL_LDC-FEMALE;SEXUAL_LDC-MALE;SEXUAL_LDC-FEMALE",
+        "cohort=General+offence&cohort=Sexual+offence+LDC&sex=MALE | GENERAL-MALE;SEXUAL_LDC-MALE",
+        "cohort=General+offence&cohort=Sexual+offence+LDC&sex=FEMALE | GENERAL-FEMALE;SEXUAL_LDC-FEMALE",
+        "cohort=General+offence&cohort=Sexual+offence+LDC&sex=MALE&sex=FEMALE | GENERAL-MALE;GENERAL-FEMALE;SEXUAL_LDC-MALE;SEXUAL_LDC-FEMALE",
+      ],
+    )
+    fun `should match any selected cohort and sex while keeping LDC paired`(query: String, expectedCodes: String) {
+      stubAuthTokenEndpoint()
+      ProgrammeGroupCohort.entries.forEach { cohort ->
+        val (offenceType, isLdc) = ProgrammeGroupCohort.toOffenceTypeAndLdc(cohort)
+        listOf(ProgrammeGroupSexEnum.MALE, ProgrammeGroupSexEnum.FEMALE).forEach { sex ->
+          testDataGenerator.createGroup(
+            ProgrammeGroupFactory()
+              .withCode("${cohort.name}-${sex.name}")
+              .withRegionName("WIREMOCKED REGION")
+              .withCohort(offenceType)
+              .withIsLdc(isLdc)
+              .withSex(sex)
+              .produce(),
+          )
+        }
+      }
+
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=0&size=20&$query",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+
+      val expected = expectedCodes.split(";")
+      assertThat(response.pagedGroupData.content.map { it.code }).containsExactlyInAnyOrderElementsOf(expected)
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(expected.size.toLong())
+      assertThat(response.otherTabTotal).isZero()
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ProgrammeGroupSexEnum::class, names = ["MALE", "FEMALE"])
+    fun `should retain matches when another selected cohort or sex has no groups`(sex: ProgrammeGroupSexEnum) {
+      stubAuthTokenEndpoint()
+      testDataGenerator.createGroup(
+        ProgrammeGroupFactory().withCode("MATCH").withRegionName("WIREMOCKED REGION").withSex(sex).produce(),
+      )
+
+      val response = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?cohort=General+offence&cohort=General+offence+LDC&sex=MALE&sex=FEMALE",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+
+      assertThat(response.pagedGroupData.content.map { it.code }).containsExactly("MATCH")
+      assertThat(response.pagedGroupData.totalElements).isEqualTo(1)
+      assertThat(response.otherTabTotal).isZero()
+    }
+
+    @Test
+    fun `should apply multiple cohort and sex filters before pagination and to both tab counts`() {
+      stubAuthTokenEndpoint()
+      val activeGroups = listOf(
+        ProgrammeGroupFactory().withCode("ACTIVE-GENERAL-MALE").withSex(ProgrammeGroupSexEnum.MALE),
+        ProgrammeGroupFactory().withCode("ACTIVE-GENERAL-FEMALE").withSex(ProgrammeGroupSexEnum.FEMALE),
+        ProgrammeGroupFactory().withCode("ACTIVE-SEXUAL-LDC").withCohort(OffenceCohort.SEXUAL_OFFENCE)
+          .withIsLdc(true).withSex(ProgrammeGroupSexEnum.MALE),
+        ProgrammeGroupFactory().withCode("EXCLUDED-ACTIVE").withCohort(OffenceCohort.SEXUAL_OFFENCE)
+          .withSex(ProgrammeGroupSexEnum.FEMALE),
+      ).map { testDataGenerator.createGroup(it.withRegionName("WIREMOCKED REGION").produce()) }
+      val completeGroups = listOf(
+        ProgrammeGroupFactory().withCode("COMPLETE-SEXUAL-LDC")
+          .withCohort(OffenceCohort.SEXUAL_OFFENCE).withIsLdc(true).withSex(ProgrammeGroupSexEnum.FEMALE),
+        ProgrammeGroupFactory().withCode("EXCLUDED-COMPLETE").withIsLdc(true).withSex(ProgrammeGroupSexEnum.MALE),
+      ).map { factory ->
+        testDataGenerator.createGroup(
+          factory.withRegionName("WIREMOCKED REGION").withEarliestStartDate(LocalDate.now().minusDays(5)).produce(),
+        )
+      }
+      completeGroups.forEachIndexed { index, group ->
+        val referral = testDataGenerator.createReferral(personName = "Complete $index", crn = "X00000$index")
+        val membership = testDataGenerator.allocateReferralsToGroup(listOf(referral), group).first()
+        testDataGenerator.creatReferralStatusHistory(
+          ReferralStatusHistoryEntityFactory().produce(
+            referral,
+            referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription(),
+          ),
+        )
+        setupPostProgrammeReviewForGroup(group, listOf(membership))
+      }
+      val query = "cohort=General+offence&cohort=Sexual+offence+LDC&sex=MALE&sex=FEMALE&size=1&sort=code,asc"
+
+      val activePages = (0..2).map { page ->
+        performRequestAndExpectOk(
+          HttpMethod.GET,
+          "/bff/groups/NOT_STARTED_OR_IN_PROGRESS?page=$page&$query",
+          object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+        )
+      }
+      activePages.forEach { response ->
+        assertThat(response.pagedGroupData.content).hasSize(1)
+        assertThat(response.pagedGroupData.totalElements).isEqualTo(3)
+        assertThat(response.otherTabTotal).isEqualTo(1)
+      }
+      assertThat(activePages.flatMap { it.pagedGroupData.content }.map { it.code })
+        .containsExactlyInAnyOrderElementsOf(activeGroups.take(3).map { it.code })
+
+      val completeResponse = performRequestAndExpectOk(
+        HttpMethod.GET,
+        "/bff/groups/COMPLETE?page=0&$query",
+        object : ParameterizedTypeReference<GroupsByRegionResponse<Group>>() {},
+      )
+      assertThat(completeResponse.pagedGroupData.content.map { it.code }).containsExactly("COMPLETE-SEXUAL-LDC")
+      assertThat(completeResponse.pagedGroupData.totalElements).isEqualTo(1)
+      assertThat(completeResponse.otherTabTotal).isEqualTo(3)
+    }
+
     @Test
     fun `should filter by single PDU`() {
       // Given - BeforeEach already stubs "Test PDU 1" in "WIREMOCKED REGION"
@@ -1704,7 +1837,7 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
         endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
       )
-      scheduleService.scheduleIndividualSessionAndReturnResponse(group.id!!, scheduleSessionRequest)
+      scheduleService.scheduleSessionAndReturnResponse(group.id!!, scheduleSessionRequest)
 
       val groupSessionId = group.sessions.find { it.sessionType == SessionType.GROUP }!!.id!!
       val optionalGroupSession = sessionRepository.findById(groupSessionId)
@@ -1822,6 +1955,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Verify that none of the appointment dates are in the past
       createAppointmentRequest.appointments.forEach { appointment ->
         assertThat(appointment.date).isAfterOrEqualTo(today)
+      }
+
+      // Every appointment sent to nDelius must carry a contact description
+      createAppointmentRequest.appointments.forEach { appointment ->
+        assertThat(appointment.description).isNotBlank()
       }
 
       // Verify the referral is added as attendee only to group sessions in the future
@@ -3017,6 +3155,46 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `should return 201 when scheduling a group session with valid data`() {
+      // Given
+      initialiseReferrals()
+      val referral = referrals.first()
+      val group = testGroupHelper.createGroup()
+      testGroupHelper.allocateToGroup(group, referral)
+      val groupSessionTemplate = group.sessions.find { it.sessionType == SessionType.GROUP }!!.moduleSessionTemplate
+
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = groupSessionTemplate.id!!,
+        referralIds = listOf(referral.id!!),
+        facilitators = facilitators,
+        startDate = LocalDate.now().plusDays(1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When
+      val response = performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<String>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Then
+      assertThat(response).isNotNull
+      assertThat(response).isEqualTo("${groupSessionTemplate.module.name} ${groupSessionTemplate.sessionNumber} has been added.")
+      val retrievedSession =
+        sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(groupSessionTemplate.id!!, group.id!!)
+          .sortedByDescending { it.createdAt }.first()
+      assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
+      assertThat(retrievedSession.attendees).hasSize(1)
+      assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
+      wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
+      assertThat(nDeliusAppointmentRepository.findBySessionId(retrievedSession.id!!)).isNotNull
+    }
+
+    @Test
     fun `should return 201 when scheduling a one-to-one catch-up session with valid data`() {
       // Given
       initialiseReferrals()
@@ -3191,6 +3369,49 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val lastRequest = appointmentRequests.last().bodyAsString
       val createAppointmentRequest = objectMapper.readValue(lastRequest, CreateAppointmentRequest::class.java)
       assertThat(createAppointmentRequest.appointments).hasSize(2)
+
+      // Both appointments describe the group catch-up session as "<module name> <session number> catch-up"
+      assertThat(createAppointmentRequest.appointments.map { it.description })
+        .containsOnly("Getting started ${sessionTemplate.sessionNumber} catch-up")
+    }
+
+    @Test
+    fun `should send the session name as the appointment description to nDelius for a one-to-one session`() {
+      // Given
+      initialiseReferrals()
+      val referral = referrals.first()
+      val group = testGroupHelper.createGroup()
+      testGroupHelper.allocateToGroup(group, referral)
+      val sessionTemplate =
+        group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first { it.sessionType == SessionType.ONE_TO_ONE }
+
+      val scheduleSessionRequest = ScheduleSessionRequest(
+        sessionTemplateId = sessionTemplate.id!!,
+        referralIds = listOf(referral.id!!),
+        facilitators = facilitators,
+        startDate = LocalDate.now().plusDays(1),
+        startTime = SessionTime(hour = 10, minutes = 0, amOrPm = AmOrPm.AM),
+        endTime = SessionTime(hour = 11, minutes = 30, amOrPm = AmOrPm.AM),
+      )
+
+      // When
+      performRequestAndExpectStatusWithBody(
+        httpMethod = HttpMethod.POST,
+        uri = "/group/${group.id}/session/schedule",
+        body = scheduleSessionRequest,
+        returnType = object : ParameterizedTypeReference<String>() {},
+        expectedResponseStatus = HttpStatus.CREATED.value(),
+      )
+
+      // Then
+      val appointmentRequests = wiremock.findAll(postRequestedFor(urlEqualTo("/appointments")))
+      val lastRequest = appointmentRequests.last().bodyAsString
+      val createAppointmentRequest = objectMapper.readValue(lastRequest, CreateAppointmentRequest::class.java)
+
+      assertThat(createAppointmentRequest.appointments).hasSize(1)
+      // One-to-one appointments are described by the session template name, with no person name
+      assertThat(createAppointmentRequest.appointments.first().description).isEqualTo(sessionTemplate.name)
+      assertThat(createAppointmentRequest.appointments.first().description).doesNotContain(referral.personName)
     }
 
     @Test
@@ -3434,8 +3655,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.sessionTemplates).hasSize(4)
       assertThat(response.sessionTemplates.map { it.name })
         .containsExactly(
-          "Getting started 1 catch-up",
-          "Getting started 2 catch-up",
+          "Getting started 1",
+          "Getting started 2",
           "Getting started one-to-one",
           "Getting started one-to-one catch-up",
         )
@@ -3756,6 +3977,29 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(errorResponse.status).isEqualTo(HttpStatus.NOT_FOUND.value())
       assertThat(errorResponse.userMessage).contains("Module with id $nonExistentModuleId not found")
     }
+
+    @Test
+    fun `returns 200 with no suggested date when the module has no main group sessions or one-to-one placeholder left`() {
+      // Given
+      nDeliusApiStubs.stubRegionWithAccreditedProgrammesMembersResponse("REGION001", RegionDtoFactory().produce())
+      val group = testGroupHelper.createGroup()
+      // Bringing it all together only has group sessions, so it has no one-to-one placeholder to fall back on
+      val module = buildingChoicesTemplate.modules.first { it.name == "Bringing it all together" }
+      sessionRepository.deleteAll(
+        sessionRepository.findByProgrammeGroupId(group.id!!)
+          .filter { it.moduleSessionTemplate.module.id == module.id && it.sessionType == SessionType.GROUP },
+      )
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/module/${module.id}/schedule-individual-session-details",
+        returnType = object : ParameterizedTypeReference<ScheduleIndividualSessionDetailsResponse>() {},
+      )
+
+      // Then
+      assertThat(response.suggestedDate).isNull()
+    }
   }
 
   @Nested
@@ -3877,17 +4121,17 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       response.modules.forEach { module ->
         module.sessions.forEach { session ->
-          when {
-            session.type == "Group" && !session.isCatchup -> {
+          when (session.type) {
+            "Group" if !session.isCatchup -> {
               assertThat(session.participants).isEqualTo(listOf(Participant(name = "All")))
             }
 
-            session.type == "Group" && session.isCatchup -> {
+            "Group" -> {
               assertThat(session.participants).isNotEmpty()
               assertThat(session.participants).doesNotContain(Participant(name = "All"))
             }
 
-            session.type == "Individual" -> {
+            "Individual" -> {
               assertThat(session.participants).isNotEmpty().hasSize(1)
               assertThat(session.participants[0]).isEqualTo(
                 Participant(
@@ -3901,6 +4145,31 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           }
         }
       }
+    }
+
+    @Test
+    fun `return 200 and use the one-to-one placeholder date for a module whose main group sessions have all been deleted`() {
+      // Given
+      val group = testGroupHelper.createGroup()
+      val gettingStarted = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate().modules.first { it.name == "Getting started" }
+      val gettingStartedSessions = sessionRepository.findByProgrammeGroupId(group.id!!)
+        .filter { it.moduleSessionTemplate.module.id == gettingStarted.id }
+      sessionRepository.deleteAll(gettingStartedSessions.filter { it.sessionType == SessionType.GROUP })
+      val placeholderDate = gettingStartedSessions.single { it.isPlaceholder }.startsAt.toLocalDate()
+
+      // When
+      val response = performRequestAndExpectOk(
+        httpMethod = HttpMethod.GET,
+        uri = "/bff/group/${group.id}/sessions",
+        returnType = object : ParameterizedTypeReference<ProgrammeGroupModuleSessionsResponse>() {},
+      )
+
+      // Then
+      val module = response.modules.single { it.name == "Getting started" }
+      assertThat(module.sessions).isEmpty()
+      assertThat(module.startDateText?.estimatedStartDateText).isEqualTo("Estimated date of Getting started one-to-ones")
+      assertThat(module.startDateText?.sessionStartDate).isEqualTo(placeholderDate.format(DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")))
+      assertThat(module.scheduleButtonText).isEqualTo("Schedule a Getting started session")
     }
 
     @Test

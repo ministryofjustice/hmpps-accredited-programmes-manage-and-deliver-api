@@ -17,6 +17,7 @@ class UpdateAppointmentRequestFactory {
   private var team: RequestCode = RequestCode("TEAM1")
   private var notes: String? = "Default notes"
   private var sensitive: Boolean = false
+  private var description: String? = null
 
   fun withReference(reference: UUID) = apply { this.reference = reference }
   fun withDate(date: LocalDate) = apply { this.date = date }
@@ -28,6 +29,7 @@ class UpdateAppointmentRequestFactory {
   fun withTeam(team: RequestCode) = apply { this.team = team }
   fun withNotes(notes: String?) = apply { this.notes = notes }
   fun withSensitive(sensitive: Boolean) = apply { this.sensitive = sensitive }
+  fun withDescription(description: String?) = apply { this.description = description }
 
   fun produce() = UpdateAppointmentRequest(
     reference = this.reference,
@@ -40,5 +42,6 @@ class UpdateAppointmentRequestFactory {
     team = this.team,
     notes = this.notes,
     sensitive = this.sensitive,
+    description = this.description,
   )
 }

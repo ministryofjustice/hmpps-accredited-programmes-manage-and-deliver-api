@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatusCode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.ClientResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.NDeliusIntegrationApiClient
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CreateAppointmentRequest
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.UpdateAppointmentRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.toAppointment
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.BusinessException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.NotFoundException
@@ -26,12 +27,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.toNdeliusAppointmentEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusAppointmentEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ScheduleSessionRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ModuleSessionTemplateRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.SessionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.SessionNameFormatter
 import java.util.UUID
 
@@ -58,8 +59,6 @@ class ScheduleServiceTest {
   private val scheduleService = ScheduleService(
     programmeGroupRepository = programmeGroupRepository,
     moduleRepository = mockk(relaxed = true),
-    clock = mockk(relaxed = true),
-    programmeGroupMembershipRepository = mockk(relaxed = true),
     moduleSessionTemplateRepository = moduleSessionTemplateRepository,
     nDeliusIntegrationApiClient = nDeliusIntegrationApiClient,
     nDeliusAppointmentRepository = mockk(relaxed = true),
@@ -77,11 +76,29 @@ class ScheduleServiceTest {
     // we don't need to build the full session -> programmeGroup -> treatmentManager graph.
     // Function-reference form is refactor-safe (unlike the string "...Kt" form) - renaming
     // the enclosing file will fail at compile time, not silently at runtime.
-    mockkStatic(AttendeeEntity::toAppointment, AttendeeEntity::toNdeliusAppointmentEntity)
-    every { any<AttendeeEntity>().toAppointment(any()) } returns mockk<CreateAppointmentRequest.NdeliusAppointment>(
+    mockkStatic(
+      AttendeeEntity::toAppointment,
+      AttendeeEntity::toNdeliusAppointmentEntity,
+      NDeliusAppointmentEntity::toAppointment,
+    )
+    every {
+      any<AttendeeEntity>().toAppointment(
+        any(),
+        any(),
+      )
+    } returns mockk<CreateAppointmentRequest.NdeliusAppointment>(
       relaxed = true,
     )
     every { any<AttendeeEntity>().toNdeliusAppointmentEntity(any()) } returns mockk<NDeliusAppointmentEntity>(relaxed = true)
+    every {
+      any<NDeliusAppointmentEntity>().toAppointment(
+        any(),
+        any(),
+        any(),
+      )
+    } returns mockk<CreateAppointmentRequest.NdeliusAppointment>(
+      relaxed = true,
+    )
   }
 
   @AfterEach
@@ -159,7 +176,7 @@ class ScheduleServiceTest {
     )
 
     // When
-    val result = scheduleService.scheduleIndividualSession(groupId, request)
+    val result = scheduleService.scheduleSession(groupId, request)
 
     // Then
     verify(exactly = 1) { sessionRepository.save(any()) }
@@ -181,7 +198,7 @@ class ScheduleServiceTest {
     every { programmeGroupRepository.findByIdOrNull(groupId) } returns null
 
     // When/Then
-    assertThatThrownBy { scheduleService.scheduleIndividualSession(groupId, request) }
+    assertThatThrownBy { scheduleService.scheduleSession(groupId, request) }
       .isInstanceOf(NotFoundException::class.java)
       .hasMessage("Group with id: $groupId could not be found")
   }
@@ -199,7 +216,7 @@ class ScheduleServiceTest {
     every { moduleSessionTemplateRepository.findByIdOrNull(templateId) } returns null
 
     // When/Then
-    assertThatThrownBy { scheduleService.scheduleIndividualSession(groupId, request) }
+    assertThatThrownBy { scheduleService.scheduleSession(groupId, request) }
       .isInstanceOf(NotFoundException::class.java)
       .hasMessage("Session template with id: $templateId could not be found")
   }
@@ -220,7 +237,7 @@ class ScheduleServiceTest {
     every { referralRepository.findByIdOrNull(referralId) } returns null
 
     // When/Then
-    assertThatThrownBy { scheduleService.scheduleIndividualSession(groupId, request) }
+    assertThatThrownBy { scheduleService.scheduleSession(groupId, request) }
       .isInstanceOf(NotFoundException::class.java)
       .hasMessage("Referral with id: $referralId could not be found")
   }
@@ -243,12 +260,64 @@ class ScheduleServiceTest {
     every { sessionRepository.save(any()) } answers { firstArg() }
 
     // When
-    val result = scheduleService.scheduleIndividualSession(groupId, request)
+    val result = scheduleService.scheduleSession(groupId, request)
 
     // Then
     verify(exactly = 1) { sessionRepository.save(any()) }
     verify(exactly = 0) { nDeliusIntegrationApiClient.createAppointmentsInDelius(any()) }
     assertThat(result.attendees).isEmpty()
+  }
+
+  @Test
+  fun `recreateMissingNDeliusAppointments successfully calls nDelius`() {
+    // Given
+    val nDeliusAppointmentId = UUID.randomUUID()
+    val nDeliusAppointmentEntity = mockk<NDeliusAppointmentEntity>(relaxed = true)
+    every { nDeliusAppointmentEntity.ndeliusAppointmentId } returns nDeliusAppointmentId
+    every { nDeliusAppointmentEntity.referral.crn } returns "X123456"
+    every { nDeliusAppointmentEntity.referral.eventNumber } returns 1
+
+    val updateAppointmentRequest = mockk<UpdateAppointmentRequest>(relaxed = true)
+    every { updateAppointmentRequest.reference } returns nDeliusAppointmentId
+
+    every { nDeliusIntegrationApiClient.createAppointmentsInDelius(any()) } returns ClientResult.Success(
+      HttpStatusCode.valueOf(200),
+      mockk(relaxed = true),
+    )
+
+    // When
+    scheduleService.recreateMissingNDeliusAppointments(listOf(nDeliusAppointmentEntity), listOf(updateAppointmentRequest))
+
+    // Then
+    verify(exactly = 1) {
+      nDeliusIntegrationApiClient.createAppointmentsInDelius(any())
+    }
+  }
+
+  @Test
+  fun `recreateMissingNDeliusAppointments gives each recreated contact its own new reference`() {
+    // Given
+    val firstAppointment = NDeliusAppointmentEntityFactory().produce()
+    val secondAppointment = NDeliusAppointmentEntityFactory().produce()
+    val originalReferences = listOf(firstAppointment.ndeliusAppointmentId, secondAppointment.ndeliusAppointmentId)
+    val updateAppointmentRequests = originalReferences.map { originalReference ->
+      mockk<UpdateAppointmentRequest>(relaxed = true) {
+        every { reference } returns originalReference
+      }
+    }
+
+    every { nDeliusIntegrationApiClient.createAppointmentsInDelius(any()) } returns ClientResult.Success(
+      HttpStatusCode.valueOf(200),
+      mockk(relaxed = true),
+    )
+
+    // When
+    scheduleService.recreateMissingNDeliusAppointments(listOf(firstAppointment, secondAppointment), updateAppointmentRequests)
+
+    // Then
+    assertThat(listOf(firstAppointment.ndeliusAppointmentId, secondAppointment.ndeliusAppointmentId))
+      .doesNotContainAnyElementsOf(originalReferences)
+      .doesNotHaveDuplicates()
   }
 
   private fun buildAttendee(

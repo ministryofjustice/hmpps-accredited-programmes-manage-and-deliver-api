@@ -2,11 +2,11 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.10"
-  kotlin("plugin.spring") version "2.4.20"
-  kotlin("plugin.jpa") version "2.4.20"
-  kotlin("plugin.allopen") version "2.4.20"
-  id("io.sentry.jvm.gradle") version "6.23.0"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.15"
+  kotlin("plugin.spring") version "2.4.21"
+  kotlin("plugin.jpa") version "2.4.21"
+  kotlin("plugin.allopen") version "2.4.21"
+  id("io.sentry.jvm.gradle") version "6.26.0"
 }
 
 configurations {
@@ -14,8 +14,8 @@ configurations {
 }
 
 dependencies {
-  val shedLockVersion = "7.10.1"
-  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:3.0.3")
+  val shedLockVersion = "7.11.0"
+  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:3.1.0")
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:7.4.1")
   implementation("org.springframework.boot:spring-boot-starter-webclient")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -26,7 +26,12 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
   implementation("org.springframework.boot:spring-boot-starter-cache")
   implementation("com.github.ben-manes.caffeine:caffeine")
-  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
+  implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
+  constraints {
+    implementation("org.webjars:swagger-ui:5.34.1") {
+      because("swagger-ui 5.34.0 bundles DOMPurify 3.4.16 (CVE-2026-116802/3/4), fixed in 5.34.1")
+    }
+  }
   implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-csv")
   implementation("com.fasterxml.jackson.core:jackson-databind")
   implementation("net.javacrumbs.shedlock:shedlock-spring:$shedLockVersion")
@@ -45,25 +50,22 @@ dependencies {
   implementation("com.nimbusds:oauth2-oidc-sdk")
   implementation("io.github.resilience4j:resilience4j-spring-boot2:2.3.0")
 
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:3.0.3")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:3.1.0")
   testImplementation("org.springframework.boot:spring-boot-starter-webclient-test")
   testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
   testImplementation("org.wiremock:wiremock-standalone:3.13.2")
-  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.48") {
-    exclude(group = "io.swagger.core.v3")
-  }
   testImplementation("org.testcontainers:testcontainers:2.0.5")
   testImplementation("org.testcontainers:testcontainers-postgresql:2.0.5")
   testImplementation("org.testcontainers:testcontainers-localstack:2.0.5")
   testImplementation("org.testcontainers:testcontainers-junit-jupiter:2.0.5")
   testImplementation("com.ninja-squad:springmockk:5.0.1")
-  testImplementation("io.kotest:kotest-assertions-core:6.2.5")
-  testImplementation("io.mockk:mockk:1.14.11")
+  testImplementation("io.kotest:kotest-assertions-core:6.2.7")
+  testImplementation("io.mockk:mockk:1.14.12")
   testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.8.3")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.8.6")
 
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
-  runtimeOnly("org.postgresql:postgresql:42.7.13")
+  runtimeOnly("org.postgresql:postgresql:42.7.14")
 }
 
 kotlin {

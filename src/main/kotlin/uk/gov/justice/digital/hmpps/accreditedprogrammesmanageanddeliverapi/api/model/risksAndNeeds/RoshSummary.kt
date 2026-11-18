@@ -10,72 +10,91 @@ data class RoshSummary(
     example = "Medium",
     description = "Risk towards prisoners in Custody",
     required = false,
-    allowableValues = ["Low", "Medium", "High"],
+    allowableValues = ["Low", "Medium", "High", "Very High", "Not Applicable"],
   )
-  @get:JsonProperty("riskPrisonersCustody") val riskPrisonersCustody: String? = null,
+  @get:JsonProperty("riskPrisonersCustody")
+  val riskPrisonersCustody: String? = null,
+
   @Schema(
     example = "Medium",
     description = "Risk towards staff in Custody",
     required = false,
-    allowableValues = ["Low", "Medium", "High"],
+    allowableValues = ["Low", "Medium", "High", "Very High", "Not Applicable"],
   )
-  @get:JsonProperty("riskStaffCustody") val riskStaffCustody: String? = null,
+  @get:JsonProperty("riskStaffCustody")
+  val riskStaffCustody: String? = null,
+
   @Schema(
     example = "Medium",
     description = "Risk towards known adult in Custody",
     required = false,
-    allowableValues = ["Low", "Medium", "High"],
+    allowableValues = ["Low", "Medium", "High", "Very High", "Not Applicable"],
   )
-  @get:JsonProperty("riskKnownAdultCustody") val riskKnownAdultCustody: String? = null,
+  @get:JsonProperty("riskKnownAdultCustody")
+  val riskKnownAdultCustody: String? = null,
+
   @Schema(
     example = "Medium",
     description = "Risk towards public in Custody",
     required = false,
-    allowableValues = ["Low", "Medium", "High"],
+    allowableValues = ["Low", "Medium", "High", "Very High", "Not Applicable"],
   )
-  @get:JsonProperty("riskPublicCustody") val riskPublicCustody: String? = null,
+  @get:JsonProperty("riskPublicCustody")
+  val riskPublicCustody: String? = null,
+
   @Schema(
     example = "Medium",
     description = "Risk towards children in Custody",
     required = false,
-    allowableValues = ["Low", "Medium", "High"],
+    allowableValues = ["Low", "Medium", "High", "Very High", "Not Applicable"],
   )
-  @get:JsonProperty("riskChildrenCustody") val riskChildrenCustody: String? = null,
+  @get:JsonProperty("riskChildrenCustody")
+  val riskChildrenCustody: String? = null,
+
   @Schema(
     example = "Medium",
     description = "Risk towards staff in Community",
     required = false,
-    allowableValues = ["Low", "Medium", "High"],
+    allowableValues = ["Low", "Medium", "High", "Very High", "Not Applicable"],
   )
-  @get:JsonProperty("riskStaffCommunity") val riskStaffCommunity: String? = null,
+  @get:JsonProperty("riskStaffCommunity")
+  val riskStaffCommunity: String? = null,
+
   @Schema(
     example = "Medium",
     description = "Risk towards known adults in Community",
     required = false,
-    allowableValues = ["Low", "Medium", "High"],
+    allowableValues = ["Low", "Medium", "High", "Very High", "Not Applicable"],
   )
-  @get:JsonProperty("riskKnownAdultCommunity") val riskKnownAdultCommunity: String? = null,
+  @get:JsonProperty("riskKnownAdultCommunity")
+  val riskKnownAdultCommunity: String? = null,
+
   @Schema(
     example = "Medium",
     description = "Risk towards the public in Community",
     required = false,
-    allowableValues = ["Low", "Medium", "High"],
+    allowableValues = ["Low", "Medium", "High", "Very High", "Not Applicable"],
   )
-  @get:JsonProperty("riskPublicCommunity") val riskPublicCommunity: String? = null,
+  @get:JsonProperty("riskPublicCommunity")
+  val riskPublicCommunity: String? = null,
+
   @Schema(
     example = "Medium",
     description = "Risk towards children in Community",
     required = false,
-    allowableValues = ["Low", "Medium", "High"],
+    allowableValues = ["Low", "Medium", "High", "Very High", "Not Applicable"],
   )
-  @get:JsonProperty("riskChildrenCommunity") val riskChildrenCommunity: String? = null,
+  @get:JsonProperty("riskChildrenCommunity")
+  val riskChildrenCommunity: String? = null,
+
   @Schema(
     example = "Low",
     description = "Risk of Serious Harm level",
     required = false,
-    allowableValues = ["Low", "Medium", "High"],
+    allowableValues = ["Low", "Medium", "High", "Very High", "Not Applicable"],
   )
-  @get:JsonProperty("overallRoshLevel") val overallRoshLevel: String? = null,
+  @get:JsonProperty("overallRoshLevel")
+  val overallRoshLevel: String? = null,
 )
 
 fun OasysRoshSummary.toModel(): RoshSummary = RoshSummary(

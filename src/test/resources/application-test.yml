@@ -9,9 +9,6 @@ hmpps-auth:
   url: "http://localhost:9999/auth"
 
 app:
-  features:
-    lao-access-check-enabled: true
-    exclusion-access-check-enabled: true
   scheduling:
     referral-details-updated:
       cron: "0 0 1 * * *"  # every day at 1 AM
@@ -59,7 +56,7 @@ hmpps:
   sar:
     additionalAccessRole: ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR
     template:
-      path: /sar_template.mustache
+      path: /sar/templates/V1__sar_template.mustache
       enabled: true
     tests:
       expected-api-response:

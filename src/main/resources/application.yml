@@ -2,6 +2,13 @@ info.app:
   name: HMPPS Accredited Programmes Manage And Deliver Api
   version: 1.0
 
+springdoc:
+  swagger-ui:
+    # Must match the org.webjars:swagger-ui version constraint in build.gradle.kts.
+    # springdoc's bundled default (5.32.14) is stale and is used as a fallback if the
+    # webjar version can't be resolved dynamically, which 404s against the actual webjar.
+    version: 5.34.1
+
 sentry:
   # Run Sentry's exception resolver first so exceptions handled by @RestControllerAdvice are still captured,
   # removing the need for manual Sentry.captureException calls in exception handlers.
@@ -17,10 +24,6 @@ sentry:
   send-default-pii: false
 
 app:
-  features:
-    lao-access-check-enabled: ${LAO_ACCESS_CHECK_ENABLED:false}
-    exclusion-access-check-enabled: ${EXCLUSION_ACCESS_CHECK_ENABLED:false}
-
   scheduling:
     referral-details-updated:
       cron: "${REFERRAL_DETAILS_UPDATED_CRON:0 0 1 * * *}"  # default every day at 1 AM
@@ -115,7 +118,11 @@ hmpps:
   sar:
     additionalAccessRole: ROLE_ACCREDITED_PROGRAMMES_MANAGE_AND_DELIVER_API__ACPMAD_UI_WR
     template:
-      path: /sar_template.mustache
+      # Default (safest) template version. Override per environment via the
+      # HMPPS_SAR_TEMPLATE_PATH env var to promote a newer version (e.g. V2).
+      # Any SAR data-model change must be agreed with the SAR team in advance
+      # and shipped as a new versioned template rather than editing V1 in place.
+      path: /sar/templates/V1__sar_template.mustache
       enabled: true
 
 max-response-in-memory-size-bytes: 750000

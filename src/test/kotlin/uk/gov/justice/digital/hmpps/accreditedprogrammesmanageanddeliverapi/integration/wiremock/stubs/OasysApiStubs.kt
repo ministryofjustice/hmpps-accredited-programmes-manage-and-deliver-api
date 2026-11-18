@@ -68,7 +68,7 @@ class OasysApiStubs {
   fun stubSuccessfulPniResponseWithLdc(
     crn: String,
     ldc: Ldc = Ldc(
-      score = 4,
+      score = 0,
       subTotal = 4,
     ),
   ) {
