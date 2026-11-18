@@ -498,7 +498,6 @@ class EntityFactoriesTest {
     val facilitator = FacilitatorEntityFactory().produce()
 
     assertThat(facilitator.id).isNull()
-    assertThat(facilitator.personName).isNotNull()
     assertThat(facilitator.personForename).isNull()
     assertThat(facilitator.personMiddleNames).isNull()
     assertThat(facilitator.personSurname).isNull()
@@ -510,7 +509,6 @@ class EntityFactoriesTest {
   @Test
   fun `FacilitatorEntityFactory should create entity with custom values`() {
     val id = UUID.randomUUID()
-    val personName = "Jane Doe"
     val personForename = "Jane"
     val personMiddleNames = "Ann"
     val personSurname = "Doe"
@@ -520,7 +518,6 @@ class EntityFactoriesTest {
 
     val facilitator = FacilitatorEntityFactory()
       .withId(id)
-      .withPersonName(personName)
       .withPersonForename(personForename)
       .withPersonMiddleNames(personMiddleNames)
       .withPersonSurname(personSurname)
@@ -530,7 +527,6 @@ class EntityFactoriesTest {
       .produce()
 
     assertThat(facilitator.id).isEqualTo(id)
-    assertThat(facilitator.personName).isEqualTo(personName)
     assertThat(facilitator.personForename).isEqualTo(personForename)
     assertThat(facilitator.personMiddleNames).isEqualTo(personMiddleNames)
     assertThat(facilitator.personSurname).isEqualTo(personSurname)

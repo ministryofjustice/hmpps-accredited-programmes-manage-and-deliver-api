@@ -817,8 +817,10 @@ class SessionServiceTest {
         .withModule(module)
         .withName("Getting started")
         .produce()
-    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
-    val referralEntity2 = ReferralEntityFactory().withId(referralId2).withPersonName("Joe Blob").produce()
+    val referralEntity =
+      ReferralEntityFactory().withId(referralId).withPersonForename("John").withPersonSurname("Smith").produce()
+    val referralEntity2 =
+      ReferralEntityFactory().withId(referralId2).withPersonForename("Joe").withPersonSurname("Blob").produce()
     val sessionEntity =
       SessionFactory()
         .withId(sessionId)
@@ -935,7 +937,8 @@ class SessionServiceTest {
         .withModule(module)
         .withName("Getting started")
         .produce()
-    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val referralEntity =
+      ReferralEntityFactory().withId(referralId).withPersonForename("John").withPersonSurname("Smith").produce()
     val sessionEntity =
       SessionFactory()
         .withAttendees(
@@ -1028,7 +1031,8 @@ class SessionServiceTest {
         .withModule(module)
         .withName("Getting started")
         .produce()
-    val referralEntity = ReferralEntityFactory().withId(referralId).withPersonName("John Smith").produce()
+    val referralEntity =
+      ReferralEntityFactory().withId(referralId).withPersonForename("John").withPersonSurname("Smith").produce()
     val sessionEntity =
       SessionFactory()
         .withAttendees(
@@ -2525,8 +2529,8 @@ class SessionServiceTest {
   @Test
   fun `should recreate missing NDelius appointments when updating multiple sessions`() {
     // Given
-    val missingReferral = ReferralEntityFactory().withPersonName("John Smith").produce()
-    val remainingReferral = ReferralEntityFactory().withPersonName("Jane Doe").produce()
+    val missingReferral = ReferralEntityFactory().withPersonForename("John").withPersonSurname("Smith").produce()
+    val remainingReferral = ReferralEntityFactory().withPersonForename("Jane").withPersonSurname("Doe").produce()
     val missingSession = sessionWithAttendees(listOf(missingReferral), moduleName = "Module 1")
     val remainingSession = sessionWithAttendees(listOf(remainingReferral), moduleName = "Module 2")
     val missingAppointmentId = UUID.randomUUID()
@@ -2590,8 +2594,8 @@ class SessionServiceTest {
   @Test
   fun `should not recreate missing NDelius appointments when updating the remaining appointments fails`() {
     // Given
-    val missingReferral = ReferralEntityFactory().withPersonName("John Smith").produce()
-    val remainingReferral = ReferralEntityFactory().withPersonName("Jane Doe").produce()
+    val missingReferral = ReferralEntityFactory().withPersonForename("John").withPersonSurname("Smith").produce()
+    val remainingReferral = ReferralEntityFactory().withPersonForename("Jane").withPersonSurname("Doe").produce()
     val missingSession = sessionWithAttendees(listOf(missingReferral), moduleName = "Module 1")
     val remainingSession = sessionWithAttendees(listOf(remainingReferral), moduleName = "Module 2")
     val missingAppointmentId = UUID.randomUUID()
@@ -2638,8 +2642,8 @@ class SessionServiceTest {
   @Test
   fun `should fail when NDelius returns an unrelated bad request while updating multiple sessions`() {
     // Given
-    val firstReferral = ReferralEntityFactory().withPersonName("John Smith").produce()
-    val secondReferral = ReferralEntityFactory().withPersonName("Jane Doe").produce()
+    val firstReferral = ReferralEntityFactory().withPersonForename("John").withPersonSurname("Smith").produce()
+    val secondReferral = ReferralEntityFactory().withPersonForename("Jane").withPersonSurname("Doe").produce()
     val firstSession = sessionWithAttendees(listOf(firstReferral), moduleName = "Module 1")
     val secondSession = sessionWithAttendees(listOf(secondReferral), moduleName = "Module 2")
     val firstAppointmentId = UUID.randomUUID()
@@ -2805,7 +2809,7 @@ class SessionServiceTest {
   @Test
   fun `should fail to update NDelius appointments for a single session when NDelius is unavailable`() {
     // Given
-    val referralEntity = ReferralEntityFactory().withPersonName("John Smith").produce()
+    val referralEntity = ReferralEntityFactory().withPersonForename("John").withPersonSurname("Smith").produce()
     val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Post-programme reviews")
     val nDeliusAppointmentId = UUID.randomUUID()
     sessionEntity.ndeliusAppointments.add(
@@ -2850,7 +2854,7 @@ class SessionServiceTest {
   @Test
   fun `should recreate missing NDelius appointments after a bad request for a single session`() {
     // Given
-    val referralEntity = ReferralEntityFactory().withPersonName("John Smith").produce()
+    val referralEntity = ReferralEntityFactory().withPersonForename("John").withPersonSurname("Smith").produce()
     val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Post-programme reviews")
     val nDeliusAppointmentId = UUID.randomUUID()
     val appointment =
@@ -2890,7 +2894,7 @@ class SessionServiceTest {
   @Test
   fun `should fail when NDelius returns an unrelated bad request for appointment update for a single session`() {
     // Given
-    val referralEntity = ReferralEntityFactory().withPersonName("John Smith").produce()
+    val referralEntity = ReferralEntityFactory().withPersonForename("John").withPersonSurname("Smith").produce()
     val sessionEntity = sessionWithAttendees(listOf(referralEntity), moduleName = "Post-programme reviews")
     val nDeliusAppointmentId = UUID.randomUUID()
     sessionEntity.ndeliusAppointments.add(
@@ -3018,8 +3022,8 @@ class SessionServiceTest {
     assertThat(result.pageTitle).isEqualTo("Delete Getting started 1")
     assertThat(result.referrals).hasSize(1)
     assertThat(result.referrals.first().personName).isEqualTo("$personForename $personSurname")
-    assertThat(result.referrals.first().isExcluded).isNull()
-    assertThat(result.referrals.first().isLimitedAccessOffender).isNull()
+    assertThat(result.referrals.first().isExcluded).isFalse()
+    assertThat(result.referrals.first().isLimitedAccessOffender).isFalse()
 
     verify(exactly = 1) { sessionRepository.findById(sessionEntity.id!!) }
     verify(exactly = 1) { authenticationUtils.getUsername() }

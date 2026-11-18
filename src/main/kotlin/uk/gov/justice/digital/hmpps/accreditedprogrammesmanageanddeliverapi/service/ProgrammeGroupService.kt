@@ -551,7 +551,10 @@ class ProgrammeGroupService(
           ProgrammeGroupModuleSessionsResponseGroupSession(
             id = session.id!!,
             number = session.sessionNumber,
-            name = sessionNameFormatter.format(session, SessionNameContext.SessionsAndAttendance(session.moduleSessionTemplate)),
+            name = sessionNameFormatter.format(
+              session,
+              SessionNameContext.SessionsAndAttendance(session.moduleSessionTemplate),
+            ),
             type = session.sessionType.value,
             isCatchup = session.isCatchup,
             dateOfSession = session.startsAt.toLocalDate(),
@@ -575,13 +578,16 @@ class ProgrammeGroupService(
             },
             facilitators = session.sessionFacilitators
               .filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }
-              .map { it.facilitator.personName },
+              .map { "${it.facilitator.personForename} ${it.facilitator.personSurname}" },
           )
         },
       )
     }
 
-    return ProgrammeGroupModuleSessionsResponse(ProgrammeGroupModuleSessionsResponseGroup(group.code, group.regionName), modules)
+    return ProgrammeGroupModuleSessionsResponse(
+      ProgrammeGroupModuleSessionsResponseGroup(group.code, group.regionName),
+      modules,
+    )
   }
 
   fun getEditCohortForGroup(groupId: UUID): EditGroupCohort {

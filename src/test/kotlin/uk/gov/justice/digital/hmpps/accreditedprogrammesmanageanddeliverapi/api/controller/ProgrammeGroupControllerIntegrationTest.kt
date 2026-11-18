@@ -1283,7 +1283,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         )
       }
       completeGroups.forEachIndexed { index, group ->
-        val referral = testDataGenerator.createReferral(personName = "Complete $index", crn = "X00000$index")
+        val referral =
+          testDataGenerator.createReferral(personForename = "Complete", personSurname = "$index", crn = "X00000$index")
         val membership = testDataGenerator.allocateReferralsToGroup(listOf(referral), group).first()
         testDataGenerator.creatReferralStatusHistory(
           ReferralStatusHistoryEntityFactory().produce(
@@ -4151,7 +4152,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `return 200 and use the one-to-one placeholder date for a module whose main group sessions have all been deleted`() {
       // Given
       val group = testGroupHelper.createGroup()
-      val gettingStarted = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate().modules.first { it.name == "Getting started" }
+      val gettingStarted =
+        accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate().modules.first { it.name == "Getting started" }
       val gettingStartedSessions = sessionRepository.findByProgrammeGroupId(group.id!!)
         .filter { it.moduleSessionTemplate.module.id == gettingStarted.id }
       sessionRepository.deleteAll(gettingStartedSessions.filter { it.sessionType == SessionType.GROUP })

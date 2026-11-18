@@ -283,7 +283,8 @@ class CreateAppointmentRequestTest {
     val session = buildSession(moduleName = "Getting started", sessionType = SessionType.ONE_TO_ONE)
     val attendee = AttendeeFactory()
       .withReferral(
-        ReferralEntityFactory().withSourcedFrom(REQUIREMENT).withPersonName("Alex River").produce(),
+        ReferralEntityFactory().withSourcedFrom(REQUIREMENT).withPersonForename("Alex").withPersonSurname("River")
+          .produce(),
       )
       .withSession(session)
       .produce()
@@ -318,7 +319,7 @@ class CreateAppointmentRequestTest {
     assertThat(result.outcome).isEqualTo(outcome)
     assertThat(result.notes).isEqualToIgnoringWhitespace(
       "(Prog ID: AAA111, Type: main, Session: Module Session Template 1)\n" +
-        "Treatment Manager: ${session.programmeGroup.treatmentManager?.personName}\n" +
+        "Treatment Manager: ${session.programmeGroup.treatmentManager?.personForename} ${session.programmeGroup.treatmentManager?.personSurname}\n" +
         "Notes: Custom notes",
     )
     assertThat(result.reference).isEqualTo(nDeliusAppointmentEntity.ndeliusAppointmentId)
@@ -329,7 +330,8 @@ class CreateAppointmentRequestTest {
     // Given
     val session = buildSession(
       facilitators = listOf(FacilitatorEntityFactory().produce()),
-      treatmentManager = FacilitatorEntityFactory().withPersonName("Treatment Manager Name").produce(),
+      treatmentManager = FacilitatorEntityFactory().withPersonForename("Treatment Manager").withPersonSurname("Name")
+        .produce(),
     )
     val referral = ReferralEntityFactory().withSourcedFrom(REQUIREMENT).produce()
     val nDeliusAppointmentEntity = NDeliusAppointmentEntity(

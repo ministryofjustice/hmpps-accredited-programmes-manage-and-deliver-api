@@ -67,7 +67,11 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return risks and alerts section with legacy ARNS risk data`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
+      testDataGenerator.createReferral(
+        personForename = randomCapitalisedWord(4..10).asString(),
+        personSurname = randomCapitalisedWord(4..10).asString(),
+        crn = crn,
+      )
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -112,7 +116,11 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return risks and alerts section with non-legacy (OGRS4) ARNS risk data`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
+      testDataGenerator.createReferral(
+        personForename = randomCapitalisedWord(4..10).asString(),
+        personSurname = randomCapitalisedWord(4..10).asString(),
+        crn = crn,
+      )
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -174,7 +182,11 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return risks and alerts section with null objects for scores when they are missing`() {
       val crn = randomCrn()
-      testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
+      testDataGenerator.createReferral(
+        personForename = randomCapitalisedWord(4..10).asString(),
+        personSurname = randomCapitalisedWord(4..10).asString(),
+        crn = crn,
+      )
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -226,7 +238,11 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   fun `should return empty Risk and needs but retain nDelius alerts when no assessment found`() {
     // Given
     val crn = randomCrn()
-    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
+    testDataGenerator.createReferral(
+      personForename = randomCapitalisedWord(4..10).asString(),
+      personSurname = randomCapitalisedWord(4..10).asString(),
+      crn = crn,
+    )
     oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
     nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn)
 
@@ -291,7 +307,11 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   fun `should return no alerts when the crn is known but nDelius holds no registrations`() {
     // Given
     val crn = randomCrn()
-    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
+    testDataGenerator.createReferral(
+      personForename = randomCapitalisedWord(4..10).asString(),
+      personSurname = randomCapitalisedWord(4..10).asString(),
+      crn = crn,
+    )
     oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
     nDeliusApiStubs.stubSuccessfulNDeliusRegistrationsResponse(crn, NDeliusRegistrations(emptyList()))
 
@@ -309,7 +329,11 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `should return 404 when no Offending Info found for section1 of assessment`() {
     val crn = randomCrn()
-    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
+    testDataGenerator.createReferral(
+      personForename = randomCapitalisedWord(4..10).asString(),
+      personSurname = randomCapitalisedWord(4..10).asString(),
+      crn = crn,
+    )
     val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
     val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -329,7 +353,11 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `should return 404 when no Relationships found for section6 of assessment`() {
     val crn = randomCrn()
-    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
+    testDataGenerator.createReferral(
+      personForename = randomCapitalisedWord(4..10).asString(),
+      personSurname = randomCapitalisedWord(4..10).asString(),
+      crn = crn,
+    )
     val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
     val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -351,7 +379,11 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   fun `should return 404 when no Rosh Summary found for sectionroshsumm of assessment`() {
     // Given
     val crn = randomCrn()
-    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
+    testDataGenerator.createReferral(
+      personForename = randomCapitalisedWord(4..10).asString(),
+      personSurname = randomCapitalisedWord(4..10).asString(),
+      crn = crn,
+    )
     val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
     val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -373,7 +405,11 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `should return 404 when no Risk Predictors found for risk-predictors of assessment`() {
     val crn = randomCrn()
-    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
+    testDataGenerator.createReferral(
+      personForename = randomCapitalisedWord(4..10).asString(),
+      personSurname = randomCapitalisedWord(4..10).asString(),
+      crn = crn,
+    )
     val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
     val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -396,7 +432,11 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
   fun `should return 404 when no Alerts found for a crn`() {
     // Given
     val crn = randomCrn()
-    testDataGenerator.createReferral(randomCapitalisedWord(4..10).asString(), crn)
+    testDataGenerator.createReferral(
+      personForename = randomCapitalisedWord(4..10).asString(),
+      personSurname = randomCapitalisedWord(4..10).asString(),
+      crn = crn,
+    )
     val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
     val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
     oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -437,7 +477,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return learning needs section`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
 
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
@@ -488,7 +528,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for learning needs and no assessment exists`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -523,7 +563,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when no Learning Needs found for section4 of assessment`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -545,7 +585,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 400 when crn is not in the correct format for learning needs`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
 
       // When
       val response = performRequestAndExpectStatus(
@@ -567,7 +607,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return attitude section`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       val assessmentCompletedDate = assessment.getLatestCompletedLayerThreeAssessment()!!.completedAt?.toLocalDate()
@@ -596,7 +636,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return 404 when providing an unknown crn for attitude and no assessment exists`() {
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       val response = performRequestAndExpectStatus(
@@ -627,7 +667,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return 404 when no attitude found for assessment`() {
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
 
@@ -666,7 +706,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return health section`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -690,7 +730,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for health and no assessment exists`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -725,7 +765,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when no health found for section13 of assessment`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -763,7 +803,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return relationships section for known CRN`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -824,7 +864,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for relationships and no assessment exists`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -861,7 +901,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when no relationships found for section6 of assessment`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -901,7 +941,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return Rosh analysis section`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val timeline = assessment.getLatestCompletedLayerThreeAssessment()
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -943,7 +983,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for Rosh Analysis and no assessment exists`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -978,7 +1018,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when no Rosh Analysis found for sectionroshfull of assessment`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -1018,7 +1058,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return drug detail section`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val timeline = listOf<Timeline>(Timeline(1L, "COMPLETE", "LAYER3", LocalDateTime.now()))
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).withTimeline(timeline).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
@@ -1044,7 +1084,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for drug detail and no assessment exists`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -1081,7 +1121,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when no drug detail found for section8 of assessment`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -1120,7 +1160,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return lifestyle and associates detail section`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val timeline = listOf<Timeline>(Timeline(1L, "COMPLETE", "LAYER3", LocalDateTime.now()))
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).withTimeline(timeline).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
@@ -1145,7 +1185,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for lifestyle and associates and no assessment exists`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -1180,7 +1220,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when no lifestyle and associates found for section7 of assessment`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -1219,7 +1259,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return emotional wellbeing detail section`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val timeline = listOf<Timeline>(Timeline(1L, "COMPLETE", "LAYER3", LocalDateTime.now()))
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).withTimeline(timeline).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
@@ -1247,7 +1287,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for drug detail and no assessment exists`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -1284,7 +1324,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when no drug detail found for section8 of assessment`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -1306,7 +1346,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 400 when crn is not in the correct format`() {
       // Given
       val crn = randomAlphanumericString(6)
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
 
       // When
       val response = performRequestAndExpectStatus(
@@ -1329,7 +1369,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return alcohol misuse details section for known crn`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val timeline = listOf(Timeline(1L, "COMPLETE", "LAYER3", LocalDateTime.now()))
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).withTimeline(timeline).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
@@ -1355,7 +1395,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for alcohol misuse details and no assessment exists`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -1391,7 +1431,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when no alcohol misuse details found for section9 of assessment`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -1430,7 +1470,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return thinking and behaviour details section for known crn`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val timeline = listOf(Timeline(1L, "COMPLETE", "LAYER3", LocalDateTime.now()))
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).withTimeline(timeline).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
@@ -1458,7 +1498,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for thinking and behaviour details and no assessment exists`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -1493,7 +1533,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when no thinking and behaviour details found for section11 of assessment`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -1514,7 +1554,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     @Test
     fun `should return 400 when crn is not in the correct format`() {
       val crn = randomAlphanumericString(6)
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val response = performRequestAndExpectStatus(
         httpMethod = HttpMethod.GET,
         uri = "/risks-and-needs/$crn/thinking-and-behaviour",
@@ -1533,7 +1573,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return Offence analysis section`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val timeline = assessment.getLatestCompletedLayerThreeAssessment()
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)
@@ -1594,7 +1634,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when providing an unknown crn for Offence Analysis and no assessment exists`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       oasysApiStubs.stubNotFoundAssessmentsResponse(crn)
 
       // When
@@ -1631,7 +1671,7 @@ class RisksAndNeedsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 404 when no Offence Analysis found for section2 of assessment`() {
       // Given
       val crn = randomCrn()
-      testDataGenerator.createReferral(personName = "John Smith", crn = crn)
+      testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = crn)
       val assessment = OasysAssessmentTimelineFactory().withCrn(crn).produce()
       val assessmentId = assessment.getLatestCompletedLayerThreeAssessment()!!.id
       oasysApiStubs.stubSuccessfulAssessmentsResponse(crn, assessment)

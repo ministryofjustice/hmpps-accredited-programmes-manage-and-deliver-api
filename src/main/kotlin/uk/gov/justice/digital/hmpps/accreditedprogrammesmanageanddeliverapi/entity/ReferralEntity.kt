@@ -48,18 +48,6 @@ class ReferralEntity(
   @Column(name = "person_surname")
   var personSurname: String? = null,
 
-  @Nullable
-  @Column(name = "person_forename")
-  var personForename: String? = null,
-
-  @Nullable
-  @Column(name = "person_middle_names")
-  var personMiddleNames: String? = null,
-
-  @Nullable
-  @Column(name = "person_surname")
-  var personSurname: String? = null,
-
   @NotNull
   @Column(name = "crn")
   var crn: String,
