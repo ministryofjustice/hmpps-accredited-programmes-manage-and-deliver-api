@@ -14,6 +14,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.OffenceCohort
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
@@ -37,6 +38,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FindAndReferReferralDetailsFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusCaseRequirementOrLicenceConditionResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusSentenceResponseFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.PniAssessmentFactory
@@ -46,6 +48,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralLdcHistoryFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.FeatureFlag.REFERRAL_LOCATION_USE_REQUIREMENT_MANAGER
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCohortHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralLdcHistoryRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralReportingLocationRepository
@@ -947,6 +950,60 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(savedReferral.sex).isEqualTo("Male")
       assertThat(savedReferral.sentenceEndDate).isEqualTo(LocalDate.parse("2026-04-26"))
     }
+
+    @Test
+    fun `createReferral should take the reporting location PDU and team from the licence condition manager when the flag is enabled`() {
+      // Given
+      whenever(featureFlagService.isEnabled(REFERRAL_LOCATION_USE_REQUIREMENT_MANAGER)).thenReturn(true)
+      oasysApiStubs.stubNotFoundPniResponse(referralDetails.personReference)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referralDetails.personReference,
+        1,
+        NDeliusSentenceResponseFactory().produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulLicenceConditionManagerResponse(
+        referralDetails.personReference,
+        referralDetails.sourcedFromReference,
+        NDeliusCaseRequirementOrLicenceConditionResponseFactory()
+          .withPdu("MANAGER_PDU_CODE", "MANAGER_PDU_DESCRIPTION")
+          .withTeam("MANAGER_TEAM_CODE", "MANAGER_TEAM_DESCRIPTION")
+          .produce(),
+      )
+
+      // When
+      val referral = referralService.createReferral(referralDetails)
+
+      // Then
+      val reportingLocation = reportingLocationRepository.findByReferralId(referral.id)!!
+      assertThat(reportingLocation.pduName).isEqualTo("MANAGER_PDU_DESCRIPTION")
+      assertThat(reportingLocation.reportingTeam).isEqualTo("MANAGER_TEAM_DESCRIPTION")
+      assertThat(reportingLocation.regionName).isEqualTo(personalDetails.region.description)
+    }
+
+    @Test
+    fun `createReferral should take the reporting location from the probation practitioner when the flag is enabled but the licence condition can't be found`() {
+      // Given
+      whenever(featureFlagService.isEnabled(REFERRAL_LOCATION_USE_REQUIREMENT_MANAGER)).thenReturn(true)
+      oasysApiStubs.stubNotFoundPniResponse(referralDetails.personReference)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referralDetails.personReference,
+        1,
+        NDeliusSentenceResponseFactory().produce(),
+      )
+      nDeliusApiStubs.stubNotFoundLicenceConditionManagerResponse(
+        referralDetails.personReference,
+        referralDetails.sourcedFromReference,
+      )
+
+      // When
+      val referral = referralService.createReferral(referralDetails)
+
+      // Then
+      val reportingLocation = reportingLocationRepository.findByReferralId(referral.id)!!
+      assertThat(reportingLocation.pduName).isEqualTo(personalDetails.probationDeliveryUnit.description)
+      assertThat(reportingLocation.reportingTeam).isEqualTo(personalDetails.team.description)
+      assertThat(reportingLocation.regionName).isEqualTo(personalDetails.region.description)
+    }
   }
 
   @Nested
@@ -1049,6 +1106,122 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(reportingLocation.pduName).isEqualTo("NEW_PDU_DESCRIPTION")
       assertThat(reportingLocation.reportingTeam).isEqualTo("NEW_TEAM_DESCRIPTION")
       assertThat(reportingLocation.regionName).isEqualTo("NEW_REGION_DESCRIPTION")
+    }
+
+    @Test
+    fun `refreshPersonalDetailsForReferral takes the reporting location PDU and team from the requirement manager when the flag is enabled`() = runTest {
+      // Given
+      val referral = testReferralHelper.createReferral(
+        sourcedFrom = ReferralEntitySourcedFrom.REQUIREMENT,
+        reportingTeam = "OLD_TEAM",
+        reportingPdu = "OLD_PDU",
+        regionName = "OLD_REGION",
+      )
+      whenever(featureFlagService.isEnabled(REFERRAL_LOCATION_USE_REQUIREMENT_MANAGER)).thenReturn(true)
+      oasysApiStubs.stubSuccessfulPniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory()
+          .withTeam(CodeDescription("PP_TEAM_CODE", "PP_TEAM_DESCRIPTION"))
+          .withProbationDeliveryUnit(CodeDescription("PP_PDU_CODE", "PP_PDU_DESCRIPTION"))
+          .withRegion(CodeDescription("PP_REGION_CODE", "PP_REGION_DESCRIPTION"))
+          .produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulRequirementManagerResponse(
+        referral.crn,
+        referral.eventId!!,
+        NDeliusCaseRequirementOrLicenceConditionResponseFactory()
+          .withPdu("MANAGER_PDU_CODE", "MANAGER_PDU_DESCRIPTION")
+          .withTeam("MANAGER_TEAM_CODE", "MANAGER_TEAM_DESCRIPTION")
+          .produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      // When
+      val referralDetails = referralService.refreshPersonalDetailsForReferral(referral.id!!)!!
+
+      // Then
+      val reportingLocation = reportingLocationRepository.findByReferralId(referral.id)!!
+      assertThat(reportingLocation.pduName).isEqualTo("MANAGER_PDU_DESCRIPTION")
+      assertThat(reportingLocation.reportingTeam).isEqualTo("MANAGER_TEAM_DESCRIPTION")
+      assertThat(reportingLocation.regionName).isEqualTo("PP_REGION_DESCRIPTION")
+      assertThat(referralDetails.pdu).isEqualTo("MANAGER_PDU_DESCRIPTION")
+      assertThat(referralDetails.reportingTeam).isEqualTo("MANAGER_TEAM_DESCRIPTION")
+    }
+
+    @Test
+    fun `refreshPersonalDetailsForReferral takes the reporting location from the probation practitioner when the flag is enabled but the requirement can't be found`() = runTest {
+      // Given
+      val referral = testReferralHelper.createReferral(
+        sourcedFrom = ReferralEntitySourcedFrom.REQUIREMENT,
+        reportingTeam = "OLD_TEAM",
+        reportingPdu = "OLD_PDU",
+        regionName = "OLD_REGION",
+      )
+      whenever(featureFlagService.isEnabled(REFERRAL_LOCATION_USE_REQUIREMENT_MANAGER)).thenReturn(true)
+      oasysApiStubs.stubSuccessfulPniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory()
+          .withTeam(CodeDescription("PP_TEAM_CODE", "PP_TEAM_DESCRIPTION"))
+          .withProbationDeliveryUnit(CodeDescription("PP_PDU_CODE", "PP_PDU_DESCRIPTION"))
+          .withRegion(CodeDescription("PP_REGION_CODE", "PP_REGION_DESCRIPTION"))
+          .produce(),
+      )
+      nDeliusApiStubs.stubNotFoundRequirementManagerResponse(referral.crn, referral.eventId!!)
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      // When
+      val referralDetails = referralService.refreshPersonalDetailsForReferral(referral.id!!)!!
+
+      // Then
+      val reportingLocation = reportingLocationRepository.findByReferralId(referral.id)!!
+      assertThat(reportingLocation.pduName).isEqualTo("PP_PDU_DESCRIPTION")
+      assertThat(reportingLocation.reportingTeam).isEqualTo("PP_TEAM_DESCRIPTION")
+      assertThat(reportingLocation.regionName).isEqualTo("PP_REGION_DESCRIPTION")
+      assertThat(referralDetails.pdu).isEqualTo("PP_PDU_DESCRIPTION")
+      assertThat(referralDetails.reportingTeam).isEqualTo("PP_TEAM_DESCRIPTION")
+    }
+
+    @Test
+    fun `refreshPersonalDetailsForReferral takes the reporting location from the probation practitioner when the flag is enabled but the referral has no sourcedFrom`() = runTest {
+      // Given
+      val referral = ReferralEntityFactory().withSourcedFrom(null).produce()
+      testDataGenerator.createReferralWithStatusHistory(referral)
+      whenever(featureFlagService.isEnabled(REFERRAL_LOCATION_USE_REQUIREMENT_MANAGER)).thenReturn(true)
+      oasysApiStubs.stubSuccessfulPniResponse(referral.crn)
+      nDeliusApiStubs.stubPersonalDetailsResponse(
+        NDeliusPersonalDetailsFactory()
+          .withTeam(CodeDescription("PP_TEAM_CODE", "PP_TEAM_DESCRIPTION"))
+          .withProbationDeliveryUnit(CodeDescription("PP_PDU_CODE", "PP_PDU_DESCRIPTION"))
+          .withRegion(CodeDescription("PP_REGION_CODE", "PP_REGION_DESCRIPTION"))
+          .produce(),
+      )
+      nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
+        referral.crn,
+        referral.eventNumber,
+        NDeliusSentenceResponseFactory().produce(),
+      )
+      nDeliusApiStubs.stubAccessCheck(granted = true, referral.crn)
+
+      // When
+      val referralDetails = referralService.refreshPersonalDetailsForReferral(referral.id!!)!!
+
+      // Then
+      val reportingLocation = reportingLocationRepository.findByReferralId(referral.id)!!
+      assertThat(reportingLocation.pduName).isEqualTo("PP_PDU_DESCRIPTION")
+      assertThat(reportingLocation.reportingTeam).isEqualTo("PP_TEAM_DESCRIPTION")
+      assertThat(reportingLocation.regionName).isEqualTo("PP_REGION_DESCRIPTION")
+      assertThat(referralDetails.pdu).isEqualTo("PP_PDU_DESCRIPTION")
+      assertThat(referralDetails.reportingTeam).isEqualTo("PP_TEAM_DESCRIPTION")
     }
 
     @Test

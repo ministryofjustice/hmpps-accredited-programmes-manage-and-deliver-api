@@ -90,11 +90,14 @@ class ReferralServiceTest {
   private val transactionTemplate: TransactionTemplate = mockk()
   private val nDeliusAppointmentRepository: NDeliusAppointmentRepository = mockk()
   private val messageHistoryRepository: MessageHistoryRepository = mockk()
+  private val featureFlagService: FeatureFlagService = mockk()
 
   private lateinit var referralService: ReferralService
 
   @BeforeEach
   fun beforeEach() {
+    every { featureFlagService.isEnabled(any()) } returns false
+
     referralService = ReferralService(
       findAndReferInterventionApiClient = findAndReferInterventionApiClient,
       nDeliusIntegrationApiClient = nDeliusIntegrationApiClient,
@@ -125,6 +128,7 @@ class ReferralServiceTest {
       nDeliusAppointmentRepository = nDeliusAppointmentRepository,
       messageHistoryRepository = messageHistoryRepository,
       userAccessService = userAccessService,
+      featureFlagService = featureFlagService,
     )
   }
 
