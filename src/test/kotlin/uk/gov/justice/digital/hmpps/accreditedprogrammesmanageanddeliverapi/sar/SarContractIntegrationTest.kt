@@ -154,7 +154,8 @@ class SarContractIntegrationTest :
           reportingTeam = "Team A",
           regionName = "WIREMOCKED REGION",
           crn = getCrn(),
-          personName = "Test Person SAR",
+          personForename = "Test",
+          personSurname = "Person SAR",
           dateOfBirth = fixedDob,
           sentenceEndDate = fixedSentenceEndDate,
           licenceExpiryDate = fixedLicenceExpiryDate,
@@ -321,7 +322,8 @@ class SarContractIntegrationTest :
   override fun `SAR API should return expected data`() {
     setupTestData()
 
-    val response = sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient, SubjectAccessRequestContent::class.java)
+    val response =
+      sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient, SubjectAccessRequestContent::class.java)
     val normalizedActual = normalizeDynamicValues(sarIntegrationTestHelper.toJson(response))
 
     if (generateActual) {
@@ -341,7 +343,8 @@ class SarContractIntegrationTest :
     sarIntegrationTestHelper.stubFindLocationNameByNomisIdWith("PROPERTY BOX 1")
     sarIntegrationTestHelper.stubFindLocationNameByDpsIdWith("PROPERTY BOX 2")
 
-    val dataResponse = sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient, SubjectAccessRequestContent::class.java)
+    val dataResponse =
+      sarIntegrationTestHelper.requestSarDataForCrn(getCrn(), webTestClient, SubjectAccessRequestContent::class.java)
     val templateResponse = sarIntegrationTestHelper.requestSarTemplate(webTestClient)
 
     val renderResult = sarIntegrationTestHelper.renderServiceReport(

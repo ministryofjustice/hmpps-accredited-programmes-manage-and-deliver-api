@@ -68,7 +68,8 @@ class EntityFactoriesTest {
     val referral = ReferralEntityFactory().produce()
 
     assertThat(referral.id).isNull()
-    assertThat(referral.personName).isNotNull()
+    assertThat(referral.personForename).isNotNull()
+    assertThat(referral.personSurname).isNotNull()
     assertThat(referral.crn).isNotNull()
     assertThat(referral.createdAt).isNotNull()
     assertThat(referral.statusHistories).isEmpty()
@@ -77,20 +78,23 @@ class EntityFactoriesTest {
   @Test
   fun `ReferralEntityFactory should create entity with custom values`() {
     val id = UUID.randomUUID()
-    val personName = "Custom Person"
+    val personForename = "Custom"
+    val personSurname = "Person"
     val crn = "CUSTOM123"
     val createdAt = LocalDateTime.of(2023, 1, 1, 12, 0)
 
     val referral = ReferralEntityFactory()
       .withId(id)
-      .withPersonName(personName)
+      .withPersonForename(personForename)
+      .withPersonSurname(personSurname)
       .withCrn(crn)
       .withCreatedAt(createdAt)
       .withStatusHistories(mutableListOf())
       .produce()
 
     assertThat(referral.id).isEqualTo(id)
-    assertThat(referral.personName).isEqualTo(personName)
+    assertThat(referral.personForename).isEqualTo(personForename)
+    assertThat(referral.personSurname).isEqualTo(personSurname)
     assertThat(referral.crn).isEqualTo(crn)
     assertThat(referral.createdAt).isEqualTo(createdAt)
     assertThat(referral.statusHistories).hasSize(0)
@@ -494,7 +498,6 @@ class EntityFactoriesTest {
     val facilitator = FacilitatorEntityFactory().produce()
 
     assertThat(facilitator.id).isNull()
-    assertThat(facilitator.personName).isNotNull()
     assertThat(facilitator.personForename).isNull()
     assertThat(facilitator.personMiddleNames).isNull()
     assertThat(facilitator.personSurname).isNull()
@@ -506,7 +509,6 @@ class EntityFactoriesTest {
   @Test
   fun `FacilitatorEntityFactory should create entity with custom values`() {
     val id = UUID.randomUUID()
-    val personName = "Jane Doe"
     val personForename = "Jane"
     val personMiddleNames = "Ann"
     val personSurname = "Doe"
@@ -516,7 +518,6 @@ class EntityFactoriesTest {
 
     val facilitator = FacilitatorEntityFactory()
       .withId(id)
-      .withPersonName(personName)
       .withPersonForename(personForename)
       .withPersonMiddleNames(personMiddleNames)
       .withPersonSurname(personSurname)
@@ -526,7 +527,6 @@ class EntityFactoriesTest {
       .produce()
 
     assertThat(facilitator.id).isEqualTo(id)
-    assertThat(facilitator.personName).isEqualTo(personName)
     assertThat(facilitator.personForename).isEqualTo(personForename)
     assertThat(facilitator.personMiddleNames).isEqualTo(personMiddleNames)
     assertThat(facilitator.personSurname).isEqualTo(personSurname)

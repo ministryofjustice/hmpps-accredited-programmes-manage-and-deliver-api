@@ -26,7 +26,7 @@ class ProgrammeGroupMembershipRepositoryIntegrationTest : IntegrationTestBase() 
   @Transactional
   fun `findByReferralAndGroupIdsIncludingDeleted returns the active membership when one exists`() {
     // Given
-    val referral = testDataGenerator.createReferral("John Smith", randomCrn())
+    val referral = testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = randomCrn())
     val group = testDataGenerator.createGroup(ProgrammeGroupFactory().produce())
     testDataGenerator.createGroupMembership(
       ProgrammeGroupMembershipFactory().withReferral(referral).withProgrammeGroup(group).produce(),
@@ -45,7 +45,7 @@ class ProgrammeGroupMembershipRepositoryIntegrationTest : IntegrationTestBase() 
   @Transactional
   fun `findByReferralAndGroupIdsIncludingDeleted returns a soft-deleted membership when no active one exists`() {
     // Given a PoP who was removed from the group (membership soft-deleted)
-    val referral = testDataGenerator.createReferral("John Smith", randomCrn())
+    val referral = testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = randomCrn())
     val group = testDataGenerator.createGroup(ProgrammeGroupFactory().produce())
     testDataGenerator.createGroupMembership(
       ProgrammeGroupMembershipFactory()
@@ -69,7 +69,7 @@ class ProgrammeGroupMembershipRepositoryIntegrationTest : IntegrationTestBase() 
   @Transactional
   fun `findByReferralAndGroupIdsIncludingDeleted prefers the active membership when a deleted one also exists`() {
     // Given a PoP who was removed then re-added: one deleted and one active membership for the same group
-    val referral = testDataGenerator.createReferral("John Smith", randomCrn())
+    val referral = testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", randomCrn())
     val group = testDataGenerator.createGroup(ProgrammeGroupFactory().produce())
     testDataGenerator.createGroupMembership(
       ProgrammeGroupMembershipFactory()
@@ -100,7 +100,7 @@ class ProgrammeGroupMembershipRepositoryIntegrationTest : IntegrationTestBase() 
   @Transactional
   fun `findByReferralAndGroupIdsIncludingDeleted returns null when no membership exists for the group`() {
     // Given
-    val referral = testDataGenerator.createReferral("John Smith", randomCrn())
+    val referral = testDataGenerator.createReferral(personForename = "John", personSurname = "Smith", crn = randomCrn())
     val group = testDataGenerator.createGroup(ProgrammeGroupFactory().produce())
 
     // When

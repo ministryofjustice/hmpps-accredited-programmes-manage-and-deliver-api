@@ -14,6 +14,7 @@ import jakarta.persistence.OneToMany
 import jakarta.persistence.OneToOne
 import jakarta.persistence.OrderBy
 import jakarta.persistence.Table
+import jakarta.persistence.Transient
 import jakarta.validation.constraints.NotNull
 import org.springframework.data.annotation.CreatedBy
 import org.springframework.data.annotation.CreatedDate
@@ -34,9 +35,6 @@ class ReferralEntity(
   @GeneratedValue
   @Column(name = "id")
   var id: UUID? = null,
-
-  @Column(name = "person_name")
-  var personName: String,
 
   @Nullable
   @Column(name = "person_forename")
@@ -181,7 +179,11 @@ class ReferralEntity(
   @Column(name = "updated_at")
   @LastModifiedDate
   var updatedAt: LocalDateTime = LocalDateTime.now(),
-)
+) {
+  @get:Transient
+  val personName: String
+    get() = listOfNotNull(personForename, personMiddleNames, personSurname).filter { it.isNotBlank() }.joinToString(" ")
+}
 
 enum class ReferralEntitySourcedFrom(val displayName: String) {
   REQUIREMENT("Requirement"),

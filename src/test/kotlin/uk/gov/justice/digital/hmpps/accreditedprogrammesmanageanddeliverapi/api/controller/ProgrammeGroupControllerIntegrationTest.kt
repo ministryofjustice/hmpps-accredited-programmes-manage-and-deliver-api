@@ -896,10 +896,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         groupInOtherRegion,
       ).forEach { testDataGenerator.createGroup(it) }
 
-      val referral1 = testDataGenerator.createReferral(personName = "Person1", crn = "X123456")
-      val referral2 = testDataGenerator.createReferral(personName = "Person2", crn = "X123457")
-      val referral3 = testDataGenerator.createReferral(personName = "Person3", crn = "X123458")
-      val referral4 = testDataGenerator.createReferral(personName = "Person4", crn = "X123459")
+      val referral1 = testDataGenerator.createReferral(personForename = "Person", personSurname = "1", crn = "X123456")
+      val referral2 = testDataGenerator.createReferral(personForename = "Person", personSurname = "2", crn = "X123457")
+      val referral3 = testDataGenerator.createReferral(personForename = "Person", personSurname = "3", crn = "X123458")
+      val referral4 = testDataGenerator.createReferral(personForename = "Person", personSurname = "4", crn = "X123459")
 
       val programmeCompleteReferralStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
       testDataGenerator.creatReferralStatusHistory(
@@ -987,9 +987,9 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       listOf(group1, group2, group3, group4, group5).forEach { testDataGenerator.createGroup(it) }
 
-      val referral1 = testDataGenerator.createReferral(personName = "Person 1", crn = "X123456")
-      val referral2 = testDataGenerator.createReferral(personName = "Person 2", crn = "X123457")
-      val referral3 = testDataGenerator.createReferral(personName = "Person 3", crn = "X123458")
+      val referral1 = testDataGenerator.createReferral(personForename = "Person", personSurname = "1", crn = "X123456")
+      val referral2 = testDataGenerator.createReferral(personForename = "Person", personSurname = "2", crn = "X123457")
+      val referral3 = testDataGenerator.createReferral(personForename = "Person", personSurname = "3", crn = "X123458")
 
       val group3Membership = testDataGenerator.allocateReferralsToGroup(listOf(referral1, referral2), group3).first()
       val group5Membership =
@@ -1066,8 +1066,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val groupPartialComplete = ProgrammeGroupFactory().withCode("GROUP-PARTIAL").withRegionName(region)
         .withEarliestStartDate(LocalDate.now().minusDays(10)).produce()
       testDataGenerator.createGroup(groupPartialComplete)
-      val programmeCompleteReferral = testDataGenerator.createReferral(personName = "Complete", crn = "X000001")
-      val onProgrammeReferral = testDataGenerator.createReferral(personName = "Incomplete", crn = "X000002")
+      val programmeCompleteReferral =
+        testDataGenerator.createReferral(personForename = "Complete", personSurname = "1", crn = "X000001")
+      val onProgrammeReferral =
+        testDataGenerator.createReferral(personForename = "Incomplete", personSurname = "1", crn = "X000002")
       val completeGroupMembership =
         testDataGenerator.allocateReferralsToGroup(listOf(programmeCompleteReferral), groupPartialComplete).first()
       val incompleteGroupMembership =
@@ -1100,7 +1102,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val groupNoPPR = ProgrammeGroupFactory().withCode("GROUP-NO-PPR").withRegionName(region)
         .withEarliestStartDate(LocalDate.now().minusDays(10)).produce()
       testDataGenerator.createGroup(groupNoPPR)
-      val referralWithoutPPR = testDataGenerator.createReferral(personName = "NoPPR", crn = "X000003")
+      val referralWithoutPPR =
+        testDataGenerator.createReferral(personForename = "NoPPR", personSurname = "1", crn = "X000003")
       val groupMembershipList =
         testDataGenerator.allocateReferralsToGroup(listOf(referralWithoutPPR), groupNoPPR).first()
       testDataGenerator.creatReferralStatusHistory(
@@ -1115,7 +1118,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val groupComplete = ProgrammeGroupFactory().withCode("GROUP-COMPLETE").withRegionName(region)
         .withEarliestStartDate(LocalDate.now().minusDays(10)).produce()
       testDataGenerator.createGroup(groupComplete)
-      val completeReferral = testDataGenerator.createReferral(personName = "John Doe", crn = "X000004")
+      val completeReferral =
+        testDataGenerator.createReferral(personForename = "John", personSurname = "Doe", crn = "X000004")
       val completedGroupMembership = testDataGenerator.allocateReferralsToGroup(
         listOf(completeReferral),
         groupComplete,
@@ -1279,7 +1283,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         )
       }
       completeGroups.forEachIndexed { index, group ->
-        val referral = testDataGenerator.createReferral(personName = "Complete $index", crn = "X00000$index")
+        val referral =
+          testDataGenerator.createReferral(personForename = "Complete", personSurname = "$index", crn = "X00000$index")
         val membership = testDataGenerator.allocateReferralsToGroup(listOf(referral), group).first()
         testDataGenerator.creatReferralStatusHistory(
           ReferralStatusHistoryEntityFactory().produce(
@@ -1643,7 +1648,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
-      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "the-forename the-surname")
+      val referral = testReferralHelper.createReferral(
+        crn = theCrnNumber,
+        personForename = "the-forename",
+        personSurname = "the-surname",
+      )
       val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "The additional details for the test")
       domainEventsQueueConfig.purgeAllQueues()
 
@@ -1839,7 +1848,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       savedGroupSession.endsAt = LocalDateTime.now().minusDays(1).plusHours(1)
       sessionRepository.save(savedGroupSession)
 
-      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "the-forename the-surname")
+      val referral = testReferralHelper.createReferral(
+        crn = theCrnNumber,
+        personForename = "the-forename",
+        personSurname = "the-surname",
+      )
       val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "The additional details for the test")
 
       // When
@@ -1897,7 +1910,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
-      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "forename surname")
+      val referral =
+        testReferralHelper.createReferral(crn = theCrnNumber, personForename = "forename", personSurname = "surname")
       val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "Allocating to group with past sessions")
 
       val now = LocalDateTime.now()
@@ -1978,7 +1992,11 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       savedGroupSession.endsAt = LocalDateTime.now().minusDays(1).plusHours(1)
       sessionRepository.save(savedGroupSession)
 
-      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "the-forename the-surname")
+      val referral = testReferralHelper.createReferral(
+        crn = theCrnNumber,
+        personForename = "the-forename",
+        personSurname = "the-surname",
+      )
       val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "The additional details for the test")
 
       // When
@@ -2026,7 +2044,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       oasysApiStubs.stubSuccessfulPniResponse(theCrnNumber)
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
 
-      val referral = testReferralHelper.createReferral(crn = theCrnNumber, personName = "John Doe")
+      val referral =
+        testReferralHelper.createReferral(crn = theCrnNumber, personForename = "John", personSurname = "Doe")
       val allocateToGroupRequest = AllocateToGroupRequest(additionalDetails = "The additional details for the test")
 
       // When
@@ -2067,7 +2086,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val referral = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription(),
-        personName = "Alex River",
+        personForename = "Alex",
+        personSurname = "River",
       )
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
       nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
@@ -2149,7 +2169,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
 
       val referral = testReferralHelper.createReferralAndUpdateStatus(
         referralStatusDescriptionRepository.getOnProgrammeStatusDescription(),
-        personName = "Alex River",
+        personForename = "Alex",
+        personSurname = "River",
       )
 
       nDeliusApiStubs.stubSuccessfulPostAppointmentsResponse()
@@ -3123,8 +3144,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
-      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personName)
-        .isEqualTo("Default facilitator forename Default facilitator surname")
+      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personForename)
+        .isEqualTo("Default facilitator forename")
+      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personSurname)
+        .isEqualTo("Default facilitator surname")
       assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
       assertThat(retrievedSession.attendees).hasSize(1)
       assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
@@ -3165,8 +3188,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(groupSessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
-      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personName)
-        .isEqualTo("Default facilitator forename Default facilitator surname")
       assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
       assertThat(retrievedSession.attendees).hasSize(1)
       assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
@@ -3208,8 +3229,10 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
-      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personName)
-        .isEqualTo("Default facilitator forename Default facilitator surname")
+      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personForename)
+        .isEqualTo("Default facilitator forename")
+      assertThat(retrievedSession.sessionFacilitators.first().facilitator.personSurname)
+        .isEqualTo("Default facilitator surname")
       assertThat(retrievedSession.locationName).isEqualTo(group.deliveryLocationName)
       assertThat(retrievedSession.attendees).hasSize(1)
       assertThat(retrievedSession.attendees[0].personName).isEqualTo(referral.personName)
@@ -3528,7 +3551,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       val sessionTemplate = group.accreditedProgrammeTemplate!!.modules.first().sessionTemplates.first()
 
       val nonExistentFacilitator = CreateGroupTeamMemberFactory()
-        .withFacilitator("Non existent Facilitator")
         .withFacilitatorForename("Non existent")
         .withFacilitatorSurname("Facilitator")
         .withFacilitatorCode("Non existent code")
@@ -3552,12 +3574,14 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         expectedResponseStatus = HttpStatus.CREATED.value(),
       )
       assertThat(response).isNotNull
-      assertThat(response).isEqualTo("${sessionTemplate.name} for ${referral.personName} has been added.")
+      assertThat(response).isEqualTo("${sessionTemplate.name} for ${referral.personForename} ${referral.personSurname} has been added.")
       val retrievedSession =
         sessionRepository.findByModuleSessionTemplateIdAndProgrammeGroupId(sessionTemplate.id!!, group.id!!)
           .sortedByDescending { it.createdAt }.first()
-      assertThat(retrievedSession.sessionFacilitators).extracting("facilitator.personName")
-        .contains("Non existent Facilitator")
+      assertThat(retrievedSession.sessionFacilitators).extracting("facilitator.personForename")
+        .contains("Non existent")
+      assertThat(retrievedSession.sessionFacilitators).extracting("facilitator.personSurname")
+        .contains("Facilitator")
       // This is 2 as we made a call when we allocated to a group as part of test setup
       wiremock.verify(2, postRequestedFor(urlEqualTo("/appointments")))
     }
@@ -3570,7 +3594,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
         referralIds = listOf(UUID.randomUUID()),
         facilitators = listOf(
           CreateGroupTeamMember(
-            _facilitator = "Test Facilitator",
             facilitatorForename = "Test",
             facilitatorSurname = "Facilitator",
             facilitatorCode = "FAC001",
@@ -4129,7 +4152,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
     fun `return 200 and use the one-to-one placeholder date for a module whose main group sessions have all been deleted`() {
       // Given
       val group = testGroupHelper.createGroup()
-      val gettingStarted = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate().modules.first { it.name == "Getting started" }
+      val gettingStarted =
+        accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate().modules.first { it.name == "Getting started" }
       val gettingStartedSessions = sessionRepository.findByProgrammeGroupId(group.id!!)
         .filter { it.moduleSessionTemplate.module.id == gettingStarted.id }
       sessionRepository.deleteAll(gettingStartedSessions.filter { it.sessionType == SessionType.GROUP })
@@ -4317,7 +4341,8 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       assertThat(response.time).isEqualTo("9:30am to midday")
       assertThat(response.unformattedEndDate).isEqualTo(LocalDateTime.of(2126, 6, 3, 12, 0))
       assertThat(response.scheduledToAttend).isEqualTo(groupWithAllocation.sessions.first().attendees.map { it.personName })
-      assertThat(response.facilitators).isEqualTo(group.groupFacilitators.map { it.facilitator.personName })
+      assertThat(response.facilitators).hasSize(1)
+      assertThat(response.facilitators.first()).isEqualTo("${group.groupFacilitators.first().facilitator.personForename} ${group.groupFacilitators.first().facilitator.personSurname}")
       assertThat(response.attendanceAndSessionNotes).hasSize(1)
       assertThat(response.attendanceAndSessionNotes)
         .filteredOn { it.crn == groupWithAllocation.programmeGroupMemberships.first().crn }
@@ -5720,7 +5745,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
       // Given
       val teamMembers = listOf(
         CreateGroupTeamMember(
-          _facilitator = "Archibald Queenie",
           facilitatorForename = "Archibald",
           facilitatorSurname = "Queenie",
           facilitatorCode = "TM001",
@@ -5729,7 +5753,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           teamMemberType = CreateGroupTeamMemberType.TREATMENT_MANAGER,
         ),
         CreateGroupTeamMember(
-          _facilitator = "Chloe Ransom",
           facilitatorForename = "Chloe",
           facilitatorSurname = "Ransom",
           facilitatorCode = "RF001",
@@ -5738,7 +5761,6 @@ class ProgrammeGroupControllerIntegrationTest : IntegrationTestBase() {
           teamMemberType = CreateGroupTeamMemberType.REGULAR_FACILITATOR,
         ),
         CreateGroupTeamMember(
-          _facilitator = "James Samhim",
           facilitatorForename = "James",
           facilitatorSurname = "Samhim",
           facilitatorCode = "CF001",

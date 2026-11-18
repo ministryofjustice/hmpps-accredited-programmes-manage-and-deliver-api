@@ -19,7 +19,8 @@ class ReferralEntityIntegrationTest : IntegrationTestBase() {
     // Given
     val referral = ReferralEntityFactory()
       .withCrn("CRN123")
-      .withPersonName("John Doe")
+      .withPersonForename("John")
+      .withPersonSurname("Doe")
       .withSourcedFrom(ReferralEntitySourcedFrom.REQUIREMENT)
       .withEventId("REQ-1234-REFENTITYTEST")
       .produce()

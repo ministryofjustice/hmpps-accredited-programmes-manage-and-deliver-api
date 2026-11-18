@@ -376,7 +376,7 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           .withDeletedAt(LocalDateTime.now())
           .produce(),
       )
-      val referral1 = testDataGenerator.createReferral("Person 1", "CRN1")
+      val referral1 = testDataGenerator.createReferral(personForename = "Person", personSurname = "1", crn = "CRN1")
       val statusComplete = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory()
@@ -419,7 +419,8 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
           .withEarliestStartDate(LocalDate.now().minusDays(10))
           .produce(),
       )
-      val referral2 = testDataGenerator.createReferral("Person 2", "CRN2") // Completed
+      val referral2 =
+        testDataGenerator.createReferral(personForename = "Person", personSurname = "2", crn = "CRN2") // Completed
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory()
           .produce(
@@ -427,7 +428,8 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
             referralStatusDescription = statusComplete,
           ),
       )
-      val referral3 = testDataGenerator.createReferral("Person 3", "CRN3") // Not completed
+      val referral3 =
+        testDataGenerator.createReferral(personForename = "Person", personSurname = "3", crn = "CRN3") // Not completed
       testDataGenerator.allocateReferralsToGroup(listOf(referral2, referral3), partiallyCompletedGroup)
 
       // When
@@ -452,12 +454,13 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     fun `COMPLETE should include a group where every active member completed and a member was removed early without completing`(sex: ProgrammeGroupSexEnum) {
       val group = createStartedGroup("COMPLETED_WITH_DROPOUT", sex)
 
-      val completer = createReferralWithProgrammeCompleteStatus("Completer", "CRN_C")
+      val completer =
+        createReferralWithProgrammeCompleteStatus(personForename = "Completer", personSurname = "", crn = "CRN_C")
       val completerMembership =
         testDataGenerator.allocateReferralsToGroup(listOf(completer), group, deletedAt = LocalDateTime.now()).first()
       createAttendedPostProgrammeReview(group, completerMembership)
 
-      val dropout = testDataGenerator.createReferral("Dropout", "CRN_D")
+      val dropout = testDataGenerator.createReferral(personForename = "Dropout", personSurname = "One", crn = "CRN_D")
       testDataGenerator.allocateReferralsToGroup(listOf(dropout), group, deletedAt = LocalDateTime.now())
 
       assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE, sex)).contains("COMPLETED_WITH_DROPOUT")
@@ -468,8 +471,8 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     @EnumSource(value = ProgrammeGroupSexEnum::class, names = ["MALE", "FEMALE"])
     fun `a group where every member was removed early without completing is not complete`(sex: ProgrammeGroupSexEnum) {
       val group = createStartedGroup("ALL_DROPOUTS", sex)
-      val referralOne = testDataGenerator.createReferral("Dropout One", "CRN_D1")
-      val referralTwo = testDataGenerator.createReferral("Dropout Two", "CRN_D2")
+      val referralOne = testDataGenerator.createReferral(personForename = "Dropout", personSurname = "One", "CRN_D1")
+      val referralTwo = testDataGenerator.createReferral(personForename = "Dropout", personSurname = "Two", "CRN_D2")
       testDataGenerator.allocateReferralsToGroup(listOf(referralOne, referralTwo), group, deletedAt = LocalDateTime.now())
 
       assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE, sex)).doesNotContain("ALL_DROPOUTS")
@@ -481,12 +484,14 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     fun `a group is not complete while a member is still active and working through the programme`(sex: ProgrammeGroupSexEnum) {
       val group = createStartedGroup("PARTIALLY_ACTIVE", sex)
 
-      val completer = createReferralWithProgrammeCompleteStatus("Completer", "CRN_PC")
+      val completer =
+        createReferralWithProgrammeCompleteStatus(personForename = "Completer", personSurname = "", crn = "CRN_PC")
       val completerMembership =
         testDataGenerator.allocateReferralsToGroup(listOf(completer), group, deletedAt = LocalDateTime.now()).first()
       createAttendedPostProgrammeReview(group, completerMembership)
 
-      val inProgress = testDataGenerator.createReferral("In Progress", "CRN_IP")
+      val inProgress =
+        testDataGenerator.createReferral(personForename = "In", personSurname = "Progress", crn = "CRN_IP")
       testDataGenerator.allocateReferralsToGroup(listOf(inProgress), group)
 
       assertThat(groupCodesForTab(GroupPageByRegionTab.COMPLETE, sex)).doesNotContain("PARTIALLY_ACTIVE")
@@ -499,7 +504,8 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       val group = createStartedGroup("GROUP_AWAITING_COMPLETION", sex)
       val otherGroup = createStartedGroup("GROUP_WITH_THE_REVIEW", sex)
 
-      val referral = createReferralWithProgrammeCompleteStatus("Cross Group", "CRN_XG")
+      val referral =
+        createReferralWithProgrammeCompleteStatus(personForename = "Cross", personSurname = "Group", crn = "CRN_XG")
       val membership = testDataGenerator.allocateReferralsToGroup(listOf(referral), group).first()
 
       val template = testDataGenerator.createAccreditedProgrammeTemplate("Template GROUP_WITH_THE_REVIEW")
@@ -533,8 +539,13 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         .produce(),
     )
 
-    private fun createReferralWithProgrammeCompleteStatus(personName: String, crn: String): ReferralEntity {
-      val referral = testDataGenerator.createReferral(personName, crn)
+    private fun createReferralWithProgrammeCompleteStatus(
+      personForename: String,
+      personSurname: String,
+      crn: String,
+    ): ReferralEntity {
+      val referral =
+        testDataGenerator.createReferral(personForename = personForename, personSurname = personSurname, crn = crn)
       testDataGenerator.creatReferralStatusHistory(
         ReferralStatusHistoryEntityFactory().produce(
           referral = referral,
@@ -1126,18 +1137,23 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
     fun `should return group details with correctly formatted data`() {
       // Given
       val treatmentManager =
-        testDataGenerator.createFacilitator(FacilitatorEntityFactory().withPersonName("Alex River").produce())
+        testDataGenerator.createFacilitator(
+          FacilitatorEntityFactory().withPersonForename("Alex").withPersonSurname("River").produce(),
+        )
       val facilitator1 =
         testDataGenerator.createFacilitator(
-          FacilitatorEntityFactory().withPersonName("Archibald Quentin").withNdeliusPersonCode("1111").produce(),
+          FacilitatorEntityFactory().withPersonForename("Archibald").withPersonSurname("Quentin")
+            .withNdeliusPersonCode("1111").produce(),
         )
       val facilitator2 =
         testDataGenerator.createFacilitator(
-          FacilitatorEntityFactory().withPersonName("Jane Doe").withNdeliusPersonCode("2222").produce(),
+          FacilitatorEntityFactory().withPersonForename("Jane").withPersonSurname("Doe").withNdeliusPersonCode("2222")
+            .produce(),
         )
       val coverFacilitator =
         testDataGenerator.createFacilitator(
-          FacilitatorEntityFactory().withPersonName("John Doe").withNdeliusPersonCode("3333").produce(),
+          FacilitatorEntityFactory().withPersonForename("John").withPersonSurname("Doe").withNdeliusPersonCode("3333")
+            .produce(),
         )
       val template = accreditedProgrammeTemplateRepository.getBuildingChoicesTemplate()
       val buildingChoicesTemplateId = template.id!!
@@ -1216,9 +1232,9 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
       group.groupFacilitators.add(programmeGroupCoverFacilitator)
 
       programmeGroupRepository.saveAndFlush(group)
-      val referral1 = testDataGenerator.createReferral("Person 1", "CRN1")
-      val referral2 = testDataGenerator.createReferral("Person 2", "CRN2")
-      val referral3 = testDataGenerator.createReferral("Person 3", "CRN3")
+      val referral1 = testDataGenerator.createReferral(personForename = "Person", personSurname = "1", crn = "CRN1")
+      val referral2 = testDataGenerator.createReferral(personForename = "Person", personSurname = "2", crn = "CRN2")
+      val referral3 = testDataGenerator.createReferral(personForename = "Person", personSurname = "3", crn = "CRN3")
 
       testDataGenerator.allocateReferralsToGroup(listOf(referral1, referral2), group)
       testDataGenerator.addUnallocatedReferralsToGroup(listOf(referral3), group)
@@ -1242,14 +1258,15 @@ class ProgrammeGroupServiceIntegrationTest : IntegrationTestBase() {
         "Mondays, midday to 2:30pm",
         "Thursdays, 2:30pm to 5pm",
       )
-      assertThat(result.treatmentManager.facilitator).isEqualTo(treatmentManager.personName)
+      assertThat(result.treatmentManager.facilitatorForename).isEqualTo(treatmentManager.personForename)
+      assertThat(result.treatmentManager.facilitatorSurname).isEqualTo(treatmentManager.personSurname)
       assertThat(result.treatmentManager.facilitatorCode).isEqualTo(treatmentManager.ndeliusPersonCode)
       assertThat(result.treatmentManager.teamCode).isEqualTo(treatmentManager.ndeliusTeamCode)
       assertThat(result.treatmentManager.teamName).isEqualTo(treatmentManager.ndeliusTeamName)
       assertThat(result.currentlyAllocatedNumber).isEqualTo(2)
-      assertThat(result.facilitators).anyMatch { it.facilitator == "Archibald Quentin" && it.facilitatorCode == "1111" }
-      assertThat(result.facilitators).anyMatch { it.facilitator == "Jane Doe" }
-      assertThat(result.coverFacilitators!!).anyMatch { it.facilitator == "John Doe" && it.facilitatorCode == "3333" }
+      assertThat(result.facilitators).anyMatch { it.facilitatorForename == "Archibald" && it.facilitatorSurname == "Quentin" && it.facilitatorCode == "1111" }
+      assertThat(result.facilitators).anyMatch { it.facilitatorForename == "Jane" && it.facilitatorSurname == "Doe" }
+      assertThat(result.coverFacilitators!!).anyMatch { it.facilitatorForename == "John" && it.facilitatorSurname == "Doe" && it.facilitatorCode == "3333" }
     }
   }
 }

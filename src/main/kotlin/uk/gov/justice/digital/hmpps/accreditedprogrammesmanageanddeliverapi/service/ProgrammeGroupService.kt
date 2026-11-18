@@ -551,7 +551,10 @@ class ProgrammeGroupService(
           ProgrammeGroupModuleSessionsResponseGroupSession(
             id = session.id!!,
             number = session.sessionNumber,
-            name = sessionNameFormatter.format(session, SessionNameContext.SessionsAndAttendance(session.moduleSessionTemplate)),
+            name = sessionNameFormatter.format(
+              session,
+              SessionNameContext.SessionsAndAttendance(session.moduleSessionTemplate),
+            ),
             type = session.sessionType.value,
             isCatchup = session.isCatchup,
             dateOfSession = session.startsAt.toLocalDate(),
@@ -575,13 +578,16 @@ class ProgrammeGroupService(
             },
             facilitators = session.sessionFacilitators
               .filter { it.facilitatorType != FacilitatorType.COVER_FACILITATOR }
-              .map { it.facilitator.personName },
+              .map { "${it.facilitator.personForename} ${it.facilitator.personSurname}" },
           )
         },
       )
     }
 
-    return ProgrammeGroupModuleSessionsResponse(ProgrammeGroupModuleSessionsResponseGroup(group.code, group.regionName), modules)
+    return ProgrammeGroupModuleSessionsResponse(
+      ProgrammeGroupModuleSessionsResponseGroup(group.code, group.regionName),
+      modules,
+    )
   }
 
   fun getEditCohortForGroup(groupId: UUID): EditGroupCohort {
@@ -666,14 +672,14 @@ class ProgrammeGroupService(
     val (regularFacilitators, coverFacilitators) = programmeGroup.groupFacilitators
       .partition { it.facilitatorType == FacilitatorType.REGULAR_FACILITATOR }
       .let { (regular, cover) ->
-        regular.map { it.facilitator.personName } to cover.map { it.facilitator.personName }
+        regular.map { "${it.facilitator.personForename} ${it.facilitator.personSurname}" } to cover.map { "${it.facilitator.personForename} ${it.facilitator.personSurname}" }
       }
 
     return GroupTreatmentManagerAndFacilitatorDetails(
       captionText = "Edit group ${programmeGroup.code}",
       pageTitle = "Edit who is responsible for the group",
       submitButtonText = "Submit",
-      treatmentManager = programmeGroup.treatmentManager?.personName.orEmpty(),
+      treatmentManager = "${programmeGroup.treatmentManager?.personForename.orEmpty()} ${programmeGroup.treatmentManager?.personSurname.orEmpty()}",
       regularFacilitators = regularFacilitators,
       coverFacilitators = coverFacilitators,
     )
@@ -845,8 +851,8 @@ class ProgrammeGroupService(
       ),
       unformattedEndDate = session.endsAt,
       scheduledToAttend = accessGrantedAttendees.map { it.personName },
-      facilitators = session.sessionFacilitators.sortedBy { it.facilitator.personName }
-        .map { it.facilitator.personName },
+      facilitators = session.sessionFacilitators.sortedBy { it.facilitator.personSurname }
+        .map { "${it.facilitator.personForename} ${it.facilitator.personSurname}" },
       attendanceAndSessionNotes = attendanceAndSessionNotes,
     )
   }

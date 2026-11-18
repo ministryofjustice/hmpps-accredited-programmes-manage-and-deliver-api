@@ -15,14 +15,16 @@ internal class ReferralTest {
   fun `toApi should map ReferralEntity to Referral with active status`() {
     // Arrange
     val id = UUID.randomUUID()
-    val personName = "John Doe"
+    val personForename = "John"
+    val personSurname = "Doe"
     val crn = "X12345"
     val createdAt = LocalDateTime.now()
     val setting = SettingType.COMMUNITY
 
     val referralEntity = ReferralEntity(
       id = id,
-      personName = personName,
+      personForename = personForename,
+      personSurname = personSurname,
       crn = crn,
       createdAt = createdAt,
       statusHistories = mutableListOf(),
@@ -43,7 +45,7 @@ internal class ReferralTest {
 
     // Assert
     assertEquals(id, referral.id)
-    assertEquals(personName, referral.personName)
+    assertEquals("$personForename $personSurname", referral.personName)
     assertEquals(crn, referral.crn)
     assertEquals(createdAt, referral.createdAt)
     assertEquals(cohortHistoryEntry.cohort, OffenceCohort.SEXUAL_OFFENCE)
@@ -53,7 +55,8 @@ internal class ReferralTest {
   fun `toApi should handle empty status history`() {
     // Arrange
     val id = UUID.randomUUID()
-    val personName = "Mark Smith"
+    val personForename = "Mark"
+    val personSurname = "Smith"
     val crn = "Z12345"
     val createdAt = LocalDateTime.now()
     val setting = SettingType.COMMUNITY
@@ -61,7 +64,8 @@ internal class ReferralTest {
 
     val referralEntity = ReferralEntity(
       id = id,
-      personName = personName,
+      personForename = personForename,
+      personSurname = personSurname,
       crn = crn,
       createdAt = createdAt,
       statusHistories = mutableListOf(),
@@ -83,7 +87,7 @@ internal class ReferralTest {
 
     // Assert
     assertEquals(id, referral.id)
-    assertEquals(personName, referral.personName)
+    assertEquals("$personForename $personSurname", referral.personName)
     assertEquals(crn, referral.crn)
     assertEquals(createdAt, referral.createdAt)
     assertEquals("Unknown", referral.status)
