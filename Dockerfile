@@ -22,6 +22,5 @@ COPY --from=builder --chown=appuser:appgroup /builder/extracted/spring-boot-load
 COPY --from=builder --chown=appuser:appgroup /builder/extracted/snapshot-dependencies/ ./
 COPY --from=builder --chown=appuser:appgroup /builder/extracted/application/ ./
 
-# temp fix for CVE-2026-114938, remove once the base image has been updated to a version that includes the fix
-# Remove once the base image ships Temurin JDK/JRE 25.0.5.1 or later.
+# temp fix for CVE-2026-114938, remove once the base image has been updated to a version that includes the fix 25.0.5.1 or later.
 ENTRYPOINT ["java", "-XX:+AlwaysActAsServerClassMachine", "-XX:-UseBASE64Intrinsics", "-javaagent:agent.jar", "-jar", "app.jar"]
