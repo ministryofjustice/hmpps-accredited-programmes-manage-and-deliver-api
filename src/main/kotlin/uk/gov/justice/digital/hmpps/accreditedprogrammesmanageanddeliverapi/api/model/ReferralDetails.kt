@@ -228,8 +228,8 @@ data class ReferralDetails(
       currentStatusDescription = latestReferralStatus?.description ?: DEFAULT_STATUS_DESCRIPTION_VALUE,
       currentlyAllocatedGroupCode = currentlyAllocatedGroup?.programmeGroup?.code,
       currentlyAllocatedGroupId = currentlyAllocatedGroup?.programmeGroup?.id,
-      pdu = nDeliusPersonalDetails.probationDeliveryUnit.description,
-      reportingTeam = nDeliusPersonalDetails.team.description,
+      pdu = referral.referralReportingLocation?.pduName ?: DEFAULT_VALUE,
+      reportingTeam = referral.referralReportingLocation?.reportingTeam ?: DEFAULT_VALUE,
       isLAO = isLAO,
     )
 
