@@ -9,6 +9,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusInfo
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusTransitions
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.eventDetails.ReferralCompletionData
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.eventDetails.ReferralStartData
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toApi
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toCurrentGroupDetails
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.toCurrentStatus
@@ -22,6 +23,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionAttendanceEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.SessionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralProgrammeCompleteEvent
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.listener.ReferralProgrammeStartedEvent
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ProgrammeGroupMembershipRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
@@ -156,6 +158,69 @@ class ReferralStatusService(
 
     return true
   }
+
+  fun getStartDataForReferral(referralId: UUID): ReferralStartData {
+    val referral = referralRepository.findByIdOrNull(referralId)
+      ?: throw NotFoundException("Referral with id $referralId not found")
+
+    val eventId = requireNotNull(referral.eventId) { "EventId must not be null" }
+
+    val actualStartDate = referral.actualStartDate
+      ?: throw NotFoundException("No actual start date recorded for referral $referralId")
+
+    return ReferralStartData(
+      licReqId = eventId,
+      licReqStartedAt = actualStartDate,
+      sourcedFromEntityType = referral.sourcedFrom!!,
+    )
+  }
+
+  /**
+   * The Actual Start Date for a referral's requirement/licence condition is the date of the first
+   * pre-group one-to-one session that was attended. This is only ever set once: once an actual start
+   * date has been recorded, subsequent pre-group one-to-ones (attended or not) must not overwrite it.
+   */
+  fun checkAndPublishProgrammeStartedEvent(referralId: UUID): Boolean {
+    val referral = referralRepository.findByIdOrNull(referralId) ?: return false
+
+    if (referral.actualStartDate != null) {
+      log.debug("Actual start date already recorded, not publishing programme started event for referral: $referralId")
+      return false
+    }
+
+    val currentGroupMembership = referral.programmeGroupMemberships.maxByOrNull { it.createdAt } ?: return false
+
+    val (preGroupOneToOneSession, _) = findFirstAttendedPreGroupOneToOne(currentGroupMembership) ?: return false
+
+    referral.actualStartDate = preGroupOneToOneSession.startsAt
+    referralRepository.save(referral)
+
+    applicationEventPublisher.publishEvent(ReferralProgrammeStartedEvent(referral.id!!))
+
+    return true
+  }
+
+  /**
+   * A referral can have multiple pre-group one-to-one sessions (e.g. following a non-attendance).
+   * We look at all non-placeholder pre-group one-to-one sessions, in chronological order, and return
+   * the first one that was actually attended and complied with (outcome "Attended - Complied", ATTC)
+   * against this membership. Outcomes such as "Attended - Failed to Comply" (AFTC) or any non-attendance
+   * do not count, so the actual start date stays blank until the programme is genuinely started.
+   */
+  private fun findFirstAttendedPreGroupOneToOne(
+    currentGroupMembership: ProgrammeGroupMembershipEntity,
+  ): Pair<SessionEntity, SessionAttendanceEntity>? = currentGroupMembership.programmeGroup.sessions
+    .filter { it.moduleSessionTemplate.module.isPreGroupModule() && !it.isPlaceholder }
+    .sortedBy { it.startsAt }
+    .mapNotNull { session ->
+      sessionAttendanceRepository.findFirstBySessionIdAndGroupMembershipIdOrderByRecordedAtDesc(
+        sessionId = session.id!!,
+        groupMembershipId = currentGroupMembership.id!!,
+      )?.let { session to it }
+    }
+    .firstOrNull { (_, attendance) ->
+      attendance.outcomeType.attendance == true && attendance.outcomeType.compliant == true
+    }
 
   private fun hasValidPostProgrammeReviewAttendance(referral: ReferralEntity): Boolean {
     val currentGroupMembership = referral.programmeGroupMemberships.maxByOrNull { it.createdAt } ?: return false
