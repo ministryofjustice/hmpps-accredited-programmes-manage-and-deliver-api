@@ -567,6 +567,10 @@ class SessionService(
 
     // If this is a post-programme review session, check if completion events should be published.
     publishCompletionEvent(session = session, changedAttendees = changedAttendees)
+
+    // If this is a pre-group one-to-one session, check if the programme started event should be published.
+    publishProgrammeStartedEvent(session = session, changedAttendees = changedAttendees)
+
     logCreateAttendance(changedAttendees = changedAttendees)
     updateReferralStatusToOnProgramme(
       session = session,
@@ -786,6 +790,26 @@ class SessionService(
     }
   }
 
+  private fun publishProgrammeStartedEvent(
+    session: SessionEntity,
+    changedAttendees: List<SessionAttendee>,
+  ) {
+    val isPreGroupOneToOneSession =
+      session.moduleSessionTemplate.module.isPreGroupModule() && !session.isPlaceholder
+    if (isPreGroupOneToOneSession) {
+      changedAttendees.forEach { attendee ->
+        try {
+          referralStatusService.checkAndPublishProgrammeStartedEvent(attendee.referralId)
+        } catch (e: Exception) {
+          log.error(
+            "Failed to check and publish programme started event for referral with id: ${attendee.referralId}",
+            e,
+          )
+        }
+      }
+    }
+  }
+
   private fun publishCompletionEvent(
     session: SessionEntity,
     changedAttendees: List<SessionAttendee>,
@@ -817,43 +841,46 @@ class SessionService(
     val missingUpdateAppointmentRequestList =
       updateAppointmentRequests.filter { missingNDeliusAppointmentIdSet.contains(it.reference.toString()) }
 
-    missingNDeliusAppointmentIdSet.forEach { missingNDeliusAppointmentIdString ->
+    // In a fixed order, so that two requests needing the same rows lock them the same way round and can't deadlock
+    missingNDeliusAppointmentIdSet.sorted().forEach { missingNDeliusAppointmentIdString ->
       val nDeliusAppointmentId = UUID.fromString(missingNDeliusAppointmentIdString)
       val nDeliusAppointmentList =
         nDeliusAppointmentRepository.findByNdeliusAppointmentId(nDeliusAppointmentId)
       missingNDeliusAppointmentEntityList.addAll(nDeliusAppointmentList)
     }
 
-    scheduleService.createNDeliusAppointments(
-      nDeliusAppointmentEntities = missingNDeliusAppointmentEntityList,
-      updateAppointmentRequests = missingUpdateAppointmentRequestList,
-    )
-
     val updateNonMissingAppointmentRequestList: List<UpdateAppointmentRequest> =
       updateAppointmentRequests.filter { updateAppointmentRequest ->
         !missingNDeliusAppointmentIdSet.contains(updateAppointmentRequest.reference.toString())
       }
 
-    if (updateNonMissingAppointmentRequestList.isEmpty()) return
+    if (updateNonMissingAppointmentRequestList.isNotEmpty()) {
+      when (
+        val response =
+          nDeliusIntegrationApiClient.updateAppointmentsInDelius(
+            UpdateAppointmentsRequest(
+              updateNonMissingAppointmentRequestList,
+            ),
+          )
+      ) {
+        is ClientResult.Failure ->
+          handleUpdateAppointmentResponseError(
+            errorMessage = response.getErrorMessage(),
+            exception = response.toException(),
+          )
 
-    when (
-      val response =
-        nDeliusIntegrationApiClient.updateAppointmentsInDelius(
-          UpdateAppointmentsRequest(
-            updateNonMissingAppointmentRequestList,
-          ),
-        )
-    ) {
-      is ClientResult.Failure ->
-        handleUpdateAppointmentResponseError(
-          errorMessage = response.getErrorMessage(),
-          exception = response.toException(),
-        )
-
-      is ClientResult.Success ->
-        handleUpdateAppointmentResponseSuccess(
-          logMessage = "${updateAppointmentRequests.size} appointments created in Ndelius for group with id: $programmeGroupId",
-        )
+        is ClientResult.Success ->
+          handleUpdateAppointmentResponseSuccess(
+            logMessage = "${updateAppointmentRequests.size} appointments created in Ndelius for group with id: $programmeGroupId",
+          )
+      }
     }
+
+    // Recreating the missing contacts must be the last nDelius call. A failure after it would roll back their new
+    // references, leaving contacts in nDelius that we no longer have references for.
+    scheduleService.recreateMissingNDeliusAppointments(
+      nDeliusAppointmentEntities = missingNDeliusAppointmentEntityList,
+      updateAppointmentRequests = missingUpdateAppointmentRequestList,
+    )
   }
 }

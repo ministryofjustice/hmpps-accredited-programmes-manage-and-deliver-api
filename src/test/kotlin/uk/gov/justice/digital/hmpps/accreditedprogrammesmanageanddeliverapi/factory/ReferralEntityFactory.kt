@@ -82,8 +82,8 @@ class ReferralEntityFactory {
   fun produce() = ReferralEntity(
     id = this.id,
     personName = this.personName!!,
-    personForename = this.personForename!!,
-    personSurname = this.personSurname!!,
+    personForename = this.personForename,
+    personSurname = this.personSurname,
     personMiddleNames = this.personMiddleNames,
     crn = this.crn!!,
     createdAt = this.createdAt,

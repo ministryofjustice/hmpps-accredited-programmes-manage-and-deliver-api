@@ -1,9 +1,11 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.config
 
+import io.netty.handler.timeout.ReadTimeoutException
 import io.sentry.SentryLevel
 import io.sentry.SentryOptions
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.NestedExceptionUtils
 import org.springframework.dao.DataIntegrityViolationException
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.common.exception.AppointmentUpdateException
 
@@ -32,6 +34,12 @@ class SentryConfig {
         event.fingerprints = listOf(APPOINTMENT_UPDATE_FAILURE_FINGERPRINT)
         event.setTag("error.type", APPOINTMENT_UPDATE_FAILURE_FINGERPRINT)
       }
+
+      else if NestedExceptionUtils.getRootCause(throwable) is ReadTimeoutException -> {
+        event.level = SentryLevel.WARNING
+        event.fingerprints = listOf(UPSTREAM_READ_TIMEOUT_FINGERPRINT)
+        event.setTag("error.type", UPSTREAM_READ_TIMEOUT_FINGERPRINT)
+      }
     }
     event
   }
@@ -41,5 +49,6 @@ class SentryConfig {
     private const val DUPLICATE_ROWS_ERROR = "duplicate rows"
     private const val GROUP_WAITLIST_DUPLICATE_FINGERPRINT = "group-waitlist-view-duplicate-rows"
     private const val APPOINTMENT_UPDATE_FAILURE_FINGERPRINT = "ndelius-appointment-update-failure"
+    private const val UPSTREAM_READ_TIMEOUT_FINGERPRINT = "upstream-api-read-timeout"
   }
 }

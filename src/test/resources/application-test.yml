@@ -42,7 +42,7 @@ hmpps:
         queueName: interventionseventtestqueue
         dlqName: interventionseventtestqueuedlq
         subscribeTopicId: hmppseventtopic
-        subscribeFilter: '{"eventType":[ "accredited-programmes-community.referral.status-updated", "accredited-programmes-community.programme.complete" ]}'
+        subscribeFilter: '{"eventType":[ "accredited-programmes-community.referral.status-updated", "accredited-programmes-community.programme.complete", "accredited-programmes-community.programme.started" ]}'
       hmppsdomaineventsqueue:
         queueName: hmpps_domain_events_queue
         dlqName: hmpps_domain_events_dlq
