@@ -144,6 +144,10 @@ class SessionServiceTest {
 
     every { authenticationUtils.getUsername() } returns "test-user"
     every { userAccessService.determineUserAccess("test-user", any()) } returns emptyMap()
+    every { referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME) } returns
+      ReferralStatusDescriptionEntityFactory()
+        .withReferralStatusType(ON_PROGRAMME)
+        .produce()
   }
 
   @Test
