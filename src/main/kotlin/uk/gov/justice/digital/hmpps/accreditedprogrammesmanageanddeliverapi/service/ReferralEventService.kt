@@ -10,6 +10,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.even
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.DomainEventsMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.PersonReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.REFERRAL_COMPLETED_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.REFERRAL_STARTED_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.UPDATE_REFERRAL_STATUS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
 import java.time.ZonedDateTime
@@ -63,6 +64,26 @@ class ReferralEventService(
       referral,
       REFERRAL_COMPLETED_N_DELIUS.name,
       REFERRAL_COMPLETED_N_DELIUS.eventName,
+    )
+  }
+
+  fun publishReferralProgrammeStartedEvent(referralId: UUID) {
+    val referral = referralService.getReferralById(referralId)
+    val message = DomainEventsMessage(
+      eventType = HmppsDomainEventTypes.ACP_COMMUNITY_PROGRAMME_STARTED.value,
+      version = 1,
+      detailUrl = "$madBaseUrl/referral/${referral.id}/start-data",
+      occurredAt = ZonedDateTime.now(),
+      description = "An Accredited Programmes referral in community has attended their first pre-group one-to-one and started the programme.",
+      additionalInformation = mutableMapOf(),
+      personReference = PersonReference.fromCrn(referral.crn),
+    )
+    log.info("Publishing ${HmppsDomainEventTypes.ACP_COMMUNITY_PROGRAMME_STARTED.value} event for referralId: ${referral.id}")
+    publishEvent(
+      message,
+      referral,
+      REFERRAL_STARTED_N_DELIUS.name,
+      REFERRAL_STARTED_N_DELIUS.eventName,
     )
   }
 

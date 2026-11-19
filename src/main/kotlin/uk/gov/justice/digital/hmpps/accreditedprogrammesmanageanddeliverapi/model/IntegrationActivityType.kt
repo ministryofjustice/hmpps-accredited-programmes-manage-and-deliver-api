@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mod
 enum class IntegrationActivityType(val eventName: String) {
   UPDATE_REFERRAL_STATUS_N_DELIUS("Referral.status-update-nDelius"),
   REFERRAL_COMPLETED_N_DELIUS("Referral.completed-nDelius"),
+  REFERRAL_STARTED_N_DELIUS("Referral.started-nDelius"),
   GET_PERSONAL_DETAILS_N_DELIUS("PersonalDetails.get-nDelius"),
   GET_SENTENCE_DETAILS_N_DELIUS("SentenceDetails.get-nDelius"),
   GET_LIMITED_ACCESS_OFFENDER_N_DELIUS("LimitedAccessOffender.get-nDelius"),
