@@ -759,10 +759,8 @@ class SessionService(
       referralStatusDescriptionRepository.findByReferralStatusType(ON_PROGRAMME)
     changedAttendees.forEach { attendee ->
       if (attendee.outcomeCode != ATTC) return@forEach
-      val optionalReferralEntity = referralRepository.findById(attendee.referralId)
-      if (!optionalReferralEntity.isPresent) return@forEach
-      val referralEntity = optionalReferralEntity.get()
-      if (referralEntity.statusHistories.first().referralStatusDescription.referralStatusType != SCHEDULED) return@forEach
+      val referralEntity = referralRepository.findByIdOrNull(attendee.referralId) ?: return@forEach
+      if (referralEntity.statusHistories.firstOrNull()?.referralStatusDescription?.referralStatusType != SCHEDULED) return@forEach
       log.info(
         "Auto-transitioning referral {} from SCHEDULED to ON_PROGRAMME after Pre-group attendance recorded",
         referralEntity.id,
