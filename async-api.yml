@@ -22,6 +22,44 @@ components:
       $ref: https://raw.githubusercontent.com/ministryofjustice/hmpps-domain-events/refs/heads/main/spec/schemas/accredited-programmes-community/referral.status-updated.yml
     accredited-programmes-community.programme.complete:
       $ref: https://raw.githubusercontent.com/ministryofjustice/hmpps-domain-events/refs/heads/main/spec/schemas/accredited-programmes-community/programme.complete.yml
+    accredited-programmes-community.programme.started:
+      name: accredited-programmes-community.programme.started
+      title: accredited-programmes-community.programme.started
+      summary: An Accredited Programmes referral in community has attended their first pre-group one-to-one and started the programme.
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          description:
+            type: string
+            example: An Accredited Programmes referral in community has attended their first pre-group one-to-one and started the programme.
+          detailUrl:
+            type: string
+            description: Returns ReferralStartData (licReqId, licReqStartedAt, sourcedFromEntityType). licReqStartedAt is the date of the attended pre-group one-to-one, to be used as the requirement / licence condition Actual Start Date.
+            example: https://accredited-programmes-manage-and-deliver-api-dev.hmpps.service.justice.gov.uk/referral/3e759ff8-d2f1-43cb-9e19-bd2006e841d8/start-data
+          eventType:
+            type: string
+            example: accredited-programmes-community.programme.started
+          occurredAt:
+            type: string
+            example: 2025-07-02T14:14:17.51815+01:00
+          personReference:
+            type: object
+            properties:
+              identifiers:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      example: CRN
+                    value:
+                      type: string
+                      example: X945794
+          version:
+            type: integer
+            example: 1
 channels:
   hmpps-domain-events:
     description: HMPPS domain events SNS topic
@@ -33,6 +71,8 @@ channels:
         $ref: '#/components/messages/accredited-programmes-community.referral.status-updated'
       accredited-programmes-community.programme.complete:
         $ref: '#/components/messages/accredited-programmes-community.programme.complete'
+      accredited-programmes-community.programme.started:
+        $ref: '#/components/messages/accredited-programmes-community.programme.started'
 operations:
   publish-event:
     action: send
@@ -41,3 +81,4 @@ operations:
     messages:
       - $ref: '#/channels/hmpps-domain-events/messages/accredited-programmes-community.referral.status-updated'
       - $ref: '#/channels/hmpps-domain-events/messages/accredited-programmes-community.programme.complete'
+      - $ref: '#/channels/hmpps-domain-events/messages/accredited-programmes-community.programme.started'
