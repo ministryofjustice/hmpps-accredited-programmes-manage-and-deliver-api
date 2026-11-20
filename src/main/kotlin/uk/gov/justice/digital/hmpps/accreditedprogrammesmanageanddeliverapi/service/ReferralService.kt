@@ -414,7 +414,7 @@ class ReferralService(
    * @param pageable The pagination information for the query, including page number and page size.
    * @return A paginated list of ReferralEntity objects meeting the criteria.
    */
-  fun findAllIdsWherePersonSurnameIsNull(pageable: Pageable): Page<ReferralEntity> = referralRepository.findAllIdsWherePersonSurnameIsNull(pageable)
+  fun findAllWherePersonSurnameIsNull(pageable: Pageable): Page<ReferralEntity> = referralRepository.findAllWherePersonSurnameIsNull(pageable)
 
   private fun getReferralAndEnsureSourcedFrom(referralId: UUID): ReferralEntity {
     log.info("getReferralAndEnsureSourcedFrom for $referralId")

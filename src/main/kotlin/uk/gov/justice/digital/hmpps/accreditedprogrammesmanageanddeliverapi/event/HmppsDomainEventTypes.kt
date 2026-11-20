@@ -9,4 +9,5 @@ enum class HmppsDomainEventTypes(val value: String) {
   PROBATION_CASE_UNMERGE_COMPLETED("probation-case.unmerge.completed"),
   PROBATION_CASE_SENTENCE_DELETED("probation-case.sentence.deleted"),
   ACP_M_AND_D_REFERRAL_DETAILS_UPDATED("accredited-programmes-manage-and-deliver.referral.details-updated"),
+  ACP_M_AND_D_FACILITATOR_NAMES_UPDATED("accredited-programmes-manage-and-deliver.facilitator.names-updated"),
 }

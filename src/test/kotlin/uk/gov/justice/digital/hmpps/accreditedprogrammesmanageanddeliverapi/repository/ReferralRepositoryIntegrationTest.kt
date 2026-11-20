@@ -148,7 +148,7 @@ class ReferralRepositoryIntegrationTest : IntegrationTestBase() {
     val pageable: Pageable = PageRequest.of(0, 100)
 
     // When
-    val result = referralRepository.findAllIdsWherePersonSurnameIsNull(pageable)
+    val result = referralRepository.findAllWherePersonSurnameIsNull(pageable)
 
     // Then
     assertThat(result).hasSize(1)
@@ -171,7 +171,7 @@ class ReferralRepositoryIntegrationTest : IntegrationTestBase() {
     val pageable: Pageable = PageRequest.of(0, 100)
 
     // When
-    val result = referralRepository.findAllIdsWherePersonSurnameIsNull(pageable)
+    val result = referralRepository.findAllWherePersonSurnameIsNull(pageable)
 
     // Then
     assertThat(result).isEmpty()
@@ -193,7 +193,7 @@ class ReferralRepositoryIntegrationTest : IntegrationTestBase() {
     val pageable: Pageable = PageRequest.of(0, 100)
 
     // When
-    val result = referralRepository.findAllIdsWherePersonSurnameIsNull(pageable)
+    val result = referralRepository.findAllWherePersonSurnameIsNull(pageable)
 
     // Then
     assertThat(result.content).hasSize(2)

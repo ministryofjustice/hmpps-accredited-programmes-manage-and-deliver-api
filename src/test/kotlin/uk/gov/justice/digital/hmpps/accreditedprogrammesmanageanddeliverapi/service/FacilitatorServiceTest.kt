@@ -99,7 +99,7 @@ class FacilitatorServiceTest {
         verify(exactly = 1) { nDeliusIntegrationApiClient.getStaffByCode("CODE2") }
         verify(exactly = 1) { facilitatorRepository.save(facilitator1) }
         verify(exactly = 1) { facilitatorRepository.save(facilitator2) }
-        verify(exactly = 0) { facilitatorRepository.findAllIdsWherePersonSurnameIsNull() }
+        verify(exactly = 0) { facilitatorRepository.findAllWherePersonSurnameIsNull(any()) }
 
         verify(exactly = 2) {
           telemetryService.logToAppInsights(
@@ -122,7 +122,7 @@ class FacilitatorServiceTest {
           .produce()
         val staffDto1 = StaffDtoFactory().produce()
 
-        every { facilitatorRepository.findAllIdsWherePersonSurnameIsNull() } returns listOf(id1)
+        // every { facilitatorRepository.findAllWherePersonSurnameIsNull(any()) } returns listOf(id1)
         every { facilitatorRepository.findById(id1) } returns Optional.of(facilitator1)
         every { nDeliusIntegrationApiClient.getStaffByCode(facilitator1.ndeliusPersonCode) } returns ClientResult.Success(
           HttpStatus.OK,
@@ -138,7 +138,7 @@ class FacilitatorServiceTest {
         assertThat(result.notFoundIds).isEmpty()
         assertThat(result.failureIds).isEmpty()
 
-        verify(exactly = 1) { facilitatorRepository.findAllIdsWherePersonSurnameIsNull() }
+        verify(exactly = 1) { facilitatorRepository.findAllWherePersonSurnameIsNull(any()) }
         verify(exactly = 1) { facilitatorRepository.findById(id1) }
         verify(exactly = 1) { facilitatorRepository.save(facilitator1) }
       }
