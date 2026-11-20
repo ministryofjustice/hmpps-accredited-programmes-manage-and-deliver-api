@@ -647,7 +647,7 @@ class ReferralService(
         activeGroupMembership.programmeGroup,
         createdBy,
       )
-      if (incomingReferralStatusDescription.referralStatusType.description != "Programme complete") {
+      if (incomingReferralStatusDescription.referralStatusType != PROGRAMME_COMPLETE) {
         message =
           "${referral.personName}'s referral status is now ${
             ReferralStatusUtils.formatStatus(
