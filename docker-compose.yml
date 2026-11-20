@@ -24,7 +24,7 @@ services:
       - DELIUS_CLIENT_CLIENT-SECRET=delius-auth-api-client
 
   auth-db:
-    image: postgres:18
+    image: postgres:19
     networks:
       - hmpps
     restart: no
