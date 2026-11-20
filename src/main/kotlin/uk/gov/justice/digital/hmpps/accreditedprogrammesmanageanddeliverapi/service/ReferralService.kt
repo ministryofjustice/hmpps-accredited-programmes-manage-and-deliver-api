@@ -629,12 +629,12 @@ class ReferralService(
     // Admin/support flows can set force = true to deliberately apply a normally-invalid transition.
     if (!forceUpdate && transition == null && currentDescription.id != incomingReferralStatusDescription.id) {
       throw BusinessException(
-        "Invalid referral status transition: '${currentDescription.referralStatusType.displayName}' -> '${incomingReferralStatusDescription.referralStatusType.displayName}'",
+        "Invalid referral status transition: '${currentDescription.referralStatusType.description}' -> '${incomingReferralStatusDescription.referralStatusType.description}'",
       )
     }
 
     var message = "${referral.personName}'s referral status is now ${
-      ReferralStatusUtils.formatStatus(incomingReferralStatusDescription.referralStatusType.displayName)
+      ReferralStatusUtils.formatStatus(incomingReferralStatusDescription.referralStatusType.description)
     }."
     val activeGroupMembership = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
 
@@ -647,11 +647,11 @@ class ReferralService(
         activeGroupMembership.programmeGroup,
         createdBy,
       )
-      if (incomingReferralStatusDescription.referralStatusType.displayName != "Programme complete") {
+      if (incomingReferralStatusDescription.referralStatusType.description != "Programme complete") {
         message =
           "${referral.personName}'s referral status is now ${
             ReferralStatusUtils.formatStatus(
-              incomingReferralStatusDescription.referralStatusType.displayName,
+              incomingReferralStatusDescription.referralStatusType.description,
             )
           }. They have been removed from group ${activeGroupMembership.programmeGroup.code}."
       }
@@ -794,7 +794,7 @@ class ReferralService(
 
     return referral?.let {
       val currentStatus =
-        it.statusHistories.maxByOrNull { history -> history.createdAt }?.referralStatusDescription?.referralStatusType?.displayName
+        it.statusHistories.maxByOrNull { history -> history.createdAt }?.referralStatusDescription?.referralStatusType?.description
           ?: "Unknown"
       ReferralOnProgrammeStatus(
         referralId = it.id!!,

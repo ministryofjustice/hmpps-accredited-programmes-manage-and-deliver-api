@@ -225,7 +225,7 @@ data class ReferralDetails(
       hasLdc = LdcStatus.fromBoolean(hasLdc).value,
       hasLdcDisplayText = LdcStatus.getDisplayText(hasLdc),
       hasLdcSuccessMessageText = LdcStatus.getSuccessMessageText(hasLdc),
-      currentStatusDescription = latestReferralStatus?.referralStatusType?.displayName
+      currentStatusDescription = latestReferralStatus?.referralStatusType?.description
         ?: DEFAULT_STATUS_DESCRIPTION_VALUE,
       currentlyAllocatedGroupCode = currentlyAllocatedGroup?.programmeGroup?.code,
       currentlyAllocatedGroupId = currentlyAllocatedGroup?.programmeGroup?.id,
@@ -261,7 +261,7 @@ data class ReferralDetails(
       hasLdc = LdcStatus.fromBoolean(hasLdc).value,
       hasLdcDisplayText = LdcStatus.getDisplayText(hasLdc),
       hasLdcSuccessMessageText = LdcStatus.getSuccessMessageText(hasLdc),
-      currentStatusDescription = latestReferralStatus?.referralStatusType?.displayName
+      currentStatusDescription = latestReferralStatus?.referralStatusType?.description
         ?: DEFAULT_STATUS_DESCRIPTION_VALUE,
       currentlyAllocatedGroupCode = currentlyAllocatedGroup?.programmeGroup?.code,
       currentlyAllocatedGroupId = currentlyAllocatedGroup?.programmeGroup?.id,

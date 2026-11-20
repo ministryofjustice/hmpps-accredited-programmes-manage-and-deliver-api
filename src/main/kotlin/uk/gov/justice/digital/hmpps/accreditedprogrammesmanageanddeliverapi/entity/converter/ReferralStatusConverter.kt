@@ -12,16 +12,16 @@ class ReferralStatusConverter : AttributeConverter<ReferralStatusType, String> {
       return null
     }
 
-    return referralStatusType.displayName
+    return referralStatusType.description
   }
 
-  override fun convertToEntityAttribute(displayName: String?): ReferralStatusType? {
-    if (displayName == null) {
+  override fun convertToEntityAttribute(description: String?): ReferralStatusType? {
+    if (description == null) {
       return null
     }
 
     return ReferralStatusType.entries
-      .firstOrNull { it.displayName == displayName }
-      ?: throw IllegalArgumentException("Unknown referral status type display name $displayName")
+      .firstOrNull { it.description == description }
+      ?: throw IllegalArgumentException("Unknown referral status type description $description")
   }
 }
