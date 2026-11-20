@@ -71,14 +71,14 @@ class ReferralStatusService(
     )
   }
 
-  fun getAllStatuses(): List<ReferralStatusDescriptionEntity> = referralStatusDescriptionRepository.findAllByDeletedAtIsNull().sortedBy { it.referralStatusType.displayName }
+  fun getAllStatuses(): List<ReferralStatusDescriptionEntity> = referralStatusDescriptionRepository.findAllByDeletedAtIsNull().sortedBy { it.referralStatusType.description }
 
   fun getOpenOrClosedStatuses(openOrClosed: OpenOrClosed): List<ReferralStatusDescriptionEntity> {
     val isClosed = openOrClosed === OpenOrClosed.CLOSED
     return referralStatusDescriptionRepository.findAllByIsClosedAndDeletedAtIsNull(isClosed)
   }
 
-  fun getOpenOrClosedStatusesDescriptions(openOrClosed: OpenOrClosed) = getOpenOrClosedStatuses(openOrClosed).map { it.referralStatusType.displayName }
+  fun getOpenOrClosedStatusesDescriptions(openOrClosed: OpenOrClosed) = getOpenOrClosedStatuses(openOrClosed).map { it.referralStatusType.description }
 
   fun getStatusChangeDetailsForReferral(referralId: UUID): ReferralStatusInfo {
     val statusHistory =
@@ -97,7 +97,7 @@ class ReferralStatusService(
     // Map our M&D status description to a more readable string
     // e.g. Awaiting allocation -> The person is ready to be allocated to a programme group.
     val statusInfo =
-      ReferralStatusType.fromDisplayName(statusHistory.referralStatusDescription.referralStatusType.displayName)
+      ReferralStatusInfo.Status.fromDisplayName(statusHistory.referralStatusDescription.referralStatusType.description)
 
     return ReferralStatusInfo(
       newStatus = statusInfo,
@@ -190,7 +190,10 @@ class ReferralStatusService(
     val referral = referralRepository.findByIdOrNull(referralId) ?: return false
 
     if (referral.actualStartDate != null) {
-      log.debug("Actual start date already recorded, not publishing programme started event for referral: $referralId")
+      log.debug(
+        "Actual start date already recorded, not publishing programme started event for referral: {}",
+        referralId,
+      )
       return false
     }
 
