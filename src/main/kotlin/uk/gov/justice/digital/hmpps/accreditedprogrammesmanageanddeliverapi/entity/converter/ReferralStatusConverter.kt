@@ -22,6 +22,6 @@ class ReferralStatusConverter : AttributeConverter<ReferralStatusType, String> {
 
     return ReferralStatusType.entries
       .firstOrNull { it.displayName == displayName }
-      ?: throw IllegalArgumentException()
+      ?: throw IllegalArgumentException("Unknown referral status type display name $displayName")
   }
 }
