@@ -49,7 +49,7 @@ data class ReferralStatus(
 
 fun ReferralStatusDescriptionEntity.toApi(transitionDescription: String?) = ReferralStatus(
   id = id,
-  status = description,
+  status = referralStatusType.description,
   isClosed = isClosed,
   labelColour = labelColour,
   transitionDescription = transitionDescription,

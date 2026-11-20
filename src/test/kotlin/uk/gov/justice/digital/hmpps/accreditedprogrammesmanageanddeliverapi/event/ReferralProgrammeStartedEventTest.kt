@@ -23,6 +23,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.SQSMessage
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ALLOCATION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import java.time.Duration.ofMillis
@@ -40,9 +41,9 @@ class ReferralProgrammeStartedEventTest(
     nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
     nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
-    val awaitingAllocationStatus = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    val awaitingAllocationStatus = referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)
     var referral = testReferralHelper.createReferral()
-    referral = testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus)
+    referral = testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus!!)
 
     val programmeGroup = testGroupHelper.createGroup(earliestStartDate = LocalDate.now())
     referral = testGroupHelper.allocateToGroup(programmeGroup, referral)
@@ -110,9 +111,9 @@ class ReferralProgrammeStartedEventTest(
     nDeliusApiStubs.stubSuccessfulDeleteAppointmentsResponse()
     nDeliusApiStubs.stubSuccessfulPutAppointmentsResponse()
 
-    val awaitingAllocationStatus = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+    val awaitingAllocationStatus = referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)
     var referral = testReferralHelper.createReferral()
-    referral = testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus)
+    referral = testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus!!)
 
     val programmeGroup = testGroupHelper.createGroup(earliestStartDate = LocalDate.now())
     referral = testGroupHelper.allocateToGroup(programmeGroup, referral)

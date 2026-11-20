@@ -2,16 +2,18 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fac
 
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusDescriptionEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralStatusTransitionEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ASSESSMENT
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.RETURN_TO_COURT
 import java.util.UUID
 
 class ReferralStatusTransitionEntityFactory {
   private val referralStatusDescriptionEntityFactory = ReferralStatusDescriptionEntityFactory()
   private var id: UUID = UUID.randomUUID()
   private var fromStatus: ReferralStatusDescriptionEntity = referralStatusDescriptionEntityFactory
-    .withDescription("Awaiting assessment")
+    .withReferralStatusType(AWAITING_ASSESSMENT)
     .produce()
   private var toStatus: ReferralStatusDescriptionEntity = referralStatusDescriptionEntityFactory
-    .withDescription("Not Eligible")
+    .withReferralStatusType(RETURN_TO_COURT)
     .produce()
   private var description: String? = "Test Transition Description"
   private var priority: Int = 1

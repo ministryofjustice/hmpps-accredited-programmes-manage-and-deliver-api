@@ -50,6 +50,8 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.mode
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_LICENCE_CONDITION_MANAGER_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_PERSONAL_DETAILS_N_DELIUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.IntegrationActivityType.GET_REQUIREMENT_MANAGER_DETAILS_N_DELIUS
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ASSESSMENT
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.PROGRAMME_COMPLETE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_SENTENCE_REFERENCE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.UPDATE_REFERRAL_STATUS
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.UserActivityType.VIEW_REFERRAL
@@ -267,7 +269,7 @@ class ReferralService(
     val hasLdc = pniScore.hasLdc
 
     val awaitingAssessmentStatusDescription =
-      referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+      referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)
 
     val personalDetails: NDeliusPersonalDetails? = getPersonalDetails(findAndReferReferralDetails.personReference)
 
@@ -283,7 +285,7 @@ class ReferralService(
 
     val statusHistoryEntity = ReferralStatusHistoryEntity(
       referral = referral,
-      referralStatusDescription = awaitingAssessmentStatusDescription,
+      referralStatusDescription = awaitingAssessmentStatusDescription!!,
       startDate = LocalDateTime.now(),
       additionalDetails = null,
       createdBy = DEFAULT_CREATED_BY_VALUE,
@@ -619,12 +621,12 @@ class ReferralService(
     // Admin/support flows can set force = true to deliberately apply a normally-invalid transition.
     if (!forceUpdate && transition == null && currentDescription.id != incomingReferralStatusDescription.id) {
       throw BusinessException(
-        "Invalid referral status transition: '${currentDescription.description}' -> '${incomingReferralStatusDescription.description}'",
+        "Invalid referral status transition: '${currentDescription.referralStatusType.description}' -> '${incomingReferralStatusDescription.referralStatusType.description}'",
       )
     }
 
     var message = "${referral.personName}'s referral status is now ${
-      ReferralStatusUtils.formatStatus(incomingReferralStatusDescription.description)
+      ReferralStatusUtils.formatStatus(incomingReferralStatusDescription.referralStatusType.description)
     }."
     val activeGroupMembership = programmeGroupMembershipService.getCurrentlyAllocatedGroup(referral)
 
@@ -637,11 +639,11 @@ class ReferralService(
         activeGroupMembership.programmeGroup,
         createdBy,
       )
-      if (incomingReferralStatusDescription.description != "Programme complete") {
+      if (incomingReferralStatusDescription.referralStatusType != PROGRAMME_COMPLETE) {
         message =
           "${referral.personName}'s referral status is now ${
             ReferralStatusUtils.formatStatus(
-              incomingReferralStatusDescription.description,
+              incomingReferralStatusDescription.referralStatusType.description,
             )
           }. They have been removed from group ${activeGroupMembership.programmeGroup.code}."
       }
@@ -662,7 +664,7 @@ class ReferralService(
     applicationEventPublisher.publishEvent(ReferralStatusUpdateEvent(referral.id!!))
 
     // If status changed to "Programme complete", check if completion event should be published
-    if (incomingReferralStatusDescription.description == "Programme complete") {
+    if (incomingReferralStatusDescription.referralStatusType == PROGRAMME_COMPLETE) {
       referralStatusService.checkAndPublishCompletionEvent(referral.id!!)
     }
     telemetryService.logToAppInsights(
@@ -783,7 +785,9 @@ class ReferralService(
     val referral = referralRepository.findMostRecentByCrn(crn)
 
     return referral?.let {
-      val currentStatus = it.statusHistories.maxByOrNull { history -> history.createdAt }?.referralStatusDescription?.description ?: "Unknown"
+      val currentStatus =
+        it.statusHistories.maxByOrNull { history -> history.createdAt }?.referralStatusDescription?.referralStatusType?.description
+          ?: "Unknown"
       ReferralOnProgrammeStatus(
         referralId = it.id!!,
         crn = it.crn,

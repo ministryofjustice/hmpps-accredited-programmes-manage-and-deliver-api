@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusInfo
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralStatusInfo.Status
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendance
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.attendance.SessionAttendee
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.eventDetails.ReferralCompletionData
@@ -25,6 +26,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.NDeliusPersonalDetailsFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.programmeGroup.CreateGroupTeamMemberFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ALLOCATION
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ScheduleService
 import java.time.LocalDate
@@ -44,9 +46,10 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 200 response and ReferralStatusInfo`() {
       // Given
       // Creates referral and moves to awaiting allocation status
-      val awaitingAllocationStatus = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+      val awaitingAllocationStatus =
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)
       val referral = testReferralHelper.createReferral()
-      testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus, "TEST ADDITIONAL DETAILS")
+      testReferralHelper.updateReferralStatus(referral, awaitingAllocationStatus!!, "TEST ADDITIONAL DETAILS")
 
       // When
       val response = performRequestAndExpectOk(
@@ -57,7 +60,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
 
       // Then
       assertThat(response).isNotNull
-      assertThat(response.newStatus).isEqualTo(ReferralStatusInfo.Status.AWAITING_ALLOCATION)
+      assertThat(response.newStatus).isEqualTo(Status.AWAITING_ALLOCATION)
       assertThat(response.sourcedFromEntityId).isEqualTo(referral.eventId!!.toLong())
       assertThat(response.eventNumber).isEqualTo(referral.eventNumber)
       assertThat(response.sourcedFromEntityType).isEqualTo(referral.sourcedFrom)
@@ -83,7 +86,7 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
       )
 
       // Then
-      assertThat(response.newStatus).isEqualTo(ReferralStatusInfo.Status.AWAITING_ASSESSMENT)
+      assertThat(response.newStatus).isEqualTo(Status.AWAITING_ASSESSMENT)
       assertThat(response.username).isEqualTo("PP123")
     }
 
@@ -135,7 +138,8 @@ class EventDetailsControllerIntegrationTest : IntegrationTestBase() {
     fun `should return 401 when not authorized`() {
       // Given
       // Creates referral and moves to awaiting allocation status
-      val awaitingAllocationStatus = referralStatusDescriptionRepository.getAwaitingAllocationStatusDescription()
+      val awaitingAllocationStatus =
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ALLOCATION)
       val referral = testReferralHelper.createReferralAndUpdateStatus(awaitingAllocationStatus)
 
       // When & Then

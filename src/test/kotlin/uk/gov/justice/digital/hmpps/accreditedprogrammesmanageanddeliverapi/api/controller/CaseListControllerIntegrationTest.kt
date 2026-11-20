@@ -27,6 +27,9 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.fact
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralReportingLocationFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralStatusHistoryEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.AWAITING_ASSESSMENT
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.BREACH
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.ReferralStatusType.PROGRAMME_COMPLETE
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralCaseListItemRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.UserRegionOverrideRepository
@@ -103,9 +106,9 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     private fun createReferralsWithStatusHistoryAndReportingLocations() {
       // Create referrals with associated status history and reporting locations
       val awaitingAssessmentStatusDescription =
-        referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)!!
       val programmeCompleteStatusDescription =
-        referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+        referralStatusDescriptionRepository.findByReferralStatusType(PROGRAMME_COMPLETE)!!
 
       val referral1 = ReferralEntityFactory()
         .withPersonName("Joe Bloggs")
@@ -1056,12 +1059,13 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .produce()
       referralNoMatch.referralReportingLocation = reportingLocationNoMatch
 
-      val awaitingAssessmentStatus = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+      val awaitingAssessmentStatus =
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)
       val statusHistory = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
-        .produce(referral, awaitingAssessmentStatus)
+        .produce(referral, awaitingAssessmentStatus!!)
       val statusHistoryNoMatch = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
         .withCreatedBy("USER_ID_12345")
@@ -1124,12 +1128,13 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .produce()
       referral2.referralReportingLocation = reportingLocation2
 
-      val awaitingAssessmentStatus = referralStatusDescriptionRepository.getAwaitingAssessmentStatusDescription()
+      val awaitingAssessmentStatus =
+        referralStatusDescriptionRepository.findByReferralStatusType(AWAITING_ASSESSMENT)
       val statusHistory1 = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
-        .produce(referral1, awaitingAssessmentStatus)
+        .produce(referral1, awaitingAssessmentStatus!!)
       val statusHistory2 = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
         .withCreatedBy("USER_ID_12345")
@@ -1221,12 +1226,13 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .produce()
       referralNoMatch.referralReportingLocation = reportingLocationNoMatch
 
-      val programmeCompleteStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+      val programmeCompleteStatus =
+        referralStatusDescriptionRepository.findByReferralStatusType(PROGRAMME_COMPLETE)
       val statusHistory = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
-        .produce(referral, programmeCompleteStatus)
+        .produce(referral, programmeCompleteStatus!!)
       val statusHistoryNoMatch = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
         .withCreatedBy("USER_ID_12345")
@@ -1289,12 +1295,13 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .produce()
       referral2.referralReportingLocation = reportingLocation2
 
-      val programmeCompleteStatus = referralStatusDescriptionRepository.getProgrammeCompleteStatusDescription()
+      val programmeCompleteStatus =
+        referralStatusDescriptionRepository.findByReferralStatusType(PROGRAMME_COMPLETE)
       val statusHistory1 = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
-        .produce(referral1, programmeCompleteStatus)
+        .produce(referral1, programmeCompleteStatus!!)
       val statusHistory2 = ReferralStatusHistoryEntityFactory()
         .withCreatedAt(LocalDateTime.now())
         .withCreatedBy("USER_ID_12345")
@@ -1423,7 +1430,8 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
     }
 
     private fun seedBreachReferral() {
-      val breachStatusDescription = referralStatusDescriptionRepository.getBreachStatusDescription()
+      val breachStatusDescription =
+        referralStatusDescriptionRepository.findByReferralStatusType(BREACH)
 
       // Re-stub access check to include the additional CRN alongside the ones set up in @BeforeEach
       nDeliusApiStubs.stubAccessCheck(
@@ -1462,7 +1470,7 @@ class CaseListControllerIntegrationTest : IntegrationTestBase() {
         .withCreatedAt(LocalDateTime.now())
         .withCreatedBy("USER_ID_12345")
         .withStartDate(LocalDateTime.now())
-        .produce(breachReferral, breachStatusDescription)
+        .produce(breachReferral, breachStatusDescription!!)
       val breachCohortHistory = ReferralCohortHistoryFactory().withReferral(breachReferral).produce()
 
       breachReferral.referralReportingLocation = breachReportingLocation
