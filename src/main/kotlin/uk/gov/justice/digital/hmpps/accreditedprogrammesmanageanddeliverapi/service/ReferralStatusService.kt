@@ -71,7 +71,7 @@ class ReferralStatusService(
     )
   }
 
-  fun getAllStatuses(): List<ReferralStatusDescriptionEntity> = referralStatusDescriptionRepository.findAllByDeletedAtIsNull().sortedBy { it.referralStatusType }
+  fun getAllStatuses(): List<ReferralStatusDescriptionEntity> = referralStatusDescriptionRepository.findAllByDeletedAtIsNull().sortedBy { it.referralStatusType.displayName }
 
   fun getOpenOrClosedStatuses(openOrClosed: OpenOrClosed): List<ReferralStatusDescriptionEntity> {
     val isClosed = openOrClosed === OpenOrClosed.CLOSED
