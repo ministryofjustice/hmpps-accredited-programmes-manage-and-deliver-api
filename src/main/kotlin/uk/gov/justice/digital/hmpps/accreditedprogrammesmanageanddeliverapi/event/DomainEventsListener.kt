@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import io.awspring.cloud.sqs.annotation.SqsListener
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.ACP_M_AND_D_FACILITATOR_NAMES_UPDATED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.ACP_M_AND_D_REFERRAL_DETAILS_UPDATED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.INTERVENTIONS_COMMUNITY_REFERRAL_CREATED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.INTERVENTIONS_COMMUNITY_REFERRAL_IMPORTED
@@ -21,6 +22,7 @@ class DomainEventsListener(
   val referralUnmergedHandler: ReferralUnmergedHandler,
   val referralDetailsUpdatedHandler: ReferralDetailsUpdatedHandler,
   val referralSentenceDeletedHandler: ReferralSentenceDeletedHandler,
+  val facilitatorNamesUpdatedHandler: FacilitatorNamesUpdatedHandler,
 ) {
   private val logger = LoggerFactory.getLogger(this::class.java)
 
@@ -34,6 +36,7 @@ class DomainEventsListener(
       PROBATION_CASE_UNMERGE_COMPLETED.value -> referralUnmergedHandler.handle(sqsMessage)
       ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value -> referralDetailsUpdatedHandler.handle(sqsMessage)
       PROBATION_CASE_SENTENCE_DELETED.value -> referralSentenceDeletedHandler.handle(sqsMessage)
+      ACP_M_AND_D_FACILITATOR_NAMES_UPDATED.value -> facilitatorNamesUpdatedHandler.handle(sqsMessage)
       else -> logger.info("Unknown event type ${sqsMessage.eventType}")
     }
   }

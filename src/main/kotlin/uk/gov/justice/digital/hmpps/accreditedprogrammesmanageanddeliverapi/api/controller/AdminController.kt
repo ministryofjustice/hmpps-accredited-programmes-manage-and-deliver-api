@@ -24,14 +24,12 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.UpdatePersonNameRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.CreateReferralStatusHistory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.PopulatePersonalDetailsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.AdminService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.FacilitatorService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralEventNumberResolverService
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RefreshPersonalDetailsResult
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.utils.AuthenticationUtils
 import java.util.UUID
 
@@ -119,56 +117,6 @@ class AdminController(
     }
 
     return ResponseEntity.ok(PopulatePersonalDetailsResponse(ids = request.referralIds))
-  }
-
-  @Operation(
-    tags = ["Admin"],
-    summary = "Updates the structured personal names for facilitators",
-    operationId = "updateFacilitatorStructuredName",
-    description = """For the specified Facilitators, re-fetch the 
-      |structured personal names from nDelius.
-      |
-      |If ID list in the request is empty or not specified, 
-      |all facilitators with missing structured personal names will be updated.""",
-    responses = [
-      ApiResponse(
-        responseCode = "200",
-        description = "Update started (not completed, process is async)",
-      ),
-      ApiResponse(
-        responseCode = "400",
-        description = "Invalid request format or invalid UUID format",
-        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-      ),
-      ApiResponse(
-        responseCode = "401",
-        description = "Unauthorized",
-        content = [Content(schema = Schema(implementation = ErrorResponse::class))],
-      ),
-    ],
-    security = [SecurityRequirement(name = "bearerAuth")],
-  )
-  @PutMapping("/admin/facilitators/person-names", consumes = [MediaType.APPLICATION_JSON_VALUE])
-  suspend fun updateFacilitatorStructuredName(
-    @Parameter(
-      description = """IDs of the Facilitators to update. 
-        |If IDs empty or not specified, all facilitators with missing structured personal names will be updated.""",
-      required = true,
-    )
-    @RequestBody request: UpdatePersonNameRequest,
-  ): ResponseEntity<RefreshPersonalDetailsResult> {
-    val facilitatorIdList = request.ids
-    log.info("Received request to update facilitator structured personal names for IDs: {}", facilitatorIdList)
-    var result = RefreshPersonalDetailsResult(successIds = facilitatorIdList)
-    CoroutineScope(dispatcher).launch {
-      try {
-        result = facilitatorService.updateNameByFacilitatorIds(facilitatorIdList)
-      } catch (e: Exception) {
-        log.error("Error during background processing of update facilitator structured personal names", e)
-      }
-    }
-
-    return ResponseEntity.ok(result)
   }
 
   @Operation(

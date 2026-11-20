@@ -48,7 +48,7 @@ class ReferralNamesUpdatedJob(
 
     while (hasMoreRecords) {
       val pageable: Pageable = PageRequest.of(currentPage - 1, pageSize)
-      val referralPage: Page<ReferralEntity> = referralService.findAllIdsWherePersonSurnameIsNull(pageable)
+      val referralPage: Page<ReferralEntity> = referralService.findAllWherePersonSurnameIsNull(pageable)
       val referrals: MutableList<ReferralEntity> = referralPage.content
 
       referrals.forEach { referral ->

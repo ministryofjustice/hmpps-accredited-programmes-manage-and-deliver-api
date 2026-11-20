@@ -35,6 +35,9 @@ data class DomainEventsMessage(
 
   @JsonIgnore
   val referralId = additionalInformation?.get("referralId") as String?
+
+  @JsonIgnore
+  val facilitatorId = additionalInformation?.get("facilitatorId") as String?
 }
 
 data class PersonReference(val identifiers: List<Identifier> = listOf()) {
@@ -45,6 +48,10 @@ data class PersonReference(val identifiers: List<Identifier> = listOf()) {
   companion object {
     fun fromCrn(crn: String) = PersonReference(
       identifiers = listOf(Identifier(type = "CRN", value = crn)),
+    )
+
+    fun fromNDeliusPersonCode(nDeliusPersonCode: String) = PersonReference(
+      identifiers = listOf(Identifier(type = "N_DELIUS_PERSON_CODE", value = nDeliusPersonCode)),
     )
   }
 

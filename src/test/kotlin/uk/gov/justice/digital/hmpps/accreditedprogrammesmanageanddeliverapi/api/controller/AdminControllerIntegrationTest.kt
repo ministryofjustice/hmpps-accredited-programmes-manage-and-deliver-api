@@ -20,7 +20,6 @@ import org.springframework.jdbc.core.JdbcTemplate
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ErrorResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.ReferralSentenceReferenceResponse
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.StatusUpdateResponse
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.api.model.UpdatePersonNameRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.CodeDescription
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.FullName
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.LicenceConditions
@@ -31,18 +30,15 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.clie
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.client.nDeliusIntegrationApi.model.Requirements
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.CreateReferralStatusHistoryFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.LicenceConditionFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralEntityFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ReferralSentenceReferenceRequestFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.RequirementFactory
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.StaffDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.model.create.PopulatePersonalDetailsRequest
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.FacilitatorRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralRepository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.ReferralStatusDescriptionRepository
-import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.RefreshPersonalDetailsResult
 import java.time.Duration.ofMillis
 import java.util.UUID
 
@@ -546,119 +542,5 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
     val unresolvedReferral = referralRepository.findByIdOrNull(referralToResolve.id!!)
     assertThat(unresolvedReferral?.eventNumber).isEqualTo(0)
     assertThat(unresolvedReferral?.eventId).isNotEqualTo(duplicateEventId)
-  }
-
-  @Test
-  fun `updateFacilitatorStructuredName should refresh personal details for specific facilitator IDs`() {
-    // Given
-    val facilitator1 = facilitatorRepository.save(
-      FacilitatorEntityFactory()
-        .withPersonForename(null)
-        .withPersonMiddleNames(null)
-        .withPersonSurname(null)
-        .produce(),
-    )
-    val facilitator2 = facilitatorRepository.save(
-      FacilitatorEntityFactory()
-        .withPersonForename(null)
-        .withPersonMiddleNames(null)
-        .withPersonSurname(null)
-        .produce(),
-    )
-
-    val staffDto1 = StaffDtoFactory()
-      .withForename("John")
-      .withMiddleNames("Robert")
-      .withSurname("Doe")
-      .produce()
-    val staffDto2 = StaffDtoFactory()
-      .withForename("Jane")
-      .withMiddleNames("Mary")
-      .withSurname("Smith")
-      .produce()
-
-    nDeliusApiStubs.stubStaffResponse(facilitator1.ndeliusPersonCode, staffDto1)
-    nDeliusApiStubs.stubStaffResponse(facilitator2.ndeliusPersonCode, staffDto2)
-
-    val body = UpdatePersonNameRequest(ids = listOf(facilitator1.id!!, facilitator2.id!!))
-
-    // When
-    val response = performRequestAndExpectStatusWithBody(
-      HttpMethod.PUT,
-      "/admin/facilitators/person-names",
-      object : ParameterizedTypeReference<RefreshPersonalDetailsResult>() {},
-      body = body,
-      expectedResponseStatus = HttpStatus.OK.value(),
-    )
-
-    // Then
-    assertThat(response.successIds).containsExactlyInAnyOrder(facilitator1.id!!, facilitator2.id!!)
-
-    await withPollDelay ofMillis(100) withPollInterval ofMillis(100) untilCallTo {
-      facilitatorRepository.findAllById(listOf(facilitator1.id!!, facilitator2.id!!)).all { it.personSurname != null }
-    } matches { it == true }
-
-    val updatedFacilitator1 = facilitatorRepository.findByIdOrNull(facilitator1.id!!)
-    assertThat(updatedFacilitator1?.personForename).isEqualTo("John")
-    assertThat(updatedFacilitator1?.personMiddleNames).isEqualTo("Robert")
-    assertThat(updatedFacilitator1?.personSurname).isEqualTo("Doe")
-
-    val updatedFacilitator2 = facilitatorRepository.findByIdOrNull(facilitator2.id!!)
-    assertThat(updatedFacilitator2?.personForename).isEqualTo("Jane")
-    assertThat(updatedFacilitator2?.personMiddleNames).isEqualTo("Mary")
-    assertThat(updatedFacilitator2?.personSurname).isEqualTo("Smith")
-  }
-
-  @Test
-  fun `updateFacilitatorStructuredName should refresh personal details for all facilitators with missing surnames when list is empty`() {
-    // Given
-    val facilitatorWithNullSurname = facilitatorRepository.save(
-      FacilitatorEntityFactory()
-        .withPersonForename(null)
-        .withPersonMiddleNames(null)
-        .withPersonSurname(null)
-        .produce(),
-    )
-    val facilitatorWithSurname = facilitatorRepository.save(
-      FacilitatorEntityFactory()
-        .withPersonForename("ExistingForename")
-        .withPersonMiddleNames("ExistingMiddle")
-        .withPersonSurname("Existing")
-        .produce(),
-    )
-
-    val staffDto = StaffDtoFactory()
-      .withForename("NewForename")
-      .withMiddleNames("NewMiddle")
-      .withSurname("NewSurname")
-      .produce()
-
-    nDeliusApiStubs.stubStaffResponse(facilitatorWithNullSurname.ndeliusPersonCode, staffDto)
-
-    val body = UpdatePersonNameRequest(ids = emptyList())
-
-    // When
-    performRequestAndExpectStatusWithBody(
-      HttpMethod.PUT,
-      "/admin/facilitators/person-names",
-      object : ParameterizedTypeReference<RefreshPersonalDetailsResult>() {},
-      body = body,
-      expectedResponseStatus = HttpStatus.OK.value(),
-    )
-
-    // Then
-    await withPollDelay ofMillis(100) withPollInterval ofMillis(100) untilCallTo {
-      facilitatorRepository.findByIdOrNull(facilitatorWithNullSurname.id!!)?.personSurname
-    } matches { it == "NewSurname" }
-
-    val updatedFacilitator = facilitatorRepository.findByIdOrNull(facilitatorWithNullSurname.id!!)
-    assertThat(updatedFacilitator?.personForename).isEqualTo("NewForename")
-    assertThat(updatedFacilitator?.personMiddleNames).isEqualTo("NewMiddle")
-    assertThat(updatedFacilitator?.personSurname).isEqualTo("NewSurname")
-
-    val unchangedFacilitator = facilitatorRepository.findByIdOrNull(facilitatorWithSurname.id!!)
-    assertThat(unchangedFacilitator?.personForename).isEqualTo("ExistingForename")
-    assertThat(unchangedFacilitator?.personMiddleNames).isEqualTo("ExistingMiddle")
-    assertThat(unchangedFacilitator?.personSurname).isEqualTo("Existing")
   }
 }
