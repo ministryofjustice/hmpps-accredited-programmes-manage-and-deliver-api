@@ -46,7 +46,7 @@ class FacilitatorService(
    *
    * @param facilitatorId The facilitator ID for which to update structured names.
    */
-  suspend fun updateNameByFacilitatorIds(facilitatorId: UUID): FacilitatorEntity? {
+  suspend fun updateNameByFacilitatorId(facilitatorId: UUID): FacilitatorEntity? {
     log.debug("START update name for facilitator with id: {}", facilitatorId)
 
     val facilitator = facilitatorRepository.findByIdOrNull(facilitatorId)

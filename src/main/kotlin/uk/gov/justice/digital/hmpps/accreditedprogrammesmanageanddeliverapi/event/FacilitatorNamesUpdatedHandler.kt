@@ -61,7 +61,7 @@ class FacilitatorNamesUpdatedHandler(
       messageHistoryRepository.save(message.toEntity(objectMapper.writeValueAsString(message)))
       val facilitatorId = UUID.fromString(facilitatorIdString)
       val result = runBlocking {
-        facilitatorService.updateNameByFacilitatorIds(facilitatorId)
+        facilitatorService.updateNameByFacilitatorId(facilitatorId)
       }
 
       if (result == null) {

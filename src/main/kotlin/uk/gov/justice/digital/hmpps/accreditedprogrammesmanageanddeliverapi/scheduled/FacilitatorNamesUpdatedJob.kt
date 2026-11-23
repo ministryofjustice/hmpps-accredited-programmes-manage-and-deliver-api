@@ -25,8 +25,7 @@ class FacilitatorNamesUpdatedJob(
   private val domainEventPublisher: DomainEventPublisher,
   private val telemetryService: TelemetryService,
   private val facilitatorService: FacilitatorService,
-  @Value("\${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
-  @Value("\${app.scheduling.referral-names-updated.chunk-size:100}") private val pageSize: Int,
+  @Value("\${app.scheduling.facilitator-names-updated.chunk-size:100}") private val pageSize: Int,
   private val clock: Clock,
 ) {
   companion object {
