@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.ndelius.StaffDtoFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.repository.MessageHistoryRepository
 import java.time.Duration.ofMillis
@@ -24,14 +25,20 @@ class FacilitatorNamesUpdatedJobIntegrationTest : IntegrationTestBase() {
   fun setUp() {
     domainEventsQueueConfig.purgeAllQueues()
     testDataCleaner.cleanAllTables()
+    stubAuthTokenEndpoint()
   }
 
   @Test
   fun `should process facilitator names updated job`() {
     // Given
-    val facilitatorEntity = FacilitatorEntityFactory().produce()
+    val code = "CODE1"
+    val staffDto = StaffDtoFactory().produce()
+    val facilitatorEntity = FacilitatorEntityFactory()
+      .withNdeliusPersonCode(code)
+      .produce()
     val savedFacilitatorEntity = testDataGenerator.createFacilitator(facilitatorEntity)
     assertThat(savedFacilitatorEntity.personSurname).isNull()
+    nDeliusApiStubs.stubStaffResponse(code, staffDto)
     val facilitatorId = facilitatorEntity.id!!
 
     // When
