@@ -59,6 +59,9 @@ spring:
   jpa:
     open-in-view: false
     generate-ddl: false
+    properties:
+      hibernate:
+        xml_mapping_enabled: false
     hibernate:
       ddl-auto: none
 
