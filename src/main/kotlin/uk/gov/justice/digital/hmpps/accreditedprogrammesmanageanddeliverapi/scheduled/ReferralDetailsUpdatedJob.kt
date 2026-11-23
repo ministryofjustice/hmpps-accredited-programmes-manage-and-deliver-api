@@ -45,6 +45,7 @@ class ReferralDetailsUpdatedJob(
     val now = clock.instant()
     log.info("Referral details updated Job started: at $now")
     var totalUpdated = 0
+    var totalFailed = 0
     val cutoffTime = LocalDateTime.now(clock).minusSeconds(cutoff)
     var currentPage = 1
     var hasMoreRecords = true
@@ -61,7 +62,11 @@ class ReferralDetailsUpdatedJob(
         try {
           publishEvent(message, referralId)
           totalUpdated++
+        } catch (exception: java.util.concurrent.CompletionException) {
+          totalFailed++
+          log.warn("Service temporarily unavailable - CompletionException for referralId: $referralId. Cause: ${exception.cause?.message}")
         } catch (exception: Exception) {
+          totalFailed++
           log.error("Failed to publish event for referralId: $referralId, skipping and continuing", exception)
         }
       }
@@ -72,7 +77,7 @@ class ReferralDetailsUpdatedJob(
 
     val endTime = clock.instant()
     log.info(
-      "Referral details updated Job completed: updates sent: $totalUpdated, time took: ${
+      "Referral details updated Job completed: updates sent: $totalUpdated, failed: $totalFailed, time took: ${
         Duration.between(
           now,
           endTime,

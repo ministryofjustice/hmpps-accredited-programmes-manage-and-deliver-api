@@ -26,7 +26,7 @@ sentry:
 app:
   scheduling:
     referral-details-updated:
-      cron: "${REFERRAL_DETAILS_UPDATED_CRON:0 0 1 * * *}"  # default every day at 1 AM
+      cron: "${REFERRAL_DETAILS_UPDATED_CRON:0 0 1 * * MON-FRI}"  # default Mon-Fri at 1 AM (skip weekends)
       chunk-size: 100  # process referral records in chunks
       cutoff: 432000 # before updatedAt in seconds
       shedlock:
