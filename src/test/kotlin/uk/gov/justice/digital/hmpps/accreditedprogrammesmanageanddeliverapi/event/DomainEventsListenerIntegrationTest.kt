@@ -22,6 +22,7 @@ import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.enti
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.InterventionType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.PersonReferenceType
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.type.SettingType
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.ACP_M_AND_D_FACILITATOR_NAMES_UPDATED
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.PersonReference
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.DomainEventsMessageFactory
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.factory.FacilitatorEntityFactory
@@ -1048,19 +1049,18 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
   @Test
   fun `should update facilitator names on receipt of ACP M&D facilitator names updated message`() {
     // Given
-    val id = UUID.randomUUID()
     val code = "CODE1"
     val facilitatorEntity = FacilitatorEntityFactory()
-      .withId(id)
       .withNdeliusPersonCode(code)
       .produce()
 
-    testDataGenerator.createFacilitator(facilitatorEntity)
+    val savedFacilitator = testDataGenerator.createFacilitator(facilitatorEntity)
+    val id = savedFacilitator.id!!
     val staffDto = StaffDtoFactory().produce()
 
     nDeliusApiStubs.stubStaffResponse(code, staffDto)
 
-    val eventType = "accredited-programmes-manage-and-deliver.referral.details-updated"
+    val eventType = ACP_M_AND_D_FACILITATOR_NAMES_UPDATED.value
     val domainEventsMessage = DomainEventsMessageFactory()
       .withAdditionalInformation(mapOf("facilitatorId" to id.toString()))
       .withEventType(eventType)
@@ -1087,6 +1087,15 @@ class DomainEventsListenerIntegrationTest : IntegrationTestBase() {
       assertThat(it.message).isEqualTo(
         objectMapper.writeValueAsString(domainEventsMessage),
       )
+    }
+
+    await untilCallTo {
+      facilitatorRepository.findByIdOrNull(id)
+    } matches {
+      it != null &&
+        it.personForename == staffDto.forename &&
+        it.personSurname == staffDto.surname &&
+        it.personMiddleNames == staffDto.middleNames
     }
 
     val result = facilitatorRepository.findByIdOrNull(id)
