@@ -9,10 +9,6 @@ plugins {
   id("io.sentry.jvm.gradle") version "6.27.0"
 }
 
-configurations {
-  testImplementation { exclude(group = "org.junit.vintage") }
-}
-
 dependencies {
   val shedLockVersion = "7.12.0"
   implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:3.1.0")
@@ -30,11 +26,6 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-cache")
   implementation("com.github.ben-manes.caffeine:caffeine")
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.1")
-  constraints {
-    implementation("org.webjars:swagger-ui:5.36.0") {
-      because("swagger-ui 5.34.0 bundles DOMPurify 3.4.16 (CVE-2026-116802/3/4), fixed in 5.34.1")
-    }
-  }
   implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-csv")
   implementation("com.fasterxml.jackson.core:jackson-databind")
   implementation("net.javacrumbs.shedlock:shedlock-spring:$shedLockVersion")
