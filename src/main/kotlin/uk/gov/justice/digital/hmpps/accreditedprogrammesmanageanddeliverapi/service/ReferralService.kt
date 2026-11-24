@@ -408,6 +408,14 @@ class ReferralService(
    */
   fun findAllByUpdatedAtBefore(updatedAtBefore: LocalDateTime, pageable: Pageable): Page<ReferralEntity> = referralRepository.findAllByUpdatedAtBefore(updatedAtBefore, pageable)
 
+  /**
+   * Retrieves a paginated list of ReferralEntity objects that have null values for person surnames
+   *
+   * @param pageable The pagination information for the query, including page number and page size.
+   * @return A paginated list of ReferralEntity objects meeting the criteria.
+   */
+  fun findAllWherePersonSurnameIsNull(pageable: Pageable): Page<ReferralEntity> = referralRepository.findAllWherePersonSurnameIsNull(pageable)
+
   private fun getReferralAndEnsureSourcedFrom(referralId: UUID): ReferralEntity {
     log.info("getReferralAndEnsureSourcedFrom for $referralId")
     val referral = getReferralById(referralId)
@@ -783,7 +791,9 @@ class ReferralService(
     val referral = referralRepository.findMostRecentByCrn(crn)
 
     return referral?.let {
-      val currentStatus = it.statusHistories.maxByOrNull { history -> history.createdAt }?.referralStatusDescription?.description ?: "Unknown"
+      val currentStatus =
+        it.statusHistories.maxByOrNull { history -> history.createdAt }?.referralStatusDescription?.description
+          ?: "Unknown"
       ReferralOnProgrammeStatus(
         referralId = it.id!!,
         crn = it.crn,

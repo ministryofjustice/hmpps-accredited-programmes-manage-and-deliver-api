@@ -1,0 +1,129 @@
+package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.scheduled
+
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
+import org.springframework.scheduling.annotation.Scheduled
+import org.springframework.stereotype.Component
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.DomainEventPublisher
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.HmppsDomainEventTypes.ACP_M_AND_D_REFERRAL_DETAILS_UPDATED
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.DomainEventsMessage
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.event.model.PersonReference
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.ReferralService
+import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service.TelemetryService
+import java.time.Clock
+import java.time.Duration
+import java.time.ZonedDateTime
+import java.util.UUID
+
+@Component
+class ReferralNamesUpdatedJob(
+  private val domainEventPublisher: DomainEventPublisher,
+  private val telemetryService: TelemetryService,
+  private val referralService: ReferralService,
+  @Value("\${services.manage-and-deliver-api.base-url}") private val madBaseUrl: String,
+  @Value("\${app.scheduling.referral-names-updated.chunk-size:100}") private val pageSize: Int,
+  private val clock: Clock,
+) {
+  companion object {
+    private val log = LoggerFactory.getLogger(this::class.java)
+  }
+
+  @Scheduled(cron = "\${app.scheduling.referral-names-updated.cron}")
+  @SchedulerLock(
+    name = "referralNameUpdateJob",
+    lockAtMostFor = "\${app.scheduling.referral-names-updated.shedlock.lock-most:PT2H}",
+    lockAtLeastFor = "\${app.scheduling.referral-names-updated.shedlock.lock-least:PT1H}",
+  )
+  fun process() {
+    val now = clock.instant()
+    log.info("Referral names updated job started: at $now")
+    var totalUpdated = 0
+    var totalFailed = 0
+    var currentPage = 1
+    var hasMoreRecords = true
+
+    while (hasMoreRecords) {
+      val pageable: Pageable = PageRequest.of(currentPage - 1, pageSize)
+      val referralPage: Page<ReferralEntity> = referralService.findAllWherePersonSurnameIsNull(pageable)
+      val referrals: MutableList<ReferralEntity> = referralPage.content
+
+      referrals.forEach { referral ->
+        val referralId = referral.id!!
+        val message = getDomainEventMessage(referralId, referral.crn)
+        log.info("Publishing ${ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value} event for updating referral name for referralId: $referralId")
+        try {
+          publishEvent(message, referralId)
+          totalUpdated++
+        } catch (exception: Exception) {
+          totalFailed++
+          log.error(
+            "Failed to publish event updating referral name for referralId: $referralId, skipping and continuing",
+            exception,
+          )
+        }
+      }
+
+      hasMoreRecords = referralPage.hasNext()
+      currentPage++
+    }
+
+    val endTime = clock.instant()
+    log.info(
+      "Referral names updated Job completed: updates sent: $totalUpdated, $totalFailed failed, time took: ${
+        Duration.between(
+          now,
+          endTime,
+        )
+      }",
+    )
+  }
+
+  private fun getDomainEventMessage(
+    referralId: UUID,
+    crn: String,
+  ): DomainEventsMessage = DomainEventsMessage(
+    eventType = ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value,
+    version = 1,
+    detailUrl = "$madBaseUrl/referral-details/$referralId/personal-details",
+    occurredAt = ZonedDateTime.now(clock),
+    description = "An Accredited Programmes referral names in community have been updated.",
+    additionalInformation = mapOf("referralId" to referralId.toString()),
+    personReference = PersonReference.fromCrn(crn),
+  )
+
+  private fun publishEvent(
+    domainEventsMessage: DomainEventsMessage,
+    referralId: UUID,
+  ) {
+    try {
+      domainEventPublisher.publish(domainEventsMessage)
+      log.info("Successfully published ${ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value} event for referral missing name for referralId: $referralId")
+      telemetryService.logToAppInsights(
+        eventName = "Referral.details-updated-event-published.success",
+        properties = mapOf(
+          "referralId" to referralId.toString(),
+          "outcome" to "success",
+        ),
+      )
+    } catch (exception: Exception) {
+      log.error(
+        "Unsuccessfully published ${ACP_M_AND_D_REFERRAL_DETAILS_UPDATED.value} event for referral name missing for referralId: $referralId with exception: ${exception.message}",
+        exception,
+      )
+      telemetryService.logToAppInsights(
+        eventName = "Referral.details-updated-event-published.failure",
+        properties = mapOf(
+          "referralId" to referralId.toString(),
+          "outcome" to "failure",
+        ),
+      )
+
+      throw exception
+    }
+  }
+}

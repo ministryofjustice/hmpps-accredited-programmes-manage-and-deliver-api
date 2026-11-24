@@ -25,6 +25,18 @@ app:
       shedlock:
         lock-most: PT2H # lock for max 2 hours
         lock-least: PT1H # lock at least for 1 hour
+    referral-names-updated:
+      cron: "${REFERRAL_NAMES_UPDATED_CRON:0 0 2 * * *}"  # default every day at 2 AM
+      chunk-size: 100  # process referral records in chunks
+      shedlock:
+        lock-most: PT2H # lock for max 2 hours
+        lock-least: PT1H # lock at least for 1 hour
+    facilitator-names-updated:
+      cron: "${FACILITATOR_NAMES_UPDATED_CRON:0 0 3 * * *}"  # default every day at 3 AM
+      chunk-size: 100  # process facilitator records in chunks
+      shedlock:
+        lock-most: PT2H # lock for max 2 hours
+        lock-least: PT1H # lock at least for 1 hour
 
 spring:
   application:
