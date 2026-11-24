@@ -2,7 +2,6 @@ package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.eve
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -60,9 +59,7 @@ class FacilitatorNamesUpdatedHandler(
 
       messageHistoryRepository.save(message.toEntity(objectMapper.writeValueAsString(message)))
       val facilitatorId = UUID.fromString(facilitatorIdString)
-      val result = runBlocking {
-        facilitatorService.updateNameByFacilitatorId(facilitatorId)
-      }
+      val result = facilitatorService.updateNameByFacilitatorId(facilitatorId)
 
       if (result == null) {
         log.warn("No facilitator found for ID: $facilitatorId — skipping refresh")

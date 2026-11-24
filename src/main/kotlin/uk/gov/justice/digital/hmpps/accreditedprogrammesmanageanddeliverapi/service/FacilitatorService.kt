@@ -1,7 +1,5 @@
 package uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.service
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -46,7 +44,7 @@ class FacilitatorService(
    *
    * @param facilitatorId The facilitator ID for which to update structured names.
    */
-  suspend fun updateNameByFacilitatorId(facilitatorId: UUID): FacilitatorEntity? {
+  fun updateNameByFacilitatorId(facilitatorId: UUID): FacilitatorEntity? {
     log.debug("START update name for facilitator with id: {}", facilitatorId)
 
     val facilitator = facilitatorRepository.findByIdOrNull(facilitatorId)
@@ -55,9 +53,7 @@ class FacilitatorService(
       facilitator.personForename = staffDto.forename
       facilitator.personSurname = staffDto.surname
       facilitator.personMiddleNames = staffDto.middleNames
-      withContext(Dispatchers.IO) {
-        facilitatorRepository.save(facilitator)
-      }
+      facilitatorRepository.save(facilitator)
       log.info("[Facilitator of id $facilitatorId]...success!")
     } else {
       log.error("[Facilitator of id $facilitatorId] doesn't exists!")

@@ -36,13 +36,14 @@ class ReferralNamesUpdatedJob(
   @Scheduled(cron = "\${app.scheduling.referral-names-updated.cron}")
   @SchedulerLock(
     name = "referralNameUpdateJob",
-    lockAtMostFor = $$"${app.scheduling.referral-names-updated.shedlock.lock-most:PT2H}",
-    lockAtLeastFor = $$"${app.scheduling.referral-names-updated.shedlock.lock-least:PT1H}",
+    lockAtMostFor = "\${app.scheduling.referral-names-updated.shedlock.lock-most:PT2H}",
+    lockAtLeastFor = "\${app.scheduling.referral-names-updated.shedlock.lock-least:PT1H}",
   )
   fun process() {
     val now = clock.instant()
     log.info("Referral names updated job started: at $now")
     var totalUpdated = 0
+    var totalFailed = 0
     var currentPage = 1
     var hasMoreRecords = true
 
@@ -59,6 +60,7 @@ class ReferralNamesUpdatedJob(
           publishEvent(message, referralId)
           totalUpdated++
         } catch (exception: Exception) {
+          totalFailed++
           log.error(
             "Failed to publish event updating referral name for referralId: $referralId, skipping and continuing",
             exception,
@@ -72,7 +74,7 @@ class ReferralNamesUpdatedJob(
 
     val endTime = clock.instant()
     log.info(
-      "Referral names updated Job completed: updates sent: $totalUpdated, time took: ${
+      "Referral names updated Job completed: updates sent: $totalUpdated, $totalFailed failed, time took: ${
         Duration.between(
           now,
           endTime,
