@@ -40,7 +40,7 @@ class FacilitatorNamesUpdatedJob(
   )
   fun process() {
     val now = clock.instant()
-    log.info("Facilitator names updated job started: at $now")
+    log.info("Facilitator names updated job started at: $now")
     var totalUpdated = 0
     var currentPage = 1
     var hasMoreRecords = true
