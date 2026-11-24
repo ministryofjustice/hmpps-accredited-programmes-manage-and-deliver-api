@@ -27,4 +27,9 @@ generic-service:
     # Set HMPPS_SAR_TEMPLATE_PATH here to promote a new version to prod, only after
     # it has been validated in dev + preprod and signed off by the SAR team.
 
+    scheduledDowntime:
+    enabled: true
+    startup: '30 6 * * 1-5' # Start at 6.30am UTC Monday-Friday
+    shutdown: '30 21 * * 1-5' # Stop at 9.30pm UTC Monday-Friday
+
 dataRefreshEnabled: true
