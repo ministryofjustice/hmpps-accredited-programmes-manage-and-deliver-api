@@ -35,8 +35,8 @@ class FacilitatorNamesUpdatedJob(
   @Scheduled(cron = "\${app.scheduling.facilitator-names-updated.cron}")
   @SchedulerLock(
     name = "facilitatorNameUpdateJob",
-    lockAtMostFor = $$"${app.scheduling.facilitator-names-updated.shedlock.lock-most:PT2H}",
-    lockAtLeastFor = $$"${app.scheduling.facilitator-names-updated.shedlock.lock-least:PT1H}",
+    lockAtMostFor = "\${app.scheduling.facilitator-names-updated.shedlock.lock-most:PT2H}",
+    lockAtLeastFor = "\${app.scheduling.facilitator-names-updated.shedlock.lock-least:PT1H}",
   )
   fun process() {
     val now = clock.instant()
