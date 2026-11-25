@@ -298,6 +298,7 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
         ),
         team = CodeDescription(code = "TEAM001", description = "TeamDescription"),
         probationDeliveryUnit = NDeliusApiProbationDeliveryUnit(code = "PDU001", description = "North London PDU"),
+        region = CodeDescription(code = "REGION001", description = "Test Region"),
         officeLocations = listOf(
           CodeDescription(code = "OFF001", description = "OfficeOne"),
           CodeDescription(code = "OFF002", description = "OfficeTwo"),
@@ -349,6 +350,9 @@ class NDeliusIntegrationApiClientIntegrationTest : IntegrationTestBase() {
 
         assertThat(body.manager.probationDeliveryUnit.code).isEqualTo("PDU001")
         assertThat(body.manager.probationDeliveryUnit.description).isEqualTo("North London PDU")
+
+        assertThat(body.manager.region.code).isEqualTo("REGION001")
+        assertThat(body.manager.region.description).isEqualTo("Test Region")
 
         assertThat(body.manager.officeLocations).hasSize(2)
         assertThat(body.manager.officeLocations[0].code).isEqualTo("OFF001")

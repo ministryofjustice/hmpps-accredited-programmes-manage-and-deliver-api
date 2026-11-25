@@ -133,6 +133,10 @@
               "code": "PDU001",
               "description": "(Wiremocked) London PDU"
             },
+            "region": {
+              "code": "REGION001",
+              "description": "(Wiremocked) London"
+            },
             "officeLocations": [
               {
                 "code": "OFF001",
@@ -201,6 +205,10 @@
             "probationDeliveryUnit": {
               "code": "N03UAT",
               "description": "Unallocated Level 2(N03)"
+            },
+            "region": {
+              "code": "N03",
+              "description": "(Wiremocked) Wales"
             },
             "officeLocations": [
               {

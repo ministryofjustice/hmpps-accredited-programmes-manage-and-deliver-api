@@ -171,6 +171,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
           code = "PDU001",
           description = "(Wiremocked) London PDU",
         ),
+        region = CodeDescription(code = "REGION001", description = "Test Region"),
         officeLocations = listOf(
           CodeDescription(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
           CodeDescription(code = "OFF002", description = "(Wiremocked) Victoria Office"),
@@ -193,6 +194,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(result.team.description).isEqualTo("(Wiremocked) Community Offender Management Team")
       assertThat(result.probationDeliveryUnit.code).isEqualTo("PDU001")
       assertThat(result.probationDeliveryUnit.description).isEqualTo("(Wiremocked) London PDU")
+      assertThat(result.region.code).isEqualTo("REGION001")
+      assertThat(result.region.description).isEqualTo("Test Region")
       assertThat(result.officeLocations).hasSize(2)
       assertThat(result.officeLocations[0].code).isEqualTo("OFF001")
       assertThat(result.officeLocations[0].description).isEqualTo("(Wiremocked) Waterloo Office")
@@ -225,6 +228,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
           code = "N03UAT",
           description = "Unallocated Level 2(N03)",
         ),
+        region = CodeDescription(code = "N03", description = "(Wiremocked) Wales"),
         officeLocations = listOf(
           CodeDescription(code = "N03ANPS", description = "All Location"),
         ),
@@ -250,6 +254,8 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       assertThat(result.team.description).isEqualTo("Unallocated Team(N03)")
       assertThat(result.probationDeliveryUnit.code).isEqualTo("N03UAT")
       assertThat(result.probationDeliveryUnit.description).isEqualTo("Unallocated Level 2(N03)")
+      assertThat(result.region.code).isEqualTo("N03")
+      assertThat(result.region.description).isEqualTo("(Wiremocked) Wales")
       assertThat(result.officeLocations).hasSize(1)
       assertThat(result.officeLocations[0].code).isEqualTo("N03ANPS")
       assertThat(result.officeLocations[0].description).isEqualTo("All Location")
@@ -952,7 +958,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `createReferral should take the reporting location PDU and team from the licence condition manager when the flag is enabled`() {
+    fun `createReferral should take the reporting location PDU, team and region from the licence condition manager when the flag is enabled`() {
       // Given
       whenever(featureFlagService.isEnabled(REFERRAL_LOCATION_USE_REQUIREMENT_MANAGER)).thenReturn(true)
       oasysApiStubs.stubNotFoundPniResponse(referralDetails.personReference)
@@ -967,6 +973,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         NDeliusCaseRequirementOrLicenceConditionResponseFactory()
           .withPdu("MANAGER_PDU_CODE", "MANAGER_PDU_DESCRIPTION")
           .withTeam("MANAGER_TEAM_CODE", "MANAGER_TEAM_DESCRIPTION")
+          .withRegion("MANAGER_REGION_CODE", "MANAGER_REGION_DESCRIPTION")
           .produce(),
       )
 
@@ -977,7 +984,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       val reportingLocation = reportingLocationRepository.findByReferralId(referral.id)!!
       assertThat(reportingLocation.pduName).isEqualTo("MANAGER_PDU_DESCRIPTION")
       assertThat(reportingLocation.reportingTeam).isEqualTo("MANAGER_TEAM_DESCRIPTION")
-      assertThat(reportingLocation.regionName).isEqualTo(personalDetails.region.description)
+      assertThat(reportingLocation.regionName).isEqualTo("MANAGER_REGION_DESCRIPTION")
     }
 
     @Test
@@ -1109,7 +1116,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `refreshPersonalDetailsForReferral takes the reporting location PDU and team from the requirement manager when the flag is enabled`() = runTest {
+    fun `refreshPersonalDetailsForReferral takes the reporting location PDU, team and region from the requirement manager when the flag is enabled`() = runTest {
       // Given
       val referral = testReferralHelper.createReferral(
         sourcedFrom = ReferralEntitySourcedFrom.REQUIREMENT,
@@ -1132,6 +1139,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
         NDeliusCaseRequirementOrLicenceConditionResponseFactory()
           .withPdu("MANAGER_PDU_CODE", "MANAGER_PDU_DESCRIPTION")
           .withTeam("MANAGER_TEAM_CODE", "MANAGER_TEAM_DESCRIPTION")
+          .withRegion("MANAGER_REGION_CODE", "MANAGER_REGION_DESCRIPTION")
           .produce(),
       )
       nDeliusApiStubs.stubSuccessfulSentenceInformationResponse(
@@ -1148,7 +1156,7 @@ class ReferralServiceIntegrationTest : IntegrationTestBase() {
       val reportingLocation = reportingLocationRepository.findByReferralId(referral.id)!!
       assertThat(reportingLocation.pduName).isEqualTo("MANAGER_PDU_DESCRIPTION")
       assertThat(reportingLocation.reportingTeam).isEqualTo("MANAGER_TEAM_DESCRIPTION")
-      assertThat(reportingLocation.regionName).isEqualTo("PP_REGION_DESCRIPTION")
+      assertThat(reportingLocation.regionName).isEqualTo("MANAGER_REGION_DESCRIPTION")
       assertThat(referralDetails.pdu).isEqualTo("MANAGER_PDU_DESCRIPTION")
       assertThat(referralDetails.reportingTeam).isEqualTo("MANAGER_TEAM_DESCRIPTION")
     }

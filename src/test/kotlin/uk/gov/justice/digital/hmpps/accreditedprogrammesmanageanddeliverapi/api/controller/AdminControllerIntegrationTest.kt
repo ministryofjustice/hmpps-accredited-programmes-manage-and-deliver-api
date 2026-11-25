@@ -284,6 +284,7 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
       ),
       team = CodeDescription("TEAM001", "Primary Team"),
       probationDeliveryUnit = primaryPdu,
+      region = CodeDescription(code = "REGION001", description = "Test Region"),
       officeLocations = primaryOffices,
     )
     val requirementResponse =
@@ -336,6 +337,7 @@ class AdminControllerIntegrationTest : IntegrationTestBase() {
       ),
       team = CodeDescription("TEAM001", "Primary Team"),
       probationDeliveryUnit = primaryPdu,
+      region = CodeDescription(code = "REGION001", description = "Test Region"),
       officeLocations = primaryOffices,
     )
     val requirementResponse =

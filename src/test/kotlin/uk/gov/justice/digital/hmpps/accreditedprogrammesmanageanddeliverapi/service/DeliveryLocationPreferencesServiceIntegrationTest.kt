@@ -124,6 +124,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
       ),
       team = CodeDescription("TEAM001", "Primary Team"),
       probationDeliveryUnit = primaryPdu,
+      region = CodeDescription(code = "REGION001", description = "Test Region"),
       officeLocations = primaryOffices,
     )
 
@@ -234,6 +235,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
       ),
       team = CodeDescription("TEAM001", "Primary Team"),
       probationDeliveryUnit = primaryPdu,
+      region = CodeDescription(code = "REGION001", description = "Test Region"),
       officeLocations = primaryOffices,
     )
 
@@ -314,6 +316,7 @@ class DeliveryLocationPreferencesServiceIntegrationTest : IntegrationTestBase() 
       ),
       team = CodeDescription("TEAM002", "Licence Team"),
       probationDeliveryUnit = primaryPdu,
+      region = CodeDescription(code = "REGION001", description = "Test Region"),
       officeLocations = emptyList(),
     )
 

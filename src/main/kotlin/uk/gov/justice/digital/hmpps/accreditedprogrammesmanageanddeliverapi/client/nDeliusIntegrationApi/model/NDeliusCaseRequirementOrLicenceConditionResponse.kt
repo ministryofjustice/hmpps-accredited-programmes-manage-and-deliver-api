@@ -24,6 +24,7 @@ data class RequirementOrLicenceConditionManager(
   val staff: RequirementStaff,
   val team: CodeDescription,
   val probationDeliveryUnit: NDeliusApiProbationDeliveryUnit,
+  val region: CodeDescription,
   val officeLocations: List<CodeDescription>,
 )
 

@@ -360,12 +360,11 @@ class ReferralService(
         null
       }
 
-      // TODO Use region from manager once delius has updated endpoint
       val referralReportingLocation = ReferralReportingLocationEntity(
         referral = referral,
         pduName = requirementOrLicenceConditionManager?.probationDeliveryUnit?.description ?: personalDetails.probationDeliveryUnit.description,
         reportingTeam = requirementOrLicenceConditionManager?.team?.description ?: personalDetails.team.description,
-        regionName = personalDetails.region.description,
+        regionName = requirementOrLicenceConditionManager?.region?.description ?: personalDetails.region.description,
       )
       referralReportingLocationRepository.save(referralReportingLocation)
       referralEntity.referralReportingLocation = referralReportingLocation
@@ -744,22 +743,22 @@ class ReferralService(
     requirementOrLicenceConditionManager: RequirementOrLicenceConditionManager?,
     sentenceEndDateDetails: SentenceEndDateDetails?,
   ) {
-    // TODO use manager region once delius endpoint is updated
     val pduDescription = requirementOrLicenceConditionManager?.probationDeliveryUnit?.description ?: personalDetails.probationDeliveryUnit.description
     val teamDescription = requirementOrLicenceConditionManager?.team?.description ?: personalDetails.team.description
+    val regionDescription = requirementOrLicenceConditionManager?.region?.description ?: personalDetails.region.description
 
     // If there is already a row in the db then update it otherwise create a new one
     val referralReportingLocation = referralReportingLocationRepository.findByReferralId(referral.id)
       ?.apply {
         pduName = pduDescription
         reportingTeam = teamDescription
-        regionName = personalDetails.region.description
+        regionName = regionDescription
       }
       ?: ReferralReportingLocationEntity(
         referral = referral,
         pduName = pduDescription,
         reportingTeam = teamDescription,
-        regionName = personalDetails.region.description,
+        regionName = regionDescription,
       )
 
     val savedEntity = referralReportingLocationRepository.save(referralReportingLocation)

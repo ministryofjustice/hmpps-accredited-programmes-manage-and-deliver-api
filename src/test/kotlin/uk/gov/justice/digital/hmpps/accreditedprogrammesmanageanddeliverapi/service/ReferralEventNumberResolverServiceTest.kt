@@ -229,6 +229,7 @@ class ReferralEventNumberResolverServiceTest {
         code = "PDU001",
         description = "(Wiremocked) London PDU",
       ),
+      region = CodeDescription(code = "REGION001", description = "Test Region"),
       officeLocations = listOf(
         CodeDescription(code = "OFF001", description = "(Wiremocked) Waterloo Office"),
         CodeDescription(code = "OFF002", description = "(Wiremocked) Victoria Office"),
