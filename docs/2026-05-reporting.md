@@ -37,6 +37,19 @@ It is initially planned that reporting data will be accessed by internal members
 
 This pattern export allows early usage feedback with low delivery cost.  
 
+## Selecting data (November 2026)
+
+All four reports take the same query parameters:
+
+- `startDate` and `endDate` (required, `YYYY-MM-DD`, inclusive).
+  - Group size and dosage cover groups that started between these dates, whenever their sessions were held. A group starts with its first Getting started 1 session, ignoring catch-ups.
+  - Session rate and facilitator continuity cover sessions held between these dates, whenever the group started.
+- `region` (optional). Leave it out for national data, which covers every region except the test regions in `ReportingRegions.EXCLUDED_FROM_NATIONAL`.
+
+Region names must match `ReportingRegions.REGION_NAMES`. The URL generator in the UI repo holds the same list, so change both together.
+
+A main session is any group (not one-to-one) session, including catch-ups of group sessions. In the dosage report a group catch-up therefore counts towards both `numberMainAttended` and `numberCatchUpAttended`. It leaves out PoPs who have not attended any sessions.
+
 ## Technical implementation 
 
 Under the hood, we are using materialised views and CSV export provide predictable, auditable outputs.  These are boring technology choices, which allow quick feature development and iteration.
@@ -59,7 +72,6 @@ The reporting endpoints are disabled by defaults, and enabled via the `reporting
 Planned delivery method is intentionally lightweight:
 
 - A simple `.js` script (or minimal `.html` page with inline `script`) generates links for recent reporting windows.
-- Expected windows are typically the last 1 to 4 weeks.
 - Users click links to retrieve CSV files directly.
 
 ## Design Principles For Follow-On Work

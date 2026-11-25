@@ -32,7 +32,9 @@ interface ModuleSessionTemplateRepository : JpaRepository<ModuleSessionTemplateE
 
   @Query(
     value = """
-      SELECT m.module_number AS moduleNumber,
+      SELECT mst.id AS sessionTemplateId,
+             mst.session_type AS sessionType,
+             m.module_number AS moduleNumber,
              mst.session_number AS sessionNumber,
              mst.name AS sessionName
       FROM module_session_template mst
@@ -47,6 +49,8 @@ interface ModuleSessionTemplateRepository : JpaRepository<ModuleSessionTemplateE
 }
 
 interface BuildingChoicesSessionColumnProjection {
+  val sessionTemplateId: UUID
+  val sessionType: String
   val moduleNumber: Int
   val sessionNumber: Int
   val sessionName: String

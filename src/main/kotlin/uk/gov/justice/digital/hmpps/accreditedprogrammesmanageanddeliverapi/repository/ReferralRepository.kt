@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntity
 import uk.gov.justice.digital.hmpps.accreditedprogrammesmanageanddeliverapi.entity.ReferralEntitySourcedFrom
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Optional
 import java.util.UUID
@@ -54,27 +53,21 @@ interface ReferralRepository : JpaRepository<ReferralEntity, UUID> {
 
   @Query(
     value = """
-      SELECT DISTINCT r.id AS referralId,
+      SELECT r.id AS referralId,
              r.event_id AS licReqNo,
              r.crn AS crn,
-             COALESCE(rrl.region_name, 'UNKNOWN_REGION_NAME') AS regionName
+             STRING_AGG(DISTINCT pg.region_name, '; ' ORDER BY pg.region_name) AS regionName
       FROM referral r
-      LEFT JOIN referral_reporting_location rrl ON r.id = rrl.referral_id
-      LEFT JOIN referral_status_history rsh ON r.id = rsh.referral_id
-      LEFT JOIN referral_status_description rsd ON rsd.id = rsh.referral_status_description_id
+      JOIN programme_group_membership gm ON gm.referral_id = r.id
+      JOIN programme_group pg ON pg.id = gm.programme_group_id
       WHERE r.intervention_name = 'Building Choices'
-        AND (
-          (CAST(:referralsCreatedSince AS DATE) IS NOT NULL AND r.created_at::date > CAST(:referralsCreatedSince AS DATE))
-          OR
-          (CAST(:referralsCompletedAfter AS DATE) IS NOT NULL AND rsd.description_text = 'Programme complete' AND rsh.created_at::date > CAST(:referralsCompletedAfter AS DATE))
-        )
+        AND pg.id IN (:groupIds)
+      GROUP BY r.id, r.event_id, r.crn
+      ORDER BY r.crn, r.id
       """,
     nativeQuery = true,
   )
-  fun getDosageReportReferrals(
-    referralsCreatedSince: LocalDate?,
-    referralsCompletedAfter: LocalDate?,
-  ): List<DosageReportReferralProjection>
+  fun getDosageReportReferrals(groupIds: Collection<UUID>): List<DosageReportReferralProjection>
 
   fun findByEventNumber(eventNumber: Int): List<ReferralEntity>
 }
